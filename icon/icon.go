@@ -1,4 +1,3 @@
-// Package icon provides a unified registry over SVG and IVG icons.
 package icon
 
 import "github.com/vibrantgio/svg"

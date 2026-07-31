@@ -1,5 +1,3 @@
-// Package layout provides spacing helpers, a FocusGroup, and flex/grid wrappers
-// for Gio applications. It forms part of the Prism component foundation.
 package layout
 
 import (

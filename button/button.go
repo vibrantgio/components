@@ -1,8 +1,3 @@
-// Package button provides a Prism Button component for Gio applications.
-//
-// The component integrates with both FRP (via rx.Observable) and MVU (via
-// mvu.MessageOp) application patterns, per the component contract in
-// DESIGN §"Bridging FRP and MVU".
 package button
 
 import (

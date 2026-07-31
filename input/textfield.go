@@ -1,4 +1,3 @@
-// Package input provides Prism input components for Gio applications.
 package input
 
 import (

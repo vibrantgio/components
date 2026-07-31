@@ -17,7 +17,15 @@
 //
 // # Updating goldens
 //
-//	go test -golden.update ./...
+// Name the packages explicitly and put the flag AFTER them:
+//
+//	go test ./button ./input ./internal/golden ./layout ./list ./richtext ./scrollbar -golden.update
+//
+// Both halves of that line matter. go test cannot tell that an unfamiliar flag
+// is boolean, so -golden.update placed before the packages swallows them and
+// only the package in the current directory is tested. And ./... cannot stand
+// in for the list: this module has test packages that store no goldens, and a
+// test binary rejects a flag it never declared.
 //
 // # CI gate
 //

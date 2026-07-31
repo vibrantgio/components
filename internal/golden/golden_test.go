@@ -28,7 +28,7 @@ func cornflowerRect(gtx layout.Context) layout.Dimensions {
 // repository. If this test fails with a mismatch it means the rendering
 // pipeline changed; if it fails with "not found", run:
 //
-//	go test -golden.update ./prism/internal/golden/
+//	go test ./internal/golden -golden.update
 func TestStable(t *testing.T) {
 	golden.Render(t, "stable", image.Pt(64, 64), cornflowerRect)
 }
