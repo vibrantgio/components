@@ -7,7 +7,6 @@ require (
 	github.com/reactivego/rx v0.3.0
 	github.com/vibrantgio/ivg/raster/gio v0.1.5
 	github.com/vibrantgio/mvu v0.4.1
-	github.com/vibrantgio/pulse v0.0.3
 	github.com/vibrantgio/svg v0.0.6
 	github.com/vibrantgio/svg/driver/gio v0.0.6
 	golang.org/x/image v0.44.0
@@ -18,7 +17,6 @@ require (
 	github.com/go-text/typesetting v0.3.4 // indirect
 	github.com/reactivego/scheduler v0.2.0 // indirect
 	github.com/vibrantgio/ivg v0.1.4 // indirect
-	github.com/vibrantgio/traer v0.0.7 // indirect
 	golang.org/x/exp v0.0.0-20260727155853-b88d891fe743 // indirect
 	golang.org/x/exp/shiny v0.0.0-20260727155853-b88d891fe743 // indirect
 	golang.org/x/net v0.57.0 // indirect
