@@ -1,6 +1,6 @@
 # prism
 
-The component foundation of [VibrantGio](https://github.com/vibrantgio), a
+The component foundation of [Vibrant Gio](https://github.com/vibrantgio), a
 design system for native desktop applications on macOS, Windows and Linux,
 written in pure Go on [Gio](https://gioui.org). prism is where the buttons,
 inputs, lists, rich text, scrollbars, icons and layout primitives live —
@@ -90,7 +90,7 @@ shaper := text.NewShaper(text.WithCollection(style.FontFaces()))
 
 Then, condensed from `list.go` in
 [workbench/todos](https://github.com/vibrantgio/workbench/tree/master/todos) —
-the smallest complete VibrantGio application — the virtual list and one row's
+the smallest complete Vibrant Gio application — the virtual list and one row's
 checkbox:
 
 ```go
@@ -171,7 +171,7 @@ golden-image commands.
 
 Honest about what does not work yet:
 
-- **The typeface.** VibrantGio ships Roboto, but there is no typography token
+- **The typeface.** Vibrant Gio ships Roboto, but there is no typography token
   yet: `button`, `input.TextField` and `input.Dropdown` each build a Go-fonts
   shaper for themselves when `Props.Shaper` is nil, and nothing warns you —
   the application renders, in the wrong typeface. Always pass

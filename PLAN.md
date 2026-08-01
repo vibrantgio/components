@@ -1,9 +1,9 @@
-# prism/scrollbar — a visible, token-themed scrollbar for VibrantGio
+# prism/scrollbar — a visible, token-themed scrollbar for Vibrant Gio
 
 Deliver a `prism/scrollbar` package (draggable thumb + clickable track, drawn
 from prism colour tokens) and integrate it into `prism/list` so virtual lists
 can show scroll position, then release and adopt it downstream. Today nothing
-in VibrantGio draws a scrollbar: `prism/list` scrolls invisibly, and the only
+in Vibrant Gio draws a scrollbar: `prism/list` scrolls invisibly, and the only
 existing implementation is `gioui.org/widget/material` — Material-themed and
 off-brand.
 
@@ -245,7 +245,7 @@ nothing outside it changes. After every task the full repo gates pass:
   exercised; repo gates stay green.
 - **Achievable:** the gesture engine is reused (ADR-003) and the drawing is a
   transliteration of a known-good recipe (R-002).
-- **Relevant:** unblocks every scrolling surface in VibrantGio — prism/list,
+- **Relevant:** unblocks every scrolling surface in Vibrant Gio — prism/list,
   cadence/table, mindchat panes — starting with the list integration in P2.
 - **Context-bound:** three tasks, each well under the ADR-001 budget; the
   working set is one new package plus two reference files.

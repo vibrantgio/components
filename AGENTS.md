@@ -1,6 +1,6 @@
 # AGENTS.md — prism
 
-The component library of the VibrantGio design system: buttons, inputs,
+The component library of the Vibrant Gio design system: buttons, inputs,
 lists, rich text, scrollbars, icons, layout primitives, and the `theme` and
 `tokens` contract the rest of the stack styles against.
 

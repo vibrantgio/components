@@ -1,4 +1,4 @@
-// Package button provides the VibrantGio button: a text or icon-only
+// Package button provides the Vibrant Gio button: a text or icon-only
 // affordance carrying hover, focus, press and disabled treatments, activation
 // by click or by Space and Enter, a screen-reader label, and a minimum 44 dp
 // interactive target.
