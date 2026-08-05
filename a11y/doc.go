@@ -1,19 +1,11 @@
-// Package a11y publishes the operating system's accessibility display
-// preferences — reduce motion, increased contrast, larger text — as an
-// rx.Observable[A11yPrefs] that emits only when a value actually changes.
+// Package a11y is a forwarding shim for github.com/vibrantgio/spectrum/a11y,
+// which is where the OS accessibility-preference observables now live: the
+// source moved down from prism into spectrum (ADR-001, E3.2) so the theme
+// runtime that composes reduce-motion and high-contrast into its emissions
+// sits beneath the components it themes. Every identifier here is a type
+// alias or re-export of its spectrum counterpart, so existing imports of this
+// path keep compiling unchanged for one release cycle; the shim is removed in
+// the next major release of prism.
 //
-// Reach for it when behaviour should follow the user's system settings rather
-// than an application toggle: gate an animation on ReduceMotion, pick a
-// higher-contrast token set on HighContrast. Subscribe once near the top of a
-// layer and share the observable downstream; pass your own Source to
-// FromSource to stub the OS out in a test.
-//
-// It assumes polling. Nothing here is push-based, so Live takes an interval
-// and one second is the intended default — the platform caches these
-// properties and will not report a toggle much faster. macOS and Windows
-// report real preferences; Linux returns the zero A11yPrefs, all false,
-// because there is no reliable cross-desktop API without depending on a
-// particular desktop environment. A11yPrefs is deliberately all comparable
-// fields: change detection is struct equality, so adding a slice or map field
-// would break it.
+// Deprecated: use github.com/vibrantgio/spectrum/a11y instead.
 package a11y
