@@ -7,7 +7,7 @@ require (
 	github.com/reactivego/rx v0.3.0
 	github.com/vibrantgio/ivg/raster/gio v0.1.6
 	github.com/vibrantgio/mvu v0.4.2
-	github.com/vibrantgio/spectrum v0.0.13
+	github.com/vibrantgio/spectrum v0.0.14
 	github.com/vibrantgio/svg v0.0.8
 	github.com/vibrantgio/svg/driver/gio v0.0.7
 	golang.org/x/image v0.44.0
