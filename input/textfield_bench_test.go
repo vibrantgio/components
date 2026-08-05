@@ -6,19 +6,17 @@ import (
 	"testing"
 
 	"gioui.org/f32"
-	"gioui.org/font/gofont"
 	gioinput "gioui.org/io/input"
 	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
-	"gioui.org/text"
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/prism/bench"
 	"github.com/vibrantgio/prism/input"
-	"github.com/vibrantgio/prism/theme"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/theme"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 // BenchmarkTextFieldRender measures the static, unfocused render path
@@ -26,7 +24,7 @@ import (
 // It is the idle baseline that the live caret-blink frame below is contrasted
 // against; b.ReportAllocs is enabled by the harness.
 func BenchmarkTextFieldRender(b *testing.B) {
-	shaper := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	shaper := tokens.DefaultTypography.Shaper()
 	w := input.Render(
 		shaper, "Placeholder",
 		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
@@ -50,7 +48,7 @@ func BenchmarkTextFieldRender(b *testing.B) {
 // silently did not take — otherwise we would benchmark the unfocused
 // placeholder frame under a "caret-blink" label.
 func BenchmarkTextFieldCaretBlink(b *testing.B) {
-	shaper := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	shaper := tokens.DefaultTypography.Shaper()
 	var changed string
 	props := input.TextFieldProps{
 		Placeholder: "Placeholder",

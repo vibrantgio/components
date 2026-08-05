@@ -14,8 +14,9 @@
 // The text field is uncontrolled. Props.Seed pre-fills a newly created
 // instance so an existing value can be edited rather than retyped, but a later
 // Seed does not touch a live instance — rebuild the field, keyed on an epoch,
-// to reseed it. TextField and Dropdown draw text and therefore need
-// Props.Shaper: leave it nil and they silently build a Go-fonts shaper for
-// themselves and render in the wrong typeface. Checkbox and Radio draw no text
-// and need no shaper.
+// to reseed it. TextField and Dropdown draw text in the theme's BodyLarge
+// role, shaped with the theme's shaper (Typography.Shaper()); Props.Shaper is
+// an explicit per-instance override for the rare case where one control must
+// shape with a different shaper than the theme provides. Checkbox and Radio
+// draw no text and need no shaper.
 package input

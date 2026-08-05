@@ -10,7 +10,7 @@ import (
 
 	"github.com/vibrantgio/prism/input"
 	golden "github.com/vibrantgio/prism/internal/golden"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 // ---- Golden-image tests ----

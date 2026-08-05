@@ -5,7 +5,6 @@ import (
 	"image/color"
 
 	"gioui.org/font"
-	"gioui.org/font/gofont"
 	"gioui.org/io/event"
 	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
@@ -19,8 +18,8 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/mvu"
-	"github.com/vibrantgio/prism/theme"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/theme"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 // minHeight is the minimum interactive target height (WCAG 2.5.5, DESIGN §Accessibility).
@@ -97,16 +96,38 @@ type TextFieldProps struct {
 	// mvu.MessageOp{Message: ...}.Add(gtx.Ops) inside the callback.
 	OnSubmit func(gtx layout.Context, text string)
 
-	// Shaper, if nil, defaults to a shaper backed by Go fonts.
+	// Shaper is an explicit per-instance override of the text shaper. Leave it
+	// nil in normal use: the field then shapes its text with the theme's
+	// shaper (Typography.Shaper()), which is built once and cached inside the
+	// theme's Typography value. Set it only when this field must shape with
+	// a different shaper than the theme provides.
 	Shaper *text.Shaper
 }
 
 // resolvedTokens is the concrete per-emission snapshot consumed by the widget closure.
 type resolvedTokens struct {
 	color   tokens.ColorTokens
-	typ     tokens.TypeScale
+	body    tokens.TextStyle // the BodyLarge role: typeface, weight, size, line height
 	spacing tokens.SpacingScale
 	radius  tokens.RadiusScale
+	shaper  *text.Shaper // the theme's shaper; nil in the Render* paths
+}
+
+// bodyLabel derives the Gio font, a single-line label and the text size from
+// the BodyLarge role carried in tok. Zero fields (the legacy Render paths
+// synthesize a size-only style) fall back to the shaper's defaults.
+func bodyLabel(tok resolvedTokens) (font.Font, widget.Label, unit.Sp) {
+	style := tok.body
+	f := font.Font{Typeface: font.Typeface(style.Typeface)}
+	if style.Weight != 0 {
+		f.Weight = tokens.FontWeight(style.Weight)
+	}
+	wl := widget.Label{MaxLines: 1}
+	if style.LineHeight != 0 {
+		wl.LineHeight = unit.Sp(style.LineHeight)
+		wl.LineHeightScale = 1
+	}
+	return f, wl, unit.Sp(style.Size)
 }
 
 // TextField returns an rx.Observable[layout.Widget] that emits a new widget
@@ -122,11 +143,21 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 		disabled = rx.Of(false)
 	}
 
+	// Flatten the nested theme observables into a concrete snapshot. The
+	// typography emission supplies both the BodyLarge text style and the
+	// theme's cached shaper (ADR-003: the theme owns the typeface).
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest4(t.Color, t.Type, t.Spacing, t.Radius),
-			func(n rx.Tuple4[tokens.ColorTokens, tokens.TypeScale, tokens.SpacingScale, tokens.RadiusScale]) resolvedTokens {
-				return resolvedTokens{n.First, n.Second, n.Third, n.Fourth}
+			rx.CombineLatest4(t.Color, t.Typography, t.Spacing, t.Radius),
+			func(n rx.Tuple4[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale]) resolvedTokens {
+				typ := n.Second
+				return resolvedTokens{
+					color:   n.First,
+					body:    typ.BodyLarge,
+					spacing: n.Third,
+					radius:  n.Fourth,
+					shaper:  typ.Shaper(),
+				}
 			},
 		)
 	})
@@ -143,13 +174,16 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 		if props.FocusTag != nil {
 			props.FocusTag(editor)
 		}
-		shaper := props.Shaper
-		if shaper == nil {
-			shaper = text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
-		}
 
 		return rx.Map(inputs, func(next rx.Tuple2[resolvedTokens, bool]) layout.Widget {
 			tok, dis := next.First, next.Second
+
+			// Props.Shaper is an explicit override; the theme's shaper is
+			// the default.
+			shaper := props.Shaper
+			if shaper == nil {
+				shaper = tok.shaper
+			}
 
 			return func(gtx layout.Context) layout.Dimensions {
 				if dis {
@@ -201,7 +235,10 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 
 // Render produces a layout.Widget for a text field in an explicit visual state,
 // without any event processing or rx machinery. Intended for golden-image
-// testing and static demonstrations; production code should use TextField.
+// testing and static demonstrations; production code should use TextField,
+// which takes the shaper and the BodyLarge text style from the theme's
+// Typography. The TypeScale parameter contributes only the BodyLarge size;
+// typeface, weight and line height stay at the shaper's defaults.
 func Render(
 	shaper *text.Shaper,
 	placeholder string,
@@ -211,7 +248,7 @@ func Render(
 	ts tokens.TypeScale,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, typ: ts}
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: tokens.TextStyle{Size: ts.BodyLarge}}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawTextFieldStatic(gtx, shaper, placeholder, tok, s)
 	}
@@ -223,7 +260,8 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	padV := gtx.Dp(unit.Dp(tok.spacing.S2))
 	minH := gtx.Dp(minHeight)
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
-	textSize := unit.Sp(tok.typ.BodyLarge)
+	// Shape with the BodyLarge role's typeface, weight, size and line height.
+	f, wl, textSize := bodyLabel(tok)
 
 	bg, textColor, borderColor, phColor := textFieldColors(tok.color, s)
 
@@ -251,8 +289,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	phMat := mPhColor.Stop()
 
 	mPh := op.Record(gtx.Ops)
-	wl := widget.Label{MaxLines: 1}
-	contentDims := wl.Layout(innerGtx, shaper, font.Font{}, textSize, placeholder, phMat)
+	contentDims := wl.Layout(innerGtx, shaper, f, textSize, placeholder, phMat)
 	phCall := mPh.Stop()
 
 	fieldH := contentDims.Size.Y + 2*padV
@@ -308,8 +345,14 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 		Min: image.Pt(innerW, 0),
 		Max: image.Pt(innerW, contentDims.Size.Y),
 	}
+	// The editor shapes with the same BodyLarge role as the placeholder label
+	// so measured content height and caret metrics line up.
+	if tok.body.LineHeight != 0 {
+		editor.LineHeight = unit.Sp(tok.body.LineHeight)
+		editor.LineHeightScale = 1
+	}
 	st := op.Offset(image.Pt(padH, offY)).Push(gtx.Ops)
-	editor.Layout(editorGtx, shaper, font.Font{}, textSize, textMat, selMat)
+	editor.Layout(editorGtx, shaper, f, textSize, textMat, selMat)
 	st.Pop()
 
 	if !s.Disabled {
@@ -326,7 +369,8 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	padV := gtx.Dp(unit.Dp(tok.spacing.S2))
 	minH := gtx.Dp(minHeight)
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
-	textSize := unit.Sp(tok.typ.BodyLarge)
+	// Shape with the BodyLarge role's typeface, weight, size and line height.
+	f, wl, textSize := bodyLabel(tok)
 
 	bg, textColor, borderColor, phColor := textFieldColors(tok.color, s)
 
@@ -357,8 +401,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	labelMat := mLabelColor.Stop()
 
 	mLabel := op.Record(gtx.Ops)
-	wl := widget.Label{MaxLines: 1}
-	labelDims := wl.Layout(innerGtx, shaper, font.Font{}, textSize, labelText, labelMat)
+	labelDims := wl.Layout(innerGtx, shaper, f, textSize, labelText, labelMat)
 	labelCall := mLabel.Stop()
 
 	fieldH := labelDims.Size.Y + 2*padV

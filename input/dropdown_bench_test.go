@@ -4,21 +4,19 @@ import (
 	"image"
 	"testing"
 
-	"gioui.org/font/gofont"
 	"gioui.org/layout"
 	"gioui.org/op"
-	"gioui.org/text"
 	"gioui.org/unit"
 
 	"github.com/vibrantgio/prism/input"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 // BenchmarkDropdownRender exercises the closed dropdown widget(gtx) for b.N
 // synthetic frames, per DESIGN §"Performance — Profiling". b.ReportAllocs is
 // enabled so CI can gate on per-frame allocation regressions (>5% threshold).
 func BenchmarkDropdownRender(b *testing.B) {
-	shaper := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	shaper := tokens.DefaultTypography.Shaper()
 	w := input.RenderDropdown(
 		shaper,
 		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
@@ -42,7 +40,7 @@ func BenchmarkDropdownRender(b *testing.B) {
 // BenchmarkDropdownRenderOpen benchmarks the open state which additionally
 // draws the option list below the trigger.
 func BenchmarkDropdownRenderOpen(b *testing.B) {
-	shaper := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	shaper := tokens.DefaultTypography.Shaper()
 	opts := []string{"Option A", "Option B", "Option C"}
 	openH := 44 + len(opts)*44
 	w := input.RenderDropdown(

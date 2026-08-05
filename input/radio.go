@@ -12,8 +12,8 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/mvu"
-	"github.com/vibrantgio/prism/theme"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/theme"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 // radioCircleSize is the outer diameter of the radio circle.
@@ -67,11 +67,15 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 		disabled = rx.Of(false)
 	}
 
+	// Flatten the nested theme observables into a concrete snapshot. The
+	// radio draws no text, so unlike TextField/Dropdown it does not
+	// subscribe to the theme's Typography and leaves the snapshot's body
+	// style and shaper zero.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest4(t.Color, t.Type, t.Spacing, t.Radius),
-			func(n rx.Tuple4[tokens.ColorTokens, tokens.TypeScale, tokens.SpacingScale, tokens.RadiusScale]) resolvedTokens {
-				return resolvedTokens{n.First, n.Second, n.Third, n.Fourth}
+			rx.CombineLatest3(t.Color, t.Spacing, t.Radius),
+			func(n rx.Tuple3[tokens.ColorTokens, tokens.SpacingScale, tokens.RadiusScale]) resolvedTokens {
+				return resolvedTokens{color: n.First, spacing: n.Second, radius: n.Third}
 			},
 		)
 	})

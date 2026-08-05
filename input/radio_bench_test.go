@@ -9,7 +9,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/vibrantgio/prism/input"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 // BenchmarkRadioRender exercises widget(gtx) for b.N synthetic frames,

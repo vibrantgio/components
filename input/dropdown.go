@@ -5,8 +5,6 @@ import (
 	"image/color"
 
 	"gioui.org/f32"
-	"gioui.org/font"
-	"gioui.org/font/gofont"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -18,8 +16,8 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/mvu"
-	"github.com/vibrantgio/prism/theme"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/theme"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 // DropdownRenderState holds explicit visual state for static rendering.
@@ -58,7 +56,11 @@ type DropdownProps struct {
 	// on every selection. This is the MVU integration path.
 	Message any
 
-	// Shaper, if nil, defaults to a shaper backed by Go fonts.
+	// Shaper is an explicit per-instance override of the text shaper. Leave it
+	// nil in normal use: the dropdown then shapes its text with the theme's
+	// shaper (Typography.Shaper()), which is built once and cached inside the
+	// theme's Typography value. Set it only when this dropdown must shape with
+	// a different shaper than the theme provides.
 	Shaper *text.Shaper
 }
 
@@ -75,11 +77,21 @@ func Dropdown(th rx.Observable[theme.Theme], props DropdownProps) rx.Observable[
 		disabled = rx.Of(false)
 	}
 
+	// Flatten the nested theme observables into a concrete snapshot. The
+	// typography emission supplies both the BodyLarge text style and the
+	// theme's cached shaper (ADR-003: the theme owns the typeface).
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest4(t.Color, t.Type, t.Spacing, t.Radius),
-			func(n rx.Tuple4[tokens.ColorTokens, tokens.TypeScale, tokens.SpacingScale, tokens.RadiusScale]) resolvedTokens {
-				return resolvedTokens{n.First, n.Second, n.Third, n.Fourth}
+			rx.CombineLatest4(t.Color, t.Typography, t.Spacing, t.Radius),
+			func(n rx.Tuple4[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale]) resolvedTokens {
+				typ := n.Second
+				return resolvedTokens{
+					color:   n.First,
+					body:    typ.BodyLarge,
+					spacing: n.Third,
+					radius:  n.Fourth,
+					shaper:  typ.Shaper(),
+				}
 			},
 		)
 	})
@@ -91,13 +103,16 @@ func Dropdown(th rx.Observable[theme.Theme], props DropdownProps) rx.Observable[
 		optClicks := make([]widget.Clickable, len(props.Options))
 		var open bool
 		selected := props.Selected
-		shaper := props.Shaper
-		if shaper == nil {
-			shaper = text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
-		}
 
 		return rx.Map(inputs, func(next rx.Tuple2[resolvedTokens, bool]) layout.Widget {
 			tok, dis := next.First, next.Second
+
+			// Props.Shaper is an explicit override; the theme's shaper is
+			// the default.
+			shaper := props.Shaper
+			if shaper == nil {
+				shaper = tok.shaper
+			}
 
 			return func(gtx layout.Context) layout.Dimensions {
 				if dis {
@@ -136,7 +151,10 @@ func Dropdown(th rx.Observable[theme.Theme], props DropdownProps) rx.Observable[
 
 // RenderDropdown produces a layout.Widget for a dropdown in an explicit visual
 // state, without any event processing or rx machinery. Intended for golden-image
-// testing and static demonstrations; production code should use Dropdown.
+// testing and static demonstrations; production code should use Dropdown, which
+// takes the shaper and the BodyLarge text style from the theme's Typography.
+// The TypeScale parameter contributes only the BodyLarge size; typeface,
+// weight and line height stay at the shaper's defaults.
 func RenderDropdown(
 	shaper *text.Shaper,
 	colors tokens.ColorTokens,
@@ -145,7 +163,7 @@ func RenderDropdown(
 	ts tokens.TypeScale,
 	s DropdownRenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, typ: ts}
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: tokens.TextStyle{Size: ts.BodyLarge}}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawDropdown(gtx, shaper, tok, s)
 	}
@@ -217,7 +235,8 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
 	padV := gtx.Dp(unit.Dp(tok.spacing.S2))
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
-	textSize := unit.Sp(tok.typ.BodyLarge)
+	// Shape with the BodyLarge role's typeface, weight, size and line height.
+	f, wl, textSize := bodyLabel(tok)
 	minH := gtx.Dp(minHeight)
 	fieldW := gtx.Constraints.Max.X
 	chevronSz := gtx.Dp(unit.Dp(16))
@@ -248,8 +267,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	textMat := mTextCol.Stop()
 
 	mLabel := op.Record(gtx.Ops)
-	wl := widget.Label{MaxLines: 1}
-	labelDims := wl.Layout(innerGtx, shaper, font.Font{}, textSize, selectedText, textMat)
+	labelDims := wl.Layout(innerGtx, shaper, f, textSize, selectedText, textMat)
 	labelCall := mLabel.Stop()
 
 	triggerH := labelDims.Size.Y + 2*padV
@@ -311,7 +329,8 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, selected bool, label string) layout.Dimensions {
 	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
 	padV := gtx.Dp(unit.Dp(tok.spacing.S2))
-	textSize := unit.Sp(tok.typ.BodyLarge)
+	// Shape with the BodyLarge role's typeface, weight, size and line height.
+	f, wl, textSize := bodyLabel(tok)
 	minH := gtx.Dp(minHeight)
 	fieldW := gtx.Constraints.Max.X
 
@@ -331,8 +350,7 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	textMat := mTextCol.Stop()
 
 	mLabel := op.Record(gtx.Ops)
-	wl := widget.Label{MaxLines: 1}
-	labelDims := wl.Layout(innerGtx, shaper, font.Font{}, textSize, label, textMat)
+	labelDims := wl.Layout(innerGtx, shaper, f, textSize, label, textMat)
 	labelCall := mLabel.Stop()
 
 	rowH := labelDims.Size.Y + 2*padV
