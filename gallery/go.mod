@@ -17,9 +17,9 @@ require (
 	gioui.org v0.10.1
 	github.com/reactivego/rx v0.3.0
 	github.com/vibrantgio/ivg/raster/gio v0.1.6
-	github.com/vibrantgio/prism v0.1.3
+	github.com/vibrantgio/prism v0.1.5
 	github.com/vibrantgio/pulse v0.0.7
-	github.com/vibrantgio/spectrum v0.0.9
+	github.com/vibrantgio/spectrum v0.0.10
 )
 
 require (
