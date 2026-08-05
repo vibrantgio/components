@@ -4,12 +4,9 @@ import (
 	"image"
 	"testing"
 
-	"gioui.org/font/gofont"
-	"gioui.org/text"
-
 	"github.com/vibrantgio/prism/bench"
 	"github.com/vibrantgio/prism/richtext"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 // benchSize fits the mixed test paragraph wrapped over two lines — a
@@ -23,7 +20,7 @@ var benchSize = image.Pt(400, 120)
 // shaper's layout cache after the first frame), line wrapping, glyph
 // painting, and the link underline.
 func BenchmarkRichtextRender(b *testing.B) {
-	shaper := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	shaper := tokens.DefaultTypography.Shaper()
 	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
 	w := richtext.Render(shaper, style, mixedSpans(), richtext.Idle())
 	bench.BenchFrame(b, w, bench.WithSize(benchSize))
@@ -32,7 +29,7 @@ func BenchmarkRichtextRender(b *testing.B) {
 // BenchmarkRichtextRenderFocused benchmarks the focused-link state, which
 // additionally draws the focus-ring stroke path.
 func BenchmarkRichtextRenderFocused(b *testing.B) {
-	shaper := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	shaper := tokens.DefaultTypography.Shaper()
 	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
 	w := richtext.Render(shaper, style, mixedSpans(),
 		richtext.RenderState{HoveredLink: richtext.NoLink, FocusedLink: 0})

@@ -6,7 +6,6 @@ import (
 
 	"gioui.org/f32"
 	"gioui.org/font"
-	"gioui.org/font/gofont"
 	gioinput "gioui.org/io/input"
 	"gioui.org/io/key"
 	"gioui.org/io/pointer"
@@ -17,12 +16,12 @@ import (
 
 	golden "github.com/vibrantgio/prism/internal/golden"
 	"github.com/vibrantgio/prism/richtext"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 func defaultShaper(t *testing.T) *text.Shaper {
 	t.Helper()
-	return text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	return tokens.DefaultTypography.Shaper()
 }
 
 // mixedSpans is the canonical test paragraph: regular, bold, italic, and

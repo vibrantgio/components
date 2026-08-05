@@ -8,7 +8,7 @@ import (
 	"gioui.org/op"
 	"gioui.org/unit"
 
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 // testContext returns a bare layout context at the given size with a

@@ -11,7 +11,7 @@ import (
 	"gioui.org/unit"
 
 	golden "github.com/vibrantgio/prism/internal/golden"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 // TestScrollbarGolden records or diffs canonical vertical scrollbar renders on

@@ -45,7 +45,7 @@ import (
 	"gioui.org/text"
 	"gioui.org/unit"
 
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 // SpanStyle describes one run of styled text within a paragraph: the span

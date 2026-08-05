@@ -15,7 +15,6 @@ import (
 
 	"gioui.org/app"
 	"gioui.org/font"
-	"gioui.org/font/gofont"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -40,6 +39,7 @@ import (
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
 	"github.com/vibrantgio/prism/icon"
 	"github.com/vibrantgio/pulse/springbutton"
+	spectrumtokens "github.com/vibrantgio/spectrum/tokens"
 )
 
 var pageNames = []string{
@@ -148,7 +148,9 @@ func main() {
 }
 
 func run(w *app.Window) error {
-	shaper := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	// The theme's cached Roboto shaper (spectrum tokens.DefaultTypography),
+	// shared by every static Render* variant and label on the pages.
+	shaper := spectrumtokens.DefaultTypography.Shaper()
 	g := newGallery(w, shaper)
 	defer g.cleanup()
 
