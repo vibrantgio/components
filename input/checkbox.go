@@ -160,7 +160,7 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	// Draw first so the box overdrawing covers only the inner half.
 	if s.Focused {
 		rrect := clip.RRect{Rect: boxRect, SE: boxRad, SW: boxRad, NE: boxRad, NW: boxRad}
-		paint.FillShape(gtx.Ops, tok.color.Primary, clip.Stroke{
+		paint.FillShape(gtx.Ops, tok.color.FocusRing(), clip.Stroke{
 			Path:  rrect.Path(gtx.Ops),
 			Width: float32(gtx.Dp(2)),
 		}.Op())
@@ -169,16 +169,16 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	if s.Checked {
 		fill := tok.color.Primary
 		if s.Disabled {
-			fill = withAlpha(fill, 0x61)
+			fill = tokens.Disabled(fill)
 		}
 		rrect := clip.RRect{Rect: boxRect, SE: boxRad, SW: boxRad, NE: boxRad, NW: boxRad}
 		paint.FillShape(gtx.Ops, fill, rrect.Op(gtx.Ops))
 	} else {
 		// Border as nested fills: outer rect in border colour, inner rect in
 		// surface colour. Avoids clip.Stroke anti-aliasing variance in tests.
-		border := tok.color.Outline
+		border := tok.color.Ramps.Neutral.Step(500) // strong border
 		if s.Disabled {
-			border = withAlpha(border, 0x61)
+			border = tokens.Disabled(border)
 		}
 		borderPx := gtx.Dp(2)
 		innerRad := boxRad - borderPx

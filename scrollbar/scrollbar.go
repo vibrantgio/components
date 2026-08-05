@@ -57,13 +57,16 @@ func (s Style) Width() unit.Dp {
 }
 
 // FromTokens derives the default scrollbar look from colour tokens.
-// The thumb is OnSurfaceVariant alpha-composited (~40% at rest, ~67% while
-// hovered or dragged), so it tracks light and dark schemes automatically.
+// The thumb is the Neutral 700 step (ADR-007's low-contrast-text step)
+// alpha-composited (~40% at rest, ~67% while hovered or dragged), so it
+// tracks light and dark schemes automatically. The translucency is the
+// thumb's identity — content shows through the overlay — not an MD3 state
+// layer, so it survives ADR-007's move to ramp-step states.
 // The track is transparent by default.
 func FromTokens(c tokens.ColorTokens) Style {
-	thumb := c.OnSurfaceVariant
+	thumb := c.Ramps.Neutral.Step(700)
 	thumb.A = 100
-	hover := c.OnSurfaceVariant
+	hover := c.Ramps.Neutral.Step(700)
 	hover.A = 170
 	return Style{
 		ThumbColor:        thumb,

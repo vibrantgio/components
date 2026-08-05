@@ -440,18 +440,22 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	return layout.Dimensions{Size: fieldSize}
 }
 
-// textFieldColors returns (bg, text, border, placeholder) colors for the given state.
+// textFieldColors returns (bg, text, border, placeholder) colors for the
+// given state: the Surface ground, body text, ADR-007's strong-border step
+// (Neutral 500) and low-contrast-text step (Neutral 700) for the
+// placeholder. Disabled fades each to DisabledOpacity (D2.3); focus promotes
+// the border to Primary.
 func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, placeholder color.NRGBA) {
 	bg = c.Surface
-	text = c.OnSurface
-	border = c.Outline
-	placeholder = withAlpha(c.OnSurfaceVariant, 0x99)
+	text = c.Text
+	border = c.Ramps.Neutral.Step(500)      // strong border
+	placeholder = c.Ramps.Neutral.Step(700) // low-contrast text
 	switch {
 	case s.Disabled:
-		bg = withAlpha(c.SurfaceVariant, 0x80)
-		text = withAlpha(c.OnSurface, 0x61)
-		border = withAlpha(c.Outline, 0x61)
-		placeholder = withAlpha(c.OnSurfaceVariant, 0x40)
+		bg = tokens.Disabled(bg)
+		text = tokens.Disabled(text)
+		border = tokens.Disabled(border)
+		placeholder = tokens.Disabled(placeholder)
 	case s.Focused:
 		border = c.Primary
 	}

@@ -116,7 +116,7 @@ func frame(gtx layout.Context, shaper *text.Shaper) layout.Dimensions {
 					gtx.Constraints.Max.X = lw
 
 					m := op.Record(gtx.Ops)
-					paint.ColorOp{Color: colors.OnBackground}.Add(gtx.Ops)
+					paint.ColorOp{Color: colors.Text}.Add(gtx.Ops)
 					mat := m.Stop()
 
 					lbl := widget.Label{MaxLines: 1}

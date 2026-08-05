@@ -335,7 +335,7 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 	cs := make([]layout.FlexChild, 0, 1+len(pageNames))
 	cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return prismlayout.Inset(16).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return g.label(gtx, "Prism Gallery", tokens.DefaultLight.OnBackground, unit.Sp(13), font.Font{Weight: font.Bold})
+			return g.label(gtx, "Prism Gallery", tokens.DefaultLight.Text, unit.Sp(13), font.Font{Weight: font.Bold})
 		})
 	}))
 	for i, name := range pageNames {
@@ -346,7 +346,7 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 			}
 			active := g.page == i
 			bg := tokens.DefaultLight.Background
-			fg := tokens.DefaultLight.OnBackground
+			fg := tokens.DefaultLight.Text
 			if active {
 				bg = tokens.DefaultLight.Primary
 				fg = tokens.DefaultLight.OnPrimary
@@ -410,7 +410,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(prismlayout.HSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, fmt.Sprintf("Clicks: %d", g.btnClicks),
-								tokens.DefaultLight.OnBackground, unit.Sp(14), font.Font{})
+								tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 						}),
 					)
 				})
@@ -437,7 +437,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 								layout.Rigid(prismlayout.HSpacer(16)),
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									return g.label(gtx, fmt.Sprintf("Clicks: %d", g.btnCompareClicks),
-										tokens.DefaultLight.OnBackground, unit.Sp(14), font.Font{})
+										tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 								}),
 							)
 						}),
@@ -460,7 +460,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 								layout.Rigid(prismlayout.HSpacer(16)),
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									return g.label(gtx, fmt.Sprintf("Clicks: %d", g.springBtnClicks),
-										tokens.DefaultLight.OnBackground, unit.Sp(14), font.Font{})
+										tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 								}),
 							)
 						}),
@@ -501,7 +501,7 @@ func (g *gallery) buttonVariantRows() []layout.FlexChild {
 		r := r
 		w := button.Render(g.shaper, "Button", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return g.variantRow(gtx, r.label, r.rowBg, r.colors.OnBackground, w)
+			return g.variantRow(gtx, r.label, r.rowBg, r.colors.Text, w)
 		})
 	}
 	return cs
@@ -554,7 +554,7 @@ func (g *gallery) pageInputs(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(prismlayout.HSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "Option A", tokens.DefaultLight.OnBackground, unit.Sp(14), font.Font{})
+							return g.label(gtx, "Option A", tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 						}),
 						layout.Rigid(prismlayout.HSpacer(32)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -565,7 +565,7 @@ func (g *gallery) pageInputs(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(prismlayout.HSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "Option B", tokens.DefaultLight.OnBackground, unit.Sp(14), font.Font{})
+							return g.label(gtx, "Option B", tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 						}),
 					)
 				})
@@ -609,7 +609,7 @@ func (g *gallery) textFieldVariantRows() []layout.FlexChild {
 		r := r
 		w := input.Render(g.shaper, "Placeholder…", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.OnBackground, w)
+			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.Text, w)
 		})
 	}
 	return cs
@@ -634,7 +634,7 @@ func (g *gallery) checkboxVariantRows() []layout.FlexChild {
 		r := r
 		w := input.RenderCheckbox(r.colors, tokens.Spacing, tokens.Radius, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.OnBackground, w)
+			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.Text, w)
 		})
 	}
 	return cs
@@ -659,7 +659,7 @@ func (g *gallery) radioVariantRows() []layout.FlexChild {
 		r := r
 		w := input.RenderRadio(r.colors, tokens.Spacing, tokens.Radius, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.OnBackground, w)
+			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.Text, w)
 		})
 	}
 	return cs
@@ -685,7 +685,7 @@ func (g *gallery) dropdownVariantRows() []layout.FlexChild {
 		r := r
 		w := input.RenderDropdown(g.shaper, r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.OnBackground, w)
+			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.Text, w)
 		})
 	}
 	return cs
@@ -731,7 +731,7 @@ func (g *gallery) listScrollbarDemo(gtx layout.Context) layout.Dimensions {
 		bar := scrollbar.FromTokens(tokens.DefaultLight)
 		row := func(gtx layout.Context, item string) layout.Dimensions {
 			return prismlayout.InsetXY(0, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return g.label(gtx, item, tokens.DefaultLight.OnBackground, unit.Sp(14), font.Font{})
+				return g.label(gtx, item, tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 			})
 		}
 		column := func(title string, st *list.State, anchor list.Anchor) layout.Widget {
@@ -775,7 +775,7 @@ func (g *gallery) scrollbarDemo(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min = gtx.Constraints.Max
 				return g.sbList.Layout(gtx, len(g.sbItems), func(gtx layout.Context, i int) layout.Dimensions {
 					return prismlayout.InsetXY(0, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return g.label(gtx, g.sbItems[i], tokens.DefaultLight.OnBackground, unit.Sp(14), font.Font{})
+						return g.label(gtx, g.sbItems[i], tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 					})
 				})
 			}),
@@ -876,7 +876,7 @@ func (g *gallery) pageRichtext(gtx layout.Context) layout.Dimensions {
 							if g.rtLastURL != "" {
 								status = fmt.Sprintf("Activated %d×, last: %s", g.rtClicks, g.rtLastURL)
 							}
-							return g.label(gtx, status, tokens.DefaultLight.OnBackground, unit.Sp(14), font.Font{})
+							return g.label(gtx, status, tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 						}),
 						layout.Rigid(prismlayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -909,7 +909,7 @@ func (g *gallery) pageIcon(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(prismlayout.HSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "icon.FromIVG(data) + ivgraster.Widget", tokens.DefaultLight.OnBackground, unit.Sp(13), font.Font{})
+							return g.label(gtx, "icon.FromIVG(data) + ivgraster.Widget", tokens.DefaultLight.Text, unit.Sp(13), font.Font{})
 						}),
 					)
 				})
@@ -921,7 +921,7 @@ func (g *gallery) pageIcon(gtx layout.Context) layout.Dimensions {
 					status := fmt.Sprintf(`Registry has "info": %v  (kind=IVG, from icon.FromIVG)`, registered)
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, status, tokens.DefaultLight.OnBackground, unit.Sp(14), font.Font{})
+							return g.label(gtx, status, tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 						}),
 						layout.Rigid(prismlayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -1005,13 +1005,12 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 	g.prefsMu.Unlock()
 
 	hc := tokens.ColorTokens{
-		Background:   color.NRGBA{0xff, 0xff, 0xff, 0xff},
-		OnBackground: color.NRGBA{0x00, 0x00, 0x00, 0xff},
-		Primary:      color.NRGBA{0x00, 0x00, 0x00, 0xff},
-		OnPrimary:    color.NRGBA{0xff, 0xff, 0xff, 0xff},
-		Outline:      color.NRGBA{0x00, 0x00, 0x00, 0xff},
-		Surface:      color.NRGBA{0xff, 0xff, 0xff, 0xff},
-		OnSurface:    color.NRGBA{0x00, 0x00, 0x00, 0xff},
+		Background: color.NRGBA{0xff, 0xff, 0xff, 0xff},
+		Text:       color.NRGBA{0x00, 0x00, 0x00, 0xff},
+		Primary:    color.NRGBA{0x00, 0x00, 0x00, 0xff},
+		OnPrimary:  color.NRGBA{0xff, 0xff, 0xff, 0xff},
+		Surface:    color.NRGBA{0xff, 0xff, 0xff, 0xff},
+		Divider:    color.NRGBA{0x00, 0x00, 0x00, 0xff},
 	}
 
 	return g.scrollPage(gtx, g.scrollSt[pageA11y], func(gtx layout.Context) layout.Dimensions {
@@ -1049,7 +1048,7 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(prismlayout.HSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "ColorTokens with maximum contrast ratios.", tokens.DefaultLight.OnBackground, unit.Sp(13), font.Font{})
+							return g.label(gtx, "ColorTokens with maximum contrast ratios.", tokens.DefaultLight.Text, unit.Sp(13), font.Font{})
 						}),
 					)
 				})
@@ -1061,7 +1060,7 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 					if prefs.ReduceMotion {
 						status = "reduced motion: skip animations"
 					}
-					return g.label(gtx, status, tokens.DefaultLight.OnBackground, unit.Sp(14), font.Font{})
+					return g.label(gtx, status, tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 				})
 			}),
 		}
@@ -1077,7 +1076,7 @@ func (g *gallery) prefRow(gtx layout.Context, name string, value bool) layout.Di
 	return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			gtx.Constraints.Min.X = gtx.Dp(unit.Dp(200))
-			return g.label(gtx, name, tokens.DefaultLight.OnBackground, unit.Sp(14), font.Font{})
+			return g.label(gtx, name, tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.label(gtx, indicator, col, unit.Sp(14), font.Font{Weight: font.Bold})
@@ -1099,7 +1098,7 @@ func (g *gallery) pageInitial(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								fmt.Sprintf("Gallery opened at: %s", firstFrame.Format("15:04:05.000")),
-								tokens.DefaultLight.OnBackground, unit.Sp(14), font.Font{})
+								tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 						}),
 						layout.Rigid(prismlayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -1155,7 +1154,7 @@ func (g *gallery) pageCoord(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(prismlayout.VSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, "Consumer received: "+received,
-								tokens.DefaultLight.OnBackground, unit.Sp(14), font.Font{})
+								tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 						}),
 						layout.Rigid(prismlayout.VSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -1191,7 +1190,7 @@ func (g *gallery) sectionHeader(title string) layout.FlexChild {
 		h := gtx.Dp(unit.Dp(36))
 		paint.FillShape(gtx.Ops, bg, clip.Rect{Max: image.Pt(gtx.Constraints.Max.X, h)}.Op())
 		return prismlayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return g.label(gtx, title, tokens.DefaultLight.OnBackground, unit.Sp(13), font.Font{Weight: font.Bold})
+			return g.label(gtx, title, tokens.DefaultLight.Text, unit.Sp(13), font.Font{Weight: font.Bold})
 		})
 	})
 }

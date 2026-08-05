@@ -246,9 +246,9 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 		selectedText = s.Options[s.Selected]
 	}
 
-	textCol := tok.color.OnSurface
+	textCol := tok.color.Text
 	if s.Disabled {
-		textCol = withAlpha(tok.color.OnSurface, 0x61)
+		textCol = tokens.Disabled(textCol)
 	}
 
 	// Reserve space for chevron: padH on the right side plus chevron width.
@@ -278,14 +278,14 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 
 	bg := tok.color.Surface
 	if s.Disabled {
-		bg = withAlpha(tok.color.SurfaceVariant, 0x80)
+		bg = tokens.Disabled(bg)
 	}
-	borderCol := tok.color.Outline
+	borderCol := tok.color.Ramps.Neutral.Step(500) // strong border
 	if s.Focused {
 		borderCol = tok.color.Primary
 	}
 	if s.Disabled {
-		borderCol = withAlpha(tok.color.Outline, 0x61)
+		borderCol = tokens.Disabled(tok.color.Ramps.Neutral.Step(500))
 	}
 	borderPx := gtx.Dp(1)
 	if s.Focused {
@@ -316,9 +316,9 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	// Chevron: downward triangle aligned to the right.
 	cx := fieldW - padH - chevronSz/2
 	cy := triggerH / 2
-	chevronCol := tok.color.OnSurfaceVariant
+	chevronCol := tok.color.Ramps.Neutral.Step(700) // low-contrast glyph
 	if s.Disabled {
-		chevronCol = withAlpha(tok.color.OnSurfaceVariant, 0x61)
+		chevronCol = tokens.Disabled(chevronCol)
 	}
 	drawChevron(gtx, cx, cy, chevronSz, chevronCol)
 
@@ -334,7 +334,7 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	minH := gtx.Dp(minHeight)
 	fieldW := gtx.Constraints.Max.X
 
-	textCol := tok.color.OnSurface
+	textCol := tok.color.Text
 	innerW := fieldW - 2*padH
 	if innerW < 1 {
 		innerW = 1
@@ -361,7 +361,9 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 
 	bg := tok.color.Surface
 	if selected {
-		bg = tok.color.SurfaceVariant
+		// Selected is a D2.3 state walk: two steps past the Surface ground
+		// (Neutral 200), landing on Neutral 400.
+		bg = tok.color.StateColor(tokens.RoleNeutral, 200, tokens.StateSelected)
 	}
 	paint.FillShape(gtx.Ops, bg, clip.Rect{Max: rowSize}.Op())
 

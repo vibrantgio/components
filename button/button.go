@@ -291,7 +291,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 
 	// Focus ring (2 dp stroke on the background boundary).
 	if s.Focused {
-		paint.FillShape(gtx.Ops, tok.color.Outline, clip.Stroke{
+		paint.FillShape(gtx.Ops, tok.color.FocusRing(), clip.Stroke{
 			Path:  rrect.Path(gtx.Ops),
 			Width: float32(gtx.Dp(2)),
 		}.Op())
@@ -330,7 +330,7 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 
 	// Focus ring (2 dp stroke on the background boundary), matching drawButton.
 	if s.Focused {
-		paint.FillShape(gtx.Ops, tok.color.Outline, clip.Stroke{
+		paint.FillShape(gtx.Ops, tok.color.FocusRing(), clip.Stroke{
 			Path:  rrect.Path(gtx.Ops),
 			Width: float32(gtx.Dp(2)),
 		}.Op())
@@ -353,37 +353,25 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 	return layout.Dimensions{Size: sz}
 }
 
-// buttonColors returns the background and foreground colors for the given state.
+// buttonColors returns the background and foreground colors for the given
+// state. The background is the Primary solid fill resolved through the D2.3
+// state walk (ADR-007: hover and pressed step the pin toward the 900 end of
+// the primary ramp; focus keeps the fill and draws the ring); the foreground
+// is OnPrimary, faded to DisabledOpacity when disabled.
 func buttonColors(c tokens.ColorTokens, s RenderState) (bg, fg color.NRGBA) {
-	bg, fg = c.Primary, c.OnPrimary
+	fg = c.OnPrimary
+	state := tokens.StateNormal
 	switch {
 	case s.Disabled:
-		// 38% opacity — WCAG disabled state convention.
-		bg = withAlpha(bg, 0x61)
-		fg = withAlpha(fg, 0x61)
+		state = tokens.StateDisabled
+		fg = tokens.Disabled(fg)
 	case s.Pressed:
-		// ~15% black overlay for press feedback.
-		bg = blend(bg, color.NRGBA{A: 0x26})
-	case s.Focused, s.Hovered:
-		// ~10% white overlay for hover/focus feedback.
-		bg = blend(bg, color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0x1a})
+		state = tokens.StatePressed
+	case s.Hovered:
+		state = tokens.StateHover
+	case s.Focused:
+		state = tokens.StateFocus
 	}
+	bg = c.SolidStateColor(tokens.RolePrimary, state)
 	return
-}
-
-// withAlpha returns c with its alpha scaled by factor a (0–255).
-func withAlpha(c color.NRGBA, a uint8) color.NRGBA {
-	c.A = uint8(uint16(c.A) * uint16(a) / 255)
-	return c
-}
-
-// blend alpha-composites overlay on top of base using straight alpha.
-func blend(base, overlay color.NRGBA) color.NRGBA {
-	a := float32(overlay.A) / 255
-	return color.NRGBA{
-		R: uint8(float32(base.R)*(1-a) + float32(overlay.R)*a + 0.5),
-		G: uint8(float32(base.G)*(1-a) + float32(overlay.G)*a + 0.5),
-		B: uint8(float32(base.B)*(1-a) + float32(overlay.B)*a + 0.5),
-		A: base.A,
-	}
 }

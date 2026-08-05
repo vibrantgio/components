@@ -159,7 +159,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	// (1dp) is visible outside the circle fill and stays within the 44dp hit
 	// target. Draw first so the circle overdrawing covers only the inner half.
 	if s.Focused {
-		paint.FillShape(gtx.Ops, tok.color.Primary, clip.Stroke{
+		paint.FillShape(gtx.Ops, tok.color.FocusRing(), clip.Stroke{
 			Path:  clip.Ellipse(outerRect).Path(gtx.Ops),
 			Width: float32(gtx.Dp(2)),
 		}.Op())
@@ -168,7 +168,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	if s.Selected {
 		fill := tok.color.Primary
 		if s.Disabled {
-			fill = withAlpha(fill, 0x61)
+			fill = tokens.Disabled(fill)
 		}
 		// Outer ring in primary, surface gap, inner dot in primary.
 		// Nested-fill technique avoids clip.Stroke anti-aliasing variance.
@@ -188,9 +188,9 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		// Border as nested fills: outer ellipse in border colour, inner
 		// ellipse in surface colour. Avoids clip.Stroke anti-aliasing
 		// variance in tests.
-		border := tok.color.Outline
+		border := tok.color.Ramps.Neutral.Step(500) // strong border
 		if s.Disabled {
-			border = withAlpha(border, 0x61)
+			border = tokens.Disabled(border)
 		}
 		paint.FillShape(gtx.Ops, border, clip.Ellipse(outerRect).Op(gtx.Ops))
 		innerRect := image.Rectangle{

@@ -331,18 +331,18 @@ func TestLinkFocusTraversalAndKeyboardActivation(t *testing.T) {
 
 // ---- Token defaults ----
 
-// TestFromTokensDefaults pins the FromTokens contract: body text in
-// OnBackground at BodyLarge, links in Primary, focus ring in Outline.
+// TestFromTokensDefaults pins the FromTokens contract: body text in Text at
+// BodyLarge, links in Primary, focus ring in FocusRing.
 func TestFromTokensDefaults(t *testing.T) {
 	st := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
-	if st.Color != tokens.DefaultLight.OnBackground {
-		t.Errorf("Color = %v, want OnBackground %v", st.Color, tokens.DefaultLight.OnBackground)
+	if st.Color != tokens.DefaultLight.Text {
+		t.Errorf("Color = %v, want Text %v", st.Color, tokens.DefaultLight.Text)
 	}
 	if st.LinkColor != tokens.DefaultLight.Primary {
 		t.Errorf("LinkColor = %v, want Primary %v", st.LinkColor, tokens.DefaultLight.Primary)
 	}
-	if st.FocusColor != tokens.DefaultLight.Outline {
-		t.Errorf("FocusColor = %v, want Outline %v", st.FocusColor, tokens.DefaultLight.Outline)
+	if st.FocusColor != tokens.DefaultLight.FocusRing() {
+		t.Errorf("FocusColor = %v, want FocusRing %v", st.FocusColor, tokens.DefaultLight.FocusRing())
 	}
 	if st.Size != unit.Sp(tokens.DefaultTypeScale.BodyLarge) {
 		t.Errorf("Size = %v, want BodyLarge %v", st.Size, tokens.DefaultTypeScale.BodyLarge)

@@ -100,13 +100,13 @@ type Style struct {
 }
 
 // FromTokens derives the default paragraph style from colour tokens and the
-// type scale: body text in OnBackground at BodyLarge, links in Primary, and
-// the focus ring in Outline (matching prism/button's ring colour).
+// type scale: body text in Text at BodyLarge, links in Primary, and the
+// focus ring in FocusRing (matching prism/button's ring colour).
 func FromTokens(c tokens.ColorTokens, ts tokens.TypeScale) Style {
 	return Style{
-		Color:      c.OnBackground,
+		Color:      c.Text,
 		LinkColor:  c.Primary,
-		FocusColor: c.Outline,
+		FocusColor: c.FocusRing(),
 		Size:       unit.Sp(ts.BodyLarge),
 	}
 }

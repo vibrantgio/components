@@ -59,13 +59,13 @@ func TestFromTokens(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			s := FromTokens(tc.c)
 
-			wantThumb := tc.c.OnSurfaceVariant
+			wantThumb := tc.c.Ramps.Neutral.Step(700)
 			wantThumb.A = 100
 			if s.ThumbColor != wantThumb {
 				t.Errorf("ThumbColor = %v, want %v", s.ThumbColor, wantThumb)
 			}
 
-			wantHover := tc.c.OnSurfaceVariant
+			wantHover := tc.c.Ramps.Neutral.Step(700)
 			wantHover.A = 170
 			if s.ThumbHoverColor != wantHover {
 				t.Errorf("ThumbHoverColor = %v, want %v", s.ThumbHoverColor, wantHover)
