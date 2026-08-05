@@ -110,6 +110,11 @@ type resolvedTokens struct {
 	radius  tokens.RadiusScale
 	density tokens.Density // control height and inner padding (E1.3)
 	shaper  *text.Shaper   // the theme's shaper; nil in the Render* paths
+	// elevation is the surface-step ladder (E2.3). Only the dropdown
+	// consumes it — its floating menu is the one raised plane in this
+	// package — so only the Dropdown pipeline and RenderDropdown populate
+	// it; the flat controls leave it zero.
+	elevation tokens.ElevationScale
 }
 
 // bodyLabel derives the Gio font, a single-line label and the text size from

@@ -80,9 +80,11 @@ func Dropdown(th rx.Observable[theme.Theme], props DropdownProps) rx.Observable[
 
 	// Flatten the nested theme observables into a concrete snapshot. The
 	// typography emission supplies both the BodyLarge text style and the
-	// theme's cached shaper (ADR-003: the theme owns the typeface).
+	// theme's cached shaper (ADR-003: the theme owns the typeface). The
+	// elevation scale joins in a second combine (CombineLatest tops out at
+	// five inputs): the open menu resolves its surface through the ladder.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
-		return rx.Map(
+		base := rx.Map(
 			rx.CombineLatest5(t.Color, t.Typography, t.Spacing, t.Radius, t.Density),
 			func(n rx.Tuple5[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
 				typ := n.Second
@@ -94,6 +96,14 @@ func Dropdown(th rx.Observable[theme.Theme], props DropdownProps) rx.Observable[
 					density: n.Fifth,
 					shaper:  typ.Shaper(),
 				}
+			},
+		)
+		return rx.Map(
+			rx.CombineLatest2(base, t.Elevation),
+			func(n rx.Tuple2[resolvedTokens, tokens.ElevationScale]) resolvedTokens {
+				tok := n.First
+				tok.elevation = n.Second
+				return tok
 			},
 		)
 	})
@@ -165,10 +175,11 @@ func RenderDropdown(
 	ts tokens.TypeScale,
 	s DropdownRenderState,
 ) layout.Widget {
-	// Density is not a parameter (the signature predates E1.3): the static
-	// path renders at tokens.Comfortable; density-aware rendering goes
-	// through Dropdown.
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: tokens.TextStyle{Size: ts.BodyLarge}, density: tokens.Comfortable}
+	// Density and elevation are not parameters (the signature predates
+	// E1.3/E2.3): the static path renders at tokens.Comfortable and the
+	// default tokens.Elevation scale; density- and elevation-aware
+	// rendering goes through Dropdown.
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: tokens.TextStyle{Size: ts.BodyLarge}, density: tokens.Comfortable, elevation: tokens.Elevation}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawDropdown(gtx, shaper, tok, s)
 	}
@@ -376,11 +387,16 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	}
 	rowSize := image.Pt(fieldW, rowH)
 
-	bg := tok.color.Surface
+	// The open menu is a floating transient overlay — an unscrimmed,
+	// shadowless plane like cadence/popover — so its rows fill at Level3
+	// on the elevation ladder (Neutral 400), not the flat Surface the
+	// closed trigger keeps (E2.3; see the package doc).
+	bg := tok.color.SurfaceAt(tokens.Level3)
 	if selected {
-		// Selected is a D2.3 state walk: two steps past the Surface ground
-		// (Neutral 200), landing on Neutral 400.
-		bg = tok.color.StateColor(tokens.RoleNeutral, 200, tokens.StateSelected)
+		// Selected is a D2.3 state walk composed on the menu's elevation
+		// ground (E2.1): two steps past the level-3 step (Neutral 400),
+		// landing on Neutral 600.
+		bg = tok.color.StateColor(tokens.RoleNeutral, tok.elevation.SurfaceStep(tokens.Level3), tokens.StateSelected)
 	}
 	paint.FillShape(gtx.Ops, bg, clip.Rect{Max: rowSize}.Op())
 

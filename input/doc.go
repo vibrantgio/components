@@ -11,6 +11,15 @@
 // callback, or through Props.Message, which adds an mvu.MessageOp to the
 // frame's ops for the runtime to deliver to Update.
 //
+// Elevation (goal G-E2): the controls themselves are flat — the text
+// field, checkbox and radio inner fills and the closed dropdown trigger
+// paint the plain Surface token, sitting in the page plane. The one
+// raised plane in the package is the dropdown's open option menu, a
+// floating unscrimmed, shadowless transient overlay: its rows fill at
+// SurfaceAt(Level3) (Neutral step 400), the same rung cadence/popover
+// takes, and the selected row composes its D2.3 state walk on that
+// level's step.
+//
 // The text field is uncontrolled. Props.Seed pre-fills a newly created
 // instance so an existing value can be edited rather than retyped, but a later
 // Seed does not touch a live instance — rebuild the field, keyed on an epoch,
