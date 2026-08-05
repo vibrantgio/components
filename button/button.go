@@ -5,7 +5,6 @@ import (
 	"image/color"
 
 	"gioui.org/font"
-	"gioui.org/font/gofont"
 	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
@@ -18,8 +17,8 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/mvu"
-	"github.com/vibrantgio/prism/theme"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/theme"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 // minHeight is the minimum interactive target height (WCAG 2.5.5, DESIGN §Accessibility).
@@ -75,18 +74,21 @@ type Props struct {
 	// When nil the button allocates and owns its own clickable.
 	Clickable *widget.Clickable
 
-	// Shaper, if nil, defaults to a shaper backed by Go fonts.
-	// The default shaper is created once per subscription inside the rx.Defer
-	// scope, so it is not re-allocated on every theme change.
+	// Shaper is an explicit per-instance override of the text shaper. Leave it
+	// nil in normal use: the button then shapes its label with the theme's
+	// shaper (Typography.Shaper()), which is built once and cached inside the
+	// theme's Typography value. Set it only when this button must shape with
+	// a different shaper than the theme provides.
 	Shaper *text.Shaper
 }
 
 // resolvedTokens is the concrete per-emission snapshot consumed by the widget closure.
 type resolvedTokens struct {
 	color   tokens.ColorTokens
-	typ     tokens.TypeScale
+	label   tokens.TextStyle // the LabelLarge role: typeface, weight, size, line height
 	spacing tokens.SpacingScale
 	radius  tokens.RadiusScale
+	shaper  *text.Shaper // the theme's shaper; nil in the Render/RenderIcon path
 }
 
 // Button returns an rx.Observable[layout.Widget] that emits a new widget
@@ -102,12 +104,21 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 		disabled = rx.Of(false)
 	}
 
-	// Flatten the nested theme observables into a concrete snapshot.
+	// Flatten the nested theme observables into a concrete snapshot. The
+	// typography emission supplies both the LabelLarge text style and the
+	// theme's cached shaper (ADR-003: the theme owns the typeface).
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest4(t.Color, t.Type, t.Spacing, t.Radius),
-			func(n rx.Tuple4[tokens.ColorTokens, tokens.TypeScale, tokens.SpacingScale, tokens.RadiusScale]) resolvedTokens {
-				return resolvedTokens{n.First, n.Second, n.Third, n.Fourth}
+			rx.CombineLatest4(t.Color, t.Typography, t.Spacing, t.Radius),
+			func(n rx.Tuple4[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale]) resolvedTokens {
+				typ := n.Second
+				return resolvedTokens{
+					color:   n.First,
+					label:   typ.LabelLarge,
+					spacing: n.Third,
+					radius:  n.Fourth,
+					shaper:  typ.Shaper(),
+				}
 			},
 		)
 	})
@@ -119,13 +130,16 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 		// emissions for the lifetime of this button instance. Used only when
 		// the caller does not supply Props.Clickable.
 		var ownClick widget.Clickable
-		shaper := props.Shaper
-		if shaper == nil {
-			shaper = text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
-		}
 
 		return rx.Map(inputs, func(next rx.Tuple2[resolvedTokens, bool]) layout.Widget {
 			tok, dis := next.First, next.Second
+
+			// Props.Shaper is an explicit override; the theme's shaper is
+			// the default.
+			shaper := props.Shaper
+			if shaper == nil {
+				shaper = tok.shaper
+			}
 
 			return func(gtx layout.Context) layout.Dimensions {
 				if dis {
@@ -183,7 +197,10 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 
 // Render produces a layout.Widget for a button in an explicit visual state,
 // without any event processing or rx machinery. Intended for golden-image
-// testing and static demonstrations; production code should use Button.
+// testing and static demonstrations; production code should use Button, which
+// takes the shaper and the LabelLarge text style from the theme's Typography.
+// The TypeScale parameter contributes only the LabelLarge size; typeface,
+// weight and line height stay at the shaper's defaults.
 func Render(
 	shaper *text.Shaper,
 	label string,
@@ -193,7 +210,7 @@ func Render(
 	ts tokens.TypeScale,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, typ: ts}
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, label: tokens.TextStyle{Size: ts.LabelLarge}}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawButton(gtx, shaper, label, tok, s)
 	}
@@ -212,7 +229,7 @@ func RenderIcon(
 	ts tokens.TypeScale,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, typ: ts}
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, label: tokens.TextStyle{Size: ts.LabelLarge}}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawIconButton(gtx, icon, tok, s)
 	}
@@ -240,9 +257,21 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	if maxLabelW > 0 {
 		labelGtx.Constraints.Max.X = maxLabelW
 	}
-	mLabel := op.Record(gtx.Ops)
+	// Shape with the LabelLarge role's typeface, weight, size and line height.
+	// Zero fields (the legacy Render path synthesizes a size-only style) fall
+	// back to the shaper's defaults.
+	style := tok.label
+	f := font.Font{Typeface: font.Typeface(style.Typeface)}
+	if style.Weight != 0 {
+		f.Weight = tokens.FontWeight(style.Weight)
+	}
 	wl := widget.Label{MaxLines: 1}
-	labelDims := wl.Layout(labelGtx, shaper, font.Font{}, unit.Sp(tok.typ.LabelLarge), label, textMaterial)
+	if style.LineHeight != 0 {
+		wl.LineHeight = unit.Sp(style.LineHeight)
+		wl.LineHeightScale = 1
+	}
+	mLabel := op.Record(gtx.Ops)
+	labelDims := wl.Layout(labelGtx, shaper, f, unit.Sp(style.Size), label, textMaterial)
 	labelCall := mLabel.Stop()
 
 	// Button dimensions: fill available width, enforce 44 dp minimum height.

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"gioui.org/f32"
-	"gioui.org/font/gofont"
 	gioinput "gioui.org/io/input"
 	"gioui.org/io/key"
 	"gioui.org/layout"
@@ -21,8 +20,8 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/prism/button"
 	golden "github.com/vibrantgio/prism/internal/golden"
-	"github.com/vibrantgio/prism/theme"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/theme"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 // crossIcon is a deterministic "×" glyph painter — two diagonal clip.Stroke
@@ -48,7 +47,7 @@ func crossIcon(gtx layout.Context, sizePx int, col color.NRGBA) {
 
 func defaultShaper(t *testing.T) *text.Shaper {
 	t.Helper()
-	return text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	return tokens.DefaultTypography.Shaper()
 }
 
 // ---- Golden-image tests ----

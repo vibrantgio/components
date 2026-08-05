@@ -3,12 +3,9 @@ package button_test
 import (
 	"testing"
 
-	"gioui.org/font/gofont"
-	"gioui.org/text"
-
 	"github.com/vibrantgio/prism/bench"
 	"github.com/vibrantgio/prism/button"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 // BenchmarkButtonRender exercises widget(gtx) for b.N synthetic frames via the
@@ -16,7 +13,7 @@ import (
 // harness enables b.ReportAllocs so per-frame allocation regressions (>5%
 // threshold) are measurable. This is the idle render: default unfocused state.
 func BenchmarkButtonRender(b *testing.B) {
-	shaper := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	shaper := tokens.DefaultTypography.Shaper()
 	w := button.Render(
 		shaper, "Benchmark",
 		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
@@ -28,7 +25,7 @@ func BenchmarkButtonRender(b *testing.B) {
 // BenchmarkButtonRenderFocused benchmarks the focused state which draws an
 // extra clip.Stroke path for the focus ring.
 func BenchmarkButtonRenderFocused(b *testing.B) {
-	shaper := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	shaper := tokens.DefaultTypography.Shaper()
 	w := button.Render(
 		shaper, "Benchmark",
 		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,

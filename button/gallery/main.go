@@ -12,7 +12,6 @@ import (
 
 	"gioui.org/app"
 	"gioui.org/font"
-	"gioui.org/font/gofont"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -22,7 +21,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/vibrantgio/prism/button"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/tokens"
 )
 
 func main() {
@@ -41,7 +40,7 @@ func main() {
 }
 
 func run(w *app.Window) error {
-	shaper := text.NewShaper(text.NoSystemFonts(), text.WithCollection(gofont.Collection()))
+	shaper := tokens.DefaultTypography.Shaper()
 	var ops op.Ops
 	for {
 		e := w.Event()
