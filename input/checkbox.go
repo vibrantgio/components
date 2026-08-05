@@ -12,6 +12,7 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/mvu"
+	"github.com/vibrantgio/prism/internal/hit"
 	"github.com/vibrantgio/spectrum/theme"
 	"github.com/vibrantgio/spectrum/tokens"
 )
@@ -70,9 +71,9 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 	// style and shaper zero.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest3(t.Color, t.Spacing, t.Radius),
-			func(n rx.Tuple3[tokens.ColorTokens, tokens.SpacingScale, tokens.RadiusScale]) resolvedTokens {
-				return resolvedTokens{color: n.First, spacing: n.Second, radius: n.Third}
+			rx.CombineLatest4(t.Color, t.Spacing, t.Radius, t.Density),
+			func(n rx.Tuple4[tokens.ColorTokens, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
+				return resolvedTokens{color: n.First, spacing: n.Second, radius: n.Third, density: n.Fourth}
 			},
 		)
 	})
@@ -106,7 +107,10 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 
 				foc := !dis && gtx.Focused(&b)
 
-				return b.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				// The pointer area is at least MinHitTarget (44 dp) on
+				// each axis, centred on the visual footprint: density
+				// shrinks the drawn control, never the hit target.
+				return hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), b.Layout, func(gtx layout.Context) layout.Dimensions {
 					semantic.CheckBox.Add(gtx.Ops)
 					if props.Description != "" {
 						semantic.DescriptionOp(props.Description).Add(gtx.Ops)
@@ -131,7 +135,10 @@ func RenderCheckbox(
 	rad tokens.RadiusScale,
 	s CheckboxRenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad}
+	// Density is not a parameter (the signature predates E1.3): the static
+	// path renders at tokens.Comfortable; density-aware rendering goes
+	// through Checkbox.
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, density: tokens.Comfortable}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawCheckbox(gtx, tok, s)
 	}
@@ -140,14 +147,19 @@ func RenderCheckbox(
 // drawCheckbox renders the checkbox into gtx. All visual state comes from s;
 // no event queries are performed here.
 func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState) layout.Dimensions {
+	// E1.3 sizing rule: the visual glyph keeps its 20 dp box at every
+	// density; the footprint (the touch row the glyph is centred in) is the
+	// density's control height — 36 dp Comfortable, 28 dp Compact. The
+	// glyph's box is never the pointer target: the live path extends the hit
+	// area to at least 44 dp around this footprint via hit.Extend.
 	boxSz := gtx.Dp(checkboxBoxSize)
-	hitSz := gtx.Dp(minHeight)
-	if hitSz < boxSz {
-		hitSz = boxSz
+	ctlSz := gtx.Dp(unit.Dp(tok.density.ControlHeight))
+	if ctlSz < boxSz {
+		ctlSz = boxSz
 	}
 
-	offX := (hitSz - boxSz) / 2
-	offY := (hitSz - boxSz) / 2
+	offX := (ctlSz - boxSz) / 2
+	offY := (ctlSz - boxSz) / 2
 
 	boxRect := image.Rectangle{
 		Min: image.Pt(offX, offY),
@@ -156,7 +168,7 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	boxRad := gtx.Dp(unit.Dp(tok.radius.Sm))
 
 	// Focus ring: 2dp stroke centred on the box boundary; the outer half (1dp)
-	// is visible outside the box fill and stays within the 44dp hit target.
+	// is visible outside the box fill and stays within the footprint.
 	// Draw first so the box overdrawing covers only the inner half.
 	if s.Focused {
 		rrect := clip.RRect{Rect: boxRect, SE: boxRad, SW: boxRad, NE: boxRad, NW: boxRad}
@@ -195,5 +207,5 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		paint.FillShape(gtx.Ops, tok.color.Surface, rrectInner.Op(gtx.Ops))
 	}
 
-	return layout.Dimensions{Size: image.Pt(hitSz, hitSz)}
+	return layout.Dimensions{Size: image.Pt(ctlSz, ctlSz)}
 }

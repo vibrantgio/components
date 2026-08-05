@@ -17,12 +17,10 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/mvu"
+	"github.com/vibrantgio/prism/internal/hit"
 	"github.com/vibrantgio/spectrum/theme"
 	"github.com/vibrantgio/spectrum/tokens"
 )
-
-// minHeight is the minimum interactive target height (WCAG 2.5.5, DESIGN §Accessibility).
-const minHeight = unit.Dp(44)
 
 // RenderState holds explicit visual interaction state for static rendering.
 // All fields default to false (normal/idle state).
@@ -44,8 +42,9 @@ type Props struct {
 	Description string
 
 	// Icon, when non-nil and Label is empty, renders the button as a compact
-	// icon-only affordance: a square the size of the 44 dp hit target with the
-	// glyph centred, instead of a fill-width text label. The painter draws into
+	// icon-only affordance: a square the density's control height on a side
+	// with the glyph centred, instead of a fill-width text label (the pointer
+	// target stays at least the 44 dp square). The painter draws into
 	// a sizePx×sizePx box at the current origin in colour col, via
 	// clip.Path / clip.Stroke, so output stays golden-deterministic (no font or
 	// SVG rasterisation). prism/icon is the registry for named glyphs;
@@ -88,7 +87,8 @@ type resolvedTokens struct {
 	label   tokens.TextStyle // the LabelLarge role: typeface, weight, size, line height
 	spacing tokens.SpacingScale
 	radius  tokens.RadiusScale
-	shaper  *text.Shaper // the theme's shaper; nil in the Render/RenderIcon path
+	density tokens.Density // control height and inner padding (E1.3)
+	shaper  *text.Shaper   // the theme's shaper; nil in the Render/RenderIcon path
 }
 
 // Button returns an rx.Observable[layout.Widget] that emits a new widget
@@ -109,14 +109,15 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 	// theme's cached shaper (ADR-003: the theme owns the typeface).
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest4(t.Color, t.Typography, t.Spacing, t.Radius),
-			func(n rx.Tuple4[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale]) resolvedTokens {
+			rx.CombineLatest5(t.Color, t.Typography, t.Spacing, t.Radius, t.Density),
+			func(n rx.Tuple5[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
 				typ := n.Second
 				return resolvedTokens{
 					color:   n.First,
 					label:   typ.LabelLarge,
 					spacing: n.Third,
 					radius:  n.Fourth,
+					density: n.Fifth,
 					shaper:  typ.Shaper(),
 				}
 			},
@@ -174,7 +175,10 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 
 				iconOnly := props.Icon != nil && props.Label == ""
 
-				return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				// The clickable's pointer area is at least MinHitTarget
+				// (44 dp) on each axis, centred on the visual control:
+				// density shrinks the drawn button, never the hit target.
+				return hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), click.Layout, func(gtx layout.Context) layout.Dimensions {
 					semantic.ClassOp(semantic.Button).Add(gtx.Ops)
 					semantic.LabelOp(props.Label).Add(gtx.Ops)
 					semantic.DescriptionOp(desc).Add(gtx.Ops)
@@ -200,7 +204,9 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 // testing and static demonstrations; production code should use Button, which
 // takes the shaper and the LabelLarge text style from the theme's Typography.
 // The TypeScale parameter contributes only the LabelLarge size; typeface,
-// weight and line height stay at the shaper's defaults.
+// weight and line height stay at the shaper's defaults. Density is not a
+// parameter (the signature predates E1.3): the static path renders at
+// tokens.Comfortable; density-aware rendering goes through Button.
 func Render(
 	shaper *text.Shaper,
 	label string,
@@ -210,7 +216,7 @@ func Render(
 	ts tokens.TypeScale,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, label: tokens.TextStyle{Size: ts.LabelLarge}}
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, label: tokens.TextStyle{Size: ts.LabelLarge}, density: tokens.Comfortable}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawButton(gtx, shaper, label, tok, s)
 	}
@@ -218,9 +224,11 @@ func Render(
 
 // RenderIcon produces a layout.Widget for a compact icon-only button in an
 // explicit visual state, without event processing or rx machinery. The glyph is
-// drawn by icon into a square the size of the 44 dp hit target. Intended for
-// golden-image testing and static demonstrations; production code should use
-// Button with Props.Icon (and, when a container drives focus, Props.Clickable).
+// drawn by icon into a square the control height of tokens.Comfortable on a
+// side (the signature predates E1.3; density-aware rendering goes through
+// Button). Intended for golden-image testing and static demonstrations;
+// production code should use Button with Props.Icon (and, when a container
+// drives focus, Props.Clickable).
 func RenderIcon(
 	icon func(gtx layout.Context, sizePx int, col color.NRGBA),
 	colors tokens.ColorTokens,
@@ -229,7 +237,7 @@ func RenderIcon(
 	ts tokens.TypeScale,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, label: tokens.TextStyle{Size: ts.LabelLarge}}
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, label: tokens.TextStyle{Size: ts.LabelLarge}, density: tokens.Comfortable}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawIconButton(gtx, icon, tok, s)
 	}
@@ -238,10 +246,15 @@ func RenderIcon(
 // drawButton renders the button visual into gtx. All visual state comes from s;
 // no event queries are performed here.
 func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resolvedTokens, s RenderState) layout.Dimensions {
-	padH := gtx.Dp(unit.Dp(tok.spacing.S4)) // 16 dp horizontal padding
-	padV := gtx.Dp(unit.Dp(tok.spacing.S2)) // 8 dp vertical padding
-	minH := gtx.Dp(minHeight)               // 44 dp minimum height
-	rad := gtx.Dp(unit.Dp(tok.radius.Md))   // 6 dp corner radius
+	// E1.3 sizing rule: button height = Density.ControlHeight (36 dp
+	// Comfortable, 28 dp Compact), inner padding = Density.PaddingX/PaddingY
+	// (16/8 and 12/6). The 44 dp of the pre-density button was the WCAG hit
+	// floor, not a control height; the pointer target keeps it via hit.Extend
+	// in the live path.
+	padH := gtx.Dp(unit.Dp(tok.density.PaddingX))
+	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
+	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
+	rad := gtx.Dp(unit.Dp(tok.radius.Md)) // 6 dp corner radius
 
 	bg, fg := buttonColors(tok.color, s)
 
@@ -274,7 +287,8 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	labelDims := wl.Layout(labelGtx, shaper, f, unit.Sp(style.Size), label, textMaterial)
 	labelCall := mLabel.Stop()
 
-	// Button dimensions: fill available width, enforce 44 dp minimum height.
+	// Button dimensions: fill available width, enforce the density's control
+	// height as the minimum.
 	btnW := gtx.Constraints.Max.X
 	if btnW < labelDims.Size.X+2*padH {
 		btnW = labelDims.Size.X + 2*padH
@@ -311,15 +325,21 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	return layout.Dimensions{Size: btnSize}
 }
 
-// drawIconButton renders a compact, square icon-only button: a 44 dp hit-target
-// square filled with the button background, the focus ring when focused, and the
-// glyph (drawn by icon) centred inside the padding. Shares buttonColors with the
-// text button so hover/press/focus/disabled treatments match. All visual state
-// comes from s; no event queries are performed here.
+// drawIconButton renders a compact, square icon-only button: a square the
+// density's control height on a side, filled with the button background, the
+// focus ring when focused, and the glyph (drawn by icon) centred inside the
+// padding. Shares buttonColors with the text button so
+// hover/press/focus/disabled treatments match. All visual state comes from s;
+// no event queries are performed here.
 func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int, col color.NRGBA), tok resolvedTokens, s RenderState) layout.Dimensions {
-	pad := gtx.Dp(unit.Dp(tok.spacing.S2)) // 8 dp inset around the glyph
-	side := gtx.Dp(minHeight)              // 44 dp square — WCAG 2.5.5 hit target
-	rad := gtx.Dp(unit.Dp(tok.radius.Md))  // 6 dp corner radius
+	// E1.3 sizing rule: side = Density.ControlHeight, glyph inset =
+	// Density.PaddingY, so the glyph gets ControlHeight − 2·PaddingY — the
+	// same content-box rule icon.Size documents (20 dp Comfortable, 16 dp
+	// Compact). The pointer target stays the 44 dp square via hit.Extend in
+	// the live path.
+	pad := gtx.Dp(unit.Dp(tok.density.PaddingY))
+	side := gtx.Dp(unit.Dp(tok.density.ControlHeight))
+	rad := gtx.Dp(unit.Dp(tok.radius.Md)) // 6 dp corner radius
 	sz := image.Pt(side, side)
 
 	bg, fg := buttonColors(tok.color, s)

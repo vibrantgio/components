@@ -16,6 +16,7 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/mvu"
+	"github.com/vibrantgio/prism/internal/hit"
 	"github.com/vibrantgio/spectrum/theme"
 	"github.com/vibrantgio/spectrum/tokens"
 )
@@ -82,14 +83,15 @@ func Dropdown(th rx.Observable[theme.Theme], props DropdownProps) rx.Observable[
 	// theme's cached shaper (ADR-003: the theme owns the typeface).
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest4(t.Color, t.Typography, t.Spacing, t.Radius),
-			func(n rx.Tuple4[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale]) resolvedTokens {
+			rx.CombineLatest5(t.Color, t.Typography, t.Spacing, t.Radius, t.Density),
+			func(n rx.Tuple5[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
 				typ := n.Second
 				return resolvedTokens{
 					color:   n.First,
 					body:    typ.BodyLarge,
 					spacing: n.Third,
 					radius:  n.Fourth,
+					density: n.Fifth,
 					shaper:  typ.Shaper(),
 				}
 			},
@@ -163,7 +165,10 @@ func RenderDropdown(
 	ts tokens.TypeScale,
 	s DropdownRenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: tokens.TextStyle{Size: ts.BodyLarge}}
+	// Density is not a parameter (the signature predates E1.3): the static
+	// path renders at tokens.Comfortable; density-aware rendering goes
+	// through Dropdown.
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: tokens.TextStyle{Size: ts.BodyLarge}, density: tokens.Comfortable}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawDropdown(gtx, shaper, tok, s)
 	}
@@ -171,7 +176,13 @@ func RenderDropdown(
 
 // layoutDropdownLive lays out the interactive dropdown with Clickable hit areas.
 func layoutDropdownLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Clickable, optClicks []widget.Clickable, tok resolvedTokens, desc string, s DropdownRenderState) layout.Dimensions {
-	triggerDims := trigger.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	// The trigger's pointer area is at least MinHitTarget (44 dp) on each
+	// axis, centred on the visual bar: density shrinks the drawn trigger,
+	// never the hit target. Option rows are NOT extended: they stack
+	// directly against each other, so a ≥44 dp slop per row would overlap
+	// the neighbouring rows' targets; the rows rely on their full-row width
+	// instead.
+	triggerDims := hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), trigger.Layout, func(gtx layout.Context) layout.Dimensions {
 		semantic.Button.Add(gtx.Ops)
 		if desc != "" {
 			semantic.DescriptionOp(desc).Add(gtx.Ops)
@@ -232,12 +243,15 @@ func drawDropdown(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s
 
 // drawTrigger renders the dropdown trigger bar (the closed face).
 func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s DropdownRenderState) layout.Dimensions {
+	// E1.3 sizing rule: the trigger follows the text field — height =
+	// Density.ControlHeight, vertical padding = Density.PaddingY, horizontal
+	// padding a static spacing.S3 (12 dp, shadcn's px-3).
 	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
-	padV := gtx.Dp(unit.Dp(tok.spacing.S2))
+	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
-	minH := gtx.Dp(minHeight)
+	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	fieldW := gtx.Constraints.Max.X
 	chevronSz := gtx.Dp(unit.Dp(16))
 
@@ -327,11 +341,14 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 
 // drawOptionRow renders a single option row in the open dropdown list.
 func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, selected bool, label string) layout.Dimensions {
+	// E1.3 sizing rule: option rows are list rows — row height =
+	// Density.ControlHeight exactly (list.RowHeight's rule: 36 dp
+	// Comfortable, 28 dp Compact).
 	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
-	padV := gtx.Dp(unit.Dp(tok.spacing.S2))
+	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
-	minH := gtx.Dp(minHeight)
+	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	fieldW := gtx.Constraints.Max.X
 
 	textCol := tok.color.Text

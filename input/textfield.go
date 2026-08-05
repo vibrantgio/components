@@ -6,6 +6,7 @@ import (
 
 	"gioui.org/font"
 	"gioui.org/io/event"
+	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
@@ -21,9 +22,6 @@ import (
 	"github.com/vibrantgio/spectrum/theme"
 	"github.com/vibrantgio/spectrum/tokens"
 )
-
-// minHeight is the minimum interactive target height (WCAG 2.5.5, DESIGN §Accessibility).
-const minHeight = unit.Dp(44)
 
 // RenderState holds explicit visual interaction state for static rendering.
 // All fields default to false (normal/idle state).
@@ -110,7 +108,8 @@ type resolvedTokens struct {
 	body    tokens.TextStyle // the BodyLarge role: typeface, weight, size, line height
 	spacing tokens.SpacingScale
 	radius  tokens.RadiusScale
-	shaper  *text.Shaper // the theme's shaper; nil in the Render* paths
+	density tokens.Density // control height and inner padding (E1.3)
+	shaper  *text.Shaper   // the theme's shaper; nil in the Render* paths
 }
 
 // bodyLabel derives the Gio font, a single-line label and the text size from
@@ -148,14 +147,15 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 	// theme's cached shaper (ADR-003: the theme owns the typeface).
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest4(t.Color, t.Typography, t.Spacing, t.Radius),
-			func(n rx.Tuple4[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale]) resolvedTokens {
+			rx.CombineLatest5(t.Color, t.Typography, t.Spacing, t.Radius, t.Density),
+			func(n rx.Tuple5[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
 				typ := n.Second
 				return resolvedTokens{
 					color:   n.First,
 					body:    typ.BodyLarge,
 					spacing: n.Third,
 					radius:  n.Fourth,
+					density: n.Fifth,
 					shaper:  typ.Shaper(),
 				}
 			},
@@ -168,6 +168,10 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 		// Allocated once per subscription — survives all theme and disabled
 		// emissions for the lifetime of this TextField instance.
 		editor := &widget.Editor{SingleLine: true, Submit: props.Submit, Mask: props.Mask}
+		// hitTag identifies the extended pointer-target area (E1.3): the
+		// visual field is the density's control height tall, but a press
+		// anywhere in the ≥44 dp hit rectangle focuses the editor.
+		hitTag := new(int)
 		if props.Seed != "" {
 			editor.SetText(props.Seed)
 		}
@@ -216,6 +220,21 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 					}
 				}
 
+				// A press in the extended hit area (beyond the visual
+				// field but inside the ≥44 dp pointer target) focuses
+				// the editor; presses on the text line itself are also
+				// seen by the editor's own area, which handles caret
+				// placement.
+				for {
+					ev, ok := gtx.Event(pointer.Filter{Target: hitTag, Kinds: pointer.Press})
+					if !ok {
+						break
+					}
+					if _, isPtr := ev.(pointer.Event); isPtr && !dis {
+						gtx.Execute(key.FocusCmd{Tag: editor})
+					}
+				}
+
 				desc := props.Description
 				if desc == "" {
 					desc = props.Placeholder
@@ -224,7 +243,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 				foc := !dis && gtx.Focused(editor)
 				showPh := !foc && editor.Len() == 0
 
-				return drawTextFieldLive(gtx, shaper, editor, props.Placeholder, desc, tok, RenderState{
+				return drawTextFieldLive(gtx, shaper, editor, hitTag, props.Placeholder, desc, tok, RenderState{
 					Focused:  foc,
 					Disabled: dis,
 				}, showPh)
@@ -238,7 +257,9 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 // testing and static demonstrations; production code should use TextField,
 // which takes the shaper and the BodyLarge text style from the theme's
 // Typography. The TypeScale parameter contributes only the BodyLarge size;
-// typeface, weight and line height stay at the shaper's defaults.
+// typeface, weight and line height stay at the shaper's defaults. Density is
+// not a parameter (the signature predates E1.3): the static path renders at
+// tokens.Comfortable; density-aware rendering goes through TextField.
 func Render(
 	shaper *text.Shaper,
 	placeholder string,
@@ -248,17 +269,21 @@ func Render(
 	ts tokens.TypeScale,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: tokens.TextStyle{Size: ts.BodyLarge}}
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: tokens.TextStyle{Size: ts.BodyLarge}, density: tokens.Comfortable}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawTextFieldStatic(gtx, shaper, placeholder, tok, s)
 	}
 }
 
 // drawTextFieldLive renders a live text field containing a widget.Editor.
-func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.Editor, placeholder, desc string, tok resolvedTokens, s RenderState, showPlaceholder bool) layout.Dimensions {
+func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.Editor, hitTag *int, placeholder, desc string, tok resolvedTokens, s RenderState, showPlaceholder bool) layout.Dimensions {
+	// E1.3 sizing rule: field height = Density.ControlHeight (36 dp
+	// Comfortable, 28 dp Compact — shadcn's h-9 input), vertical padding =
+	// Density.PaddingY. Horizontal padding stays spacing.S3 (12 dp): shadcn
+	// keeps px-3 on inputs across sizes, so it does not follow density.
 	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
-	padV := gtx.Dp(unit.Dp(tok.spacing.S2))
-	minH := gtx.Dp(minHeight)
+	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
+	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
@@ -359,15 +384,38 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 		pointer.CursorText.Add(gtx.Ops)
 	}
 
+	// Pointer-target extension (E1.3): the drawn field may be shorter than
+	// the WCAG 2.5.5 floor, but the pointer target never is. Register a
+	// pass-through input area over the hit rectangle — max(field, 44 dp) per
+	// axis, centred on the field, extending beyond its bounds — whose press
+	// events the TextField widget turns into a FocusCmd for the editor. The
+	// pass op keeps the editor's own area receiving the presses that land on
+	// the text line.
+	hitPx := gtx.Dp(unit.Dp(tok.density.MinHitTarget()))
+	hitW, hitH := fieldW, fieldH
+	if hitW < hitPx {
+		hitW = hitPx
+	}
+	if hitH < hitPx {
+		hitH = hitPx
+	}
+	hitRect := image.Rect(-(hitW-fieldW)/2, -(hitH-fieldH)/2, fieldW+(hitW-fieldW+1)/2, fieldH+(hitH-fieldH+1)/2)
+	cl := clip.Rect(hitRect).Push(gtx.Ops)
+	pass := pointer.PassOp{}.Push(gtx.Ops)
+	event.Op(gtx.Ops, hitTag)
+	pass.Pop()
+	cl.Pop()
+
 	return layout.Dimensions{Size: fieldSize}
 }
 
 // drawTextFieldStatic renders a static text field for golden-image testing.
 // It always shows the placeholder text; there is no live editor.
 func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder string, tok resolvedTokens, s RenderState) layout.Dimensions {
+	// Same E1.3 sizing rules as drawTextFieldLive.
 	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
-	padV := gtx.Dp(unit.Dp(tok.spacing.S2))
-	minH := gtx.Dp(minHeight)
+	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
+	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)

@@ -4,12 +4,17 @@ import (
 	"image"
 	"testing"
 
+	"gioui.org/f32"
+	gioinput "gioui.org/io/input"
+	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
 
+	"github.com/reactivego/rx"
 	"github.com/vibrantgio/prism/input"
 	golden "github.com/vibrantgio/prism/internal/golden"
+	"github.com/vibrantgio/spectrum/theme"
 	"github.com/vibrantgio/spectrum/tokens"
 )
 
@@ -44,9 +49,12 @@ func TestCheckboxGolden(t *testing.T) {
 
 // ---- Accessibility tests ----
 
-// TestCheckboxMinHitTarget checks the checkbox meets the 44 dp minimum
-// interactive height (DESIGN §Accessibility / WCAG 2.5.5).
-func TestCheckboxMinHitTarget(t *testing.T) {
+// TestCheckboxFootprintIsControlHeight checks the checkbox's visual footprint
+// is the density's control-height square (E1.3: 36 dp Comfortable) with the
+// 20 dp glyph centred in it. The 44 dp WCAG 2.5.5 floor applies to the pointer
+// target, not the footprint: the live Checkbox extends its hit area via
+// internal/hit, exercised by TestCheckboxHitSlopToggles.
+func TestCheckboxFootprintIsControlHeight(t *testing.T) {
 	var ops op.Ops
 	gtx := layout.Context{
 		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
@@ -61,13 +69,59 @@ func TestCheckboxMinHitTarget(t *testing.T) {
 		input.CheckboxRenderState{},
 	)(gtx)
 
-	const wantPx = 44
-	if dims.Size.Y < wantPx {
-		t.Errorf("checkbox height = %d px, want ≥ %d px (44 dp at 1:1 scale)", dims.Size.Y, wantPx)
+	want := int(tokens.Comfortable.ControlHeight)
+	if dims.Size.X != want || dims.Size.Y != want {
+		t.Errorf("checkbox footprint = %v, want %dx%d px (ControlHeight square at 1:1 scale)", dims.Size, want, want)
 	}
-	if dims.Size.X < wantPx {
-		t.Errorf("checkbox width = %d px, want ≥ %d px (44 dp at 1:1 scale)", dims.Size.X, wantPx)
+}
+
+// TestCheckboxHitSlopToggles checks the live checkbox's pointer target
+// extends to the 44 dp floor: a click outside the 36 dp visual footprint but
+// inside the 44 dp hit rectangle toggles the value.
+func TestCheckboxHitSlopToggles(t *testing.T) {
+	var toggled int
+	w := materialize(t, input.Checkbox(rx.Of(theme.Default()), input.CheckboxProps{
+		Description: "opt-in",
+		OnChange:    func(_ layout.Context, _ bool) { toggled++ },
+	}))
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	drive := func() {
+		ops.Reset()
+		gtx := layout.Context{
+			Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
+			Constraints: layout.Exact(image.Pt(120, 120)),
+			Ops:         ops,
+			Source:      r.Source(),
+		}
+		w(gtx)
+		r.Frame(ops)
 	}
+
+	drive() // register the input area
+
+	// The hit rect is 44 px centred on the 36 px footprint: -4..40 on each
+	// axis. Click at (38, 38) — outside the footprint, inside the slop.
+	pos := f32.Pt(38, 38)
+	r.Queue(
+		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+	)
+	drive()
+	if toggled != 1 {
+		t.Errorf("click in the hit slop: OnChange fired %d times, want 1", toggled)
+	}
+}
+
+// TestCheckboxCompactGolden records or diffs the checkbox at tokens.Compact
+// through the live pipeline: the 20 dp glyph centred in a 28 dp footprint.
+func TestCheckboxCompactGolden(t *testing.T) {
+	w := materialize(t, input.Checkbox(rx.Of(densityTheme(tokens.Compact)), input.CheckboxProps{
+		Description: "opt-in",
+		Checked:     true,
+	}))
+	golden.Render(t, "checkbox-light-compact-checked", image.Pt(44, 44), w)
 }
 
 // TestCheckboxCheckedIsVisuallyDistinct confirms the checked state renders

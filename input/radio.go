@@ -12,6 +12,7 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/mvu"
+	"github.com/vibrantgio/prism/internal/hit"
 	"github.com/vibrantgio/spectrum/theme"
 	"github.com/vibrantgio/spectrum/tokens"
 )
@@ -73,9 +74,9 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 	// style and shaper zero.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest3(t.Color, t.Spacing, t.Radius),
-			func(n rx.Tuple3[tokens.ColorTokens, tokens.SpacingScale, tokens.RadiusScale]) resolvedTokens {
-				return resolvedTokens{color: n.First, spacing: n.Second, radius: n.Third}
+			rx.CombineLatest4(t.Color, t.Spacing, t.Radius, t.Density),
+			func(n rx.Tuple4[tokens.ColorTokens, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
+				return resolvedTokens{color: n.First, spacing: n.Second, radius: n.Third, density: n.Fourth}
 			},
 		)
 	})
@@ -105,7 +106,10 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 
 				foc := !dis && gtx.Focused(&b)
 
-				return b.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				// The pointer area is at least MinHitTarget (44 dp) on
+				// each axis, centred on the visual footprint: density
+				// shrinks the drawn control, never the hit target.
+				return hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), b.Layout, func(gtx layout.Context) layout.Dimensions {
 					semantic.RadioButton.Add(gtx.Ops)
 					if props.Description != "" {
 						semantic.DescriptionOp(props.Description).Add(gtx.Ops)
@@ -130,7 +134,10 @@ func RenderRadio(
 	rad tokens.RadiusScale,
 	s RadioRenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad}
+	// Density is not a parameter (the signature predates E1.3): the static
+	// path renders at tokens.Comfortable; density-aware rendering goes
+	// through Radio.
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, density: tokens.Comfortable}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawRadio(gtx, tok, s)
 	}
@@ -139,14 +146,19 @@ func RenderRadio(
 // drawRadio renders the radio button into gtx. All visual state comes from s;
 // no event queries are performed here.
 func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layout.Dimensions {
+	// E1.3 sizing rule: the visual glyph keeps its 20 dp circle at every
+	// density; the footprint (the touch row the glyph is centred in) is the
+	// density's control height — 36 dp Comfortable, 28 dp Compact. The
+	// glyph's circle is never the pointer target: the live path extends the
+	// hit area to at least 44 dp around this footprint via hit.Extend.
 	circleSz := gtx.Dp(radioCircleSize)
-	hitSz := gtx.Dp(minHeight)
-	if hitSz < circleSz {
-		hitSz = circleSz
+	ctlSz := gtx.Dp(unit.Dp(tok.density.ControlHeight))
+	if ctlSz < circleSz {
+		ctlSz = circleSz
 	}
 
-	cx := hitSz / 2
-	cy := hitSz / 2
+	cx := ctlSz / 2
+	cy := ctlSz / 2
 
 	outerRect := image.Rectangle{
 		Min: image.Pt(cx-circleSz/2, cy-circleSz/2),
@@ -156,8 +168,8 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	borderPx := gtx.Dp(2)
 
 	// Focus ring: 2dp stroke centred on the circle boundary; the outer half
-	// (1dp) is visible outside the circle fill and stays within the 44dp hit
-	// target. Draw first so the circle overdrawing covers only the inner half.
+	// (1dp) is visible outside the circle fill and stays within the
+	// footprint. Draw first so the circle overdrawing covers only the inner half.
 	if s.Focused {
 		paint.FillShape(gtx.Ops, tok.color.FocusRing(), clip.Stroke{
 			Path:  clip.Ellipse(outerRect).Path(gtx.Ops),
@@ -200,5 +212,5 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		paint.FillShape(gtx.Ops, tok.color.Surface, clip.Ellipse(innerRect).Op(gtx.Ops))
 	}
 
-	return layout.Dimensions{Size: image.Pt(hitSz, hitSz)}
+	return layout.Dimensions{Size: image.Pt(ctlSz, ctlSz)}
 }

@@ -1,7 +1,9 @@
 // Package button provides the Vibrant Gio button: a text or icon-only
 // affordance carrying hover, focus, press and disabled treatments, activation
-// by click or by Space and Enter, a screen-reader label, and a minimum 44 dp
-// interactive target.
+// by click or by Space and Enter, a screen-reader label, and a pointer target
+// of at least 44 dp on each axis regardless of density (the drawn control is
+// the theme Density's control height; the hit area extends beyond it when the
+// control is smaller).
 //
 // Button is the observable path — an rx.Observable[theme.Theme] and a Props
 // in, an rx.Observable[layout.Widget] out, rebuilt whenever the theme changes
@@ -16,8 +18,9 @@
 // component's rx.Defer scope, so press and focus survive the view rebuilds an
 // MVU loop drives; pass Props.Clickable when an enclosing container such as a
 // modal must own the focus tag instead. A button fills the width it is given
-// and is at least 44 dp tall, so a fixed-size button is laid out inside a
-// constrained box. And Props.Shaper is not optional today — leave it nil and
+// and is at least the density's control height tall (36 dp Comfortable, 28 dp
+// Compact), so a fixed-size button is laid out inside a constrained box. And
+// Props.Shaper is not optional today — leave it nil and
 // the button builds a Go-fonts shaper for itself, with no warning, and renders
 // in the wrong typeface.
 package button

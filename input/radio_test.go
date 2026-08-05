@@ -8,6 +8,7 @@ import (
 	"gioui.org/op"
 	"gioui.org/unit"
 
+	"github.com/reactivego/rx"
 	"github.com/vibrantgio/prism/input"
 	golden "github.com/vibrantgio/prism/internal/golden"
 	"github.com/vibrantgio/spectrum/tokens"
@@ -39,9 +40,12 @@ func TestRadioGolden(t *testing.T) {
 
 // ---- Accessibility tests ----
 
-// TestRadioMinHitTarget checks the radio button meets the 44 dp minimum
-// interactive height (DESIGN §Accessibility / WCAG 2.5.5).
-func TestRadioMinHitTarget(t *testing.T) {
+// TestRadioFootprintIsControlHeight checks the radio's visual footprint is
+// the density's control-height square (E1.3: 36 dp Comfortable) with the
+// 20 dp glyph centred in it. The 44 dp WCAG 2.5.5 floor applies to the
+// pointer target, not the footprint: the live Radio extends its hit area via
+// internal/hit (same mechanism TestCheckboxHitSlopToggles exercises).
+func TestRadioFootprintIsControlHeight(t *testing.T) {
 	var ops op.Ops
 	gtx := layout.Context{
 		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
@@ -56,13 +60,20 @@ func TestRadioMinHitTarget(t *testing.T) {
 		input.RadioRenderState{},
 	)(gtx)
 
-	const wantPx = 44
-	if dims.Size.Y < wantPx {
-		t.Errorf("radio height = %d px, want ≥ %d px (44 dp at 1:1 scale)", dims.Size.Y, wantPx)
+	want := int(tokens.Comfortable.ControlHeight)
+	if dims.Size.X != want || dims.Size.Y != want {
+		t.Errorf("radio footprint = %v, want %dx%d px (ControlHeight square at 1:1 scale)", dims.Size, want, want)
 	}
-	if dims.Size.X < wantPx {
-		t.Errorf("radio width = %d px, want ≥ %d px (44 dp at 1:1 scale)", dims.Size.X, wantPx)
-	}
+}
+
+// TestRadioCompactGolden records or diffs the radio at tokens.Compact through
+// the live pipeline: the 20 dp glyph centred in a 28 dp footprint.
+func TestRadioCompactGolden(t *testing.T) {
+	w := materialize(t, input.Radio(rx.Of(densityTheme(tokens.Compact)), input.RadioProps{
+		Description: "choice",
+		Selected:    true,
+	}))
+	golden.Render(t, "radio-light-compact-selected", image.Pt(44, 44), w)
 }
 
 // TestRadioSelectedIsVisuallyDistinct confirms the selected state renders

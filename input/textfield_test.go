@@ -67,9 +67,11 @@ func TestTextFieldGolden(t *testing.T) {
 
 // ---- Accessibility tests ----
 
-// TestTextFieldMinHitTarget checks the field meets the 44 dp minimum
-// interactive height (DESIGN §Accessibility / WCAG 2.5.5).
-func TestTextFieldMinHitTarget(t *testing.T) {
+// TestTextFieldHeightIsControlHeight checks the drawn field is exactly the
+// density's control height (E1.3: 36 dp Comfortable, shadcn's h-9). The 44 dp
+// WCAG 2.5.5 floor applies to the pointer target, verified by
+// TestTextFieldHitSlopFocusesEditor.
+func TestTextFieldHeightIsControlHeight(t *testing.T) {
 	shaper := defaultShaper(t)
 
 	var ops op.Ops
@@ -85,10 +87,61 @@ func TestTextFieldMinHitTarget(t *testing.T) {
 		input.RenderState{},
 	)(gtx)
 
-	const wantPx = 44
-	if dims.Size.Y < wantPx {
-		t.Errorf("text field height = %d px, want ≥ %d px (44 dp at 1:1 scale)", dims.Size.Y, wantPx)
+	want := int(tokens.Comfortable.ControlHeight)
+	if dims.Size.Y != want {
+		t.Errorf("text field height = %d px, want %d px (ControlHeight at 1:1 scale)", dims.Size.Y, want)
 	}
+}
+
+// TestTextFieldHitSlopFocusesEditor checks the live field's pointer target
+// extends to the 44 dp floor: a press below the 36 dp visual field, inside
+// the hit slop, focuses the editor.
+func TestTextFieldHitSlopFocusesEditor(t *testing.T) {
+	var tag event.Tag
+	w := materialize(t, input.TextField(rx.Of(theme.Default()), input.TextFieldProps{
+		Placeholder: "Email",
+		FocusTag:    func(tg event.Tag) { tag = tg },
+		Shaper:      defaultShaper(t),
+	}))
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	size := image.Pt(300, 120)
+
+	dims := driveTextFieldFrame(w, ops, r, size)
+	if dims.Size.Y != int(tokens.Comfortable.ControlHeight) {
+		t.Fatalf("field height = %d px, want %d", dims.Size.Y, int(tokens.Comfortable.ControlHeight))
+	}
+
+	// The hit rect is 44 px centred on the 36 px field: -4..40. Press at
+	// y=38 — outside the field, inside the slop.
+	pos := f32.Pt(150, 38)
+	r.Queue(
+		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+	)
+	// Frame 2 — the hit area's press turns into a FocusCmd; frame 3 applies it.
+	driveTextFieldFrame(w, ops, r, size)
+	driveTextFieldFrame(w, ops, r, size)
+
+	probe := layout.Context{
+		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
+		Constraints: layout.Exact(size),
+		Ops:         new(op.Ops),
+		Source:      r.Source(),
+	}
+	if tag == nil || !probe.Focused(tag) {
+		t.Error("press in the hit slop below the field did not focus the editor")
+	}
+}
+
+// TestTextFieldCompactGolden records or diffs the field at tokens.Compact
+// through the live pipeline: a 28 dp bar (shadcn h-8 territory).
+func TestTextFieldCompactGolden(t *testing.T) {
+	w := materialize(t, input.TextField(rx.Of(densityTheme(tokens.Compact)), input.TextFieldProps{
+		Placeholder: "", // empty placeholder: no font rasterisation
+	}))
+	golden.Render(t, "textfield-light-compact", image.Pt(300, 60), w)
 }
 
 // TestTextFieldDisabledIsVisuallyDistinct confirms disabled state produces

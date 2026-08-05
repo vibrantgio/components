@@ -19,7 +19,7 @@
 //
 // Name the packages explicitly and put the flag AFTER them:
 //
-//	go test ./button ./input ./internal/golden ./layout ./list ./richtext ./scrollbar -golden.update
+//	go test ./button ./icon ./input ./internal/golden ./layout ./list ./richtext ./scrollbar -golden.update
 //
 // Both halves of that line matter. go test cannot tell that an unfamiliar flag
 // is boolean, so -golden.update placed before the packages swallows them and

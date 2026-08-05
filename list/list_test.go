@@ -71,6 +71,37 @@ func TestListGolden(t *testing.T) {
 	}
 }
 
+// TestListDensityRowGolden records or diffs a list whose rows are the
+// standard density-derived height, list.RowHeight (E1.3: row = ControlHeight;
+// 36 px Comfortable, 28 px Compact at 1:1 scale). The 150 px viewport shows
+// the divergence directly: just over four comfortable rows against just over
+// five compact ones.
+func TestListDensityRowGolden(t *testing.T) {
+	size := image.Pt(viewW, viewH)
+	cases := []struct {
+		name    string
+		density tokens.Density
+	}{
+		{"rows-comfortable", tokens.Comfortable},
+		{"rows-compact", tokens.Compact},
+	}
+	for _, tc := range cases {
+		d := tc.density
+		t.Run(tc.name, func(t *testing.T) {
+			state := list.NewState()
+			items := makeItems(8)
+			rowFn := func(gtx layout.Context, item int) layout.Dimensions {
+				rowSize := image.Pt(gtx.Constraints.Max.X, gtx.Dp(list.RowHeight(d)))
+				paint.FillShape(gtx.Ops, rowColor(item), clip.Rect{Max: rowSize}.Op())
+				return layout.Dimensions{Size: rowSize}
+			}
+			golden.Render(t, tc.name, size, func(gtx layout.Context) layout.Dimensions {
+				return list.Layout(gtx, state, items, rowFn)
+			})
+		})
+	}
+}
+
 // TestScrollbarGolden records or diffs the two scrollbar anchor modes at the
 // same viewport size as the plain list goldens, scrolled into the middle of a
 // 20-item list so the thumb sits mid-track:
