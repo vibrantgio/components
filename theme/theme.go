@@ -1,31 +1,13 @@
 package theme
 
-import (
-	"github.com/reactivego/rx"
-	"github.com/vibrantgio/prism/tokens"
-)
+import "github.com/vibrantgio/spectrum/theme"
 
-// Theme carries an rx.Observable for each token category. Consumers subscribe
-// to the fields they need and react to updates without polling.
-type Theme struct {
-	Color     rx.Observable[tokens.ColorTokens]
-	Type      rx.Observable[tokens.TypeScale]
-	Motion    rx.Observable[tokens.MotionScale]
-	Spacing   rx.Observable[tokens.SpacingScale]
-	Radius    rx.Observable[tokens.RadiusScale]
-	Elevation rx.Observable[tokens.ElevationScale]
-}
+// Theme is an alias for [theme.Theme] — downstream code sees a type identical
+// to spectrum's.
+type Theme = theme.Theme
 
-// Default returns a Theme whose every field emits the package-level default
-// value once and then completes. It is the canonical starting point for static
-// or test scenarios that do not need live token switching.
-func Default() Theme {
-	return Theme{
-		Color:     rx.Of(tokens.DefaultLight),
-		Type:      rx.Of(tokens.DefaultTypeScale),
-		Motion:    rx.Of(tokens.Motion),
-		Spacing:   rx.Of(tokens.Spacing),
-		Radius:    rx.Of(tokens.Radius),
-		Elevation: rx.Of(tokens.Elevation),
-	}
-}
+// Default re-exports [theme.Default].
+var Default = theme.Default
+
+// AutoLightDark re-exports [theme.AutoLightDark].
+var AutoLightDark = theme.AutoLightDark

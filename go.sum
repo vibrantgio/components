@@ -19,6 +19,8 @@ github.com/vibrantgio/ivg/raster/gio v0.1.6 h1:ovAC6JC+2nDFKSy/wuhduZPMDdpbXFuy2
 github.com/vibrantgio/ivg/raster/gio v0.1.6/go.mod h1:swjaWU+DO0cDZfqpCsKLLGPbEn9VDn/CE6MZ/9L39/Q=
 github.com/vibrantgio/mvu v0.4.2 h1:aLNu62E7GY1k/pOxuwN3uayW37h6uBtcvTpr0YpdF4A=
 github.com/vibrantgio/mvu v0.4.2/go.mod h1:jFP2zPvLge60zDSlCqTOcbMLHJaQgv1b8/VsmFD1ejo=
+github.com/vibrantgio/spectrum v0.0.6 h1:cNjmn6TfXa8ei2egpMNN7Qgoq2DsmUaYP18R+ctpBbA=
+github.com/vibrantgio/spectrum v0.0.6/go.mod h1:WOU6xwSCyADgFwB89cvUjHyMUO5Sj/smcBN0lATqBl4=
 github.com/vibrantgio/svg v0.0.8 h1:c2vJujbpUlukLrifi0M4feHLE8jqthyvmOvcNDY5r4k=
 github.com/vibrantgio/svg v0.0.8/go.mod h1:H867wFCLH1Lfz+uoklXwtvOTAQgg/7DC0KoZm6nRHUA=
 github.com/vibrantgio/svg/driver/gio v0.0.7 h1:nxt47wSVe2057LCvvwylMesuS+qHgmoxZJ+TD/+JdvU=
