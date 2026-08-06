@@ -21,7 +21,7 @@ var benchSize = image.Pt(400, 120)
 // painting, and the link underline.
 func BenchmarkRichtextRender(b *testing.B) {
 	shaper := tokens.DefaultTypography.Shaper()
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	w := richtext.Render(shaper, style, mixedSpans(), richtext.Idle())
 	bench.BenchFrame(b, w, bench.WithSize(benchSize))
 }
@@ -30,7 +30,7 @@ func BenchmarkRichtextRender(b *testing.B) {
 // additionally draws the focus-ring stroke path.
 func BenchmarkRichtextRenderFocused(b *testing.B) {
 	shaper := tokens.DefaultTypography.Shaper()
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	w := richtext.Render(shaper, style, mixedSpans(),
 		richtext.RenderState{HoveredLink: richtext.NoLink, FocusedLink: 0})
 	bench.BenchFrame(b, w, bench.WithSize(benchSize))

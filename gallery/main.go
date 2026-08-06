@@ -24,7 +24,6 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/prism/a11y"
 	"github.com/vibrantgio/prism/button"
 	"github.com/vibrantgio/prism/coordination"
 	"github.com/vibrantgio/prism/initial"
@@ -33,13 +32,13 @@ import (
 	"github.com/vibrantgio/prism/list"
 	"github.com/vibrantgio/prism/richtext"
 	"github.com/vibrantgio/prism/scrollbar"
-	"github.com/vibrantgio/prism/theme"
-	"github.com/vibrantgio/prism/tokens"
+	"github.com/vibrantgio/spectrum/a11y"
+	"github.com/vibrantgio/spectrum/theme"
+	"github.com/vibrantgio/spectrum/tokens"
 
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
 	"github.com/vibrantgio/prism/icon"
 	"github.com/vibrantgio/pulse/springbutton"
-	spectrumtokens "github.com/vibrantgio/spectrum/tokens"
 )
 
 var pageNames = []string{
@@ -150,7 +149,7 @@ func main() {
 func run(w *app.Window) error {
 	// The theme's cached Roboto shaper (spectrum tokens.DefaultTypography),
 	// shared by every static Render* variant and label on the pages.
-	shaper := spectrumtokens.DefaultTypography.Shaper()
+	shaper := tokens.DefaultTypography.Shaper()
 	g := newGallery(w, shaper)
 	defer g.cleanup()
 
@@ -259,7 +258,7 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 
 	// Richtext: live link state; OnLinkClick carries gtx per GX.8.
 	g.rtState = richtext.NewState()
-	g.rtStyle = richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
+	g.rtStyle = richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	g.rtStyle.OnLinkClick = func(_ layout.Context, url string) {
 		g.rtLastURL = url
 		g.rtClicks++
@@ -499,7 +498,7 @@ func (g *gallery) buttonVariantRows() []layout.FlexChild {
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
-		w := button.Render(g.shaper, "Button", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale, r.state)
+		w := button.Render(g.shaper, "Button", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.variantRow(gtx, r.label, r.rowBg, r.colors.Text, w)
 		})
@@ -607,7 +606,7 @@ func (g *gallery) textFieldVariantRows() []layout.FlexChild {
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
-		w := input.Render(g.shaper, "Placeholder…", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale, r.state)
+		w := input.Render(g.shaper, "Placeholder…", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.Text, w)
 		})
@@ -683,7 +682,7 @@ func (g *gallery) dropdownVariantRows() []layout.FlexChild {
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
-		w := input.RenderDropdown(g.shaper, r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale, r.state)
+		w := input.RenderDropdown(g.shaper, r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.Text, w)
 		})
@@ -818,7 +817,7 @@ func richtextSpans() []richtext.SpanStyle {
 
 func (g *gallery) pageRichtext(gtx layout.Context) layout.Dimensions {
 	return g.scrollPage(gtx, g.scrollSt[pageRichtext], func(gtx layout.Context) layout.Dimensions {
-		staticStyle := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
+		staticStyle := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 		linkStates := []struct {
 			label string
 			state richtext.RenderState
@@ -1044,7 +1043,7 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(200))
 							gtx.Constraints.Min.X = gtx.Dp(unit.Dp(200))
-							return button.Render(g.shaper, "High Contrast", hc, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale, button.RenderState{})(gtx)
+							return button.Render(g.shaper, "High Contrast", hc, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, button.RenderState{})(gtx)
 						}),
 						layout.Rigid(prismlayout.HSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -1148,7 +1147,7 @@ func (g *gallery) pageCoord(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.coordSend.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return button.Render(g.shaper, "Send ping", tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale, button.RenderState{})(gtx)
+								return button.Render(g.shaper, "Send ping", tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, button.RenderState{})(gtx)
 							})
 						}),
 						layout.Rigid(prismlayout.VSpacer(16)),

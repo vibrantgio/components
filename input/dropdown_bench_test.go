@@ -19,7 +19,7 @@ func BenchmarkDropdownRender(b *testing.B) {
 	shaper := tokens.DefaultTypography.Shaper()
 	w := input.RenderDropdown(
 		shaper,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.DropdownRenderState{Options: []string{"Option A", "Option B", "Option C"}},
 	)
 
@@ -45,7 +45,7 @@ func BenchmarkDropdownRenderOpen(b *testing.B) {
 	openH := 44 + len(opts)*44
 	w := input.RenderDropdown(
 		shaper,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.DropdownRenderState{Open: true, Options: opts, Selected: 0},
 	)
 

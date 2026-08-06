@@ -202,42 +202,48 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 // Render produces a layout.Widget for a button in an explicit visual state,
 // without any event processing or rx machinery. Intended for golden-image
 // testing and static demonstrations; production code should use Button, which
-// takes the shaper and the LabelLarge text style from the theme's Typography.
-// The TypeScale parameter contributes only the LabelLarge size; typeface,
-// weight and line height stay at the shaper's defaults. Density is not a
-// parameter (the signature predates E1.3): the static path renders at
-// tokens.Comfortable; density-aware rendering goes through Button.
+// reads both of the parameters below off the theme.
+//
+// labelStyle is the LabelLarge role's whole text style — typeface, weight,
+// size and line height all reach the shaper — and d is the density the button
+// draws at (control height and inner padding). Pass
+// tokens.DefaultTypography.LabelLarge and tokens.Comfortable for the default
+// desktop look.
 func Render(
 	shaper *text.Shaper,
 	label string,
 	colors tokens.ColorTokens,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
-	ts tokens.TypeScale,
+	labelStyle tokens.TextStyle,
+	d tokens.Density,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, label: tokens.TextStyle{Size: ts.LabelLarge}, density: tokens.Comfortable}
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, label: labelStyle, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawButton(gtx, shaper, label, tok, s)
 	}
 }
 
 // RenderIcon produces a layout.Widget for a compact icon-only button in an
-// explicit visual state, without event processing or rx machinery. The glyph is
-// drawn by icon into a square the control height of tokens.Comfortable on a
-// side (the signature predates E1.3; density-aware rendering goes through
-// Button). Intended for golden-image testing and static demonstrations;
-// production code should use Button with Props.Icon (and, when a container
-// drives focus, Props.Clickable).
+// explicit visual state, without event processing or rx machinery. The glyph
+// is drawn by icon into a square d.ControlHeight on a side, inset by
+// d.PaddingY. Pass tokens.Comfortable for the default desktop look. Intended
+// for golden-image testing and static demonstrations; production code should
+// use Button with Props.Icon (and, when a container drives focus,
+// Props.Clickable).
+//
+// It takes no text style: an icon-only button draws no text, so unlike
+// [Render] there is nothing for a tokens.TextStyle to reach.
 func RenderIcon(
 	icon func(gtx layout.Context, sizePx int, col color.NRGBA),
 	colors tokens.ColorTokens,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
-	ts tokens.TypeScale,
+	d tokens.Density,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, label: tokens.TextStyle{Size: ts.LabelLarge}, density: tokens.Comfortable}
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawIconButton(gtx, icon, tok, s)
 	}
@@ -271,8 +277,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 		labelGtx.Constraints.Max.X = maxLabelW
 	}
 	// Shape with the LabelLarge role's typeface, weight, size and line height.
-	// Zero fields (the legacy Render path synthesizes a size-only style) fall
-	// back to the shaper's defaults.
+	// Zero fields fall back to the shaper's defaults.
 	style := tok.label
 	f := font.Font{Typeface: font.Typeface(style.Typeface)}
 	if style.Weight != 0 {

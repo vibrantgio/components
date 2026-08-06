@@ -57,7 +57,7 @@ func TestParagraphGolden(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			style := richtext.FromTokens(tc.colors, tokens.DefaultTypeScale)
+			style := richtext.FromTokens(tc.colors, tokens.DefaultTypography.BodyLarge)
 			w := richtext.Render(shaper, style, mixedSpans(), richtext.Idle())
 			golden.Render(t, tc.name, size, w)
 		})
@@ -69,7 +69,7 @@ func TestParagraphGolden(t *testing.T) {
 func TestLinkStateGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 100)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	cases := []struct {
 		name  string
 		state richtext.RenderState
@@ -90,7 +90,7 @@ func TestLinkStateGolden(t *testing.T) {
 func TestHoveredLinkIsVisuallyDistinct(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 100)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
 	idle := golden.Capture(t, size, richtext.Render(shaper, style, mixedSpans(), richtext.Idle()))
 	hovered := golden.Capture(t, size, richtext.Render(shaper, style, mixedSpans(),
@@ -108,7 +108,7 @@ func TestHoveredLinkIsVisuallyDistinct(t *testing.T) {
 func TestFocusedLinkIsVisuallyDistinct(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 100)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
 	idle := golden.Capture(t, size, richtext.Render(shaper, style, mixedSpans(), richtext.Idle()))
 	focused := golden.Capture(t, size, richtext.Render(shaper, style, mixedSpans(),
@@ -127,7 +127,7 @@ func TestFocusedLinkIsVisuallyDistinct(t *testing.T) {
 func TestStrikethroughIsVisuallyDistinct(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 100)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
 	plain := golden.Capture(t, size, richtext.Render(shaper, style,
 		[]richtext.SpanStyle{{Content: "deleted text"}}, richtext.Idle()))
@@ -158,7 +158,7 @@ func measure(shaper *text.Shaper, style richtext.Style, spans []richtext.SpanSty
 // both must respect their max width.
 func TestParagraphWraps(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
 	wide := measure(shaper, style, mixedSpans(), 600)
 	narrow := measure(shaper, style, mixedSpans(), 150)
@@ -179,7 +179,7 @@ func TestParagraphWraps(t *testing.T) {
 // line.
 func TestHardNewlineBreaksLine(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
 	oneLine := measure(shaper, style, []richtext.SpanStyle{{Content: "alpha beta"}}, 600)
 	twoLines := measure(shaper, style, []richtext.SpanStyle{{Content: "alpha\nbeta"}}, 600)
@@ -222,7 +222,7 @@ func TestLinkClickFiresOnLinkClick(t *testing.T) {
 
 	var gotURL string
 	var gotOps bool
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	style.OnLinkClick = func(gtx layout.Context, u string) {
 		gotURL = u
 		gotOps = gtx.Ops != nil
@@ -263,7 +263,7 @@ func TestLinkFocusTraversalAndKeyboardActivation(t *testing.T) {
 	shaper := defaultShaper(t)
 
 	var clicks []string
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	style.OnLinkClick = func(_ layout.Context, u string) { clicks = append(clicks, u) }
 
 	spans := []richtext.SpanStyle{
@@ -334,7 +334,7 @@ func TestLinkFocusTraversalAndKeyboardActivation(t *testing.T) {
 // TestFromTokensDefaults pins the FromTokens contract: body text in Text at
 // BodyLarge, links in Primary, focus ring in FocusRing.
 func TestFromTokensDefaults(t *testing.T) {
-	st := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypeScale)
+	st := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	if st.Color != tokens.DefaultLight.Text {
 		t.Errorf("Color = %v, want Text %v", st.Color, tokens.DefaultLight.Text)
 	}
@@ -344,7 +344,7 @@ func TestFromTokensDefaults(t *testing.T) {
 	if st.FocusColor != tokens.DefaultLight.FocusRing() {
 		t.Errorf("FocusColor = %v, want FocusRing %v", st.FocusColor, tokens.DefaultLight.FocusRing())
 	}
-	if st.Size != unit.Sp(tokens.DefaultTypeScale.BodyLarge) {
-		t.Errorf("Size = %v, want BodyLarge %v", st.Size, tokens.DefaultTypeScale.BodyLarge)
+	if st.Size != unit.Sp(tokens.DefaultTypography.BodyLarge.Size) {
+		t.Errorf("Size = %v, want BodyLarge %v", st.Size, tokens.DefaultTypography.BodyLarge.Size)
 	}
 }

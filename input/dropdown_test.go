@@ -72,7 +72,7 @@ func TestDropdownGolden(t *testing.T) {
 				tc.colors,
 				tokens.Spacing,
 				sharpRadius,
-				tokens.DefaultTypeScale,
+				tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 				tc.state,
 			)
 			golden.Render(t, tc.name, tc.size, w)
@@ -101,7 +101,7 @@ func TestDropdownTriggerHeightIsControlHeight(t *testing.T) {
 		tokens.DefaultLight,
 		tokens.Spacing,
 		tokens.Radius,
-		tokens.DefaultTypeScale,
+		tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.DropdownRenderState{Options: []string{"Option A"}},
 	)(gtx)
 
@@ -130,12 +130,12 @@ func TestDropdownFocusRingIsVisuallyDistinct(t *testing.T) {
 
 	imgNormal := golden.Capture(t, size, input.RenderDropdown(
 		shaper,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.DropdownRenderState{Options: opts},
 	))
 	imgFocused := golden.Capture(t, size, input.RenderDropdown(
 		shaper,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.DropdownRenderState{Focused: true, Options: opts},
 	))
 
@@ -156,12 +156,12 @@ func TestDropdownOpenStateIsVisuallyDistinct(t *testing.T) {
 
 	imgClosed := golden.Capture(t, image.Pt(200, openH), input.RenderDropdown(
 		shaper,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.DropdownRenderState{Options: opts},
 	))
 	imgOpen := golden.Capture(t, image.Pt(200, openH), input.RenderDropdown(
 		shaper,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.DropdownRenderState{Open: true, Options: opts, Selected: 0},
 	))
 

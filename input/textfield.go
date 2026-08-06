@@ -118,8 +118,8 @@ type resolvedTokens struct {
 }
 
 // bodyLabel derives the Gio font, a single-line label and the text size from
-// the BodyLarge role carried in tok. Zero fields (the legacy Render paths
-// synthesize a size-only style) fall back to the shaper's defaults.
+// the BodyLarge role carried in tok. Zero fields fall back to the shaper's
+// defaults.
 func bodyLabel(tok resolvedTokens) (font.Font, widget.Label, unit.Sp) {
 	style := tok.body
 	f := font.Font{Typeface: font.Typeface(style.Typeface)}
@@ -260,21 +260,24 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 // Render produces a layout.Widget for a text field in an explicit visual state,
 // without any event processing or rx machinery. Intended for golden-image
 // testing and static demonstrations; production code should use TextField,
-// which takes the shaper and the BodyLarge text style from the theme's
-// Typography. The TypeScale parameter contributes only the BodyLarge size;
-// typeface, weight and line height stay at the shaper's defaults. Density is
-// not a parameter (the signature predates E1.3): the static path renders at
-// tokens.Comfortable; density-aware rendering goes through TextField.
+// which reads both of the parameters below off the theme.
+//
+// body is the BodyLarge role's whole text style — typeface, weight, size and
+// line height all reach the shaper — and d is the density the field draws at
+// (control height and vertical padding; horizontal padding stays spacing.S3).
+// Pass tokens.DefaultTypography.BodyLarge and tokens.Comfortable for the
+// default desktop look.
 func Render(
 	shaper *text.Shaper,
 	placeholder string,
 	colors tokens.ColorTokens,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
-	ts tokens.TypeScale,
+	body tokens.TextStyle,
+	d tokens.Density,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: tokens.TextStyle{Size: ts.BodyLarge}, density: tokens.Comfortable}
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: body, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawTextFieldStatic(gtx, shaper, placeholder, tok, s)
 	}

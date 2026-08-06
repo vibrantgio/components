@@ -33,12 +33,13 @@ which one a package uses follows from what it owns:
 Both shapes have a pure render path — `button.Render`, `input.RenderCheckbox`,
 `richtext.Render`, … — that takes resolved tokens and an explicit state struct
 and draws one frame with no event handling. That is what the golden-image
-tests drive. These static signatures are frozen golden surfaces: they still
-take the legacy `tokens.TypeScale`, and the pending major release (F3.3 of the
-[org plan](https://github.com/vibrantgio/.github), planned) re-cuts them to
-`TextStyle` + `Density`. Drive components through their theme-driven entry
-points (`button.Button`, `input.TextField`, …) unless you are rendering a
-static frame.
+tests drive. As of v0.2.0 these signatures take the same token types the live
+paths do — a `tokens.TextStyle` for the role they draw text in and a
+`tokens.Density` for the control height and padding — so a static caller gets
+the full metrics, not sizes only. Pass `tokens.DefaultTypography.LabelLarge`
+(or `.BodyLarge`) and `tokens.Comfortable` for the default desktop look. Drive
+components through their theme-driven entry points (`button.Button`,
+`input.TextField`, …) unless you are rendering a static frame.
 
 ## Where it sits
 
@@ -78,17 +79,12 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 | `list` | Virtual-scrolling list — only the visible rows lay out. `Layout` for the bare list, `LayoutScrollbar` to draw a bar in a reserved gutter or overlaid. |
 | `richtext` | The inline styled-text primitive: styled spans, wrapped paragraphs, and hyperlink spans with hover, focus ring and Tab traversal. Built directly on Gio's shaper. |
 | `scrollbar` | The standalone scrollbar for any scrollable region — track, draggable thumb, click-the-track scrolling — styled from tokens. `list.LayoutScrollbar` draws this one. |
-| `a11y` | **Deprecated alias** of `spectrum/a11y`, where the package moved (E3.2). Import the spectrum path. |
-| `theme` | **Deprecated alias** of `spectrum/theme`, where the package moved (G-B3). Import the spectrum path. |
-| `tokens` | **Deprecated alias** of `spectrum/tokens`, where the package moved (G-B3). Import the spectrum path. |
 
 `theme`, `tokens` and `a11y` moved down into
 [spectrum](https://github.com/vibrantgio/spectrum) so the theme runtime sits
-beneath the components it themes. All three remain here as type aliases and
-re-exported variables, so old imports keep compiling — but only for the
-deprecation window: F3.3 of the [org
-plan](https://github.com/vibrantgio/.github) (planned, the next major) deletes
-all three shims. Import the spectrum paths in anything new.
+beneath the components it themes. They stayed here as deprecated alias
+packages for one deprecation window; **v0.2.0 deletes all three**. Import
+`spectrum/theme`, `spectrum/tokens` and `spectrum/a11y`.
 
 ## Usage
 
@@ -167,16 +163,15 @@ golden-image commands.
 
 Honest about what does not work yet:
 
-- **The static `Render` surfaces are frozen mid-migration.** The live paths
-  are density-sized and theme-shaped, but the pure render functions still
-  take the legacy `tokens.TypeScale` — golden-test surfaces kept
-  signature-stable on purpose. The planned major (F3.3) re-cuts them to
-  `TextStyle` + `Density`; until then a static caller gets sizes only, not
-  the full metrics.
-- **The alias shims are on a clock.** `prism/tokens`, `prism/theme` and
-  `prism/a11y` forward to their spectrum counterparts and every symbol in
-  them is marked `Deprecated:`. F3.3 (planned) deletes all three; code that
-  still imports the prism paths compiles today and will not after that major.
+- **v0.2.0 is a breaking release.** The three alias packages — `prism/tokens`,
+  `prism/theme`, `prism/a11y` — are gone; import the `spectrum/…` paths. And
+  the static render surface no longer takes `tokens.TypeScale`:
+  `button.Render`, `input.Render` and `input.RenderDropdown` take a
+  `tokens.TextStyle` and a `tokens.Density`, `button.RenderIcon` takes a
+  `tokens.Density` (it draws no text), and `richtext.FromTokens` takes a
+  `tokens.TextStyle`. Old call: `…, tokens.Radius, tokens.DefaultTypeScale,
+  state)`. New call: `…, tokens.Radius, tokens.DefaultTypography.LabelLarge,
+  tokens.Comfortable, state)`.
 - **`icon.Registry` ships empty.** Nothing populates it yet. For Material
   icons today, render `golang.org/x/exp/shiny/materialdesign/icons` data
   through `ivg/raster/gio`; `button.Props.Icon` wants a `clip.Path` painter,

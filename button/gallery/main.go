@@ -129,7 +129,7 @@ func frame(gtx layout.Context, shaper *text.Shaper) layout.Dimensions {
 					gtx.Constraints.Max.X = bw
 					return button.Render(
 						shaper, "Click me",
-						colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+						colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 						r.state,
 					)(gtx)
 				}),

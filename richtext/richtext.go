@@ -100,14 +100,22 @@ type Style struct {
 }
 
 // FromTokens derives the default paragraph style from colour tokens and the
-// type scale: body text in Text at BodyLarge, links in Primary, and the
-// focus ring in FocusRing (matching prism/button's ring colour).
-func FromTokens(c tokens.ColorTokens, ts tokens.TypeScale) Style {
+// BodyLarge text style: body text in Text at body.Size, links in Primary, and
+// the focus ring in FocusRing (matching prism/button's ring colour). Pass
+// tokens.DefaultTypography.BodyLarge for the default desktop look.
+//
+// Of the role's style only Size lands in [Style]: a paragraph's typeface,
+// weight and slant are per-span properties, carried by each [SpanStyle], and
+// wrapping uses the shaped line metrics rather than a fixed line height.
+// FromTokens takes the whole [tokens.TextStyle] anyway so the role stays one
+// value from theme to paragraph — and takes no [tokens.Density], which sizes
+// controls and so has nothing to say about a paragraph.
+func FromTokens(c tokens.ColorTokens, body tokens.TextStyle) Style {
 	return Style{
 		Color:      c.Text,
 		LinkColor:  c.Primary,
 		FocusColor: c.FocusRing(),
-		Size:       unit.Sp(ts.BodyLarge),
+		Size:       unit.Sp(body.Size),
 	}
 }
 

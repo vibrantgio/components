@@ -57,7 +57,7 @@ func TestTextFieldGolden(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			w := input.Render(
 				shaper, "",
-				tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypeScale,
+				tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 				tc.state,
 			)
 			golden.Render(t, tc.name, size, w)
@@ -83,7 +83,7 @@ func TestTextFieldHeightIsControlHeight(t *testing.T) {
 
 	dims := input.Render(
 		shaper, "Email",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.RenderState{},
 	)(gtx)
 
@@ -152,12 +152,12 @@ func TestTextFieldDisabledIsVisuallyDistinct(t *testing.T) {
 
 	imgEnabled := golden.Capture(t, size, input.Render(
 		shaper, "Placeholder",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.RenderState{},
 	))
 	imgDisabled := golden.Capture(t, size, input.Render(
 		shaper, "Placeholder",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.RenderState{Disabled: true},
 	))
 
@@ -177,12 +177,12 @@ func TestTextFieldFocusRingIsVisuallyDistinct(t *testing.T) {
 
 	imgNormal := golden.Capture(t, size, input.Render(
 		shaper, "Placeholder",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.RenderState{},
 	))
 	imgFocused := golden.Capture(t, size, input.Render(
 		shaper, "Placeholder",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.RenderState{Focused: true},
 	))
 

@@ -164,22 +164,25 @@ func Dropdown(th rx.Observable[theme.Theme], props DropdownProps) rx.Observable[
 // RenderDropdown produces a layout.Widget for a dropdown in an explicit visual
 // state, without any event processing or rx machinery. Intended for golden-image
 // testing and static demonstrations; production code should use Dropdown, which
-// takes the shaper and the BodyLarge text style from the theme's Typography.
-// The TypeScale parameter contributes only the BodyLarge size; typeface,
-// weight and line height stay at the shaper's defaults.
+// reads both of the parameters below off the theme.
+//
+// body is the BodyLarge role's whole text style — typeface, weight, size and
+// line height all reach the shaper — and d is the density the trigger and the
+// option rows draw at. Pass tokens.DefaultTypography.BodyLarge and
+// tokens.Comfortable for the default desktop look.
 func RenderDropdown(
 	shaper *text.Shaper,
 	colors tokens.ColorTokens,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
-	ts tokens.TypeScale,
+	body tokens.TextStyle,
+	d tokens.Density,
 	s DropdownRenderState,
 ) layout.Widget {
-	// Density and elevation are not parameters (the signature predates
-	// E1.3/E2.3): the static path renders at tokens.Comfortable and the
-	// default tokens.Elevation scale; density- and elevation-aware
+	// Elevation is not a parameter (the signature predates E2.3): the static
+	// path renders on the default tokens.Elevation scale; elevation-aware
 	// rendering goes through Dropdown.
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: tokens.TextStyle{Size: ts.BodyLarge}, density: tokens.Comfortable, elevation: tokens.Elevation}
+	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: body, density: d, elevation: tokens.Elevation}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawDropdown(gtx, shaper, tok, s)
 	}

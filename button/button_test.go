@@ -79,7 +79,7 @@ func TestButtonGolden(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			w := button.Render(
 				shaper, "",
-				tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypeScale,
+				tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 				tc.state,
 			)
 			golden.Render(t, tc.name, size, w)
@@ -145,7 +145,7 @@ func TestButtonVisualHeightIsControlHeight(t *testing.T) {
 
 	dims := button.Render(
 		shaper, "OK",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{},
 	)(gtx)
 
@@ -208,12 +208,12 @@ func TestButtonDisabledIsVisuallyDistinct(t *testing.T) {
 
 	imgEnabled := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{},
 	))
 	imgDisabled := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{Disabled: true},
 	))
 
@@ -233,12 +233,12 @@ func TestButtonFocusRingIsVisuallyDistinct(t *testing.T) {
 
 	imgNormal := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{},
 	))
 	imgFocused := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{Focused: true},
 	))
 
@@ -258,12 +258,12 @@ func TestButtonPressedIsVisuallyDistinct(t *testing.T) {
 
 	imgNormal := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{},
 	))
 	imgPressed := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{Pressed: true},
 	))
 
@@ -283,12 +283,12 @@ func TestButtonHoveredIsVisuallyDistinct(t *testing.T) {
 
 	imgNormal := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{},
 	))
 	imgHovered := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{Hovered: true},
 	))
 
@@ -320,7 +320,7 @@ func TestIconButtonGolden(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			w := button.RenderIcon(
 				crossIcon,
-				tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypeScale,
+				tc.colors, tokens.Spacing, sharpRadius, tokens.Comfortable,
 				tc.state,
 			)
 			golden.Render(t, tc.name, size, w)
@@ -341,7 +341,7 @@ func TestIconButtonVisualIsControlHeightSquare(t *testing.T) {
 	}
 	dims := button.RenderIcon(
 		crossIcon,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.Comfortable,
 		button.RenderState{},
 	)(gtx)
 
@@ -368,12 +368,12 @@ func TestIconButtonFocusRingIsVisuallyDistinct(t *testing.T) {
 
 	imgNormal := golden.Capture(t, size, button.RenderIcon(
 		crossIcon,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.Comfortable,
 		button.RenderState{},
 	))
 	imgFocused := golden.Capture(t, size, button.RenderIcon(
 		crossIcon,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypeScale,
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.Comfortable,
 		button.RenderState{Focused: true},
 	))
 
