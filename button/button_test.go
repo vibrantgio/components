@@ -142,6 +142,11 @@ func TestButtonCompactGolden(t *testing.T) {
 // TestButtonVisualHeightIsControlHeight checks the drawn button is exactly the
 // density's control height (E1.3: 36 dp Comfortable), not the old 44 dp — the
 // 44 dp figure is a pointer-target floor, verified separately below.
+//
+// Comfortable is the density where the floor and the content box agree:
+// LabelLarge's 20 dp line box plus 2×8 dp of padding is 36, which is
+// ComfortableControlHeight exactly. The two readings are pulled apart at
+// Compact by TestCompactButtonClearsTheControlHeightFloor.
 func TestButtonVisualHeightIsControlHeight(t *testing.T) {
 	shaper := defaultShaper(t)
 
@@ -161,6 +166,48 @@ func TestButtonVisualHeightIsControlHeight(t *testing.T) {
 	want := int(tokens.Comfortable.ControlHeight) // 36 dp at 1:1 scale
 	if dims.Size.Y != want {
 		t.Errorf("button height = %d px, want %d px (ControlHeight at 1:1 scale)", dims.Size.Y, want)
+	}
+}
+
+// TestCompactButtonClearsTheControlHeightFloor pins the answer F4.4 asked for:
+// a Compact button draws taller than CompactControlHeight, and that is
+// correct, because ControlHeight is a floor and not a height.
+//
+// The measurement that raised it found 29 px against a floor of 28 — the
+// glyph ink box of 17 px plus 2×6 dp — and reproduced it with an empty label,
+// so it was never text's doing. With the line box honoured the number is 32:
+// LabelLarge's 20 dp line height plus the same 12 dp of padding. Both are over
+// the floor; only the second is derivable from the tokens, which is why it is
+// the one worth pinning.
+//
+// The label is deliberately empty. A control's height must not depend on which
+// letters it happens to contain, and this is the assertion that says so.
+func TestCompactButtonClearsTheControlHeightFloor(t *testing.T) {
+	shaper := defaultShaper(t)
+
+	var ops op.Ops
+	gtx := layout.Context{
+		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
+		Constraints: layout.Exact(image.Pt(300, 120)),
+		Ops:         &ops,
+	}
+
+	style := tokens.DefaultTypography.LabelLarge
+	d := tokens.Compact
+	dims := button.Render(
+		shaper, "",
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, style, d,
+		button.RenderState{},
+	)(gtx)
+
+	want := int(style.LineHeight + 2*d.PaddingY) // 20 + 12 = 32
+	if dims.Size.Y != want {
+		t.Errorf("compact button height = %d px, want %d px (LabelLarge line box %v + 2×PaddingY %v)",
+			dims.Size.Y, want, style.LineHeight, d.PaddingY)
+	}
+	if floor := int(d.ControlHeight); dims.Size.Y <= floor {
+		t.Errorf("compact button height = %d px, expected to clear the %d px floor; if it no longer does, density.go's table is stale",
+			dims.Size.Y, floor)
 	}
 }
 

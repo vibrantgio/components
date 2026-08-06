@@ -20,6 +20,7 @@ import (
 	"github.com/vibrantgio/prism/internal/hit"
 	"github.com/vibrantgio/spectrum/theme"
 	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/spectrum/typeset"
 )
 
 // RenderState holds explicit visual interaction state for static rendering.
@@ -204,11 +205,23 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 // testing and static demonstrations; production code should use Button, which
 // reads both of the parameters below off the theme.
 //
-// labelStyle is the LabelLarge role's whole text style — typeface, weight,
-// size and line height all reach the shaper — and d is the density the button
-// draws at (control height and inner padding). Pass
+// labelStyle is the LabelLarge role's whole text style and d is the density
+// the button draws at (control height and inner padding). Pass
 // tokens.DefaultTypography.LabelLarge and tokens.Comfortable for the default
 // desktop look.
+//
+// All four properties of the style are honoured, and line height is honoured
+// in the sense a design system means: the label box is labelStyle.LineHeight
+// tall, leading split evenly above and below the glyphs, so the button's
+// height derives from the type role rather than from which letters the label
+// happens to contain. Handing the number to gioui.org/widget.Label does not
+// achieve that — it changes nothing on a single line — so the layout goes
+// through spectrum/typeset, which is where that discrepancy is documented.
+//
+// The drawn height is therefore max(d.ControlHeight, LineHeight + 2×d.PaddingY),
+// and the second term wins for Compact at any of the label roles: 20 + 12 = 32
+// against a 28 dp control height. [tokens.Density.ControlHeight] is a floor,
+// not a height.
 func Render(
 	shaper *text.Shaper,
 	label string,
@@ -277,19 +290,15 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 		labelGtx.Constraints.Max.X = maxLabelW
 	}
 	// Shape with the LabelLarge role's typeface, weight, size and line height.
-	// Zero fields fall back to the shaper's defaults.
+	// Zero fields fall back to the shaper's defaults. typeset.Layout, not
+	// widget.Label.Layout, because the role's line height has to be the height
+	// of the label box and Gio alone reports the glyph ink instead — see
+	// spectrum/typeset.
 	style := tok.label
-	f := font.Font{Typeface: font.Typeface(style.Typeface)}
-	if style.Weight != 0 {
-		f.Weight = tokens.FontWeight(style.Weight)
-	}
-	wl := widget.Label{MaxLines: 1}
-	if style.LineHeight != 0 {
-		wl.LineHeight = unit.Sp(style.LineHeight)
-		wl.LineHeightScale = 1
-	}
+	f := typeset.Font(style, font.Normal)
+	wl := typeset.Label(style, 1)
 	mLabel := op.Record(gtx.Ops)
-	labelDims := wl.Layout(labelGtx, shaper, f, unit.Sp(style.Size), label, textMaterial)
+	labelDims := typeset.Layout(labelGtx, shaper, wl, f, unit.Sp(style.Size), label, textMaterial)
 	labelCall := mLabel.Stop()
 
 	// Button dimensions: fill available width, enforce the density's control

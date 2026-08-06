@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/unit"
 
 	"github.com/vibrantgio/prism/button"
 	golden "github.com/vibrantgio/prism/golden"
@@ -30,14 +32,15 @@ const specimen = "Il1 Wm gj 018"
 // the shaping call. That re-cut moved zero pixels, because no golden drew
 // enough text to notice. These do.
 //
-// Three of the four properties are here, not four. LineHeight is absent
-// because it cannot move a pixel on this path and a golden that pretended
-// otherwise would be a lie: gioui.org/text's calculateYOffsets baselines the
-// first line at that line's own ascent and only spends the line height on the
-// gap to the next one, and widget.Label reports the glyph ink bounds as its
-// size. A MaxLines:1 label — which every prism control is — therefore renders
-// identically at any LineHeight. The property is pinned where it is
-// observable, on a wrapped multi-line label, in cadence/feature.
+// All four properties are here. LineHeight used to be absent, with a comment
+// explaining that it could not move a pixel on this path — true at the time,
+// and the defect rather than the excuse for it. gioui.org/text's
+// calculateYOffsets baselines the first line at that line's own ascent and
+// spends the line height only on the gap to the next one, and widget.Label
+// reports the glyph ink as its size, so a MaxLines:1 label rendered
+// identically at any LineHeight at all. F4.4c made the label box the role's
+// line box via spectrum/typeset, so the property is now observable exactly
+// where it is documented to arrive.
 var typographyCases = []struct {
 	name  string
 	style tokens.TextStyle
@@ -53,6 +56,14 @@ var typographyCases = []struct {
 	// Size only: 11 dp instead of 14 — LabelSmall's size on LabelLarge's face
 	// and weight, so nothing but the scale differs.
 	{"type-size-small", withSize(tokens.DefaultTypography.LabelLarge, 11)},
+	// Line height only: 32 dp instead of 20, at the same 14 dp size. The
+	// glyphs are identical to the baseline's — same face, same weight, same
+	// scale — and everything that moves moves because the line box grew: the
+	// label box is 32 px rather than 20, so the button is 32 + 2×8 = 48 px
+	// tall rather than the 36 the density floors it to, and the text sits
+	// lower by the extra leading above it. That is the whole of what a design
+	// system means by line height, and this image is where it is now visible.
+	{"type-line-height-loose", withLineHeight(tokens.DefaultTypography.LabelLarge, 32)},
 }
 
 func withTypeface(s tokens.TextStyle, face string) tokens.TextStyle {
@@ -67,6 +78,11 @@ func withWeight(s tokens.TextStyle, w int) tokens.TextStyle {
 
 func withSize(s tokens.TextStyle, size float32) tokens.TextStyle {
 	s.Size = size
+	return s
+}
+
+func withLineHeight(s tokens.TextStyle, lh float32) tokens.TextStyle {
+	s.LineHeight = lh
 	return s
 }
 
@@ -94,6 +110,54 @@ func TestTypographyGolden(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			golden.Render(t, tc.name, typographySize, typographyWidget(t, tc.style))
 		})
+	}
+}
+
+// TestLineHeightSizesTheLabelBox is the numeric half of the line-height pin,
+// and the one that fails against the behaviour F4.4 measured. Before F4.4c a
+// button at line height 20, 32 and 64 rendered byte-identical with a 17 px
+// label box in all three, because gioui.org/widget.Label reports glyph ink and
+// gioui.org/text spends the line height on the gap to a next line that a
+// MaxLines:1 label never has. Now the label box is the role's line box, so the
+// button's height is the line height plus its padding — and every number below
+// is derived from the tokens rather than from the letters in the label.
+//
+// The golden above shows the same fact in pixels; this one says which number
+// is wrong when it moves.
+func TestLineHeightSizesTheLabelBox(t *testing.T) {
+	shaper := defaultShaper(t)
+	d := tokens.Comfortable
+
+	var heights []int
+	for _, lh := range []float32{20, 32, 64} {
+		var ops op.Ops
+		gtx := layout.Context{
+			Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
+			Constraints: layout.Exact(image.Pt(300, 200)),
+			Ops:         &ops,
+		}
+		style := withLineHeight(tokens.DefaultTypography.LabelLarge, lh)
+		dims := button.Render(
+			shaper, specimen,
+			tokens.DefaultLight, tokens.Spacing, tokens.Radius, style, d,
+			button.RenderState{},
+		)(gtx)
+
+		want := int(lh + 2*d.PaddingY)
+		if f := int(d.ControlHeight); want < f {
+			want = f
+		}
+		if dims.Size.Y != want {
+			t.Errorf("line height %v: button %d px tall, want %d (line box + 2×PaddingY, floored at ControlHeight)",
+				lh, dims.Size.Y, want)
+		}
+		heights = append(heights, dims.Size.Y)
+	}
+
+	for i, h := range heights[1:] {
+		if h == heights[i] {
+			t.Fatalf("button heights %v: two line heights render the same box, so the role's line height reaches the shaper and changes nothing", heights)
+		}
 	}
 }
 

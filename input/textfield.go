@@ -21,6 +21,7 @@ import (
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/spectrum/theme"
 	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/spectrum/typeset"
 )
 
 // RenderState holds explicit visual interaction state for static rendering.
@@ -119,19 +120,12 @@ type resolvedTokens struct {
 
 // bodyLabel derives the Gio font, a single-line label and the text size from
 // the BodyLarge role carried in tok. Zero fields fall back to the shaper's
-// defaults.
+// defaults. Lay the returned label out with typeset.Layout rather than
+// widget.Label.Layout: the role's line height is the height of the line box,
+// which Gio does not give a single line on its own.
 func bodyLabel(tok resolvedTokens) (font.Font, widget.Label, unit.Sp) {
 	style := tok.body
-	f := font.Font{Typeface: font.Typeface(style.Typeface)}
-	if style.Weight != 0 {
-		f.Weight = tokens.FontWeight(style.Weight)
-	}
-	wl := widget.Label{MaxLines: 1}
-	if style.LineHeight != 0 {
-		wl.LineHeight = unit.Sp(style.LineHeight)
-		wl.LineHeightScale = 1
-	}
-	return f, wl, unit.Sp(style.Size)
+	return typeset.Font(style, font.Normal), typeset.Label(style, 1), unit.Sp(style.Size)
 }
 
 // TextField returns an rx.Observable[layout.Widget] that emits a new widget
@@ -322,7 +316,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	phMat := mPhColor.Stop()
 
 	mPh := op.Record(gtx.Ops)
-	contentDims := wl.Layout(innerGtx, shaper, f, textSize, placeholder, phMat)
+	contentDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, placeholder, phMat)
 	phCall := mPh.Stop()
 
 	fieldH := contentDims.Size.Y + 2*padV
@@ -457,7 +451,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	labelMat := mLabelColor.Stop()
 
 	mLabel := op.Record(gtx.Ops)
-	labelDims := wl.Layout(innerGtx, shaper, f, textSize, labelText, labelMat)
+	labelDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, labelText, labelMat)
 	labelCall := mLabel.Stop()
 
 	fieldH := labelDims.Size.Y + 2*padV

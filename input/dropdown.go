@@ -19,6 +19,7 @@ import (
 	"github.com/vibrantgio/prism/internal/hit"
 	"github.com/vibrantgio/spectrum/theme"
 	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/spectrum/typeset"
 )
 
 // DropdownRenderState holds explicit visual state for static rendering.
@@ -295,7 +296,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	textMat := mTextCol.Stop()
 
 	mLabel := op.Record(gtx.Ops)
-	labelDims := wl.Layout(innerGtx, shaper, f, textSize, selectedText, textMat)
+	labelDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, selectedText, textMat)
 	labelCall := mLabel.Stop()
 
 	triggerH := labelDims.Size.Y + 2*padV
@@ -381,7 +382,7 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	textMat := mTextCol.Stop()
 
 	mLabel := op.Record(gtx.Ops)
-	labelDims := wl.Layout(innerGtx, shaper, f, textSize, label, textMat)
+	labelDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, label, textMat)
 	labelCall := mLabel.Stop()
 
 	rowH := labelDims.Size.Y + 2*padV

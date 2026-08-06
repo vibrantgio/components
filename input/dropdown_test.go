@@ -24,9 +24,16 @@ func TestDropdownGolden(t *testing.T) {
 	// glyphs rasterise the same everywhere and the trigger's selected label
 	// and the option rows are now visible rather than implied.
 	opts := []string{"Alpha", "Beta", "Gamma"}
-	// Trigger and option rows are each ControlHeight tall (E1.3).
-	ctl := int(tokens.Comfortable.ControlHeight)
-	openH := ctl + len(opts)*ctl
+	// Trigger and option rows are each one BodyLarge line box plus the
+	// density's vertical padding, floored at ControlHeight (E1.3). That is 40
+	// dp Comfortable, not the 36 dp floor: sizing this window off ControlHeight
+	// alone clipped 4 px off the last option row, which is how F4.4c's line-box
+	// change first showed up here.
+	row := int(tokens.DefaultTypography.BodyLarge.LineHeight + 2*tokens.Comfortable.PaddingY)
+	if floor := int(tokens.Comfortable.ControlHeight); row < floor {
+		row = floor
+	}
+	openH := row + len(opts)*row
 
 	// Zero corner radius avoids anti-aliasing variance between GPU context
 	// initialisations. Border/fill presence and colour accuracy are still
@@ -82,12 +89,14 @@ func TestDropdownGolden(t *testing.T) {
 
 // ---- Accessibility tests ----
 
-// TestDropdownTriggerHeightIsControlHeight checks the closed trigger draws at
-// the density's control height (E1.3: 36 dp Comfortable). The 44 dp WCAG
-// 2.5.5 floor applies to the pointer target: the live Dropdown extends the
-// trigger's hit area via internal/hit (option rows stack against each other
-// and keep their row bounds as their target).
-func TestDropdownTriggerHeightIsControlHeight(t *testing.T) {
+// TestDropdownTriggerHeightIsItsLineBoxOverTheFloor checks the closed trigger
+// draws at max(ControlHeight, BodyLarge's line box + 2×PaddingY) — 40 dp
+// Comfortable, over the 36 dp floor — the same rule and the same arithmetic as
+// the text field it is styled to match. The 44 dp WCAG 2.5.5 floor applies to
+// the pointer target: the live Dropdown extends the trigger's hit area via
+// internal/hit (option rows stack against each other and keep their row bounds
+// as their target).
+func TestDropdownTriggerHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 	shaper := defaultShaper(t)
 	var ops op.Ops
 	gtx := layout.Context{
@@ -105,9 +114,14 @@ func TestDropdownTriggerHeightIsControlHeight(t *testing.T) {
 		input.DropdownRenderState{Options: []string{"Option A"}},
 	)(gtx)
 
-	want := int(tokens.Comfortable.ControlHeight)
+	body := tokens.DefaultTypography.BodyLarge
+	want := int(body.LineHeight + 2*tokens.Comfortable.PaddingY)
+	if floor := int(tokens.Comfortable.ControlHeight); want < floor {
+		want = floor
+	}
 	if dims.Size.Y != want {
-		t.Errorf("dropdown trigger height = %d px, want %d px (ControlHeight at 1:1 scale)", dims.Size.Y, want)
+		t.Errorf("dropdown trigger height = %d px, want %d px (BodyLarge line box %v + 2\u00d7PaddingY %v, floored at ControlHeight %v)",
+			dims.Size.Y, want, body.LineHeight, tokens.Comfortable.PaddingY, tokens.Comfortable.ControlHeight)
 	}
 }
 

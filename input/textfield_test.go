@@ -74,11 +74,18 @@ func TestTextFieldGolden(t *testing.T) {
 
 // ---- Accessibility tests ----
 
-// TestTextFieldHeightIsControlHeight checks the drawn field is exactly the
-// density's control height (E1.3: 36 dp Comfortable, shadcn's h-9). The 44 dp
-// WCAG 2.5.5 floor applies to the pointer target, verified by
+// TestTextFieldHeightIsItsLineBoxOverTheFloor checks the drawn field is
+// max(ControlHeight, BodyLarge's line box + 2×PaddingY), which is what
+// [tokens.Density.ControlHeight] being a floor means at the one control where
+// the two readings differ. BodyLarge is a 24 dp line box, so a Comfortable
+// field is 24 + 16 = 40 dp, four taller than the 36 dp floor and four taller
+// than a Comfortable button in the 20 dp LabelLarge role. That is the type
+// roles talking, not a defect: F4.4c made the line height mean the line box,
+// and a field set in a larger role is a larger field.
+//
+// The 44 dp WCAG 2.5.5 floor applies to the pointer target, verified by
 // TestTextFieldHitSlopFocusesEditor.
-func TestTextFieldHeightIsControlHeight(t *testing.T) {
+func TestTextFieldHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 	shaper := defaultShaper(t)
 
 	var ops op.Ops
@@ -94,9 +101,14 @@ func TestTextFieldHeightIsControlHeight(t *testing.T) {
 		input.RenderState{},
 	)(gtx)
 
-	want := int(tokens.Comfortable.ControlHeight)
+	body := tokens.DefaultTypography.BodyLarge
+	want := int(body.LineHeight + 2*tokens.Comfortable.PaddingY)
+	if floor := int(tokens.Comfortable.ControlHeight); want < floor {
+		want = floor
+	}
 	if dims.Size.Y != want {
-		t.Errorf("text field height = %d px, want %d px (ControlHeight at 1:1 scale)", dims.Size.Y, want)
+		t.Errorf("text field height = %d px, want %d px (BodyLarge line box %v + 2\u00d7PaddingY %v, floored at ControlHeight %v)",
+			dims.Size.Y, want, body.LineHeight, tokens.Comfortable.PaddingY, tokens.Comfortable.ControlHeight)
 	}
 }
 
@@ -116,13 +128,14 @@ func TestTextFieldHitSlopFocusesEditor(t *testing.T) {
 	size := image.Pt(300, 120)
 
 	dims := driveTextFieldFrame(w, ops, r, size)
-	if dims.Size.Y != int(tokens.Comfortable.ControlHeight) {
-		t.Fatalf("field height = %d px, want %d", dims.Size.Y, int(tokens.Comfortable.ControlHeight))
+	fieldH := int(tokens.DefaultTypography.BodyLarge.LineHeight + 2*tokens.Comfortable.PaddingY)
+	if dims.Size.Y != fieldH {
+		t.Fatalf("field height = %d px, want %d", dims.Size.Y, fieldH)
 	}
 
-	// The hit rect is 44 px centred on the 36 px field: -4..40. Press at
-	// y=38 — outside the field, inside the slop.
-	pos := f32.Pt(150, 38)
+	// The hit rect is the 44 px floor centred on the 40 px field: -2..42.
+	// Press at y=41 — outside the field, inside the slop.
+	pos := f32.Pt(150, 41)
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
