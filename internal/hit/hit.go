@@ -11,6 +11,13 @@
 // widget's bounds; where the slop of neighbouring controls overlaps, the
 // control laid out later wins the overlap (Gio delivers to the topmost input
 // area).
+//
+// That last sentence is why this package is for standalone controls only —
+// button, checkbox, radio, text field, the dropdown's closed trigger. Stacked
+// rows (list, table, dropdown options) tile edge to edge, so every row's slop
+// would land on its neighbours and the boundary would stop meaning what it
+// draws. Those rows are their own target at their own height, which clears
+// WCAG 2.5.8 (AA, 24 dp) and not 2.5.5 (AAA, 44 dp); see tokens.MinHitTarget.
 package hit
 
 import (

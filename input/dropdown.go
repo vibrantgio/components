@@ -73,6 +73,26 @@ type DropdownProps struct {
 // Both integration paths are supported:
 //   - FRP: set DropdownProps.OnSelect.
 //   - MVU: set DropdownProps.Message; the component emits mvu.MessageOp on selection.
+//
+// # Keyboard reach
+//
+// F4.7 checked the open menu against the gap it fixed in cadence/sidebar —
+// keyboard traversal built on per-row focus tags in a virtualised region,
+// which reaches only the rows a frame laid out — and the menu does not have
+// it. It is not virtualised: layoutDropdownLive walks every option, so while
+// the menu is open every option row exists in the op tree with its own
+// widget.Clickable focus tag, and Tab plus Enter/Space reaches all of them.
+// There is no unreachable option because there is no offscreen option.
+//
+// Two things follow, and they are worth writing down rather than
+// rediscovering. First, that guarantee is bounded by the option count: the
+// menu draws its full height and would run off the window before it ran out of
+// focus tags, so an options list long enough to need virtualising must move to
+// prism/list's LayoutSelectable, not grow per-row tags. Second, Tab-per-option
+// is not the menu behaviour a listbox implies — arrow keys should move a
+// highlight within the open menu and Escape should close it. That is a real
+// gap, but it is a menu-semantics gap, not the virtualisation one, and it is
+// not what F4.7 was scoped to fix.
 func Dropdown(th rx.Observable[theme.Theme], props DropdownProps) rx.Observable[layout.Widget] {
 	disabled := props.Disabled
 	if disabled == nil {
@@ -196,7 +216,11 @@ func layoutDropdownLive(gtx layout.Context, shaper *text.Shaper, trigger *widget
 	// never the hit target. Option rows are NOT extended: they stack
 	// directly against each other, so a ≥44 dp slop per row would overlap
 	// the neighbouring rows' targets; the rows rely on their full-row width
-	// instead.
+	// instead. What they measure, at 1:1, is 40 dp Comfortable and 36 dp
+	// Compact — BodyLarge's 24 dp line box plus 2×PaddingY, which wins over
+	// the ControlHeight floor in both densities — so both clear WCAG 2.5.8
+	// Target Size (Minimum), the 24 dp AA criterion these rows are held to.
+	// See tokens.MinHitTarget for why 2.5.5's 44 dp is not that criterion.
 	triggerDims := hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), trigger.Layout, func(gtx layout.Context) layout.Dimensions {
 		semantic.Button.Add(gtx.Ops)
 		if desc != "" {
