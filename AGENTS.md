@@ -28,7 +28,7 @@ module directory — `./...` does not cross a module boundary:
 
     go build ./... && go test ./...
 
-**Golden images.** Tests in seven packages compare rendered output against
+**Golden images.** Tests in eight packages compare rendered output against
 PNGs committed under `testdata/golden/`. When a change legitimately moves
 pixels, regenerate them within the same change, look at what came out, and
 say so in the commit. From the repository root:
