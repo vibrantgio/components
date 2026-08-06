@@ -16,7 +16,7 @@ import (
 // synthetic frames, per DESIGN §"Performance — Profiling". b.ReportAllocs is
 // enabled so CI can gate on per-frame allocation regressions (>5% threshold).
 func BenchmarkDropdownRender(b *testing.B) {
-	shaper := tokens.DefaultTypography.Shaper()
+	shaper := tokens.DefaultTypography.DeterministicShaper()
 	w := input.RenderDropdown(
 		shaper,
 		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
@@ -40,7 +40,7 @@ func BenchmarkDropdownRender(b *testing.B) {
 // BenchmarkDropdownRenderOpen benchmarks the open state which additionally
 // draws the option list below the trigger.
 func BenchmarkDropdownRenderOpen(b *testing.B) {
-	shaper := tokens.DefaultTypography.Shaper()
+	shaper := tokens.DefaultTypography.DeterministicShaper()
 	opts := []string{"Option A", "Option B", "Option C"}
 	openH := 44 + len(opts)*44
 	w := input.RenderDropdown(

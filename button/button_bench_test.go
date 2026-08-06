@@ -13,7 +13,7 @@ import (
 // harness enables b.ReportAllocs so per-frame allocation regressions (>5%
 // threshold) are measurable. This is the idle render: default unfocused state.
 func BenchmarkButtonRender(b *testing.B) {
-	shaper := tokens.DefaultTypography.Shaper()
+	shaper := tokens.DefaultTypography.DeterministicShaper()
 	w := button.Render(
 		shaper, "Benchmark",
 		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
@@ -25,7 +25,7 @@ func BenchmarkButtonRender(b *testing.B) {
 // BenchmarkButtonRenderFocused benchmarks the focused state which draws an
 // extra clip.Stroke path for the focus ring.
 func BenchmarkButtonRenderFocused(b *testing.B) {
-	shaper := tokens.DefaultTypography.Shaper()
+	shaper := tokens.DefaultTypography.DeterministicShaper()
 	w := button.Render(
 		shaper, "Benchmark",
 		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,

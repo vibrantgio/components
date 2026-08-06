@@ -24,7 +24,7 @@ import (
 // It is the idle baseline that the live caret-blink frame below is contrasted
 // against; b.ReportAllocs is enabled by the harness.
 func BenchmarkTextFieldRender(b *testing.B) {
-	shaper := tokens.DefaultTypography.Shaper()
+	shaper := tokens.DefaultTypography.DeterministicShaper()
 	w := input.Render(
 		shaper, "Placeholder",
 		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
@@ -48,7 +48,7 @@ func BenchmarkTextFieldRender(b *testing.B) {
 // silently did not take — otherwise we would benchmark the unfocused
 // placeholder frame under a "caret-blink" label.
 func BenchmarkTextFieldCaretBlink(b *testing.B) {
-	shaper := tokens.DefaultTypography.Shaper()
+	shaper := tokens.DefaultTypography.DeterministicShaper()
 	var changed string
 	props := input.TextFieldProps{
 		Placeholder: "Placeholder",

@@ -20,7 +20,7 @@ var benchSize = image.Pt(400, 120)
 // shaper's layout cache after the first frame), line wrapping, glyph
 // painting, and the link underline.
 func BenchmarkRichtextRender(b *testing.B) {
-	shaper := tokens.DefaultTypography.Shaper()
+	shaper := tokens.DefaultTypography.DeterministicShaper()
 	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	w := richtext.Render(shaper, style, mixedSpans(), richtext.Idle())
 	bench.BenchFrame(b, w, bench.WithSize(benchSize))
@@ -29,7 +29,7 @@ func BenchmarkRichtextRender(b *testing.B) {
 // BenchmarkRichtextRenderFocused benchmarks the focused-link state, which
 // additionally draws the focus-ring stroke path.
 func BenchmarkRichtextRenderFocused(b *testing.B) {
-	shaper := tokens.DefaultTypography.Shaper()
+	shaper := tokens.DefaultTypography.DeterministicShaper()
 	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	w := richtext.Render(shaper, style, mixedSpans(),
 		richtext.RenderState{HoveredLink: richtext.NoLink, FocusedLink: 0})
