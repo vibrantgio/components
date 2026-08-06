@@ -20,6 +20,14 @@
 // Golden images live in testdata/golden/<name>.png relative to the calling
 // test's package directory (the directory go test uses as the working directory).
 //
+// That directory is shared by every test file in the package, so names must be
+// unique across the whole package and not merely within one test. Prefix them
+// with the component: prism/input holds four components in one directory, and
+// the checkbox's "light-focused" and the text field's "light-focused" named one
+// file until F4.1 — the checkbox compared its 44x44 render against the text
+// field's 300x60 golden, and until this package learned to fail on a size
+// change that comparison passed.
+//
 // # Updating goldens
 //
 // Name the packages explicitly and put the flag AFTER them:
@@ -41,6 +49,7 @@ package golden
 
 import (
 	"flag"
+	"fmt"
 	"image"
 	"image/png"
 	"os"
@@ -62,8 +71,9 @@ var update = flag.Bool("golden.update", false, "overwrite golden images with cur
 // the test passes. Otherwise the stored golden must exist; if it is absent the
 // test fails with instructions to run -golden.update.
 //
-// On a pixel mismatch the test fails and saves the actual output alongside the
-// golden as testdata/golden/<name>.actual.png for side-by-side inspection.
+// On a mismatch — a changed size or a changed pixel — the test fails and saves
+// the actual output alongside the golden as testdata/golden/<name>.actual.png
+// for side-by-side inspection.
 func Render(t *testing.T, name string, size image.Point, draw layout.Widget) {
 	t.Helper()
 	img := Capture(t, size, draw)
@@ -86,11 +96,29 @@ func Render(t *testing.T, name string, size image.Point, draw layout.Widget) {
 		return
 	}
 
-	if n := PixelDiff(stored, img); n > 0 {
+	if err := compare(stored, img); err != nil {
 		actualPath := strings.TrimSuffix(path, ".png") + ".actual.png"
 		_ = saveImage(actualPath, img)
-		t.Fatalf("golden: %q: %d pixel(s) differ (actual saved to %s)", name, n, actualPath)
+		t.Fatalf("golden: %q: %v (actual saved to %s)", name, err, actualPath)
 	}
+}
+
+// compare reports how img fails to match stored, or nil if it matches.
+//
+// The size check comes first and is a failure in its own right: once the
+// bounds differ there is no pixel count to report, so a harness that only
+// asked "how many pixels differ?" could not see a size change at all. It is
+// a separate function from Render so that both failure conditions can be
+// tested without a *testing.T that has to actually fail.
+func compare(stored, img *image.RGBA) error {
+	if sb, ib := stored.Bounds(), img.Bounds(); sb != ib {
+		return fmt.Errorf("size changed: golden is %dx%d, render is %dx%d",
+			sb.Dx(), sb.Dy(), ib.Dx(), ib.Dy())
+	}
+	if n := PixelDiff(stored, img); n > 0 {
+		return fmt.Errorf("%d pixel(s) differ", n)
+	}
+	return nil
 }
 
 // Capture renders draw into a headless window of size and returns the RGBA
@@ -122,11 +150,28 @@ func Capture(t *testing.T, size image.Point, draw layout.Widget) *image.RGBA {
 	return img
 }
 
-// PixelDiff counts the number of pixels that differ between a and b.
-// Returns -1 if the images have different sizes.
+// PixelDiff counts the number of pixels that differ between a and b, which
+// must have equal bounds. It panics if they do not.
+//
+// The panic is deliberate, and it replaces a returned -1. "How many pixels
+// differ" has no answer for two images of different shapes, so there is no
+// count to return — and the count is what callers test. Every one of them
+// asks some variant of `n > 0` or `n == 0`, and a -1 answers both of those
+// wrongly: it reads as "no difference" to the first and as "differs" to the
+// second, silently, with no way to tell the two apart from the value alone.
+// A whole organization's golden images were guarded by that.
+//
+// So the only caller for which a size change is a real outcome rather than a
+// bug — the stored-golden comparison, which is exactly where an image is
+// allowed to have changed shape since it was recorded — must compare Bounds
+// itself first and report the change on its own terms. compare does. Every
+// other caller diffs two images it captured in the same test at the same
+// requested size; there differing bounds is a defect in the test, and a panic
+// is the honest report of it.
 func PixelDiff(a, b *image.RGBA) int {
 	if a.Bounds() != b.Bounds() {
-		return -1
+		panic(fmt.Sprintf("golden: PixelDiff: images must have equal bounds, got %v and %v",
+			a.Bounds(), b.Bounds()))
 	}
 	bounds := a.Bounds()
 	n := 0

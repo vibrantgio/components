@@ -16,8 +16,8 @@ import (
 	"gioui.org/unit"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/prism/input"
 	golden "github.com/vibrantgio/prism/golden"
+	"github.com/vibrantgio/prism/input"
 	"github.com/vibrantgio/spectrum/theme"
 	"github.com/vibrantgio/spectrum/tokens"
 )
@@ -48,10 +48,12 @@ func TestTextFieldGolden(t *testing.T) {
 		colors tokens.ColorTokens
 		state  input.RenderState
 	}{
-		{"light-normal", tokens.DefaultLight, input.RenderState{}},
-		{"dark-normal", tokens.DefaultDark, input.RenderState{}},
-		{"light-focused", tokens.DefaultLight, input.RenderState{Focused: true}},
-		{"light-focused-with-text", tokens.DefaultLight, input.RenderState{Focused: true, Text: "hi"}},
+		// Prefixed per component: see the note in checkbox_test.go. These four
+		// share testdata/golden with the checkbox, radio and dropdown cases.
+		{"textfield-light-normal", tokens.DefaultLight, input.RenderState{}},
+		{"textfield-dark-normal", tokens.DefaultDark, input.RenderState{}},
+		{"textfield-light-focused", tokens.DefaultLight, input.RenderState{Focused: true}},
+		{"textfield-light-focused-with-text", tokens.DefaultLight, input.RenderState{Focused: true, Text: "hi"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -12,8 +12,8 @@ import (
 	"gioui.org/unit"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/prism/input"
 	golden "github.com/vibrantgio/prism/golden"
+	"github.com/vibrantgio/prism/input"
 	"github.com/vibrantgio/spectrum/theme"
 	"github.com/vibrantgio/spectrum/tokens"
 )
@@ -34,10 +34,15 @@ func TestCheckboxGolden(t *testing.T) {
 		colors tokens.ColorTokens
 		state  input.CheckboxRenderState
 	}{
-		{"light-unchecked", tokens.DefaultLight, input.CheckboxRenderState{}},
-		{"dark-unchecked", tokens.DefaultDark, input.CheckboxRenderState{}},
-		{"light-checked", tokens.DefaultLight, input.CheckboxRenderState{Checked: true}},
-		{"light-focused", tokens.DefaultLight, input.CheckboxRenderState{Focused: true}},
+		// Every name carries the component prefix. All four inputs share one
+		// testdata/golden directory, and until F4.1 the unprefixed
+		// "light-focused" here and in textfield_test.go named one file: the
+		// checkbox compared its 44x44 render against the text field's 300x60
+		// golden, and the size mismatch made the comparison pass.
+		{"checkbox-light-unchecked", tokens.DefaultLight, input.CheckboxRenderState{}},
+		{"checkbox-dark-unchecked", tokens.DefaultDark, input.CheckboxRenderState{}},
+		{"checkbox-light-checked", tokens.DefaultLight, input.CheckboxRenderState{Checked: true}},
+		{"checkbox-light-focused", tokens.DefaultLight, input.CheckboxRenderState{Focused: true}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
