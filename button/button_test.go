@@ -64,11 +64,12 @@ func TestButtonGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 60)
 
-	// Use zero corner radius and empty label to produce fully sharp-edged
-	// renders: anti-aliased rounded corners and GPU font rasterisation both
-	// vary slightly between GPU context initialisations, breaking determinism.
-	// Shape (background colour, focus ring presence) and colour accuracy are
-	// still fully exercised; the exact radius and label are tested elsewhere.
+	// Zero corner radius keeps the edges sharp: anti-aliased rounded corners
+	// vary slightly between GPU context initialisations. The label is real
+	// text — F4.2 split the shaper so a golden pins its faces explicitly, and
+	// Latin text in the pinned Roboto faces rasterises identically everywhere,
+	// so the old empty label bought nothing and hid every typography
+	// regression (F4.4).
 	sharpRadius := tokens.RadiusScale{} // all zeros → sharp corners, no AA
 	cases := []struct {
 		name   string
@@ -83,7 +84,7 @@ func TestButtonGolden(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			w := button.Render(
-				shaper, "",
+				shaper, "Save Changes",
 				tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 				tc.state,
 			)
@@ -128,7 +129,10 @@ func materialize(t *testing.T, obs rx.Observable[layout.Widget]) layout.Widget {
 // 36 dp light-normal golden is the density divergence landing.
 func TestButtonCompactGolden(t *testing.T) {
 	w := materialize(t, button.Button(rx.Of(densityTheme(tokens.Compact)), button.Props{
-		Label: "", // empty label: no font rasterisation, deterministic pixels
+		Label: "Save Changes",
+		// The live path would otherwise take the theme's fallback Shaper,
+		// which resolves against the machine's fonts. A golden pins its faces.
+		Shaper: defaultShaper(t),
 	}))
 	golden.Render(t, "light-compact", image.Pt(300, 60), w)
 }

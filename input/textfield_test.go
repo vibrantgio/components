@@ -39,11 +39,11 @@ func TestTextFieldGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 60)
 
-	// Use zero corner radius and empty placeholder to produce fully sharp-edged
-	// renders: anti-aliased rounded corners and GPU font rasterisation both
-	// vary slightly between GPU context initialisations, breaking determinism.
-	// Shape (background colour, border presence and colour) and colour accuracy
-	// are still fully exercised; the exact radius and text are tested elsewhere.
+	// Zero corner radius keeps the edges sharp: anti-aliased rounded corners
+	// vary between GPU context initialisations. The placeholder is real text
+	// (F4.4) — the faces are pinned by DeterministicShaper, so Latin glyphs
+	// rasterise identically on every machine and the placeholder's own type
+	// role is now on screen where a regression in it would show.
 	sharpRadius := tokens.RadiusScale{}
 	// Disabled is intentionally omitted: semi-transparent disabled colours
 	// composite non-deterministically against the headless window background.
@@ -58,12 +58,12 @@ func TestTextFieldGolden(t *testing.T) {
 		{"textfield-light-normal", tokens.DefaultLight, input.RenderState{}},
 		{"textfield-dark-normal", tokens.DefaultDark, input.RenderState{}},
 		{"textfield-light-focused", tokens.DefaultLight, input.RenderState{Focused: true}},
-		{"textfield-light-focused-with-text", tokens.DefaultLight, input.RenderState{Focused: true, Text: "hi"}},
+		{"textfield-light-focused-with-text", tokens.DefaultLight, input.RenderState{Focused: true, Text: "hello@example.com"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			w := input.Render(
-				shaper, "",
+				shaper, "Email address",
 				tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 				tc.state,
 			)
@@ -146,7 +146,10 @@ func TestTextFieldHitSlopFocusesEditor(t *testing.T) {
 // through the live pipeline: a 28 dp bar (shadcn h-8 territory).
 func TestTextFieldCompactGolden(t *testing.T) {
 	w := materialize(t, input.TextField(rx.Of(densityTheme(tokens.Compact)), input.TextFieldProps{
-		Placeholder: "", // empty placeholder: no font rasterisation
+		Placeholder: "Email address",
+		// The live path would otherwise take the theme's fallback Shaper,
+		// which resolves against the machine's fonts. A golden pins its faces.
+		Shaper: defaultShaper(t),
 	}))
 	golden.Render(t, "textfield-light-compact", image.Pt(300, 60), w)
 }

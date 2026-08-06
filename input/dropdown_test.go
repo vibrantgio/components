@@ -20,10 +20,10 @@ import (
 func TestDropdownGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 
-	// Empty option text avoids GPU font rasterisation variance across headless
-	// contexts. Shape (border colour, background, chevron, option rows) is still
-	// fully exercised.
-	opts := []string{"", "", ""}
+	// Real option text (F4.4): DeterministicShaper pins the faces, so Latin
+	// glyphs rasterise the same everywhere and the trigger's selected label
+	// and the option rows are now visible rather than implied.
+	opts := []string{"Alpha", "Beta", "Gamma"}
 	// Trigger and option rows are each ControlHeight tall (E1.3).
 	ctl := int(tokens.Comfortable.ControlHeight)
 	openH := ctl + len(opts)*ctl
@@ -116,7 +116,10 @@ func TestDropdownTriggerHeightIsControlHeight(t *testing.T) {
 func TestDropdownCompactGolden(t *testing.T) {
 	w := materialize(t, input.Dropdown(rx.Of(densityTheme(tokens.Compact)), input.DropdownProps{
 		Description: "choose",
-		Options:     []string{"", "", ""}, // empty labels: no font rasterisation
+		Options:     []string{"Alpha", "Beta", "Gamma"},
+		// The live path would otherwise take the theme's fallback Shaper,
+		// which resolves against the machine's fonts. A golden pins its faces.
+		Shaper: defaultShaper(t),
 	}))
 	golden.Render(t, "dropdown-light-compact-closed", image.Pt(200, 44), w)
 }
