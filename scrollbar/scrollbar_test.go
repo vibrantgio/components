@@ -10,7 +10,7 @@ import (
 	"gioui.org/op/paint"
 	"gioui.org/unit"
 
-	golden "github.com/vibrantgio/prism/internal/golden"
+	golden "github.com/vibrantgio/prism/golden"
 	"github.com/vibrantgio/spectrum/tokens"
 )
 

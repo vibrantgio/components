@@ -33,7 +33,7 @@ PNGs committed under `testdata/golden/`. When a change legitimately moves
 pixels, regenerate them within the same change, look at what came out, and
 say so in the commit. From the repository root:
 
-    go test ./button ./input ./internal/golden ./layout ./list ./richtext ./scrollbar -golden.update
+    go test ./button ./golden ./icon ./input ./layout ./list ./richtext ./scrollbar -golden.update
 
 Both halves of that line matter. `go test` cannot tell that an unfamiliar
 flag is boolean, so a flag placed before the packages swallows them: `go

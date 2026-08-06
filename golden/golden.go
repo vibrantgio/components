@@ -1,5 +1,10 @@
 // Package golden provides a golden-image test harness for Gio widgets.
 //
+// It is exported rather than internal on purpose: it owns the organization's
+// one headless-Gio capture path, and callers outside prism — the design-agent
+// comparison harness, and any repo that would otherwise inline a fourth copy
+// of Capture — are meant to import it instead of writing their own.
+//
 // # Usage
 //
 //	func TestMyWidget(t *testing.T) {
@@ -19,7 +24,7 @@
 //
 // Name the packages explicitly and put the flag AFTER them:
 //
-//	go test ./button ./icon ./input ./internal/golden ./layout ./list ./richtext ./scrollbar -golden.update
+//	go test ./button ./golden ./icon ./input ./layout ./list ./richtext ./scrollbar -golden.update
 //
 // Both halves of that line matter. go test cannot tell that an unfamiliar flag
 // is boolean, so -golden.update placed before the packages swallows them and

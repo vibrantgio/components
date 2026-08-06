@@ -10,7 +10,7 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/prism/input"
-	golden "github.com/vibrantgio/prism/internal/golden"
+	golden "github.com/vibrantgio/prism/golden"
 	"github.com/vibrantgio/spectrum/tokens"
 )
 

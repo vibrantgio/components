@@ -14,7 +14,7 @@ import (
 	"gioui.org/text"
 	"gioui.org/unit"
 
-	golden "github.com/vibrantgio/prism/internal/golden"
+	golden "github.com/vibrantgio/prism/golden"
 	"github.com/vibrantgio/prism/richtext"
 	"github.com/vibrantgio/spectrum/tokens"
 )
