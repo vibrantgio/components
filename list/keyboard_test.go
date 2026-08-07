@@ -13,8 +13,28 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 
+	golden "github.com/vibrantgio/prism/golden"
 	"github.com/vibrantgio/prism/list"
 )
+
+// viewportHeights is the set of viewport heights every scrolling test here runs
+// at. Only the first is a whole number of rows; the others leave a partial row
+// at the trailing edge, which is where F5.2's off-by-one lived — the window
+// test counted that clipped row as visible, so a selection could land on it and
+// the next arrow press then moved the viewport two rows. An exact multiple is
+// the one shape in which no row is ever clipped, and so the one shape that
+// cannot catch it.
+var viewportHeights = []struct {
+	name string
+	h    int
+}{
+	{"exact-5-rows", viewH},             // 150 px: the shape the defect hid in
+	{"4-rows-plus-17px", 137},           // 137 px
+	{"4-rows-plus-23px", viewHPartial},  // 143 px: the permanent fixture height
+	{"5-rows-plus-5px", 155},            // 155 px: barely a sixth row
+	{"5-rows-plus-11px", 161},           // 161 px
+	{"1-row-plus-5px", rowPx + rowPx/6}, // 35 px: the window is one whole row
+}
 
 // selectableList is a list driven through a real input.Router, recording which
 // rows each frame actually laid out. It is the fixture for every test here:
@@ -91,9 +111,50 @@ func (s *selectableList) sawRow(i int) bool {
 	return false
 }
 
+// capture renders the list's present state and returns the pixels.
+//
+// Pixels are the only honest answer to "what does the viewport actually show".
+// The laid-out set cannot say it: a row clipped by the viewport edge is laid out
+// exactly like one that fits — that is precisely how F5.2's defect passed its
+// own tests — and the *order* of that set is not the scroll position either,
+// since Gio lays out its look-ahead children forwards or backwards depending on
+// where the previous frame left Position.
+//
+// The extra frame is a pure re-render: the pending Reveal was already consumed
+// by the frame under test, and laying out again from the same Position resolves
+// to the same Position.
+func (s *selectableList) capture(t *testing.T) *image.RGBA {
+	t.Helper()
+	return golden.Capture(t, s.size, func(gtx layout.Context) layout.Dimensions {
+		return list.LayoutSelectable(gtx, s.state, s.items, func(gtx layout.Context, item int, _ bool) layout.Dimensions {
+			return colorRowFn(gtx, item)
+		})
+	})
+}
+
+// fullyVisible reports whether row i is currently drawn whole, by counting its
+// scanlines. Rows are flat colour and rowPx tall, so a whole row is rowPx
+// scanlines of it and a clipped one fewer. rowColor repeats every 19 items and
+// no viewport here is that tall, so within one frame the colour names the row
+// unambiguously.
+func (s *selectableList) fullyVisible(t *testing.T, i int) bool {
+	t.Helper()
+	img := s.capture(t)
+	want := rowColor(i)
+	b := img.Bounds()
+	x := b.Min.X + s.size.X/2
+	n := 0
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		if c := img.RGBAAt(x, y); c.R == want.R && c.G == want.G && c.B == want.B && c.A == want.A {
+			n++
+		}
+	}
+	return n == rowPx
+}
+
 // TestSelectionReachesRowNeverLaidOut is the test the whole task exists for.
 //
-// A 1000-item list in a 150 px viewport lays out five rows and a look-ahead;
+// A 1000-item list in a 143 px viewport lays out five rows and a look-ahead;
 // rows 6..999 have no focus tag, no clip area and no existence in the op tree,
 // so no amount of Tab reaches them. End must select row 999 anyway, and the
 // list must then scroll it into view so it is laid out — which is the proof
@@ -101,7 +162,7 @@ func (s *selectableList) sawRow(i int) bool {
 // tags that happen to exist.
 func TestSelectionReachesRowNeverLaidOut(t *testing.T) {
 	const n = 1000
-	s := newSelectableList(n, image.Pt(viewW, viewH))
+	s := newSelectableList(n, image.Pt(viewW, viewHPartial))
 	s.focus(t)
 
 	firstFrame := append([]int(nil), s.laidOut...)
@@ -144,7 +205,7 @@ func TestSelectionReachesRowNeverLaidOut(t *testing.T) {
 // both stop at the ends rather than wrapping.
 func TestArrowTraversalMovesOneRow(t *testing.T) {
 	const n = 20
-	s := newSelectableList(n, image.Pt(viewW, viewH))
+	s := newSelectableList(n, image.Pt(viewW, viewHPartial))
 	s.focus(t)
 
 	if got := s.state.Selected(); got != -1 {
@@ -176,7 +237,7 @@ func TestArrowTraversalMovesOneRow(t *testing.T) {
 	}
 
 	// Up from nothing selected picks the last row.
-	fresh := newSelectableList(n, image.Pt(viewW, viewH))
+	fresh := newSelectableList(n, image.Pt(viewW, viewHPartial))
 	fresh.focus(t)
 	fresh.press(key.NameUpArrow)
 	if got := fresh.state.Selected(); got != n-1 {
@@ -186,44 +247,96 @@ func TestArrowTraversalMovesOneRow(t *testing.T) {
 
 // TestSelectionScrollsIntoViewOneRowAtATime checks the viewport follows the
 // selection by the smallest move that works: stepping Down past the trailing
-// edge scrolls one row, not one page, and every intermediate selection is
-// actually laid out. A list that jumped the selection to the top of the
-// viewport on every step would pass "the row is visible" and still be useless.
+// edge scrolls one row, not one page, every intermediate selection is actually
+// laid out — and it is laid out *whole*. A list that jumped the selection to
+// the top of the viewport on every step would pass "the row is visible" and
+// still be useless; a list that stops one row short leaves the selection on a
+// clipped row and then moves two rows on the next press.
+//
+// It runs at every height in viewportHeights, because at an exact multiple of
+// the row height no row is ever clipped and the two-row jump cannot occur.
 func TestSelectionScrollsIntoViewOneRowAtATime(t *testing.T) {
 	const n = 40
-	s := newSelectableList(n, image.Pt(viewW, viewH))
-	s.focus(t)
+	for _, vh := range viewportHeights {
+		t.Run(vh.name, func(t *testing.T) {
+			s := newSelectableList(n, image.Pt(viewW, vh.h))
+			s.focus(t)
 
-	prevFirst := -1
-	for i := 0; i < 12; i++ {
-		s.press(key.NameDownArrow)
-		if !s.sawRow(i) {
-			t.Fatalf("after selecting row %d it was not laid out (laid out %v)", i, s.laidOut)
-		}
-		first := s.laidOut[0]
-		if first < prevFirst {
-			t.Fatalf("selecting row %d scrolled the list backwards: first visible %d, was %d", i, first, prevFirst)
-		}
-		if first > prevFirst+1 && prevFirst >= 0 {
-			t.Fatalf("selecting row %d scrolled the list by %d rows; one Down should move the viewport at most one row",
-				i, first-prevFirst)
-		}
-		prevFirst = first
-	}
-	if prevFirst == 0 {
-		t.Fatal("twelve Down presses never scrolled the list; the viewport holds five rows")
-	}
+			prevFirst := -1
+			for i := 0; i < 12; i++ {
+				s.press(key.NameDownArrow)
+				if !s.sawRow(i) {
+					t.Fatalf("after selecting row %d it was not laid out (laid out %v)", i, s.laidOut)
+				}
+				if !s.fullyVisible(t, i) {
+					t.Fatalf("after selecting row %d it is drawn clipped in a %d px viewport of %d px rows; the selection must land whole in view",
+						i, vh.h, rowPx)
+				}
+				first := s.laidOut[0]
+				if first < prevFirst {
+					t.Fatalf("selecting row %d scrolled the list backwards: first visible %d, was %d", i, first, prevFirst)
+				}
+				if first > prevFirst+1 && prevFirst >= 0 {
+					t.Fatalf("selecting row %d scrolled the list by %d rows; one Down should move the viewport at most one row",
+						i, first-prevFirst)
+				}
+				prevFirst = first
+			}
+			if prevFirst == 0 {
+				t.Fatalf("twelve Down presses never scrolled the list; a %d px viewport cannot hold twelve %d px rows", vh.h, rowPx)
+			}
 
-	// Scrolling back up lands the selection at the leading edge, not the
-	// trailing one.
-	for i := 11; i >= 0; i-- {
-		s.press(key.NameUpArrow)
+			// Scrolling back up lands the selection at the leading edge, not the
+			// trailing one.
+			for i := 11; i >= 0; i-- {
+				s.press(key.NameUpArrow)
+			}
+			if got := s.state.Selected(); got != 0 {
+				t.Fatalf("Selected() = %d after walking back up; want 0", got)
+			}
+			if s.laidOut[0] != 0 {
+				t.Fatalf("first visible row after walking back to the top = %d; want 0", s.laidOut[0])
+			}
+		})
 	}
-	if got := s.state.Selected(); got != 0 {
-		t.Fatalf("Selected() = %d after walking back up; want 0", got)
-	}
-	if s.laidOut[0] != 0 {
-		t.Fatalf("first visible row after walking back to the top = %d; want 0", s.laidOut[0])
+}
+
+// TestRevealLandsRowFullyInView states the contract F5.2 repairs in one line:
+// whatever the viewport height, the row Reveal names is drawn whole afterwards.
+//
+// The targets walk deliberately through the awkward ones — the clipped row at
+// the trailing edge of the first window, the row just past it, a row far below,
+// the last row (where the list end-aligns instead of honouring First), and back
+// to the top.
+func TestRevealLandsRowFullyInView(t *testing.T) {
+	const n = 60
+	targets := []int{4, 5, 12, 40, n - 1, 0}
+	for _, vh := range viewportHeights {
+		t.Run(vh.name, func(t *testing.T) {
+			s := newSelectableList(n, image.Pt(viewW, vh.h))
+			s.frame()
+			for _, target := range targets {
+				s.state.Reveal(target)
+				s.frame()
+				if !s.sawRow(target) {
+					t.Fatalf("after Reveal(%d) in a %d px viewport the row was not laid out (laid out %v)", target, vh.h, s.laidOut)
+				}
+				if !s.fullyVisible(t, target) {
+					t.Fatalf("after Reveal(%d) in a %d px viewport of %d px rows the row is drawn clipped; Reveal must land it whole",
+						target, vh.h, rowPx)
+				}
+				// A second Reveal of a row already whole in view must not move
+				// the list at all — the "already visible" half of the same test,
+				// and the half the fix must not break: widening the window test
+				// by one row would scroll rows that were fine where they were.
+				before := s.capture(t)
+				s.state.Reveal(target)
+				s.frame()
+				if n := golden.PixelDiff(before, s.capture(t)); n != 0 {
+					t.Fatalf("re-revealing row %d, already whole in view, moved the list: %d pixel(s) changed", target, n)
+				}
+			}
+		})
 	}
 }
 
@@ -242,7 +355,7 @@ func TestSelectionIgnoresKeysWithoutFocus(t *testing.T) {
 		ops.Reset()
 		gtx := layout.Context{
 			Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
-			Constraints: layout.Exact(image.Pt(viewW, viewH)),
+			Constraints: layout.Exact(image.Pt(viewW, viewHPartial)),
 			Ops:         ops,
 			Source:      r.Source(),
 		}
@@ -272,27 +385,56 @@ func TestSelectionIgnoresKeysWithoutFocus(t *testing.T) {
 	}
 }
 
-// TestSelectClampsToItemCount pins the documented clamp: a selection past the
-// end of a shrunken slice is dropped rather than left to reappear when the
-// slice grows back.
-func TestSelectClampsToItemCount(t *testing.T) {
+// TestSelectionDroppedWhenItemsShrink pins the documented behaviour: a
+// selection the item slice no longer carries is dropped, not clamped to the
+// last row.
+//
+// The case that decides it is a filtered list narrowing from 100 rows to 3.
+// Clamping answers 2 — a valid-looking index the user never chose, which a
+// caller driving a detail pane off Selected() cannot tell from a real
+// selection. Dropping answers -1, which every caller already handles, and it
+// keeps the stale index from reappearing as an unrelated row when the filter is
+// cleared again.
+func TestSelectionDroppedWhenItemsShrink(t *testing.T) {
+	newGtx := func(ops *op.Ops) layout.Context {
+		return layout.Context{
+			Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
+			Constraints: layout.Exact(image.Pt(viewW, viewHPartial)),
+			Ops:         ops,
+		}
+	}
+	layoutN := func(state *list.State, n int) {
+		var ops op.Ops
+		list.LayoutSelectable(newGtx(&ops), state, makeItems(n), func(gtx layout.Context, item int, _ bool) layout.Dimensions {
+			return colorRowFn(gtx, item)
+		})
+	}
+
 	state := list.NewState()
 	state.Select(30)
 	if got := state.Selected(); got != 30 {
-		t.Fatalf("Selected() = %d immediately after Select(30); want 30 (the clamp is layout's job)", got)
+		t.Fatalf("Selected() = %d immediately after Select(30); want 30 (the item count is not known until layout)", got)
 	}
 
-	var ops op.Ops
-	gtx := layout.Context{
-		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
-		Constraints: layout.Exact(image.Pt(viewW, viewH)),
-		Ops:         &ops,
+	layoutN(state, 10)
+	if got := state.Selected(); got != -1 {
+		t.Fatalf("Selected() = %d after laying out 10 items; want -1 (row 30 does not exist, so nothing is selected)", got)
 	}
-	list.LayoutSelectable(gtx, state, makeItems(10), func(gtx layout.Context, item int, _ bool) layout.Dimensions {
-		return colorRowFn(gtx, item)
-	})
-	if got := state.Selected(); got != 9 {
-		t.Fatalf("Selected() = %d after laying out 10 items; want 9 (clamped)", got)
+
+	// The filter case, end to end: a selection deep in a long list, then the
+	// list narrows, then it widens again. The old index must not come back.
+	state.Select(87)
+	layoutN(state, 100)
+	if got := state.Selected(); got != 87 {
+		t.Fatalf("Selected() = %d with 100 items; want 87 (an index the slice carries)", got)
+	}
+	layoutN(state, 3)
+	if got := state.Selected(); got != -1 {
+		t.Fatalf("Selected() = %d after the list narrowed to 3 items; want -1, not a row the user never chose", got)
+	}
+	layoutN(state, 100)
+	if got := state.Selected(); got != -1 {
+		t.Fatalf("Selected() = %d after the list widened back to 100 items; want -1 (the dropped selection must not reappear)", got)
 	}
 
 	state.Select(-1)
@@ -301,10 +443,28 @@ func TestSelectClampsToItemCount(t *testing.T) {
 	}
 }
 
+// TestRevealSurvivesShrinkingToTheLastRow is the other half of that decision:
+// the pending Reveal target is clamped where the selection is dropped. "Move
+// the viewport to that row" still has a nearest sensible answer once the named
+// row is gone; "the user chose that row" does not.
+func TestRevealSurvivesShrinkingToTheLastRow(t *testing.T) {
+	s := newSelectableList(100, image.Pt(viewW, viewHPartial))
+	s.frame()
+	s.state.Reveal(87)
+	s.items = makeItems(20)
+	s.frame()
+	if !s.sawRow(19) {
+		t.Fatalf("Reveal(87) against a list that shrank to 20 items laid out %v; want the last row scrolled into view", s.laidOut)
+	}
+	if got := s.state.Selected(); got != -1 {
+		t.Fatalf("Selected() = %d; want -1 (Reveal never selects)", got)
+	}
+}
+
 // TestRevealScrollsWithoutSelecting keeps the two primitives orthogonal:
 // Reveal moves the viewport and leaves the selection alone.
 func TestRevealScrollsWithoutSelecting(t *testing.T) {
-	s := newSelectableList(200, image.Pt(viewW, viewH))
+	s := newSelectableList(200, image.Pt(viewW, viewHPartial))
 	s.frame()
 	if s.sawRow(150) {
 		t.Fatal("row 150 was visible before any Reveal")

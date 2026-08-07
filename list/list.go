@@ -106,6 +106,11 @@ func (s *State) Focus() event.Tag { return &s.focus }
 // Selected returns the index of the selected row, or -1 when nothing is
 // selected. It is an index into the caller's item slice, so it stays
 // meaningful for rows the current frame never laid out.
+//
+// The answer is always either -1 or a row the last [LayoutSelectable] was
+// given: a selection the item slice no longer carries is dropped rather than
+// moved, so a caller driving a detail pane off it never shows a row the user
+// did not choose.
 func (s *State) Selected() int { return s.selPlusOne - 1 }
 
 // Select sets the selection to row i, or clears it when i is negative. The
@@ -113,8 +118,9 @@ func (s *State) Selected() int { return s.selPlusOne - 1 }
 // offscreen. Selecting in response to a pointer click needs no Reveal — the
 // row was visible enough to be clicked.
 //
-// i is clamped to the item count by the next [LayoutSelectable], so a caller
-// may Select before it knows how many items there will be.
+// i is not bounded here — the item count is not known until layout. The next
+// [LayoutSelectable] drops a selection its slice does not carry; it does not
+// clamp it to the last row.
 func (s *State) Select(i int) {
 	if i < 0 {
 		s.selPlusOne = 0
@@ -201,7 +207,7 @@ func LayoutSelectable[T any](
 	rowFn func(gtx layout.Context, item T, selected bool) layout.Dimensions,
 ) layout.Dimensions {
 	n := len(items)
-	state.clampSelection(n)
+	state.dropStaleSelection(n)
 	state.processKeys(gtx, n)
 	state.scrollIntoView(n)
 
@@ -215,16 +221,24 @@ func LayoutSelectable[T any](
 	})
 }
 
-// clampSelection drops a selection that the current item slice no longer
-// carries. Items can shrink between frames; an index past the end would render
-// as "nothing selected" anyway, and left in place it would silently reappear
-// when the slice grew back.
-func (s *State) clampSelection(n int) {
+// dropStaleSelection clears a selection that the current item slice no longer
+// carries. Items shrink between frames — a filter narrowing a hundred rows to
+// three is the ordinary case — and an index past the end names a row that does
+// not exist.
+//
+// Clearing is what makes that legible: [State.Selected] answers -1, the value
+// every caller already handles, and the stale index cannot reappear as an
+// unrelated row when the slice grows back. Clamping to the last row instead
+// would hand a caller driving a detail pane off Selected() a valid-looking
+// index the user never chose, indistinguishable from a real selection.
+//
+// The pending [State.Reveal] target is deliberately not dropped here:
+// scrollIntoView clamps it to the last row, because "move the viewport to that
+// row" still has a nearest sensible answer once the named row is gone, while
+// "the user chose that row" does not.
+func (s *State) dropStaleSelection(n int) {
 	if s.selPlusOne > n {
-		s.selPlusOne = n
-	}
-	if s.scrollPlusOne > n {
-		s.scrollPlusOne = n
+		s.selPlusOne = 0
 	}
 }
 
@@ -294,23 +308,36 @@ func (s *State) scrollIntoView(n int) {
 		target = n - 1
 	}
 	p := s.l.Position
+	// visible is how many rows the window shows *whole*. Position.Count is one
+	// more than that whenever the trailing child is only partly visible —
+	// OffsetLast < 0 is exactly that case — and both decisions below need the
+	// whole-row count, not the laid-out count:
+	//
+	//   - the window test, because a target that *is* the clipped trailing row
+	//     is not "already visible" and must still scroll;
+	//   - the landing, because a target placed Count-1 rows below the new first
+	//     row would arrive clipped, exactly where it started.
+	//
+	// A partly visible *leading* child is not subtracted as well. It is still a
+	// row this window covers, so it must not shift the trailing edge; the case
+	// below catches it by index instead (target == First && Offset > 0).
+	visible := p.Count
+	if p.OffsetLast < 0 {
+		visible--
+	}
+	if visible < 1 {
+		// A single row taller than the viewport: no row shows whole, and the
+		// window is one row wide regardless.
+		visible = 1
+	}
 	switch {
 	case p.Count == 0, target < p.First, target == p.First && p.Offset > 0:
 		// Above the window, or scrolled part-way off its leading edge — and on
 		// the first frame there is no window yet. Land it at the leading edge.
 		s.l.ScrollTo(target)
-	case target >= p.First+p.Count:
-		// Below the window: land it at the trailing edge. Count includes a
-		// trailing child that is only partly visible — OffsetLast < 0 is
-		// exactly that case — so drop it from the window, or the row scrolled
-		// to would arrive clipped.
-		visible := p.Count
-		if p.OffsetLast < 0 {
-			visible--
-		}
-		if visible < 1 {
-			visible = 1
-		}
+	case target >= p.First+visible:
+		// Below the window, or the clipped row at its trailing edge: land it at
+		// the trailing edge with visible-1 whole rows above it.
 		first := target - visible + 1
 		if first < 0 {
 			first = 0

@@ -21,6 +21,15 @@ const (
 	rowPx = 30  // fixed row height in pixels
 	viewW = 200 // viewport width in pixels
 	viewH = 150 // viewport height in pixels; fits exactly 5 rows
+
+	// viewHPartial is the viewport height the keyboard tests run at: 4 whole
+	// rows and 23 px of a fifth. It is deliberately *not* a multiple of rowPx,
+	// because an exact multiple is the one shape in which no row is ever
+	// clipped — and therefore the one shape in which a window test that counts
+	// the clipped trailing row cannot be caught being wrong (F5.2). Real rows
+	// are 36 dp scaled by the display's DPI and essentially never divide the
+	// viewport, so the partial row is the normal case, not the exotic one.
+	viewHPartial = 143
 )
 
 // rowColor maps item index to a unique shade of gray in [15, 243].
