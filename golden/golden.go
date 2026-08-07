@@ -1,9 +1,19 @@
 // Package golden provides a golden-image test harness for Gio widgets.
 //
 // It is exported rather than internal on purpose: it owns the organization's
-// one headless-Gio capture path, and callers outside prism — the design-agent
-// comparison harness, and any repo that would otherwise inline a fourth copy
-// of Capture — are meant to import it instead of writing their own.
+// one headless-Gio capture path. Until F5.5 that claim was aspirational —
+// twenty-nine packages across five repositories carried their own inlined
+// copy, which is why F4.1 fixed the size-mismatch defect twenty-nine times
+// instead of once. Every one of them now imports this package.
+//
+// # Where it lives, and why here
+//
+// prism is tier 2 in ADR-001, so pulse (3), cadence and markdown (4) and the
+// workbench applications may all depend on it; scripts/check-layers.sh is what
+// says so. spectrum (tier 1) may not — and does not need to: it renders no
+// widgets and stores no goldens, so nothing pulls the harness below prism.
+// Should spectrum ever grow a golden test, that is the argument for moving
+// this package down a tier, not for inlining copy thirty.
 //
 // # Usage
 //
@@ -14,6 +24,11 @@
 //	        return layout.Dimensions{Size: gtx.Constraints.Max}
 //	    })
 //	}
+//
+// [Render] is [Capture] followed by [Compare]. Split them when the image comes
+// from somewhere other than a headless window ([CompareNRGBA] takes a CPU-drawn
+// one), or when a test diffs two live captures against each other rather than
+// against a stored file ([PixelDiff]).
 //
 // # File layout
 //
@@ -37,8 +52,13 @@
 // Both halves of that line matter. go test cannot tell that an unfamiliar flag
 // is boolean, so -golden.update placed before the packages swallows them and
 // only the package in the current directory is tested. And ./... cannot stand
-// in for the list: this module has test packages that store no goldens, and a
+// in for the list: a module has test packages that store no goldens, and a
 // test binary rejects a flag it never declared.
+//
+// The flag is declared here, exactly once, and reaches every importing package
+// through the linked test binary. A package that imports this one must not also
+// declare a -golden.update of its own: two registrations of one flag name in a
+// single binary is a panic in flag.Bool at init, before any test runs.
 //
 // # CI gate
 //
@@ -60,6 +80,7 @@ import (
 	"gioui.org/gpu/headless"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/unit"
 )
 
 var update = flag.Bool("golden.update", false, "overwrite golden images with current output")
@@ -76,7 +97,17 @@ var update = flag.Bool("golden.update", false, "overwrite golden images with cur
 // for side-by-side inspection.
 func Render(t *testing.T, name string, size image.Point, draw layout.Widget) {
 	t.Helper()
-	img := Capture(t, size, draw)
+	Compare(t, name, Capture(t, size, draw))
+}
+
+// Compare diffs an already-rendered image against testdata/golden/<name>.png,
+// with the same update, missing-file and mismatch behaviour as [Render].
+//
+// It is the half of [Render] that does not need a GPU: a test that composes its
+// image some other way — several captures blended, a CPU rasterisation, a frame
+// pulled out of an interaction sequence — calls this directly.
+func Compare(t *testing.T, name string, img *image.RGBA) {
+	t.Helper()
 	path := filepath.Join("testdata", "golden", name+".png")
 
 	if *update {
@@ -103,6 +134,20 @@ func Render(t *testing.T, name string, size image.Point, draw layout.Widget) {
 	}
 }
 
+// CompareNRGBA is [Compare] for an image drawn on the CPU, where the natural
+// type is *image.NRGBA rather than the *image.RGBA headless.Screenshot fills.
+//
+// The two are the same bytes here and the conversion is free: Screenshot writes
+// straight-alpha (non-premultiplied) samples into its *image.RGBA, which is
+// exactly what an *image.NRGBA holds, and saveImage already re-labels them the
+// other way round before encoding. So a golden stored by either path is the
+// same file, and pulse/transition's CPU-drawn swatches diff against the same
+// stored PNGs they always did.
+func CompareNRGBA(t *testing.T, name string, img *image.NRGBA) {
+	t.Helper()
+	Compare(t, name, &image.RGBA{Pix: img.Pix, Stride: img.Stride, Rect: img.Rect})
+}
+
 // compare reports how img fails to match stored, or nil if it matches.
 //
 // The size check comes first and is a failure in its own right: once the
@@ -123,7 +168,18 @@ func compare(stored, img *image.RGBA) error {
 
 // Capture renders draw into a headless window of size and returns the RGBA
 // pixel data. The test is skipped if headless rendering is not available on
-// the current platform.
+// the current platform, so it never returns nil — callers do not need the
+// `if img == nil { return }` guard the inlined copies carried.
+//
+// The metric is pinned at one pixel per dp and per sp. That is what the zero
+// unit.Metric already means to every conversion in gioui.org/unit, which is why
+// the copies that set it and the copies that left it zero produced identical
+// images — but it is not what it means to the two places that read PxPerDp
+// straight out of the struct instead of converting through it. gio's
+// widget.Image multiplies its transform by PxPerDp with no zero guard, so an
+// image laid out under the zero metric collapses to nothing; cadence/shell's
+// aside drag reads it too, and only survives because it clamps. Stating the
+// scale removes the trap rather than documenting it.
 func Capture(t *testing.T, size image.Point, draw layout.Widget) *image.RGBA {
 	t.Helper()
 	w, err := headless.NewWindow(size.X, size.Y)
@@ -135,6 +191,7 @@ func Capture(t *testing.T, size image.Point, draw layout.Widget) *image.RGBA {
 	var ops op.Ops
 	gtx := layout.Context{
 		Constraints: layout.Exact(size),
+		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
 		Ops:         &ops,
 	}
 	draw(gtx)
@@ -189,6 +246,13 @@ func PixelDiff(a, b *image.RGBA) int {
 	}
 	return n
 }
+
+// Save writes img to path as a PNG, creating the containing directory if it is
+// missing. It is the same encoder [Compare] stores goldens with, exported for
+// the tests that write an image without diffing it — pulse/glow's blur-vs-
+// gradient dump behind -blurglow.dump is the one in the org — so that a
+// diagnostic PNG and a stored golden are byte-for-byte the same file.
+func Save(path string, img *image.RGBA) error { return saveImage(path, img) }
 
 func saveImage(path string, img *image.RGBA) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

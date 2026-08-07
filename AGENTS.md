@@ -29,9 +29,14 @@ module directory — `./...` does not cross a module boundary:
     go build ./... && go test ./...
 
 **Golden images.** Tests in eight packages compare rendered output against
-PNGs committed under `testdata/golden/`. When a change legitimately moves
-pixels, regenerate them within the same change, look at what came out, and
-say so in the commit. From the repository root:
+PNGs committed under `testdata/golden/`. `prism/golden` is the harness they
+use, and since F5.5 it is the organization's only one: pulse, cadence,
+markdown and the workbench applications import it too, so a change to it
+moves every stored image in the org, not just prism's. Regenerate all of
+them, not only this repo's, before believing a change here is pixel-neutral.
+When a change legitimately moves pixels, regenerate them within the same
+change, look at what came out, and say so in the commit. From the repository
+root:
 
     go test ./button ./golden ./icon ./input ./layout ./list ./richtext ./scrollbar -golden.update
 
