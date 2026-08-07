@@ -50,6 +50,14 @@ var typographyCases = []struct {
 	// Typeface only: the same metrics on Roboto Mono. This is the monospace
 	// case — Code's face, the newest role's — and the one image where every
 	// advance is uniform.
+	//
+	// It is also where F5.3 landed. This button stood 38 px tall against the
+	// baseline's 36, on a role declaring the same 20 dp line height, because
+	// spectrum/typeset measured its natural line by shaping the empty string:
+	// an empty string has no run in the face it names, so the probe returned
+	// Roboto's 17 px for a label set in Roboto Mono's 19 and the deficit came
+	// out 2 px too generous. Measuring the text being laid out puts the label
+	// box back on 20 and the button back on the density's 36.
 	{"type-typeface-mono", withTypeface(tokens.DefaultTypography.LabelLarge, tokens.DefaultTypography.Code.Typeface)},
 	// Weight only: 400 instead of 500. Thinner stems.
 	{"type-weight-regular", withWeight(tokens.DefaultTypography.LabelLarge, tokens.WeightRegular)},
