@@ -17,9 +17,10 @@ require (
 	gioui.org v0.10.1
 	github.com/reactivego/rx v0.3.0
 	github.com/vibrantgio/ivg/raster/gio v0.1.6
-	github.com/vibrantgio/prism v0.6.0
+	github.com/vibrantgio/mvu v0.5.0
+	github.com/vibrantgio/prism v0.6.1
 	github.com/vibrantgio/pulse v0.1.4
-	github.com/vibrantgio/spectrum v0.4.1
+	github.com/vibrantgio/spectrum v0.5.0
 )
 
 require (
@@ -29,7 +30,6 @@ require (
 	github.com/reactivego/scheduler v0.2.0 // indirect
 	github.com/vibrantgio/font v0.1.0 // indirect
 	github.com/vibrantgio/ivg v0.1.6 // indirect
-	github.com/vibrantgio/mvu v0.4.4 // indirect
 	github.com/vibrantgio/svg v0.0.9 // indirect
 	github.com/vibrantgio/traer v0.0.8 // indirect
 	golang.org/x/exp/shiny v0.0.0-20260727155853-b88d891fe743 // indirect

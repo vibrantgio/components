@@ -24,8 +24,8 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/mvu/stream"
 	"github.com/vibrantgio/prism/button"
-	"github.com/vibrantgio/prism/coordination"
 	"github.com/vibrantgio/prism/initial"
 	"github.com/vibrantgio/prism/input"
 	prismlayout "github.com/vibrantgio/prism/layout"
@@ -42,7 +42,7 @@ import (
 )
 
 var pageNames = []string{
-	"Button", "Inputs", "List", "Richtext", "Icon", "Layout", "A11y", "Initial", "Coordination",
+	"Button", "Inputs", "List", "Richtext", "Icon", "Layout", "A11y", "Initial", "Stream",
 }
 
 const (
@@ -54,7 +54,7 @@ const (
 	pageLayout
 	pageA11y
 	pageInitial
-	pageCoord
+	pageStream
 )
 
 // actionInfoIVG is the material action-info icon in IVG format.
@@ -123,12 +123,12 @@ type gallery struct {
 	// Initial page
 	initVal initial.Value[time.Time]
 
-	// Coordination page
-	coordObserver rx.Observer[string]
-	coordSub      rx.Subscription
-	coordMu       sync.Mutex
-	coordMsg      string
-	coordSend     widget.Clickable
+	// Stream page
+	streamObserver rx.Observer[string]
+	streamSub      rx.Subscription
+	streamMu       sync.Mutex
+	streamMsg      string
+	streamSend     widget.Clickable
 }
 
 func main() {
@@ -290,14 +290,16 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 		}
 	})
 
-	// Coordination: Subject[string] for producer/consumer demo.
-	var coordObs rx.Observable[string]
-	g.coordObserver, coordObs = coordination.Subject[string](coordination.BufCapSignal)
-	g.coordSub = coordObs.Subscribe(rx.GoroutineContext(), func(msg string, err error, done bool) {
+	// Stream: mvu/stream.Value[string] for the producer/consumer demo. ADR-008's
+	// third destination — prism/coordination is deprecated and this demo was its
+	// last user in the organization.
+	var streamObs rx.Observable[string]
+	g.streamObserver, streamObs = stream.Value("")
+	g.streamSub = streamObs.Subscribe(rx.GoroutineContext(), func(msg string, err error, done bool) {
 		if !done {
-			g.coordMu.Lock()
-			g.coordMsg = msg
-			g.coordMu.Unlock()
+			g.streamMu.Lock()
+			g.streamMsg = msg
+			g.streamMu.Unlock()
 			w.Invalidate()
 		}
 	})
@@ -309,8 +311,8 @@ func (g *gallery) cleanup() {
 	if g.a11ySub != nil {
 		g.a11ySub.Unsubscribe()
 	}
-	if g.coordSub != nil {
-		g.coordSub.Unsubscribe()
+	if g.streamSub != nil {
+		g.streamSub.Unsubscribe()
 	}
 }
 
@@ -381,8 +383,8 @@ func (g *gallery) content(gtx layout.Context) layout.Dimensions {
 		return g.pageA11y(gtx)
 	case pageInitial:
 		return g.pageInitial(gtx)
-	case pageCoord:
-		return g.pageCoord(gtx)
+	case pageStream:
+		return g.pageStream(gtx)
 	}
 	return layout.Dimensions{}
 }
@@ -1124,29 +1126,29 @@ func (g *gallery) pageInitial(gtx layout.Context) layout.Dimensions {
 	})
 }
 
-// ── Coordination page ─────────────────────────────────────────────────────────
+// ── Stream page ─────────────────────────────────────────────────────────
 
-func (g *gallery) pageCoord(gtx layout.Context) layout.Dimensions {
-	if g.coordSend.Clicked(gtx) {
-		g.coordObserver.Next(fmt.Sprintf("ping at %s", time.Now().Format("15:04:05.000")))
+func (g *gallery) pageStream(gtx layout.Context) layout.Dimensions {
+	if g.streamSend.Clicked(gtx) {
+		g.streamObserver.Next(fmt.Sprintf("ping at %s", time.Now().Format("15:04:05.000")))
 	}
-	g.coordMu.Lock()
-	msg := g.coordMsg
-	g.coordMu.Unlock()
+	g.streamMu.Lock()
+	msg := g.streamMsg
+	g.streamMu.Unlock()
 
 	received := msg
 	if received == "" {
 		received = "(none yet — click Send ping)"
 	}
 
-	return g.scrollPage(gtx, g.scrollSt[pageCoord], func(gtx layout.Context) layout.Dimensions {
+	return g.scrollPage(gtx, g.scrollSt[pageStream], func(gtx layout.Context) layout.Dimensions {
 		cs := []layout.FlexChild{
-			g.sectionHeader("Coordination — Subject[string] producer/consumer"),
+			g.sectionHeader("Stream — mvu/stream.Value[string] producer/consumer"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.coordSend.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return g.streamSend.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								return button.Render(g.shaper, "Send ping", tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, button.RenderState{})(gtx)
 							})
 						}),
@@ -1158,7 +1160,7 @@ func (g *gallery) pageCoord(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(prismlayout.VSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
-								"observer.Next(msg) sends via coordination.Subject[string](BufCapSignal).",
+								"observer.Next(msg) sends via mvu/stream.Value[string](\"\") — ADR-008's",
 								tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
