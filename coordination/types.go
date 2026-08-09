@@ -71,10 +71,31 @@
 // real; the fix was reaching for a different rx primitive, not wrapping the
 // wrong one.
 //
-// The package is kept, unchanged and still tested, for one release so that no
-// consumer breaks mid-goal. It has no library users left in the organization:
-// only prism/gallery and cadence/modal/gallery, two demo mains, which move
-// with its removal.
+// # When this goes
+//
+// It has no users left in the organization at all. G0C.5 emptied the library
+// side; G0C.6 moved the last two, the demo mains in prism/gallery and
+// cadence/modal/gallery, onto stream.Value — so the precondition for removing
+// it is already met and nothing in here is exercised by anything but its own
+// tests.
+//
+// It is still not removed yet, and the reason is a rule rather than a
+// hesitation. The org's Release protocol removes a deprecated package in the
+// final major bump, alongside ADR-001's and ADR-003's alias shims, so that a
+// consumer outside the organization meets every removal at one version
+// boundary instead of discovering them one patch at a time. These are public
+// modules and the notice you are reading shipped in prism v0.6.1; taking the
+// code out in the same release would be a deprecation window zero releases
+// wide, which is not a window. So: **this package is removed at prism
+// v1.0.0**, and nothing but that bump closes it. Until then it stays exactly
+// as it is — unchanged and still tested, because a deprecated package that
+// quietly rots is worse than one that works.
+//
+// It is deliberately not a forwarder to stream.Value. A forwarder would
+// compile everywhere and change delivery policy, subscriber ceiling and
+// buffering under a signature that still type-checks; ADR-008's rule is to
+// break loudly rather than deprecate quietly, and its corollary is that if
+// you are not breaking, you must not change behaviour either.
 package coordination
 
 import (
