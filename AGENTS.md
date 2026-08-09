@@ -1,14 +1,21 @@
 # AGENTS.md — prism
 
 The component library of the Vibrant Gio design system: buttons, inputs,
-lists, rich text, scrollbars, icons, layout primitives, and the `theme` and
-`tokens` contract the rest of the stack styles against.
+lists, rich text, scrollbars, icons, layout primitives, and the widgets the
+rest of the stack composes.
 
 **Layer.** Tier 2 of ADR-001's stack, `mvu → spectrum → prism → pulse →
-cadence → markdown`. It imports mvu and the support libraries ivg and svg;
-pulse, cadence and markdown import it. Spectrum imports it too today — the
-inversion that goal G-B3 corrects by moving the token and theme contract
-down into spectrum.
+cadence → markdown`. Do not look for `theme` or `tokens` here: G-B3 moved
+that contract down into spectrum, and prism now styles against it exactly
+as the layers above prism do. Its root module imports `ivg/raster/gio`,
+`mvu`, `spectrum`, `svg` and `svg/driver/gio`, and reaches `font` and `ivg`
+through them. Its nested `prism/gallery` module adds `pulse` and `traer` —
+those edges are the nested module's and not the root's. Imported by
+`cadence`, `markdown` and `pulse`. Outside the tier table, also by all
+seven workbench applications. Both directions are measured rather than
+typed — `scripts/check-layers.sh --edges` reports the graph and
+`scripts/sync-agents.sh` renders these sentences from it — so correcting
+them here changes nothing.
 
 **Read the canonical guide before you write code against this module.** It is
 the organization's one agent guide — the module inventory with current tags,
