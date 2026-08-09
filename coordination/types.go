@@ -46,6 +46,35 @@
 // still rx's, while the lifetime is this package's. Detaching a subscription
 // removes it from the registry and closes its private buffer, which also
 // releases a producer blocked inside it.
+//
+// # Deprecated
+//
+// Deprecated: use [github.com/vibrantgio/mvu/stream.Value] instead.
+//
+// ADR-008 (G-G0C) retired the reason this package existed. The three concerns
+// its doc names above — drag, modal and tooltip — are frame state now, owned
+// by the goroutine Gio lays a frame out on and read during layout; toasts are
+// messages reduced onto the model. Not one of them wanted a bus, and three of
+// the four that existed turned out to have no subscriber at all. What is left
+// is a genuine stream, of which the organization has exactly one
+// (spectrum/preferences), and it cannot live here: preferences is tier 1 and
+// this is tier 2, so by F5.5's rule the package lived too high.
+//
+// The replacement is not this code moved down a tier. G0C.5 measured it
+// against rx's own [rx.Observable.Behavior] and found this wrapper both
+// larger and slower: 292 lines against 14, a 64-subscriber ceiling against
+// none, one full arrival cycle at 52.0 µs against 1.3 µs on an M1 Max, and —
+// because
+// delivery still goes through a private rx.Subject per subscription — a
+// producer that a live consumer can still block, which rx.Behavior's
+// conflating write cannot. The slot leak this package was written to fix was
+// real; the fix was reaching for a different rx primitive, not wrapping the
+// wrong one.
+//
+// The package is kept, unchanged and still tested, for one release so that no
+// consumer breaks mid-goal. It has no library users left in the organization:
+// only prism/gallery and cadence/modal/gallery, two demo mains, which move
+// with its removal.
 package coordination
 
 import (
@@ -99,6 +128,11 @@ var ErrSubscriberLimit = errors.Join(rx.Err, errors.New("coordination: Subject s
 // bufCap is the producer-side buffer depth, applied per subscription. Use
 // BufCapPointer for signals emitted on every pointer event; use BufCapSignal
 // for infrequent signals.
+//
+// Deprecated: use [github.com/vibrantgio/mvu/stream.Value], which lives at
+// tier 0 where every layer can reach it, costs no goroutine while nobody is
+// watching, has no subscriber ceiling, and cannot be blocked by a consumer
+// that stops draining. See this package's doc for the measurements.
 func Subject[T any](bufCap int) (rx.Observer[T], rx.Observable[T]) {
 	h := &hub[T]{bufCap: bufCap}
 	return h.emit, h.subscribe

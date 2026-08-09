@@ -2,11 +2,13 @@
 
 The component library of the Vibrant Gio design system: buttons, inputs,
 lists, rich text, scrollbars, icons, layout primitives, and the widgets the
-rest of the stack composes. Not all of it is widgets. `cache`, `keyed`,
-`initial` and `coordination` are the rx plumbing those widgets are built
-out of — a per-widget frame cache, per-item state that survives a list
-reorder, a first-frame zero-value sentinel, and a subject for cross-widget
-coordination — and `bench` is the shared harness they are benchmarked with.
+rest of the stack composes. Not all of it is widgets. `cache`, `keyed` and
+`initial` are the rx plumbing those widgets are built out of — a per-widget
+frame cache, per-item state that survives a list reorder, and a first-frame
+zero-value sentinel — and `bench` is the shared harness they are
+benchmarked with. `coordination` is deprecated: ADR-008 retired the
+cross-widget bus, and the one genuine stream left is `mvu/stream.Value`, a
+tier low enough for spectrum to reach.
 
 **Layer.** Tier 2 of ADR-001's stack, `mvu → spectrum → prism → pulse →
 cadence → markdown`. Do not look for `theme` or `tokens` here: G-B3 moved

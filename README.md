@@ -69,7 +69,7 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 | `bench` | `BenchFrame`, the shared per-frame benchmark harness every component's benchmarks run through. |
 | `button` | The button: text or icon-only, in three emphasis registers (filled, tonal, ghost), hover/focus/press/disabled, keyboard activation, density-sized with a 44 dp pointer target; clicks arrive as a callback or as an MVU message. |
 | `cache` | `FrameCache`, an op-recording cache that replays a widget's recorded draw commands on frames where its inputs have not changed. |
-| `coordination` | `Subject`, the typed broadcast channel for cross-widget signals — drag, modal, tooltip — with a documented one-frame delivery lag and a subscription that is genuinely released on `Unsubscribe`, which a bare `rx.Subject`'s is not. |
+| `coordination` | **Deprecated** — use [`mvu/stream`](https://github.com/vibrantgio/mvu)`.Value`. `Subject`, the typed broadcast channel for cross-widget signals. ADR-008 retired the concerns it was built for: drag, modal and tooltip arbitration are frame state now, toasts are messages, and the one genuine stream left (`spectrum/preferences`) is a tier below and could never import it. Kept for one release; it has no library users. |
 | `golden` | The organization's headless-Gio golden-image harness: `Capture`, `Render` and `PixelDiff`. Exported so callers outside prism drive one capture path instead of inlining their own. |
 | `icon` | A name→icon registry holding icons in either SVG (`vibrantgio/svg`) or IVG (`vibrantgio/ivg`) form. |
 | `initial` | `Value[T]`, a typed "not set yet" cell for state that cannot be computed until the first frame has laid out — instead of a magic sentinel. |
