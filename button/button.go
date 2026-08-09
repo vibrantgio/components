@@ -1,6 +1,7 @@
 package button
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 
@@ -23,11 +24,75 @@ import (
 	"github.com/vibrantgio/spectrum/typeset"
 )
 
-// RenderState holds explicit visual interaction state for static rendering.
-// All fields default to false (normal/idle state).
-// Intended for golden-image testing; production code obtains state from the
-// Gio event system via Button.
+// Emphasis is the visual weight register a button wears — how loudly it
+// competes for attention on the surface it sits on. It is a colour property
+// and nothing else: the drawn control keeps the density's size, the pointer
+// target keeps its 44 dp floor, and the focus ring is identical in every
+// register. Keyboard visibility is not an emphasis property.
+//
+// Every desktop system carries this axis under its own names — MD3 has
+// filled, tonal, outlined and text; Fluent primary, standard and subtle;
+// Apple prominent, regular and plain — and the three registers below are
+// the set all of them agree on: the two ends plus the tinted middle.
+// Outlined is deliberately not a fourth register. A border is a property of
+// a surface rather than a rung on a loudness scale, and prism already
+// carries its two border weights as ramp steps 500 and 300.
+type Emphasis int
+
+const (
+	// Filled is the loudest register and the zero value: the role's pinned
+	// solid fill carrying its on-colour. One per surface — the action the
+	// screen is about. Being the zero value is what makes this axis
+	// additive: every Props and RenderState written before it existed
+	// renders exactly as it did.
+	Filled Emphasis = iota
+
+	// Tonal is the middle register: a tinted fill off the role's own ramp
+	// with the ramp's text shade on top (ADR-007's 100–300 tinted fills and
+	// 700–900 text over them). It reads as an action without claiming the
+	// surface's one loud slot — the register for a secondary action, and
+	// the one a row of equals wears.
+	Tonal
+
+	// Ghost is the quietest register: no ground at rest, the label or glyph
+	// in the neutral ramp's low-contrast text shade, and a neutral wash
+	// only while the pointer is on it. For affordances that must be present
+	// without being the subject — a dialog's close X, a toolbar of icons, a
+	// tertiary "Learn more". A ghost is quiet, not small: it keeps the full
+	// pointer target and the full focus ring.
+	Ghost
+)
+
+// String returns the register's name in the vocabulary the design system
+// uses everywhere else — the same three words the token sheet's CSS classes
+// and the gallery's captions carry.
+func (e Emphasis) String() string {
+	switch e {
+	case Filled:
+		return "filled"
+	case Tonal:
+		return "tonal"
+	case Ghost:
+		return "ghost"
+	}
+	return fmt.Sprintf("Emphasis(%d)", int(e))
+}
+
+// RenderState holds the explicit visual state a static render draws in: the
+// emphasis register the button wears and the interaction state it is in.
+// The zero value is the filled register at rest, so RenderState{} is exactly
+// today's default button.
+//
+// Intended for golden-image testing and static rendering; production code
+// obtains the interaction half from the Gio event system via Button, which
+// copies the register straight off Props.Emphasis.
 type RenderState struct {
+	// Emphasis is the visual weight register. It is a property of the
+	// button rather than of the pointer, and it lives here because Render
+	// and RenderIcon take exactly one parameter that is not a token and
+	// this is it. Zero is Filled.
+	Emphasis Emphasis
+
 	Hovered  bool
 	Focused  bool
 	Pressed  bool
@@ -41,6 +106,14 @@ type Props struct {
 
 	// Description is the screen-reader label. Falls back to Label when empty.
 	Description string
+
+	// Emphasis is the visual weight register: Filled (the zero value) for
+	// the one action a surface is about, Tonal for a secondary action,
+	// Ghost for an affordance that must be present without being the
+	// subject. It changes colour only — never the drawn size, never the
+	// pointer target, never the focus ring. Composes with Icon: a ghost
+	// icon button is a quiet glyph over a full 44 dp square.
+	Emphasis Emphasis
 
 	// Icon, when non-nil and Label is empty, renders the button as a compact
 	// icon-only affordance: a square the density's control height on a side
@@ -191,6 +264,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 					semantic.DescriptionOp(desc).Add(gtx.Ops)
 					semantic.EnabledOp(!dis).Add(gtx.Ops)
 					state := RenderState{
+						Emphasis: props.Emphasis,
 						Hovered:  hov,
 						Focused:  foc,
 						Pressed:  prs,
@@ -214,7 +288,9 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 // labelStyle is the LabelLarge role's whole text style and d is the density
 // the button draws at (control height and inner padding). Pass
 // tokens.DefaultTypography.LabelLarge and tokens.Comfortable for the default
-// desktop look.
+// desktop look. s carries the emphasis register alongside the interaction
+// state; its zero value is the filled button, so a call written before the
+// register existed draws what it always drew.
 //
 // All four properties of the style are honoured, and line height is honoured
 // in the sense a design system means: the label box is labelStyle.LineHeight
@@ -247,7 +323,10 @@ func Render(
 // RenderIcon produces a layout.Widget for a compact icon-only button in an
 // explicit visual state, without event processing or rx machinery. The glyph
 // is drawn by icon into a square d.ControlHeight on a side, inset by
-// d.PaddingY. Pass tokens.Comfortable for the default desktop look. Intended
+// d.PaddingY, in the register s carries — a ghost icon button is the quiet
+// glyph cadence/modal's close affordance wants, over the same square and
+// the same pointer target as a filled one.
+// Pass tokens.Comfortable for the default desktop look. Intended
 // for golden-image testing and static demonstrations; production code should
 // use Button with Props.Icon (and, when a container drives focus,
 // Props.Clickable).
@@ -323,7 +402,10 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	rrect := clip.RRect{Rect: image.Rectangle{Max: btnSize}, SE: rad, SW: rad, NE: rad, NW: rad}
 	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
 
-	// Focus ring (2 dp stroke on the background boundary).
+	// Focus ring (2 dp stroke on the background boundary). Identical in
+	// every emphasis register, by construction: FocusRing is not one of the
+	// colours buttonColors resolves. Keyboard visibility is not a loudness
+	// property, so a ghost button's ring is exactly a filled one's.
 	if s.Focused {
 		paint.FillShape(gtx.Ops, tok.color.FocusRing(), clip.Stroke{
 			Path:  rrect.Path(gtx.Ops),
@@ -348,7 +430,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 // drawIconButton renders a compact, square icon-only button: a square the
 // density's control height on a side, filled with the button background, the
 // focus ring when focused, and the glyph (drawn by icon) centred inside the
-// padding. Shares buttonColors with the text button so
+// padding. Shares buttonColors with the text button so the register and the
 // hover/press/focus/disabled treatments match. All visual state comes from s;
 // no event queries are performed here.
 func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int, col color.NRGBA), tok resolvedTokens, s RenderState) layout.Dimensions {
@@ -356,7 +438,8 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 	// Density.PaddingY, so the glyph gets ControlHeight − 2·PaddingY — the
 	// same content-box rule icon.Size documents (20 dp Comfortable, 16 dp
 	// Compact). The pointer target stays the 44 dp square via hit.Extend in
-	// the live path.
+	// the live path — in every register. Emphasis reaches the colours and
+	// stops there: the glyph quiets, the square does not shrink.
 	pad := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	side := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	rad := gtx.Dp(unit.Dp(tok.radius.Md)) // 6 dp corner radius
@@ -393,25 +476,118 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 	return layout.Dimensions{Size: sz}
 }
 
-// buttonColors returns the background and foreground colors for the given
-// state. The background is the Primary solid fill resolved through the D2.3
-// state walk (ADR-007: hover and pressed step the pin toward the 900 end of
-// the primary ramp; focus keeps the fill and draws the ring); the foreground
-// is OnPrimary, faded to DisabledOpacity when disabled.
+// Ramp steps the quieter registers resolve against, in ADR-007's vocabulary.
+// Every one of them is a step the ADR already names, so a register is a
+// choice of rungs on the existing ramps rather than a second colour model.
+//
+// Both grounds are step 200, and the APCA gate is what fixes them there
+// rather than taste. A tinted ground presses two steps deeper, and 200 is
+// the only rung of ADR-007's 100–300 tinted band whose press still carries
+// the 900 text: measured on the default seed, primary 900 over primary 400
+// is Lc 62.8 light and −84.5 dark, and neutral 900 over neutral 400 is
+// Lc 63.4 and −84.6 — all above the ADR's Lc 60 floor. A ground of 300
+// would press onto 500 and take its label to Lc 47.5, unreadable, in
+// exchange for a slightly louder button.
+const (
+	// tonalGround is the tinted fill (ADR-007's 100–300 band) a tonal
+	// button rests on, and the ground its hover and press walk from — one
+	// step to 300, two to 400, exactly as any tinted surface walks. It is
+	// the step a card sits on, which is the relationship a tonal button
+	// wants: a tinted card over the app background.
+	tonalGround = 200
+	// tonalText is the text shade over that tinted fill: step 900, the
+	// stop the APCA gate holds at Lc ≥ 90 over the 100 and 200 grounds.
+	tonalText = 900
+
+	// ghostGround is the ground a ghost's wash walks from. A ghost paints
+	// nothing at rest, so it has no ground of its own and must assume one;
+	// it assumes the surface step, and performs that surface's own hover
+	// (300) and press (400). Assuming the app background instead would
+	// wash to 200, which is invisible on the card a ghost most often sits
+	// on — a modal's close X, a toolbar over a panel. Assuming 200 costs
+	// only that the wash reads one step strong on the bare background,
+	// which is the harmless direction of the same error.
+	ghostGround = 200
+	// ghostText is the resting label shade: neutral step 700, ADR-007's
+	// low-contrast text (Lc ≥ 60) — the resolution the deleted
+	// OnSurfaceVariant alias carried.
+	ghostText = 700
+	// ghostTextOnWash is the label shade once a wash appears under it.
+	// The ground walks toward the 900 end, so the label walks with it and
+	// keeps its headroom instead of spending it.
+	ghostTextOnWash = 900
+)
+
+// buttonColors returns the background and foreground colours for the given
+// register and interaction state.
+//
+// Filled — the zero register — is the treatment prism has always drawn: the
+// Primary solid fill resolved through the D2.3 state walk (ADR-007: hover
+// and pressed step the pin toward the 900 end of the primary ramp; focus
+// keeps the fill and draws the ring) under OnPrimary, faded to
+// DisabledOpacity when disabled. Tonal and Ghost resolve through the same
+// two entry points on the same ramps, only from different rungs: tonal is
+// the tinted-ground walk on the primary ramp, ghost the same walk on the
+// neutral one with the resting step painted as nothing at all.
+//
+// Ghost's wash is neutral rather than role-tinted on purpose. A ghost claims
+// no role colour — that is what makes it the quiet register — and tinting
+// one under the pointer would hand the brand hue to the very affordance that
+// was chosen for not carrying it.
+//
+// The focus ring is not resolved here and does not vary by register: it is
+// FocusRing in every one of them, drawn by the two draw functions.
 func buttonColors(c tokens.ColorTokens, s RenderState) (bg, fg color.NRGBA) {
-	fg = c.OnPrimary
-	state := tokens.StateNormal
+	state := interactionState(s)
+
+	switch s.Emphasis {
+	case Tonal:
+		fg = c.Ramps.Primary.Step(tonalText)
+		if s.Disabled {
+			fg = tokens.Disabled(fg)
+		}
+		bg = c.StateColor(tokens.RolePrimary, tonalGround, state)
+
+	case Ghost:
+		switch state {
+		case tokens.StateHover, tokens.StatePressed:
+			fg = c.Ramps.Neutral.Step(ghostTextOnWash)
+			bg = c.StateColor(tokens.RoleNeutral, ghostGround, state)
+		default:
+			// Rest, focus and disabled paint no ground: the surface behind
+			// shows through untouched. A fully transparent fill is a no-op
+			// over any ground, which is the whole point of the register.
+			fg = c.Ramps.Neutral.Step(ghostText)
+			if s.Disabled {
+				fg = tokens.Disabled(fg)
+			}
+			bg = color.NRGBA{}
+		}
+
+	default: // Filled
+		fg = c.OnPrimary
+		if s.Disabled {
+			fg = tokens.Disabled(fg)
+		}
+		bg = c.SolidStateColor(tokens.RolePrimary, state)
+	}
+	return
+}
+
+// interactionState collapses the four RenderState booleans into the one
+// tokens.State the ramp walks take, in the precedence the component has
+// always applied: disabled outranks pressed, pressed outranks hover, hover
+// outranks focus.
+func interactionState(s RenderState) tokens.State {
 	switch {
 	case s.Disabled:
-		state = tokens.StateDisabled
-		fg = tokens.Disabled(fg)
+		return tokens.StateDisabled
 	case s.Pressed:
-		state = tokens.StatePressed
+		return tokens.StatePressed
 	case s.Hovered:
-		state = tokens.StateHover
+		return tokens.StateHover
 	case s.Focused:
-		state = tokens.StateFocus
+		return tokens.StateFocus
 	}
-	bg = c.SolidStateColor(tokens.RolePrimary, state)
-	return
+	return tokens.StateNormal
 }

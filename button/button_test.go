@@ -93,6 +93,282 @@ func TestButtonGolden(t *testing.T) {
 	}
 }
 
+// ---- Emphasis registers (G0A.1) ----
+
+// onGround paints the whole canvas in the scheme's app-background pin before
+// drawing w over it. Every emphasis golden is recorded this way, and it has
+// to be: a ghost button paints no ground of its own, so against the headless
+// window's own clear colour its register would be indistinguishable from a
+// component that failed to draw. The background pin is the system's default
+// ground — the step a tinted fill is a card over — so it is also the ground
+// on which the three registers separate the way the scale intends.
+func onGround(c tokens.ColorTokens, w layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, c.Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		return w(gtx)
+	}
+}
+
+// The emphasis matrix: every register, in every interaction state, at both
+// densities. Names come from Emphasis.String, so the stored files read
+// emph-ghost-compact-hovered.png and the golden names cannot drift from the
+// vocabulary the rest of the design system uses.
+var (
+	emphasisRegisters = []button.Emphasis{button.Filled, button.Tonal, button.Ghost}
+
+	emphasisDensities = []struct {
+		name string
+		d    tokens.Density
+	}{
+		{"comfortable", tokens.Comfortable},
+		{"compact", tokens.Compact},
+	}
+
+	emphasisStates = []struct {
+		name string
+		s    button.RenderState
+	}{
+		{"normal", button.RenderState{}},
+		{"hovered", button.RenderState{Hovered: true}},
+		{"focused", button.RenderState{Focused: true}},
+		{"pressed", button.RenderState{Pressed: true}},
+		{"disabled", button.RenderState{Disabled: true}},
+	}
+)
+
+// TestButtonEmphasisGolden records or diffs the text button across the whole
+// register × state × density matrix. The pre-existing goldens are untouched
+// by design: they are the proof that the zero register still renders exactly
+// today's filled button, so this test stores its own files under an emph-
+// prefix rather than re-recording theirs.
+func TestButtonEmphasisGolden(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 60)
+	sharpRadius := tokens.RadiusScale{} // all zeros → sharp corners, no AA
+	colors := tokens.DefaultLight
+
+	for _, reg := range emphasisRegisters {
+		for _, den := range emphasisDensities {
+			for _, st := range emphasisStates {
+				state := st.s
+				state.Emphasis = reg
+				name := "emph-" + reg.String() + "-" + den.name + "-" + st.name
+				t.Run(name, func(t *testing.T) {
+					w := button.Render(
+						shaper, "Save Changes",
+						colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, den.d,
+						state,
+					)
+					golden.Render(t, name, size, onGround(colors, w))
+				})
+			}
+		}
+	}
+}
+
+// TestIconButtonEmphasisGolden records or diffs the icon-only button in every
+// register, idle and focused, at both densities: icon-only composes with the
+// emphasis axis rather than being a register of its own. The focused row is
+// the visible half of the rule that the focus ring does not scale down with
+// emphasis — the ring is the same 2 dp of the same colour on the ghost square
+// as on the filled one.
+func TestIconButtonEmphasisGolden(t *testing.T) {
+	size := image.Pt(60, 60)
+	sharpRadius := tokens.RadiusScale{}
+	colors := tokens.DefaultLight
+
+	states := []struct {
+		name string
+		s    button.RenderState
+	}{
+		{"normal", button.RenderState{}},
+		{"focused", button.RenderState{Focused: true}},
+	}
+	for _, reg := range emphasisRegisters {
+		for _, den := range emphasisDensities {
+			for _, st := range states {
+				state := st.s
+				state.Emphasis = reg
+				name := "emph-icon-" + reg.String() + "-" + den.name + "-" + st.name
+				t.Run(name, func(t *testing.T) {
+					w := button.RenderIcon(crossIcon, colors, tokens.Spacing, sharpRadius, den.d, state)
+					golden.Render(t, name, size, onGround(colors, w))
+				})
+			}
+		}
+	}
+}
+
+// TestEmphasisRegistersAreVisuallyDistinct confirms the three registers are
+// three different pictures. Without it the matrix above could record the same
+// filled button thirty times and still pass on every future run.
+func TestEmphasisRegistersAreVisuallyDistinct(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 60)
+	colors := tokens.DefaultLight
+
+	shot := func(e button.Emphasis) *image.RGBA {
+		return golden.Capture(t, size, onGround(colors, button.Render(
+			shaper, "Click me",
+			colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+			button.RenderState{Emphasis: e},
+		)))
+	}
+	filled, tonal, ghost := shot(button.Filled), shot(button.Tonal), shot(button.Ghost)
+	if filled == nil || tonal == nil || ghost == nil {
+		return // headless unavailable; Capture called t.Skip
+	}
+	for _, p := range []struct {
+		name string
+		a, b *image.RGBA
+	}{
+		{"filled vs tonal", filled, tonal},
+		{"tonal vs ghost", tonal, ghost},
+		{"filled vs ghost", filled, ghost},
+	} {
+		if n := golden.PixelDiff(p.a, p.b); n == 0 {
+			t.Errorf("%s render identically; the emphasis register changed nothing", p.name)
+		}
+	}
+}
+
+// TestGhostRestsTransparent confirms the quietest register paints no ground:
+// a ghost button at rest is pixel-identical to the bare surface it sits on,
+// everywhere except where its label is.
+func TestGhostRestsTransparent(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 60)
+	colors := tokens.DefaultLight
+
+	bare := golden.Capture(t, size, onGround(colors, func(gtx layout.Context) layout.Dimensions {
+		return layout.Dimensions{Size: gtx.Constraints.Max}
+	}))
+	ghost := golden.Capture(t, size, onGround(colors, button.Render(
+		shaper, "Click me",
+		colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		button.RenderState{Emphasis: button.Ghost},
+	)))
+	filled := golden.Capture(t, size, onGround(colors, button.Render(
+		shaper, "Click me",
+		colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		button.RenderState{},
+	)))
+	if bare == nil || ghost == nil || filled == nil {
+		return
+	}
+	// The label is roughly a tenth of a 300×60 canvas; the filled ground is
+	// most of it. The ghost must be far closer to the bare surface than the
+	// filled button is — and it must still draw a label.
+	ghostDiff := golden.PixelDiff(bare, ghost)
+	filledDiff := golden.PixelDiff(bare, filled)
+	if ghostDiff == 0 {
+		t.Error("a ghost button drew nothing at all; the label must still be there")
+	}
+	if ghostDiff*4 >= filledDiff {
+		t.Errorf("ghost differs from the bare surface in %d px against the filled button's %d: the ghost is painting a ground", ghostDiff, filledDiff)
+	}
+}
+
+// TestFocusRingIsIdenticalInEveryRegister is the pixel proof of the rule that
+// keyboard visibility does not scale down with emphasis: the set of pixels
+// painted in the focus-ring colour is exactly the same set in all three
+// registers, so a ghost button's ring is neither thinner, dimmer nor smaller
+// than a filled one's.
+func TestFocusRingIsIdenticalInEveryRegister(t *testing.T) {
+	size := image.Pt(60, 60)
+	colors := tokens.DefaultLight
+	ring := colors.FocusRing()
+	want := color.RGBA{R: ring.R, G: ring.G, B: ring.B, A: ring.A} // opaque: NRGBA == RGBA
+
+	mask := func(e button.Emphasis) (pixels map[image.Point]bool, ok bool) {
+		img := golden.Capture(t, size, onGround(colors, button.RenderIcon(
+			crossIcon, colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
+			button.RenderState{Emphasis: e, Focused: true},
+		)))
+		if img == nil {
+			return nil, false
+		}
+		pixels = map[image.Point]bool{}
+		b := img.Bounds()
+		for y := b.Min.Y; y < b.Max.Y; y++ {
+			for x := b.Min.X; x < b.Max.X; x++ {
+				if img.RGBAAt(x, y) == want {
+					pixels[image.Pt(x, y)] = true
+				}
+			}
+		}
+		return pixels, true
+	}
+
+	base, ok := mask(button.Filled)
+	if !ok {
+		return // headless unavailable
+	}
+	if len(base) == 0 {
+		t.Fatalf("no pixels in the focus-ring colour %v; the test cannot see the ring", want)
+	}
+	for _, e := range []button.Emphasis{button.Tonal, button.Ghost} {
+		got, _ := mask(e)
+		if len(got) != len(base) {
+			t.Errorf("%s: %d focus-ring pixels, filled has %d", e, len(got), len(base))
+			continue
+		}
+		for p := range base {
+			if !got[p] {
+				t.Errorf("%s: focus ring missing at %v", e, p)
+				break
+			}
+		}
+	}
+}
+
+// TestGhostIconButtonKeepsFullHitTarget is the rule the modal's close button
+// depends on next: quieting a button's colours must not shrink what the
+// pointer can hit. A ghost icon button draws a 36 dp square and still accepts
+// a click at y=38, inside the 44 dp floor and outside the visual.
+func TestGhostIconButtonKeepsFullHitTarget(t *testing.T) {
+	var clicked int
+	w := materialize(t, button.Button(rx.Of(theme.Default()), button.Props{
+		Icon:        crossIcon,
+		Description: "close",
+		Emphasis:    button.Ghost,
+		OnClick:     func(_ layout.Context) { clicked++ },
+	}))
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	size := image.Pt(120, 120)
+	drive := func() layout.Dimensions {
+		ops.Reset()
+		gtx := layout.Context{
+			Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
+			Constraints: layout.Exact(size),
+			Ops:         ops,
+			Source:      r.Source(),
+		}
+		dims := w(gtx)
+		r.Frame(ops)
+		return dims
+	}
+
+	dims := drive()
+	side := int(tokens.Comfortable.ControlHeight)
+	if dims.Size != image.Pt(side, side) {
+		t.Fatalf("ghost icon button visual = %v, want %dx%d (the register must not resize the control)", dims.Size, side, side)
+	}
+
+	// The hit rect is 44 px centred on the 36 px square: -4..40 on both axes.
+	pos := f32.Pt(18, 38)
+	r.Queue(
+		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+	)
+	drive()
+	if clicked != 1 {
+		t.Errorf("click in the hit slop below a ghost icon button: OnClick fired %d times, want 1", clicked)
+	}
+}
+
 // ---- Density (E1.3) ----
 
 // densityTheme returns a theme whose density is d, with sharp corners for

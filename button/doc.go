@@ -14,6 +14,20 @@
 // frame out, no event handling — that is what the golden-image tests drive and
 // what static rendering should use.
 //
+// # Emphasis
+//
+// A button also carries a visual weight register — [Filled], the default,
+// [Tonal] and [Ghost] — set through Props.Emphasis or, on the pure path,
+// through RenderState.Emphasis. It is a colour axis and only a colour axis:
+// each register resolves its ground and its label from ADR-007's ramps (the
+// pinned solid fill for filled, the primary ramp's tinted 200 ground under
+// its 900 text for tonal, no ground at all under the neutral ramp's 700 text
+// for ghost, with the tinted walk supplying hover and press in each). The
+// drawn size, the 44 dp pointer floor and the focus ring are identical in
+// all three — a quiet button is quiet, not small, and not harder to see with
+// a keyboard. The zero value is Filled, so nothing written before the axis
+// existed renders differently.
+//
 // Three things it assumes. Interaction state is allocated inside the
 // component's rx.Defer scope, so press and focus survive the view rebuilds an
 // MVU loop drives; pass Props.Clickable when an enclosing container such as a
