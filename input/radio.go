@@ -11,8 +11,8 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/internal/hit"
 	"github.com/vibrantgio/mvu"
-	"github.com/vibrantgio/prism/internal/hit"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )

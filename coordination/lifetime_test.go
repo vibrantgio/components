@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/prism/coordination"
+	"github.com/vibrantgio/components/coordination"
 )
 
 // subscribeOne subscribes to stream and returns the subscription, a channel of

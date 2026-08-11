@@ -3,7 +3,7 @@ package icon_test
 import (
 	"testing"
 
-	"github.com/vibrantgio/prism/icon"
+	"github.com/vibrantgio/components/icon"
 	"github.com/vibrantgio/svg"
 )
 

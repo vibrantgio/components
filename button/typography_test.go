@@ -8,8 +8,8 @@ import (
 	"gioui.org/op"
 	"gioui.org/unit"
 
-	"github.com/vibrantgio/prism/button"
-	golden "github.com/vibrantgio/prism/golden"
+	"github.com/vibrantgio/components/button"
+	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/theme/tokens"
 )
 

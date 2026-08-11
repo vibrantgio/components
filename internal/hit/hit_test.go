@@ -15,7 +15,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 
-	"github.com/vibrantgio/prism/internal/hit"
+	"github.com/vibrantgio/components/internal/hit"
 )
 
 // visualPx is the side of the small drawn control; hitPx is the extended

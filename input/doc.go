@@ -1,5 +1,5 @@
 // Package input provides the Vibrant Gio form controls — TextField, Checkbox,
-// Radio and Dropdown — on the same contract as prism/button: an
+// Radio and Dropdown — on the same contract as components/button: an
 // rx.Observable[theme.Theme] and a props struct in, an
 // rx.Observable[layout.Widget] out, with a matching pure Render, RenderCheckbox,
 // RenderRadio and RenderDropdown path that takes resolved tokens and an explicit

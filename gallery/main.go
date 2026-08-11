@@ -1,7 +1,7 @@
-// Package main is the Prism gallery — one page per Phase 1 component.
+// Package main is the Components gallery — one page per Phase 1 component.
 // Every variant and every a11y mode is visible; interactions are live.
 //
-// Run: go run github.com/vibrantgio/prism/gallery
+// Run: go run github.com/vibrantgio/components/gallery
 package main
 
 import (
@@ -24,20 +24,20 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/button"
+	"github.com/vibrantgio/components/initial"
+	"github.com/vibrantgio/components/input"
+	complayout "github.com/vibrantgio/components/layout"
+	"github.com/vibrantgio/components/list"
+	"github.com/vibrantgio/components/richtext"
+	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/mvu/stream"
-	"github.com/vibrantgio/prism/button"
-	"github.com/vibrantgio/prism/initial"
-	"github.com/vibrantgio/prism/input"
-	prismlayout "github.com/vibrantgio/prism/layout"
-	"github.com/vibrantgio/prism/list"
-	"github.com/vibrantgio/prism/richtext"
-	"github.com/vibrantgio/prism/scrollbar"
 	"github.com/vibrantgio/theme/a11y"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 
+	"github.com/vibrantgio/components/icon"
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
-	"github.com/vibrantgio/prism/icon"
 	"github.com/vibrantgio/pulse/springbutton"
 )
 
@@ -135,7 +135,7 @@ func main() {
 	go func() {
 		w := new(app.Window)
 		w.Option(
-			app.Title("Prism Gallery"),
+			app.Title("Components Gallery"),
 			app.Size(unit.Dp(900), unit.Dp(700)),
 		)
 		if err := run(w); err != nil {
@@ -291,7 +291,7 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 	})
 
 	// Stream: mvu/stream.Value[string] for the producer/consumer demo. ADR-008's
-	// third destination — prism/coordination is deprecated and this demo was its
+	// third destination — components/coordination is deprecated and this demo was its
 	// last user in the organization.
 	var streamObs rx.Observable[string]
 	g.streamObserver, streamObs = stream.Value("")
@@ -335,8 +335,8 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 
 	cs := make([]layout.FlexChild, 0, 1+len(pageNames))
 	cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-		return prismlayout.Inset(16).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return g.label(gtx, "Prism Gallery", tokens.DefaultLight.Text, unit.Sp(13), font.Font{Weight: font.Bold})
+		return complayout.Inset(16).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return g.label(gtx, "Components Gallery", tokens.DefaultLight.Text, unit.Sp(13), font.Font{Weight: font.Bold})
 		})
 	}))
 	for i, name := range pageNames {
@@ -355,7 +355,7 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 			return g.nav[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				sz := image.Pt(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(40)))
 				paint.FillShape(gtx.Ops, bg, clip.Rect{Max: sz}.Op())
-				return prismlayout.InsetXY(16, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.InsetXY(16, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return g.label(gtx, name, fg, unit.Sp(14), font.Font{})
 				})
 			})
@@ -398,7 +398,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 		cs = append(cs,
 			g.sectionHeader("Button — live interactive"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(200))
@@ -408,7 +408,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 							}
 							return layout.Dimensions{}
 						}),
-						layout.Rigid(prismlayout.HSpacer(16)),
+						layout.Rigid(complayout.HSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, fmt.Sprintf("Clicks: %d", g.btnClicks),
 								tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
@@ -416,9 +416,9 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 					)
 				})
 			}),
-			g.sectionHeader("Button — static prism.Button vs pulse.SpringButton (press to see physics)"),
+			g.sectionHeader("Button — static components.Button vs pulse.SpringButton (press to see physics)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
@@ -435,14 +435,14 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 									}
 									return layout.Dimensions{}
 								}),
-								layout.Rigid(prismlayout.HSpacer(16)),
+								layout.Rigid(complayout.HSpacer(16)),
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									return g.label(gtx, fmt.Sprintf("Clicks: %d", g.btnCompareClicks),
 										tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 								}),
 							)
 						}),
-						layout.Rigid(prismlayout.VSpacer(16)),
+						layout.Rigid(complayout.VSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -458,14 +458,14 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 									}
 									return layout.Dimensions{}
 								}),
-								layout.Rigid(prismlayout.HSpacer(16)),
+								layout.Rigid(complayout.HSpacer(16)),
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									return g.label(gtx, fmt.Sprintf("Clicks: %d", g.springBtnClicks),
 										tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 								}),
 							)
 						}),
-						layout.Rigid(prismlayout.VSpacer(12)),
+						layout.Rigid(complayout.VSpacer(12)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"pulse.SpringButton(theme, button.Props{...}, springbutton.Options{}) — DESIGN §Phase 3 — Composition mechanism.",
@@ -517,7 +517,7 @@ func (g *gallery) pageInputs(gtx layout.Context) layout.Dimensions {
 		cs = append(cs,
 			g.sectionHeader("TextField — live"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					gtx.Constraints.Max.X = gtx.Dp(unit.Dp(300))
 					gtx.Constraints.Min.X = gtx.Dp(unit.Dp(300))
 					if g.tfLive != nil {
@@ -532,7 +532,7 @@ func (g *gallery) pageInputs(gtx layout.Context) layout.Dimensions {
 		cs = append(cs,
 			g.sectionHeader("Checkbox — live"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					if g.cbLive != nil {
 						return g.cbLive(gtx)
 					}
@@ -545,7 +545,7 @@ func (g *gallery) pageInputs(gtx layout.Context) layout.Dimensions {
 		cs = append(cs,
 			g.sectionHeader("Radio — live (two options, independent state)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							if g.rbALive != nil {
@@ -553,18 +553,18 @@ func (g *gallery) pageInputs(gtx layout.Context) layout.Dimensions {
 							}
 							return layout.Dimensions{}
 						}),
-						layout.Rigid(prismlayout.HSpacer(8)),
+						layout.Rigid(complayout.HSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, "Option A", tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 						}),
-						layout.Rigid(prismlayout.HSpacer(32)),
+						layout.Rigid(complayout.HSpacer(32)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							if g.rbBLive != nil {
 								return g.rbBLive(gtx)
 							}
 							return layout.Dimensions{}
 						}),
-						layout.Rigid(prismlayout.HSpacer(8)),
+						layout.Rigid(complayout.HSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, "Option B", tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 						}),
@@ -577,7 +577,7 @@ func (g *gallery) pageInputs(gtx layout.Context) layout.Dimensions {
 		cs = append(cs,
 			g.sectionHeader("Dropdown — live"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					gtx.Constraints.Max.X = gtx.Dp(unit.Dp(300))
 					gtx.Constraints.Min.X = gtx.Dp(unit.Dp(300))
 					if g.ddLive != nil {
@@ -700,7 +700,7 @@ func (g *gallery) pageList(gtx layout.Context) layout.Dimensions {
 			g.sectionHeader(fmt.Sprintf("List — %d items, LayoutScrollbar: Occupy (left) vs Overlay (right)", len(g.listItems))),
 			layout.Rigid(g.listScrollbarDemo),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return g.label(gtx,
 						"list.LayoutScrollbar(..., Occupy, ...) reserves a gutter; Overlay floats the bar over the rows. Wheel, thumb-drag, and track-click all scroll.",
 						tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
@@ -709,7 +709,7 @@ func (g *gallery) pageList(gtx layout.Context) layout.Dimensions {
 			g.sectionHeader("Scrollbar — standalone bar beside tall fake content (drag the thumb, click the track, hover)"),
 			layout.Rigid(g.scrollbarDemo),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return g.label(gtx,
 						"scrollbar.FromTokens(...).Layout with fractions from scrollbar.FromListPosition; drags feed back via ScrollDistance.",
 						tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
@@ -726,12 +726,12 @@ func (g *gallery) pageList(gtx layout.Context) layout.Dimensions {
 // over full-width rows). Each column has its own list.State so they scroll
 // independently.
 func (g *gallery) listScrollbarDemo(gtx layout.Context) layout.Dimensions {
-	return prismlayout.InsetXY(24, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	return complayout.InsetXY(24, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		h := gtx.Dp(unit.Dp(400))
 		gtx.Constraints.Max.Y = h
 		bar := scrollbar.FromTokens(tokens.DefaultLight)
 		row := func(gtx layout.Context, item string) layout.Dimensions {
-			return prismlayout.InsetXY(0, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return complayout.InsetXY(0, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return g.label(gtx, item, tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 			})
 		}
@@ -741,7 +741,7 @@ func (g *gallery) listScrollbarDemo(gtx layout.Context) layout.Dimensions {
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						return g.label(gtx, title, tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{Weight: font.Bold})
 					}),
-					layout.Rigid(prismlayout.VSpacer(8)),
+					layout.Rigid(complayout.VSpacer(8)),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 						gtx.Constraints.Min = gtx.Constraints.Max
 						return list.LayoutScrollbar(gtx, st, bar, anchor, g.listItems, row)
@@ -751,7 +751,7 @@ func (g *gallery) listScrollbarDemo(gtx layout.Context) layout.Dimensions {
 		}
 		return layout.Flex{}.Layout(gtx,
 			layout.Flexed(0.5, column("Occupy — gutter reserved", g.listSt, list.Occupy)),
-			layout.Rigid(prismlayout.HSpacer(24)),
+			layout.Rigid(complayout.HSpacer(24)),
 			layout.Flexed(0.5, column("Overlay — bar floats over rows", g.listOverlaySt, list.Overlay)),
 		)
 	})
@@ -762,7 +762,7 @@ func (g *gallery) listScrollbarDemo(gtx layout.Context) layout.Dimensions {
 // raw layout.List position, and scrollbar drags and track clicks are fed back
 // into the list via ScrollDistance.
 func (g *gallery) scrollbarDemo(gtx layout.Context) layout.Dimensions {
-	return prismlayout.InsetXY(24, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	return complayout.InsetXY(24, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		h := gtx.Dp(unit.Dp(300))
 		gtx.Constraints.Max.Y = h
 		gtx.Constraints.Min.Y = h
@@ -775,7 +775,7 @@ func (g *gallery) scrollbarDemo(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Max.X -= barW
 				gtx.Constraints.Min = gtx.Constraints.Max
 				return g.sbList.Layout(gtx, len(g.sbItems), func(gtx layout.Context, i int) layout.Dimensions {
-					return prismlayout.InsetXY(0, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return complayout.InsetXY(0, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						return g.label(gtx, g.sbItems[i], tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 					})
 				})
@@ -832,7 +832,7 @@ func (g *gallery) pageRichtext(gtx layout.Context) layout.Dimensions {
 		cs := []layout.FlexChild{
 			g.sectionHeader("Richtext — mixed spans (bold / italic / mono / colour / size / links)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					gtx.Constraints.Max.X = gtx.Dp(unit.Dp(520))
 					return richtext.Render(g.shaper, staticStyle, richtextSpans(), richtext.Idle())(gtx)
 				})
@@ -842,7 +842,7 @@ func (g *gallery) pageRichtext(gtx layout.Context) layout.Dimensions {
 		for _, ls := range linkStates {
 			ls := ls
 			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.InsetXY(24, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.InsetXY(24, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Min.X = gtx.Dp(unit.Dp(160))
@@ -865,13 +865,13 @@ func (g *gallery) pageRichtext(gtx layout.Context) layout.Dimensions {
 		cs = append(cs,
 			g.sectionHeader("Richtext — live links (hover for cursor, Tab to focus, click or Space/Enter to activate)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(520))
 							return richtext.Layout(gtx, g.rtState, g.shaper, g.rtStyle, richtextSpans())
 						}),
-						layout.Rigid(prismlayout.VSpacer(16)),
+						layout.Rigid(complayout.VSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							status := "Activated: (none yet — click a link above)"
 							if g.rtLastURL != "" {
@@ -879,7 +879,7 @@ func (g *gallery) pageRichtext(gtx layout.Context) layout.Dimensions {
 							}
 							return g.label(gtx, status, tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 						}),
-						layout.Rigid(prismlayout.VSpacer(8)),
+						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"richtext.Layout(gtx, state, shaper, style, spans) — OnLinkClick(gtx, url) carries gtx per GX.8.",
@@ -900,7 +900,7 @@ func (g *gallery) pageIcon(gtx layout.Context) layout.Dimensions {
 		cs := []layout.FlexChild{
 			g.sectionHeader("Icon — IVG render (material action-info, 64×64 px)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							if g.ivgWidget != nil {
@@ -908,7 +908,7 @@ func (g *gallery) pageIcon(gtx layout.Context) layout.Dimensions {
 							}
 							return layout.Dimensions{Size: image.Pt(64, 64)}
 						}),
-						layout.Rigid(prismlayout.HSpacer(16)),
+						layout.Rigid(complayout.HSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, "icon.FromIVG(data) + ivgraster.Widget", tokens.DefaultLight.Text, unit.Sp(13), font.Font{})
 						}),
@@ -917,14 +917,14 @@ func (g *gallery) pageIcon(gtx layout.Context) layout.Dimensions {
 			}),
 			g.sectionHeader("Icon — Registry (live lookup)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					_, registered := g.iconReg.Icon("info")
 					status := fmt.Sprintf(`Registry has "info": %v  (kind=IVG, from icon.FromIVG)`, registered)
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, status, tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 						}),
-						layout.Rigid(prismlayout.VSpacer(8)),
+						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, "SVG icons: icon.FromSVG(parsed *svg.Icon) for the KindSVG path.", tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
 						}),
@@ -957,36 +957,36 @@ func (g *gallery) pageLayout(gtx layout.Context) layout.Dimensions {
 		cs := []layout.FlexChild{
 			g.sectionHeader("Layout — Row (horizontal flex with HSpacer gaps)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return prismlayout.Row(gtx,
-						box(red, 48), prismlayout.HSpacer(8),
-						box(green, 48), prismlayout.HSpacer(8),
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return complayout.Row(gtx,
+						box(red, 48), complayout.HSpacer(8),
+						box(green, 48), complayout.HSpacer(8),
 						box(blue, 48),
 					)
 				})
 			}),
 			g.sectionHeader("Layout — Col (vertical flex with VSpacer gaps)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return prismlayout.Col(gtx,
-						box(red, 40), prismlayout.VSpacer(8),
-						box(green, 40), prismlayout.VSpacer(8),
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return complayout.Col(gtx,
+						box(red, 40), complayout.VSpacer(8),
+						box(green, 40), complayout.VSpacer(8),
 						box(blue, 40),
 					)
 				})
 			}),
 			g.sectionHeader("Layout — Inset (uniform 24dp left) and InsetXY (32dp×16dp right)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								return box(purple, 40)(gtx)
 							})
 						}),
-						layout.Rigid(prismlayout.HSpacer(16)),
+						layout.Rigid(complayout.HSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return prismlayout.InsetXY(32, 16).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return complayout.InsetXY(32, 16).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								return box(orange, 40)(gtx)
 							})
 						}),
@@ -1018,20 +1018,20 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 		cs := []layout.FlexChild{
 			g.sectionHeader("A11y — live OS accessibility preferences (polled every 2s)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.prefRow(gtx, "ReduceMotion", prefs.ReduceMotion)
 						}),
-						layout.Rigid(prismlayout.VSpacer(8)),
+						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.prefRow(gtx, "HighContrast", prefs.HighContrast)
 						}),
-						layout.Rigid(prismlayout.VSpacer(8)),
+						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.prefRow(gtx, "IncreaseTextSize", prefs.IncreaseTextSize)
 						}),
-						layout.Rigid(prismlayout.VSpacer(12)),
+						layout.Rigid(complayout.VSpacer(12)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, "Toggle Reduce Motion in System Settings > Accessibility > Display.", tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
 						}),
@@ -1040,14 +1040,14 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 			}),
 			g.sectionHeader("A11y — high-contrast mode: swapped ColorTokens"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(200))
 							gtx.Constraints.Min.X = gtx.Dp(unit.Dp(200))
 							return button.Render(g.shaper, "High Contrast", hc, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, button.RenderState{})(gtx)
 						}),
-						layout.Rigid(prismlayout.HSpacer(16)),
+						layout.Rigid(complayout.HSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, "ColorTokens with maximum contrast ratios.", tokens.DefaultLight.Text, unit.Sp(13), font.Font{})
 						}),
@@ -1056,7 +1056,7 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 			}),
 			g.sectionHeader("A11y — reduced motion: disable animations"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					status := "animations enabled"
 					if prefs.ReduceMotion {
 						status = "reduced motion: skip animations"
@@ -1094,14 +1094,14 @@ func (g *gallery) pageInitial(gtx layout.Context) layout.Dimensions {
 		cs := []layout.FlexChild{
 			g.sectionHeader("Initial — first-frame value, set once and stable"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								fmt.Sprintf("Gallery opened at: %s", firstFrame.Format("15:04:05.000")),
 								tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 						}),
-						layout.Rigid(prismlayout.VSpacer(8)),
+						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"initial.Value[T].GetOrSet(fn) calls fn once on the first invocation",
@@ -1112,7 +1112,7 @@ func (g *gallery) pageInitial(gtx layout.Context) layout.Dimensions {
 								"and returns the cached result on every subsequent frame.",
 								tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
 						}),
-						layout.Rigid(prismlayout.VSpacer(8)),
+						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"Use inside rx.Defer closures to replace ad-hoc -1 sentinels.",
@@ -1145,19 +1145,19 @@ func (g *gallery) pageStream(gtx layout.Context) layout.Dimensions {
 		cs := []layout.FlexChild{
 			g.sectionHeader("Stream — mvu/stream.Value[string] producer/consumer"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return prismlayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.streamSend.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								return button.Render(g.shaper, "Send ping", tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, button.RenderState{})(gtx)
 							})
 						}),
-						layout.Rigid(prismlayout.VSpacer(16)),
+						layout.Rigid(complayout.VSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, "Consumer received: "+received,
 								tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 						}),
-						layout.Rigid(prismlayout.VSpacer(16)),
+						layout.Rigid(complayout.VSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"observer.Next(msg) sends via mvu/stream.Value[string](\"\") — ADR-008's",
@@ -1190,7 +1190,7 @@ func (g *gallery) sectionHeader(title string) layout.FlexChild {
 		bg := color.NRGBA{R: 0xe2, G: 0xe8, B: 0xf0, A: 0xff}
 		h := gtx.Dp(unit.Dp(36))
 		paint.FillShape(gtx.Ops, bg, clip.Rect{Max: image.Pt(gtx.Constraints.Max.X, h)}.Op())
-		return prismlayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return complayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return g.label(gtx, title, tokens.DefaultLight.Text, unit.Sp(13), font.Font{Weight: font.Bold})
 		})
 	})
@@ -1198,7 +1198,7 @@ func (g *gallery) sectionHeader(title string) layout.FlexChild {
 
 func (g *gallery) variantRow(gtx layout.Context, lbl string, bg, fg color.NRGBA, w layout.Widget) layout.Dimensions {
 	paint.FillShape(gtx.Ops, bg, clip.Rect{Max: image.Pt(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(64)))}.Op())
-	return prismlayout.InsetXY(24, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	return complayout.InsetXY(24, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = gtx.Dp(unit.Dp(200))

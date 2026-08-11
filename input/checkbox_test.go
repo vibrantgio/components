@@ -12,8 +12,8 @@ import (
 	"gioui.org/unit"
 
 	"github.com/reactivego/rx"
-	golden "github.com/vibrantgio/prism/golden"
-	"github.com/vibrantgio/prism/input"
+	golden "github.com/vibrantgio/components/golden"
+	"github.com/vibrantgio/components/input"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )

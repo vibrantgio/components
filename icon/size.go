@@ -16,7 +16,7 @@ import (
 // the glyph to the content box keeps the icon in lockstep with the control
 // across densities — an icon that stays put while its control shrinks is the
 // tell that density is only half-wired — and it is exactly the glyph size
-// prism/button gives an icon-only button (side ControlHeight, inset PaddingY).
+// components/button gives an icon-only button (side ControlHeight, inset PaddingY).
 func Size(d tokens.Density) unit.Dp {
 	return unit.Dp(d.ControlHeight - 2*d.PaddingY)
 }

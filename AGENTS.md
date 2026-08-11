@@ -1,4 +1,4 @@
-# AGENTS.md — prism
+# AGENTS.md — components
 
 The component library of the Vibrant Gio design system: buttons, inputs,
 lists, rich text, scrollbars, icons, layout primitives, and the widgets the
@@ -10,18 +10,18 @@ benchmarked with. `coordination` is deprecated: ADR-008 retired the
 cross-widget bus, and the one genuine stream left is `mvu/stream.Value`, a
 tier low enough for theme to reach.
 
-**Layer.** Tier 2 of ADR-001's stack, `mvu → theme → prism → pulse →
+**Layer.** Tier 2 of ADR-001's stack, `mvu → theme → components → pulse →
 cadence → markdown`. Do not look for `theme` or `tokens` here: G-B3 moved
-that contract down into theme, and prism now styles against it exactly as
-the layers above prism do. Its root module imports `ivg/raster/gio`, `mvu`,
-`svg`, `svg/driver/gio` and `theme`, and reaches `font` and `ivg` through
-them. Its nested `prism/gallery` module adds `pulse` and `traer` — those
-edges are the nested module's and not the root's. Imported by `cadence`,
-`markdown` and `pulse`. Outside the tier table, also by all seven workbench
-applications. Both directions are measured rather than typed —
-`scripts/check-layers.sh --edges` reports the graph and
-`scripts/sync-agents.sh` renders these sentences from it — so correcting
-them here changes nothing.
+that contract down into theme, and components now styles against it exactly
+as the layers above components do. Its root module imports
+`ivg/raster/gio`, `mvu`, `svg`, `svg/driver/gio` and `theme`, and reaches
+`font` and `ivg` through them. Its nested `components/gallery` module adds
+`pulse` and `traer` — those edges are the nested module's and not the
+root's. Imported by `cadence`, `markdown` and `pulse`. Outside the tier
+table, also by all seven workbench applications. Both directions are
+measured rather than typed — `scripts/check-layers.sh --edges` reports the
+graph and `scripts/sync-agents.sh` renders these sentences from it — so
+correcting them here changes nothing.
 
 **Read the canonical guide before you write code against this module.** It is
 the organization's one agent guide — the module inventory with current tags,
@@ -31,8 +31,8 @@ and this file links it rather than copying it:
 
     https://raw.githubusercontent.com/vibrantgio/.github/master/llms.txt
 
-**Modules.** `github.com/vibrantgio/prism` at the repository root, and one
-nested module: `gallery/` (`github.com/vibrantgio/prism/gallery`).
+**Modules.** `github.com/vibrantgio/components` at the repository root, and
+one nested module: `gallery/` (`github.com/vibrantgio/components/gallery`).
 Nested-module tags carry the directory as a prefix — `gallery/v0.6.1`, not
 `v0.6.1`.
 
@@ -43,13 +43,13 @@ module directory — `./...` does not cross a module boundary:
 
 **Golden images.** Tests in eight packages compare rendered output against
 PNGs committed under `testdata/golden/`.
-`github.com/vibrantgio/prism/golden` is the harness they use, and since
-F5.5 it is the organization's only one: `cadence`, `markdown`, `pulse` and
-`workbench` link it too, so a change to it moves every stored image in the
-organization and not only this repository's. Regenerate all of them before
-believing a change here is pixel-neutral. When a change legitimately moves
-pixels, regenerate them within the same change, look at what came out, and
-say so in the commit. From the repository root:
+`github.com/vibrantgio/components/golden` is the harness they use, and
+since F5.5 it is the organization's only one: `cadence`, `markdown`,
+`pulse` and `workbench` link it too, so a change to it moves every stored
+image in the organization and not only this repository's. Regenerate all of
+them before believing a change here is pixel-neutral. When a change
+legitimately moves pixels, regenerate them within the same change, look at
+what came out, and say so in the commit. From the repository root:
 
     go test ./button ./golden ./icon ./input ./layout ./list ./richtext ./scrollbar -golden.update
 
@@ -67,10 +67,10 @@ runner has no GL driver for it to open — so the pixels and the build status
 are independent facts. The `build` job's *Were the golden images compared,
 or skipped?* step, added by F5.4, publishes which of the two happened as a
 workflow annotation, readable without a token at `GET
-/repos/vibrantgio/prism/commits/<sha>/check-runs`; it has answered SKIPPED
-on every run. F5.7 then measured the alternative rather than leaving it as
-an open question. Adding the drivers gio's own Linux CI installs —
-`libegl1`, `libegl-mesa0`, `libglx-mesa0`, `libgl1-mesa-dri`,
+/repos/vibrantgio/components/commits/<sha>/check-runs`; it has answered
+SKIPPED on every run. F5.7 then measured the alternative rather than
+leaving it as an open question. Adding the drivers gio's own Linux CI
+installs — `libegl1`, `libegl-mesa0`, `libglx-mesa0`, `libgl1-mesa-dri`,
 `mesa-libgallium`, `libgbm1`, `mesa-vulkan-drivers` — does work: on pulse
 the verdict flipped to COMPARED on the next run. Nine of that repository's
 twenty-one images then failed, 12782 pixels apart, while the three drawn on

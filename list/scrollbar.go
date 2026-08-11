@@ -3,7 +3,7 @@ package list
 import (
 	"gioui.org/layout"
 
-	"github.com/vibrantgio/prism/scrollbar"
+	"github.com/vibrantgio/components/scrollbar"
 )
 
 // Anchor defines how a scrollbar is attached to the list content.

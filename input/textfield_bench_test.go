@@ -13,8 +13,8 @@ import (
 	"gioui.org/op"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/prism/bench"
-	"github.com/vibrantgio/prism/input"
+	"github.com/vibrantgio/components/bench"
+	"github.com/vibrantgio/components/input"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )

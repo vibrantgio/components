@@ -4,8 +4,8 @@ import (
 	"image"
 	"testing"
 
-	"github.com/vibrantgio/prism/bench"
-	"github.com/vibrantgio/prism/richtext"
+	"github.com/vibrantgio/components/bench"
+	"github.com/vibrantgio/components/richtext"
 	"github.com/vibrantgio/theme/tokens"
 )
 

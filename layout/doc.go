@@ -1,4 +1,4 @@
-// Package layout holds the small layout helpers prism's components and the
+// Package layout holds the small layout helpers components' components and the
 // applications above them share: Inset and InsetXY, HSpacer and VSpacer, Row
 // and Col over Gio's Flex, Pill for a rounded-rectangle clip, and FocusGroup.
 //

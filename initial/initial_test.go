@@ -3,7 +3,7 @@ package initial_test
 import (
 	"testing"
 
-	"github.com/vibrantgio/prism/initial"
+	"github.com/vibrantgio/components/initial"
 )
 
 func TestValue_FirstFrame(t *testing.T) {

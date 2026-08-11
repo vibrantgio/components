@@ -1,4 +1,4 @@
-// Package bench provides the shared benchmark harness for Prism components.
+// Package bench provides the shared benchmark harness for Components components.
 //
 // BenchFrame standardises per-frame measurement across components
 // (DESIGN §"Performance — Methodology — Benchmark harness"): it drives
@@ -51,7 +51,7 @@ func WithRouter(r *input.Router) Option {
 
 // BenchFrame drives w(gtx) for b.N frames against synthesized constraints,
 // resetting the op buffer each frame and reporting allocations. It is the
-// standard measurement path every Prism component benchmark plugs into.
+// standard measurement path every Components component benchmark plugs into.
 func BenchFrame(b *testing.B, w layout.Widget, opts ...Option) {
 	b.Helper()
 	cfg := config{size: DefaultSize}

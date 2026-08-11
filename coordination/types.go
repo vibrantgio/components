@@ -86,7 +86,7 @@
 // boundary instead of discovering them one patch at a time. These are public
 // modules and the notice you are reading shipped in prism v0.6.1; taking the
 // code out in the same release would be a deprecation window zero releases
-// wide, which is not a window. So: **this package is removed at prism
+// wide, which is not a window. So: **this package is removed at components
 // v1.0.0**, and nothing but that bump closes it. Until then it stays exactly
 // as it is — unchanged and still tested, because a deprecated package that
 // quietly rots is worse than one that works.
@@ -314,7 +314,7 @@ func subscribeSite() string {
 			break
 		}
 		if !strings.Contains(f.Function, "github.com/reactivego/") &&
-			!strings.Contains(f.Function, "github.com/vibrantgio/prism/coordination.") {
+			!strings.Contains(f.Function, "github.com/vibrantgio/components/coordination.") {
 			parts = append(parts, fmt.Sprintf("%s (%s:%d)", shortFunc(f.Function), shortFile(f.File), f.Line))
 		}
 		if !more {

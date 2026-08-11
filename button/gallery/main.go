@@ -1,4 +1,4 @@
-// Gallery demonstrates the Prism Button component in every visual state:
+// Gallery demonstrates the Components Button component in every visual state:
 // light/dark × normal, hovered, focused, pressed, disabled.
 //
 // Run with: go run ./gallery
@@ -20,7 +20,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 
-	"github.com/vibrantgio/prism/button"
+	"github.com/vibrantgio/components/button"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -28,7 +28,7 @@ func main() {
 	go func() {
 		w := new(app.Window)
 		w.Option(
-			app.Title("Prism — Button Gallery"),
+			app.Title("Components — Button Gallery"),
 			app.Size(unit.Dp(640), unit.Dp(540)),
 		)
 		if err := run(w); err != nil {

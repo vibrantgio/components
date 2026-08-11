@@ -8,7 +8,7 @@ import (
 	"gioui.org/op"
 	"gioui.org/unit"
 
-	"github.com/vibrantgio/prism/input"
+	"github.com/vibrantgio/components/input"
 	"github.com/vibrantgio/theme/tokens"
 )
 

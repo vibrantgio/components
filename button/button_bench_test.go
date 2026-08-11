@@ -7,8 +7,8 @@ import (
 	"gioui.org/layout"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/prism/bench"
-	"github.com/vibrantgio/prism/button"
+	"github.com/vibrantgio/components/bench"
+	"github.com/vibrantgio/components/button"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )

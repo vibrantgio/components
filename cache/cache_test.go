@@ -9,7 +9,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 
-	"github.com/vibrantgio/prism/cache"
+	"github.com/vibrantgio/components/cache"
 )
 
 // sinkData prevents the compiler from eliding heap allocations in indicatorCompute.

@@ -9,7 +9,7 @@
 // against one of those reports an ambiguous import for this module's own
 // path — found in both prism and here. v0.1.0 is the first prism that
 // excludes gallery/, which is what makes this module resolvable at all.
-module github.com/vibrantgio/prism/gallery
+module github.com/vibrantgio/components/gallery
 
 go 1.25.1
 

@@ -13,8 +13,8 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 
-	golden "github.com/vibrantgio/prism/golden"
-	"github.com/vibrantgio/prism/list"
+	golden "github.com/vibrantgio/components/golden"
+	"github.com/vibrantgio/components/list"
 )
 
 // viewportHeights is the set of viewport heights every scrolling test here runs

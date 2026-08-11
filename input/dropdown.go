@@ -15,8 +15,8 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/internal/hit"
 	"github.com/vibrantgio/mvu"
-	"github.com/vibrantgio/prism/internal/hit"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
@@ -94,7 +94,7 @@ type DropdownProps struct {
 // rediscovering. First, that guarantee is bounded by the option count: the
 // menu draws its full height and would run off the window before it ran out of
 // focus tags, so an options list long enough to need virtualising must move to
-// prism/list's LayoutSelectable, not grow per-row tags. Second, Tab-per-option
+// components/list's LayoutSelectable, not grow per-row tags. Second, Tab-per-option
 // is not the menu behaviour a listbox implies — arrow keys should move a
 // highlight within the open menu and Escape should close it. That is a real
 // gap, but it is a menu-semantics gap, not the virtualisation one, and it is

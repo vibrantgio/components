@@ -1,8 +1,8 @@
-# prism
+# components
 
 The component foundation of [Vibrant Gio](https://github.com/vibrantgio), a
 design system for native desktop applications on macOS, Windows and Linux,
-written in pure Go on [Gio](https://gioui.org). prism is where the buttons,
+written in pure Go on [Gio](https://gioui.org). components is where the buttons,
 inputs, lists, rich text, scrollbars, icons and layout primitives live, all
 styled against the `tokens` and `theme` contract that lives one tier down in
 [theme](https://github.com/vibrantgio/theme).
@@ -10,7 +10,7 @@ styled against the `tokens` and `theme` contract that lives one tier down in
 Gio gives you drawing primitives and an event loop, not a component set. A
 button is yours to write, and so are its hover, focus, press and disabled
 states, its 44 dp pointer target, its Space/Enter activation and its
-screen-reader label. prism writes them once. There are two API shapes, and
+screen-reader label. components writes them once. There are two API shapes, and
 which one a package uses follows from what it owns:
 
 - **Themed components** — `button`, `input` — take an
@@ -43,20 +43,20 @@ components through their theme-driven entry points (`button.Button`,
 
 ## Where it sits
 
-Tier 2 of the stack — `mvu → theme → prism → pulse → cadence → markdown`.
-prism imports [mvu](https://github.com/vibrantgio/mvu),
+Tier 2 of the stack — `mvu → theme → components → pulse → cadence → markdown`.
+components imports [mvu](https://github.com/vibrantgio/mvu),
 [theme](https://github.com/vibrantgio/theme) — the `theme` and `tokens`
 contract — and the support libraries [ivg](https://github.com/vibrantgio/ivg)
 and [svg](https://github.com/vibrantgio/svg);
 [pulse](https://github.com/vibrantgio/pulse),
 [cadence](https://github.com/vibrantgio/cadence) and
 [markdown](https://github.com/vibrantgio/markdown) are built on it —
-`pulse/springbutton` is `prism/button` with a physics-driven press, `cadence`'s
-table is built on `prism/list` and its modal on `prism/button`.
+`pulse/springbutton` is `components/button` with a physics-driven press, `cadence`'s
+table is built on `components/list` and its modal on `components/button`.
 The [organization page](https://github.com/vibrantgio) has the full tier table.
 
 ```sh
-go get github.com/vibrantgio/prism
+go get github.com/vibrantgio/components
 ```
 
 Every module in the organization is on gioui.org v0.10.1,
@@ -70,7 +70,7 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 | `button` | The button: text or icon-only, in three emphasis registers (filled, tonal, ghost), hover/focus/press/disabled, keyboard activation, density-sized with a 44 dp pointer target; clicks arrive as a callback or as an MVU message. |
 | `cache` | `FrameCache`, an op-recording cache that replays a widget's recorded draw commands on frames where its inputs have not changed. |
 | `coordination` | **Deprecated** — use [`mvu/stream`](https://github.com/vibrantgio/mvu)`.Value`. `Subject`, the typed broadcast channel for cross-widget signals. ADR-008 retired the concerns it was built for: drag, modal and tooltip arbitration are frame state now, toasts are messages, and the one genuine stream left (`theme/preferences`) is a tier below and could never import it. It has no users left in the organization; it is removed at **v1.0.0**, with ADR-001's and ADR-003's alias shims, so that every removal lands on one version boundary. |
-| `golden` | The organization's headless-Gio golden-image harness: `Capture`, `Render` and `PixelDiff`. Exported so callers outside prism drive one capture path instead of inlining their own. |
+| `golden` | The organization's headless-Gio golden-image harness: `Capture`, `Render` and `PixelDiff`. Exported so callers outside components drive one capture path instead of inlining their own. |
 | `icon` | A name→icon registry holding icons in either SVG (`vibrantgio/svg`) or IVG (`vibrantgio/ivg`) form. |
 | `initial` | `Value[T]`, a typed "not set yet" cell for state that cannot be computed until the first frame has laid out — instead of a magic sentinel. |
 | `input` | Text field, checkbox, radio and dropdown, on the same state and props contract as `button`. |
@@ -100,7 +100,7 @@ Condensed from `list.go` in
 the smallest complete Vibrant Gio application — one row's checkbox:
 
 ```go
-// Row is one todo line: a prism checkbox toggling completion, the todo text,
+// Row is one todo line: a components checkbox toggling completion, the todo text,
 // and a delete icon. Every event routes through mvu.MessageOp, so the
 // reducers are the only state writers.
 func Row(typ Type, th rx.Observable[theme.Theme], p Palette, item Todo) layout.Widget {
@@ -131,7 +131,7 @@ submit := button.Button(th, button.Props{
 is the MVU path — the component adds `mvu.MessageOp{Message: …}` to the
 frame's ops and the runtime delivers it to `Update`. FRP-style applications
 use `OnClick` instead, and are handed the frame's `layout.Context` so they can
-still emit a message from inside the callback. Prism buttons fill the width
+still emit a message from inside the callback. Components buttons fill the width
 they are given and draw at the theme's `Density.ControlHeight`; the pointer
 area extends past the drawn control to the 44 dp floor, so neighbouring
 Compact controls' slop overlapping is by design (the topmost input area wins).
@@ -140,12 +140,12 @@ The **gallery** shows every component in every visual state, with live
 interaction:
 
 ```sh
-go run github.com/vibrantgio/prism/gallery@latest   # or: cd gallery && go run .
+go run github.com/vibrantgio/components/gallery@latest   # or: cd gallery && go run .
 ```
 
-It is a nested module — `github.com/vibrantgio/prism/gallery`, whose tags
+It is a nested module — `github.com/vibrantgio/components/gallery`, whose tags
 carry the directory as a prefix (`gallery/v0.1.2`, not `v0.1.2`) — so that
-prism itself does not depend on pulse, which the gallery's spring-button page
+components itself does not depend on pulse, which the gallery's spring-button page
 needs.
 
 ## For coding assistants

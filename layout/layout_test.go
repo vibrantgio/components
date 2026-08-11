@@ -11,7 +11,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 
-	golden "github.com/vibrantgio/prism/golden"
+	golden "github.com/vibrantgio/components/golden"
 )
 
 // fill returns a Widget that draws c over its entire constraint maximum.

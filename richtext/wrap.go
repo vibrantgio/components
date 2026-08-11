@@ -111,7 +111,7 @@ func resolve(gtx layout.Context, style Style, spans []SpanStyle, rs RenderState)
 }
 
 // hoverBlend is the hover treatment for link text: a ~10% white overlay,
-// matching prism/button's hover feedback.
+// matching components/button's hover feedback.
 func hoverBlend(base color.NRGBA) color.NRGBA {
 	const a = float32(0x1a) / 255
 	return color.NRGBA{
@@ -264,7 +264,7 @@ func drawStrikethrough(gtx layout.Context, s segment) {
 
 // drawFocusRing paints the visible keyboard-focus ring around a focused link
 // segment: a 2 dp stroke in style.FocusColor, padded 2 dp clear of the
-// glyphs, matching prism/button's ring treatment.
+// glyphs, matching components/button's ring treatment.
 func drawFocusRing(gtx layout.Context, style Style, off image.Point, s segment) {
 	pad := gtx.Dp(2)
 	r := image.Rectangle{

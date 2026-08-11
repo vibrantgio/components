@@ -1,4 +1,4 @@
-// Package richtext provides the Prism inline styled-text primitive: a span
+// Package richtext provides the Components inline styled-text primitive: a span
 // model with wrapped paragraph layout and interactive link spans
 // (DESIGN §Markdown).
 //
@@ -101,7 +101,7 @@ type Style struct {
 
 // FromTokens derives the default paragraph style from colour tokens and the
 // BodyLarge text style: body text in Text at body.Size, links in Primary, and
-// the focus ring in FocusRing (matching prism/button's ring colour). Pass
+// the focus ring in FocusRing (matching components/button's ring colour). Pass
 // tokens.DefaultTypography.BodyLarge for the default desktop look.
 //
 // Of the role's style only Size lands in [Style]: a paragraph's typeface,

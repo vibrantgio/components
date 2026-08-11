@@ -7,9 +7,9 @@ import (
 
 	"gioui.org/layout"
 
-	"github.com/vibrantgio/prism/bench"
-	"github.com/vibrantgio/prism/list"
-	"github.com/vibrantgio/prism/scrollbar"
+	"github.com/vibrantgio/components/bench"
+	"github.com/vibrantgio/components/list"
+	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -50,7 +50,7 @@ func BenchmarkListLayout(b *testing.B) {
 // frame that is independent of item count and adds zero allocations. The
 // per-row list path is untouched (colorRowFn + List.layout costs match the
 // baseline), so this is the inherent O(1) price of rendering the bar, not a
-// regression in the virtual-list machinery; nothing to optimise in Prism.
+// regression in the virtual-list machinery; nothing to optimise in Components.
 func BenchmarkLayoutScrollbar(b *testing.B) {
 	items := makeItems(10000)
 	for _, tc := range []struct {

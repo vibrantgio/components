@@ -17,8 +17,8 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/internal/hit"
 	"github.com/vibrantgio/mvu"
-	"github.com/vibrantgio/prism/internal/hit"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
@@ -35,7 +35,7 @@ import (
 // Apple prominent, regular and plain — and the three registers below are
 // the set all of them agree on: the two ends plus the tinted middle.
 // Outlined is deliberately not a fourth register. A border is a property of
-// a surface rather than a rung on a loudness scale, and prism already
+// a surface rather than a rung on a loudness scale, and components already
 // carries its two border weights as ramp steps 500 and 300.
 type Emphasis int
 
@@ -121,7 +121,7 @@ type Props struct {
 	// target stays at least the 44 dp square). The painter draws into
 	// a sizePx×sizePx box at the current origin in colour col, via
 	// clip.Path / clip.Stroke, so output stays golden-deterministic (no font or
-	// SVG rasterisation). prism/icon is the registry for named glyphs;
+	// SVG rasterisation). components/icon is the registry for named glyphs;
 	// determinism-sensitive callers pass a clip.Path painter directly.
 	Icon func(gtx layout.Context, sizePx int, col color.NRGBA)
 
@@ -521,7 +521,7 @@ const (
 // buttonColors returns the background and foreground colours for the given
 // register and interaction state.
 //
-// Filled — the zero register — is the treatment prism has always drawn: the
+// Filled — the zero register — is the treatment components has always drawn: the
 // Primary solid fill resolved through the D2.3 state walk (ADR-007: hover
 // and pressed step the pin toward the 900 end of the primary ramp; focus
 // keeps the fill and draws the ring) under OnPrimary, faded to

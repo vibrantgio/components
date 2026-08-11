@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/prism/coordination"
+	"github.com/vibrantgio/components/coordination"
 )
 
 // TestSubjectReturnsBothSides verifies that Subject returns a usable

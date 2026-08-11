@@ -1,9 +1,9 @@
 // Package scrollbar provides a visible scrollbar for scrollable regions.
 //
-// The API is immediate-mode, matching prism/list: allocate a State once per
+// The API is immediate-mode, matching components/list: allocate a State once per
 // scrollable region and reuse it every frame, while a Style is a plain
 // snapshot of resolved colours and metrics derived per frame (typically via
-// FromTokens). It pairs with prism/list through list.LayoutScrollbar so
+// FromTokens). It pairs with components/list through list.LayoutScrollbar so
 // virtual lists can show their scroll position.
 package scrollbar
 

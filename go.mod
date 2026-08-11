@@ -1,4 +1,4 @@
-module github.com/vibrantgio/prism
+module github.com/vibrantgio/components
 
 go 1.25.1
 

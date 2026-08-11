@@ -8,10 +8,10 @@
 //
 // # Where it lives, and why here
 //
-// prism is tier 2 in ADR-001, so pulse (3), cadence and markdown (4) and the
+// components is tier 2 in ADR-001, so pulse (3), cadence and markdown (4) and the
 // workbench applications may all depend on it; scripts/check-layers.sh is what
 // says so. theme (tier 1) may not — and does not need to: it renders no
-// widgets and stores no goldens, so nothing pulls the harness below prism.
+// widgets and stores no goldens, so nothing pulls the harness below components.
 // Should theme ever grow a golden test, that is the argument for moving
 // this package down a tier, not for inlining copy thirty.
 //
@@ -37,7 +37,7 @@
 //
 // That directory is shared by every test file in the package, so names must be
 // unique across the whole package and not merely within one test. Prefix them
-// with the component: prism/input holds four components in one directory, and
+// with the component: components/input holds four components in one directory, and
 // the checkbox's "light-focused" and the text field's "light-focused" named one
 // file until F4.1 — the checkbox compared its 44x44 render against the text
 // field's 300x60 golden, and until this package learned to fail on a size

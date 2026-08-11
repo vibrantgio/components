@@ -1,4 +1,4 @@
-// Gallery demonstrates the Prism Icon component by rendering one SVG and one
+// Gallery demonstrates the Components Icon component by rendering one SVG and one
 // IVG icon side by side.
 //
 // Run with: go run ./gallery
@@ -19,7 +19,7 @@ import (
 
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
 
-	"github.com/vibrantgio/prism/icon"
+	"github.com/vibrantgio/components/icon"
 )
 
 // circleSVG is a minimal 24×24 filled circle.
@@ -41,7 +41,7 @@ func main() {
 	go func() {
 		w := new(app.Window)
 		w.Option(
-			app.Title("Prism — Icon Gallery"),
+			app.Title("Components — Icon Gallery"),
 			app.Size(unit.Dp(240), unit.Dp(120)),
 		)
 		if err := run(w); err != nil {

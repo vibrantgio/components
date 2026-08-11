@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/prism/keyed"
+	"github.com/vibrantgio/components/keyed"
 )
 
 // Item is a minimal todo-list item. ID is the stable key; Text is mutable.

@@ -34,10 +34,10 @@
 // and [State.Select]/[State.Reveal] for driving it from the caller's side.
 //
 // The bar's appearance is a scrollbar.Style; derive the default themed one
-// with scrollbar.FromTokens (github.com/vibrantgio/prism/scrollbar).
+// with scrollbar.FromTokens (github.com/vibrantgio/components/scrollbar).
 //
 // For lists with reorderable rows that contain interactive Gio widgets (editors,
-// checkboxes, etc.), pair with keyed.Defer from prism/keyed to keep per-row
+// checkboxes, etc.), pair with keyed.Defer from components/keyed to keep per-row
 // widget state stable across reorders.
 package list
 
@@ -48,7 +48,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/unit"
 
-	"github.com/vibrantgio/prism/scrollbar"
+	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/theme/tokens"
 )
 
