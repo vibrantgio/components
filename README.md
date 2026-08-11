@@ -43,15 +43,15 @@ components through their theme-driven entry points (`button.Button`,
 
 ## Where it sits
 
-Tier 2 of the stack — `mvu → theme → components → pulse → cadence → markdown`.
+Tier 2 of the stack — `mvu → theme → components → effects → cadence → markdown`.
 components imports [mvu](https://github.com/vibrantgio/mvu),
 [theme](https://github.com/vibrantgio/theme) — the `theme` and `tokens`
 contract — and the support libraries [ivg](https://github.com/vibrantgio/ivg)
 and [svg](https://github.com/vibrantgio/svg);
-[pulse](https://github.com/vibrantgio/pulse),
+[effects](https://github.com/vibrantgio/effects),
 [cadence](https://github.com/vibrantgio/cadence) and
 [markdown](https://github.com/vibrantgio/markdown) are built on it —
-`pulse/springbutton` is `components/button` with a physics-driven press, `cadence`'s
+`effects/springbutton` is `components/button` with a physics-driven press, `cadence`'s
 table is built on `components/list` and its modal on `components/button`.
 The [organization page](https://github.com/vibrantgio) has the full tier table.
 
@@ -145,7 +145,7 @@ go run github.com/vibrantgio/components/gallery@latest   # or: cd gallery && go 
 
 It is a nested module — `github.com/vibrantgio/components/gallery`, whose tags
 carry the directory as a prefix (`gallery/v0.1.2`, not `v0.1.2`) — so that
-components itself does not depend on pulse, which the gallery's spring-button page
+components itself does not depend on effects, which the gallery's spring-button page
 needs.
 
 ## For coding assistants

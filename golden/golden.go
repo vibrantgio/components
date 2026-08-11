@@ -8,7 +8,7 @@
 //
 // # Where it lives, and why here
 //
-// components is tier 2 in ADR-001, so pulse (3), cadence and markdown (4) and the
+// components is tier 2 in ADR-001, so effects (3), cadence and markdown (4) and the
 // workbench applications may all depend on it; scripts/check-layers.sh is what
 // says so. theme (tier 1) may not — and does not need to: it renders no
 // widgets and stores no goldens, so nothing pulls the harness below components.
@@ -141,7 +141,7 @@ func Compare(t *testing.T, name string, img *image.RGBA) {
 // straight-alpha (non-premultiplied) samples into its *image.RGBA, which is
 // exactly what an *image.NRGBA holds, and saveImage already re-labels them the
 // other way round before encoding. So a golden stored by either path is the
-// same file, and pulse/transition's CPU-drawn swatches diff against the same
+// same file, and effects/transition's CPU-drawn swatches diff against the same
 // stored PNGs they always did.
 func CompareNRGBA(t *testing.T, name string, img *image.NRGBA) {
 	t.Helper()
@@ -249,7 +249,7 @@ func PixelDiff(a, b *image.RGBA) int {
 
 // Save writes img to path as a PNG, creating the containing directory if it is
 // missing. It is the same encoder [Compare] stores goldens with, exported for
-// the tests that write an image without diffing it — pulse/glow's blur-vs-
+// the tests that write an image without diffing it — effects/glow's blur-vs-
 // gradient dump behind -blurglow.dump is the one in the org — so that a
 // diagnostic PNG and a stored golden are byte-for-byte the same file.
 func Save(path string, img *image.RGBA) error { return saveImage(path, img) }

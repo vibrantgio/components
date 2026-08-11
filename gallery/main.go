@@ -38,7 +38,7 @@ import (
 
 	"github.com/vibrantgio/components/icon"
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
-	"github.com/vibrantgio/pulse/springbutton"
+	"github.com/vibrantgio/effects/springbutton"
 )
 
 var pageNames = []string{
@@ -416,7 +416,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 					)
 				})
 			}),
-			g.sectionHeader("Button — static components.Button vs pulse.SpringButton (press to see physics)"),
+			g.sectionHeader("Button — static components.Button vs effects.SpringButton (press to see physics)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
@@ -468,7 +468,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(complayout.VSpacer(12)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
-								"pulse.SpringButton(theme, button.Props{...}, springbutton.Options{}) — DESIGN §Phase 3 — Composition mechanism.",
+								"effects.SpringButton(theme, button.Props{...}, springbutton.Options{}) — DESIGN §Phase 3 — Composition mechanism.",
 								tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
 						}),
 					)
