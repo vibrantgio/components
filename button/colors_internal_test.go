@@ -4,7 +4,7 @@ import (
 	"image/color"
 	"testing"
 
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // The emphasis registers are a choice of rungs on ADR-007's ramps, and this

@@ -10,7 +10,7 @@ import (
 
 	"github.com/vibrantgio/prism/button"
 	golden "github.com/vibrantgio/prism/golden"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // specimen is the string every typography golden draws. It is deliberately
@@ -39,7 +39,7 @@ const specimen = "Il1 Wm gj 018"
 // spends the line height only on the gap to the next one, and widget.Label
 // reports the glyph ink as its size, so a MaxLines:1 label rendered
 // identically at any LineHeight at all. F4.4c made the label box the role's
-// line box via spectrum/typeset, so the property is now observable exactly
+// line box via theme/typeset, so the property is now observable exactly
 // where it is documented to arrive.
 var typographyCases = []struct {
 	name  string
@@ -53,7 +53,7 @@ var typographyCases = []struct {
 	//
 	// It is also where F5.3 landed. This button stood 38 px tall against the
 	// baseline's 36, on a role declaring the same 20 dp line height, because
-	// spectrum/typeset measured its natural line by shaping the empty string:
+	// theme/typeset measured its natural line by shaping the empty string:
 	// an empty string has no run in the face it names, so the probe returned
 	// Roboto's 17 px for a label set in Roboto Mono's 19 and the deficit came
 	// out 2 px too generous. Measuring the text being laid out puts the label

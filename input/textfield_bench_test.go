@@ -15,8 +15,8 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/prism/bench"
 	"github.com/vibrantgio/prism/input"
-	"github.com/vibrantgio/spectrum/theme"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/theme"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // BenchmarkTextFieldRender measures the static, unfocused render path

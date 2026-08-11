@@ -19,9 +19,9 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/prism/internal/hit"
-	"github.com/vibrantgio/spectrum/theme"
-	"github.com/vibrantgio/spectrum/tokens"
-	"github.com/vibrantgio/spectrum/typeset"
+	"github.com/vibrantgio/theme/theme"
+	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 )
 
 // Emphasis is the visual weight register a button wears — how loudly it
@@ -157,7 +157,7 @@ type Props struct {
 	//
 	// A shaper is not safe to use from two goroutines; Gio lays the widget
 	// forest out on the one goroutine that runs the event loop, which is what
-	// makes sharing it correct. See spectrum/tokens.Typography.Shaper.
+	// makes sharing it correct. See theme/tokens.Typography.Shaper.
 	Shaper *text.Shaper
 }
 
@@ -298,7 +298,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 // height derives from the type role rather than from which letters the label
 // happens to contain. Handing the number to gioui.org/widget.Label does not
 // achieve that — it changes nothing on a single line — so the layout goes
-// through spectrum/typeset, which is where that discrepancy is documented.
+// through theme/typeset, which is where that discrepancy is documented.
 //
 // The drawn height is therefore max(d.ControlHeight, LineHeight + 2×d.PaddingY),
 // and the second term wins for Compact at any of the label roles: 20 + 12 = 32
@@ -378,7 +378,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	// Zero fields fall back to the shaper's defaults. typeset.Layout, not
 	// widget.Label.Layout, because the role's line height has to be the height
 	// of the label box and Gio alone reports the glyph ink instead — see
-	// spectrum/typeset.
+	// theme/typeset.
 	style := tok.label
 	f := typeset.Font(style, font.Normal)
 	wl := typeset.Label(style, 1)

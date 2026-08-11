@@ -32,9 +32,9 @@ import (
 	"github.com/vibrantgio/prism/list"
 	"github.com/vibrantgio/prism/richtext"
 	"github.com/vibrantgio/prism/scrollbar"
-	"github.com/vibrantgio/spectrum/a11y"
-	"github.com/vibrantgio/spectrum/theme"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/a11y"
+	"github.com/vibrantgio/theme/theme"
+	"github.com/vibrantgio/theme/tokens"
 
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
 	"github.com/vibrantgio/prism/icon"
@@ -147,7 +147,7 @@ func main() {
 }
 
 func run(w *app.Window) error {
-	// The theme's cached Roboto shaper (spectrum tokens.DefaultTypography),
+	// The theme's cached Roboto shaper (theme tokens.DefaultTypography),
 	// shared by every static Render* variant and label on the pages.
 	shaper := tokens.DefaultTypography.Shaper()
 	g := newGallery(w, shaper)

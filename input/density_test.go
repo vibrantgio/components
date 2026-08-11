@@ -7,8 +7,8 @@ import (
 	"gioui.org/layout"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/spectrum/theme"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/theme"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // densityTheme returns a theme whose density is d, with sharp corners for

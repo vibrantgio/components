@@ -18,8 +18,8 @@ import (
 	"github.com/reactivego/rx"
 	golden "github.com/vibrantgio/prism/golden"
 	"github.com/vibrantgio/prism/input"
-	"github.com/vibrantgio/spectrum/theme"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/theme"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // defaultShaper returns the shaper every golden here draws with: the default

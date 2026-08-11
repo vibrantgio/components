@@ -11,7 +11,7 @@ import (
 
 	golden "github.com/vibrantgio/prism/golden"
 	"github.com/vibrantgio/prism/icon"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // TestSizeFollowsDensity pins the content-box rule: the default glyph size is

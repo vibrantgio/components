@@ -49,7 +49,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/vibrantgio/prism/scrollbar"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // RowHeight returns the standard list row height for a density: exactly

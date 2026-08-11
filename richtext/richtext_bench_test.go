@@ -6,7 +6,7 @@ import (
 
 	"github.com/vibrantgio/prism/bench"
 	"github.com/vibrantgio/prism/richtext"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // benchSize fits the mixed test paragraph wrapped over two lines — a

@@ -21,7 +21,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/vibrantgio/prism/button"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 func main() {

@@ -9,7 +9,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/vibrantgio/prism/input"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // BenchmarkDropdownRender exercises the closed dropdown widget(gtx) for b.N

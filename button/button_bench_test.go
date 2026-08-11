@@ -9,8 +9,8 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/prism/bench"
 	"github.com/vibrantgio/prism/button"
-	"github.com/vibrantgio/spectrum/theme"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/theme"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // BenchmarkButtonRender exercises widget(gtx) for b.N synthetic frames via the

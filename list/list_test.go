@@ -14,7 +14,7 @@ import (
 	golden "github.com/vibrantgio/prism/golden"
 	"github.com/vibrantgio/prism/list"
 	"github.com/vibrantgio/prism/scrollbar"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 const (

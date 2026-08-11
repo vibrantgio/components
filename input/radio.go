@@ -13,8 +13,8 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/prism/internal/hit"
-	"github.com/vibrantgio/spectrum/theme"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/theme"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // radioCircleSize is the outer diameter of the radio circle.

@@ -57,7 +57,7 @@
 // messages reduced onto the model. Not one of them wanted a bus, and three of
 // the four that existed turned out to have no subscriber at all. What is left
 // is a genuine stream, of which the organization has exactly one
-// (spectrum/preferences), and it cannot live here: preferences is tier 1 and
+// (theme/preferences), and it cannot live here: preferences is tier 1 and
 // this is tier 2, so by F5.5's rule the package lived too high.
 //
 // The replacement is not this code moved down a tier. G0C.5 measured it

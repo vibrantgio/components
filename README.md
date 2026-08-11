@@ -5,7 +5,7 @@ design system for native desktop applications on macOS, Windows and Linux,
 written in pure Go on [Gio](https://gioui.org). prism is where the buttons,
 inputs, lists, rich text, scrollbars, icons and layout primitives live, all
 styled against the `tokens` and `theme` contract that lives one tier down in
-[spectrum](https://github.com/vibrantgio/spectrum).
+[theme](https://github.com/vibrantgio/theme).
 
 Gio gives you drawing primitives and an event loop, not a component set. A
 button is yours to write, and so are its hover, focus, press and disabled
@@ -43,9 +43,9 @@ components through their theme-driven entry points (`button.Button`,
 
 ## Where it sits
 
-Tier 2 of the stack — `mvu → spectrum → prism → pulse → cadence → markdown`.
+Tier 2 of the stack — `mvu → theme → prism → pulse → cadence → markdown`.
 prism imports [mvu](https://github.com/vibrantgio/mvu),
-[spectrum](https://github.com/vibrantgio/spectrum) — the `theme` and `tokens`
+[theme](https://github.com/vibrantgio/theme) — the `theme` and `tokens`
 contract — and the support libraries [ivg](https://github.com/vibrantgio/ivg)
 and [svg](https://github.com/vibrantgio/svg);
 [pulse](https://github.com/vibrantgio/pulse),
@@ -69,7 +69,7 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 | `bench` | `BenchFrame`, the shared per-frame benchmark harness every component's benchmarks run through. |
 | `button` | The button: text or icon-only, in three emphasis registers (filled, tonal, ghost), hover/focus/press/disabled, keyboard activation, density-sized with a 44 dp pointer target; clicks arrive as a callback or as an MVU message. |
 | `cache` | `FrameCache`, an op-recording cache that replays a widget's recorded draw commands on frames where its inputs have not changed. |
-| `coordination` | **Deprecated** — use [`mvu/stream`](https://github.com/vibrantgio/mvu)`.Value`. `Subject`, the typed broadcast channel for cross-widget signals. ADR-008 retired the concerns it was built for: drag, modal and tooltip arbitration are frame state now, toasts are messages, and the one genuine stream left (`spectrum/preferences`) is a tier below and could never import it. It has no users left in the organization; it is removed at **v1.0.0**, with ADR-001's and ADR-003's alias shims, so that every removal lands on one version boundary. |
+| `coordination` | **Deprecated** — use [`mvu/stream`](https://github.com/vibrantgio/mvu)`.Value`. `Subject`, the typed broadcast channel for cross-widget signals. ADR-008 retired the concerns it was built for: drag, modal and tooltip arbitration are frame state now, toasts are messages, and the one genuine stream left (`theme/preferences`) is a tier below and could never import it. It has no users left in the organization; it is removed at **v1.0.0**, with ADR-001's and ADR-003's alias shims, so that every removal lands on one version boundary. |
 | `golden` | The organization's headless-Gio golden-image harness: `Capture`, `Render` and `PixelDiff`. Exported so callers outside prism drive one capture path instead of inlining their own. |
 | `icon` | A name→icon registry holding icons in either SVG (`vibrantgio/svg`) or IVG (`vibrantgio/ivg`) form. |
 | `initial` | `Value[T]`, a typed "not set yet" cell for state that cannot be computed until the first frame has laid out — instead of a magic sentinel. |
@@ -81,10 +81,10 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 | `scrollbar` | The standalone scrollbar for any scrollable region — track, draggable thumb, click-the-track scrolling — styled from tokens. `list.LayoutScrollbar` draws this one. |
 
 `theme`, `tokens` and `a11y` moved down into
-[spectrum](https://github.com/vibrantgio/spectrum) so the theme runtime sits
+[theme](https://github.com/vibrantgio/theme) so the theme runtime sits
 beneath the components it themes. They stayed here as deprecated alias
 packages for one deprecation window; **v0.2.0 deletes all three**. Import
-`spectrum/theme`, `spectrum/tokens` and `spectrum/a11y`.
+`theme/theme`, `theme/tokens` and `theme/a11y`.
 
 ## Usage
 
@@ -127,7 +127,7 @@ submit := button.Button(th, button.Props{
 ```
 
 `th` is the theme observable the window hands to your layer builder;
-`spectrum/window` supplies one that tracks the OS appearance live. `Message`
+`theme/window` supplies one that tracks the OS appearance live. `Message`
 is the MVU path — the component adds `mvu.MessageOp{Message: …}` to the
 frame's ops and the runtime delivers it to `Update`. FRP-style applications
 use `OnClick` instead, and are handed the frame's `layout.Context` so they can
@@ -164,7 +164,7 @@ golden-image commands.
 Honest about what does not work yet:
 
 - **v0.2.0 is a breaking release.** The three alias packages — `prism/tokens`,
-  `prism/theme`, `prism/a11y` — are gone; import the `spectrum/…` paths. And
+  `prism/theme`, `prism/a11y` — are gone; import the `theme/…` paths. And
   the static render surface no longer takes `tokens.TypeScale`:
   `button.Render`, `input.Render` and `input.RenderDropdown` take a
   `tokens.TextStyle` and a `tokens.Density`, `button.RenderIcon` takes a

@@ -8,18 +8,18 @@ frame cache, per-item state that survives a list reorder, and a first-frame
 zero-value sentinel — and `bench` is the shared harness they are
 benchmarked with. `coordination` is deprecated: ADR-008 retired the
 cross-widget bus, and the one genuine stream left is `mvu/stream.Value`, a
-tier low enough for spectrum to reach.
+tier low enough for theme to reach.
 
-**Layer.** Tier 2 of ADR-001's stack, `mvu → spectrum → prism → pulse →
+**Layer.** Tier 2 of ADR-001's stack, `mvu → theme → prism → pulse →
 cadence → markdown`. Do not look for `theme` or `tokens` here: G-B3 moved
-that contract down into spectrum, and prism now styles against it exactly
-as the layers above prism do. Its root module imports `ivg/raster/gio`,
-`mvu`, `spectrum`, `svg` and `svg/driver/gio`, and reaches `font` and `ivg`
-through them. Its nested `prism/gallery` module adds `pulse` and `traer` —
-those edges are the nested module's and not the root's. Imported by
-`cadence`, `markdown` and `pulse`. Outside the tier table, also by all
-seven workbench applications. Both directions are measured rather than
-typed — `scripts/check-layers.sh --edges` reports the graph and
+that contract down into theme, and prism now styles against it exactly as
+the layers above prism do. Its root module imports `ivg/raster/gio`, `mvu`,
+`svg`, `svg/driver/gio` and `theme`, and reaches `font` and `ivg` through
+them. Its nested `prism/gallery` module adds `pulse` and `traer` — those
+edges are the nested module's and not the root's. Imported by `cadence`,
+`markdown` and `pulse`. Outside the tier table, also by all seven workbench
+applications. Both directions are measured rather than typed —
+`scripts/check-layers.sh --edges` reports the graph and
 `scripts/sync-agents.sh` renders these sentences from it — so correcting
 them here changes nothing.
 

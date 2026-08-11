@@ -10,7 +10,7 @@ import (
 	"github.com/vibrantgio/prism/bench"
 	"github.com/vibrantgio/prism/list"
 	"github.com/vibrantgio/prism/scrollbar"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // BenchmarkListLayout demonstrates O(visible) layout cost: ns/op stays roughly

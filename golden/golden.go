@@ -10,9 +10,9 @@
 //
 // prism is tier 2 in ADR-001, so pulse (3), cadence and markdown (4) and the
 // workbench applications may all depend on it; scripts/check-layers.sh is what
-// says so. spectrum (tier 1) may not — and does not need to: it renders no
+// says so. theme (tier 1) may not — and does not need to: it renders no
 // widgets and stores no goldens, so nothing pulls the harness below prism.
-// Should spectrum ever grow a golden test, that is the argument for moving
+// Should theme ever grow a golden test, that is the argument for moving
 // this package down a tier, not for inlining copy thirty.
 //
 // # Usage

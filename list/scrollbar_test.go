@@ -12,7 +12,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/vibrantgio/prism/scrollbar"
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 const (

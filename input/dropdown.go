@@ -17,9 +17,9 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/prism/internal/hit"
-	"github.com/vibrantgio/spectrum/theme"
-	"github.com/vibrantgio/spectrum/tokens"
-	"github.com/vibrantgio/spectrum/typeset"
+	"github.com/vibrantgio/theme/theme"
+	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 )
 
 // DropdownRenderState holds explicit visual state for static rendering.
@@ -68,7 +68,7 @@ type DropdownProps struct {
 	//
 	// A shaper is not safe to use from two goroutines; Gio lays the widget
 	// forest out on the one goroutine that runs the event loop, which is what
-	// makes sharing it correct. See spectrum/tokens.Typography.Shaper.
+	// makes sharing it correct. See theme/tokens.Typography.Shaper.
 	Shaper *text.Shaper
 }
 

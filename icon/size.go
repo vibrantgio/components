@@ -3,7 +3,7 @@ package icon
 import (
 	"gioui.org/unit"
 
-	"github.com/vibrantgio/spectrum/tokens"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // Size returns the default icon glyph size for a density: the control's inner
