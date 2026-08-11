@@ -427,7 +427,7 @@ func TestTextFieldSeedPrefillsEditor(t *testing.T) {
 
 // TestTextFieldFocusTagExposesEditor proves FocusTag hands out the live
 // editor's focus tag: focusing that tag programmatically then typing —
-// without any click — reaches the editor (the mechanics cadence/modal's
+// without any click — reaches the editor (the mechanics patterns/modal's
 // Tab cycle and initial focus rely on).
 func TestTextFieldFocusTagExposesEditor(t *testing.T) {
 	var tag event.Tag

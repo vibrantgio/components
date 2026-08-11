@@ -82,7 +82,7 @@ type DropdownProps struct {
 //
 // # Keyboard reach
 //
-// F4.7 checked the open menu against the gap it fixed in cadence/sidebar —
+// F4.7 checked the open menu against the gap it fixed in patterns/sidebar —
 // keyboard traversal built on per-row focus tags in a virtualised region,
 // which reaches only the rows a frame laid out — and the menu does not have
 // it. It is not virtualised: layoutDropdownLive walks every option, so while
@@ -422,7 +422,7 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	rowSize := image.Pt(fieldW, rowH)
 
 	// The open menu is a floating transient overlay — an unscrimmed,
-	// shadowless plane like cadence/popover — so its rows fill at Level3
+	// shadowless plane like patterns/popover — so its rows fill at Level3
 	// on the elevation ladder (Neutral 400), not the flat Surface the
 	// closed trigger keeps (E2.3; see the package doc).
 	bg := tok.color.SurfaceAt(tokens.Level3)

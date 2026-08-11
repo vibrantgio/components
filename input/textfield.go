@@ -55,7 +55,7 @@ type TextFieldProps struct {
 
 	// FocusTag, if non-nil, is called once when the field instance is
 	// created, with the editor's focus tag — for callers that manage a
-	// focus cycle (e.g. cadence/modal's Tab trap) and need to include the
+	// focus cycle (e.g. patterns/modal's Tab trap) and need to include the
 	// field in it. A rebuilt field (new epoch) calls it again with the new
 	// instance's tag.
 	FocusTag func(tag event.Tag)

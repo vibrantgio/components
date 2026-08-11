@@ -16,7 +16,7 @@
 // paint the plain Surface token, sitting in the page plane. The one
 // raised plane in the package is the dropdown's open option menu, a
 // floating unscrimmed, shadowless transient overlay: its rows fill at
-// SurfaceAt(Level3) (Neutral step 400), the same rung cadence/popover
+// SurfaceAt(Level3) (Neutral step 400), the same rung patterns/popover
 // takes, and the selected row composes its D2.3 state walk on that
 // level's step.
 //

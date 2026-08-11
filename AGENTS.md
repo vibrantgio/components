@@ -11,13 +11,13 @@ cross-widget bus, and the one genuine stream left is `mvu/stream.Value`, a
 tier low enough for theme to reach.
 
 **Layer.** Tier 2 of ADR-001's stack, `mvu → theme → components → effects →
-cadence → markdown`. Do not look for `theme` or `tokens` here: G-B3 moved
+patterns → markdown`. Do not look for `theme` or `tokens` here: G-B3 moved
 that contract down into theme, and components now styles against it exactly
 as the layers above components do. Its root module imports
 `ivg/raster/gio`, `mvu`, `svg`, `svg/driver/gio` and `theme`, and reaches
 `font` and `ivg` through them. Its nested `components/gallery` module adds
 `effects` and `traer` — those edges are the nested module's and not the
-root's. Imported by `cadence`, `effects` and `markdown`. Outside the tier
+root's. Imported by `effects`, `markdown` and `patterns`. Outside the tier
 table, also by all seven workbench applications. Both directions are
 measured rather than typed — `scripts/check-layers.sh --edges` reports the
 graph and `scripts/sync-agents.sh` renders these sentences from it — so
@@ -44,8 +44,8 @@ module directory — `./...` does not cross a module boundary:
 **Golden images.** Tests in eight packages compare rendered output against
 PNGs committed under `testdata/golden/`.
 `github.com/vibrantgio/components/golden` is the harness they use, and
-since F5.5 it is the organization's only one: `cadence`, `effects`,
-`markdown` and `workbench` link it too, so a change to it moves every
+since F5.5 it is the organization's only one: `effects`, `markdown`,
+`patterns` and `workbench` link it too, so a change to it moves every
 stored image in the organization and not only this repository's. Regenerate
 all of them before believing a change here is pixel-neutral. When a change
 legitimately moves pixels, regenerate them within the same change, look at

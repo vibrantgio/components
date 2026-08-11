@@ -720,7 +720,7 @@ func TestIconButtonFocusRingIsVisuallyDistinct(t *testing.T) {
 // TestButtonInjectedClickableFocusAndActivate proves the caller-owned-clickable
 // path (GX.3): a container drives focus to the supplied *widget.Clickable via
 // key.FocusCmd, and Space activation flows through it to OnClick. This is the
-// mechanism cadence/modal's focus trap relies on for the close button.
+// mechanism patterns/modal's focus trap relies on for the close button.
 func TestButtonInjectedClickableFocusAndActivate(t *testing.T) {
 	shaper := defaultShaper(t)
 	var clicked int

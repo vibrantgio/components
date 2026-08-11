@@ -28,7 +28,7 @@ which one a package uses follows from what it owns:
   take the frame's `layout.Context`, a `State` you allocate once and reuse
   across frames, and a per-frame `Style` resolved from tokens
   (`scrollbar.FromTokens`, `richtext.FromTokens`). They are what the themed
-  components and cadence's patterns are built out of.
+  components and patterns' patterns are built out of.
 
 Both shapes have a pure render path — `button.Render`, `input.RenderCheckbox`,
 `richtext.Render`, … — that takes resolved tokens and an explicit state struct
@@ -43,15 +43,15 @@ components through their theme-driven entry points (`button.Button`,
 
 ## Where it sits
 
-Tier 2 of the stack — `mvu → theme → components → effects → cadence → markdown`.
+Tier 2 of the stack — `mvu → theme → components → effects → patterns → markdown`.
 components imports [mvu](https://github.com/vibrantgio/mvu),
 [theme](https://github.com/vibrantgio/theme) — the `theme` and `tokens`
 contract — and the support libraries [ivg](https://github.com/vibrantgio/ivg)
 and [svg](https://github.com/vibrantgio/svg);
 [effects](https://github.com/vibrantgio/effects),
-[cadence](https://github.com/vibrantgio/cadence) and
+[patterns](https://github.com/vibrantgio/patterns) and
 [markdown](https://github.com/vibrantgio/markdown) are built on it —
-`effects/springbutton` is `components/button` with a physics-driven press, `cadence`'s
+`effects/springbutton` is `components/button` with a physics-driven press, `patterns`'s
 table is built on `components/list` and its modal on `components/button`.
 The [organization page](https://github.com/vibrantgio) has the full tier table.
 

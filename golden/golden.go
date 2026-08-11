@@ -8,7 +8,7 @@
 //
 // # Where it lives, and why here
 //
-// components is tier 2 in ADR-001, so effects (3), cadence and markdown (4) and the
+// components is tier 2 in ADR-001, so effects (3), patterns and markdown (4) and the
 // workbench applications may all depend on it; scripts/check-layers.sh is what
 // says so. theme (tier 1) may not — and does not need to: it renders no
 // widgets and stores no goldens, so nothing pulls the harness below components.
@@ -177,7 +177,7 @@ func compare(stored, img *image.RGBA) error {
 // images — but it is not what it means to the two places that read PxPerDp
 // straight out of the struct instead of converting through it. gio's
 // widget.Image multiplies its transform by PxPerDp with no zero guard, so an
-// image laid out under the zero metric collapses to nothing; cadence/shell's
+// image laid out under the zero metric collapses to nothing; patterns/shell's
 // aside drag reads it too, and only survives because it clamps. Stating the
 // scale removes the trap rather than documenting it.
 func Capture(t *testing.T, size image.Point, draw layout.Widget) *image.RGBA {

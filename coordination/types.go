@@ -75,7 +75,7 @@
 //
 // It has no users left in the organization at all. G0C.5 emptied the library
 // side; G0C.6 moved the last two, the demo mains in prism/gallery and
-// cadence/modal/gallery, onto stream.Value — so the precondition for removing
+// patterns/modal/gallery, onto stream.Value — so the precondition for removing
 // it is already met and nothing in here is exercised by anything but its own
 // tests.
 //
