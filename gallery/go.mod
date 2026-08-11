@@ -1,14 +1,16 @@
-// The gallery is a nested module so that prism itself does not depend on
-// pulse. It is the only thing in prism that imports pulse/springbutton, and
-// that single import put pulse in prism's go.mod and closed a module cycle
-// (prism -> pulse -> prism). A demo may depend on layers above its parent;
-// the parent must not inherit that edge.
+// The gallery is a nested module so that components itself does not depend
+// on effects. It is the only thing in components that imports
+// effects/springbutton, and that single import once put the effects layer in
+// the component library's go.mod and closed a module cycle (prism -> pulse ->
+// prism, under the pre-ADR-009 names). A demo may depend on layers above its
+// parent; the parent must not inherit that edge.
 //
-// The prism requirement must stay at v0.1.0 or later. Every earlier prism
-// carries gallery/ inside the prism module itself, so resolving this module
-// against one of those reports an ambiguous import for this module's own
-// path — found in both prism and here. v0.1.0 is the first prism that
-// excludes gallery/, which is what makes this module resolvable at all.
+// Under the frozen prism path the root requirement had to stay at v0.1.0 or
+// later: every earlier prism carried gallery/ inside the root module itself,
+// so resolving this module against one of those reported an ambiguous import
+// for this module's own path — found in both root and here. On the renamed
+// path the constraint is unhittable — components' first tag is v0.7.0 — but
+// it is why this module must never be re-pinned onto a pre-v0.1.0 prism.
 module github.com/vibrantgio/components/gallery
 
 go 1.25.1
@@ -16,11 +18,11 @@ go 1.25.1
 require (
 	gioui.org v0.10.1
 	github.com/reactivego/rx v0.3.0
+	github.com/vibrantgio/components v0.7.0
+	github.com/vibrantgio/effects v0.2.0
 	github.com/vibrantgio/ivg/raster/gio v0.1.6
 	github.com/vibrantgio/mvu v0.5.0
-	github.com/vibrantgio/prism v0.6.1
-	github.com/vibrantgio/pulse v0.1.4
-	github.com/vibrantgio/spectrum v0.5.0
+	github.com/vibrantgio/theme v0.6.0
 )
 
 require (
