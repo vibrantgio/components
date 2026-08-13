@@ -13,7 +13,8 @@ import (
 )
 
 // BenchmarkDropdownRender exercises the closed dropdown widget(gtx) for b.N
-// synthetic frames, per DESIGN §"Performance — Profiling". b.ReportAllocs is
+// synthetic frames, per DESIGN-v1.md §Performance (in
+// github.com/vibrantgio/design). b.ReportAllocs is
 // enabled so CI can gate on per-frame allocation regressions (>5% threshold).
 func BenchmarkDropdownRender(b *testing.B) {
 	shaper := tokens.DefaultTypography.DeterministicShaper()

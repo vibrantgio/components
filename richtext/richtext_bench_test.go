@@ -14,7 +14,8 @@ import (
 var benchSize = image.Pt(400, 120)
 
 // BenchmarkRichtextRender exercises widget(gtx) for b.N synthetic frames via
-// the shared bench.BenchFrame harness (DESIGN §"Performance — Methodology").
+// the shared bench.BenchFrame harness (DESIGN-v1.md §Performance —
+// Methodology, in github.com/vibrantgio/design).
 // This is the idle render of the canonical mixed paragraph (regular, bold,
 // italic, mono, one link): span resolution, per-span shaping (served from the
 // shaper's layout cache after the first frame), line wrapping, glyph

@@ -14,7 +14,8 @@ import (
 )
 
 // BenchmarkButtonRender exercises widget(gtx) for b.N synthetic frames via the
-// shared bench.BenchFrame harness (DESIGN §"Performance — Methodology"). The
+// shared bench.BenchFrame harness (DESIGN-v1.md §Performance — Methodology,
+// in github.com/vibrantgio/design). The
 // harness enables b.ReportAllocs so per-frame allocation regressions (>5%
 // threshold) are measurable. This is the idle render: default unfocused state.
 func BenchmarkButtonRender(b *testing.B) {

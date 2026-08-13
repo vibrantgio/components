@@ -13,7 +13,8 @@ import (
 )
 
 // BenchmarkRadioRender exercises widget(gtx) for b.N synthetic frames,
-// per DESIGN §"Performance — Profiling". b.ReportAllocs is enabled so CI
+// per DESIGN-v1.md §Performance (in github.com/vibrantgio/design).
+// b.ReportAllocs is enabled so CI
 // can gate on per-frame allocation regressions (>5% threshold).
 func BenchmarkRadioRender(b *testing.B) {
 	w := input.RenderRadio(

@@ -1,6 +1,9 @@
 // Package richtext provides the Components inline styled-text primitive: a span
-// model with wrapped paragraph layout and interactive link spans
-// (DESIGN §Markdown).
+// model with wrapped paragraph layout and interactive link spans. The
+// layering decision that put it here — the inline primitive in the
+// component library, the goldmark document renderer a module above — is
+// recorded in §Markdown of the design document's first edition,
+// https://github.com/vibrantgio/design/blob/master/DESIGN-v1.md.
 //
 // # Entry points
 //
@@ -22,7 +25,7 @@
 // the pointer cursor on hover, and participate in window Tab traversal: each
 // link registers a focus tag, so Gio's default Tab handling moves focus
 // across them, and the focused link draws a visible focus ring
-// (DESIGN §Accessibility). Space or Enter on a focused link fires
+// (per DESIGN-v1.md §Accessibility). Space or Enter on a focused link fires
 // OnLinkClick, which carries the frame's layout.Context per GX.8 so
 // consumers can emit mvu.MessageOp{Message: ...}.Add(gtx.Ops) inside the
 // callback. Inline links are text-sized: the 44 dp hit-target rule does not

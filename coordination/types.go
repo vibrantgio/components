@@ -1,8 +1,9 @@
 // Package coordination provides the Subject primitive for cross-widget
 // coordination in Gio applications.
 //
-// The package codifies four invariants established by Experiments C1–C2
-// (see EXPERIMENT-C.md):
+// The package codifies four invariants established by validation
+// Experiments C1–C2 (their record predates the organization and is not
+// preserved; the invariants below are its surviving summary):
 //
 //  1. One-frame lag. Subject delivery is asynchronous. Cross-widget state
 //     changes are visible on the frame AFTER the emitting frame. This is

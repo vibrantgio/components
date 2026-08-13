@@ -1,10 +1,14 @@
 // Package bench provides the shared benchmark harness for Components components.
 //
-// BenchFrame standardises per-frame measurement across components
-// (DESIGN §"Performance — Methodology — Benchmark harness"): it drives
+// BenchFrame standardises per-frame measurement across components, per the
+// benchmark-harness methodology of the design document's first edition
+// (§Performance — Methodology in
+// https://github.com/vibrantgio/design/blob/master/DESIGN-v1.md): it drives
 // widget(gtx) for b.N frames against synthesized constraints, resets the op
 // buffer each frame, and enables b.ReportAllocs so both wall-clock (ns/op) and
-// per-frame allocation (B/op) can be compared by hand against BASELINE.md.
+// per-frame allocation (B/op) can be compared by hand against the recorded
+// baselines in
+// https://github.com/vibrantgio/workbench/blob/master/BASELINE.md.
 // The >5% regression rule applies per-component to both metrics.
 package bench
 
