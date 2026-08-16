@@ -384,7 +384,17 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 		editor.LineHeight = unit.Sp(tok.body.LineHeight)
 		editor.LineHeightScale = 1
 	}
-	st := op.Offset(image.Pt(padH, offY)).Push(gtx.Ops)
+	// The placeholder above went through typeset.Layout, which centres its
+	// ink within the role's line box: half the line-height deficit sits above
+	// the glyphs. The editor is a raw widget.Editor, and Gio baselines an
+	// editor's first line at its own ascent — its share of the line height
+	// all lands below the ink. Drawn at the same offY, the visible text would
+	// rise by half the deficit the moment the editor takes over (focus, or a
+	// first keystroke); offsetting the editor down by that same half-deficit
+	// keeps the ink, the caret and the selection where the placeholder's ink
+	// was, and inside the line box the field was sized from.
+	inkShift := editorInkShift(innerGtx, shaper, wl, f, textSize, placeholder, phMat, contentDims.Size.Y)
+	st := op.Offset(image.Pt(padH, offY+inkShift)).Push(gtx.Ops)
 	editor.Layout(editorGtx, shaper, f, textSize, textMat, selMat)
 	st.Pop()
 
@@ -415,6 +425,38 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	cl.Pop()
 
 	return layout.Dimensions{Size: fieldSize}
+}
+
+// editorInkShift returns how far down the live editor must draw so its first
+// line's ink lands where typeset.Layout put the placeholder's: half the
+// line-height deficit the placeholder's line box carries above its glyphs.
+//
+// corrected is the box typeset.Layout reported for txt; the natural ink
+// height is re-measured here from the same single-line layout — a hit in the
+// shaper's cache, and measured against the text rather than the face, for the
+// reason the typeset package documents: a line holding a fallback run is
+// taller than its primary face and needs less added. The measurement drops
+// the caller's vertical constraints exactly as typeset does, so the two
+// halves of the deficit agree; the recorded ops are discarded.
+//
+// The shift is zero whenever typeset's correction is: no positive absolute
+// line height, a LineHeightScale other than 1, or text already as tall as its
+// box. It is never negative, so the editor never draws above the field's
+// content offset.
+func editorInkShift(gtx layout.Context, sh *text.Shaper, lbl widget.Label, f font.Font, size unit.Sp, txt string, material op.CallOp, corrected int) int {
+	if gtx.Sp(lbl.LineHeight) <= 0 || lbl.LineHeightScale != 1 {
+		return 0
+	}
+	m := gtx
+	m.Constraints.Min.Y = 0
+	m.Constraints.Max.Y = 1 << 20
+	rec := op.Record(m.Ops)
+	dims := lbl.Layout(m, sh, f, size, txt, material)
+	rec.Stop()
+	if d := corrected - dims.Size.Y; d > 0 {
+		return d / 2
+	}
+	return 0
 }
 
 // drawTextFieldStatic renders a static text field for golden-image testing.

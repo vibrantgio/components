@@ -167,6 +167,77 @@ func TestTextFieldCompactGolden(t *testing.T) {
 	golden.Render(t, "textfield-light-compact", image.Pt(300, 60), w)
 }
 
+// TestTextFieldEditorInkRestsOnPlaceholderLine pins the field's focus
+// transition: the resting placeholder is drawn through typeset.Layout with
+// half its line-height deficit above the glyphs, while the live editor is a
+// raw widget.Editor whose first line Gio baselines at its own ascent. Unless
+// the editor is offset down by that same half-deficit, the visible text rises
+// the moment the editor takes over. Goldens cannot see the transition — they
+// render one state at a time — so this test measures the ink directly: the
+// topmost pixel row of the placeholder's glyphs and of the editor's glyphs,
+// for the same string at the same size, must be the same row. Both captures
+// are unfocused so the border is identical and the text ink is the only
+// difference against a blank field; the editor draws its content whenever it
+// is non-empty, so seeding it exercises the exact draw path a focused field
+// uses.
+func TestTextFieldEditorInkRestsOnPlaceholderLine(t *testing.T) {
+	const txt = "Email address"
+	size := image.Pt(300, 60)
+
+	for _, d := range []struct {
+		name    string
+		density tokens.Density
+	}{
+		{"comfortable", tokens.Comfortable},
+		{"compact", tokens.Compact},
+	} {
+		t.Run(d.name, func(t *testing.T) {
+			field := func(props input.TextFieldProps) layout.Widget {
+				props.Shaper = defaultShaper(t)
+				return materialize(t, input.TextField(rx.Of(densityTheme(d.density)), props))
+			}
+
+			// Blank baseline: same field, no placeholder, empty editor —
+			// border and background only.
+			imgBlank := golden.Capture(t, size, field(input.TextFieldProps{}))
+			// Placeholder ink: empty, unfocused field showing txt.
+			imgPh := golden.Capture(t, size, field(input.TextFieldProps{Placeholder: txt}))
+			// Editor ink: the seed makes the editor non-empty, which hides
+			// the placeholder and draws txt through widget.Editor.
+			imgEd := golden.Capture(t, size, field(input.TextFieldProps{Placeholder: txt, Seed: txt}))
+			if imgBlank == nil || imgPh == nil || imgEd == nil {
+				return
+			}
+
+			phTop := topDiffRow(imgPh, imgBlank)
+			edTop := topDiffRow(imgEd, imgBlank)
+			if phTop < 0 {
+				t.Fatal("placeholder rendered no ink; the measurement is broken")
+			}
+			if edTop < 0 {
+				t.Fatal("seeded editor rendered no ink; the measurement is broken")
+			}
+			if phTop != edTop {
+				t.Errorf("ink moves when the editor takes over: placeholder ink starts at row %d, editor ink at row %d", phTop, edTop)
+			}
+		})
+	}
+}
+
+// topDiffRow returns the index of the first pixel row where a and b differ,
+// or -1 when they are identical. Both images must be the same size.
+func topDiffRow(a, b *image.RGBA) int {
+	bounds := a.Bounds()
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			if a.RGBAAt(x, y) != b.RGBAAt(x, y) {
+				return y
+			}
+		}
+	}
+	return -1
+}
+
 // TestTextFieldDisabledIsVisuallyDistinct confirms disabled state produces
 // different pixels from enabled state.
 func TestTextFieldDisabledIsVisuallyDistinct(t *testing.T) {
