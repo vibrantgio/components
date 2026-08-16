@@ -199,6 +199,61 @@ func TestIconButtonEmphasisGolden(t *testing.T) {
 	}
 }
 
+// onLevel2Ground paints the whole canvas in the level-2 surface fill — the
+// raised storey patterns/modal's dialog occupies — before drawing w over it.
+// It is the local ground of the I3.1 goldens: a ghost hosted on a raised
+// surface sits on that surface's own step, not the window ground.
+func onLevel2Ground(c tokens.ColorTokens, w layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.Level2), clip.Rect{Max: gtx.Constraints.Max}.Op())
+		return w(gtx)
+	}
+}
+
+// TestGhostIconButtonWashesAboveRaisedGroundGolden records or diffs the
+// icon-only ghost hovering on a level-2 ground — the modal-close
+// configuration whose hover wash the window-ground walk resolved to the
+// very colour it sits on. The stored image is the fix made visible: a wash
+// square that reads against its raised ground.
+func TestGhostIconButtonWashesAboveRaisedGroundGolden(t *testing.T) {
+	size := image.Pt(60, 60)
+	colors := tokens.DefaultLight
+	w := button.RenderIcon(crossIcon, colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
+		button.RenderState{Emphasis: button.Ghost, Ground: tokens.Level2, Hovered: true})
+	golden.Render(t, "emph-icon-ghost-level2-hovered", size, onLevel2Ground(colors, w))
+}
+
+// TestGhostWashDiffersFromItsRaisedGround is the I3.1 defect assertion in
+// pixels: a ghost hosted on a level-2 surface must hover in a wash that
+// differs from the ground it sits on. Before the wash walked from the local
+// ground it resolved to neutral 300 — exactly the level-2 fill — and this
+// test's sampled pixel equalled the ground: an invisible hover. The wash
+// must now be the host surface's own one-rung walk, neutral 400.
+func TestGhostWashDiffersFromItsRaisedGround(t *testing.T) {
+	size := image.Pt(60, 60)
+	colors := tokens.DefaultLight
+	img := golden.Capture(t, size, onLevel2Ground(colors, button.RenderIcon(
+		crossIcon, colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
+		button.RenderState{Emphasis: button.Ghost, Ground: tokens.Level2, Hovered: true},
+	)))
+	if img == nil {
+		return // headless unavailable; Capture called t.Skip
+	}
+
+	// A pixel inside the 36 dp button square but left of the glyph box
+	// (which is inset by PaddingY, 8 dp): background wash, no glyph stroke,
+	// no ring. Opaque fills: NRGBA == RGBA byte for byte.
+	at := img.RGBAAt(3, 18)
+	ground := colors.SurfaceAt(tokens.Level2)
+	if at == (color.RGBA{R: ground.R, G: ground.G, B: ground.B, A: ground.A}) {
+		t.Fatalf("hover wash at (3,18) equals the level-2 ground %v: the ghost wash is invisible on its host surface", ground)
+	}
+	want := colors.StateColor(tokens.RoleNeutral, tokens.Elevation.SurfaceStep(tokens.Level2), tokens.StateHover)
+	if at != (color.RGBA{R: want.R, G: want.G, B: want.B, A: want.A}) {
+		t.Errorf("hover wash at (3,18) = %v, want the level-2 surface's own one-rung walk %v", at, want)
+	}
+}
+
 // TestEmphasisRegistersAreVisuallyDistinct confirms the three registers are
 // three different pictures. Without it the matrix above could record the same
 // filled button thirty times and still pass on every future run.

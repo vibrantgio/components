@@ -71,6 +71,32 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 				transparent, c.Ramps.Neutral.Step(700)},
 			{"ghost/disabled", RenderState{Emphasis: Ghost, Disabled: true},
 				transparent, tokens.Disabled(c.Ramps.Neutral.Step(700))},
+
+			// Ghost on a raised host (I3.1): the wash is the host surface's
+			// own one-rung walk. Level 1's step is the window-ground
+			// assumption itself, so naming it changes nothing; levels 2 and
+			// 3 walk from their own steps (300, 400). Rest stays transparent
+			// on every storey — the ground is the host's to paint.
+			{"ghost/level1/hovered", RenderState{Emphasis: Ghost, Ground: tokens.Level1, Hovered: true},
+				c.Ramps.Neutral.Step(300), c.Ramps.Neutral.Step(900)},
+			{"ghost/level2/normal", RenderState{Emphasis: Ghost, Ground: tokens.Level2},
+				transparent, c.Ramps.Neutral.Step(700)},
+			{"ghost/level2/hovered", RenderState{Emphasis: Ghost, Ground: tokens.Level2, Hovered: true},
+				c.Ramps.Neutral.Step(400), c.Ramps.Neutral.Step(900)},
+			{"ghost/level2/pressed", RenderState{Emphasis: Ghost, Ground: tokens.Level2, Pressed: true},
+				c.Ramps.Neutral.Step(500), c.Ramps.Neutral.Step(900)},
+			{"ghost/level3/hovered", RenderState{Emphasis: Ghost, Ground: tokens.Level3, Hovered: true},
+				c.Ramps.Neutral.Step(500), c.Ramps.Neutral.Step(900)},
+			{"ghost/level3/pressed", RenderState{Emphasis: Ghost, Ground: tokens.Level3, Pressed: true},
+				c.Ramps.Neutral.Step(600), c.Ramps.Neutral.Step(900)},
+
+			// The other registers carry their own grounds and ignore the
+			// host's: a filled or tonal button on a level-2 surface renders
+			// exactly as on the window ground.
+			{"filled/level2/hovered", RenderState{Ground: tokens.Level2, Hovered: true},
+				c.SolidStateColor(tokens.RolePrimary, tokens.StateHover), c.OnPrimary},
+			{"tonal/level2/hovered", RenderState{Emphasis: Tonal, Ground: tokens.Level2, Hovered: true},
+				c.Ramps.Primary.Step(300), c.Ramps.Primary.Step(900)},
 		}
 
 		for _, tc := range cases {

@@ -56,7 +56,11 @@ const (
 
 	// Ghost is the quietest register: no ground at rest, the label or glyph
 	// in the neutral ramp's low-contrast text shade, and a neutral wash
-	// only while the pointer is on it. For affordances that must be present
+	// only while the pointer is on it. A ghost's wash is its host
+	// surface's own one-rung walk — it derives from the local ground the
+	// button sits on (RenderState.Ground), not the window ground, so a
+	// ghost on a raised surface washes one rung past that surface's own
+	// storey. For affordances that must be present
 	// without being the subject — a dialog's close X, a toolbar of icons, a
 	// tertiary "Learn more". A ghost is quiet, not small: it keeps the full
 	// pointer target and the full focus ring.
@@ -93,6 +97,18 @@ type RenderState struct {
 	// this is it. Zero is Filled.
 	Emphasis Emphasis
 
+	// Ground is the elevation storey of the surface hosting the button —
+	// the local ground the Ghost register's hover and press washes walk
+	// from, in the same vocabulary the host names its own fill
+	// (tokens.SurfaceAt). A ghost's wash is its host surface's own
+	// one-rung walk: a dialog at tokens.Level2 passes Level2 and its
+	// ghost washes one rung past the level's step, whichever storey that
+	// is. The zero value is tokens.Level0, the window ground, which
+	// resolves to exactly the walk the register always performed — so
+	// every state written before this field existed keeps its colours.
+	// Filled and Tonal ignore it: they carry their own grounds.
+	Ground tokens.ElevationLevel
+
 	Hovered  bool
 	Focused  bool
 	Pressed  bool
@@ -114,6 +130,15 @@ type Props struct {
 	// pointer target, never the focus ring. Composes with Icon: a ghost
 	// icon button is a quiet glyph over a full 44 dp square.
 	Emphasis Emphasis
+
+	// Ground is the elevation storey of the surface hosting the button,
+	// copied straight into RenderState.Ground on every frame: the local
+	// ground a Ghost's hover and press washes walk from. A container that
+	// raises its surface (patterns/modal's level-2 dialog hosting its
+	// close X) passes its own storey here; the zero value is the window
+	// ground and keeps exactly the colours the register has always had.
+	// See RenderState.Ground.
+	Ground tokens.ElevationLevel
 
 	// Icon, when non-nil and Label is empty, renders the button as a compact
 	// icon-only affordance: a square the density's control height on a side
@@ -265,6 +290,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 					semantic.EnabledOp(!dis).Add(gtx.Ops)
 					state := RenderState{
 						Emphasis: props.Emphasis,
+						Ground:   props.Ground,
 						Hovered:  hov,
 						Focused:  foc,
 						Pressed:  prs,
@@ -499,14 +525,18 @@ const (
 	// stop the APCA gate holds at Lc ≥ 90 over the 100 and 200 grounds.
 	tonalText = 900
 
-	// ghostGround is the ground a ghost's wash walks from. A ghost paints
-	// nothing at rest, so it has no ground of its own and must assume one;
-	// it assumes the surface step, and performs that surface's own hover
-	// (300) and press (400). Assuming the app background instead would
-	// wash to 200, which is invisible on the card a ghost most often sits
-	// on — a modal's close X, a toolbar over a panel. Assuming 200 costs
-	// only that the wash reads one step strong on the bare background,
-	// which is the harmless direction of the same error.
+	// ghostGround is the ground a ghost's wash walks from when its host
+	// names no storey of its own. A ghost paints nothing at rest, so it
+	// has no ground of its own and performs its host surface's walk
+	// instead — a wash derives from the local ground it sits on, not the
+	// window ground. A host that knows its storey says so through
+	// RenderState.Ground and the wash walks from that storey's own step
+	// (see ghostGroundStep); this constant is the assumption for the
+	// window ground (tokens.Level0), whose Background pin is off-ramp
+	// and cannot be walked. It assumes the level-1 surface step, so the
+	// bare-background wash reads one step strong — the harmless
+	// direction of the error, where assuming 100 would make the wash on
+	// the card a ghost most often sits on invisible.
 	ghostGround = 200
 	// ghostText is the resting label shade: neutral step 700, ADR-007's
 	// low-contrast text (Lc ≥ 60) — the resolution the deleted
@@ -528,7 +558,11 @@ const (
 // DisabledOpacity when disabled. Tonal and Ghost resolve through the same
 // two entry points on the same ramps, only from different rungs: tonal is
 // the tinted-ground walk on the primary ramp, ghost the same walk on the
-// neutral one with the resting step painted as nothing at all.
+// neutral one with the resting step painted as nothing at all. The rung a
+// ghost walks from is its host surface's — a ghost's wash is that
+// surface's own one-rung walk, taken from whichever storey s.Ground names
+// (ghostGroundStep), with the on-wash text riding at the ramp's 900 end,
+// where the walk itself clamps.
 //
 // Ghost's wash is neutral rather than role-tinted on purpose. A ghost claims
 // no role colour — that is what makes it the quiet register — and tinting
@@ -552,7 +586,7 @@ func buttonColors(c tokens.ColorTokens, s RenderState) (bg, fg color.NRGBA) {
 		switch state {
 		case tokens.StateHover, tokens.StatePressed:
 			fg = c.Ramps.Neutral.Step(ghostTextOnWash)
-			bg = c.StateColor(tokens.RoleNeutral, ghostGround, state)
+			bg = c.StateColor(tokens.RoleNeutral, ghostGroundStep(s.Ground), state)
 		default:
 			// Rest, focus and disabled paint no ground: the surface behind
 			// shows through untouched. A fully transparent fill is a no-op
@@ -572,6 +606,20 @@ func buttonColors(c tokens.ColorTokens, s RenderState) (bg, fg color.NRGBA) {
 		bg = c.SolidStateColor(tokens.RolePrimary, state)
 	}
 	return
+}
+
+// ghostGroundStep resolves the neutral-ramp step a ghost's wash walks from:
+// the surface step of the hosting storey, so the wash is the host surface's
+// own one-rung walk. Level 0 has no ramp step to walk — its fill is the
+// Background pin, off-ramp by design — so the window ground keeps the
+// register's long-standing level-1 assumption (ghostGround), which is also
+// what makes the zero value colour-identical to every render made before
+// the field existed.
+func ghostGroundStep(level tokens.ElevationLevel) int {
+	if step := tokens.Elevation.SurfaceStep(level); step != 0 {
+		return step
+	}
+	return ghostGround
 }
 
 // interactionState collapses the four RenderState booleans into the one
