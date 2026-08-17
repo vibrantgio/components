@@ -78,7 +78,7 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 | `layout` | Spacing, inset and spacer helpers, row/column wrappers, a pill clip, and `FocusGroup` for keyboard focus across a fixed set of items. |
 | `list` | Virtual-scrolling list — only the visible rows lay out. `Layout` for the bare list, `LayoutScrollbar` to draw a bar in a reserved gutter or overlaid. |
 | `richtext` | The inline styled-text primitive: styled spans, wrapped paragraphs, and hyperlink spans with hover, focus ring and Tab traversal. Built directly on Gio's shaper. |
-| `scrollbar` | The standalone scrollbar for any scrollable region — track, draggable thumb, click-the-track scrolling — styled from tokens. `list.LayoutScrollbar` draws this one. |
+| `scrollbar` | The standalone scrollbar for any scrollable region — track, draggable thumb, click-the-track scrolling — styled from tokens. Absent while the content fits, and faded out a second after it stops moving, as the desktop platforms' overlay bars are. `list.LayoutScrollbar` draws this one. |
 
 `theme`, `tokens` and `a11y` moved down into
 [theme](https://github.com/vibrantgio/theme) so the theme runtime sits

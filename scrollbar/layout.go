@@ -11,6 +11,45 @@ import (
 	"gioui.org/op/paint"
 )
 
+// fade returns the thumb's opacity multiplier in [0,1] for this frame and
+// records what the frame saw, scheduling the redraws the fade needs.
+//
+// Activity is a change in the viewport fractions — the only signal a
+// scrollbar has that its content is moving — together with hover and drag on
+// its own areas. The first frame of a State's life counts as activity too,
+// so a bar is opaque the moment it appears and a single-frame capture (a
+// golden) never catches it mid-fade.
+//
+// It is a method on Style because the timings are the style's, and it writes
+// through the State pointer because the timeline is the state's.
+func (s Style) fade(gtx layout.Context, state *State, viewportStart, viewportEnd float32) float32 {
+	if s.FadeDelay <= 0 {
+		return 1
+	}
+	active := !state.seen ||
+		viewportStart != state.start || viewportEnd != state.end ||
+		state.IndicatorHovered() || state.TrackHovered() || state.Dragging()
+	state.seen, state.start, state.end = true, viewportStart, viewportEnd
+	if active {
+		state.lastActive = gtx.Now
+	}
+	idle := gtx.Now.Sub(state.lastActive)
+	if idle < s.FadeDelay {
+		// Wake up when the delay expires; nothing to draw until then.
+		gtx.Execute(op.InvalidateCmd{At: state.lastActive.Add(s.FadeDelay)})
+		return 1
+	}
+	if s.FadeDuration <= 0 {
+		return 0
+	}
+	t := float32(idle-s.FadeDelay) / float32(s.FadeDuration)
+	if t >= 1 {
+		return 0
+	}
+	gtx.Execute(op.InvalidateCmd{})
+	return 1 - t
+}
+
 // Layout draws the scrollbar along axis and registers its gesture areas.
 // viewportStart and viewportEnd describe the visible fraction of the content
 // in the range [0,1] (see FromListPosition).
@@ -19,6 +58,10 @@ import (
 // renders nothing (zero dimensions) when everything fits. It occupies the
 // full major axis of the incoming constraints and Width() along the minor
 // axis.
+//
+// With a non-zero Style.FadeDelay the thumb fades out once the content stops
+// moving and the pointer leaves the gutter; it keeps its size and its hit
+// areas throughout, so nothing reflows and a hover brings it back. See fade.
 func (s Style) Layout(gtx layout.Context, state *State, axis layout.Axis, viewportStart, viewportEnd float32) layout.Dimensions {
 	if viewportStart <= 0 && viewportEnd >= 1 {
 		// Everything fits: no scrollbar.
@@ -41,6 +84,11 @@ func (s Style) Layout(gtx layout.Context, state *State, axis layout.Axis, viewpo
 	if state.IndicatorHovered() || state.Dragging() {
 		thumbColor = s.ThumbHoverColor
 	}
+	// Fade after the gesture areas have been updated, so this frame's hover
+	// and drag state counts as activity. The track's areas are registered
+	// below whatever the opacity, so a faded-out bar can still be hovered
+	// back into view.
+	thumbColor.A = uint8(float32(thumbColor.A)*s.fade(gtx, state, viewportStart, viewportEnd) + 0.5)
 
 	inset := layout.Inset{
 		Top:    s.TrackPadding,
