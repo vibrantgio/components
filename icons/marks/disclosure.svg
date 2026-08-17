@@ -7,11 +7,14 @@
        Grid: a diagonal form, so it takes the 20-unit allowance rather than the
        square keyline — a chevron inside an 18 box reads smaller than a square
        does. The band's centre line runs from 7.5,3 to 16.5,12 to 7.5,21: two
-       arms at 45 degrees, every corner of the centre line on the 1.5 sub-grid,
-       and the drawing 10.5 by 19.5 once the round caps and the round turn at
-       the point are added. Nothing here is axis-aligned, so the caps and the
-       turn are drawn as geometry — the outline is one closed contour, which
-       is what gives a stroked figure ends and a corner the backend would
+       arms at 45 degrees and every corner of the centre line on the 1.5
+       sub-grid. The band takes the diagonal measure, 2 units, which is what a
+       45-degree edge needs to cover device pixels whole at the sizes the
+       library draws. With the caps and the turn added the drawing is 11 by 20,
+       filling the allowance exactly — which is what settles the measure at 2
+       rather than at more. Nothing here is axis-aligned, so the caps and the
+       turn are drawn as geometry — the outline is one closed contour, which is
+       what gives a stroked figure ends and a corner the backend would
        otherwise cut square. -->
-  <path fill="#000000" d="M8.03 2.47 L17.03 11.47 C17.323 11.763 17.323 12.237 17.03 12.53 L8.03 21.53 C7.737 21.823 7.263 21.823 6.97 21.53 C6.677 21.237 6.677 20.763 6.97 20.47 L15.439 12 L6.97 3.53 C6.677 3.237 6.677 2.763 6.97 2.47 C7.263 2.177 7.737 2.177 8.03 2.47 Z"/>
+  <path fill="#000000" d="M8.207 2.293 L17.207 11.293 C17.598 11.683 17.598 12.317 17.207 12.707 L8.207 21.707 C7.817 22.098 7.183 22.098 6.793 21.707 C6.402 21.317 6.402 20.683 6.793 20.293 L15.086 12 L6.793 3.707 C6.402 3.317 6.402 2.683 6.793 2.293 C7.183 1.902 7.817 1.902 8.207 2.293 Z"/>
 </svg>

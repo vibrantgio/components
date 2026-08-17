@@ -168,6 +168,47 @@ func TestMarkRendersAtEverySizeItIsDrawnAt(t *testing.T) {
 	}
 }
 
+// TestEveryMarkComesOutAtFullInk is the set's evenness rule read off the
+// pixels: whichever way a mark's edges run, its darkest pixel has to arrive at
+// the colour the control asked for, or near enough that no eye separates the
+// marks standing side by side.
+//
+// An axis-aligned band on the grid gets there for nothing — it covers device
+// pixels whole. A 45 degree band does not: it crosses a pixel corner to corner
+// and covers a whole one only from √2 px across, and the backend composites in
+// linear light, so a band covering 91% of a pixel's area arrives at 67% of the
+// ink and reads grey beside a mark that covers whole ones. That is what the
+// diagonal marks carry a heavier measure for, and this is the check that
+// notices if one of them stops carrying it.
+func TestEveryMarkComesOutAtFullInk(t *testing.T) {
+	// A shade this near the colour asked for is that colour: 0x14 of 0xff is
+	// under a hundredth of the light a white ground gives back.
+	const solid = 0x14
+
+	set := icons.New("darwin")
+	for _, name := range set.Names() {
+		mark := set.Mark(name)
+		if mark == nil {
+			t.Fatalf("no painter for %q", name)
+		}
+		for _, px := range []int{16, 20, 24} {
+			img := shoot(t, px, func(gtx layout.Context) { mark(gtx, px, black) })
+			darkest := 0xff
+			for y := range px {
+				for x := range px {
+					if v := int(img.RGBAAt(x, y).R); v < darkest {
+						darkest = v
+					}
+				}
+			}
+			if darkest > solid {
+				t.Errorf("%q at %d px: the darkest pixel came out at %#02x, and a mark at the set's weight comes out at %#02x or below — the band is too thin for its direction",
+					name, px, darkest, solid)
+			}
+		}
+	}
+}
+
 // TestMarkTakesTheColourItIsGiven: colour reaches the mark from the call site,
 // which is what keeps it out of the built ops.
 func TestMarkTakesTheColourItIsGiven(t *testing.T) {

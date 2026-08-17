@@ -80,19 +80,29 @@
 //
 // # The stroke
 //
-// One weight for the whole set: a band 1.5 units thick.
+// One weight for the whole set, written as two measures: a band 1.5 units
+// thick where its edges are axis-aligned, and 2 units where they run
+// diagonally. The two are the same weight on screen, which is the point. One
+// number is not, and the set was drawn with one number first: the marks came
+// out uneven, and the paragraphs below are what the pixels said about it.
 //
-// The floor fixes the number. Below one device pixel an antialiased line is
-// drawn as grey rather than as the control's colour, so the mark quietly loses
-// contrast against the label beside it; 1.25 units would be 0.83 px at the
-// smallest size the library draws, and that is the failure. 1.5 is the
-// thinnest weight that never falls under a device pixel across the range: at
-// 1 px per dp it is 1.0 px at 16 dp, 1.25 px at 20 dp and 1.5 px at 24 dp, and
-// double that at 2 px per dp.
+// The floor fixes the axis-aligned number. Below one device pixel an
+// antialiased line is drawn as grey rather than as the control's colour, so the
+// mark quietly loses contrast against the label beside it; 1.25 units would be
+// 0.83 px at the smallest size the library draws, and that is the failure. 1.5
+// is the thinnest weight that never falls under a device pixel across the
+// range: at 1 px per dp it is 1.0 px at 16 dp, 1.25 px at 20 dp and 1.5 px at
+// 24 dp, and double that at 2 px per dp.
 //
-// Heavier does not work either: 2 units, the weight the frozen Material set
-// carries, comes out at 1.33 px at 16 dp and reads as a bolder register than
-// the platform's own marks sitting next to it.
+// Heavier buys nothing there. 1.5 units already covers whole pixels and already
+// comes out at the control's colour undiluted; 2 units would be 1.33 px at
+// 16 dp, off the pixel grid the keyline and the band are chosen together to
+// land on (below), for ink that is already full. And the reading that a heavier
+// band would sit in a bolder register than the platform's own marks does not
+// survive being measured: the platform's axis-aligned band is 1.26 px at 16 pt
+// against this set's 1.0, so the set is the lighter of the two and not the
+// heavier. What settles a measure is how much of a pixel the band covers, not
+// how its number compares to somebody else's.
 //
 // The keyline and the band are chosen together, and that is what makes the
 // small sizes crisp. A band running from unit 3 to unit 4.5 covers device
@@ -107,7 +117,36 @@
 // edges sit on the keyline or on the 1.5 sub-grid rather than a fraction in
 // from it.
 //
-// Every mark uses this one number. A mark that needs emphasis gets it from
+// A diagonal edge cannot land on the grid at all, and that is why it takes a
+// measure of its own. A band at 45 degrees crosses a pixel corner to corner,
+// so it covers a whole one only from √2 px across; at 1.5 units it is 1.0 px
+// at 16 dp and covers 91% of the pixel it runs through. That is the number the
+// geometry gives, and it is not the number the eye gets: the backend
+// composites in linear light, where 91% of a pixel's area comes out at 67% of
+// the ink on screen. Beside an axis-aligned band at 100% the mark reads grey.
+//
+// 2 units is the measure that closes it. The band is 1.33 px at 16 dp, 1.67 at
+// 20 and 2.0 at 24; it covers better than 99.7% of a pixel at all three, and it
+// comes out at 96 to 99% of the ink — level with the axis-aligned band to an
+// eye, and level with the platform's own chevrons rendered at the same sizes,
+// which measure 94 to 100% at 16 pt and 100% at 20 and 24. Under 2 the mark is
+// still the lighter sibling: 1.75 units comes out at 80 to 86%. Over 2 nothing
+// is left to buy — coverage is already whole, the ink stops rising, and the
+// drawing outgrows the 20-unit diagonal allowance, which a 2-unit band on a
+// centre line from 3 to 21 fills exactly.
+//
+// Compensating the diagonal is not this set's invention; only the size of the
+// compensation is. The platform draws the same pair heavier on the diagonal —
+// its sidebar's band measures 1.26 px at 16 pt and 1.89 at 24, its chevron's
+// 1.44 and 2.18, about a seventh more. This set needs a third more, because a
+// backend compositing in linear light punishes a part-covered pixel harder
+// than one compositing in the encoded space: the same 91% of a pixel's area is
+// 67% of the ink here and 91% of it there. So the ratio is not portable, and a
+// measure taken off another set's drawing is not either. Render the mark and
+// read the pixels.
+//
+// Every mark uses one of these two numbers, and which one is the mark's edges
+// to decide, never its importance. A mark that needs emphasis gets it from
 // what it draws, not from a thicker line.
 //
 // # Drawing a mark
