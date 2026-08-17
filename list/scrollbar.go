@@ -35,6 +35,7 @@ func LayoutScrollbar[T any](
 	items []T,
 	rowFn func(gtx layout.Context, item T) layout.Dimensions,
 ) layout.Dimensions {
+	state.record(gtx)
 	originalConstraints := gtx.Constraints
 	barWidth := gtx.Dp(bar.Width())
 

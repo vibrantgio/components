@@ -86,6 +86,11 @@ type State struct {
 	// without NewState still behaves, as it did before selection existed.
 	selPlusOne    int
 	scrollPlusOne int
+
+	// viewport is the main-axis size in pixels the most recent layout ran
+	// in, recorded so a caller can move the list by a viewport without
+	// having to hold a layout.Context of its own. See move.go.
+	viewport int
 }
 
 // focusTag is a non-zero-size type so its address is a unique event tag for
@@ -170,6 +175,7 @@ func Layout[T any](
 	items []T,
 	rowFn func(gtx layout.Context, item T) layout.Dimensions,
 ) layout.Dimensions {
+	state.record(gtx)
 	return state.l.Layout(gtx, len(items), func(gtx layout.Context, i int) layout.Dimensions {
 		return rowFn(gtx, items[i])
 	})
@@ -207,6 +213,7 @@ func LayoutSelectable[T any](
 	rowFn func(gtx layout.Context, item T, selected bool) layout.Dimensions,
 ) layout.Dimensions {
 	n := len(items)
+	state.record(gtx)
 	state.dropStaleSelection(n)
 	state.processKeys(gtx, n)
 	state.scrollIntoView(n)
