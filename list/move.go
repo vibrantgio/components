@@ -61,6 +61,22 @@ func (s *State) ScrollPixels(dy int) {
 // the viewport.
 func (s *State) ScrollToStart() { s.l.ScrollTo(0) }
 
+// ScrollTo puts the leading edge of row i at the leading edge of the viewport,
+// and a negative i at the start. It is not [State.Reveal]: Reveal moves the
+// short way and leaves a row that is already visible alone, which is what a
+// selection wants; this one puts the row at the top whether it was on screen or
+// not, which is what following a table of contents wants.
+//
+// The move takes effect on the next layout, which is also what bounds it: an i
+// past the last row lands on the content's end rather than on a viewport of
+// nothing. The selection is untouched.
+func (s *State) ScrollTo(i int) {
+	if i < 0 {
+		i = 0
+	}
+	s.l.ScrollTo(i)
+}
+
 // ScrollToEnd puts the trailing edge of the last of n rows at the trailing edge
 // of the viewport, so the viewport shows the content's end and no empty space
 // past it. n is the caller's item count, the same number the next layout is

@@ -237,3 +237,75 @@ func TestScrollPixelsFeedsTheScrollbarFractions(t *testing.T) {
 		t.Fatalf("Length = %d; the indicator cannot derive a proportion from it", after.Length)
 	}
 }
+
+// TestScrollToPutsTheRowAtTheTop is the movement an outline entry makes: a row
+// named by index goes to the leading edge, from either side of the viewport.
+// Rows of unequal height are the point — the destination is a row, and the
+// distance covered is whatever those rows happen to add up to.
+func TestScrollToPutsTheRowAtTheTop(t *testing.T) {
+	heights := []int{20, 40, 200, 30, 90, 250, 30, 60, 40, 30}
+	m := newMovingList(heights, image.Pt(viewW, viewH))
+	m.frame()
+
+	top := func(i int) int {
+		px := 0
+		for j := 0; j < i; j++ {
+			px += heights[j]
+		}
+		return px
+	}
+	// Down to a row below the fold, then back up to one above it: both
+	// land the named row on the viewport's leading edge exactly.
+	for _, i := range []int{5, 2, 4, 1} {
+		m.state.ScrollTo(i)
+		m.frame()
+		if p := m.state.Position(); p.First != i || p.Offset != 0 {
+			t.Fatalf("ScrollTo(%d): position = %+v, want First %d Offset 0", i, p, i)
+		}
+		if got, want := m.top(), top(i); got != want {
+			t.Fatalf("ScrollTo(%d): top = %d, want %d", i, got, want)
+		}
+	}
+}
+
+// TestScrollToIsBoundedAndLeavesTheSelectionAlone covers the two things a
+// caller may not have checked for itself: an index past the end lands on the
+// content's end rather than past it, a negative index on the start, and neither
+// disturbs which row is selected.
+func TestScrollToIsBoundedAndLeavesTheSelectionAlone(t *testing.T) {
+	heights := []int{20, 40, 200, 30, 90, 250, 30, 60}
+	m := newMovingList(heights, image.Pt(viewW, viewH))
+	m.state.Select(3)
+	m.frame()
+
+	m.state.ScrollTo(len(heights) + 50)
+	m.frame()
+	if !m.atEnd() {
+		t.Fatalf("ScrollTo past the last row left position %+v, not the end", m.state.Position())
+	}
+	if got, want := m.top(), m.content()-viewH; got != want {
+		t.Fatalf("top after ScrollTo past the end = %d, want %d", got, want)
+	}
+
+	m.state.ScrollTo(-4)
+	m.frame()
+	if got := m.top(); got != 0 {
+		t.Fatalf("top after ScrollTo(-4) = %d, want 0", got)
+	}
+	if got := m.state.Selected(); got != 3 {
+		t.Fatalf("selection = %d after scrolling, want 3 — scrolling is not selecting", got)
+	}
+}
+
+// TestScrollToOnAListThatFits is the short-document case: every row is already
+// on screen, so naming one moves nothing.
+func TestScrollToOnAListThatFits(t *testing.T) {
+	heights := []int{20, 30, 20}
+	m := newMovingList(heights, image.Pt(viewW, viewH))
+	m.frame()
+	m.state.ScrollTo(2)
+	m.frame()
+	if p := m.state.Position(); p.First != 0 || p.Offset != 0 || m.top() != 0 {
+		t.Fatalf("position = %+v, top = %d; want the list unmoved", p, m.top())
+	}
+}
