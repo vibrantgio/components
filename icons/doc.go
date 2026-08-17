@@ -5,7 +5,7 @@
 // A name yields a painter with the signature the library's controls take for
 // an icon slot — func(gtx, sizePx, col) — so it drops straight into one:
 //
-//	mark := icons.Mark(icons.Placeholder)
+//	mark := icons.Mark(icons.Sidebar)
 //	if mark != nil {
 //		mark(gtx, gtx.Dp(20), fg)
 //	}
@@ -103,8 +103,9 @@
 // 3.75; the alternative would be a band of 1.2 units, the only width that is
 // whole-pixel there, and it falls to 0.8 px at 16 dp and breaks the floor. So
 // the set is crisp at two of its three sizes and soft at the third, which is
-// the best one geometry can do for all three — and it is why the placeholders
-// sit on the keyline rather than a unit or two in from it.
+// the best one geometry can do for all three — and it is why a mark's straight
+// edges sit on the keyline or on the 1.5 sub-grid rather than a fraction in
+// from it.
 //
 // Every mark uses this one number. A mark that needs emphasis gets it from
 // what it draws, not from a thicker line.
@@ -119,7 +120,8 @@
 //
 // Winding is non-zero and nothing else. Gio's outline fills by the non-zero
 // rule and has no even-odd mode, so a hole has to be wound against the contour
-// that contains it. Both placeholder files show the pattern.
+// that contains it. The sidebar's pane shows the pattern: the outer rounded
+// rectangle runs clockwise and the inner one against it, in one path.
 //
 // Give every contour a solid fill (fill="#000000"). The value is ignored — the
 // control's colour is applied at paint time — but a path with no fill at all

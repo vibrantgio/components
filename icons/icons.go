@@ -35,10 +35,27 @@ const platformSep = "@"
 // Name identifies a mark by the control it belongs to.
 type Name string
 
-// Placeholder is the empty box that stands in for a mark that has not been
-// drawn yet. It is deliberately not a picture of anything: a control wearing
-// it reads as unfinished at a glance, which is the point.
-const Placeholder Name = "placeholder"
+// The marks the set carries. Each names a control, not a picture: what the
+// drawing behind one looks like is free to change and does change between
+// platforms, and these are the strings call sites store.
+const (
+	// Sidebar is the control that shows and hides a window's sidebar. One
+	// mark serves both directions — which way the control is about to go is
+	// the control's to signal, and a mark that morphs cannot be recognised.
+	Sidebar Name = "sidebar"
+
+	// Disclosure is the control that opens and closes a row's children. The
+	// mark is drawn as the row stands closed; a control showing an open row
+	// turns it a quarter turn rather than swapping in a second drawing.
+	Disclosure Name = "disclosure"
+
+	// HistoryBack is the control that returns to what was shown before.
+	HistoryBack Name = "history-back"
+
+	// HistoryForward is the control that goes back to what the reader had
+	// stepped away from.
+	HistoryForward Name = "history-forward"
+)
 
 // Painter draws a mark into a square of sizePx at the current origin, in col.
 // It is the shape this library's controls take for an icon slot.

@@ -23,11 +23,11 @@ var (
 // TestPlatformDrawingAnswersFirst is the hit half of the per-system rule: a
 // system the set carries a drawing for gets that drawing.
 func TestPlatformDrawingAnswersFirst(t *testing.T) {
-	got, ok := icons.New("darwin").Resolve(icons.Placeholder)
+	got, ok := icons.New("darwin").Resolve(icons.Sidebar)
 	if !ok {
-		t.Fatalf("%q does not resolve on darwin", icons.Placeholder)
+		t.Fatalf("%q does not resolve on darwin", icons.Sidebar)
 	}
-	if want := "placeholder@darwin"; got != want {
+	if want := "sidebar@darwin"; got != want {
 		t.Errorf("resolved to %q, want %q", got, want)
 	}
 }
@@ -37,12 +37,12 @@ func TestPlatformDrawingAnswersFirst(t *testing.T) {
 // than another system's idiom or nothing at all.
 func TestFallbackAnswersWhereThereIsNoPlatformDrawing(t *testing.T) {
 	for _, goos := range []string{"windows", "linux", "freebsd", "js"} {
-		got, ok := icons.New(goos).Resolve(icons.Placeholder)
+		got, ok := icons.New(goos).Resolve(icons.Sidebar)
 		if !ok {
-			t.Errorf("%s: %q does not resolve", goos, icons.Placeholder)
+			t.Errorf("%s: %q does not resolve", goos, icons.Sidebar)
 			continue
 		}
-		if want := string(icons.Placeholder); got != want {
+		if want := string(icons.Sidebar); got != want {
 			t.Errorf("%s: resolved to %q, want %q", goos, got, want)
 		}
 	}
@@ -52,14 +52,14 @@ func TestFallbackAnswersWhereThereIsNoPlatformDrawing(t *testing.T) {
 // package-level entry points answer for runtime.GOOS without being told what
 // that is, and without a build tag deciding it.
 func TestTheSetResolvesForTheRunningSystem(t *testing.T) {
-	if !icons.Has(icons.Placeholder) {
-		t.Fatalf("%q does not resolve on %s", icons.Placeholder, runtime.GOOS)
+	if !icons.Has(icons.Sidebar) {
+		t.Fatalf("%q does not resolve on %s", icons.Sidebar, runtime.GOOS)
 	}
-	if icons.Mark(icons.Placeholder) == nil {
-		t.Fatalf("no painter for %q on %s", icons.Placeholder, runtime.GOOS)
+	if icons.Mark(icons.Sidebar) == nil {
+		t.Fatalf("no painter for %q on %s", icons.Sidebar, runtime.GOOS)
 	}
-	got, _ := icons.Resolve(icons.Placeholder)
-	want, _ := icons.New(runtime.GOOS).Resolve(icons.Placeholder)
+	got, _ := icons.Resolve(icons.Sidebar)
+	want, _ := icons.New(runtime.GOOS).Resolve(icons.Sidebar)
 	if got != want {
 		t.Errorf("resolved to %q, want %q", got, want)
 	}
@@ -86,7 +86,7 @@ func TestUnknownNameHasNoMark(t *testing.T) {
 // drawings stand behind it.
 func TestNamesListEachMarkOnce(t *testing.T) {
 	got := icons.New("darwin").Names()
-	want := []icons.Name{icons.Placeholder}
+	want := []icons.Name{icons.Disclosure, icons.HistoryBack, icons.HistoryForward, icons.Sidebar}
 	if len(got) != len(want) {
 		t.Fatalf("names = %v, want %v", got, want)
 	}
@@ -103,7 +103,7 @@ func TestRegisterFillsRegistry(t *testing.T) {
 	r := icon.New()
 	icons.Register(r)
 
-	for _, key := range []string{"placeholder", "placeholder@darwin"} {
+	for _, key := range []string{"sidebar", "sidebar@darwin"} {
 		got, ok := r.Icon(key)
 		if !ok {
 			t.Errorf("%q missing from the registry", key)
@@ -126,8 +126,8 @@ func TestRegistriesDoNotShareDrawings(t *testing.T) {
 	icons.Register(a)
 	icons.Register(b)
 
-	x, _ := a.Icon("placeholder")
-	y, _ := b.Icon("placeholder")
+	x, _ := a.Icon("sidebar")
+	y, _ := b.Icon("sidebar")
 	if x.SVG() == y.SVG() {
 		t.Error("two registries were handed the same drawing")
 	}
@@ -139,27 +139,30 @@ func TestRegistriesDoNotShareDrawings(t *testing.T) {
 // a later frame with a different op list, which is the case the cache exists
 // for.
 func TestMarkRendersAtEverySizeItIsDrawnAt(t *testing.T) {
-	mark := icons.New("darwin").Mark(icons.Placeholder)
-	if mark == nil {
-		t.Fatal("no painter for the placeholder")
-	}
-	first := map[int]int{}
-	for pass := range 2 {
-		for _, px := range []int{16, 20, 24} {
-			img := shoot(t, px, func(gtx layout.Context) { mark(gtx, px, black) })
-			ink := painted(img)
-			if ink == 0 {
-				t.Errorf("%d px, pass %d: nothing was drawn", px, pass)
-			}
-			if ink == px*px {
-				t.Errorf("%d px, pass %d: the whole square was covered, so the drawing is not a mark", px, pass)
-			}
-			if pass == 0 {
-				first[px] = ink
-				continue
-			}
-			if ink != first[px] {
-				t.Errorf("%d px: replaying the built drawing covered %d pixels, and building it covered %d", px, ink, first[px])
+	set := icons.New("darwin")
+	for _, name := range set.Names() {
+		mark := set.Mark(name)
+		if mark == nil {
+			t.Fatalf("no painter for %q", name)
+		}
+		first := map[int]int{}
+		for pass := range 2 {
+			for _, px := range []int{16, 20, 24} {
+				img := shoot(t, px, func(gtx layout.Context) { mark(gtx, px, black) })
+				ink := painted(img)
+				if ink == 0 {
+					t.Errorf("%q, %d px, pass %d: nothing was drawn", name, px, pass)
+				}
+				if ink == px*px {
+					t.Errorf("%q, %d px, pass %d: the whole square was covered, so the drawing is not a mark", name, px, pass)
+				}
+				if pass == 0 {
+					first[px] = ink
+					continue
+				}
+				if ink != first[px] {
+					t.Errorf("%q, %d px: replaying the built drawing covered %d pixels, and building it covered %d", name, px, ink, first[px])
+				}
 			}
 		}
 	}
@@ -168,15 +171,20 @@ func TestMarkRendersAtEverySizeItIsDrawnAt(t *testing.T) {
 // TestMarkTakesTheColourItIsGiven: colour reaches the mark from the call site,
 // which is what keeps it out of the built ops.
 func TestMarkTakesTheColourItIsGiven(t *testing.T) {
-	mark := icons.New("windows").Mark(icons.Placeholder)
+	mark := icons.New("windows").Mark(icons.Sidebar)
 	if mark == nil {
-		t.Fatal("no painter for the placeholder")
+		t.Fatal("no painter for the sidebar")
 	}
 	const px = 24
 	red := color.NRGBA{R: 0xff, A: 0xff}
 	img := shoot(t, px, func(gtx layout.Context) { mark(gtx, px, red) })
 
-	var seen int
+	// Every painted pixel has to be the colour asked for laid over white —
+	// the two channels the colour has none of stay equal to each other and
+	// never rise above the one it is made of. A curve's outermost pixels are
+	// barely tinted, so how much colour a pixel carries is not the test; that
+	// the colour is the right one is.
+	var seen, solid int
 	for y := range px {
 		for x := range px {
 			c := img.RGBAAt(x, y)
@@ -184,34 +192,46 @@ func TestMarkTakesTheColourItIsGiven(t *testing.T) {
 				continue
 			}
 			seen++
-			if c.G > 0xf0 || c.B > 0xf0 || c.R < c.G || c.R < c.B {
+			if c.G != c.B || c.R < c.G {
 				t.Fatalf("pixel at %d,%d is %v, not a shade of the colour asked for", x, y, c)
+			}
+			if c.G < 0x40 {
+				solid++
 			}
 		}
 	}
 	if seen == 0 {
 		t.Error("nothing was drawn")
 	}
+	if solid == 0 {
+		t.Error("no pixel took the colour at full strength")
+	}
 }
 
+// listLine is a point inside the sidebar's topmost list line at 24 px, where
+// one grid unit is one pixel: the bar spans x 5.25 to 8.25 and y 7.5 to 9.
+var listLine = image.Pt(6, 8)
+
 // TestPlatformDrawingsDifferOnScreen: resolution is not only a key. The two
-// placeholders are told apart at the pixels — the one drawn for macOS carries
-// a dot in its middle, the fallback is an empty box.
+// sidebars are told apart at the pixels — the one drawn for macOS carries the
+// list lines that platform puts in a source list, and the fallback carries the
+// bare pane.
 func TestPlatformDrawingsDifferOnScreen(t *testing.T) {
 	const px = 24
 	shot := func(goos string) color.RGBA {
-		mark := icons.New(goos).Mark(icons.Placeholder)
+		mark := icons.New(goos).Mark(icons.Sidebar)
 		if mark == nil {
-			t.Fatalf("%s: no painter for the placeholder", goos)
+			t.Fatalf("%s: no painter for the sidebar", goos)
 		}
-		return shoot(t, px, func(gtx layout.Context) { mark(gtx, px, black) }).RGBAAt(px/2, px/2)
+		img := shoot(t, px, func(gtx layout.Context) { mark(gtx, px, black) })
+		return img.RGBAAt(listLine.X, listLine.Y)
 	}
 
 	if c := shot("windows"); c.R != 0xff || c.G != 0xff || c.B != 0xff {
-		t.Errorf("the fallback box has something in its middle: %v", c)
+		t.Errorf("the fallback pane has something where the list lines would be: %v", c)
 	}
 	if c := shot("darwin"); c.R == 0xff && c.G == 0xff && c.B == 0xff {
-		t.Error("the drawing for macOS is missing its dot")
+		t.Error("the drawing for macOS is missing its list lines")
 	}
 }
 
@@ -220,18 +240,18 @@ func TestPlatformDrawingsDifferOnScreen(t *testing.T) {
 // survives being tinted.
 func TestFaintElementStaysFaint(t *testing.T) {
 	const px = 24
-	mark := icons.New("darwin").Mark(icons.Placeholder)
+	mark := icons.New("darwin").Mark(icons.Sidebar)
 	if mark == nil {
-		t.Fatal("no painter for the placeholder")
+		t.Fatal("no painter for the sidebar")
 	}
 	img := shoot(t, px, func(gtx layout.Context) { mark(gtx, px, black) })
 
-	dot := img.RGBAAt(px/2, px/2)
-	if dot.R != dot.G || dot.G != dot.B {
-		t.Fatalf("the faint dot is not a shade of the colour asked for: %v", dot)
+	line := img.RGBAAt(listLine.X, listLine.Y)
+	if line.R != line.G || line.G != line.B {
+		t.Fatalf("the faint list line is not a shade of the colour asked for: %v", line)
 	}
-	if dot.R < 0x50 || dot.R > 0xe0 {
-		t.Errorf("the faint dot came out at %d, which is neither faint nor absent", dot.R)
+	if line.R < 0x50 || line.R > 0xe0 {
+		t.Errorf("the faint list line came out at %d, which is neither faint nor absent", line.R)
 	}
 }
 
@@ -239,9 +259,9 @@ func TestFaintElementStaysFaint(t *testing.T) {
 // against: the drawing behind a name is resized in place, so two sizes in one
 // frame would fight over it if they shared one.
 func TestOneMarkAtTwoSizesInOneFrame(t *testing.T) {
-	mark := icons.New("darwin").Mark(icons.Placeholder)
+	mark := icons.New("darwin").Mark(icons.Sidebar)
 	if mark == nil {
-		t.Fatal("no painter for the placeholder")
+		t.Fatal("no painter for the sidebar")
 	}
 	const big, small = 24, 16
 	size := image.Pt(big+small, big)

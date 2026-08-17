@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <!-- Placeholder: an empty box, the mark that says a mark is missing.
-       Square corners; this is the drawing every platform without one of its
-       own gets. On the square keyline (3 units in from every edge) with the
-       set's 1.5-unit band, so its edges land at 2 and 3 device pixels at
-       16 dp. Outer contour clockwise, inner counter-clockwise, so the band
-       is a hole under the non-zero winding rule. -->
-  <path fill="#000000" d="M3 3 L21 3 L21 21 L3 21 Z M4.5 4.5 L4.5 19.5 L19.5 19.5 L19.5 4.5 Z"/>
-</svg>

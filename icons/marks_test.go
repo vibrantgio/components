@@ -90,9 +90,9 @@ func TestRegistryKeyFromFileName(t *testing.T) {
 // again. A control animating its foreground therefore rebuilds nothing.
 func TestBuiltOpsAreKeyedBySizeAlone(t *testing.T) {
 	s := New("darwin")
-	mark := s.Mark(Placeholder)
+	mark := s.Mark(Sidebar)
 	if mark == nil {
-		t.Fatal("no painter for the placeholder")
+		t.Fatal("no painter for the sidebar")
 	}
 
 	gtx := layout.Context{Ops: new(op.Ops), Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}}
@@ -121,7 +121,7 @@ func TestBuiltOpsAreKeyedBySizeAlone(t *testing.T) {
 // for none, and gets no ops and no cache entry rather than a zero-sized one.
 func TestNothingIsBuiltForAnEmptySquare(t *testing.T) {
 	s := New("darwin")
-	mark := s.Mark(Placeholder)
+	mark := s.Mark(Sidebar)
 	gtx := layout.Context{Ops: new(op.Ops), Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}}
 	mark(gtx, 0, black)
 	mark(gtx, -8, black)
