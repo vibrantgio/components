@@ -17,11 +17,13 @@ as the layers above components do. Its root module imports
 `ivg/raster/gio`, `mvu`, `svg`, `svg/driver/gio` and `theme`, and reaches
 `font` and `ivg` through them. Its nested `components/gallery` module adds
 `effects` and `traer` — those edges are the nested module's and not the
-root's. Imported by `effects`, `markdown` and `patterns`. Outside the tier
-table, also by all seven workbench applications. Both directions are
-measured rather than typed — `scripts/check-layers.sh --edges` reports the
-graph and `scripts/sync-agents.sh` renders these sentences from it — so
-correcting them here changes nothing.
+root's. That direction is measured rather than typed —
+`scripts/check-layers.sh --edges` reports the graph and
+`scripts/sync-agents.sh` renders these sentences from it — so correcting
+them here changes nothing. The other direction is measured too and
+deliberately not written down: the gate checks the graph both ways, but a
+public API's consumers are unknowable, so this file says what its module
+needs and never who needs it.
 
 **Read the canonical guide before you write code against this module.** It is
 the organization's one agent guide — the module inventory with current tags,
@@ -44,13 +46,13 @@ module directory — `./...` does not cross a module boundary:
 **Golden images.** Tests in nine packages compare rendered output against
 PNGs committed under `testdata/golden/`.
 `github.com/vibrantgio/components/golden` is the harness they use, and
-since F5.5 it is the organization's only one: `design`, `effects`,
-`markdown`, `patterns` and `workbench` link it too, so a change to it moves
-every stored image in the organization and not only this repository's.
-Regenerate all of them before believing a change here is pixel-neutral.
-When a change legitimately moves pixels, regenerate them within the same
-change, look at what came out, and say so in the commit. From the
-repository root:
+since F5.5 it is the organization's only one: every other repository that
+stores rendered output links it too, so a change to it moves every stored
+image in the organization and not only this repository's. Regenerate all of
+them — every tree with a `testdata/golden/` directory — before believing a
+change here is pixel-neutral. When a change legitimately moves pixels,
+regenerate them within the same change, look at what came out, and say so
+in the commit. From the repository root:
 
     go test ./button ./golden ./icon ./input ./layout ./list ./richtext ./scrollarea ./scrollbar -golden.update
 
