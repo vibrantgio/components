@@ -41,7 +41,7 @@ module directory — `./...` does not cross a module boundary:
 
     go build ./... && go test ./...
 
-**Golden images.** Tests in eight packages compare rendered output against
+**Golden images.** Tests in nine packages compare rendered output against
 PNGs committed under `testdata/golden/`.
 `github.com/vibrantgio/components/golden` is the harness they use, and
 since F5.5 it is the organization's only one: `design`, `effects`,
@@ -52,7 +52,7 @@ When a change legitimately moves pixels, regenerate them within the same
 change, look at what came out, and say so in the commit. From the
 repository root:
 
-    go test ./button ./golden ./icon ./input ./layout ./list ./richtext ./scrollbar -golden.update
+    go test ./button ./golden ./icon ./input ./layout ./list ./richtext ./scrollarea ./scrollbar -golden.update
 
 Both halves of that line matter. `go test` cannot tell that an unfamiliar
 flag is boolean, so a flag placed before the packages swallows them: `go
