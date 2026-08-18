@@ -1,0 +1,549 @@
+// The pattern half of the inventory: the compositions built on top of the
+// components, each drawn from static state in a bounded slot.
+//
+// Every pattern here has a live twin that takes an observable theme and
+// returns an observable widget. The gallery deliberately uses the static
+// twin instead: it performs no input handling and schedules no invalidation,
+// so a page can show all nineteen at once without nineteen event loops, and a
+// golden test can capture one without a window.
+package main
+
+import (
+	"image"
+	"image/color"
+
+	"gioui.org/font"
+	"gioui.org/layout"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
+	"gioui.org/unit"
+
+	"github.com/vibrantgio/components/button"
+	complayout "github.com/vibrantgio/components/layout"
+	"github.com/vibrantgio/patterns/accordion"
+	"github.com/vibrantgio/patterns/alert"
+	"github.com/vibrantgio/patterns/breadcrumb"
+	"github.com/vibrantgio/patterns/card"
+	"github.com/vibrantgio/patterns/feature"
+	"github.com/vibrantgio/patterns/hero"
+	"github.com/vibrantgio/patterns/modal"
+	"github.com/vibrantgio/patterns/navbar"
+	"github.com/vibrantgio/patterns/pagination"
+	"github.com/vibrantgio/patterns/popover"
+	"github.com/vibrantgio/patterns/pricing"
+	"github.com/vibrantgio/patterns/shell"
+	patsidebar "github.com/vibrantgio/patterns/sidebar"
+	"github.com/vibrantgio/patterns/table"
+	"github.com/vibrantgio/patterns/tabs"
+	"github.com/vibrantgio/patterns/tag"
+	"github.com/vibrantgio/patterns/testimonial"
+	"github.com/vibrantgio/patterns/toast"
+	"github.com/vibrantgio/patterns/tooltip"
+	"github.com/vibrantgio/theme/tokens"
+)
+
+func (inv *inventory) patterns(c tokens.ColorTokens) []section {
+	return []section{
+		{name: "patterns-alert", title: "Alert — info, success, warning, error", height: 260,
+			body: inv.alerts(c)},
+		{name: "patterns-toast", title: "Toast — the transient message at every level", height: 170,
+			body: inv.toasts(c)},
+		{name: "patterns-tag", title: "Tag — filled, tonal, success, warning, error", height: 56,
+			body: inv.tags(c)},
+		{name: "patterns-card", title: "Card — flat and elevated, header, body and footer", height: 150,
+			body: inv.cards(c)},
+		{name: "patterns-accordion", title: "Accordion — one section open, the rest closed", height: 200,
+			body: inv.accordion(c)},
+		{name: "patterns-tabs", title: "Tabs — the second tab selected", height: 130,
+			body: inv.tabs(c)},
+		{name: "patterns-breadcrumb", title: "Breadcrumb — a trail back to the root", height: 56,
+			body: inv.breadcrumb(c)},
+		{name: "patterns-pagination", title: "Pagination — page four of nine", height: 64,
+			body: inv.pagination(c)},
+		{name: "patterns-navbar", title: "Navbar — brand, links and actions", height: 72,
+			body: inv.navbar(c)},
+		{name: "patterns-sidebar", title: "Sidebar — expanded beside its collapsed rail", height: 210,
+			body: inv.sidebar(c)},
+		{name: "patterns-table", title: "Table — sortable columns, sorted ascending on the first", height: 176,
+			body: inv.table(c)},
+		{name: "patterns-modal", title: "Modal — a decision dialog over its scrim", height: 260,
+			body: inv.modal(c)},
+		{name: "patterns-popover", title: "Popover — a floating panel tied to its anchor", height: 170,
+			body: inv.popover(c)},
+		{name: "patterns-tooltip", title: "Tooltip — shown above its trigger", height: 130,
+			body: inv.tooltip(c)},
+		{name: "patterns-hero", title: "Hero — eyebrow, headline, subtitle and a pair of calls to action", height: 260,
+			body: inv.hero(c)},
+		{name: "patterns-feature", title: "Feature grid — three columns of icon, title and body", height: 190,
+			body: inv.feature(c)},
+		{name: "patterns-pricing", title: "Pricing — three tiers, the middle one highlighted", height: 360,
+			body: inv.pricing(c)},
+		{name: "patterns-testimonial", title: "Testimonial — a quote with its attribution", height: 190,
+			body: inv.testimonial(c)},
+		{name: "patterns-shell", title: "Shell — the three-column frame: sidebar, content, aside", height: 300,
+			body: inv.shell(c)},
+	}
+}
+
+// ── The furniture the patterns are filled with ────────────────────────────────
+
+// prose returns a widget that draws a few lines of body text, so a pattern's
+// content slot holds something with a shape rather than a placeholder block.
+func (inv *inventory) prose(c tokens.ColorTokens, lines ...string) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		cs := make([]layout.FlexChild, 0, 2*len(lines))
+		for i, line := range lines {
+			line := line
+			if i > 0 {
+				cs = append(cs, layout.Rigid(complayout.VSpacer(4)))
+			}
+			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return labelAt(gtx, inv.shaper, line, c.Text, 13, font.Font{})
+			}))
+		}
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
+	}
+}
+
+// sized pins a widget to a width, which is what a pattern's action slot
+// needs from a caller handing it a bare button.
+func sized(w unit.Dp, child layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Min.X = gtx.Dp(w)
+		gtx.Constraints.Max.X = gtx.Dp(w)
+		return child(gtx)
+	}
+}
+
+// dot returns a round icon slot in the given colour, the stand-in a pattern's
+// Icon field takes when the gallery has no picture to put there.
+func dot(fill color.NRGBA, size unit.Dp) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		d := gtx.Dp(size)
+		r := clip.RRect{Rect: image.Rect(0, 0, d, d), SE: d / 2, SW: d / 2, NW: d / 2, NE: d / 2}
+		paint.FillShape(gtx.Ops, fill, r.Op(gtx.Ops))
+		return layout.Dimensions{Size: image.Pt(d, d)}
+	}
+}
+
+// ── The patterns ──────────────────────────────────────────────────────────────
+
+func (inv *inventory) alerts(c tokens.ColorTokens) layout.Widget {
+	variants := []struct {
+		title string
+		v     alert.Variant
+	}{
+		{"Deploy finished", alert.Info},
+		{"All checks passed", alert.Success},
+		{"Two goldens are stale", alert.Warning},
+		{"The build could not start", alert.Error},
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		cs := make([]layout.FlexChild, 0, 2*len(variants))
+		for i, v := range variants {
+			v := v
+			if i > 0 {
+				cs = append(cs, layout.Rigid(complayout.VSpacer(8)))
+			}
+			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(520))
+				gtx.Constraints.Max.Y = gtx.Dp(56)
+				gtx.Constraints.Min = gtx.Constraints.Max
+				return alert.Render(inv.shaper, alert.Props{
+					Variant: v.v,
+					Title:   v.title,
+					Shaper:  inv.shaper,
+				}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.TitleMedium)(gtx)
+			}))
+		}
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
+	}
+}
+
+// toasts draws the whole level ladder at once. A toast with a zero At does no
+// fading, so the stack stands still without a timer driving it — which is how
+// the pattern's own stored images are made.
+func (inv *inventory) toasts(c tokens.ColorTokens) layout.Widget {
+	items := []toast.Toast{
+		{ID: 1, Level: toast.Info, Text: "Info — the theme was reloaded."},
+		{ID: 2, Level: toast.Success, Text: "Success — the seed was saved."},
+		{ID: 3, Level: toast.Warning, Text: "Warning — contrast is below target."},
+		{ID: 4, Level: toast.Error, Text: "Error — that image could not be read."},
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		// The stack anchors to the corner of the box it is handed, so it is
+		// given one of its own rather than the page's. The box is left
+		// unpainted: filled, it read as a panel sized for content that was
+		// not there rather than as the corner the toasts had gathered in.
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(340))
+		gtx.Constraints.Min = gtx.Constraints.Max
+		return toast.Render(inv.shaper, toast.Props{
+			Position: toast.TopRight,
+			Shaper:   inv.shaper,
+		}, items, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelMedium)(gtx)
+	}
+}
+
+func (inv *inventory) tags(c tokens.ColorTokens) layout.Widget {
+	variants := []struct {
+		label string
+		v     tag.Variant
+	}{
+		{"Filled", tag.Filled},
+		{"Tonal", tag.Tonal},
+		{"Success", tag.Success},
+		{"Warning", tag.Warning},
+		{"Error", tag.Error},
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		cs := make([]layout.FlexChild, 0, 2*len(variants))
+		for i, v := range variants {
+			v := v
+			if i > 0 {
+				cs = append(cs, layout.Rigid(complayout.HSpacer(10)))
+			}
+			cs = append(cs, layout.Rigid(tag.Render(inv.shaper, v.label, v.v, c,
+				tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelSmall)))
+		}
+		return layout.Flex{Alignment: layout.Middle}.Layout(gtx, cs...)
+	}
+}
+
+func (inv *inventory) cards(c tokens.ColorTokens) layout.Widget {
+	header := func(s string) layout.Widget {
+		return func(gtx layout.Context) layout.Dimensions {
+			return labelAt(gtx, inv.shaper, s, c.Text, 15, font.Font{Weight: font.Bold})
+		}
+	}
+	body := inv.prose(c,
+		"A card groups a header,",
+		"a body and a footer on a",
+		"surface of its own.",
+	)
+	return func(gtx layout.Context) layout.Dimensions {
+		one := func(title string, elevated bool) layout.Widget {
+			return func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(260))
+				gtx.Constraints.Min = gtx.Constraints.Max
+				return card.Render(card.Props{
+					Header:   header(title),
+					Body:     body,
+					Footer:   tag.Render(inv.shaper, "Footer", tag.Tonal, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelSmall),
+					Elevated: elevated,
+				}, c, tokens.Spacing, tokens.Radius)(gtx)
+			}
+		}
+		return layout.Flex{}.Layout(gtx,
+			layout.Rigid(one("Flat", false)),
+			layout.Rigid(complayout.HSpacer(20)),
+			layout.Rigid(one("Elevated", true)),
+		)
+	}
+}
+
+func (inv *inventory) accordion(c tokens.ColorTokens) layout.Widget {
+	props := accordion.Props{
+		Sections: []accordion.Section{
+			{Title: "What the gallery shows", Body: inv.prose(c, "Every published family, in the current scheme.")},
+			{Title: "How a section is bounded", Body: inv.prose(c, "Each one is laid out in a slot of its own.")},
+			{Title: "Why the static twin", Body: inv.prose(c, "It handles no input and needs no event loop.")},
+		},
+		Shaper: inv.shaper,
+	}
+	open := map[int]bool{0: true}
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(460))
+		return accordion.Render(inv.shaper, props, open, c, tokens.Spacing,
+			tokens.DefaultTypography.LabelLarge)(gtx)
+	}
+}
+
+func (inv *inventory) tabs(c tokens.ColorTokens) layout.Widget {
+	props := tabs.Props{
+		Tabs: []tabs.Tab{
+			{Label: "Overview", Content: inv.prose(c, "The first tab's content.")},
+			{Label: "Tokens", Content: inv.prose(c, "The selected tab's content shows below the strip.")},
+			{Label: "History", Content: inv.prose(c, "The third tab's content.")},
+		},
+		Shaper: inv.shaper,
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(460))
+		return tabs.Render(inv.shaper, props, 1, c, tokens.Spacing,
+			tokens.DefaultTypography.LabelLarge, tokens.Comfortable)(gtx)
+	}
+}
+
+func (inv *inventory) breadcrumb(c tokens.ColorTokens) layout.Widget {
+	props := breadcrumb.Props{
+		Items: []breadcrumb.Item{
+			{Label: "Design system"},
+			{Label: "Patterns"},
+			{Label: "Breadcrumb"},
+		},
+		Shaper: inv.shaper,
+	}
+	return breadcrumb.Render(inv.shaper, props, c, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+}
+
+func (inv *inventory) pagination(c tokens.ColorTokens) layout.Widget {
+	props := pagination.Props{Page: 4, PageCount: 9, Shaper: inv.shaper}
+	return pagination.Render(inv.shaper, props, c, tokens.Spacing, tokens.Radius,
+		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+}
+
+func (inv *inventory) navbarProps(c tokens.ColorTokens) navbar.Props {
+	return navbar.Props{
+		Brand: inv.prose(c, "Vibrant Gio"),
+		Links: []navbar.Link{
+			{Label: "Gallery", Active: true},
+			{Label: "Tokens"},
+			{Label: "Patterns"},
+		},
+		Actions: []layout.Widget{
+			tag.Render(inv.shaper, "v1", tag.Tonal, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelSmall),
+		},
+		Shaper: inv.shaper,
+	}
+}
+
+func (inv *inventory) navbar(c tokens.ColorTokens) layout.Widget {
+	props := inv.navbarProps(c)
+	return func(gtx layout.Context) layout.Dimensions {
+		// The bar fills the height it is given, so it is pinned to the
+		// density's own bar height rather than to the section's slot.
+		gtx.Constraints.Max.Y = gtx.Dp(unit.Dp(tokens.Comfortable.ControlHeight + 2*tokens.Comfortable.PaddingY))
+		gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
+		return navbar.Render(inv.shaper, props, c, tokens.Spacing,
+			tokens.DefaultTypography.LabelLarge, tokens.Comfortable)(gtx)
+	}
+}
+
+func (inv *inventory) sidebarProps(c tokens.ColorTokens) patsidebar.Props {
+	return patsidebar.Props{
+		Items: []patsidebar.Item{
+			{Icon: dot(c.Primary, 16), Label: "Everything", Active: true},
+			{Icon: dot(c.Secondary, 16), Label: "Components"},
+			{Icon: dot(c.Tertiary, 16), Label: "Patterns"},
+			{Icon: dot(c.Success, 16), Label: "Markdown"},
+		},
+		Shaper: inv.shaper,
+	}
+}
+
+func (inv *inventory) sidebar(c tokens.ColorTokens) layout.Widget {
+	props := inv.sidebarProps(c)
+	return func(gtx layout.Context) layout.Dimensions {
+		one := func(collapsed bool) layout.Widget {
+			return patsidebar.Render(inv.shaper, props, collapsed, c, tokens.Spacing,
+				tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+		}
+		return layout.Flex{}.Layout(gtx,
+			layout.Rigid(one(false)),
+			layout.Rigid(complayout.HSpacer(24)),
+			layout.Rigid(one(true)),
+		)
+	}
+}
+
+// tableRow is the shape the table section's rows take. A table is generic over
+// its row type, so the gallery has to name one.
+type tableRow struct {
+	family string
+	kind   string
+	count  string
+}
+
+func (inv *inventory) table(c tokens.ColorTokens) layout.Widget {
+	cell := func(s string) layout.Widget {
+		return table.RenderTextCell(inv.shaper, c, tokens.DefaultTypography.BodyMedium, s)
+	}
+	columns := []table.Column[tableRow]{
+		{Header: "Family", Width: 160, Sortable: true, Cell: func(r tableRow) layout.Widget { return cell(r.family) }},
+		{Header: "Kind", Width: 120, Sortable: true, Cell: func(r tableRow) layout.Widget { return cell(r.kind) }},
+		{Header: "Sections", Width: 100, Cell: func(r tableRow) layout.Widget { return cell(r.count) }},
+	}
+	rows := []tableRow{
+		{"Button", "Component", "1"},
+		{"Card", "Pattern", "3"},
+		{"Markdown", "Document", "9"},
+		{"Toast", "Pattern", "4"},
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(400))
+		return table.Render(inv.shaper, columns, rows, table.Sort{Column: 0, Asc: true},
+			c, tokens.Spacing, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)(gtx)
+	}
+}
+
+func (inv *inventory) modal(c tokens.ColorTokens) layout.Widget {
+	props := modal.Props{
+		Title: "Discard this theme?",
+		Body: inv.prose(c,
+			"The seed you extracted has not been saved.",
+			"Discarding returns the gallery to the default theme.",
+		),
+		Decision: &modal.Decision{Destructive: true},
+		// The footer buttons are the caller's own widgets on both the live
+		// and the static path, so a static dialog hands them over already
+		// rendered rather than expecting the pattern to invent them.
+		Actions: []layout.Widget{
+			sized(96, button.Render(inv.shaper, "Cancel", c, tokens.Spacing, tokens.Radius,
+				tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+				button.RenderState{Emphasis: button.Tonal})),
+			sized(96, button.Render(inv.shaper, "Discard", c, tokens.Spacing, tokens.Radius,
+				tokens.DefaultTypography.LabelLarge, tokens.Comfortable, button.RenderState{})),
+		},
+		Shaper: inv.shaper,
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		// The scrim covers whatever box it is handed. That box is the whole
+		// section rather than a column of it: a scrim that stops two thirds
+		// of the way across reads as a stray rectangle, not as a window
+		// under a dialog.
+		gtx.Constraints.Min = gtx.Constraints.Max
+		return modal.Render(inv.shaper, props, true, c, tokens.Spacing, tokens.Radius,
+			tokens.DefaultTypography.TitleMedium, tokens.Comfortable)(gtx)
+	}
+}
+
+func (inv *inventory) popover(c tokens.ColorTokens) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(320))
+		gtx.Constraints.Min = gtx.Constraints.Max
+		props := popover.Props{
+			Anchor: tag.Render(inv.shaper, "Anchor", tag.Filled, c, tokens.Spacing, tokens.Radius,
+				tokens.DefaultTypography.LabelSmall),
+			Content:   inv.prose(c, "A popover holds content", "beside what opened it."),
+			Placement: popover.Bottom,
+		}
+		return popover.Render(props, true, c, tokens.Spacing, tokens.Radius)(gtx)
+	}
+}
+
+func (inv *inventory) tooltip(c tokens.ColorTokens) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(320))
+		gtx.Constraints.Min = gtx.Constraints.Max
+		props := tooltip.Props{
+			Text: "Reload the theme",
+			Trigger: tag.Render(inv.shaper, "Trigger", tag.Tonal, c, tokens.Spacing, tokens.Radius,
+				tokens.DefaultTypography.LabelSmall),
+			Placement: tooltip.Top,
+			Shaper:    inv.shaper,
+		}
+		return tooltip.Render(inv.shaper, props, true, c, tokens.Spacing, tokens.Radius,
+			tokens.DefaultTypography.LabelSmall)(gtx)
+	}
+}
+
+func (inv *inventory) hero(c tokens.ColorTokens) layout.Widget {
+	props := hero.Props{
+		Eyebrow:      "The design system",
+		Title:        "Judge a theme whole",
+		Subtitle:     "Every family on one page, re-rendered on the theme you are trying.",
+		PrimaryCTA:   &hero.CTA{Label: "Try a seed"},
+		SecondaryCTA: &hero.CTA{Label: "Read the docs"},
+		Shaper:       inv.shaper,
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(640))
+		return hero.Render(inv.shaper, props, c, tokens.Spacing, tokens.Radius,
+			tokens.DefaultTypography, tokens.Comfortable)(gtx)
+	}
+}
+
+func (inv *inventory) feature(c tokens.ColorTokens) layout.Widget {
+	props := feature.Props{
+		Columns: 3,
+		Items: []feature.Item{
+			{Icon: dot(c.Primary, 24), Title: "One scale", Body: "Every ramp is generated from a single seed."},
+			{Icon: dot(c.Secondary, 24), Title: "Two schemes", Body: "Light and dark come out of the same derivation."},
+			{Icon: dot(c.Tertiary, 24), Title: "Measured contrast", Body: "Every reading pair is checked, not guessed."},
+		},
+		Shaper: inv.shaper,
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(640))
+		return feature.Render(inv.shaper, props, c, tokens.Spacing, tokens.DefaultTypography)(gtx)
+	}
+}
+
+func (inv *inventory) pricing(c tokens.ColorTokens) layout.Widget {
+	props := pricing.Props{
+		Tiers: []pricing.Tier{
+			{Name: "Sketch", Price: "Free", Cadence: "forever",
+				Features: []string{"One seed", "Both schemes"}, CTA: &pricing.CTA{Label: "Start"}},
+			{Name: "Studio", Price: "$12", Cadence: "per month", Highlighted: true,
+				Features: []string{"Unlimited seeds", "Both schemes", "Export"}, CTA: &pricing.CTA{Label: "Choose"}},
+			{Name: "Team", Price: "$40", Cadence: "per month",
+				Features: []string{"Everything in Studio", "Shared themes"}, CTA: &pricing.CTA{Label: "Contact"}},
+		},
+		Shaper: inv.shaper,
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(640))
+		return pricing.Render(inv.shaper, props, c, tokens.Spacing, tokens.Radius,
+			tokens.DefaultTypography, tokens.Comfortable)(gtx)
+	}
+}
+
+func (inv *inventory) testimonial(c tokens.ColorTokens) layout.Widget {
+	props := testimonial.Props{
+		Variant: testimonial.Single,
+		Items: []testimonial.Item{
+			{
+				Quote:        "Seeing the whole inventory at once is what made the grey cast obvious.",
+				AuthorName:   "A reviewer",
+				AuthorRole:   "Fresh eyes",
+				AuthorAvatar: dot(c.Primary, 40),
+			},
+		},
+		Shaper: inv.shaper,
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(560))
+		return testimonial.Render(inv.shaper, props, c, tokens.Spacing, tokens.Radius,
+			tokens.DefaultTypography)(gtx)
+	}
+}
+
+// shell draws the three-column frame with its aside occupied, which is the
+// only place the aside's furniture shows.
+func (inv *inventory) shell(c tokens.ColorTokens) layout.Widget {
+	props := shell.Props{
+		Layout: shell.ThreeColumn,
+		Navbar: inv.navbarProps(c),
+		Main: func(gtx layout.Context) layout.Dimensions {
+			return complayout.Inset(16).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return inv.prose(c,
+					"The main column.",
+					"",
+					"A shell frames a window: a sidebar",
+					"on the leading edge, a navbar across",
+					"the top, an aside on the trailing edge,",
+					"and a footer under all of it.",
+				)(gtx)
+			})
+		},
+		Footer: func(gtx layout.Context) layout.Dimensions {
+			return complayout.InsetXY(16, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return labelAt(gtx, inv.shaper, "Footer — status and counts", c.Ramps.Neutral.Step(600), 11, font.Font{})
+			})
+		},
+	}
+	sidebarW := patsidebar.Render(inv.shaper, inv.sidebarProps(c), false, c, tokens.Spacing,
+		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+	asideW := func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, c.Surface, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return inv.prose(c, "Aside", "", "Inspector, outline", "or details.")(gtx)
+		})
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(720))
+		gtx.Constraints.Min = gtx.Constraints.Max
+		return shell.RenderThreeColumn(inv.shaper, props, sidebarW, asideW, c, tokens.Spacing,
+			tokens.DefaultTypography.LabelLarge, tokens.Comfortable, 180)(gtx)
+	}
+}

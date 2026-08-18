@@ -37,16 +37,22 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 
 	"github.com/vibrantgio/components/icon"
-	ivgraster "github.com/vibrantgio/ivg/raster/gio"
 	"github.com/vibrantgio/effects/springbutton"
+	ivgraster "github.com/vibrantgio/ivg/raster/gio"
 )
 
+// pageNames is the sidebar, in order. Everything comes first because it is
+// the page the whole surface is judged on; the per-family pages that follow
+// are for close-up work on one widget at a time.
 var pageNames = []string{
+	"Everything",
 	"Button", "Inputs", "List", "Richtext", "Icon", "Layout", "A11y", "Initial", "Stream",
+	"Patterns", "Markdown",
 }
 
 const (
-	pageButton int = iota
+	pageEverything int = iota
+	pageButton
 	pageInputs
 	pageList
 	pageRichtext
@@ -55,6 +61,8 @@ const (
 	pageA11y
 	pageInitial
 	pageStream
+	pagePatterns
+	pageMarkdown
 )
 
 // actionInfoIVG is the material action-info icon in IVG format.
@@ -71,7 +79,14 @@ type gallery struct {
 	win    *app.Window
 	shaper *text.Shaper
 	page   int
-	nav    [9]widget.Clickable
+	nav    []widget.Clickable
+
+	// The whole published surface, built once from static state. The
+	// everything page and the two inventory pages draw it; the per-family
+	// pages do not.
+	inv       *inventory
+	dark      bool
+	schemeBtn widget.Clickable
 
 	// Interactive widgets obtained via rx.First()
 	btnLive       layout.Widget
@@ -89,7 +104,7 @@ type gallery struct {
 	springBtnClicks  int
 
 	// Scroll state — one per page, allocated once so scroll position survives frames.
-	scrollSt [9]*list.State
+	scrollSt []*list.State
 
 	// List page: one state per LayoutScrollbar variant so the two lists
 	// scroll independently.
@@ -169,9 +184,12 @@ func run(w *app.Window) error {
 
 func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 	g := &gallery{win: w, shaper: shaper}
+	g.nav = make([]widget.Clickable, len(pageNames))
+	g.scrollSt = make([]*list.State, len(pageNames))
 	for i := range g.scrollSt {
 		g.scrollSt[i] = list.NewState()
 	}
+	g.inv = newInventory(shaper)
 
 	// Static theme observable — emits once synchronously, so First() returns immediately.
 	th := rx.Of(theme.Default())
@@ -319,7 +337,7 @@ func (g *gallery) cleanup() {
 // ── Frame layout ──────────────────────────────────────────────────────────────
 
 func (g *gallery) frame(gtx layout.Context) layout.Dimensions {
-	paint.FillShape(gtx.Ops, tokens.DefaultLight.Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
+	paint.FillShape(gtx.Ops, g.chrome().Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
 	return layout.Flex{}.Layout(gtx,
 		layout.Rigid(g.sidebar),
 		layout.Flexed(1, g.content),
@@ -330,13 +348,14 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 	const sideW = unit.Dp(150)
 	w := gtx.Dp(sideW)
 	gtx.Constraints = layout.Exact(image.Pt(w, gtx.Constraints.Max.Y))
+	c := g.chrome()
 
-	paint.FillShape(gtx.Ops, color.NRGBA{R: 0xf1, G: 0xf5, B: 0xf9, A: 0xff}, clip.Rect{Max: gtx.Constraints.Max}.Op())
+	paint.FillShape(gtx.Ops, c.Ramps.Neutral.Step(200), clip.Rect{Max: gtx.Constraints.Max}.Op())
 
 	cs := make([]layout.FlexChild, 0, 1+len(pageNames))
 	cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return complayout.Inset(16).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return g.label(gtx, "Components Gallery", tokens.DefaultLight.Text, unit.Sp(13), font.Font{Weight: font.Bold})
+			return g.label(gtx, "Components Gallery", c.Text, unit.Sp(13), font.Font{Weight: font.Bold})
 		})
 	}))
 	for i, name := range pageNames {
@@ -346,11 +365,11 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 				g.page = i
 			}
 			active := g.page == i
-			bg := tokens.DefaultLight.Background
-			fg := tokens.DefaultLight.Text
+			bg := c.Background
+			fg := c.Text
 			if active {
-				bg = tokens.DefaultLight.Primary
-				fg = tokens.DefaultLight.OnPrimary
+				bg = c.Primary
+				fg = c.OnPrimary
 			}
 			return g.nav[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				sz := image.Pt(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(40)))
@@ -365,8 +384,14 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 }
 
 func (g *gallery) content(gtx layout.Context) layout.Dimensions {
-	paint.FillShape(gtx.Ops, tokens.DefaultLight.Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
+	paint.FillShape(gtx.Ops, g.chrome().Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
 	switch g.page {
+	case pageEverything:
+		return g.pageEverything(gtx)
+	case pagePatterns:
+		return g.pagePatterns(gtx)
+	case pageMarkdown:
+		return g.pageMarkdown(gtx)
 	case pageButton:
 		return g.pageButton(gtx)
 	case pageInputs:

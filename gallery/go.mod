@@ -18,11 +18,13 @@ go 1.25.1
 require (
 	gioui.org v0.10.1
 	github.com/reactivego/rx v0.3.0
-	github.com/vibrantgio/components v0.7.0
+	github.com/vibrantgio/components v0.9.2
 	github.com/vibrantgio/effects v0.2.0
 	github.com/vibrantgio/ivg/raster/gio v0.1.6
+	github.com/vibrantgio/markdown v0.4.0
 	github.com/vibrantgio/mvu v0.5.0
-	github.com/vibrantgio/theme v0.6.0
+	github.com/vibrantgio/patterns v0.7.0
+	github.com/vibrantgio/theme v0.7.0
 )
 
 require (
@@ -34,6 +36,7 @@ require (
 	github.com/vibrantgio/ivg v0.1.6 // indirect
 	github.com/vibrantgio/svg v0.0.9 // indirect
 	github.com/vibrantgio/traer v0.0.8 // indirect
+	github.com/yuin/goldmark v1.8.5 // indirect
 	golang.org/x/exp/shiny v0.0.0-20260727155853-b88d891fe743 // indirect
 	golang.org/x/image v0.44.0 // indirect
 	golang.org/x/net v0.57.0 // indirect

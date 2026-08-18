@@ -16,8 +16,8 @@ that contract down into theme, and components now styles against it exactly
 as the layers above components do. Its root module imports
 `ivg/raster/gio`, `mvu`, `svg`, `svg/driver/gio` and `theme`, and reaches
 `font` and `ivg` through them. Its nested `components/gallery` module adds
-`effects` and `traer` — those edges are the nested module's and not the
-root's. That direction is measured rather than typed —
+`effects`, `markdown`, `patterns` and `traer` — those edges are the nested
+module's and not the root's. That direction is measured rather than typed —
 `scripts/check-layers.sh --edges` reports the graph and
 `scripts/sync-agents.sh` renders these sentences from it — so correcting
 them here changes nothing. The other direction is measured too and
@@ -43,7 +43,7 @@ module directory — `./...` does not cross a module boundary:
 
     go build ./... && go test ./...
 
-**Golden images.** Tests in nine packages compare rendered output against
+**Golden images.** Tests in ten packages compare rendered output against
 PNGs committed under `testdata/golden/`.
 `github.com/vibrantgio/components/golden` is the harness they use, and
 since F5.5 it is the organization's only one: every other repository that
@@ -54,7 +54,7 @@ change here is pixel-neutral. When a change legitimately moves pixels,
 regenerate them within the same change, look at what came out, and say so
 in the commit. From the repository root:
 
-    go test ./button ./golden ./icon ./input ./layout ./list ./richtext ./scrollarea ./scrollbar -golden.update
+    go test ./button ./gallery ./golden ./icon ./input ./layout ./list ./richtext ./scrollarea ./scrollbar -golden.update
 
 Both halves of that line matter. `go test` cannot tell that an unfamiliar
 flag is boolean, so a flag placed before the packages swallows them: `go
