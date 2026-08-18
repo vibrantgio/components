@@ -4,15 +4,18 @@
 //
 // # Entry points
 //
-// There are two ways to lay out a list, both driven by the same State:
+// There are four ways to lay out a list, all driven by the same State:
 //
 //   - [Layout] lays out the bare list: wheel/touch scrolling only, no
 //     scrollbar is drawn.
 //   - [LayoutScrollbar] additionally draws a scrollbar along the list's
 //     trailing edge, wired to the scroll position; dragging the thumb or
 //     clicking the track scrolls the list.
+//   - [LayoutSelectable] adds a keyboard-movable selection over every row.
+//   - [LayoutSelectableScrollbar] is both: the selection and the bar.
 //
-// LayoutScrollbar takes an [Anchor] that decides where the bar lives:
+// The two scrollbar entry points take an [Anchor] that decides where the bar
+// lives:
 //
 //   - [Occupy] reserves a gutter of the bar's width, narrowing the rows.
 //     Pick it when rows must never be occluded — e.g. text that would
@@ -184,7 +187,8 @@ func Layout[T any](
 // LayoutSelectable lays out items exactly like [Layout] and additionally makes
 // the whole list reachable from the keyboard. rowFn is told whether the row it
 // is drawing is the selected one, so the caller renders selection its own way;
-// the list draws nothing extra.
+// the list draws nothing extra — a scrollbar included, for which see
+// [LayoutSelectableScrollbar].
 //
 // The list is one focus target ([State.Focus]), which is what makes traversal
 // possible at all: it is registered every frame regardless of which rows exist,
