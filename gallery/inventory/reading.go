@@ -5,7 +5,7 @@
 // link colour, code chip against the body, table rules, checkbox marks — and
 // none of that shows on a page of widgets. The sample below is chosen to put
 // every one of those on screen at once.
-package main
+package inventory
 
 import (
 	"gioui.org/layout"
@@ -61,16 +61,18 @@ const readingSample = "" +
 	"doc.LayoutColumn(gtx, shaper, markdown.FromTokens(colors, typography))\n" +
 	"```\n"
 
-func (inv *inventory) reading(c tokens.ColorTokens) []section {
-	return []section{{
-		name:   "markdown-reading",
-		title:  "Markdown — headings, links, chips, lists, tasks, a table, a quote and a code fence",
-		height: 966,
-		body:   inv.readingBody(c),
+// Reading returns the prose section: a document laid out by the real
+// markdown renderer rather than mocked up out of labels.
+func (inv *Inventory) Reading(c tokens.ColorTokens) []Section {
+	return []Section{{
+		Name:   "markdown-reading",
+		Title:  "Markdown — headings, links, chips, lists, tasks, a table, a quote and a code fence",
+		Height: 966,
+		Body:   inv.readingBody(c),
 	}}
 }
 
-func (inv *inventory) readingBody(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) readingBody(c tokens.ColorTokens) layout.Widget {
 	style := markdown.FromTokens(c, tokens.DefaultTypography)
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(560))

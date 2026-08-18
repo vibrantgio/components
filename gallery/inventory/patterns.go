@@ -6,7 +6,7 @@
 // twin instead: it performs no input handling and schedules no invalidation,
 // so a page can show all nineteen at once without nineteen event loops, and a
 // golden test can capture one without a window.
-package main
+package inventory
 
 import (
 	"image"
@@ -42,46 +42,48 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-func (inv *inventory) patterns(c tokens.ColorTokens) []section {
-	return []section{
-		{name: "patterns-alert", title: "Alert — info, success, warning, error", height: 260,
-			body: inv.alerts(c)},
-		{name: "patterns-toast", title: "Toast — the transient message at every level", height: 170,
-			body: inv.toasts(c)},
-		{name: "patterns-tag", title: "Tag — filled, tonal, success, warning, error", height: 56,
-			body: inv.tags(c)},
-		{name: "patterns-card", title: "Card — flat and elevated, header, body and footer", height: 150,
-			body: inv.cards(c)},
-		{name: "patterns-accordion", title: "Accordion — one section open, the rest closed", height: 200,
-			body: inv.accordion(c)},
-		{name: "patterns-tabs", title: "Tabs — the second tab selected", height: 130,
-			body: inv.tabs(c)},
-		{name: "patterns-breadcrumb", title: "Breadcrumb — a trail back to the root", height: 56,
-			body: inv.breadcrumb(c)},
-		{name: "patterns-pagination", title: "Pagination — page four of nine", height: 64,
-			body: inv.pagination(c)},
-		{name: "patterns-navbar", title: "Navbar — brand, links and actions", height: 72,
-			body: inv.navbar(c)},
-		{name: "patterns-sidebar", title: "Sidebar — expanded beside its collapsed rail", height: 210,
-			body: inv.sidebar(c)},
-		{name: "patterns-table", title: "Table — sortable columns, sorted ascending on the first", height: 176,
-			body: inv.table(c)},
-		{name: "patterns-modal", title: "Modal — a decision dialog over its scrim", height: 260,
-			body: inv.modal(c)},
-		{name: "patterns-popover", title: "Popover — a floating panel tied to its anchor", height: 170,
-			body: inv.popover(c)},
-		{name: "patterns-tooltip", title: "Tooltip — shown above its trigger", height: 130,
-			body: inv.tooltip(c)},
-		{name: "patterns-hero", title: "Hero — eyebrow, headline, subtitle and a pair of calls to action", height: 260,
-			body: inv.hero(c)},
-		{name: "patterns-feature", title: "Feature grid — three columns of icon, title and body", height: 190,
-			body: inv.feature(c)},
-		{name: "patterns-pricing", title: "Pricing — three tiers, the middle one highlighted", height: 360,
-			body: inv.pricing(c)},
-		{name: "patterns-testimonial", title: "Testimonial — a quote with its attribution", height: 190,
-			body: inv.testimonial(c)},
-		{name: "patterns-shell", title: "Shell — the three-column frame: sidebar, content, aside", height: 300,
-			body: inv.shell(c)},
+// Patterns returns one section per composition, each drawn from static state
+// in a slot of its own.
+func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
+	return []Section{
+		{Name: "patterns-alert", Title: "Alert — info, success, warning, error", Height: 260,
+			Body: inv.alerts(c)},
+		{Name: "patterns-toast", Title: "Toast — the transient message at every level", Height: 170,
+			Body: inv.toasts(c)},
+		{Name: "patterns-tag", Title: "Tag — filled, tonal, success, warning, error", Height: 56,
+			Body: inv.tags(c)},
+		{Name: "patterns-card", Title: "Card — flat and elevated, header, body and footer", Height: 150,
+			Body: inv.cards(c)},
+		{Name: "patterns-accordion", Title: "Accordion — one section open, the rest closed", Height: 200,
+			Body: inv.accordion(c)},
+		{Name: "patterns-tabs", Title: "Tabs — the second tab selected", Height: 130,
+			Body: inv.tabs(c)},
+		{Name: "patterns-breadcrumb", Title: "Breadcrumb — a trail back to the root", Height: 56,
+			Body: inv.breadcrumb(c)},
+		{Name: "patterns-pagination", Title: "Pagination — page four of nine", Height: 64,
+			Body: inv.pagination(c)},
+		{Name: "patterns-navbar", Title: "Navbar — brand, links and actions", Height: 72,
+			Body: inv.navbar(c)},
+		{Name: "patterns-sidebar", Title: "Sidebar — expanded beside its collapsed rail", Height: 210,
+			Body: inv.sidebar(c)},
+		{Name: "patterns-table", Title: "Table — sortable columns, sorted ascending on the first", Height: 176,
+			Body: inv.table(c)},
+		{Name: "patterns-modal", Title: "Modal — a decision dialog over its scrim", Height: 260,
+			Body: inv.modal(c)},
+		{Name: "patterns-popover", Title: "Popover — a floating panel tied to its anchor", Height: 170,
+			Body: inv.popover(c)},
+		{Name: "patterns-tooltip", Title: "Tooltip — shown above its trigger", Height: 130,
+			Body: inv.tooltip(c)},
+		{Name: "patterns-hero", Title: "Hero — eyebrow, headline, subtitle and a pair of calls to action", Height: 260,
+			Body: inv.hero(c)},
+		{Name: "patterns-feature", Title: "Feature grid — three columns of icon, title and body", Height: 190,
+			Body: inv.feature(c)},
+		{Name: "patterns-pricing", Title: "Pricing — three tiers, the middle one highlighted", Height: 360,
+			Body: inv.pricing(c)},
+		{Name: "patterns-testimonial", Title: "Testimonial — a quote with its attribution", Height: 190,
+			Body: inv.testimonial(c)},
+		{Name: "patterns-shell", Title: "Shell — the three-column frame: sidebar, content, aside", Height: 300,
+			Body: inv.shell(c)},
 	}
 }
 
@@ -89,7 +91,7 @@ func (inv *inventory) patterns(c tokens.ColorTokens) []section {
 
 // prose returns a widget that draws a few lines of body text, so a pattern's
 // content slot holds something with a shape rather than a placeholder block.
-func (inv *inventory) prose(c tokens.ColorTokens, lines ...string) layout.Widget {
+func (inv *Inventory) prose(c tokens.ColorTokens, lines ...string) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(lines))
 		for i, line := range lines {
@@ -98,7 +100,7 @@ func (inv *inventory) prose(c tokens.ColorTokens, lines ...string) layout.Widget
 				cs = append(cs, layout.Rigid(complayout.VSpacer(4)))
 			}
 			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return labelAt(gtx, inv.shaper, line, c.Text, 13, font.Font{})
+				return LabelAt(gtx, inv.shaper, line, c.Text, 13, font.Font{})
 			}))
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
@@ -128,7 +130,7 @@ func dot(fill color.NRGBA, size unit.Dp) layout.Widget {
 
 // ── The patterns ──────────────────────────────────────────────────────────────
 
-func (inv *inventory) alerts(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) alerts(c tokens.ColorTokens) layout.Widget {
 	variants := []struct {
 		title string
 		v     alert.Variant
@@ -163,7 +165,7 @@ func (inv *inventory) alerts(c tokens.ColorTokens) layout.Widget {
 // toasts draws the whole level ladder at once. A toast with a zero At does no
 // fading, so the stack stands still without a timer driving it — which is how
 // the pattern's own stored images are made.
-func (inv *inventory) toasts(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) toasts(c tokens.ColorTokens) layout.Widget {
 	items := []toast.Toast{
 		{ID: 1, Level: toast.Info, Text: "Info — the theme was reloaded."},
 		{ID: 2, Level: toast.Success, Text: "Success — the seed was saved."},
@@ -184,7 +186,7 @@ func (inv *inventory) toasts(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) tags(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) tags(c tokens.ColorTokens) layout.Widget {
 	variants := []struct {
 		label string
 		v     tag.Variant
@@ -209,10 +211,10 @@ func (inv *inventory) tags(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) cards(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) cards(c tokens.ColorTokens) layout.Widget {
 	header := func(s string) layout.Widget {
 		return func(gtx layout.Context) layout.Dimensions {
-			return labelAt(gtx, inv.shaper, s, c.Text, 15, font.Font{Weight: font.Bold})
+			return LabelAt(gtx, inv.shaper, s, c.Text, 15, font.Font{Weight: font.Bold})
 		}
 	}
 	body := inv.prose(c,
@@ -241,7 +243,7 @@ func (inv *inventory) cards(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) accordion(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) accordion(c tokens.ColorTokens) layout.Widget {
 	props := accordion.Props{
 		Sections: []accordion.Section{
 			{Title: "What the gallery shows", Body: inv.prose(c, "Every published family, in the current scheme.")},
@@ -258,7 +260,7 @@ func (inv *inventory) accordion(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) tabs(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) tabs(c tokens.ColorTokens) layout.Widget {
 	props := tabs.Props{
 		Tabs: []tabs.Tab{
 			{Label: "Overview", Content: inv.prose(c, "The first tab's content.")},
@@ -274,7 +276,7 @@ func (inv *inventory) tabs(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) breadcrumb(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) breadcrumb(c tokens.ColorTokens) layout.Widget {
 	props := breadcrumb.Props{
 		Items: []breadcrumb.Item{
 			{Label: "Design system"},
@@ -286,13 +288,13 @@ func (inv *inventory) breadcrumb(c tokens.ColorTokens) layout.Widget {
 	return breadcrumb.Render(inv.shaper, props, c, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
 }
 
-func (inv *inventory) pagination(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) pagination(c tokens.ColorTokens) layout.Widget {
 	props := pagination.Props{Page: 4, PageCount: 9, Shaper: inv.shaper}
 	return pagination.Render(inv.shaper, props, c, tokens.Spacing, tokens.Radius,
 		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
 }
 
-func (inv *inventory) navbarProps(c tokens.ColorTokens) navbar.Props {
+func (inv *Inventory) navbarProps(c tokens.ColorTokens) navbar.Props {
 	return navbar.Props{
 		Brand: inv.prose(c, "Vibrant Gio"),
 		Links: []navbar.Link{
@@ -307,7 +309,7 @@ func (inv *inventory) navbarProps(c tokens.ColorTokens) navbar.Props {
 	}
 }
 
-func (inv *inventory) navbar(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) navbar(c tokens.ColorTokens) layout.Widget {
 	props := inv.navbarProps(c)
 	return func(gtx layout.Context) layout.Dimensions {
 		// The bar fills the height it is given, so it is pinned to the
@@ -319,7 +321,7 @@ func (inv *inventory) navbar(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) sidebarProps(c tokens.ColorTokens) patsidebar.Props {
+func (inv *Inventory) sidebarProps(c tokens.ColorTokens) patsidebar.Props {
 	return patsidebar.Props{
 		Items: []patsidebar.Item{
 			{Icon: dot(c.Primary, 16), Label: "Everything", Active: true},
@@ -331,7 +333,7 @@ func (inv *inventory) sidebarProps(c tokens.ColorTokens) patsidebar.Props {
 	}
 }
 
-func (inv *inventory) sidebar(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) sidebar(c tokens.ColorTokens) layout.Widget {
 	props := inv.sidebarProps(c)
 	return func(gtx layout.Context) layout.Dimensions {
 		one := func(collapsed bool) layout.Widget {
@@ -354,7 +356,7 @@ type tableRow struct {
 	count  string
 }
 
-func (inv *inventory) table(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) table(c tokens.ColorTokens) layout.Widget {
 	cell := func(s string) layout.Widget {
 		return table.RenderTextCell(inv.shaper, c, tokens.DefaultTypography.BodyMedium, s)
 	}
@@ -376,7 +378,7 @@ func (inv *inventory) table(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) modal(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) modal(c tokens.ColorTokens) layout.Widget {
 	props := modal.Props{
 		Title: "Discard this theme?",
 		Body: inv.prose(c,
@@ -407,7 +409,7 @@ func (inv *inventory) modal(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) popover(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) popover(c tokens.ColorTokens) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(320))
 		gtx.Constraints.Min = gtx.Constraints.Max
@@ -421,7 +423,7 @@ func (inv *inventory) popover(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) tooltip(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) tooltip(c tokens.ColorTokens) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(320))
 		gtx.Constraints.Min = gtx.Constraints.Max
@@ -437,7 +439,7 @@ func (inv *inventory) tooltip(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) hero(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) hero(c tokens.ColorTokens) layout.Widget {
 	props := hero.Props{
 		Eyebrow:      "The design system",
 		Title:        "Judge a theme whole",
@@ -453,7 +455,7 @@ func (inv *inventory) hero(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) feature(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) feature(c tokens.ColorTokens) layout.Widget {
 	props := feature.Props{
 		Columns: 3,
 		Items: []feature.Item{
@@ -469,7 +471,7 @@ func (inv *inventory) feature(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) pricing(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) pricing(c tokens.ColorTokens) layout.Widget {
 	props := pricing.Props{
 		Tiers: []pricing.Tier{
 			{Name: "Sketch", Price: "Free", Cadence: "forever",
@@ -488,7 +490,7 @@ func (inv *inventory) pricing(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) testimonial(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) testimonial(c tokens.ColorTokens) layout.Widget {
 	props := testimonial.Props{
 		Variant: testimonial.Single,
 		Items: []testimonial.Item{
@@ -510,7 +512,7 @@ func (inv *inventory) testimonial(c tokens.ColorTokens) layout.Widget {
 
 // shell draws the three-column frame with its aside occupied, which is the
 // only place the aside's furniture shows.
-func (inv *inventory) shell(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) shell(c tokens.ColorTokens) layout.Widget {
 	props := shell.Props{
 		Layout: shell.ThreeColumn,
 		Navbar: inv.navbarProps(c),
@@ -528,7 +530,7 @@ func (inv *inventory) shell(c tokens.ColorTokens) layout.Widget {
 		},
 		Footer: func(gtx layout.Context) layout.Dimensions {
 			return complayout.InsetXY(16, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return labelAt(gtx, inv.shaper, "Footer — status and counts", c.Ramps.Neutral.Step(600), 11, font.Font{})
+				return LabelAt(gtx, inv.shaper, "Footer — status and counts", c.Ramps.Neutral.Step(600), 11, font.Font{})
 			})
 		},
 	}

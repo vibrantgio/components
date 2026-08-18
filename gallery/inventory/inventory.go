@@ -1,14 +1,20 @@
-// The gallery's inventory: every published family, built once from static
-// state so that one page can show them all at once.
+// Package inventory draws every published family of the design system —
+// foundations, components, patterns and a prose sample — as one long column
+// of labelled sections.
 //
-// The per-family pages beside this file each drive a live widget and read the
-// theme's own default light tokens. The inventory does neither: every section
-// here is a pure function of the colour tokens it is handed, so the same code
-// draws the whole surface in either scheme and a test can capture a section
-// without a window. What the sections do keep across frames — scroll
-// positions, the parsed reading sample, the icon set — hangs off the
-// [inventory] value rather than off a page.
-package main
+// It exists to be looked at whole, because that is the only way a theme can
+// be judged: a seed that flatters a button in isolation can still leave the
+// tag row muddy against the card it sits on, and nothing but the two side by
+// side will say so.
+//
+// Every section is a pure function of the [tokens.ColorTokens] it is handed.
+// Nothing here reads a default palette, so the same code draws the whole
+// surface in either scheme, a caller can push a generated palette through it
+// and see the result on the next frame, and a test can capture a section
+// without a window. What the sections keep across frames — scroll positions,
+// the parsed reading sample, the rasterised icon — hangs off the [Inventory]
+// value, which is built once and outlives any number of palettes.
+package inventory
 
 import (
 	"fmt"
@@ -40,35 +46,38 @@ import (
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
 )
 
-// section is one labelled block of the inventory: a heading and the widget
+// Section is one labelled block of the inventory: a heading and the widget
 // that shows the family under it.
-type section struct {
-	// name is the golden-image name for this section, unique across the
-	// whole inventory.
-	name string
-	// title is the heading shown above the body.
-	title string
-	// body draws the family. It is bounded by its own slot, never by the
+type Section struct {
+	// Name identifies the section, uniquely across the whole inventory. It
+	// is what a stored image of the section is filed under.
+	Name string
+	// Title is the heading shown above the body.
+	Title string
+	// Body draws the family. It is bounded by its own slot, never by the
 	// page: several patterns expand into whatever constraints they are
 	// given, and an unbounded one would take the column with it.
-	body layout.Widget
-	// height is the slot the body is laid out in, in dp.
-	height unit.Dp
+	Body layout.Widget
+	// Height is the slot the body is laid out in, in dp.
+	Height unit.Dp
 }
 
-// group collects the sections that come from one module.
-type group struct {
-	name     string
-	sections []section
+// Group collects the sections that come from one module.
+type Group struct {
+	Name     string
+	Sections []Section
 }
 
-// inventory owns everything the static sections need to survive across frames
-// and builds the sections from it.
+// Inventory owns everything the sections need to survive across frames and
+// builds the sections from it. Build one and keep it: a palette change is a
+// new set of section values, never a new Inventory.
 //
-// The reading sample is parsed once here and never per frame: the document
-// keys its per-block interaction state on block pointers, so re-parsing would
-// silently orphan every scroll and hover position it holds.
-type inventory struct {
+// The reading sample is parsed once here and never per frame — and never per
+// palette. The document is content, not colour: its style comes in at layout
+// time, so a new palette re-styles the parsed form rather than re-reading the
+// source. Re-parsing would also silently orphan every scroll and hover
+// position the document holds, which it keys on block pointers.
+type Inventory struct {
 	shaper *text.Shaper
 
 	rows    []string
@@ -82,21 +91,30 @@ type inventory struct {
 	reg   *icon.Registry
 	// ivg caches the rendered vector icon per ink colour. The icon carries
 	// its own palette, which on a dark ground would be a black disc on
-	// black, so each scheme gets it recoloured — and rasterising is not
-	// something to redo every frame.
+	// black, so each ink gets it recoloured — and rasterising is not
+	// something to redo every frame. Keying on the ink rather than clearing
+	// the cache is what lets a palette change cost one raster instead of one
+	// per frame afterwards.
 	ivg map[color.NRGBA]layout.Widget
 
 	doc *markdown.Document
 }
 
-func newInventory(shaper *text.Shaper) *inventory {
-	inv := &inventory{
+// New builds the inventory, with the platform control marks the host draws.
+func New(shaper *text.Shaper) *Inventory { return NewForOS(shaper, runtime.GOOS) }
+
+// NewForOS is New with the platform control marks pinned to goos rather than
+// taken from the host. The marks are per-platform by design — a sidebar mark
+// is drawn the way its platform draws it — so a capture meant to come out the
+// same bytes on every machine has to name the platform it is of.
+func NewForOS(shaper *text.Shaper, goos string) *Inventory {
+	inv := &Inventory{
 		shaper:  shaper,
 		listSt:  list.NewState(),
 		barList: layout.List{Axis: layout.Vertical},
 		barSt:   scrollbar.NewState(),
 		areaSt:  scrollarea.NewState(),
-		marks:   icons.New(runtime.GOOS),
+		marks:   icons.New(goos),
 		reg:     icon.New(),
 		doc:     markdown.NewDocument(markdown.Parse([]byte(readingSample))),
 	}
@@ -106,13 +124,13 @@ func newInventory(shaper *text.Shaper) *inventory {
 		inv.rows[i] = fmt.Sprintf("Row %d — a virtual list lays out only what shows", i+1)
 		inv.bars[i] = fmt.Sprintf("Line %d of %d — content the bar beside it measures", i+1, len(inv.rows))
 	}
-	inv.reg.Register("info", icon.FromIVG(actionInfoIVG))
+	inv.reg.Register("info", icon.FromIVG(ActionInfoIVG))
 	inv.ivg = map[color.NRGBA]layout.Widget{}
 	return inv
 }
 
 // vectorIcon returns the registered vector icon drawn in ink.
-func (inv *inventory) vectorIcon(ink color.NRGBA) layout.Widget {
+func (inv *Inventory) vectorIcon(ink color.NRGBA) layout.Widget {
 	if w, ok := inv.ivg[ink]; ok {
 		return w
 	}
@@ -129,38 +147,40 @@ func (inv *inventory) vectorIcon(ink color.NRGBA) layout.Widget {
 	return w
 }
 
-// groups returns the whole inventory in the given scheme, in the order the
-// everything page shows it: what a theme is made of first, then the widgets
-// built on it, then the compositions, then prose.
-func (inv *inventory) groups(c tokens.ColorTokens) []group {
-	return []group{
-		{name: "Foundations", sections: inv.foundations(c)},
-		{name: "Components", sections: inv.components(c)},
-		{name: "Patterns", sections: inv.patterns(c)},
-		{name: "Markdown", sections: inv.reading(c)},
+// Groups returns the whole inventory in the given scheme, in the order the
+// column shows it: what a theme is made of first, then the widgets built on
+// it, then the compositions, then prose.
+func (inv *Inventory) Groups(c tokens.ColorTokens) []Group {
+	return []Group{
+		{Name: "Foundations", Sections: inv.Foundations(c)},
+		{Name: "Components", Sections: inv.Components(c)},
+		{Name: "Patterns", Sections: inv.Patterns(c)},
+		{Name: "Markdown", Sections: inv.Reading(c)},
 	}
 }
 
 // ── Foundations ───────────────────────────────────────────────────────────────
 
-func (inv *inventory) foundations(c tokens.ColorTokens) []section {
-	return []section{
+// Foundations returns the sections a theme is made of: the semantic roles,
+// the functional ramps and the whole type ladder.
+func (inv *Inventory) Foundations(c tokens.ColorTokens) []Section {
+	return []Section{
 		{
-			name: "foundations-roles", title: "Palette — the scheme's semantic roles", height: 76,
-			body: inv.roleSwatches(c),
+			Name: "foundations-roles", Title: "Palette — the scheme's semantic roles", Height: 76,
+			Body: inv.roleSwatches(c),
 		},
 		{
-			name: "foundations-ramps", title: "Palette — the functional ramps, nine steps each", height: 190,
-			body: inv.rampSwatches(c),
+			Name: "foundations-ramps", Title: "Palette — the functional ramps, nine steps each", Height: 190,
+			Body: inv.rampSwatches(c),
 		},
 		{
-			name: "foundations-type", title: "Typography — every role a surface reads in", height: 460,
-			body: inv.typeScale(c),
+			Name: "foundations-type", Title: "Typography — every role a surface reads in", Height: 460,
+			Body: inv.typeScale(c),
 		},
 	}
 }
 
-func (inv *inventory) roleSwatches(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) roleSwatches(c tokens.ColorTokens) layout.Widget {
 	type swatch struct {
 		name  string
 		fill  color.NRGBA
@@ -194,12 +214,12 @@ func (inv *inventory) roleSwatches(c tokens.ColorTokens) layout.Widget {
 						swatchBorder(gtx, c.Ramps.Neutral.Step(400), sz, 1)
 						gtx.Constraints = layout.Exact(sz)
 						return complayout.InsetXY(8, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return labelAt(gtx, inv.shaper, s.label, s.on, 13, font.Font{})
+							return LabelAt(gtx, inv.shaper, s.label, s.on, 13, font.Font{})
 						})
 					}),
 					layout.Rigid(complayout.VSpacer(6)),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return labelAt(gtx, inv.shaper, s.name, c.Text, 11, font.Font{})
+						return LabelAt(gtx, inv.shaper, s.name, c.Text, 11, font.Font{})
 					}),
 				)
 			}))
@@ -208,7 +228,7 @@ func (inv *inventory) roleSwatches(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) rampSwatches(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) rampSwatches(c tokens.ColorTokens) layout.Widget {
 	ramps := []struct {
 		name string
 		ramp tokens.Ramp
@@ -233,7 +253,7 @@ func (inv *inventory) rampSwatches(c tokens.ColorTokens) layout.Widget {
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						gtx.Constraints.Min.X = gtx.Dp(80)
 						gtx.Constraints.Max.X = gtx.Dp(80)
-						return labelAt(gtx, inv.shaper, r.name, c.Text, 12, font.Font{})
+						return LabelAt(gtx, inv.shaper, r.name, c.Text, 12, font.Font{})
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						w := gtx.Dp(40)
@@ -259,7 +279,7 @@ func (inv *inventory) rampSwatches(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) typeScale(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) typeScale(c tokens.ColorTokens) layout.Widget {
 	typo := tokens.DefaultTypography
 	// The whole ladder, not a sample of it: a role that is not on the page
 	// is a role nobody judges the theme on.
@@ -293,7 +313,7 @@ func (inv *inventory) typeScale(c tokens.ColorTokens) layout.Widget {
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						gtx.Constraints.Min.X = gtx.Dp(170)
 						gtx.Constraints.Max.X = gtx.Dp(170)
-						return labelAt(gtx, inv.shaper,
+						return LabelAt(gtx, inv.shaper,
 							fmt.Sprintf("%s · %gsp", r.name, r.style.Size),
 							c.Ramps.Neutral.Step(600), 11, font.Font{})
 					}),
@@ -306,7 +326,7 @@ func (inv *inventory) typeScale(c tokens.ColorTokens) layout.Widget {
 							Typeface: font.Typeface(r.style.Typeface),
 							Weight:   tokens.FontWeight(r.style.Weight),
 						}
-						return labelAt(gtx, inv.shaper, "Vibrant Gio", c.Text, unit.Sp(r.style.Size), f)
+						return LabelAt(gtx, inv.shaper, "Vibrant Gio", c.Text, unit.Sp(r.style.Size), f)
 					}),
 				)
 			}))
@@ -317,32 +337,34 @@ func (inv *inventory) typeScale(c tokens.ColorTokens) layout.Widget {
 
 // ── Components ────────────────────────────────────────────────────────────────
 
-func (inv *inventory) components(c tokens.ColorTokens) []section {
-	return []section{
-		{name: "components-button", title: "Button — rest, hover, focus, press, disabled", height: 72,
-			body: inv.buttonRow(c)},
-		{name: "components-textfield", title: "Text field — rest, focused, disabled", height: 80,
-			body: inv.textFieldRow(c)},
-		{name: "components-checkbox", title: "Checkbox and radio — unset, set, focused, disabled", height: 72,
-			body: inv.toggleRow(c)},
-		{name: "components-dropdown", title: "Dropdown — closed, focused, open, disabled", height: 190,
-			body: inv.dropdownRow(c)},
-		{name: "components-list", title: "List — a virtual list with its scrollbar in the gutter", height: 180,
-			body: inv.listBlock(c)},
-		{name: "components-scrollbar", title: "Scrollbar — a standalone bar beside its content", height: 180,
-			body: inv.scrollbarBlock(c)},
-		{name: "components-scrollarea", title: "Scroll area — the edge dissolves while content is hidden past it", height: 76,
-			body: inv.scrollAreaBlock(c)},
-		{name: "components-richtext", title: "Rich text — weight, style, face, colour, size and links in one paragraph", height: 130,
-			body: inv.richtextBlock(c)},
-		{name: "components-icon", title: "Icon — a vector icon and the platform control marks", height: 76,
-			body: inv.iconBlock(c)},
-		{name: "components-layout", title: "Layout — rows, columns, spacers and insets", height: 120,
-			body: inv.layoutBlock(c)},
+// Components returns one section per component family, each showing the
+// family in every state it has.
+func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
+	return []Section{
+		{Name: "components-button", Title: "Button — rest, hover, focus, press, disabled", Height: 72,
+			Body: inv.buttonRow(c)},
+		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 80,
+			Body: inv.textFieldRow(c)},
+		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 72,
+			Body: inv.toggleRow(c)},
+		{Name: "components-dropdown", Title: "Dropdown — closed, focused, open, disabled", Height: 190,
+			Body: inv.dropdownRow(c)},
+		{Name: "components-list", Title: "List — a virtual list with its scrollbar in the gutter", Height: 180,
+			Body: inv.listBlock(c)},
+		{Name: "components-scrollbar", Title: "Scrollbar — a standalone bar beside its content", Height: 180,
+			Body: inv.scrollbarBlock(c)},
+		{Name: "components-scrollarea", Title: "Scroll area — the edge dissolves while content is hidden past it", Height: 76,
+			Body: inv.scrollAreaBlock(c)},
+		{Name: "components-richtext", Title: "Rich text — weight, style, face, colour, size and links in one paragraph", Height: 130,
+			Body: inv.richtextBlock(c)},
+		{Name: "components-icon", Title: "Icon — a vector icon and the platform control marks", Height: 76,
+			Body: inv.iconBlock(c)},
+		{Name: "components-layout", Title: "Layout — rows, columns, spacers and insets", Height: 120,
+			Body: inv.layoutBlock(c)},
 	}
 }
 
-func (inv *inventory) buttonRow(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) buttonRow(c tokens.ColorTokens) layout.Widget {
 	states := []struct {
 		label string
 		st    button.RenderState
@@ -373,7 +395,7 @@ func (inv *inventory) buttonRow(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) textFieldRow(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) textFieldRow(c tokens.ColorTokens) layout.Widget {
 	states := []struct {
 		label string
 		st    input.RenderState
@@ -394,7 +416,7 @@ func (inv *inventory) textFieldRow(c tokens.ColorTokens) layout.Widget {
 				gtx.Constraints.Max.X = gtx.Dp(200)
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return labelAt(gtx, inv.shaper, s.label, c.Ramps.Neutral.Step(600), 11, font.Font{})
+						return LabelAt(gtx, inv.shaper, s.label, c.Ramps.Neutral.Step(600), 11, font.Font{})
 					}),
 					layout.Rigid(complayout.VSpacer(6)),
 					layout.Rigid(input.Render(inv.shaper, "Placeholder…", c, tokens.Spacing, tokens.Radius,
@@ -406,7 +428,7 @@ func (inv *inventory) textFieldRow(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) toggleRow(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) toggleRow(c tokens.ColorTokens) layout.Widget {
 	cells := []struct {
 		label string
 		w     layout.Widget
@@ -434,7 +456,7 @@ func (inv *inventory) toggleRow(c tokens.ColorTokens) layout.Widget {
 					layout.Rigid(cell.w),
 					layout.Rigid(complayout.VSpacer(6)),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return labelAt(gtx, inv.shaper, cell.label, c.Ramps.Neutral.Step(600), 11, font.Font{})
+						return LabelAt(gtx, inv.shaper, cell.label, c.Ramps.Neutral.Step(600), 11, font.Font{})
 					}),
 				)
 			}))
@@ -443,7 +465,7 @@ func (inv *inventory) toggleRow(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) dropdownRow(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) dropdownRow(c tokens.ColorTokens) layout.Widget {
 	opts := []string{"Apple", "Banana", "Cherry"}
 	states := []struct {
 		label string
@@ -466,7 +488,7 @@ func (inv *inventory) dropdownRow(c tokens.ColorTokens) layout.Widget {
 				gtx.Constraints.Max.X = gtx.Dp(160)
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return labelAt(gtx, inv.shaper, s.label, c.Ramps.Neutral.Step(600), 11, font.Font{})
+						return LabelAt(gtx, inv.shaper, s.label, c.Ramps.Neutral.Step(600), 11, font.Font{})
 					}),
 					layout.Rigid(complayout.VSpacer(6)),
 					layout.Rigid(input.RenderDropdown(inv.shaper, c, tokens.Spacing, tokens.Radius,
@@ -485,16 +507,16 @@ func (inv *inventory) dropdownRow(c tokens.ColorTokens) layout.Widget {
 const rowHeight = unit.Dp(36)
 
 // textRow draws s centred in a row of exactly [rowHeight].
-func (inv *inventory) textRow(gtx layout.Context, s string, c tokens.ColorTokens) layout.Dimensions {
+func (inv *Inventory) textRow(gtx layout.Context, s string, c tokens.ColorTokens) layout.Dimensions {
 	h := gtx.Dp(rowHeight)
 	gtx.Constraints.Min.Y, gtx.Constraints.Max.Y = h, h
 	complayout.InsetXY(0, 9).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return labelAt(gtx, inv.shaper, s, c.Text, 14, font.Font{})
+		return LabelAt(gtx, inv.shaper, s, c.Text, 14, font.Font{})
 	})
 	return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, h)}
 }
 
-func (inv *inventory) listBlock(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) listBlock(c tokens.ColorTokens) layout.Widget {
 	bar := scrollbar.FromTokens(c)
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(520))
@@ -506,7 +528,7 @@ func (inv *inventory) listBlock(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) scrollbarBlock(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) scrollbarBlock(c tokens.ColorTokens) layout.Widget {
 	style := scrollbar.FromTokens(c)
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(520))
@@ -535,7 +557,7 @@ func (inv *inventory) scrollbarBlock(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) scrollAreaBlock(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) scrollAreaBlock(c tokens.ColorTokens) layout.Widget {
 	style := scrollarea.FromTokens(c)
 	bar := scrollbar.FromTokens(c)
 	return func(gtx layout.Context) layout.Dimensions {
@@ -558,7 +580,7 @@ func (inv *inventory) scrollAreaBlock(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) richtextBlock(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) richtextBlock(c tokens.ColorTokens) layout.Widget {
 	style := richtext.FromTokens(c, tokens.DefaultTypography.BodyLarge)
 	spans := []richtext.SpanStyle{
 		{Content: "Rich text lays out "},
@@ -583,7 +605,7 @@ func (inv *inventory) richtextBlock(c tokens.ColorTokens) layout.Widget {
 			layout.Rigid(richtext.Render(inv.shaper, style, spans, richtext.Idle())),
 			layout.Rigid(complayout.VSpacer(10)),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return labelAt(gtx, inv.shaper, "Link states: idle, hovered, focused.", c.Ramps.Neutral.Step(600), 11, font.Font{})
+				return LabelAt(gtx, inv.shaper, "Link states: idle, hovered, focused.", c.Ramps.Neutral.Step(600), 11, font.Font{})
 			}),
 			layout.Rigid(complayout.VSpacer(4)),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -608,7 +630,7 @@ func (inv *inventory) richtextBlock(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) iconBlock(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) iconBlock(c tokens.ColorTokens) layout.Widget {
 	marks := []struct {
 		name  string
 		which icons.Name
@@ -627,7 +649,7 @@ func (inv *inventory) iconBlock(c tokens.ColorTokens) layout.Widget {
 					layout.Rigid(w),
 					layout.Rigid(complayout.VSpacer(8)),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return labelAt(gtx, inv.shaper, name, c.Ramps.Neutral.Step(600), 11, font.Font{})
+						return LabelAt(gtx, inv.shaper, name, c.Ramps.Neutral.Step(600), 11, font.Font{})
 					}),
 				)
 			})
@@ -647,7 +669,7 @@ func (inv *inventory) iconBlock(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *inventory) layoutBlock(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) layoutBlock(c tokens.ColorTokens) layout.Widget {
 	box := func(fill color.NRGBA, dp float32) layout.Widget {
 		return func(gtx layout.Context) layout.Dimensions {
 			sz := image.Pt(gtx.Dp(unit.Dp(dp)), gtx.Dp(unit.Dp(dp)))
@@ -664,7 +686,7 @@ func (inv *inventory) layoutBlock(c tokens.ColorTokens) layout.Widget {
 				layout.Rigid(w),
 				layout.Rigid(complayout.VSpacer(8)),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return labelAt(gtx, inv.shaper, caption, c.Ramps.Neutral.Step(600), 11, font.Font{})
+					return LabelAt(gtx, inv.shaper, caption, c.Ramps.Neutral.Step(600), 11, font.Font{})
 				}),
 			)
 		})
@@ -704,10 +726,23 @@ func (inv *inventory) layoutBlock(c tokens.ColorTokens) layout.Widget {
 
 // ── Shared drawing helpers ────────────────────────────────────────────────────
 
-// labelAt draws a one-line label with the gallery's shaper. It is the free
-// function behind [gallery.label], so that a section can be drawn without a
-// gallery — a golden test has no window and no page.
-func labelAt(gtx layout.Context, shaper *text.Shaper, s string, col color.NRGBA, size unit.Sp, f font.Font) layout.Dimensions {
+// ActionInfoIVG is the vector icon the icon section draws — the Material
+// action-info glyph, in IVG. It is exported because a surface showing the
+// icon family close up wants the same glyph the inventory shows, and two
+// copies of one blob would be two things to keep in step.
+var ActionInfoIVG = []byte{
+	0x89, 0x49, 0x56, 0x47, 0x02, 0x0a, 0x00, 0x50, 0x50, 0xb0, 0xb0, 0xc0,
+	0x80, 0x58, 0xa0, 0xf5, 0x74, 0x58, 0x58, 0xf5, 0x74, 0x58, 0x80, 0x91,
+	0xf5, 0x88, 0xa8, 0xa8, 0xa8, 0xa8, 0x0d, 0x77, 0xa8, 0x58, 0x80, 0x0d,
+	0x8b, 0x58, 0x80, 0x58, 0xe3, 0x84, 0xbc, 0xe7, 0x78, 0xe8, 0x7c, 0xe7,
+	0x88, 0xe9, 0x98, 0xe3, 0x80, 0x60, 0xe7, 0x78, 0xe9, 0x78, 0xe7, 0x88,
+	0xe9, 0x88, 0xe1,
+}
+
+// LabelAt draws a one-line label. It takes its shaper rather than owning one,
+// so a section can be drawn with whatever shaper the surface around it uses —
+// including none of a window's, which is how a capture is made.
+func LabelAt(gtx layout.Context, shaper *text.Shaper, s string, col color.NRGBA, size unit.Sp, f font.Font) layout.Dimensions {
 	m := op.Record(gtx.Ops)
 	paint.ColorOp{Color: col}.Add(gtx.Ops)
 	mat := m.Stop()

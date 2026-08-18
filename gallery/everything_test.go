@@ -15,8 +15,8 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 
+	"github.com/vibrantgio/components/gallery/inventory"
 	"github.com/vibrantgio/components/golden"
-	"github.com/vibrantgio/components/icons"
 	"github.com/vibrantgio/components/list"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -43,15 +43,10 @@ const tileHeight = 4000
 //
 // Two things differ from the running gallery, both so that the same bytes
 // come out on any machine: the shaper resolves no system fonts, and the icon
-// set is pinned to one platform rather than taken from the host. The control
-// marks are per-platform by design — a sidebar mark is drawn the way its
-// platform draws it — so an unpinned set would store a different image on a
-// Mac than on anything else.
-func testInventory(t *testing.T) *inventory {
+// set is pinned to one platform rather than taken from the host.
+func testInventory(t *testing.T) *inventory.Inventory {
 	t.Helper()
-	inv := newInventory(tokens.DefaultTypography.DeterministicShaper())
-	inv.marks = icons.New("darwin")
-	return inv
+	return inventory.NewForOS(tokens.DefaultTypography.DeterministicShaper(), "darwin")
 }
 
 // testGallery builds the window's state without a window behind it: enough
@@ -90,11 +85,11 @@ func TestGroupGoldens(t *testing.T) {
 	for _, sc := range schemes() {
 		sc := sc
 		inv := testInventory(t)
-		for _, grp := range inv.groups(sc.colors) {
+		for _, grp := range inv.Groups(sc.colors) {
 			grp := grp
-			name := fmt.Sprintf("%s-%s", groupSlug(grp.name), sc.name)
+			name := fmt.Sprintf("%s-%s", groupSlug(grp.Name), sc.name)
 			t.Run(name, func(t *testing.T) {
-				w := column(sectionItems(inv, sc.colors, grp))
+				w := inventory.Column(inv.GroupItems(sc.colors, grp))
 				total := measure(w, pageWidth, 1<<20)
 				// A group taller than one capture is stored in tiles
 				// rather than cropped: a family that fell off the
@@ -121,22 +116,22 @@ func TestEverythingRenders(t *testing.T) {
 	for _, sc := range schemes() {
 		inv := testInventory(t)
 		var items []layout.Widget
-		groups := inv.groups(sc.colors)
+		groups := inv.Groups(sc.colors)
 		if len(groups) != 4 {
 			t.Fatalf("%s: %d groups, want 4", sc.name, len(groups))
 		}
 		sections := 0
 		for _, grp := range groups {
-			if len(grp.sections) == 0 {
-				t.Errorf("%s: group %q is empty", sc.name, grp.name)
+			if len(grp.Sections) == 0 {
+				t.Errorf("%s: group %q is empty", sc.name, grp.Name)
 			}
-			sections += len(grp.sections)
-			items = append(items, sectionItems(inv, sc.colors, grp)...)
+			sections += len(grp.Sections)
+			items = append(items, inv.GroupItems(sc.colors, grp)...)
 		}
 		if sections < 30 {
 			t.Errorf("%s: %d sections, want the whole published surface", sc.name, sections)
 		}
-		size := measure(column(items), pageWidth, 1<<20)
+		size := measure(inventory.Column(items), pageWidth, 1<<20)
 		if size.Y < 4000 {
 			t.Errorf("%s: page measured %d tall, want the whole inventory", sc.name, size.Y)
 		}
@@ -184,18 +179,18 @@ func TestFrameDraws(t *testing.T) {
 func TestSectionNamesUnique(t *testing.T) {
 	inv := testInventory(t)
 	seen := map[string]bool{}
-	for _, grp := range inv.groups(tokens.DefaultLight) {
-		for _, s := range grp.sections {
-			if s.name == "" {
-				t.Errorf("group %q: a section has no name", grp.name)
+	for _, grp := range inv.Groups(tokens.DefaultLight) {
+		for _, s := range grp.Sections {
+			if s.Name == "" {
+				t.Errorf("group %q: a section has no name", grp.Name)
 			}
-			if s.title == "" {
-				t.Errorf("section %q has no title", s.name)
+			if s.Title == "" {
+				t.Errorf("section %q has no title", s.Name)
 			}
-			if seen[s.name] {
-				t.Errorf("section name %q is used twice", s.name)
+			if seen[s.Name] {
+				t.Errorf("section name %q is used twice", s.Name)
 			}
-			seen[s.name] = true
+			seen[s.Name] = true
 		}
 	}
 }
@@ -217,13 +212,8 @@ func TestEverythingDump(t *testing.T) {
 		// reports the page as having no way to change scheme.
 		items := []layout.Widget{g.pageBanner(sc.colors, "Everything",
 			"Every published family in one column, in the current theme.")}
-		sections := 0
-		for _, grp := range g.inv.groups(sc.colors) {
-			sections += len(grp.sections)
-			items = append(items, sectionItems(g.inv, sc.colors, grp)...)
-		}
-		items = append(items, pageEnd(g.shaper, sc.colors, sections))
-		w := column(items)
+		items = append(items, g.inv.Items(sc.colors)...)
+		w := inventory.Column(items)
 		total := measure(w, pageWidth, 1<<20)
 		for y, n := 0, 0; y < total.Y; y, n = y+tileHeight, n+1 {
 			h := min(tileHeight, total.Y-y)

@@ -25,6 +25,7 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/button"
+	"github.com/vibrantgio/components/gallery/inventory"
 	"github.com/vibrantgio/components/initial"
 	"github.com/vibrantgio/components/input"
 	complayout "github.com/vibrantgio/components/layout"
@@ -65,16 +66,6 @@ const (
 	pageMarkdown
 )
 
-// actionInfoIVG is the material action-info icon in IVG format.
-var actionInfoIVG = []byte{
-	0x89, 0x49, 0x56, 0x47, 0x02, 0x0a, 0x00, 0x50, 0x50, 0xb0, 0xb0, 0xc0,
-	0x80, 0x58, 0xa0, 0xf5, 0x74, 0x58, 0x58, 0xf5, 0x74, 0x58, 0x80, 0x91,
-	0xf5, 0x88, 0xa8, 0xa8, 0xa8, 0xa8, 0x0d, 0x77, 0xa8, 0x58, 0x80, 0x0d,
-	0x8b, 0x58, 0x80, 0x58, 0xe3, 0x84, 0xbc, 0xe7, 0x78, 0xe8, 0x7c, 0xe7,
-	0x88, 0xe9, 0x98, 0xe3, 0x80, 0x60, 0xe7, 0x78, 0xe9, 0x78, 0xe7, 0x88,
-	0xe9, 0x88, 0xe1,
-}
-
 type gallery struct {
 	win    *app.Window
 	shaper *text.Shaper
@@ -84,7 +75,7 @@ type gallery struct {
 	// The whole published surface, built once from static state. The
 	// everything page and the two inventory pages draw it; the per-family
 	// pages do not.
-	inv       *inventory
+	inv       *inventory.Inventory
 	dark      bool
 	schemeBtn widget.Clickable
 
@@ -189,7 +180,7 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 	for i := range g.scrollSt {
 		g.scrollSt[i] = list.NewState()
 	}
-	g.inv = newInventory(shaper)
+	g.inv = inventory.New(shaper)
 
 	// Static theme observable — emits once synchronously, so First() returns immediately.
 	th := rx.Of(theme.Default())
@@ -285,7 +276,7 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 
 	// Icon registry — register the IVG icon and obtain a render widget from it.
 	g.iconReg = icon.New()
-	g.iconReg.Register("info", icon.FromIVG(actionInfoIVG))
+	g.iconReg.Register("info", icon.FromIVG(inventory.ActionInfoIVG))
 	if ic, ok := g.iconReg.Icon("info"); ok {
 		g.ivgWidget, err = ivgraster.Widget(ic.IVG(), 64, 64)
 		if err != nil {
