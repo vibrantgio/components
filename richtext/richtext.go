@@ -52,7 +52,7 @@ import (
 )
 
 // SpanStyle describes one run of styled text within a paragraph: the span
-// model {font, weight, style, size, colour, link URL}.
+// model {font, weight, style, size, colour, link URL, chip}.
 type SpanStyle struct {
 	// Typeface names the font families to try (e.g. "Go Mono, monospace").
 	// Empty uses the shaper's default face.
@@ -75,6 +75,33 @@ type SpanStyle struct {
 	// Strikethrough draws a horizontal line through the span's glyphs in the
 	// span's text colour (e.g. GFM ~~deleted~~ text).
 	Strikethrough bool
+	// Chip sets the span on a rounded fill behind its glyphs. The zero value
+	// draws none.
+	Chip Chip
+}
+
+// Chip is the rounded fill a span may sit on: the treatment a reading surface
+// gives inline code, which needs to read as a thing quoted out of the prose
+// rather than as prose in another face.
+//
+// It cannot change the height of the line it sits in. The fill takes the
+// span's own shaped line box — the ascent and descent its face asks for at its
+// size — so a span set smaller than the prose around it sits on a chip shorter
+// than the line, and one set at the prose's own size sits on a chip the line's
+// own height. Padding is horizontal only, and it is reserved: the line's
+// wrapping counts it, so the words on either side clear the fill instead of
+// running under it.
+//
+// A chipped span wide enough to wrap carries the fill and both paddings onto
+// every line it occupies, each fragment reading as its own chip.
+type Chip struct {
+	// Color fills the chip. A zero alpha draws nothing.
+	Color color.NRGBA
+	// Padding is the horizontal space between the fill's edge and the glyphs,
+	// on each side.
+	Padding unit.Dp
+	// Radius rounds the fill's four corners.
+	Radius unit.Dp
 }
 
 // Font assembles the gio font selector from the span's typeface, slant, and

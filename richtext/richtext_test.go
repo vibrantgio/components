@@ -146,6 +146,27 @@ func TestStrikethroughIsVisuallyDistinct(t *testing.T) {
 	}
 }
 
+// TestChipIsVisuallyDistinct confirms a chipped span paints its fill:
+// different pixels from the same span without one.
+func TestChipIsVisuallyDistinct(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 100)
+	colors := tokens.DefaultLight
+	style := richtext.FromTokens(colors, tokens.DefaultTypography.BodyLarge)
+	chip := richtext.Chip{Color: colors.Ramps.Neutral.Step(200), Padding: 4, Radius: 4}
+
+	plain := golden.Capture(t, size, richtext.Render(shaper, style,
+		[]richtext.SpanStyle{{Content: "quoted"}}, richtext.Idle()))
+	chipped := golden.Capture(t, size, richtext.Render(shaper, style,
+		[]richtext.SpanStyle{{Content: "quoted", Chip: chip}}, richtext.Idle()))
+	if plain == nil || chipped == nil {
+		return // headless unavailable; Capture called t.Skip
+	}
+	if n := golden.PixelDiff(plain, chipped); n == 0 {
+		t.Error("chipped and plain spans render identically; expected the chip's fill to differ")
+	}
+}
+
 // ---- Layout tests ----
 
 func measure(shaper *text.Shaper, style richtext.Style, spans []richtext.SpanStyle, maxWidth int) layout.Dimensions {
@@ -176,6 +197,37 @@ func TestParagraphWraps(t *testing.T) {
 	}
 	if wide.Size.Y == 0 || wide.Size.X == 0 {
 		t.Errorf("wide layout has empty size %v", wide.Size)
+	}
+}
+
+// TestChipReservesItsPaddingAndNotTheLine holds a chip to both halves of its
+// contract at once. Its padding is real estate: the line grows by it, so the
+// words on either side clear the fill rather than running under it. Its fill
+// is not: the line stays exactly as tall as the span's own shaped box, so a
+// caller can set a word on a chip without anything hung beside the line —
+// a list marker, a gutter rule — moving.
+func TestChipReservesItsPaddingAndNotTheLine(t *testing.T) {
+	shaper := defaultShaper(t)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	const pad = 4
+
+	plain := measure(shaper, style, []richtext.SpanStyle{{Content: "quoted"}}, 600)
+	chipped := measure(shaper, style, []richtext.SpanStyle{{
+		Content: "quoted",
+		Chip: richtext.Chip{
+			Color:   tokens.DefaultLight.Ramps.Neutral.Step(200),
+			Padding: pad,
+			Radius:  4,
+		},
+	}}, 600)
+
+	if want := plain.Size.X + 2*pad; chipped.Size.X != want {
+		t.Errorf("a chipped span measures %d px wide, want %d (a plain %d plus %d dp of padding on each side)",
+			chipped.Size.X, want, plain.Size.X, pad)
+	}
+	if chipped.Size.Y != plain.Size.Y {
+		t.Errorf("a chipped span's line measures %d px tall against a plain one's %d; a chip takes the span's own shaped height and cannot stretch the line",
+			chipped.Size.Y, plain.Size.Y)
 	}
 }
 

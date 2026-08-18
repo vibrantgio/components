@@ -41,6 +41,15 @@ type resolvedSpan struct {
 	link    int // index in link order; -1 for non-link spans
 	url     string
 	strike  bool
+	chip    resolvedChip
+}
+
+// resolvedChip is a [Chip] in pixels. A zero-alpha colour draws none, and
+// then there is no padding to reserve either.
+type resolvedChip struct {
+	color  color.NRGBA
+	pad    int
+	radius int
 }
 
 // segment is one laid-out fragment of a span: at most one line's worth of
@@ -49,12 +58,13 @@ type resolvedSpan struct {
 type segment struct {
 	call   op.CallOp
 	x      int // offset within the line
-	width  int
+	width  int // the glyphs plus the chip's padding on both sides
 	height int
 	ascent int
 	color  color.NRGBA
 	link   int
 	strike bool
+	chip   resolvedChip
 }
 
 // resolve applies the paragraph defaults to every span, groups consecutive
@@ -97,6 +107,14 @@ func resolve(gtx layout.Context, style Style, spans []SpanStyle, rs RenderState)
 		if size == 0 {
 			size = style.Size
 		}
+		chip := resolvedChip{}
+		if s.Chip.Color.A > 0 {
+			chip = resolvedChip{
+				color:  s.Chip.Color,
+				pad:    gtx.Dp(s.Chip.Padding),
+				radius: gtx.Dp(s.Chip.Radius),
+			}
+		}
 		out = append(out, resolvedSpan{
 			font:    s.Font(),
 			size:    gtx.Sp(size),
@@ -105,6 +123,7 @@ func resolve(gtx layout.Context, style Style, spans []SpanStyle, rs RenderState)
 			link:    link,
 			url:     s.URL,
 			strike:  s.Strikethrough,
+			chip:    chip,
 		})
 	}
 	return out, nLinks
@@ -164,7 +183,14 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 			off := image.Pt(s.x, lineTop+maxAscent-s.ascent)
 
 			st := op.Offset(off).Push(gtx.Ops)
+			if s.chip.color.A > 0 {
+				drawChip(gtx, s)
+			}
+			// The glyphs sit inside the chip's padding; without a chip the
+			// offset is zero and the two coincide.
+			gt := op.Offset(image.Pt(s.chip.pad, 0)).Push(gtx.Ops)
 			s.call.Add(gtx.Ops)
+			gt.Pop()
 			if s.link >= 0 {
 				drawUnderline(gtx, s)
 			}
@@ -197,13 +223,18 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 	for i := 0; i < len(work); {
 		span := work[i]
 		remaining := maxWidth - lineWidth
-		res := layoutSpan(gtx, shaper, remaining, span)
+		// A chip's padding is reserved rather than drawn over the words
+		// beside it, so the glyphs wrap within what is left of the line after
+		// both paddings are taken out of it.
+		pad := 2 * span.chip.pad
+		res := layoutSpan(gtx, shaper, max(remaining-pad, 0), span)
+		width := res.width + pad
 
 		// The span's first segment does not fit and the line already holds
 		// content: commit the line and retry on a fresh one. (On an empty
 		// line the over-wide content is kept anyway — it will not fit on the
 		// next line either.)
-		if lineWidth > 0 && res.width > remaining {
+		if lineWidth > 0 && width > remaining {
 			commitLine()
 			continue
 		}
@@ -211,14 +242,15 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 		segs = append(segs, segment{
 			call:   res.call,
 			x:      lineWidth,
-			width:  res.width,
+			width:  width,
 			height: res.height,
 			ascent: res.ascent,
 			color:  span.color,
 			link:   span.link,
 			strike: span.strike,
+			chip:   span.chip,
 		})
-		lineWidth += res.width
+		lineWidth += width
 
 		if res.multiLine {
 			// Continue the split span on the next line.
@@ -235,6 +267,14 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 
 	overall = gtx.Constraints.Constrain(overall)
 	return layout.Dimensions{Size: overall, Baseline: overall.Y - baseline}
+}
+
+// drawChip paints the rounded fill a chipped span sits on: the segment's whole
+// box, padding included, at the span's own shaped height. Called with the
+// segment's origin as the current transform, before the glyphs.
+func drawChip(gtx layout.Context, s segment) {
+	r := image.Rectangle{Max: image.Pt(s.width, s.height)}
+	paint.FillShape(gtx.Ops, s.chip.color, clip.UniformRRect(r, s.chip.radius).Op(gtx.Ops))
 }
 
 // drawUnderline paints the link underline for one segment, in the segment's
