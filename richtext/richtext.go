@@ -121,6 +121,24 @@ type Style struct {
 	FocusColor color.NRGBA
 	// Size is the text size for spans with a zero Size.
 	Size unit.Sp
+	// LineHeight is the height of one line box — the whole box, in the CSS
+	// sense, not the gap between lines and not a multiplier. Every wrapped
+	// line occupies it whatever its glyphs measure, and the space left over
+	// after the tallest ascent and descent on the line is split evenly above
+	// and below them, half-leading fashion, on the first and last lines as
+	// much as on the ones between. A span set smaller than the paragraph —
+	// a quoted word in another face — therefore leaves the box alone: the
+	// box is the paragraph's, and the line's own metrics only decide how
+	// much leading is left to split.
+	//
+	// Zero, the default, leaves the box to the shaped metrics: each line is
+	// exactly its own tallest ascent plus descent, which is what a paragraph
+	// laid out before line heights were honoured measured.
+	//
+	// A value below the natural line is not a squeeze. There is no leading to
+	// distribute at that point, and lines drawn into a box shorter than their
+	// ink would overlap, so the metrics stand.
+	LineHeight unit.Sp
 	// OnLinkClick is called when a link is activated by pointer click or by
 	// Space/Enter while focused. The gtx argument is the layout.Context
 	// active on the frame the activation is processed (GX.8), allowing
@@ -130,13 +148,16 @@ type Style struct {
 }
 
 // FromTokens derives the default paragraph style from colour tokens and the
-// BodyLarge text style: body text in Text at body.Size, links in Primary, and
-// the focus ring in FocusRing (matching components/button's ring colour). Pass
-// tokens.DefaultTypography.BodyLarge for the default desktop look.
+// BodyLarge text style: body text in Text at body.Size, lines in the role's own
+// line height, links in Primary, and the focus ring in FocusRing (matching
+// components/button's ring colour). Pass tokens.DefaultTypography.BodyLarge for
+// the default desktop look.
 //
-// Of the role's style only Size lands in [Style]: a paragraph's typeface,
-// weight and slant are per-span properties, carried by each [SpanStyle], and
-// wrapping uses the shaped line metrics rather than a fixed line height.
+// Of the role's style Size and LineHeight land in [Style]: a paragraph's
+// typeface, weight and slant are per-span properties, carried by each
+// [SpanStyle], while the size and the line box belong to the paragraph as a
+// whole. A role that names no line height — a zero — leaves the box to the
+// shaped metrics, so a typography that carries none renders exactly as it did.
 // FromTokens takes the whole [tokens.TextStyle] anyway so the role stays one
 // value from theme to paragraph — and takes no [tokens.Density], which sizes
 // controls and so has nothing to say about a paragraph.
@@ -146,6 +167,7 @@ func FromTokens(c tokens.ColorTokens, body tokens.TextStyle) Style {
 		LinkColor:  c.Primary,
 		FocusColor: c.FocusRing(),
 		Size:       unit.Sp(body.Size),
+		LineHeight: unit.Sp(body.LineHeight),
 	}
 }
 

@@ -11,6 +11,8 @@ import (
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
 
@@ -228,6 +230,156 @@ func TestChipReservesItsPaddingAndNotTheLine(t *testing.T) {
 	if chipped.Size.Y != plain.Size.Y {
 		t.Errorf("a chipped span's line measures %d px tall against a plain one's %d; a chip takes the span's own shaped height and cannot stretch the line",
 			chipped.Size.Y, plain.Size.Y)
+	}
+}
+
+// ---- The line box ----
+
+// lineBoxProse repeats one syllable carrying a capital, an x-height letter and
+// a descender, so every line it wraps to inks the same band: from the cap tops
+// down to the descender's foot. The distance between two such bands is then the
+// pitch itself, with nothing about the words left in it.
+const lineBoxProse = "Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg"
+
+// inkBands returns the vertical extent of every run of rows carrying ink, in
+// order, as half-open [top, bottom) intervals. Ink is any pixel departing from
+// the corner colour by more than a small luminance threshold.
+func inkBands(img *image.RGBA) [][2]int {
+	b := img.Bounds()
+	lum := func(x, y int) float64 {
+		c := img.RGBAAt(x, y)
+		return 0.2126*float64(c.R) + 0.7152*float64(c.G) + 0.0722*float64(c.B)
+	}
+	bg := lum(b.Max.X-1, b.Max.Y-1)
+	var out [][2]int
+	top := -1
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		ink := false
+		for x := b.Min.X; x < b.Max.X && !ink; x++ {
+			if d := lum(x, y) - bg; d > 24 || d < -24 {
+				ink = true
+			}
+		}
+		switch {
+		case ink && top < 0:
+			top = y
+		case !ink && top >= 0:
+			out = append(out, [2]int{top, y})
+			top = -1
+		}
+	}
+	if top >= 0 {
+		out = append(out, [2]int{top, b.Max.Y})
+	}
+	return out
+}
+
+// TestWrappedLinesOccupyTheStylesLineHeight is the contract in one
+// measurement, taken off the pixels: the ink of one line to the ink of the
+// next is the style's line height, and a run of n lines is n boxes tall. Both
+// halves matter — a paragraph whose lines were spaced right but whose block
+// measured wrong would put every following block in the wrong place.
+func TestWrappedLinesOccupyTheStylesLineHeight(t *testing.T) {
+	shaper := defaultShaper(t)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	box := int(style.LineHeight)
+
+	spans := []richtext.SpanStyle{{Content: lineBoxProse}}
+	img := golden.Capture(t, image.Pt(120, 200), func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, tokens.DefaultLight.Background,
+			clip.Rect{Max: gtx.Constraints.Max}.Op())
+		return richtext.Render(shaper, style, spans, richtext.Idle())(gtx)
+	})
+	bands := inkBands(img)
+	if len(bands) < 3 {
+		t.Fatalf("scanned %d ink bands, want at least 3 (one per wrapped line): %v; the probe did not wrap", len(bands), bands)
+	}
+	for i := 1; i < len(bands); i++ {
+		if pitch := bands[i][0] - bands[i-1][0]; pitch != box {
+			t.Errorf("line %d inks %d px below line %d, want the style's %d px line height (bands %v)", i, pitch, i-1, box, bands)
+		}
+	}
+
+	one := measure(shaper, style, []richtext.SpanStyle{{Content: "Hxg"}}, 600)
+	if one.Size.Y != box {
+		t.Errorf("a single line measures %d px tall, want the %d px line box", one.Size.Y, box)
+	}
+	three := measure(shaper, style, []richtext.SpanStyle{{Content: "Hxg\nHxg\nHxg"}}, 600)
+	if three.Size.Y != 3*box {
+		t.Errorf("three lines measure %d px tall, want %d — three whole line boxes", three.Size.Y, 3*box)
+	}
+}
+
+// TestTheLeadingSplitsAboveAndBelowTheInk holds the line box to the styling
+// model the tokens are written in: the space a line has over its own metrics
+// is half-leading, split around the ink, rather than piled under it. The
+// halves are read against the same paragraph laid out with no line height at
+// all — the growth at the bottom is what the baseline gains, the growth at the
+// top is the rest — so the measurement needs no knowledge of the face.
+func TestTheLeadingSplitsAboveAndBelowTheInk(t *testing.T) {
+	shaper := defaultShaper(t)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	metrics := style
+	metrics.LineHeight = 0
+
+	spans := []richtext.SpanStyle{{Content: "Hxg"}}
+	natural := measure(shaper, style, spans, 600)
+	shaped := measure(shaper, metrics, spans, 600)
+
+	lead := natural.Size.Y - shaped.Size.Y
+	if lead <= 1 {
+		t.Fatalf("the line box adds %d px over the shaped metrics; the probe has no leading to split", lead)
+	}
+	below := natural.Baseline - shaped.Baseline
+	above := lead - below
+	if above < 0 || below < 0 || above-below < -1 || above-below > 1 {
+		t.Errorf("a %d px leading landed %d px above the ink and %d px below; half-leading splits it evenly, the odd pixel going below", lead, above, below)
+	}
+}
+
+// TestAMixedSizeSpanKeepsTheLineBox: the box belongs to the paragraph, not to
+// the tallest thing on the line. A word quoted into a line in a smaller face
+// leaves the line exactly as tall as the prose around it, so nothing hung
+// beside that line moves.
+func TestAMixedSizeSpanKeepsTheLineBox(t *testing.T) {
+	shaper := defaultShaper(t)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+
+	plain := measure(shaper, style, []richtext.SpanStyle{{Content: "quoted word here"}}, 600)
+	mixed := measure(shaper, style, []richtext.SpanStyle{
+		{Content: "quoted "},
+		{Content: "word", Size: unit.Sp(tokens.DefaultTypography.Code.Size), Typeface: "Roboto Mono"},
+		{Content: " here"},
+	}, 600)
+	if mixed.Size.Y != plain.Size.Y {
+		t.Errorf("a line holding a smaller span measures %d px tall against a plain line's %d; the line box is the paragraph's", mixed.Size.Y, plain.Size.Y)
+	}
+	if mixed.Baseline != plain.Baseline {
+		t.Errorf("a line holding a smaller span baselines %d px above its foot against a plain line's %d; the two must share a baseline", mixed.Baseline, plain.Baseline)
+	}
+}
+
+// TestAZeroLineHeightKeepsTheShapedMetrics is the escape hatch, pinned: a
+// style naming no line height lays out on ascent and descent alone, exactly as
+// a paragraph did before the box existed. So does one naming a box shorter
+// than the metrics, which has no leading to distribute and must not squeeze
+// the lines into an overlap.
+func TestAZeroLineHeightKeepsTheShapedMetrics(t *testing.T) {
+	shaper := defaultShaper(t)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	metrics := style
+	metrics.LineHeight = 0
+
+	spans := []richtext.SpanStyle{{Content: "Hxg\nHxg"}}
+	shaped := measure(shaper, metrics, spans, 600)
+	if shaped.Size.Y >= measure(shaper, style, spans, 600).Size.Y {
+		t.Fatalf("the shaped metrics measure %d px for two lines, no less than the line box does; the probe cannot tell the two apart", shaped.Size.Y)
+	}
+	tight := style
+	tight.LineHeight = 1
+	if got := measure(shaper, tight, spans, 600); got.Size.Y != shaped.Size.Y || got.Baseline != shaped.Baseline {
+		t.Errorf("a 1 sp line box laid two lines out %d px tall with baseline %d, want the shaped %d/%d; a box under the metrics leaves them alone",
+			got.Size.Y, got.Baseline, shaped.Size.Y, shaped.Baseline)
 	}
 }
 

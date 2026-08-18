@@ -9,6 +9,12 @@ package richtext
 // remainder continues on the next line. Unlike the reference, committed lines
 // are baseline-aligned: every segment on a line shares one baseline instead
 // of being top-aligned, so mixed-size spans read as one line of text.
+//
+// Committed lines also occupy the paragraph's line box rather than their own
+// shaped extent. The box is [Style].LineHeight; the surplus over the line's
+// tallest ascent and descent is split half above and half below them, which is
+// what makes the pitch between two lines the box and not the metrics, and what
+// leaves the box alone when a smaller span joins a line.
 
 import (
 	"image"
@@ -155,6 +161,12 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 	}
 
 	maxWidth := gtx.Constraints.Max.X
+	// The paragraph's line box, in pixels. Zero — the style names no line
+	// height — leaves every line its own shaped metrics.
+	lineBox := 0
+	if style.LineHeight > 0 {
+		lineBox = gtx.Sp(style.LineHeight)
+	}
 
 	var (
 		segs      []segment
@@ -176,7 +188,19 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 				maxDescent = d
 			}
 		}
-		lineTop := overall.Y
+		// Half-leading: whatever the line box has over the tallest ascent and
+		// descent on the line is split evenly around them, half above the
+		// ascent and half below the descent, so the ink sits in the middle of
+		// its box on every line including the first and the last. The half
+		// above is rounded down. A box no taller than the metrics leaves both
+		// halves zero, which is the metrics-only layout a paragraph with no
+		// line height keeps.
+		above, below := 0, 0
+		if lead := lineBox - (maxAscent + maxDescent); lead > 0 {
+			above = lead / 2
+			below = lead - above
+		}
+		lineTop := overall.Y + above
 		for _, s := range segs {
 			// Baseline-align: shift each segment down so all baselines on
 			// the line coincide at lineTop+maxAscent.
@@ -210,7 +234,7 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 			overall.X = lineWidth
 		}
 		baseline = lineTop + maxAscent
-		overall.Y = lineTop + maxAscent + maxDescent
+		overall.Y = lineTop + maxAscent + maxDescent + below
 		segs = segs[:0]
 		lineWidth = 0
 	}
