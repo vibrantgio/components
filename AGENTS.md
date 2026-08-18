@@ -18,7 +18,7 @@ as the layers above components do. Its root module imports
 `font` and `ivg` through them. Its nested `components/gallery` module adds
 `effects` and `traer` — those edges are the nested module's and not the
 root's. Imported by `effects`, `markdown` and `patterns`. Outside the tier
-table, also by all eight workbench applications. Both directions are
+table, also by all seven workbench applications. Both directions are
 measured rather than typed — `scripts/check-layers.sh --edges` reports the
 graph and `scripts/sync-agents.sh` renders these sentences from it — so
 correcting them here changes nothing.
