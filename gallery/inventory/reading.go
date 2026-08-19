@@ -11,8 +11,18 @@ import (
 	"gioui.org/layout"
 
 	"github.com/vibrantgio/markdown"
+	"github.com/vibrantgio/markdown/highlight"
 	"github.com/vibrantgio/theme/tokens"
 )
+
+// readingCodeBase names the syntax palette the sample's fence is derived
+// from. A base, not a finished style: the highlighter keeps each entry's hue
+// and chroma and re-fits the lightness against the fill this theme puts under
+// a fence, so the code is judged on the same surface the rest of the page is
+// and every ink on it clears the contrast floor. Deriving from the tokens
+// rather than naming a fixed style is also what lets the sample's code follow
+// a seed, like everything else on the page.
+const readingCodeBase = "github"
 
 // readingSample exercises, in order: the heading ladder, a paragraph carrying
 // links and inline code chips, a bullet list, an ordered list, a task list
@@ -74,6 +84,7 @@ func (inv *Inventory) Reading(c tokens.ColorTokens) []Section {
 
 func (inv *Inventory) readingBody(c tokens.ColorTokens) layout.Widget {
 	style := markdown.FromTokens(c, tokens.DefaultTypography)
+	style.Highlight = highlight.Adapt(readingCodeBase, c)
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(560))
 		// LayoutColumn rather than Layout: the document is embedded in a
