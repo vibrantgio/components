@@ -66,6 +66,12 @@ const (
 	pageMarkdown
 )
 
+// The halves of the scheme control, in the order they are laid out.
+const (
+	schemeLightSegment = iota
+	schemeDarkSegment
+)
+
 type gallery struct {
 	win    *app.Window
 	shaper *text.Shaper
@@ -75,9 +81,12 @@ type gallery struct {
 	// The whole published surface, built once from static state. The
 	// everything page and the two inventory pages draw it; the per-family
 	// pages do not.
-	inv       *inventory.Inventory
-	dark      bool
-	schemeBtn widget.Clickable
+	inv  *inventory.Inventory
+	dark bool
+	// One per segment of the scheme control, indexed by schemeLightSegment
+	// and schemeDarkSegment: each half is its own target, so a press names
+	// the scheme under it.
+	schemeBtn [2]widget.Clickable
 
 	// Interactive widgets obtained via rx.First()
 	btnLive       layout.Widget

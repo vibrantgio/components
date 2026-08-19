@@ -129,21 +129,24 @@ const codeSample = "" +
 // Reading returns the prose sections: documents laid out by the real markdown
 // renderer rather than mocked up out of labels.
 //
-// The code specimen comes first. It is the shorter of the two and the one a
-// person looking at a syntax palette came for, and a sample that has to be
-// scrolled past a page of prose to reach is a sample that gets judged by
-// whoever had the patience.
+// The code specimen comes last, and last on the whole column with it. This
+// surface is for judging a theme, and a plate of syntax at the top of it takes
+// the attention the palette, the components and the compositions are there to
+// get — a page that opens on code is a page about code. Put at the end it is
+// still the whole specimen, reached by whoever went looking for it; and a
+// caller with a reason to put it in front of somebody has [ItemIndex] to scroll
+// there, which costs one call and no reordering.
 func (inv *Inventory) Reading(c tokens.ColorTokens) []Section {
 	return []Section{{
-		Name:   codeSectionName,
-		Title:  "Markdown — a fenced code block, in the syntax palette derived from this theme",
-		Height: 620,
-		Body:   inv.codeBody(c),
-	}, {
 		Name:   "markdown-reading",
 		Title:  "Markdown — headings, links, chips, lists, tasks, a table, a quote and a code fence",
 		Height: 966,
 		Body:   inv.readingBody(c),
+	}, {
+		Name:   codeSectionName,
+		Title:  "Markdown — a fenced code block, in the syntax palette derived from this theme",
+		Height: 620,
+		Body:   inv.codeBody(c),
 	}}
 }
 

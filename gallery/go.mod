@@ -25,6 +25,7 @@ require (
 	github.com/vibrantgio/mvu v0.5.0
 	github.com/vibrantgio/patterns v0.7.0
 	github.com/vibrantgio/theme v0.7.0
+	golang.org/x/exp/shiny v0.0.0-20260727155853-b88d891fe743
 )
 
 require (
@@ -39,7 +40,6 @@ require (
 	github.com/vibrantgio/svg v0.0.9 // indirect
 	github.com/vibrantgio/traer v0.0.8 // indirect
 	github.com/yuin/goldmark v1.8.5 // indirect
-	golang.org/x/exp/shiny v0.0.0-20260727155853-b88d891fe743 // indirect
 	golang.org/x/image v0.44.0 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect

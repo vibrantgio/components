@@ -1,5 +1,5 @@
 // The column: how the sections are stacked, banded and closed off, and the
-// switch that redraws the whole of it in the other scheme.
+// control that redraws the whole of it in the other scheme.
 //
 // A section on its own is a widget. What makes the inventory readable is the
 // furniture around it — the group banner that says which module the next run
@@ -14,12 +14,15 @@ import (
 
 	"gioui.org/font"
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
+	mdicons "golang.org/x/exp/shiny/materialdesign/icons"
 
 	complayout "github.com/vibrantgio/components/layout"
+	ivgraster "github.com/vibrantgio/ivg/raster/gio"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -159,24 +162,128 @@ func Column(items []layout.Widget) layout.Widget {
 	}
 }
 
-// SchemeSwitch draws the light/dark switch as a pill carrying the scheme it
-// will show next, so what the control does is readable without pressing it.
+// The light/dark control's measurements.
+const (
+	// SchemeSegmentW is one segment's width and SchemeSwitchH the control's
+	// height. A segment is what somebody has to hit while looking at the page
+	// rather than at the control, so it is sized as a target and not shrunk to
+	// the glyph inside it.
+	SchemeSegmentW unit.Dp = 44
+	SchemeSwitchH  unit.Dp = 36
+	// SchemeSwitchW is the whole control, both segments.
+	SchemeSwitchW = 2 * SchemeSegmentW
+
+	// schemeIconSize is the glyph in a segment.
+	schemeIconSize unit.Dp = 20
+	// schemeThumbInset is how far the current segment's fill sits inside its
+	// half. The track showing all round it is what makes the pair read as one
+	// control with a marker on it rather than as two buttons that touch.
+	schemeThumbInset unit.Dp = 3
+)
+
+// SchemeSwitch draws the light/dark control: a sun and a moon side by side,
+// with the scheme on screen filled. The selected segment is the state — the
+// control says which side you are on rather than which side a press would take
+// you to, which is what every other segmented control on a desktop says.
+//
 // It paints and measures only; the press belongs to whatever surface puts it
-// on screen.
-func SchemeSwitch(shaper *text.Shaper, c tokens.ColorTokens, dark bool) layout.Widget {
-	current, next := "Light", "Dark"
-	if dark {
-		current, next = "Dark", "Light"
-	}
+// on screen, and a surface that wants one belongs on each half rather than on
+// the pair — see [SchemeSegment]. Two targets are what make the control mean
+// what it looks like: pointing at the moon asks for dark, whatever is on
+// screen, and pointing at the segment already filled asks for nothing.
+func SchemeSwitch(c tokens.ColorTokens, dark bool) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		w, h := gtx.Dp(150), gtx.Dp(34)
-		r := clip.RRect{Rect: image.Rect(0, 0, w, h), SE: h / 2, SW: h / 2, NW: h / 2, NE: h / 2}
-		paint.FillShape(gtx.Ops, c.Primary, r.Op(gtx.Ops))
-		gtx.Constraints = layout.Exact(image.Pt(w, h))
-		return complayout.InsetXY(16, 9).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return LabelAt(gtx, shaper, current+" — show "+next, c.OnPrimary, 13, font.Font{})
-		})
+		return layout.Flex{}.Layout(gtx,
+			layout.Rigid(SchemeSegment(c, false, !dark)),
+			layout.Rigid(SchemeSegment(c, true, dark)),
+		)
 	}
+}
+
+// SchemeSegment draws one half of the light/dark control on its own: the moon
+// half when dark is set and the sun half otherwise, filled when selected says
+// the scheme it names is the one on screen. Two of them laid out side by side
+// are [SchemeSwitch] — each half rounds off only its outer corners, so the
+// pair closes into one track with no seam.
+//
+// It is exported because the press belongs to the segment and not to the
+// control: a caller puts its own click area around each half and gets a
+// control that names a scheme on either side, rather than a toggle that
+// happens to be drawn as two.
+func SchemeSegment(c tokens.ColorTokens, dark, selected bool) layout.Widget {
+	ink, ground := schemeSegmentInks(c, selected)
+	glyph := schemeGlyph(dark, ink)
+	return func(gtx layout.Context) layout.Dimensions {
+		w, h := gtx.Dp(SchemeSegmentW), gtx.Dp(SchemeSwitchH)
+		r := h / 2
+		track := clip.RRect{Rect: image.Rect(0, 0, w, h), NW: r, SW: r}
+		if dark {
+			track = clip.RRect{Rect: image.Rect(0, 0, w, h), NE: r, SE: r}
+		}
+		paint.FillShape(gtx.Ops, schemeTrack(c), track.Op(gtx.Ops))
+		if selected {
+			in := gtx.Dp(schemeThumbInset)
+			thumb := clip.RRect{
+				Rect: image.Rect(in, in, w-in, h-in),
+				NW:   (h - 2*in) / 2, SW: (h - 2*in) / 2,
+				NE: (h - 2*in) / 2, SE: (h - 2*in) / 2,
+			}
+			paint.FillShape(gtx.Ops, ground, thumb.Op(gtx.Ops))
+		}
+		size := gtx.Dp(schemeIconSize)
+		off := op.Offset(image.Pt((w-size)/2, (h-size)/2)).Push(gtx.Ops)
+		gtx.Constraints = layout.Exact(image.Pt(size, size))
+		glyph(gtx)
+		off.Pop()
+		return layout.Dimensions{Size: image.Pt(w, h)}
+	}
+}
+
+// schemeTrack is the ground both segments sit on: three steps up the neutral
+// ramp from the page, which is enough to read as a control against a page that
+// is otherwise flat, and not so much that a control changed twice an hour
+// competes with what it changes.
+func schemeTrack(c tokens.ColorTokens) color.NRGBA { return c.Ramps.Neutral.Step(300) }
+
+// schemeSegmentInks returns the glyph's colour and the ground it is read
+// against, for a segment that is or is not the current one. Both come out of
+// here rather than being written at the point they are painted, so what a
+// contrast measurement reads is what the control draws.
+//
+// The current segment carries the theme's own primary pair, which is the one
+// pairing in a palette guaranteed legible; the other is a quiet neutral on the
+// track, dark enough to be read as a glyph and light enough not to be mistaken
+// for the choice that is in force.
+func schemeSegmentInks(c tokens.ColorTokens, selected bool) (ink, ground color.NRGBA) {
+	if selected {
+		return c.OnPrimary, c.Primary
+	}
+	return c.Ramps.Neutral.Step(700), schemeTrack(c)
+}
+
+// schemeGlyph returns the sun or the moon drawn in ink, from the Material set.
+// The vector carries its own colours, which on the wrong ground would be a
+// dark disc on a dark segment, so the ink is substituted on the way in.
+//
+// It is built where it is drawn rather than kept. Deciding a glyph this small
+// costs a few microseconds against a frame budget of several thousand, and a
+// cache of them would be shared mutable state in a package whose whole point
+// is that a surface is a function of the tokens it was handed.
+func schemeGlyph(dark bool, ink color.NRGBA) layout.Widget {
+	data := mdicons.ImageWBSunny
+	if dark {
+		data = mdicons.ImageBrightness2
+	}
+	w, err := ivgraster.Widget(data, schemeIconSize, schemeIconSize, ivgraster.WithColors(ink))
+	if err != nil {
+		// A glyph that will not decode leaves a blank of the right size: the
+		// control keeps its shape and its targets, which is more than a panic
+		// on a paint path would leave.
+		return func(gtx layout.Context) layout.Dimensions {
+			return layout.Dimensions{Size: gtx.Constraints.Max}
+		}
+	}
+	return w
 }
 
 // swatchBorder is the hairline a flat swatch needs to be visible against a

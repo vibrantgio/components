@@ -9,8 +9,8 @@
 //
 // The sections themselves live in the inventory package, which draws them
 // from the colour tokens it is handed and nothing else. What is here is the
-// page around them: the ground, the viewport, and the banner with the switch
-// that redraws the lot in the other scheme.
+// page around them: the ground, the viewport, and the banner with the
+// control that redraws the lot in the other scheme.
 package main
 
 import (
@@ -26,9 +26,9 @@ import (
 )
 
 // colors returns the scheme the everything page and the two inventory pages
-// are drawn in. The per-family pages predate the switch and stay on the light
+// are drawn in. The per-family pages predate the control and stay on the light
 // scheme; theirs is close-up work on one widget, and the whole-surface
-// judgment this switch serves is what the everything page is for.
+// judgment this control serves is what the everything page is for.
 func (g *gallery) colors() tokens.ColorTokens {
 	if g.dark {
 		return tokens.DefaultDark
@@ -38,8 +38,8 @@ func (g *gallery) colors() tokens.ColorTokens {
 
 // chrome returns the tokens the window's own furniture — the ground under a
 // page and the sidebar beside it — is drawn in. It follows the page: an
-// inventory page takes the scheme its switch is set to, and a per-family
-// page, which draws light-scheme widgets whatever the switch says, keeps the
+// inventory page takes the scheme its control is set to, and a per-family
+// page, which draws light-scheme widgets whatever the control says, keeps the
 // chrome on the light scheme with them.
 func (g *gallery) chrome() tokens.ColorTokens {
 	switch g.page {
@@ -73,7 +73,7 @@ func (g *gallery) pageMarkdown(gtx layout.Context) layout.Dimensions {
 	c := g.colors()
 	items := []layout.Widget{g.pageBanner(c,
 		"Markdown",
-		"A syntax specimen and a reading sample, laid out by the renderer itself.")}
+		"A reading sample and a syntax specimen, laid out by the renderer itself.")}
 	items = append(items, g.inv.GroupItems(c, inventory.Group{Name: "Markdown", Sections: g.inv.Reading(c)})...)
 	return g.scrollItems(gtx, g.scrollSt[pageMarkdown], c, items)
 }
@@ -89,11 +89,16 @@ func (g *gallery) scrollItems(gtx layout.Context, st *list.State, c tokens.Color
 }
 
 // pageBanner is the row at the top of an inventory page: what the page is,
-// and the switch that redraws it in the other scheme.
+// and the control that says which scheme it is in.
 func (g *gallery) pageBanner(c tokens.ColorTokens, title, subtitle string) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		if g.schemeBtn.Clicked(gtx) {
-			g.dark = !g.dark
+		// A segment per scheme, each naming the side it moves to. Pressing the
+		// one already filled asks for the scheme that is on screen, which is
+		// the assignment below and not a flip.
+		for seg := range g.schemeBtn {
+			if g.schemeBtn[seg].Clicked(gtx) {
+				g.dark = seg == schemeDarkSegment
+			}
 		}
 		return complayout.InsetXY(24, 20).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
@@ -109,9 +114,16 @@ func (g *gallery) pageBanner(c tokens.ColorTokens, title, subtitle string) layou
 					)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return g.schemeBtn.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return inventory.SchemeSwitch(g.shaper, c, g.dark)(gtx)
-					})
+					return layout.Flex{}.Layout(gtx,
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return g.schemeBtn[schemeLightSegment].Layout(gtx,
+								inventory.SchemeSegment(c, false, !g.dark))
+						}),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return g.schemeBtn[schemeDarkSegment].Layout(gtx,
+								inventory.SchemeSegment(c, true, g.dark))
+						}),
+					)
 				}),
 			)
 		})
