@@ -174,16 +174,26 @@ func (inv *Inventory) codeBody(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-// SetCodeBase names the syntax palette the code in these sections derives its
-// colours from — one of the highlighting package's base names. The empty
-// string, which is the value an [Inventory] starts with, means that package's
-// own default; so does a name it does not recognise.
+// SetCodeBase names one syntax palette the code in these sections derives its
+// colours from, under both appearances — one of the highlighting package's
+// base names. The empty string, which is the value an [Inventory] starts with,
+// means that package's own default; so does a name it does not recognise.
 //
 // It is a setting on the inventory rather than an argument to a section
 // because it is not a fact about a palette: the same base is derived
 // differently for every set of tokens, and the tokens are what a section is a
 // function of.
-func (inv *Inventory) SetCodeBase(name string) { inv.codeBase = name }
+func (inv *Inventory) SetCodeBase(name string) {
+	inv.SetCodeBases(highlight.BasePair{Light: name, Dark: name})
+}
+
+// SetCodeBases names a syntax palette per appearance, for a caller whose
+// person has chosen one for each: the light member colours the code while the
+// tokens are the light ones and the dark member while they are the dark ones,
+// so a change of appearance is a change of palette rather than a counterpart
+// somebody never picked. An unset member means the highlighting package's own
+// default for that appearance, as does one it does not recognise.
+func (inv *Inventory) SetCodeBases(p highlight.BasePair) { inv.codeBases = p }
 
 // highlighter derives the syntax colouring for a palette and remembers the
 // last one it made.
@@ -193,9 +203,12 @@ func (inv *Inventory) SetCodeBase(name string) { inv.codeBase = name }
 // the surface — cheap once, wasteful once per section per palette — and the
 // two things it is a function of are exactly the two things keyed on here.
 func (inv *Inventory) highlighter(c tokens.ColorTokens) markdown.Highlighter {
-	if inv.hl == nil || inv.hlColors != c || inv.hlBase != inv.codeBase {
-		inv.hl = highlight.Adapt(highlight.BaseOrDefault(inv.codeBase), c)
-		inv.hlColors, inv.hlBase = c, inv.codeBase
+	if inv.hl == nil || inv.hlColors != c || inv.hlBases != inv.codeBases {
+		inv.hl = highlight.AdaptPair(highlight.BasePair{
+			Light: highlight.BaseOrDefault(inv.codeBases.Light),
+			Dark:  highlight.BaseOrDefault(inv.codeBases.Dark),
+		}, c)
+		inv.hlColors, inv.hlBases = c, inv.codeBases
 	}
 	return inv.hl
 }

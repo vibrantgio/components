@@ -40,6 +40,7 @@ import (
 	"github.com/vibrantgio/components/scrollarea"
 	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/markdown"
+	"github.com/vibrantgio/markdown/highlight"
 	"github.com/vibrantgio/theme/tokens"
 
 	"github.com/vibrantgio/components/button"
@@ -100,13 +101,14 @@ type Inventory struct {
 	doc  *markdown.Document
 	code *markdown.Document
 
-	// The syntax palette the code sections colour through, and the last
-	// highlighter derived from it. See Inventory.highlighter: the derivation
-	// is a function of the base and the tokens, and both are keyed on.
-	codeBase string
-	hlBase   string
-	hlColors tokens.ColorTokens
-	hl       markdown.Highlighter
+	// The syntax palettes the code sections colour through — one per
+	// appearance — and the last highlighter derived from them. See
+	// Inventory.highlighter: the derivation is a function of the pair and the
+	// tokens, and both are keyed on.
+	codeBases highlight.BasePair
+	hlBases   highlight.BasePair
+	hlColors  tokens.ColorTokens
+	hl        markdown.Highlighter
 }
 
 // New builds the inventory, with the platform control marks the host draws.
