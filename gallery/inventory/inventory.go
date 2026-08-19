@@ -97,7 +97,16 @@ type Inventory struct {
 	// per frame afterwards.
 	ivg map[color.NRGBA]layout.Widget
 
-	doc *markdown.Document
+	doc  *markdown.Document
+	code *markdown.Document
+
+	// The syntax palette the code sections colour through, and the last
+	// highlighter derived from it. See Inventory.highlighter: the derivation
+	// is a function of the base and the tokens, and both are keyed on.
+	codeBase string
+	hlBase   string
+	hlColors tokens.ColorTokens
+	hl       markdown.Highlighter
 }
 
 // New builds the inventory, with the platform control marks the host draws.
@@ -117,6 +126,7 @@ func NewForOS(shaper *text.Shaper, goos string) *Inventory {
 		marks:   icons.New(goos),
 		reg:     icon.New(),
 		doc:     markdown.NewDocument(markdown.Parse([]byte(readingSample))),
+		code:    markdown.NewDocument(markdown.Parse([]byte(codeSample))),
 	}
 	inv.rows = make([]string, 40)
 	inv.bars = make([]string, 40)

@@ -42,6 +42,27 @@ func (inv *Inventory) Items(c tokens.ColorTokens) []layout.Widget {
 	return append(items, inv.PageEnd(c, total))
 }
 
+// ItemIndex returns the row [Items] puts the named section's heading on, or
+// -1 when no section has that name. It is what a caller scrolls to: the
+// column is several screens tall, and a section somebody has to find by
+// dragging is a section they judge after they have lost interest.
+//
+// The heading rather than the body, because a body arriving with its label
+// off the top of the viewport reads as a fragment of whatever was above it.
+func (inv *Inventory) ItemIndex(c tokens.ColorTokens, name string) int {
+	row := 0
+	for _, grp := range inv.Groups(c) {
+		row++ // the group's banner
+		for _, s := range grp.Sections {
+			if s.Name == name {
+				return row
+			}
+			row += 2 // the section's heading and its body
+		}
+	}
+	return -1
+}
+
 // GroupItems turns one group into the rows a column shows: a banner for the
 // group, then a header and a bounded body for each section.
 func (inv *Inventory) GroupItems(c tokens.ColorTokens, grp Group) []layout.Widget {
