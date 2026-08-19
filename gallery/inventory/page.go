@@ -129,17 +129,28 @@ func sectionHeaderRow(shaper *text.Shaper, c tokens.ColorTokens, title string) l
 	}
 }
 
+// SectionPadX and SectionPadY are the margin a section's body is laid out
+// inside: the distance from the row's own edges to the family drawn in it.
+// They are stated rather than buried because a caller that puts something of
+// its own alongside a body — in the row, beside what the row shows — has to
+// land on the same margin, and a number copied would drift the first time this
+// one moved.
+const (
+	SectionPadX unit.Dp = 24
+	SectionPadY unit.Dp = 20
+)
+
 // sectionBody lays a family out in a slot of its own. The height is the
 // section's, not the content's: several patterns expand into whatever
 // constraints they are handed, and one of those left unbounded would swallow
 // the rest of the column.
 func sectionBody(c tokens.ColorTokens, s Section) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		h := gtx.Dp(s.Height) + gtx.Dp(40)
+		h := gtx.Dp(s.Height) + gtx.Dp(2*SectionPadY)
 		full := image.Pt(gtx.Constraints.Max.X, h)
 		paint.FillShape(gtx.Ops, c.Background, clip.Rect{Max: full}.Op())
 		gtx.Constraints = layout.Exact(full)
-		return complayout.InsetXY(24, 20).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+		return complayout.InsetXY(float32(SectionPadX), float32(SectionPadY)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			gtx.Constraints.Max.Y = gtx.Dp(s.Height)
 			gtx.Constraints.Min.Y = 0
 			gtx.Constraints.Min.X = 0
