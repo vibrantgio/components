@@ -73,7 +73,7 @@ func (g *gallery) pageMarkdown(gtx layout.Context) layout.Dimensions {
 	c := g.colors()
 	items := []layout.Widget{g.pageBanner(c,
 		"Markdown",
-		"A reading sample laid out by the renderer itself.")}
+		"A syntax specimen and a reading sample, laid out by the renderer itself.")}
 	items = append(items, g.inv.GroupItems(c, inventory.Group{Name: "Markdown", Sections: g.inv.Reading(c)})...)
 	return g.scrollItems(gtx, g.scrollSt[pageMarkdown], c, items)
 }

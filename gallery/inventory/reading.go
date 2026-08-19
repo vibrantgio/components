@@ -84,6 +84,13 @@ const readingSample = "" +
 // syntax palette has to survive is code as it is actually shaped — a run of
 // keywords at the head of a line, a string wedged between two calls — and a
 // specimen arranged for the palette's convenience would flatter it.
+//
+// The comments are kept short and few, which is the one way this excerpt is
+// unlike the code it stands for. A comment is the widest run on any line it
+// is on, and a specimen written with the doc comments real code deserves puts
+// the comment colour over most of the plate — leaving the reader judging a
+// palette by the one ink it spends least effort on, with the keywords and
+// strings the choice actually turns on crowded into the margins.
 const codeSample = "" +
 	"```go\n" +
 	"// Package berth assigns vessels to the quay they fit on.\n" +
@@ -94,19 +101,17 @@ const codeSample = "" +
 	"\t\"time\"\n" +
 	")\n" +
 	"\n" +
-	"// clearance is the room a vessel is given beyond its own length.\n" +
-	"const clearance = 1.05\n" +
+	"const clearance = 1.05 // room beyond a vessel's own length\n" +
 	"\n" +
-	"// A Berth is one place along the quay, free or taken until a time.\n" +
+	"// A Berth is one place along the quay.\n" +
 	"type Berth struct {\n" +
-	"\tName   string    // as it is painted on the bollard\n" +
-	"\tLength float64   // metres, quay side\n" +
+	"\tName   string\n" +
+	"\tLength float64\n" +
 	"\tFree   bool\n" +
 	"\tUntil  time.Time\n" +
 	"}\n" +
 	"\n" +
-	"// Assign puts v in the first berth long enough to hold it, for the tide\n" +
-	"// and a day either side of it.\n" +
+	"// Assign puts v in the first berth long enough to hold it.\n" +
 	"func (q *Quay) Assign(v Vessel) (*Berth, error) {\n" +
 	"\tfor i := range q.berths {\n" +
 	"\t\tb := &q.berths[i]\n" +
@@ -114,6 +119,7 @@ const codeSample = "" +
 	"\t\t\tcontinue\n" +
 	"\t\t}\n" +
 	"\t\tb.Free, b.Until = false, time.Now().Add(72*time.Hour)\n" +
+	"\t\tq.log.Printf(\"berth %s taken (%.1f m)\", b.Name, v.Length)\n" +
 	"\t\treturn b, nil\n" +
 	"\t}\n" +
 	"\treturn nil, fmt.Errorf(\"no berth for %q at %.1f m\", v.Name, v.Length)\n" +
@@ -131,7 +137,7 @@ func (inv *Inventory) Reading(c tokens.ColorTokens) []Section {
 	return []Section{{
 		Name:   codeSectionName,
 		Title:  "Markdown — a fenced code block, in the syntax palette derived from this theme",
-		Height: 600,
+		Height: 620,
 		Body:   inv.codeBody(c),
 	}, {
 		Name:   "markdown-reading",
@@ -154,11 +160,13 @@ func CodeSectionName() string { return codeSectionName }
 func (inv *Inventory) codeBody(c tokens.ColorTokens) layout.Widget {
 	style := markdown.FromTokens(c, tokens.DefaultTypography)
 	style.Highlight = inv.highlighter(c)
+	// No measure cap, unlike the prose sample. Prose is capped because a long
+	// line of it is hard to read; code is not prose — a line wrapped or
+	// scrolled out of sight is a line the palette cannot be judged on — and a
+	// capped plate leaves its own section's heading running past it on one
+	// side, which reads as a panel that failed to fill rather than as a
+	// measure somebody chose.
 	return func(gtx layout.Context) layout.Dimensions {
-		// Wider than the prose sample: prose is capped at a comfortable
-		// measure, and code is not prose — a line wrapped or scrolled out of
-		// sight is a line the palette cannot be judged on.
-		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(640))
 		return inv.code.LayoutColumn(gtx, inv.shaper, style)
 	}
 }
