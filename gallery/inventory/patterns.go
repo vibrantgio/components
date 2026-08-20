@@ -17,6 +17,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
+	"gioui.org/widget"
 
 	"github.com/vibrantgio/components/button"
 	complayout "github.com/vibrantgio/components/layout"
@@ -50,7 +51,7 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 			Body: inv.alerts(c)},
 		{Name: "patterns-toast", Title: "Toast — the transient message at every level", Height: 170,
 			Body: inv.toasts(c)},
-		{Name: "patterns-tag", Title: "Tag — filled, tonal, success, warning, error", Height: 56,
+		{Name: "patterns-tag", Title: "Tag — filled, tonal and the three status levels, two of the five carrying the close mark every treatment can take", Height: 56,
 			Body: inv.tags(c)},
 		{Name: "patterns-card", Title: "Card — flat and elevated, header, body and footer", Height: 150,
 			Body: inv.cards(c)},
@@ -198,11 +199,45 @@ func (inv *Inventory) tags(c tokens.ColorTokens) layout.Widget {
 		{"Error", tag.Error},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
+		// The close mark rides chips already in the row rather than adding
+		// one of its own. It is not a sixth treatment — every treatment can
+		// carry it — and a sixth specimen could only be one of the five
+		// again with a mark on it, which reads as exactly the thing it is
+		// not.
+		//
+		// It rides two of them, because the mark takes the label's colour
+		// and one specimen can only show one of the two inks a chip label
+		// ever wears: the filled chip's is an on-colour over a pinned fill,
+		// a status chip's the neutral Text pin over a tint. Showing it once
+		// leaves the other half of that unproven.
+		//
+		// The status one is warning rather than error on purpose. A close
+		// mark on a red chip labelled for failure reads as "dismiss this
+		// failure" — which is what the banner and the transient message in
+		// this same library are for — and a catalogue that says the wrong
+		// thing loudly is worse than one that says less.
+		//
+		// Clicks are drained so none queues up behind a specimen: an
+		// inventory that let one dismiss itself would leave a hole where
+		// the family it demonstrates used to be.
+		for i := range inv.tagDismiss {
+			for inv.tagDismiss[i].Clicked(gtx) {
+			}
+		}
+		marked := map[int]*widget.Clickable{
+			0:                 &inv.tagDismiss[0],
+			len(variants) - 2: &inv.tagDismiss[1],
+		}
 		cs := make([]layout.FlexChild, 0, 2*len(variants))
 		for i, v := range variants {
 			v := v
 			if i > 0 {
 				cs = append(cs, layout.Rigid(complayout.HSpacer(10)))
+			}
+			if click, ok := marked[i]; ok {
+				cs = append(cs, layout.Rigid(tag.RenderDismissible(inv.shaper, v.label, v.v, click, c,
+					tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelSmall)))
+				continue
 			}
 			cs = append(cs, layout.Rigid(tag.Render(inv.shaper, v.label, v.v, c,
 				tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelSmall)))

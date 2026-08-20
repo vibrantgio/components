@@ -105,6 +105,13 @@ type Inventory struct {
 	// appearance. Which member reaches the fence is the appearance's to say;
 	// see Inventory.wear.
 	codeBases highlight.BasePair
+
+	// The dismissible chips' close targets, so the specimens are real ones
+	// the pointer and the keyboard can reach rather than drawings of a
+	// mark. Their clicks are drained and dropped: an inventory that let a
+	// specimen dismiss itself would leave a hole where the family it
+	// demonstrates used to be.
+	tagDismiss [2]widget.Clickable
 }
 
 // New builds the inventory, with the platform control marks the host draws.
