@@ -31,6 +31,7 @@ func roleChips(c tokens.ColorTokens) []struct {
 		{"Primary", c.Primary, c.OnPrimary},
 		{"Secondary", c.Secondary, c.OnSecondary},
 		{"Tertiary", c.Tertiary, c.OnTertiary},
+		{"Info", c.Info, c.OnInfo},
 		{"Success", c.Success, c.OnSuccess},
 		{"Warning", c.Warning, c.OnWarning},
 		{"Error", c.Error, c.OnError},

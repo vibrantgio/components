@@ -178,7 +178,7 @@ func (inv *Inventory) Foundations(c tokens.ColorTokens) []Section {
 			Body: inv.roleSwatches(c),
 		},
 		{
-			Name: "foundations-ramps", Title: "Palette — the functional ramps, nine steps each", Height: 190,
+			Name: "foundations-ramps", Title: "Palette — the functional ramps, nine steps each", Height: 218,
 			Body: inv.rampSwatches(c),
 		},
 		{
@@ -199,6 +199,7 @@ func (inv *Inventory) roleSwatches(c tokens.ColorTokens) layout.Widget {
 		{"Primary", c.Primary, c.OnPrimary, "Aa"},
 		{"Secondary", c.Secondary, c.OnSecondary, "Aa"},
 		{"Tertiary", c.Tertiary, c.OnTertiary, "Aa"},
+		{"Info", c.Info, c.OnInfo, "Aa"},
 		{"Success", c.Success, c.OnSuccess, "Aa"},
 		{"Warning", c.Warning, c.OnWarning, "Aa"},
 		{"Error", c.Error, c.OnError, "Aa"},
@@ -245,6 +246,7 @@ func (inv *Inventory) rampSwatches(c tokens.ColorTokens) layout.Widget {
 		{"Primary", c.Ramps.Primary},
 		{"Secondary", c.Ramps.Secondary},
 		{"Tertiary", c.Ramps.Tertiary},
+		{"Info", c.Ramps.Info},
 		{"Success", c.Ramps.Success},
 		{"Warning", c.Ramps.Warning},
 		{"Error", c.Ramps.Error},
