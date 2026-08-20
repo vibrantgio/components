@@ -114,13 +114,16 @@ func (g *gallery) pageBanner(c tokens.ColorTokens, title, subtitle string) layou
 					)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					// Each half is pressed over the target the control hands
+					// out rather than over the track it draws: the track is
+					// cut to the scale of a strip and the target is not.
 					return layout.Flex{}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.schemeBtn[schemeLightSegment].Layout(gtx,
+							return inventory.SchemeTarget(gtx, g.schemeBtn[schemeLightSegment].Layout,
 								inventory.SchemeSegment(c, false, !g.dark))
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.schemeBtn[schemeDarkSegment].Layout(gtx,
+							return inventory.SchemeTarget(gtx, g.schemeBtn[schemeDarkSegment].Layout,
 								inventory.SchemeSegment(c, true, g.dark))
 						}),
 					)
