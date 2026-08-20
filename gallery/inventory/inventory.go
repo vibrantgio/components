@@ -101,14 +101,10 @@ type Inventory struct {
 	doc  *markdown.Document
 	code *markdown.Document
 
-	// The syntax palettes the code sections colour through — one per
-	// appearance — and the last highlighter derived from them. See
-	// Inventory.highlighter: the derivation is a function of the pair and the
-	// tokens, and both are keyed on.
+	// The syntax palettes the code sections are drawn in — one per
+	// appearance. Which member reaches the fence is the appearance's to say;
+	// see Inventory.wear.
 	codeBases highlight.BasePair
-	hlBases   highlight.BasePair
-	hlColors  tokens.ColorTokens
-	hl        markdown.Highlighter
 }
 
 // New builds the inventory, with the platform control marks the host draws.

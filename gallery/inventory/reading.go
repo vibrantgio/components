@@ -144,7 +144,7 @@ func (inv *Inventory) Reading(c tokens.ColorTokens) []Section {
 		Body:   inv.readingBody(c),
 	}, {
 		Name:   codeSectionName,
-		Title:  "Markdown — a fenced code block, in the syntax palette derived from this theme",
+		Title:  "Markdown — a fenced code block, in the chosen syntax palette as its author drew it",
 		Height: 620,
 		Body:   inv.codeBody(c),
 	}}
@@ -162,7 +162,7 @@ func CodeSectionName() string { return codeSectionName }
 
 func (inv *Inventory) codeBody(c tokens.ColorTokens) layout.Widget {
 	style := markdown.FromTokens(c, tokens.DefaultTypography)
-	style.Highlight = inv.highlighter(c)
+	inv.wear(&style, c)
 	// No measure cap, unlike the prose sample. Prose is capped because a long
 	// line of it is hard to read; code is not prose — a line wrapped or
 	// scrolled out of sight is a line the palette cannot be judged on — and a
@@ -174,54 +174,45 @@ func (inv *Inventory) codeBody(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-// SetCodeBase names one syntax palette the code in these sections derives its
-// colours from, under both appearances — one of the highlighting package's
-// base names. The empty string, which is the value an [Inventory] starts with,
-// means that package's own default; so does a name it does not recognise.
+// SetCodeBase names one syntax palette the code in these sections is drawn
+// in, under both appearances — one of the highlighting package's base names.
+// The empty string, which is the value an [Inventory] starts with, means that
+// package's own default; so does a name it does not recognise.
 //
 // It is a setting on the inventory rather than an argument to a section
-// because it is not a fact about a palette: the same base is derived
-// differently for every set of tokens, and the tokens are what a section is a
-// function of.
+// because it is not a fact about a palette: which member of a base's pair
+// reaches the fence is the appearance's to say, and the tokens are what a
+// section is a function of.
 func (inv *Inventory) SetCodeBase(name string) {
 	inv.SetCodeBases(highlight.BasePair{Light: name, Dark: name})
 }
 
 // SetCodeBases names a syntax palette per appearance, for a caller whose
-// person has chosen one for each: the light member colours the code while the
+// person has chosen one for each: the light member draws the code while the
 // tokens are the light ones and the dark member while they are the dark ones,
 // so a change of appearance is a change of palette rather than a counterpart
 // somebody never picked. An unset member means the highlighting package's own
 // default for that appearance, as does one it does not recognise.
 func (inv *Inventory) SetCodeBases(p highlight.BasePair) { inv.codeBases = p }
 
-// highlighter derives the syntax colouring for a palette and remembers the
-// last one it made.
-//
-// The memo is what keeps the derivation off the path a re-theme runs down. A
-// derivation walks a base's whole entry table and re-fits every ink against
-// the surface — cheap once, wasteful once per section per palette — and the
-// two things it is a function of are exactly the two things keyed on here.
-func (inv *Inventory) highlighter(c tokens.ColorTokens) markdown.Highlighter {
-	if inv.hl == nil || inv.hlColors != c || inv.hlBases != inv.codeBases {
-		inv.hl = highlight.AdaptPair(highlight.BasePair{
-			Light: highlight.BaseOrDefault(inv.codeBases.Light),
-			Dark:  highlight.BaseOrDefault(inv.codeBases.Dark),
-		}, c)
-		inv.hlColors, inv.hlBases = c, inv.codeBases
-	}
-	return inv.hl
+// wear puts the chosen palette on st's fenced code: the appearance c
+// describes picks the member, and that member's own ground, inks and body
+// colour are what a block is drawn with. A name that no longer resolves falls
+// back to the default for its appearance rather than failing the page.
+func (inv *Inventory) wear(st *markdown.Style, c tokens.ColorTokens) {
+	highlight.WearPair(st, highlight.BasePair{
+		Light: highlight.BaseOrDefault(inv.codeBases.Light),
+		Dark:  highlight.BaseOrDefault(inv.codeBases.Dark),
+	}, c)
 }
 
 func (inv *Inventory) readingBody(c tokens.ColorTokens) layout.Widget {
 	style := markdown.FromTokens(c, tokens.DefaultTypography)
-	// The chosen base, derived rather than worn: each entry keeps its hue and
-	// chroma and takes the lightness that is legible on the fill this page
-	// puts under a fence, so the code is judged on the same surface the rest
-	// of the page is and every ink on it clears the contrast floor. Deriving
-	// from the tokens rather than naming a finished style is also what lets
-	// the sample's code follow a seed, like everything else here.
-	style.Highlight = inv.highlighter(c)
+	// The chosen base, worn whole: the fence takes the ground its author drew
+	// their inks on, and the inks as they were drawn. Everything around it —
+	// the page, the prose, the chip an inline span sits on — stays the theme's,
+	// which is what makes the two judgeable side by side on one screen.
+	inv.wear(&style, c)
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(560))
 		// LayoutColumn rather than Layout: the document is embedded in a
