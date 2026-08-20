@@ -14,6 +14,7 @@ import (
 
 	"gioui.org/font"
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
@@ -47,23 +48,27 @@ import (
 // in a slot of its own.
 func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 	return []Section{
-		{Name: "patterns-alert", Title: "Alert — info, success, warning, error", Height: 260,
+		{Name: "patterns-alert", Title: "Alert — info, success, warning, error", Height: 248,
 			Body: inv.alerts(c)},
-		{Name: "patterns-toast", Title: "Toast — the transient message at every level", Height: 170,
+		// The toast slot is the four chips and the gaps between them, plus
+		// the reach of the cast shadow under the last of them: a slot cut to
+		// the chips alone would leave the shadow to fall across the heading
+		// of the section below.
+		{Name: "patterns-toast", Title: "Toast — the transient message at every level", Height: 177,
 			Body: inv.toasts(c)},
-		{Name: "patterns-tag", Title: "Tag — filled, tonal and the three status levels, two of the five carrying the close mark every treatment can take", Height: 56,
+		{Name: "patterns-tag", Title: "Tag — filled, tonal and the three status levels, two of the five carrying the close mark every treatment can take", Height: 20,
 			Body: inv.tags(c)},
 		{Name: "patterns-card", Title: "Card — flat and elevated, header, body and footer", Height: 150,
 			Body: inv.cards(c)},
-		{Name: "patterns-accordion", Title: "Accordion — one section open, the rest closed", Height: 200,
+		{Name: "patterns-accordion", Title: "Accordion — one section open, the rest closed", Height: 240,
 			Body: inv.accordion(c)},
 		{Name: "patterns-tabs", Title: "Tabs — the second tab selected", Height: 130,
 			Body: inv.tabs(c)},
-		{Name: "patterns-breadcrumb", Title: "Breadcrumb — a trail back to the root", Height: 56,
+		{Name: "patterns-breadcrumb", Title: "Breadcrumb — a trail back to the root", Height: 20,
 			Body: inv.breadcrumb(c)},
-		{Name: "patterns-pagination", Title: "Pagination — page four of nine", Height: 64,
+		{Name: "patterns-pagination", Title: "Pagination — page four of nine", Height: 36,
 			Body: inv.pagination(c)},
-		{Name: "patterns-navbar", Title: "Navbar — brand, links and actions", Height: 72,
+		{Name: "patterns-navbar", Title: "Navbar — brand, links and actions", Height: 52,
 			Body: inv.navbar(c)},
 		{Name: "patterns-sidebar", Title: "Sidebar — expanded beside its collapsed rail", Height: 210,
 			Body: inv.sidebar(c)},
@@ -73,15 +78,15 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 			Body: inv.modal(c)},
 		{Name: "patterns-popover", Title: "Popover — a floating panel tied to its anchor", Height: 170,
 			Body: inv.popover(c)},
-		{Name: "patterns-tooltip", Title: "Tooltip — shown above its trigger", Height: 130,
+		{Name: "patterns-tooltip", Title: "Tooltip — shown above its trigger", Height: 76,
 			Body: inv.tooltip(c)},
-		{Name: "patterns-hero", Title: "Hero — eyebrow, headline, subtitle and a pair of calls to action", Height: 260,
+		{Name: "patterns-hero", Title: "Hero — eyebrow, headline, subtitle and a pair of calls to action", Height: 208,
 			Body: inv.hero(c)},
-		{Name: "patterns-feature", Title: "Feature grid — three columns of icon, title and body", Height: 190,
+		{Name: "patterns-feature", Title: "Feature grid — three columns of icon, title and body", Height: 168,
 			Body: inv.feature(c)},
-		{Name: "patterns-pricing", Title: "Pricing — three tiers, the middle one highlighted", Height: 360,
+		{Name: "patterns-pricing", Title: "Pricing — three tiers, the middle one highlighted", Height: 300,
 			Body: inv.pricing(c)},
-		{Name: "patterns-testimonial", Title: "Testimonial — a quote with its attribution", Height: 190,
+		{Name: "patterns-testimonial", Title: "Testimonial — a quote with its attribution", Height: 212,
 			Body: inv.testimonial(c)},
 		{Name: "patterns-shell", Title: "Shell — the three-column frame: sidebar, content, aside", Height: 300,
 			Body: inv.shell(c)},
@@ -174,14 +179,24 @@ func (inv *Inventory) toasts(c tokens.ColorTokens) layout.Widget {
 		{ID: 4, Level: toast.Error, Text: "Error — that image could not be read."},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
-		// The stack anchors to the corner of the box it is handed, so it is
-		// given one of its own rather than the page's. The box is left
-		// unpainted: filled, it read as a panel sized for content that was
-		// not there rather than as the corner the toasts had gathered in.
-		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(340))
+		// The stack gathers in a corner of the canvas it is handed, one edge
+		// margin in from it. A section's slot is not a canvas: its own margin
+		// already holds the specimen that distance off the page, so a canvas
+		// the size of the slot would indent the chips by two margins and drop
+		// them the same distance below the heading — which is what put this
+		// stack 84 px in from where every other specimen starts, and what ran
+		// its last chip into the section below.
+		//
+		// So the canvas is handed out one edge margin past the slot on the
+		// leading and top sides, and the stack drawn back into it. The corner
+		// the chips gather in is then the slot's own corner, and the specimen
+		// lines up with the ones above and below it.
+		edge := gtx.Dp(unit.Dp(tokens.Spacing.S4))
+		defer op.Offset(image.Pt(-edge, -edge)).Push(gtx.Ops).Pop()
+		gtx.Constraints.Max = gtx.Constraints.Max.Add(image.Pt(2*edge, 2*edge))
 		gtx.Constraints.Min = gtx.Constraints.Max
 		return toast.Render(inv.shaper, toast.Props{
-			Position: toast.TopRight,
+			Position: toast.TopLeft,
 			Shaper:   inv.shaper,
 		}, items, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelMedium)(gtx)
 	}

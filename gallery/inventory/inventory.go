@@ -59,7 +59,13 @@ type Section struct {
 	// page: several patterns expand into whatever constraints they are
 	// given, and an unbounded one would take the column with it.
 	Body layout.Widget
-	// Height is the slot the body is laid out in, in dp.
+	// Height is the slot the body is laid out in, in dp. It is what the
+	// body measures on its own, so that the row's margin is the whole of
+	// the distance between one family and the next: a slot cut short runs
+	// the family into the heading below it, and a slot left long opens a
+	// hole under it that no other section has. A body that expands into
+	// whatever it is handed measures nothing of its own, and its slot is
+	// the size the family is worth showing at.
 	Height unit.Dp
 }
 
@@ -181,7 +187,7 @@ func (inv *Inventory) Groups(c tokens.ColorTokens) []Group {
 func (inv *Inventory) Foundations(c tokens.ColorTokens) []Section {
 	return []Section{
 		{
-			Name: "foundations-roles", Title: "Palette — the scheme's semantic roles", Height: 76,
+			Name: "foundations-roles", Title: "Palette — the scheme's semantic roles", Height: 60,
 			Body: inv.roleSwatches(c),
 		},
 		{
@@ -189,7 +195,7 @@ func (inv *Inventory) Foundations(c tokens.ColorTokens) []Section {
 			Body: inv.rampSwatches(c),
 		},
 		{
-			Name: "foundations-type", Title: "Typography — every role a surface reads in", Height: 460,
+			Name: "foundations-type", Title: "Typography — every role a surface reads in", Height: 442,
 			Body: inv.typeScale(c),
 		},
 	}
@@ -358,25 +364,25 @@ func (inv *Inventory) typeScale(c tokens.ColorTokens) layout.Widget {
 // family in every state it has.
 func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 	return []Section{
-		{Name: "components-button", Title: "Button — rest, hover, focus, press, disabled", Height: 72,
+		{Name: "components-button", Title: "Button — rest, hover, focus, press, disabled", Height: 36,
 			Body: inv.buttonRow(c)},
-		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 80,
+		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 60,
 			Body: inv.textFieldRow(c)},
-		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 72,
+		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 56,
 			Body: inv.toggleRow(c)},
-		{Name: "components-dropdown", Title: "Dropdown — closed, focused, open, disabled", Height: 190,
+		{Name: "components-dropdown", Title: "Dropdown — closed, focused, open, disabled", Height: 180,
 			Body: inv.dropdownRow(c)},
 		{Name: "components-list", Title: "List — a virtual list with its scrollbar in the gutter", Height: 180,
 			Body: inv.listBlock(c)},
 		{Name: "components-scrollbar", Title: "Scrollbar — a standalone bar beside its content", Height: 180,
 			Body: inv.scrollbarBlock(c)},
-		{Name: "components-scrollarea", Title: "Scroll area — the edge dissolves while content is hidden past it", Height: 76,
+		{Name: "components-scrollarea", Title: "Scroll area — the edge dissolves while content is hidden past it", Height: 56,
 			Body: inv.scrollAreaBlock(c)},
-		{Name: "components-richtext", Title: "Rich text — weight, style, face, colour, size and links in one paragraph", Height: 130,
+		{Name: "components-richtext", Title: "Rich text — weight, style, face, colour, size and links in one paragraph", Height: 127,
 			Body: inv.richtextBlock(c)},
-		{Name: "components-icon", Title: "Icon — a vector icon and the platform control marks", Height: 76,
+		{Name: "components-icon", Title: "Icon — a vector icon and the platform control marks", Height: 62,
 			Body: inv.iconBlock(c)},
-		{Name: "components-layout", Title: "Layout — rows, columns, spacers and insets", Height: 120,
+		{Name: "components-layout", Title: "Layout — rows, columns, spacers and insets", Height: 106,
 			Body: inv.layoutBlock(c)},
 	}
 }
