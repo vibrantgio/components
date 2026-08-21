@@ -17,6 +17,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/hit"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/theme/theme"
@@ -27,8 +28,9 @@ import (
 // Emphasis is the visual weight register a button wears — how loudly it
 // competes for attention on the surface it sits on. It is a colour property
 // and nothing else: the drawn control keeps the density's size, the pointer
-// target keeps its 44 dp floor, and the focus ring is identical in every
-// register. Keyboard visibility is not an emphasis property.
+// target keeps its 44 dp floor, and the focus ring keeps its shape, width and
+// place in every register — only its rung moves, and only so far as the
+// ground under it moved. Keyboard visibility is not an emphasis property.
 //
 // Every desktop system carries this axis under its own names — MD3 has
 // filled, tonal, outlined and text; Fluent primary, standard and subtle;
@@ -428,15 +430,14 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	rrect := clip.RRect{Rect: image.Rectangle{Max: btnSize}, SE: rad, SW: rad, NE: rad, NW: rad}
 	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
 
-	// Focus ring (2 dp stroke on the background boundary). Identical in
-	// every emphasis register, by construction: FocusRing is not one of the
-	// colours buttonColors resolves. Keyboard visibility is not a loudness
-	// property, so a ghost button's ring is exactly a filled one's.
+	// Focus ring: the button's outermost 2 dp, in the primary rung that reads
+	// against the ground it circles (focus.Ring). Same shape, same width and
+	// same place in every emphasis register — keyboard visibility is not a
+	// loudness property, so a ghost button's ring is exactly a filled one's.
+	// The rung differs where the ground does, which is the only way the ring
+	// can clear its floor over a filled ground as well as an empty one.
 	if s.Focused {
-		paint.FillShape(gtx.Ops, tok.color.FocusRing(), clip.Stroke{
-			Path:  rrect.Path(gtx.Ops),
-			Width: float32(gtx.Dp(2)),
-		}.Op())
+		drawFocusRing(gtx, btnSize, rad, focus.Ring(tok.color, ringGround(tok.color, bg, s)))
 	}
 
 	// Replay the label centered within the button.
@@ -477,12 +478,9 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 	rrect := clip.RRect{Rect: image.Rectangle{Max: sz}, SE: rad, SW: rad, NE: rad, NW: rad}
 	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
 
-	// Focus ring (2 dp stroke on the background boundary), matching drawButton.
+	// Focus ring, matching drawButton.
 	if s.Focused {
-		paint.FillShape(gtx.Ops, tok.color.FocusRing(), clip.Stroke{
-			Path:  rrect.Path(gtx.Ops),
-			Width: float32(gtx.Dp(2)),
-		}.Op())
+		drawFocusRing(gtx, sz, rad, focus.Ring(tok.color, ringGround(tok.color, bg, s)))
 	}
 
 	// Glyph, centred within the padded square.
@@ -500,6 +498,58 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 		pointer.CursorPointer.Add(gtx.Ops)
 	}
 	return layout.Dimensions{Size: sz}
+}
+
+// drawFocusRing paints the focus ring of a button of size size and corner
+// radius rad: a focus.Width stroke lying inside the button's own boundary,
+// its own width clear of it, so the whole ring falls on the ground it was
+// measured against with that ground on both sides of it.
+//
+// Inside, rather than centred on the boundary the way the grey ring was. A
+// stroke centred on the edge spends half its width on the surface behind the
+// button and half on the button's own fill, and those two grounds are never
+// the same colour — so half the ring always dissolved into one of them and a
+// 2 dp ring was never wider than 1 dp anywhere.
+//
+// Clear of the edge rather than flush with it, for the same reason the
+// checkbox's ring is clear of its box: a band flush with a boundary is read
+// as that boundary — a bevel, a seam, a slightly different edge — and not as
+// a ring. It is a filled button that proves it. Its ring is the pale rung,
+// the only one that reads against the primary fill it lies on, and against
+// the page outside it measures 1.65:1: flush with the edge it merges with the
+// page on one side and looks like the button's own rim. Held clear, it has
+// the fill on both sides of it at the full measured ratio and reads as what
+// it is. The gap costs the label nothing — a button is at least the density's
+// control height and the ring rides in the padding.
+func drawFocusRing(gtx layout.Context, size image.Point, rad int, ring color.NRGBA) {
+	w := gtx.Dp(focus.Width)
+	inset := w + w/2 // stroke centreline: the band spans w..2w inside the edge
+	r := rad - inset
+	if r < 0 {
+		r = 0
+	}
+	rrect := clip.RRect{
+		Rect: image.Rectangle{
+			Min: image.Pt(inset, inset),
+			Max: image.Pt(size.X-inset, size.Y-inset),
+		},
+		SE: r, SW: r, NE: r, NW: r,
+	}
+	paint.FillShape(gtx.Ops, ring, clip.Stroke{
+		Path:  rrect.Path(gtx.Ops),
+		Width: float32(w),
+	}.Op())
+}
+
+// ringGround is the ground a focused button's ring circles: the register's own
+// background. A ghost paints none at rest, so what its ring circles is the
+// host surface showing through it — the same storey ghostGroundStep resolves
+// its wash from.
+func ringGround(c tokens.ColorTokens, bg color.NRGBA, s RenderState) color.NRGBA {
+	if bg.A == 0 {
+		return c.Ramps.Neutral.Step(ghostGroundStep(s.Ground))
+	}
+	return bg
 }
 
 // Ramp steps the quieter registers resolve against, in ADR-007's vocabulary.
@@ -569,8 +619,10 @@ const (
 // one under the pointer would hand the brand hue to the very affordance that
 // was chosen for not carrying it.
 //
-// The focus ring is not resolved here and does not vary by register: it is
-// FocusRing in every one of them, drawn by the two draw functions.
+// The focus ring is not resolved here. Its shape, width and position are the
+// same in every register (see drawFocusRing); its colour is the primary rung
+// measured against the background this function returned, which is the only
+// way one ring can read over a filled ground and an empty one alike.
 func buttonColors(c tokens.ColorTokens, s RenderState) (bg, fg color.NRGBA) {
 	state := interactionState(s)
 

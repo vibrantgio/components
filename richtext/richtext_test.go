@@ -17,7 +17,9 @@ import (
 	"gioui.org/unit"
 
 	golden "github.com/vibrantgio/components/golden"
+	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/richtext"
+	tcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -541,19 +543,35 @@ func TestLinkFocusTraversalAndKeyboardActivation(t *testing.T) {
 // ---- Token defaults ----
 
 // TestFromTokensDefaults pins the FromTokens contract: body text in Text at
-// BodyLarge, links in Primary, focus ring in FocusRing.
+// BodyLarge, links in Primary, and the focus ring in the library's one ring
+// colour — the primary rung measured against the paragraph ground it is drawn
+// on. Both schemes: the rung a light scheme walks to and the rung a dark one
+// walks to are different rungs, and a paragraph gets whichever its own tokens
+// name.
 func TestFromTokensDefaults(t *testing.T) {
-	st := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
-	if st.Color != tokens.DefaultLight.Text {
-		t.Errorf("Color = %v, want Text %v", st.Color, tokens.DefaultLight.Text)
-	}
-	if st.LinkColor != tokens.DefaultLight.Primary {
-		t.Errorf("LinkColor = %v, want Primary %v", st.LinkColor, tokens.DefaultLight.Primary)
-	}
-	if st.FocusColor != tokens.DefaultLight.FocusRing() {
-		t.Errorf("FocusColor = %v, want FocusRing %v", st.FocusColor, tokens.DefaultLight.FocusRing())
-	}
-	if st.Size != unit.Sp(tokens.DefaultTypography.BodyLarge.Size) {
-		t.Errorf("Size = %v, want BodyLarge %v", st.Size, tokens.DefaultTypography.BodyLarge.Size)
+	for _, s := range []struct {
+		name string
+		tok  tokens.ColorTokens
+	}{
+		{"light", tokens.DefaultLight},
+		{"dark", tokens.DefaultDark},
+	} {
+		st := richtext.FromTokens(s.tok, tokens.DefaultTypography.BodyLarge)
+		if st.Color != s.tok.Text {
+			t.Errorf("%s: Color = %v, want Text %v", s.name, st.Color, s.tok.Text)
+		}
+		if st.LinkColor != s.tok.Primary {
+			t.Errorf("%s: LinkColor = %v, want Primary %v", s.name, st.LinkColor, s.tok.Primary)
+		}
+		if want := focus.Ring(s.tok, s.tok.Surface); st.FocusColor != want {
+			t.Errorf("%s: FocusColor = %v, want the measured ring %v", s.name, st.FocusColor, want)
+		}
+		if got := tcolor.ContrastRatio(st.FocusColor, s.tok.Surface); got < focus.Floor {
+			t.Errorf("%s: the link ring %v measures %.2f:1 against the paragraph ground %v",
+				s.name, st.FocusColor, got, s.tok.Surface)
+		}
+		if st.Size != unit.Sp(tokens.DefaultTypography.BodyLarge.Size) {
+			t.Errorf("%s: Size = %v, want BodyLarge %v", s.name, st.Size, tokens.DefaultTypography.BodyLarge.Size)
+		}
 	}
 }

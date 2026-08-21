@@ -18,6 +18,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
@@ -335,7 +336,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	// background color. Avoids clip.Stroke anti-aliasing variance in tests.
 	borderPx := gtx.Dp(1)
 	if s.Focused {
-		borderPx = gtx.Dp(2)
+		borderPx = gtx.Dp(focus.Width)
 	}
 	innerRad := rad - borderPx
 	if innerRad < 0 {
@@ -512,7 +513,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	// background color. Avoids clip.Stroke anti-aliasing variance in tests.
 	borderPx := gtx.Dp(1)
 	if s.Focused {
-		borderPx = gtx.Dp(2)
+		borderPx = gtx.Dp(focus.Width)
 	}
 	innerRad := rad - borderPx
 	if innerRad < 0 {
@@ -542,7 +543,14 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // given state: the Surface ground, body text, ADR-007's strong-border step
 // (Neutral 500) and low-contrast-text step (Neutral 700) for the
 // placeholder. Disabled fades each to DisabledOpacity (D2.3); focus promotes
-// the border to Primary.
+// the border to the focus ring.
+//
+// The promoted border is the shape every control in the library now takes
+// when it is focused, and the colour is the one measured rule behind it: the
+// rung of the primary ramp that clears focus.Floor against the surface the
+// border circles. It used to be the bare Primary — the seed itself, which
+// reads on the default palette and measures as low as 1.00:1 against the
+// light surface once a caller supplies a seed of their own.
 func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, placeholder color.NRGBA) {
 	bg = c.Surface
 	text = c.Text
@@ -555,7 +563,7 @@ func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, pla
 		border = tokens.Disabled(border)
 		placeholder = tokens.Disabled(placeholder)
 	case s.Focused:
-		border = c.Primary
+		border = focus.Ring(c, bg)
 	}
 	return
 }

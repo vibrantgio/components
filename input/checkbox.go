@@ -11,6 +11,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/hit"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/theme/theme"
@@ -167,44 +168,64 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	}
 	boxRad := gtx.Dp(unit.Dp(tok.radius.Sm))
 
-	// Focus ring: 2dp stroke centred on the box boundary; the outer half (1dp)
-	// is visible outside the box fill and stays within the footprint.
-	// Draw first so the box overdrawing covers only the inner half.
-	if s.Focused {
-		rrect := clip.RRect{Rect: boxRect, SE: boxRad, SW: boxRad, NE: boxRad, NW: boxRad}
-		paint.FillShape(gtx.Ops, tok.color.FocusRing(), clip.Stroke{
-			Path:  rrect.Path(gtx.Ops),
-			Width: float32(gtx.Dp(2)),
-		}.Op())
+	// Border as nested fills: outer rect in border colour, inner rect in
+	// surface colour. Avoids clip.Stroke anti-aliasing variance in tests.
+	borderPx := gtx.Dp(2)
+	innerRad := boxRad - borderPx
+	if innerRad < 0 {
+		innerRad = 0
 	}
+	rrectOuter := clip.RRect{Rect: boxRect, SE: boxRad, SW: boxRad, NE: boxRad, NW: boxRad}
+	innerRect := image.Rectangle{
+		Min: image.Pt(offX+borderPx, offY+borderPx),
+		Max: image.Pt(offX+boxSz-borderPx, offY+boxSz-borderPx),
+	}
+	rrectInner := clip.RRect{Rect: innerRect, SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad}
 
 	if s.Checked {
 		fill := tok.color.Primary
 		if s.Disabled {
 			fill = tokens.Disabled(fill)
 		}
-		rrect := clip.RRect{Rect: boxRect, SE: boxRad, SW: boxRad, NE: boxRad, NW: boxRad}
-		paint.FillShape(gtx.Ops, fill, rrect.Op(gtx.Ops))
+		paint.FillShape(gtx.Ops, fill, rrectOuter.Op(gtx.Ops))
 	} else {
-		// Border as nested fills: outer rect in border colour, inner rect in
-		// surface colour. Avoids clip.Stroke anti-aliasing variance in tests.
 		border := tok.color.Ramps.Neutral.Step(500) // strong border
 		if s.Disabled {
 			border = tokens.Disabled(border)
 		}
-		borderPx := gtx.Dp(2)
-		innerRad := boxRad - borderPx
-		if innerRad < 0 {
-			innerRad = 0
-		}
-		rrectOuter := clip.RRect{Rect: boxRect, SE: boxRad, SW: boxRad, NE: boxRad, NW: boxRad}
 		paint.FillShape(gtx.Ops, border, rrectOuter.Op(gtx.Ops))
-		innerRect := image.Rectangle{
-			Min: image.Pt(offX+borderPx, offY+borderPx),
-			Max: image.Pt(offX+boxSz-borderPx, offY+boxSz-borderPx),
-		}
-		rrectInner := clip.RRect{Rect: innerRect, SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad}
 		paint.FillShape(gtx.Ops, tok.color.Surface, rrectInner.Op(gtx.Ops))
+	}
+
+	// The focus ring: focus.Width around the box, clear of it, in the primary
+	// rung that reads against the surface it lies on. It rides in the slack
+	// between the 20 dp glyph and the density's footprint, so taking focus
+	// moves nothing and the ring is the same ring whatever the box is doing.
+	//
+	// Clear of the box, and that gap is the fix. The ring used to be stroked
+	// on the box's own boundary in neutral step 500 — the exact colour of the
+	// unchecked border it landed on, 1.00:1 against the edge it was circling —
+	// and the box then overdrew its inner half, leaving one device pixel of
+	// grey against grey. A ring that touches the edge it marks cannot be read
+	// separately from it, and a checked box has no free edge to promote at
+	// all: its border is the primary fill that says it is checked. So the ring
+	// sits outside the glyph with clear ground on both sides of it, which is
+	// the one placement that reads in all four states.
+	if s.Focused && !s.Disabled {
+		w := gtx.Dp(focus.Width)
+		out := w + w/2 // stroke centreline: the band spans w..2w clear of the box
+		r := boxRad + out
+		ring := clip.RRect{
+			Rect: image.Rectangle{
+				Min: boxRect.Min.Sub(image.Pt(out, out)),
+				Max: boxRect.Max.Add(image.Pt(out, out)),
+			},
+			SE: r, SW: r, NE: r, NW: r,
+		}
+		paint.FillShape(gtx.Ops, focus.Ring(tok.color, tok.color.Surface), clip.Stroke{
+			Path:  ring.Path(gtx.Ops),
+			Width: float32(w),
+		}.Op())
 	}
 
 	return layout.Dimensions{Size: image.Pt(ctlSz, ctlSz)}

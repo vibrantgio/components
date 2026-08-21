@@ -31,6 +31,8 @@ import (
 	"gioui.org/op/paint"
 	"gioui.org/text"
 
+	"github.com/vibrantgio/components/internal/focus"
+
 	// fixed is part of Gio's text API surface (text.Parameters.PxPerEm and
 	// text.Glyph metrics are fixed.Int26_6); it is already required by
 	// gioui.org itself and introduces no new third-party dependency.
@@ -327,17 +329,32 @@ func drawStrikethrough(gtx layout.Context, s segment) {
 }
 
 // drawFocusRing paints the visible keyboard-focus ring around a focused link
-// segment: a 2 dp stroke in style.FocusColor, padded 2 dp clear of the
-// glyphs, matching components/button's ring treatment.
+// segment: a stroke of the library's ring width in style.FocusColor, padded
+// the same distance clear of the glyphs.
+//
+// A link has neither fill nor border to promote, so its ring is drawn beside
+// the ink rather than at an edge — and the pad is what keeps that the same
+// idiom rather than a second one. The ring and the link ink are both primary,
+// close in depth, and a ring laid straight onto the glyphs would read as a
+// box around a word in one colour; the clear ground between them is what
+// separates the ring from the thing it circles, and it is that ground the
+// ring's contrast is measured against.
 func drawFocusRing(gtx layout.Context, style Style, off image.Point, s segment) {
-	pad := gtx.Dp(2)
+	w := gtx.Dp(focus.Width)
+	pad := w
 	r := image.Rectangle{
 		Min: off.Sub(image.Pt(pad, pad)),
 		Max: off.Add(image.Pt(s.width+pad, s.height+pad)),
 	}
+	// Corners turn at the ring's own width. Every other ring in the library
+	// takes the corner of the control it marks, and a paragraph has none to
+	// take — but a square-cornered box around a word does not read as one of
+	// the same family; it reads as a selection or a debug outline. Rounding by
+	// the stroke width is the one radius the ring can name out of itself.
+	rr := clip.RRect{Rect: r, SE: w, SW: w, NE: w, NW: w}
 	paint.FillShape(gtx.Ops, style.FocusColor, clip.Stroke{
-		Path:  clip.Rect(r).Path(),
-		Width: float32(gtx.Dp(2)),
+		Path:  rr.Path(gtx.Ops),
+		Width: float32(w),
 	}.Op())
 }
 

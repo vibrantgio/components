@@ -48,6 +48,7 @@ import (
 	"gioui.org/text"
 	"gioui.org/unit"
 
+	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -149,9 +150,11 @@ type Style struct {
 
 // FromTokens derives the default paragraph style from colour tokens and the
 // BodyLarge text style: body text in Text at body.Size, lines in the role's own
-// line height, links in Primary, and the focus ring in FocusRing (matching
-// components/button's ring colour). Pass tokens.DefaultTypography.BodyLarge for
-// the default desktop look.
+// line height, links in Primary, and the focus ring in the one colour every
+// control in this library rings a focused element with — the rung of the
+// primary ramp measured to clear the non-text contrast floor against the
+// paragraph ground the ring is drawn on. Pass
+// tokens.DefaultTypography.BodyLarge for the default desktop look.
 //
 // Of the role's style Size and LineHeight land in [Style]: a paragraph's
 // typeface, weight and slant are per-span properties, carried by each
@@ -165,7 +168,7 @@ func FromTokens(c tokens.ColorTokens, body tokens.TextStyle) Style {
 	return Style{
 		Color:      c.Text,
 		LinkColor:  c.Primary,
-		FocusColor: c.FocusRing(),
+		FocusColor: focus.Ring(c, c.Surface),
 		Size:       unit.Sp(body.Size),
 		LineHeight: unit.Sp(body.LineHeight),
 	}

@@ -11,6 +11,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/hit"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/theme/theme"
@@ -166,50 +167,57 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	}
 
 	borderPx := gtx.Dp(2)
-
-	// Focus ring: 2dp stroke centred on the circle boundary; the outer half
-	// (1dp) is visible outside the circle fill and stays within the
-	// footprint. Draw first so the circle overdrawing covers only the inner half.
-	if s.Focused {
-		paint.FillShape(gtx.Ops, tok.color.FocusRing(), clip.Stroke{
-			Path:  clip.Ellipse(outerRect).Path(gtx.Ops),
-			Width: float32(gtx.Dp(2)),
-		}.Op())
+	innerRect := image.Rectangle{
+		Min: image.Pt(outerRect.Min.X+borderPx, outerRect.Min.Y+borderPx),
+		Max: image.Pt(outerRect.Max.X-borderPx, outerRect.Max.Y-borderPx),
 	}
 
+	// Outer ellipse in the edge colour, surface gap, and — when selected — the
+	// dot. Nested fills avoid clip.Stroke anti-aliasing variance in tests.
+	edge := tok.color.Ramps.Neutral.Step(500) // strong border
+	if s.Selected {
+		edge = tok.color.Primary
+	}
+	if s.Disabled {
+		edge = tokens.Disabled(edge)
+	}
+	paint.FillShape(gtx.Ops, edge, clip.Ellipse(outerRect).Op(gtx.Ops))
+	paint.FillShape(gtx.Ops, tok.color.Surface, clip.Ellipse(innerRect).Op(gtx.Ops))
 	if s.Selected {
 		fill := tok.color.Primary
 		if s.Disabled {
 			fill = tokens.Disabled(fill)
 		}
-		// Outer ring in primary, surface gap, inner dot in primary.
-		// Nested-fill technique avoids clip.Stroke anti-aliasing variance.
-		paint.FillShape(gtx.Ops, fill, clip.Ellipse(outerRect).Op(gtx.Ops))
-		innerRect := image.Rectangle{
-			Min: image.Pt(outerRect.Min.X+borderPx, outerRect.Min.Y+borderPx),
-			Max: image.Pt(outerRect.Max.X-borderPx, outerRect.Max.Y-borderPx),
-		}
-		paint.FillShape(gtx.Ops, tok.color.Surface, clip.Ellipse(innerRect).Op(gtx.Ops))
 		dotSz := gtx.Dp(radioDotSize)
 		dotRect := image.Rectangle{
 			Min: image.Pt(cx-dotSz/2, cy-dotSz/2),
 			Max: image.Pt(cx+dotSz/2, cy+dotSz/2),
 		}
 		paint.FillShape(gtx.Ops, fill, clip.Ellipse(dotRect).Op(gtx.Ops))
-	} else {
-		// Border as nested fills: outer ellipse in border colour, inner
-		// ellipse in surface colour. Avoids clip.Stroke anti-aliasing
-		// variance in tests.
-		border := tok.color.Ramps.Neutral.Step(500) // strong border
-		if s.Disabled {
-			border = tokens.Disabled(border)
+	}
+
+	// The focus ring, drawn exactly as the checkbox draws it: focus.Width
+	// around the glyph, clear of it, in the primary rung that reads against
+	// the surface, riding in the slack between the 20 dp circle and the
+	// density's footprint.
+	//
+	// A selected radio is why the ring cannot be the circle's own edge. That
+	// edge is already primary — it is what says the radio is chosen — so
+	// recolouring it on focus moves primary to a neighbouring rung of primary
+	// — 1.48:1 apart on the default palette — and a focused chosen radio comes
+	// out indistinguishable from an unfocused one. Clear of the glyph, the
+	// ring is a mark the glyph does not already carry, in any state.
+	if s.Focused && !s.Disabled {
+		w := gtx.Dp(focus.Width)
+		out := w + w/2 // stroke centreline: the band spans w..2w clear of the circle
+		ring := image.Rectangle{
+			Min: outerRect.Min.Sub(image.Pt(out, out)),
+			Max: outerRect.Max.Add(image.Pt(out, out)),
 		}
-		paint.FillShape(gtx.Ops, border, clip.Ellipse(outerRect).Op(gtx.Ops))
-		innerRect := image.Rectangle{
-			Min: image.Pt(outerRect.Min.X+borderPx, outerRect.Min.Y+borderPx),
-			Max: image.Pt(outerRect.Max.X-borderPx, outerRect.Max.Y-borderPx),
-		}
-		paint.FillShape(gtx.Ops, tok.color.Surface, clip.Ellipse(innerRect).Op(gtx.Ops))
+		paint.FillShape(gtx.Ops, focus.Ring(tok.color, tok.color.Surface), clip.Stroke{
+			Path:  clip.Ellipse(ring).Path(gtx.Ops),
+			Width: float32(w),
+		}.Op())
 	}
 
 	return layout.Dimensions{Size: image.Pt(ctlSz, ctlSz)}

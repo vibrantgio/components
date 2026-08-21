@@ -21,6 +21,8 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/button"
 	golden "github.com/vibrantgio/components/golden"
+	"github.com/vibrantgio/components/internal/focus"
+	tcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -324,57 +326,131 @@ func TestGhostRestsTransparent(t *testing.T) {
 	}
 }
 
-// TestFocusRingIsIdenticalInEveryRegister is the pixel proof of the rule that
-// keyboard visibility does not scale down with emphasis: the set of pixels
-// painted in the focus-ring colour is exactly the same set in all three
-// registers, so a ghost button's ring is neither thinner, dimmer nor smaller
-// than a filled one's.
-func TestFocusRingIsIdenticalInEveryRegister(t *testing.T) {
-	size := image.Pt(60, 60)
-	colors := tokens.DefaultLight
-	ring := colors.FocusRing()
-	want := color.RGBA{R: ring.R, G: ring.G, B: ring.B, A: ring.A} // opaque: NRGBA == RGBA
+// ringGround is the ground a focused button's ring circles, per register:
+// the register's own resting background, and — for the ghost, which paints
+// none — the host surface showing through it. It is the test's own copy of
+// the rule drawButton applies, kept here so the assertion below measures the
+// ring against a ground stated independently of the code that painted it.
+func ringGround(c tokens.ColorTokens, e button.Emphasis) color.NRGBA {
+	switch e {
+	case button.Tonal:
+		return c.StateColor(tokens.RolePrimary, 200, tokens.StateFocus)
+	case button.Ghost:
+		return c.Ramps.Neutral.Step(200) // the level-1 surface a ghost assumes
+	default:
+		return c.SolidStateColor(tokens.RolePrimary, tokens.StateFocus)
+	}
+}
 
-	mask := func(e button.Emphasis) (pixels map[image.Point]bool, ok bool) {
-		img := golden.Capture(t, size, onGround(colors, button.RenderIcon(
-			crossIcon, colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
-			button.RenderState{Emphasis: e, Focused: true},
-		)))
-		if img == nil {
-			return nil, false
+// TestFocusRingIsTheSameRingInEveryRegister is the pixel proof of the rule
+// that keyboard visibility does not scale down with emphasis: the ring is the
+// same shape, in the same place, at the same width in all three registers, and
+// in each of them it reaches the non-text contrast floor against the ground it
+// circles. So a ghost button's ring is neither thinner, dimmer nor smaller
+// than a filled one's.
+//
+// What the registers do not share is the rung, and asserting one flat colour
+// across all three is what this test used to do. It cannot be asked for and
+// have the ring read as well: a filled button's ring circles the primary fill
+// and a ghost's circles the surface, and no single rung of the primary ramp
+// clears 3:1 against both. Sameness belongs to the ring's geometry; the rung
+// belongs to the ground.
+//
+// The geometry is stated here rather than compared between registers — the
+// outermost ring.Width dp of the button's own square, and nothing outside it
+// — so "the same ring" is a claim about a band written down once and held by
+// all three, and the ring's containment in the footprint is held too. The four
+// corner pixels are excused: a stroke's corner is anti-aliased against
+// whatever is behind it, which is a different colour in every register.
+//
+// Both schemes, because a light scheme's ring walks down its ramp from the
+// mid-value rung and a dark scheme's walks up.
+func TestFocusRingIsTheSameRingInEveryRegister(t *testing.T) {
+	size := image.Pt(60, 60)
+	side := int(tokens.Comfortable.ControlHeight) // 1 px per dp in the harness
+	w := int(focus.Width)
+
+	// onBand reports whether p is in the ring's band — the square annulus
+	// spanning w to 2w inside the button's own edge, the ring held its own
+	// width clear of that edge — and whether it is one of the anti-aliased
+	// corners the colour check excuses.
+	onBand := func(p image.Point) (band, corner bool) {
+		if p.X < 0 || p.Y < 0 || p.X >= side || p.Y >= side {
+			return false, false
 		}
-		pixels = map[image.Point]bool{}
-		b := img.Bounds()
-		for y := b.Min.Y; y < b.Max.Y; y++ {
-			for x := b.Min.X; x < b.Max.X; x++ {
-				if img.RGBAAt(x, y) == want {
-					pixels[image.Pt(x, y)] = true
+		inX := p.X >= w && p.X < side-w
+		inY := p.Y >= w && p.Y < side-w
+		if !inX || !inY {
+			return false, false // the clear gap, or the surface beyond it
+		}
+		edgeX := p.X < 2*w || p.X >= side-2*w
+		edgeY := p.Y < 2*w || p.Y >= side-2*w
+		return edgeX || edgeY, edgeX && edgeY
+	}
+
+	for _, scheme := range []struct {
+		name   string
+		colors tokens.ColorTokens
+	}{
+		{"light", tokens.DefaultLight},
+		{"dark", tokens.DefaultDark},
+	} {
+		colors := scheme.colors
+		for _, e := range []button.Emphasis{button.Filled, button.Tonal, button.Ghost} {
+			// The rung this register's ring lands on must reach the floor
+			// against the ground it circles.
+			ground := ringGround(colors, e)
+			ring := focus.Ring(colors, ground)
+			if got := tcolor.ContrastRatio(ring, ground); got < focus.Floor {
+				t.Errorf("%s %s: ring %v measures %.2f:1 against the ground it circles %v",
+					scheme.name, e, ring, got, ground)
+			}
+
+			img := golden.Capture(t, size, onGround(colors, button.RenderIcon(
+				crossIcon, colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
+				button.RenderState{Emphasis: e, Focused: true},
+			)))
+			missing, leaked := 0, 0
+			b := img.Bounds()
+			for y := b.Min.Y; y < b.Max.Y; y++ {
+				for x := b.Min.X; x < b.Max.X; x++ {
+					p := image.Pt(x, y)
+					band, corner := onBand(p)
+					isRing := nearlyEqual(img.RGBAAt(x, y), ring)
+					switch {
+					case band && !corner && !isRing:
+						missing++
+					case !band && isRing:
+						leaked++
+					}
 				}
 			}
-		}
-		return pixels, true
-	}
-
-	base, ok := mask(button.Filled)
-	if !ok {
-		return // headless unavailable
-	}
-	if len(base) == 0 {
-		t.Fatalf("no pixels in the focus-ring colour %v; the test cannot see the ring", want)
-	}
-	for _, e := range []button.Emphasis{button.Tonal, button.Ghost} {
-		got, _ := mask(e)
-		if len(got) != len(base) {
-			t.Errorf("%s: %d focus-ring pixels, filled has %d", e, len(got), len(base))
-			continue
-		}
-		for p := range base {
-			if !got[p] {
-				t.Errorf("%s: focus ring missing at %v", e, p)
-				break
+			if missing > 0 {
+				t.Errorf("%s %s: %d pixels of the ring's band are not the ring colour %v",
+					scheme.name, e, missing, ring)
+			}
+			if leaked > 0 {
+				t.Errorf("%s %s: %d pixels in the ring colour %v fall outside the ring's band",
+					scheme.name, e, leaked, ring)
 			}
 		}
 	}
+}
+
+// nearlyEqual reports whether a captured pixel is the given token colour, to
+// within the three units per channel the GPU's own rounding moves a flat fill
+// by: a solid band comes back with its last row or column a step or three off
+// in one channel. Nothing else drawn on these canvases is within an order of
+// that distance from the ring, so the slack costs the assertion nothing.
+func nearlyEqual(got color.RGBA, want color.NRGBA) bool {
+	const slack = 3
+	off := func(a, b uint8) bool {
+		if a > b {
+			return a-b > slack
+		}
+		return b-a > slack
+	}
+	return !off(got.R, want.R) && !off(got.G, want.G) && !off(got.B, want.B) && got.A == want.A
 }
 
 // TestGhostIconButtonKeepsFullHitTarget is the rule the modal's close button

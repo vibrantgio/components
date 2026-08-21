@@ -23,9 +23,10 @@
 // pinned solid fill for filled, the primary ramp's tinted 200 ground under
 // its 900 text for tonal, no ground at all under the neutral ramp's 700 text
 // for ghost, with the tinted walk supplying hover and press in each). The
-// drawn size, the 44 dp pointer floor and the focus ring are identical in
-// all three — a quiet button is quiet, not small, and not harder to see with
-// a keyboard. The zero value is Filled, so nothing written before the axis
+// drawn size and the 44 dp pointer floor are identical in all three, and so
+// is the focus ring's shape, width and place — only its rung moves, and only
+// so far as the ground under it moved. A quiet button is quiet, not small,
+// and not harder to see with a keyboard. The zero value is Filled, so nothing written before the axis
 // existed renders differently.
 //
 // Three things it assumes. Interaction state is allocated inside the

@@ -15,6 +15,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/hit"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/theme/theme"
@@ -339,16 +340,19 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	if s.Disabled {
 		bg = tokens.Disabled(bg)
 	}
+	// Focus promotes the trigger's border to the focus ring, the one idiom
+	// every control in the library wears: the primary rung measured to clear
+	// focus.Floor against the ground inside the border.
 	borderCol := tok.color.Ramps.Neutral.Step(500) // strong border
 	if s.Focused {
-		borderCol = tok.color.Primary
+		borderCol = focus.Ring(tok.color, bg)
 	}
 	if s.Disabled {
 		borderCol = tokens.Disabled(tok.color.Ramps.Neutral.Step(500))
 	}
 	borderPx := gtx.Dp(1)
 	if s.Focused {
-		borderPx = gtx.Dp(2)
+		borderPx = gtx.Dp(focus.Width)
 	}
 	innerRad := rad - borderPx
 	if innerRad < 0 {

@@ -2,6 +2,7 @@ package input_test
 
 import (
 	"image"
+	stdcolor "image/color"
 	"testing"
 
 	"gioui.org/f32"
@@ -14,6 +15,8 @@ import (
 	"github.com/reactivego/rx"
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/input"
+	"github.com/vibrantgio/components/internal/focus"
+	tcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -171,4 +174,109 @@ func TestCheckboxFocusRingIsVisuallyDistinct(t *testing.T) {
 	if n := golden.PixelDiff(imgNormal, imgFocused); n == 0 {
 		t.Error("focused and normal checkboxes render identically; expected focus ring pixels to differ")
 	}
+}
+
+// TestFocusIsVisibleOnEveryControlInEveryState is the walkthrough defect,
+// written down. A focused checkbox and a focused radio used to show no ring
+// at all, and the code and the eye were both right about why: a ring was
+// stroked, in neutral step 500, on the boundary of a box whose border is
+// neutral step 500 — 1.00:1 against the very edge it was circling — and the
+// box then overdrew its inner half, so the one thing that escaped was a
+// single device pixel of grey against grey.
+//
+// Colour alone would not have fixed it either, and the chosen radio is the
+// proof: its edge is already primary, so promoting that edge on focus moves
+// primary to a neighbouring rung of primary and a chosen radio looks the same
+// focused as unfocused. So the assertion is the one that catches both: the
+// ring colour is absent from the resting control and present in the focused
+// one — in every state each control has, in both schemes.
+func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
+	size := image.Pt(44, 44)
+	shaper := defaultShaper(t)
+
+	for _, scheme := range []struct {
+		name   string
+		colors tokens.ColorTokens
+	}{
+		{"light", tokens.DefaultLight},
+		{"dark", tokens.DefaultDark},
+	} {
+		c := scheme.colors
+		ring := focus.Ring(c, c.Surface)
+		if got := tcolor.ContrastRatio(ring, c.Surface); got < focus.Floor {
+			t.Errorf("%s: ring %v measures %.2f:1 against the surface it lies on %v",
+				scheme.name, ring, got, c.Surface)
+		}
+
+		count := func(sz image.Point, w layout.Widget) int {
+			img := golden.Capture(t, sz, w)
+			n := 0
+			b := img.Bounds()
+			for y := b.Min.Y; y < b.Max.Y; y++ {
+				for x := b.Min.X; x < b.Max.X; x++ {
+					if nearlyEqual(img.RGBAAt(x, y), ring) {
+						n++
+					}
+				}
+			}
+			return n
+		}
+
+		for _, control := range []struct {
+			name  string
+			size  image.Point
+			idle  layout.Widget
+			focus layout.Widget
+		}{
+			{"checkbox unchecked", size,
+				input.RenderCheckbox(c, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{}),
+				input.RenderCheckbox(c, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Focused: true})},
+			{"checkbox checked", size,
+				input.RenderCheckbox(c, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Checked: true}),
+				input.RenderCheckbox(c, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Checked: true, Focused: true})},
+			{"radio unselected", size,
+				input.RenderRadio(c, tokens.Spacing, tokens.Radius, input.RadioRenderState{}),
+				input.RenderRadio(c, tokens.Spacing, tokens.Radius, input.RadioRenderState{Focused: true})},
+			{"radio selected", size,
+				input.RenderRadio(c, tokens.Spacing, tokens.Radius, input.RadioRenderState{Selected: true}),
+				input.RenderRadio(c, tokens.Spacing, tokens.Radius, input.RadioRenderState{Selected: true, Focused: true})},
+			{"text field", image.Pt(300, 60),
+				input.Render(shaper, "you@example.com", c, tokens.Spacing, tokens.Radius,
+					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{}),
+				input.Render(shaper, "you@example.com", c, tokens.Spacing, tokens.Radius,
+					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{Focused: true})},
+			{"dropdown trigger", image.Pt(200, 44),
+				input.RenderDropdown(shaper, c, tokens.Spacing, tokens.Radius,
+					tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+					input.DropdownRenderState{Options: []string{"One", "Two"}}),
+				input.RenderDropdown(shaper, c, tokens.Spacing, tokens.Radius,
+					tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+					input.DropdownRenderState{Focused: true, Options: []string{"One", "Two"}})},
+		} {
+			if n := count(control.size, control.idle); n != 0 {
+				t.Errorf("%s %s: %d pixels of the ring colour %v with nothing focused",
+					scheme.name, control.name, n, ring)
+			}
+			if n := count(control.size, control.focus); n == 0 {
+				t.Errorf("%s %s: focused, and not one pixel of the ring colour %v",
+					scheme.name, control.name, ring)
+			}
+		}
+	}
+}
+
+// nearlyEqual reports whether a captured pixel is the given token colour, to
+// within the three units per channel the GPU's own rounding moves a flat fill
+// by. The colours compared against here — the ring's rung and the neutral
+// border it replaces — are nowhere near each other, so the slack costs
+// nothing.
+func nearlyEqual(got stdcolor.RGBA, want stdcolor.NRGBA) bool {
+	const slack = 3
+	off := func(a, b uint8) bool {
+		if a > b {
+			return a-b > slack
+		}
+		return b-a > slack
+	}
+	return !off(got.R, want.R) && !off(got.G, want.G) && !off(got.B, want.B) && got.A == want.A
 }
