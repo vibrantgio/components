@@ -21,10 +21,10 @@ require (
 	github.com/vibrantgio/components v0.9.2
 	github.com/vibrantgio/effects v0.2.0
 	github.com/vibrantgio/ivg/raster/gio v0.1.6
-	github.com/vibrantgio/markdown v0.4.0
+	github.com/vibrantgio/markdown v0.5.0
 	github.com/vibrantgio/mvu v0.5.0
-	github.com/vibrantgio/patterns v0.7.0
-	github.com/vibrantgio/theme v0.7.0
+	github.com/vibrantgio/patterns v0.8.0
+	github.com/vibrantgio/theme v0.8.0
 	golang.org/x/exp/shiny v0.0.0-20260727155853-b88d891fe743
 )
 
