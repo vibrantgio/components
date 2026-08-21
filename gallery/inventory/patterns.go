@@ -74,7 +74,7 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 			Body: inv.sidebar(c)},
 		{Name: "patterns-table", Title: "Table — sortable columns, sorted ascending on the first", Height: 176,
 			Body: inv.table(c)},
-		{Name: "patterns-modal", Title: "Modal — the decision, which has no way out but an answer, and the panel, which closes on the mark at its top right", Height: 260,
+		{Name: "patterns-modal", Title: "Modal — a decision answered from its footer, and a panel closed from the mark at its corner", Height: 260,
 			Body: inv.modal(c)},
 		{Name: "patterns-popover", Title: "Popover — a floating panel tied to its anchor", Height: 170,
 			Body: inv.popover(c)},
@@ -436,14 +436,16 @@ const modalGap = 24
 func (inv *Inventory) modal(c tokens.ColorTokens) layout.Widget {
 	// Two archetypes, side by side, because they are told apart by their
 	// affordances and one of them alone shows only half of that. The
-	// decision is a question with no exit but an answer — footer actions,
-	// no mark at its corner, a scrim that absorbs a stray click without
-	// acting on it. The panel is a place, and every cheap way out of it is
-	// offered: the mark at the top right, the key, the scrim.
+	// decision answers from its footer and carries no mark at its corner;
+	// its scrim absorbs a stray click without acting on it, because
+	// dismissal is one of the answers. The panel is a place, and every cheap
+	// way out of it is offered at once: the mark, the key and the scrim.
 	//
-	// Which one a caller gets is derived from whether it states a decision,
-	// so the pair also shows that the mark and the footer are not two
-	// checkboxes that could both be ticked.
+	// Neither is a modal you cannot leave from the keyboard — both bind the
+	// dismissing key, which is why neither body below tells a reader to
+	// reach for the pointer. Which archetype a caller gets is derived from
+	// whether it states a decision, so the pair also shows that the mark and
+	// the footer are not two checkboxes that could both be ticked.
 	decision := modal.Props{
 		Title: "Discard this theme?",
 		Body: inv.prose(c,
@@ -465,23 +467,27 @@ func (inv *Inventory) modal(c tokens.ColorTokens) layout.Widget {
 	}
 	// No Decision and no Actions: the panel's changes apply as they are
 	// made, which is what leaves it nothing to ask and nothing to put in a
-	// footer — and what makes the mark at its corner the whole of its
-	// dismissal.
+	// footer, and what lets it be left at any moment.
+	//
+	// Its body says that and stops. A line telling the reader which corner to
+	// click would be a specimen's copy carrying its own layout: the mark
+	// moves for a mirrored reading direction and the sentence would not, and
+	// the panel has two other ways out that no corner names.
 	panel := modal.Props{
 		Title: "Theme settings",
 		Body: inv.prose(c,
 			"Every change here applies as you make it.",
-			"Leave it by the mark at the top right.",
+			"Nothing to confirm, so there is no footer.",
 		),
 		Shaper: inv.shaper,
 	}
-	return layout.Widget(func(gtx layout.Context) layout.Dimensions {
+	return func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{}.Layout(gtx,
 			layout.Flexed(1, inv.modalScrim(c, decision)),
 			layout.Rigid(complayout.HSpacer(modalGap)),
 			layout.Flexed(1, inv.modalScrim(c, panel)),
 		)
-	})
+	}
 }
 
 // modalScrim draws one dialog over a scrim of its own.
