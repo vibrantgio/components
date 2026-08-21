@@ -74,7 +74,7 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 			Body: inv.sidebar(c)},
 		{Name: "patterns-table", Title: "Table — sortable columns, sorted ascending on the first", Height: 176,
 			Body: inv.table(c)},
-		{Name: "patterns-modal", Title: "Modal — a decision dialog over its scrim", Height: 260,
+		{Name: "patterns-modal", Title: "Modal — the decision, which has no way out but an answer, and the panel, which closes on the mark at its top right", Height: 260,
 			Body: inv.modal(c)},
 		{Name: "patterns-popover", Title: "Popover — a floating panel tied to its anchor", Height: 170,
 			Body: inv.popover(c)},
@@ -428,12 +428,27 @@ func (inv *Inventory) table(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
+// modalGap is the run of page ground between the two dialogs. It is wide
+// enough that the two scrims read as two windows rather than as one scrim
+// with two dialogs standing on it, and no wider: the pair is one specimen.
+const modalGap = 24
+
 func (inv *Inventory) modal(c tokens.ColorTokens) layout.Widget {
-	props := modal.Props{
+	// Two archetypes, side by side, because they are told apart by their
+	// affordances and one of them alone shows only half of that. The
+	// decision is a question with no exit but an answer — footer actions,
+	// no mark at its corner, a scrim that absorbs a stray click without
+	// acting on it. The panel is a place, and every cheap way out of it is
+	// offered: the mark at the top right, the key, the scrim.
+	//
+	// Which one a caller gets is derived from whether it states a decision,
+	// so the pair also shows that the mark and the footer are not two
+	// checkboxes that could both be ticked.
+	decision := modal.Props{
 		Title: "Discard this theme?",
 		Body: inv.prose(c,
 			"The seed you extracted has not been saved.",
-			"Discarding returns the gallery to the default theme.",
+			"Discarding restores the default theme.",
 		),
 		Decision: &modal.Decision{Destructive: true},
 		// The footer buttons are the caller's own widgets on both the live
@@ -448,11 +463,35 @@ func (inv *Inventory) modal(c tokens.ColorTokens) layout.Widget {
 		},
 		Shaper: inv.shaper,
 	}
+	// No Decision and no Actions: the panel's changes apply as they are
+	// made, which is what leaves it nothing to ask and nothing to put in a
+	// footer — and what makes the mark at its corner the whole of its
+	// dismissal.
+	panel := modal.Props{
+		Title: "Theme settings",
+		Body: inv.prose(c,
+			"Every change here applies as you make it.",
+			"Leave it by the mark at the top right.",
+		),
+		Shaper: inv.shaper,
+	}
+	return layout.Widget(func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{}.Layout(gtx,
+			layout.Flexed(1, inv.modalScrim(c, decision)),
+			layout.Rigid(complayout.HSpacer(modalGap)),
+			layout.Flexed(1, inv.modalScrim(c, panel)),
+		)
+	})
+}
+
+// modalScrim draws one dialog over a scrim of its own.
+//
+// The scrim covers whatever box it is handed, and the box is a whole half of
+// the section: a scrim that stops short of the bottom reads as a stray
+// rectangle, not as a window under a dialog. A flexed child is handed no
+// height of its own, so the height is taken here.
+func (inv *Inventory) modalScrim(c tokens.ColorTokens, props modal.Props) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		// The scrim covers whatever box it is handed. That box is the whole
-		// section rather than a column of it: a scrim that stops two thirds
-		// of the way across reads as a stray rectangle, not as a window
-		// under a dialog.
 		gtx.Constraints.Min = gtx.Constraints.Max
 		return modal.Render(inv.shaper, props, true, c, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.TitleMedium, tokens.Comfortable)(gtx)
