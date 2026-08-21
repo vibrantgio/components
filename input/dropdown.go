@@ -384,6 +384,49 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	return layout.Dimensions{Size: triggerSize}
 }
 
+// optionRowColors returns an option row's fill and the ink that reads on it,
+// chosen together. A ground decides what can be read on it, so a row's two
+// colours are never picked apart: they are returned as a pair and measured as
+// a pair (TestDropdownOptionRowContrast).
+//
+// An unselected row is the menu's own plane. The open menu is a floating
+// transient overlay — an unscrimmed, shadowless plane like patterns/popover —
+// so its rows fill at level 3 on the elevation ladder (Neutral 400 on the
+// default scale), not the flat Surface the closed trigger keeps; the ladder
+// comes from the theme rather than the package default, which is what the
+// component subscribes to it for. The scheme's body text reads on that fill at
+// 9.16:1 light and 8.01:1 dark.
+//
+// A selected row is the menu's one inverted plane: the theme's inverse pair, a
+// surface built from the counterpart scheme carrying the ink the theme derives
+// to read on it — 13.71:1 light and 15.16:1 dark, the counterpart scheme's own
+// reading pair.
+//
+// It used to be a neutral state walk on the menu's ground, two steps past the
+// level-3 step and landing on Neutral 600, inked with the scheme's body text.
+// A mid-grey ground is precisely where no neutral ink can reach WCAG 1.4.3's
+// 4.5:1 for text — the whole ramp tops out at 4.27:1 over the light scheme's
+// Neutral 600 — and because the ground flipped with the scheme while the ink
+// did not, the dark scheme's selected row measured 1.75:1: light text on a
+// light-grey highlight. The inverse pair keeps the direction that walk had in
+// each scheme — a selected row is darker than the menu in a light scheme and
+// lighter in a dark one — separates from the menu fill by 7.85:1 light and
+// 7.58:1 dark, well past 1.4.11's 3:1 for a non-text indicator, and carries an
+// ink that reads on it in both.
+func optionRowColors(tok resolvedTokens, selected bool) (fill, ink color.NRGBA) {
+	c := tok.color
+	if selected {
+		return c.InverseSurface, c.OnInverseSurface
+	}
+	step := tok.elevation.SurfaceStep(tokens.Level3)
+	if step == 0 {
+		// A scale whose level 3 is the Background pin rather than a ramp
+		// step; the default scale's is Neutral 400.
+		return c.Background, c.Text
+	}
+	return c.Ramps.Neutral.Step(step), c.Text
+}
+
 // drawOptionRow renders a single option row in the open dropdown list.
 func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, selected bool, label string) layout.Dimensions {
 	// E1.3 sizing rule: option rows are list rows — row height =
@@ -396,7 +439,7 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	fieldW := gtx.Constraints.Max.X
 
-	textCol := tok.color.Text
+	bg, textCol := optionRowColors(tok, selected)
 	innerW := fieldW - 2*padH
 	if innerW < 1 {
 		innerW = 1
@@ -421,17 +464,6 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	}
 	rowSize := image.Pt(fieldW, rowH)
 
-	// The open menu is a floating transient overlay — an unscrimmed,
-	// shadowless plane like patterns/popover — so its rows fill at Level3
-	// on the elevation ladder (Neutral 400), not the flat Surface the
-	// closed trigger keeps (E2.3; see the package doc).
-	bg := tok.color.SurfaceAt(tokens.Level3)
-	if selected {
-		// Selected is a D2.3 state walk composed on the menu's elevation
-		// ground (E2.1): two steps past the level-3 step (Neutral 400),
-		// landing on Neutral 600.
-		bg = tok.color.StateColor(tokens.RoleNeutral, tok.elevation.SurfaceStep(tokens.Level3), tokens.StateSelected)
-	}
 	paint.FillShape(gtx.Ops, bg, clip.Rect{Max: rowSize}.Op())
 
 	offY := (rowH - labelDims.Size.Y) / 2

@@ -16,7 +16,10 @@ import (
 
 // ---- Golden-image tests ----
 
-// TestDropdownGolden records or diffs the four canonical dropdown states.
+// TestDropdownGolden records or diffs the canonical dropdown states. The open
+// menu is recorded in both schemes: its selected row is a per-scheme colour
+// pairing (fill and ink together, see TestDropdownOptionRowContrast), and a
+// pairing only one scheme is pictured in is a pairing the other can lose.
 func TestDropdownGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 
@@ -67,6 +70,12 @@ func TestDropdownGolden(t *testing.T) {
 		{
 			"dropdown-light-open",
 			tokens.DefaultLight,
+			image.Pt(200, openH),
+			input.DropdownRenderState{Open: true, Options: opts, Selected: 0},
+		},
+		{
+			"dropdown-dark-open",
+			tokens.DefaultDark,
 			image.Pt(200, openH),
 			input.DropdownRenderState{Open: true, Options: opts, Selected: 0},
 		},

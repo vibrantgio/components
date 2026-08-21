@@ -16,9 +16,11 @@
 // paint the plain Surface token, sitting in the page plane. The one
 // raised plane in the package is the dropdown's open option menu, a
 // floating unscrimmed, shadowless transient overlay: its rows fill at
-// SurfaceAt(Level3) (Neutral step 400), the same rung patterns/popover
-// takes, and the selected row composes its D2.3 state walk on that
-// level's step.
+// level 3 on the ladder (Neutral step 400 on the default scale), the same
+// rung patterns/popover takes. The selected row leaves the ladder — it is
+// the theme's inverse pair, the one plane in the menu built from the
+// counterpart scheme, because a state walk on a mid-grey ground leaves no
+// ink able to read on it; optionRowColors carries the measurements.
 //
 // The text field is uncontrolled. Props.Seed pre-fills a newly created
 // instance so an existing value can be edited rather than retyped, but a later
