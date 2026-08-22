@@ -161,7 +161,7 @@ const codeSectionName = "markdown-code"
 func CodeSectionName() string { return codeSectionName }
 
 func (inv *Inventory) codeBody(c tokens.ColorTokens) layout.Widget {
-	style := markdown.FromTokens(c, tokens.DefaultTypography)
+	style := markdown.FromTokens(c, inv.typography())
 	inv.wear(&style, c)
 	// No measure cap, unlike the prose sample. Prose is capped because a long
 	// line of it is hard to read; code is not prose — a line wrapped or
@@ -207,7 +207,7 @@ func (inv *Inventory) wear(st *markdown.Style, c tokens.ColorTokens) {
 }
 
 func (inv *Inventory) readingBody(c tokens.ColorTokens) layout.Widget {
-	style := markdown.FromTokens(c, tokens.DefaultTypography)
+	style := markdown.FromTokens(c, inv.typography())
 	// The chosen base, worn whole: the fence takes the ground its author drew
 	// their inks on, and the inks as they were drawn. Everything around it —
 	// the page, the prose, the chip an inline span sits on — stays the theme's,

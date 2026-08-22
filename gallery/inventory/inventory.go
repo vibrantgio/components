@@ -112,12 +112,39 @@ type Inventory struct {
 	// see Inventory.wear.
 	codeBases highlight.BasePair
 
+	// typo is the type roles the reading and code sections draw through.
+	// Empty is DefaultTypography. A caller that names a code face calls
+	// SetTypography; the parsed documents stay.
+	typo tokens.Typography
+
 	// The dismissible chips' close targets, so the specimens are real ones
 	// the pointer and the keyboard can reach rather than drawings of a
 	// mark. Their clicks are drained and dropped: an inventory that let a
 	// specimen dismiss itself would leave a hole where the family it
 	// demonstrates used to be.
 	tagDismiss [2]widget.Clickable
+}
+
+// SetTypography names the type roles the reading and code sections draw
+// through. The parsed documents stay; only Code and the extra faces a
+// named code face appends change at the next layout. The empty value is
+// DefaultTypography.
+func (inv *Inventory) SetTypography(t tokens.Typography) { inv.typo = t }
+
+// SetShaper replaces the shaper the inventory draws with, without
+// rebuilding the parsed documents. A code-face change needs the matching
+// collection; the documents do not.
+func (inv *Inventory) SetShaper(s *text.Shaper) {
+	if s != nil {
+		inv.shaper = s
+	}
+}
+
+func (inv *Inventory) typography() tokens.Typography {
+	if inv.typo.Code.Typeface == "" {
+		return tokens.DefaultTypography
+	}
+	return inv.typo
 }
 
 // New builds the inventory, with the platform control marks the host draws.
@@ -130,6 +157,7 @@ func New(shaper *text.Shaper) *Inventory { return NewForOS(shaper, runtime.GOOS)
 func NewForOS(shaper *text.Shaper, goos string) *Inventory {
 	inv := &Inventory{
 		shaper:  shaper,
+		typo:    tokens.DefaultTypography,
 		listSt:  list.NewState(),
 		barList: layout.List{Axis: layout.Vertical},
 		barSt:   scrollbar.NewState(),
@@ -303,7 +331,7 @@ func (inv *Inventory) rampSwatches(c tokens.ColorTokens) layout.Widget {
 }
 
 func (inv *Inventory) typeScale(c tokens.ColorTokens) layout.Widget {
-	typo := tokens.DefaultTypography
+	typo := inv.typography()
 	// The whole ladder, not a sample of it: a role that is not on the page
 	// is a role nobody judges the theme on.
 	roles := []struct {
