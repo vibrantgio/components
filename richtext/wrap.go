@@ -428,7 +428,8 @@ func layoutSpan(gtx layout.Context, shaper *text.Shaper, maxWidth int, span reso
 }
 
 // shapeSpan shapes span.content against maxWidth and records its glyph paint
-// (colour + outlines) into a macro whose origin is the segment's top-left.
+// (colour + outlines, then bitmap glyphs) into a macro whose origin is the
+// segment's top-left.
 // With truncate set the shaper is limited to a single line ended by a
 // zero-width-space truncator, so the iterator's rune count reveals the line
 // break position.
@@ -540,9 +541,11 @@ func (it *glyphIter) process(g text.Glyph) bool {
 }
 
 // paint buffers processed glyphs and flushes them as outline paths at each
-// line break, when the buffer fills, or when processing stops. The line
-// slice's backing array is reused across calls to keep glyph buffering off
-// the heap.
+// line break, when the buffer fills, or when processing stops. Bitmap
+// glyphs (CBDT/PNG color emoji) are painted after the outline fill, the way
+// widget.Label does, so the PNG is not clipped to an empty path or tinted
+// by the span colour. The line slice's backing array is reused across calls
+// to keep glyph buffering off the heap.
 func (it *glyphIter) paint(gtx layout.Context, shaper *text.Shaper, g text.Glyph, line []text.Glyph) ([]text.Glyph, bool) {
 	keep := it.process(g)
 	if keep {
@@ -561,6 +564,9 @@ func (it *glyphIter) paint(gtx layout.Context, shaper *text.Shaper, g text.Glyph
 			outline := clip.Outline{Path: shaper.Shape(line)}.Op().Push(gtx.Ops)
 			paint.PaintOp{}.Add(gtx.Ops)
 			outline.Pop()
+			if call := shaper.Bitmaps(line); call != (op.CallOp{}) {
+				call.Add(gtx.Ops)
+			}
 			t.Pop()
 			line = line[:0]
 		}

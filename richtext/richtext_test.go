@@ -2,6 +2,7 @@ package richtext_test
 
 import (
 	"image"
+	"image/color"
 	"testing"
 
 	"gioui.org/f32"
@@ -16,9 +17,12 @@ import (
 	"gioui.org/text"
 	"gioui.org/unit"
 
+	"golang.org/x/image/math/fixed"
+
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/richtext"
+	"github.com/vibrantgio/font/notocoloremoji"
 	tcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -574,4 +578,163 @@ func TestFromTokensDefaults(t *testing.T) {
 			t.Errorf("%s: Size = %v, want BodyLarge %v", s.name, st.Size, tokens.DefaultTypography.BodyLarge.Size)
 		}
 	}
+}
+
+// ---- Color emoji ----
+
+// emojiShaper is the pinned collection plus Noto Color Emoji. WithEmoji
+// does not exist yet (AD2.2); this is the equivalent that already does.
+func emojiShaper(t *testing.T) *text.Shaper {
+	t.Helper()
+	typ := tokens.DefaultTypography.WithFaces(notocoloremoji.FontFace())
+	return typ.DeterministicShaper()
+}
+
+// resolvedGlyph shapes one rune and reports the font's own glyph ID and the
+// face it came from. Glyph ID 0 is .notdef; face 0 is Roboto.
+func resolvedGlyph(t *testing.T, shaper *text.Shaper, r rune) (gid uint32, faceIdx int) {
+	t.Helper()
+	shaper.LayoutString(text.Parameters{
+		Font:     font.Font{Typeface: "Roboto"},
+		PxPerEm:  fixed.I(16),
+		MaxWidth: 1000,
+	}, string(r))
+	g, ok := shaper.NextGlyph()
+	if !ok {
+		t.Fatalf("U+%04X %q: shaper produced no glyph at all", r, r)
+	}
+	return uint32(g.ID), int(uint64(g.ID) >> 48)
+}
+
+// TestEmojiResolvesOnAppendedFace pins the collection the painter draws
+// from: 😀 is a real glyph on the appended face, "A" stays on Roboto, and
+// the same grin on the default pinned shaper is tofu.
+func TestEmojiResolvesOnAppendedFace(t *testing.T) {
+	emoji := tokens.DefaultTypography.WithFaces(notocoloremoji.FontFace())
+	shaper := emoji.DeterministicShaper()
+	appended := len(emoji.Faces) - 1
+
+	gid, faceIdx := resolvedGlyph(t, shaper, '😀')
+	if gid == 0 {
+		t.Fatal("😀 resolved to glyph ID 0 (.notdef) on the appended face")
+	}
+	if faceIdx != appended {
+		t.Errorf("😀 resolved on face %d, want the appended emoji face %d", faceIdx, appended)
+	}
+	if _, faceIdx := resolvedGlyph(t, shaper, 'A'); faceIdx != 0 {
+		t.Errorf("'A' resolved on face %d, want Roboto at 0", faceIdx)
+	}
+
+	tofu, _ := resolvedGlyph(t, defaultShaper(t), '😀')
+	if tofu != 0 {
+		t.Errorf("😀 on DefaultTypography.DeterministicShaper resolved to glyph %d, want 0 (tofu control)", tofu)
+	}
+}
+
+const emojiInline = "Hi 😀!"
+
+func captureEmojiInline(t *testing.T, shaper *text.Shaper, colors tokens.ColorTokens) *image.RGBA {
+	t.Helper()
+	style := richtext.FromTokens(colors, tokens.DefaultTypography.BodyLarge)
+	size := image.Pt(200, 48)
+	return golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, colors.Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		return richtext.Render(shaper, style, []richtext.SpanStyle{{Content: emojiInline}}, richtext.Idle())(gtx)
+	})
+}
+
+// TestEmojiInlinePaintsThePNG is the paint contract: the same span with the
+// face is not the tofu capture, and the grin's bounds hold chromatic pixels
+// that are not the body ink — the PNG, not a ColorOp-tinted hole.
+func TestEmojiInlinePaintsThePNG(t *testing.T) {
+	with := emojiShaper(t)
+	without := defaultShaper(t)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+
+	painted := captureEmojiInline(t, with, tokens.DefaultLight)
+	tofu := captureEmojiInline(t, without, tokens.DefaultLight)
+	if golden.PixelDiff(painted, tofu) == 0 {
+		t.Fatal("Hi 😀! with the emoji face matches the tofu control; Bitmaps did not paint")
+	}
+
+	x0, x1 := grinXRange(t, with, int(style.Size))
+	if !hasChromaticNotInk(painted, x0, x1, style.Color) {
+		t.Errorf("no chromatic pixel unlike body ink %v in the grin's x-range [%d, %d); the PNG is missing or tinted",
+			style.Color, x0, x1)
+	}
+}
+
+// TestEmojiInlineGolden records the with-face capture in both schemes.
+func TestEmojiInlineGolden(t *testing.T) {
+	shaper := emojiShaper(t)
+	size := image.Pt(200, 48)
+	cases := []struct {
+		name   string
+		colors tokens.ColorTokens
+	}{
+		{"emoji-inline-light", tokens.DefaultLight},
+		{"emoji-inline-dark", tokens.DefaultDark},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			style := richtext.FromTokens(tc.colors, tokens.DefaultTypography.BodyLarge)
+			golden.Render(t, tc.name, size, func(gtx layout.Context) layout.Dimensions {
+				paint.FillShape(gtx.Ops, tc.colors.Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
+				return richtext.Render(shaper, style, []richtext.SpanStyle{{Content: emojiInline}}, richtext.Idle())(gtx)
+			})
+		})
+	}
+}
+
+// grinXRange is the horizontal extent of glyphs that did not come from
+// Roboto (face 0) when shaping s. Half-leading moves ink in y only.
+func grinXRange(t *testing.T, shaper *text.Shaper, pxPerEm int) (x0, x1 int) {
+	t.Helper()
+	shaper.LayoutString(text.Parameters{
+		Font:     font.Font{Typeface: "Roboto"},
+		PxPerEm:  fixed.I(pxPerEm),
+		MaxWidth: 1000,
+	}, emojiInline)
+	found := false
+	for g, ok := shaper.NextGlyph(); ok; g, ok = shaper.NextGlyph() {
+		if int(uint64(g.ID)>>48) == 0 {
+			continue
+		}
+		lo := min(g.X.Floor(), g.X.Floor()+g.Bounds.Min.X.Floor())
+		hi := max((g.X + g.Advance).Ceil(), g.X.Floor()+g.Bounds.Max.X.Ceil())
+		if !found {
+			x0, x1, found = lo, hi, true
+			continue
+		}
+		x0 = min(x0, lo)
+		x1 = max(x1, hi)
+	}
+	if !found {
+		t.Fatal("Hi 😀! produced no non-Roboto glyph; cannot locate the grin")
+	}
+	return x0, x1
+}
+
+func hasChromaticNotInk(img *image.RGBA, x0, x1 int, ink color.NRGBA) bool {
+	b := img.Bounds()
+	if x0 < b.Min.X {
+		x0 = b.Min.X
+	}
+	if x1 > b.Max.X {
+		x1 = b.Max.X
+	}
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := x0; x < x1; x++ {
+			c := img.RGBAAt(x, y)
+			if c.R == ink.R && c.G == ink.G && c.B == ink.B {
+				continue
+			}
+			maxc := max(c.R, max(c.G, c.B))
+			minc := min(c.R, min(c.G, c.B))
+			if int(maxc)-int(minc) > 40 {
+				return true
+			}
+		}
+	}
+	return false
 }
