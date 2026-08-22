@@ -36,8 +36,8 @@ and this file links it rather than copying it:
 
 **Modules.** `github.com/vibrantgio/components` at the repository root, and
 one nested module: `gallery/` (`github.com/vibrantgio/components/gallery`).
-Nested-module tags carry the directory as a prefix — `gallery/v0.8.1`, not
-`v0.8.1`.
+Nested-module tags carry the directory as a prefix — `gallery/v0.9.4`, not
+`v0.9.4`.
 
 **Build and test.** From the repository root, and again inside each nested
 module directory — `./...` does not cross a module boundary:
