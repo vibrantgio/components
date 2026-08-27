@@ -208,6 +208,19 @@ func TestParagraphWraps(t *testing.T) {
 	}
 }
 
+// chipPad is the padding every chip test here sets, in dp; the test contexts
+// measure at 1 px per dp, so it is also the pixel count expected in a width.
+const chipPad = 4
+
+// testChip is the fill the chip tests set their span on.
+func testChip() richtext.Chip {
+	return richtext.Chip{
+		Color:   tokens.DefaultLight.Ramps.Neutral.Step(200),
+		Padding: chipPad,
+		Radius:  4,
+	}
+}
+
 // TestChipReservesItsPaddingAndNotTheLine holds a chip to both halves of its
 // contract at once. Its padding is real estate: the line grows by it, so the
 // words on either side clear the fill rather than running under it. Its fill
@@ -217,26 +230,132 @@ func TestParagraphWraps(t *testing.T) {
 func TestChipReservesItsPaddingAndNotTheLine(t *testing.T) {
 	shaper := defaultShaper(t)
 	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
-	const pad = 4
 
-	plain := measure(shaper, style, []richtext.SpanStyle{{Content: "quoted"}}, 600)
-	chipped := measure(shaper, style, []richtext.SpanStyle{{
-		Content: "quoted",
-		Chip: richtext.Chip{
-			Color:   tokens.DefaultLight.Ramps.Neutral.Step(200),
-			Padding: pad,
-			Radius:  4,
-		},
-	}}, 600)
+	// Mid-line, with a word on either side to clear: the case the reservation
+	// exists for, and the one both flush edges leave alone.
+	plain := measure(shaper, style, []richtext.SpanStyle{
+		{Content: "call "}, {Content: "quoted"}, {Content: " now"},
+	}, 600)
+	chipped := measure(shaper, style, []richtext.SpanStyle{
+		{Content: "call "}, {Content: "quoted", Chip: testChip()}, {Content: " now"},
+	}, 600)
 
-	if want := plain.Size.X + 2*pad; chipped.Size.X != want {
+	if want := plain.Size.X + 2*chipPad; chipped.Size.X != want {
 		t.Errorf("a chipped span measures %d px wide, want %d (a plain %d plus %d dp of padding on each side)",
-			chipped.Size.X, want, plain.Size.X, pad)
+			chipped.Size.X, want, plain.Size.X, chipPad)
 	}
 	if chipped.Size.Y != plain.Size.Y {
 		t.Errorf("a chipped span's line measures %d px tall against a plain one's %d; a chip takes the span's own shaped height and cannot stretch the line",
 			chipped.Size.Y, plain.Size.Y)
 	}
+}
+
+// TestChipSpendsNoPaddingAtAFlushEdge pins the two edges where the reservation
+// would be the defect: the start of a line, where the padding would set the
+// chip's glyphs clear of a margin rather than of a word (and stair-step a list
+// whose items open with a chip), and the gap before closing punctuation, where
+// it would read as a space nobody typed. What the chip does not spend, the
+// line must not count — so each case is measured against the same paragraph
+// set without the chip, and the difference is exactly the padding still spent.
+func TestChipSpendsNoPaddingAtAFlushEdge(t *testing.T) {
+	shaper := defaultShaper(t)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+
+	for _, tc := range []struct {
+		name  string
+		spans []richtext.SpanStyle
+		// want is the width the chipped paragraph must exceed the same
+		// paragraph unchipped by: the padding the chip still spends.
+		want int
+	}{
+		{
+			name:  "opening a line spends only the trailing padding",
+			spans: []richtext.SpanStyle{{Content: "quoted"}, {Content: " now"}},
+			want:  chipPad,
+		},
+		{
+			name:  "before closing punctuation spends only the leading padding",
+			spans: []richtext.SpanStyle{{Content: "call "}, {Content: "quoted"}, {Content: "; now"}},
+			want:  chipPad,
+		},
+		{
+			name:  "opening a line and closed by punctuation spends neither",
+			spans: []richtext.SpanStyle{{Content: "quoted"}, {Content: ". Now"}},
+			want:  0,
+		},
+		{
+			name:  "an opening bracket after a chip is not closing punctuation",
+			spans: []richtext.SpanStyle{{Content: "call "}, {Content: "quoted"}, {Content: "(now)"}},
+			want:  2 * chipPad,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// The chipped span is the one named "quoted" in each case.
+			chipped := make([]richtext.SpanStyle, len(tc.spans))
+			copy(chipped, tc.spans)
+			for i := range chipped {
+				if chipped[i].Content == "quoted" {
+					chipped[i].Chip = testChip()
+				}
+			}
+			plain := measure(shaper, style, tc.spans, 600)
+			got := measure(shaper, style, chipped, 600)
+			if want := plain.Size.X + tc.want; got.Size.X != want {
+				t.Errorf("chipped paragraph measures %d px wide, want %d (a plain %d plus %d px of padding spent)",
+					got.Size.X, want, plain.Size.X, tc.want)
+			}
+		})
+	}
+}
+
+// TestLineInitialChipStartsFlushWithTheMargin is the pixel half of the
+// line-start rule: a width can be spent anywhere, so this checks where the
+// glyphs actually land. A chipped word opening a line must ink its first dark
+// pixel in the same column as the same word unchipped — that column is the
+// list's left edge, and a chip that pushed its glyphs a padding right of it is
+// exactly the stair-step this rule removes.
+func TestLineInitialChipStartsFlushWithTheMargin(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 60)
+	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+
+	// On the theme's own ground: the capture is transparent where nothing is
+	// painted, and a threshold on darkness cannot read glyphs against that.
+	onBackground := func(spans []richtext.SpanStyle) layout.Widget {
+		return func(gtx layout.Context) layout.Dimensions {
+			paint.FillShape(gtx.Ops, tokens.DefaultLight.Background,
+				clip.Rect{Max: gtx.Constraints.Max}.Op())
+			return richtext.Render(shaper, style, spans, richtext.Idle())(gtx)
+		}
+	}
+	plain := golden.Capture(t, size, onBackground(
+		[]richtext.SpanStyle{{Content: "quoted word"}}))
+	chipped := golden.Capture(t, size, onBackground(
+		[]richtext.SpanStyle{{Content: "quoted", Chip: testChip()}, {Content: " word"}}))
+	if plain == nil || chipped == nil {
+		return // headless unavailable; Capture called t.Skip
+	}
+	// The chip's fill is a light neutral and the glyphs are near-black, so a
+	// midpoint threshold separates ink from fill.
+	if got, want := firstDarkColumn(chipped, 128), firstDarkColumn(plain, 128); got != want {
+		t.Errorf("a line-initial chipped word inks from column %d, a plain one from %d; the chip's glyphs must start at the margin, not a padding right of it",
+			got, want)
+	}
+}
+
+// firstDarkColumn returns the leftmost column holding a pixel darker than the
+// given luminance, or -1 when the image has none.
+func firstDarkColumn(img *image.RGBA, lum float64) int {
+	b := img.Bounds()
+	for x := b.Min.X; x < b.Max.X; x++ {
+		for y := b.Min.Y; y < b.Max.Y; y++ {
+			c := img.RGBAAt(x, y)
+			if 0.2126*float64(c.R)+0.7152*float64(c.G)+0.0722*float64(c.B) < lum {
+				return x - b.Min.X
+			}
+		}
+	}
+	return -1
 }
 
 // ---- The line box ----

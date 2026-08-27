@@ -93,8 +93,18 @@ type SpanStyle struct {
 // wrapping counts it, so the words on either side clear the fill instead of
 // running under it.
 //
-// A chipped span wide enough to wrap carries the fill and both paddings onto
-// every line it occupies, each fragment reading as its own chip.
+// Padding is spent against words, though, and at two edges there is no word to
+// clear. A chip that begins a line holds its left flush — fill and glyphs both
+// start at the margin — so a list whose items open with a chip keeps one left
+// edge instead of stair-stepping down it. And a chip whose text is immediately
+// followed by closing punctuation (. , ; : ! ? ) ] } ' " ’ ” » › …) holds its
+// right flush, so the mark hugs the fill instead of reading as a space nobody
+// typed. Neither is a hole in the reservation: what a chip does not spend, the
+// line does not count.
+//
+// A chipped span wide enough to wrap carries the fill onto every line it
+// occupies, each fragment reading as its own chip, with the padding each
+// fragment's own edges call for.
 type Chip struct {
 	// Color fills the chip. A zero alpha draws nothing.
 	Color color.NRGBA

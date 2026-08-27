@@ -66,13 +66,19 @@ type resolvedChip struct {
 type segment struct {
 	call   op.CallOp
 	x      int // offset within the line
-	width  int // the glyphs plus the chip's padding on both sides
+	width  int // the glyphs plus whatever chip padding the fragment spends
 	height int
 	ascent int
 	color  color.NRGBA
 	link   int
 	strike bool
 	chip   resolvedChip
+	// padL is the leading chip padding this fragment spends: the chip's
+	// padding, or zero where the fragment holds that edge flush (see
+	// spendPadding) and zero without a chip. The fill covers the whole width,
+	// so the glyphs begin at padL; what the fragment spends on its right is
+	// already in width.
+	padL int
 }
 
 // resolve applies the paragraph defaults to every span, groups consecutive
@@ -212,9 +218,10 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 			if s.chip.color.A > 0 {
 				drawChip(gtx, s)
 			}
-			// The glyphs sit inside the chip's padding; without a chip the
-			// offset is zero and the two coincide.
-			gt := op.Offset(image.Pt(s.chip.pad, 0)).Push(gtx.Ops)
+			// The glyphs sit inside the padding the fragment spends; where it
+			// spends none — no chip, or an edge held flush — the offset is
+			// zero and the two coincide.
+			gt := op.Offset(image.Pt(s.padL, 0)).Push(gtx.Ops)
 			s.call.Add(gtx.Ops)
 			gt.Pop()
 			if s.link >= 0 {
@@ -251,10 +258,11 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 		remaining := maxWidth - lineWidth
 		// A chip's padding is reserved rather than drawn over the words
 		// beside it, so the glyphs wrap within what is left of the line after
-		// both paddings are taken out of it.
-		pad := 2 * span.chip.pad
-		res := layoutSpan(gtx, shaper, max(remaining-pad, 0), span)
-		width := res.width + pad
+		// the padding this fragment spends is taken out of it. What it spends
+		// is what it paints: an edge held flush costs the line nothing.
+		padL, padR := spendPadding(work, i, lineWidth == 0)
+		res := layoutSpan(gtx, shaper, max(remaining-padL-padR, 0), span)
+		width := res.width + padL + padR
 
 		// The span's first segment does not fit and the line already holds
 		// content: commit the line and retry on a fresh one. (On an empty
@@ -275,6 +283,7 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 			link:   span.link,
 			strike: span.strike,
 			chip:   span.chip,
+			padL:   padL,
 		})
 		lineWidth += width
 
@@ -293,6 +302,65 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 
 	overall = gtx.Constraints.Constrain(overall)
 	return layout.Dimensions{Size: overall, Baseline: overall.Y - baseline}
+}
+
+// spendPadding decides how much of a chip's padding the fragment of work[i]
+// about to be placed actually spends, left and right. lineStart reports that
+// the fragment begins a line.
+//
+// The padding is reserved space — the wrapping counts it so the words beside
+// the fill clear it — and at two edges that reservation is itself the defect:
+//
+//   - A fragment that begins a line has no word to its left to clear, only the
+//     margin. Spending the leading padding there sets the fragment's glyphs a
+//     padding right of every unchipped line's first glyph, and a list whose
+//     items open with a chip stair-steps down its own left edge. So a
+//     line-initial fragment holds its left flush: fill and glyphs both start at
+//     the margin.
+//   - Closing punctuation belongs to the word before it and is set tight
+//     against it. A padding between the two reads as a space nobody typed
+//     (`MessageOp`; renders as "MessageOp ;"), so a chip whose next span opens
+//     with such a mark holds its right flush and the mark hugs the fill.
+//
+// Both are decided here, at wrap time, rather than at paint time, because the
+// reservation and the paint must stay the same number: what a fragment does
+// not spend, the line does not count.
+func spendPadding(work []resolvedSpan, i int, lineStart bool) (padL, padR int) {
+	pad := work[i].chip.pad
+	padL, padR = pad, pad
+	if lineStart {
+		padL = 0
+	}
+	if pad > 0 && i+1 < len(work) {
+		next := work[i+1]
+		// A following span on a chip of its own is left alone: two fills set
+		// flush against each other read as one long chip, which is a worse
+		// defect than the one being fixed here.
+		if next.chip.color.A == 0 {
+			if r, _ := utf8.DecodeRuneInString(next.content); closesTight(r) {
+				padR = 0
+			}
+		}
+	}
+	return padL, padR
+}
+
+// closesTight reports whether r is closing punctuation: a mark that carries no
+// space of its own and is set against the word it follows.
+//
+// The set is deliberately small — the ASCII sentence and clause marks, the
+// ASCII closing brackets, the straight quotes, and the closers that typography
+// substitutes for them (’ ” » › …). Openers are absent by design: '(' before a
+// chip belongs to the chip's word, and the chip's leading padding is what keeps
+// it off the fill. So is the dash, which reads as a separator between words and
+// wants the space.
+func closesTight(r rune) bool {
+	switch r {
+	case '.', ',', ';', ':', '!', '?', ')', ']', '}', '\'', '"',
+		'’', '”', '»', '›', '…':
+		return true
+	}
+	return false
 }
 
 // drawChip paints the rounded fill a chipped span sits on: the segment's whole
