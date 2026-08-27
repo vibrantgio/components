@@ -32,16 +32,21 @@ var thumbSeeds = []color.NRGBA{
 	{A: 0xff},
 }
 
-// thumbGrounds are the storeys an overlay bar rides: the window's own page
-// in a document and the pane fill one storey up everywhere else. Both are
-// measured for both states, because the derivation answers whichever of the
-// two asks more and the other has to come out no worse.
+// thumbGrounds are the storeys an overlay bar rides: the window's own page in
+// a document, and the furniture floor the panes are filled with everywhere
+// else. Both are measured for both states, because the derivation answers
+// whichever of the two asks more and the other has to come out no worse.
+//
+// The pane was level 1 until ADR-022 re-founded the ladder and made chrome
+// furniture the storey below the paper rather than one above it. It is the
+// harder of the two grounds now, in both schemes and for one reason: the
+// thumb's ink is dark, and the floor is the darker ground.
 var thumbGrounds = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
 	{"level 0, the page", tokens.Level0},
-	{"level 1, a pane", tokens.Level1},
+	{"the furniture floor, a pane", tokens.LevelFloor},
 }
 
 // TestTheThumbClearsItsFloorOnEveryGroundItRides is the defect Phase AS was

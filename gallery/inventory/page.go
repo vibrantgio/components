@@ -89,7 +89,9 @@ func pageEnd(shaper *text.Shaper, c tokens.ColorTokens, sections int) layout.Wid
 	return func(gtx layout.Context) layout.Dimensions {
 		h := gtx.Dp(64)
 		sz := image.Pt(gtx.Constraints.Max.X, h)
-		paint.FillShape(gtx.Ops, c.Ramps.Neutral.Step(200), clip.Rect{Max: sz}.Op())
+		// The closing strip is chrome: the inventory's floor, not a plane
+		// raised over the specimens (ADR-022 V2).
+		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelFloor), clip.Rect{Max: sz}.Op())
 		paint.FillShape(gtx.Ops, c.Divider, clip.Rect(image.Rect(0, 0, sz.X, 1)).Op())
 		gtx.Constraints = layout.Exact(sz)
 		return complayout.InsetXY(24, 24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -119,7 +121,9 @@ func sectionHeaderRow(shaper *text.Shaper, c tokens.ColorTokens, title string) l
 	return func(gtx layout.Context) layout.Dimensions {
 		h := gtx.Dp(32)
 		sz := image.Pt(gtx.Constraints.Max.X, h)
-		paint.FillShape(gtx.Ops, c.Ramps.Neutral.Step(200), clip.Rect{Max: sz}.Op())
+		// A section header is chrome banding the inventory, so it fills at
+		// the floor rather than at the ramp alias it used to name.
+		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelFloor), clip.Rect{Max: sz}.Op())
 		paint.FillShape(gtx.Ops, c.Divider,
 			clip.Rect(image.Rect(0, h-1, sz.X, h)).Op())
 		gtx.Constraints = layout.Exact(sz)

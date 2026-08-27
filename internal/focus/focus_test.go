@@ -38,19 +38,23 @@ func sweepSeeds() []stdcolor.NRGBA {
 // whole idiom rather than for the four packages that happen to exist.
 //
 // Most controls appear once per storey rather than once. A control's host is
-// a rung of the elevation ladder, its fill deepens as the ladder climbs, and
-// the ring lies on that fill — so "which ground does this control's ring
-// circle" has four answers, not one, and a gate that asked only the first
+// a rung of the elevation ladder, the ring lies on that host's fill, and the
+// fill moves with the ladder — so "which ground does this control's ring
+// circle" has one answer per storey and a gate that asked only the first
 // would have passed the level-2 and level-3 readings that were under the
-// floor for as long as the ring was measured against a fixed surface.
+// floor for as long as the ring was measured against a fixed surface. Since
+// ADR-022 the ladder carries a storey under the paper as well, so the list
+// walks [storeys] rather than naming three of them: a control on a sidebar
+// stands on the furniture floor and its ring is measured there too.
 func grounds(c tokens.ColorTokens) []struct {
 	name   string
 	ground stdcolor.NRGBA
 } {
-	return []struct {
+	type entry = struct {
 		name   string
 		ground stdcolor.NRGBA
-	}{
+	}
+	out := []entry{
 		// A button's ring circles its own background, in each register and
 		// each interaction state that walks it.
 		{"button filled", c.SolidStateColor(tokens.RolePrimary, tokens.StateFocus)},
@@ -59,50 +63,67 @@ func grounds(c tokens.ColorTokens) []struct {
 		{"button tonal", c.StateColor(tokens.RolePrimary, 200, tokens.StateFocus)},
 		{"button tonal hovered", c.StateColor(tokens.RolePrimary, 200, tokens.StateHover)},
 		{"button tonal pressed", c.StateColor(tokens.RolePrimary, 200, tokens.StatePressed)},
-		// A ghost paints no ground, so its ring circles the host storey's
-		// surface — every storey the elevation ladder carries.
-		{"button ghost on level 0/1", focus.Ground(c, tokens.Level0)},
-		{"button ghost on level 2", focus.Ground(c, tokens.Level2)},
-		{"button ghost on level 3", focus.Ground(c, tokens.Level3)},
-		{"button ghost hovered", c.StateColor(tokens.RoleNeutral, 200, tokens.StateHover)},
-		// The promoted-border family: the ring is the control's own edge, so
-		// the band has the field's fill inside it and the host storey
-		// outside. Both are listed on every storey — the walk is taken
-		// against the storey, and the fill is asserted as the neighbour that
-		// walk must also satisfy.
-		{"text field on level 0/1", focus.Ground(c, tokens.Level0)},
-		{"text field on level 2", focus.Ground(c, tokens.Level2)},
-		{"text field on level 3", focus.Ground(c, tokens.Level3)},
-		{"dropdown trigger on level 0/1", focus.Ground(c, tokens.Level0)},
-		{"dropdown trigger on level 2", focus.Ground(c, tokens.Level2)},
-		{"dropdown trigger on level 3", focus.Ground(c, tokens.Level3)},
-		// The clear-of-the-glyph family: the ring rides in the host storey's
-		// surface beside the glyph, in every checked or chosen state, and a
-		// link's ring in the paragraph ground it is padded clear into. Prose
-		// carries no storey of its own, so the link stays on Surface.
-		{"checkbox on level 0/1", focus.Ground(c, tokens.Level0)},
-		{"checkbox on level 2", focus.Ground(c, tokens.Level2)},
-		{"checkbox on level 3", focus.Ground(c, tokens.Level3)},
-		{"radio on level 0/1", focus.Ground(c, tokens.Level0)},
-		{"radio on level 2", focus.Ground(c, tokens.Level2)},
-		{"radio on level 3", focus.Ground(c, tokens.Level3)},
-		{"link", c.Surface},
+		// A link's ring rides in the paragraph ground it is padded clear
+		// into. Prose carries no storey of its own, so a paragraph lies on
+		// the paper — richtext.FromTokens derives the ring against level 0
+		// for exactly that reason.
+		{"link", focus.Ground(c, tokens.Level0)},
 	}
+	for _, level := range storeys {
+		at := storeyName(level)
+		// A ghost paints no ground, so its ring circles the host storey's
+		// surface. Hovered and pressed it paints that storey's own walk and
+		// the ring circles the wash instead — since ADR-022 the wash is
+		// taken from the storey's fill rather than from a ramp step, so
+		// there are as many washes as there are storeys.
+		out = append(out,
+			entry{"button ghost " + at, focus.Ground(c, level)},
+			entry{"button ghost hovered " + at, c.StateAt(level, tokens.StateHover)},
+			entry{"button ghost pressed " + at, c.StateAt(level, tokens.StatePressed)},
+			// The promoted-border family: the ring is the control's own
+			// edge, so the band has the field's fill inside it and the host
+			// storey outside. The walk is taken against the storey; the
+			// fill is asserted as the neighbour that walk must also satisfy
+			// (TestPromotedBorderRingClearsBothItsNeighbours).
+			entry{"text field " + at, focus.Ground(c, level)},
+			entry{"dropdown trigger " + at, focus.Ground(c, level)},
+			// The clear-of-the-glyph family: the ring rides in the host
+			// storey's surface beside the glyph, in every checked or chosen
+			// state.
+			entry{"checkbox " + at, focus.Ground(c, level)},
+			entry{"radio " + at, focus.Ground(c, level)},
+		)
+	}
+	return out
+}
+
+// storeyName spells a storey the way this file's failure messages want to
+// read it, so a report names the rung a developer would put a control on
+// rather than an integer that counts from the paper.
+func storeyName(level tokens.ElevationLevel) string {
+	if level == tokens.LevelFloor {
+		return "on the furniture floor"
+	}
+	return "on level " + string(rune('0'+int(level)))
 }
 
 // storeys is the elevation ladder every control in this library can be put
 // on, named as a host says it: a control that is told nothing stands on
-// tokens.Level0.
-var storeys = []tokens.ElevationLevel{tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3}
+// tokens.Level0, and a control on a sidebar, a rail or a toolbar stands on
+// the furniture floor beneath it (ADR-022).
+var storeys = []tokens.ElevationLevel{
+	tokens.LevelFloor, tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
+}
 
 // TestGroundIsTheStoreysOwnFill holds the resolution [focus.Ground] performs,
 // which the contrast gates above cannot see: they would pass just as happily
 // if Ground answered one fixed colour for every storey.
 //
-// Level 0 is the exception written into the rule. Its fill is the Background
-// pin, off the neutral ramp by design, so there is no step to walk and the
-// answer is Surface — which is also what makes the zero value move no pixel
-// for any control written before storeys existed.
+// Every storey, with no exception written into the rule. Level 0 used to be
+// one — its fill is the Background pin, off the neutral ramp, so a resolution
+// that answered ramp steps had no step to walk and fell back to Surface. A
+// resolution that answers fills has nothing to fall back from, and the floor
+// beneath the paper is asked for on the same terms as the storeys above it.
 func TestGroundIsTheStoreysOwnFill(t *testing.T) {
 	for _, s := range []struct {
 		name string
@@ -111,12 +132,29 @@ func TestGroundIsTheStoreysOwnFill(t *testing.T) {
 		{"light", tokens.DefaultLight},
 		{"dark", tokens.DefaultDark},
 	} {
-		if got, want := focus.Ground(s.tok, tokens.Level0), s.tok.Surface; got != want {
-			t.Errorf("%s: Ground(Level0) = %v, want Surface %v — the pin is off-ramp, so level 0 stands on the ladder's first rung", s.name, got, want)
-		}
-		for _, level := range []tokens.ElevationLevel{tokens.Level1, tokens.Level2, tokens.Level3} {
+		for _, level := range []tokens.ElevationLevel{
+			tokens.LevelFloor, tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
+		} {
 			if got, want := focus.Ground(s.tok, level), s.tok.SurfaceAt(level); got != want {
-				t.Errorf("%s: Ground(Level%d) = %v, want the storey's own fill %v", s.name, level, got, want)
+				t.Errorf("%s: Ground(%d) = %v, want the storey's own fill %v", s.name, level, got, want)
+			}
+		}
+	}
+}
+
+// TestLevelZeroGroundMovesNoPixel holds the claim the Level 0 case rests on
+// now that it has stopped being an exception: the ring a control on the page
+// draws is the ring it drew when Ground answered Surface there. Both grounds
+// are asked for the rung, over the whole sweep and both derivations, and they
+// answer the same rung every time — so the repair is a change of reasoning
+// and not a repaint.
+func TestLevelZeroGroundMovesNoPixel(t *testing.T) {
+	for _, seed := range sweepSeeds() {
+		light, dark := tokens.FromSeed(seed)
+		hcLight, hcDark := tokens.FromSeedHighContrast(seed)
+		for _, c := range []tokens.ColorTokens{light, dark, hcLight, hcDark} {
+			if got, want := focus.Ring(c, focus.Ground(c, tokens.Level0)), focus.Ring(c, c.Surface); got != want {
+				t.Fatalf("seed %v: level 0 ring %v against the pin, %v against Surface — the pre-storey ground and the paper no longer answer one rung", seed, got, want)
 			}
 		}
 	}

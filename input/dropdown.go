@@ -449,13 +449,13 @@ func optionRowColors(tok resolvedTokens, selected bool) (fill, ink color.NRGBA) 
 	if selected {
 		return c.InverseSurface, c.OnInverseSurface
 	}
-	step := tok.elevation.SurfaceStep(tokens.Level3)
-	if step == 0 {
-		// A scale whose level 3 is the Background pin rather than a ramp
-		// step; the default scale's is Neutral 400.
-		return c.Background, c.Text
-	}
-	return c.Ramps.Neutral.Step(step), c.Text
+	// An unselected row is the menu's own plane: the level-3 storey, the top
+	// of the elevation ladder, asked of the palette rather than of a ramp
+	// index. It used to be read through the retired
+	// tokens.ElevationScale.SurfaceStep, which answered Neutral 400 in both
+	// schemes; since ADR-022 that is true of the dark scheme alone, and a
+	// light popover fills above its page rather than below it.
+	return c.SurfaceAt(tokens.Level3), c.Text
 }
 
 // drawOptionRow renders a single option row in the open dropdown list.

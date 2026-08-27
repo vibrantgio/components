@@ -127,15 +127,18 @@ const inkStep = 700
 // rung and at 71% in the ramp's end rung, and the two land on the same grey.
 //
 // It is derived against both grounds an overlay bar rides — the window's own
-// page and the pane fill one storey up — and answers whichever asks more, so
-// one bar reads on both. Handing the bar its ground the way the AQ-era
-// components take one would buy nothing here: over the whole seed sweep the
-// two grounds never disagree about the rung and differ by at most 2/255 of
-// coverage, because an ink at the ramp's end is far from both of them. A bar
-// riding a storey deeper than a pane is another matter — the light scheme's
-// resting thumb measures 2.90:1 over a level-2 surface — and the ground is a
-// parameter of this function, so that day costs a call-site argument and not
-// a redesign.
+// page and the furniture the panes are filled with — and answers whichever
+// asks more, so one bar reads on both. Which storey the second one is, is
+// ADR-022's: chrome furniture is the floor beneath the paper rather than a
+// storey above it, and the floor is the harder of the two grounds in both
+// schemes for the same reason in each — the thumb's ink is dark, the floor
+// is the darker ground, and a dark ink over a darker ground has the less to
+// spare. Handing the bar its ground the way the AQ-era components take one
+// would buy little here: over the whole seed sweep the two grounds never
+// disagree about the rung and differ only in coverage, because an ink at the
+// ramp's end is far from both of them. A bar riding a raised or floating
+// surface is another matter, and the ground is a parameter of this function,
+// so that day costs a call-site argument and not a redesign.
 //
 // The measurement is taken over the composite, not over the ink: a
 // translucent colour has no contrast of its own, and reading the ink's own
@@ -149,7 +152,7 @@ const inkStep = 700
 func thumbInk(c tokens.ColorTokens, floor float64, coverage uint8) color.NRGBA {
 	grounds := [...]color.NRGBA{
 		c.SurfaceAt(tokens.Level0),
-		c.SurfaceAt(tokens.Level1),
+		c.SurfaceAt(tokens.LevelFloor),
 	}
 	clears := func(ink color.NRGBA) bool {
 		for _, ground := range grounds {

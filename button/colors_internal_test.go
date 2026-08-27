@@ -65,38 +65,51 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 			{"tonal/disabled", RenderState{Emphasis: Tonal, Disabled: true},
 				tokens.Disabled(c.Ramps.Primary.Step(200)), tokens.Disabled(c.Ramps.Primary.Step(900))},
 
-			// Ghost: no ground at rest, focused or disabled; the neutral
+			// Ghost: no ground at rest, focused or disabled; the host
 			// surface's own hover and press wash under the pointer, with the
 			// label walking from low-contrast text to high-contrast text as
 			// its ground deepens.
+			//
+			// A ghost that is told nothing stands on the paper, so its wash
+			// is the paper's own walk — tokens.ColorTokens.StateAt at level
+			// 0. It used to be neutral 300, because the ladder could not
+			// walk the off-ramp Background pin and the register assumed the
+			// level-1 ramp step instead, which read one rung strong. Since
+			// ADR-022 the walk is taken from the storey's fill and the page's
+			// own one-rung wash lands on neutral 200 in both schemes.
 			{"ghost/normal", RenderState{Emphasis: Ghost},
 				transparent, c.Ramps.Neutral.Step(700)},
 			{"ghost/hovered", RenderState{Emphasis: Ghost, Hovered: true},
-				c.Ramps.Neutral.Step(300), c.Ramps.Neutral.Step(900)},
+				c.StateAt(tokens.Level0, tokens.StateHover), c.Ramps.Neutral.Step(900)},
 			{"ghost/pressed", RenderState{Emphasis: Ghost, Pressed: true},
-				c.Ramps.Neutral.Step(400), c.Ramps.Neutral.Step(900)},
+				c.StateAt(tokens.Level0, tokens.StatePressed), c.Ramps.Neutral.Step(900)},
 			{"ghost/focused", RenderState{Emphasis: Ghost, Focused: true},
 				transparent, c.Ramps.Neutral.Step(700)},
 			{"ghost/disabled", RenderState{Emphasis: Ghost, Disabled: true},
 				transparent, tokens.Disabled(c.Ramps.Neutral.Step(700))},
 
-			// Ghost on a raised host (I3.1): the wash is the host surface's
-			// own one-rung walk. Level 1's step is the window-ground
-			// assumption itself, so naming it changes nothing; levels 2 and
-			// 3 walk from their own steps (300, 400). Rest stays transparent
-			// on every storey — the ground is the host's to paint.
+			// Ghost on a host that is not the paper (I3.1, re-founded by
+			// ADR-022): the wash is that host surface's own one-rung walk,
+			// on every storey the ladder carries — the furniture floor below
+			// the paper included, which is where a rail's or a toolbar's
+			// ghost buttons actually stand. Rest stays transparent on every
+			// storey; the ground is the host's to paint.
+			{"ghost/floor/normal", RenderState{Emphasis: Ghost, Ground: tokens.LevelFloor},
+				transparent, c.Ramps.Neutral.Step(700)},
+			{"ghost/floor/hovered", RenderState{Emphasis: Ghost, Ground: tokens.LevelFloor, Hovered: true},
+				c.StateAt(tokens.LevelFloor, tokens.StateHover), c.Ramps.Neutral.Step(900)},
 			{"ghost/level1/hovered", RenderState{Emphasis: Ghost, Ground: tokens.Level1, Hovered: true},
-				c.Ramps.Neutral.Step(300), c.Ramps.Neutral.Step(900)},
+				c.StateAt(tokens.Level1, tokens.StateHover), c.Ramps.Neutral.Step(900)},
 			{"ghost/level2/normal", RenderState{Emphasis: Ghost, Ground: tokens.Level2},
 				transparent, c.Ramps.Neutral.Step(700)},
 			{"ghost/level2/hovered", RenderState{Emphasis: Ghost, Ground: tokens.Level2, Hovered: true},
-				c.Ramps.Neutral.Step(400), c.Ramps.Neutral.Step(900)},
+				c.StateAt(tokens.Level2, tokens.StateHover), c.Ramps.Neutral.Step(900)},
 			{"ghost/level2/pressed", RenderState{Emphasis: Ghost, Ground: tokens.Level2, Pressed: true},
-				c.Ramps.Neutral.Step(500), c.Ramps.Neutral.Step(900)},
+				c.StateAt(tokens.Level2, tokens.StatePressed), c.Ramps.Neutral.Step(900)},
 			{"ghost/level3/hovered", RenderState{Emphasis: Ghost, Ground: tokens.Level3, Hovered: true},
-				c.Ramps.Neutral.Step(500), c.Ramps.Neutral.Step(900)},
+				c.StateAt(tokens.Level3, tokens.StateHover), c.Ramps.Neutral.Step(900)},
 			{"ghost/level3/pressed", RenderState{Emphasis: Ghost, Ground: tokens.Level3, Pressed: true},
-				c.Ramps.Neutral.Step(600), c.Ramps.Neutral.Step(900)},
+				c.StateAt(tokens.Level3, tokens.StatePressed), c.Ramps.Neutral.Step(900)},
 
 			// The other registers carry their own grounds and ignore the
 			// host's: a filled or tonal button on a level-2 surface renders
@@ -142,7 +155,7 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 			{"ghost/pinned/normal", RenderState{Emphasis: Ghost, Fill: pinFill, OnFill: pinInk},
 				transparent, c.Ramps.Neutral.Step(700)},
 			{"ghost/pinned/hovered", RenderState{Emphasis: Ghost, Fill: pinFill, OnFill: pinInk, Hovered: true},
-				c.Ramps.Neutral.Step(300), c.Ramps.Neutral.Step(900)},
+				c.StateAt(tokens.Level0, tokens.StateHover), c.Ramps.Neutral.Step(900)},
 		}
 
 		for _, tc := range cases {

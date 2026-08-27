@@ -584,8 +584,8 @@ func drawFocusRing(gtx layout.Context, size image.Point, rad int, ring color.NRG
 // background. A ghost paints none at rest, so what its ring circles is the
 // host surface showing through it — the storey s.Ground names, resolved by
 // focus.Ground, which is the one rule every control in the library hands its
-// ring and which lands on exactly the rung ghostGroundStep walks the ghost's
-// wash from.
+// ring and which lands on exactly the fill ghostWash walks the ghost's wash
+// from.
 func ringGround(c tokens.ColorTokens, bg color.NRGBA, s RenderState) color.NRGBA {
 	if bg.A == 0 {
 		return focus.Ground(c, s.Ground)
@@ -616,19 +616,6 @@ const (
 	// stop the APCA gate holds at Lc ≥ 90 over the 100 and 200 grounds.
 	tonalText = 900
 
-	// ghostGround is the ground a ghost's wash walks from when its host
-	// names no storey of its own. A ghost paints nothing at rest, so it
-	// has no ground of its own and performs its host surface's walk
-	// instead — a wash derives from the local ground it sits on, not the
-	// window ground. A host that knows its storey says so through
-	// RenderState.Ground and the wash walks from that storey's own step
-	// (see ghostGroundStep); this constant is the assumption for the
-	// window ground (tokens.Level0), whose Background pin is off-ramp
-	// and cannot be walked. It assumes the level-1 surface step, so the
-	// bare-background wash reads one step strong — the harmless
-	// direction of the error, where assuming 100 would make the wash on
-	// the card a ghost most often sits on invisible.
-	ghostGround = 200
 	// ghostText is the resting label shade: neutral step 700, ADR-007's
 	// low-contrast text (Lc ≥ 60) — the resolution the deleted
 	// OnSurfaceVariant alias carried.
@@ -649,11 +636,11 @@ const (
 // DisabledOpacity when disabled. Tonal and Ghost resolve through the same
 // two entry points on the same ramps, only from different rungs: tonal is
 // the tinted-ground walk on the primary ramp, ghost the same walk on the
-// neutral one with the resting step painted as nothing at all. The rung a
-// ghost walks from is its host surface's — a ghost's wash is that
-// surface's own one-rung walk, taken from whichever storey s.Ground names
-// (ghostGroundStep), with the on-wash text riding at the ramp's 900 end,
-// where the walk itself clamps.
+// neutral ladder with the resting step painted as nothing at all. What a
+// ghost walks from is its host surface's own fill — a ghost's wash is that
+// surface's one-rung walk, taken from whichever storey s.Ground names
+// (ghostWash), with the on-wash text riding at the ramp's 900 end, where
+// the walk itself clamps.
 //
 // Filled is also the one register that takes a pin from the caller. A
 // RenderState carrying both halves of a fill pair (RenderState.Fill and
@@ -690,7 +677,7 @@ func buttonColors(c tokens.ColorTokens, s RenderState) (bg, fg color.NRGBA) {
 		switch state {
 		case tokens.StateHover, tokens.StatePressed:
 			fg = c.Ramps.Neutral.Step(ghostTextOnWash)
-			bg = c.StateColor(tokens.RoleNeutral, ghostGroundStep(s.Ground), state)
+			bg = ghostWash(c, s.Ground, state)
 		default:
 			// Rest, focus and disabled paint no ground: the surface behind
 			// shows through untouched. A fully transparent fill is a no-op
@@ -729,18 +716,23 @@ func pinnedFill(s RenderState) bool {
 	return s.Fill.A != 0 && s.OnFill.A != 0
 }
 
-// ghostGroundStep resolves the neutral-ramp step a ghost's wash walks from:
-// the surface step of the hosting storey, so the wash is the host surface's
-// own one-rung walk. Level 0 has no ramp step to walk — its fill is the
-// Background pin, off-ramp by design — so the window ground keeps the
-// register's long-standing level-1 assumption (ghostGround), which is also
-// what makes the zero value colour-identical to every render made before
-// the field existed.
-func ghostGroundStep(level tokens.ElevationLevel) int {
-	if step := tokens.Elevation.SurfaceStep(level); step != 0 {
-		return step
-	}
-	return ghostGround
+// ghostWash resolves the wash a ghost paints under the pointer: the state
+// walk taken from the fill of the storey the ghost stands on, so the wash is
+// its host surface's own one-rung walk and nothing else.
+//
+// This used to resolve a neutral-ramp STEP and walk that, which meant it
+// could not answer for a storey the ramp does not carry — level 0's fill is
+// the Background pin, off-ramp by design, and since ADR-022 so is every
+// light storey above it and the dark furniture floor below. The register
+// covered the gap by assuming the level-1 step for the window ground, which
+// read one step strong on the page and had nothing at all to say about the
+// floor. [tokens.ColorTokens.StateAt] walks from the storey's own colour on
+// the neutral ladder, so there is no gap left to cover and no assumption
+// left to make: every storey the ladder carries walks from what it is
+// actually filled with, and the ghost's wash is the surface it is sitting
+// on, one rung along.
+func ghostWash(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) color.NRGBA {
+	return c.StateAt(level, state)
 }
 
 // interactionState collapses the four RenderState booleans into the one

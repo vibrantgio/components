@@ -639,7 +639,10 @@ func (inv *Inventory) shell(c tokens.ColorTokens) layout.Widget {
 	sidebarW := patsidebar.Render(inv.shaper, inv.sidebarProps(c), false, c, tokens.Spacing,
 		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
 	asideW := func(gtx layout.Context) layout.Dimensions {
-		paint.FillShape(gtx.Ops, c.Surface, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		// An aside is an inspector, which ADR-022 names as furniture: it
+		// fills at the window's floor, the same storey the frame around it
+		// paints, rather than at the c.Surface ramp alias.
+		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelFloor), clip.Rect{Max: gtx.Constraints.Max}.Op())
 		return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return inv.prose(c, "Aside", "", "Inspector, outline", "or details.")(gtx)
 		})

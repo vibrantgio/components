@@ -230,7 +230,10 @@ func TestGhostIconButtonWashesAboveRaisedGroundGolden(t *testing.T) {
 // differs from the ground it sits on. Before the wash walked from the local
 // ground it resolved to neutral 300 — exactly the level-2 fill — and this
 // test's sampled pixel equalled the ground: an invisible hover. The wash
-// must now be the host surface's own one-rung walk, neutral 400.
+// must now be the host surface's own one-rung walk, which since ADR-022 is
+// asked of the storey rather than of a ramp index: tokens.ColorTokens.StateAt
+// walks the neutral ladder from whatever the storey is actually filled with,
+// and the light level-2 fill is off the ramp entirely.
 func TestGhostWashDiffersFromItsRaisedGround(t *testing.T) {
 	size := image.Pt(60, 60)
 	colors := tokens.DefaultLight
@@ -250,7 +253,7 @@ func TestGhostWashDiffersFromItsRaisedGround(t *testing.T) {
 	if at == (color.RGBA{R: ground.R, G: ground.G, B: ground.B, A: ground.A}) {
 		t.Fatalf("hover wash at (3,18) equals the level-2 ground %v: the ghost wash is invisible on its host surface", ground)
 	}
-	want := colors.StateColor(tokens.RoleNeutral, tokens.Elevation.SurfaceStep(tokens.Level2), tokens.StateHover)
+	want := colors.StateAt(tokens.Level2, tokens.StateHover)
 	if at != (color.RGBA{R: want.R, G: want.G, B: want.B, A: want.A}) {
 		t.Errorf("hover wash at (3,18) = %v, want the level-2 surface's own one-rung walk %v", at, want)
 	}

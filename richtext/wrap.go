@@ -30,6 +30,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
+	"gioui.org/unit"
 
 	"github.com/vibrantgio/components/internal/focus"
 
@@ -53,9 +54,11 @@ type resolvedSpan struct {
 }
 
 // resolvedChip is a [Chip] in pixels. A zero-alpha colour draws none, and
-// then there is no padding to reserve either.
+// then there is no padding to reserve either. A zero-alpha border draws no
+// hairline; the fill is drawn either way.
 type resolvedChip struct {
 	color  color.NRGBA
+	border color.NRGBA
 	pad    int
 	radius int
 }
@@ -125,6 +128,7 @@ func resolve(gtx layout.Context, style Style, spans []SpanStyle, rs RenderState)
 		if s.Chip.Color.A > 0 {
 			chip = resolvedChip{
 				color:  s.Chip.Color,
+				border: s.Chip.Border,
 				pad:    gtx.Dp(s.Chip.Padding),
 				radius: gtx.Dp(s.Chip.Radius),
 			}
@@ -363,12 +367,29 @@ func closesTight(r rune) bool {
 	return false
 }
 
+// chipEdge is how wide a chip's hairline is drawn when [Chip].Border asks for
+// one: one dp, the width every other line in this library is drawn at.
+const chipEdge = unit.Dp(1)
+
 // drawChip paints the rounded fill a chipped span sits on: the segment's whole
 // box, padding included, at the span's own shaped height. Called with the
 // segment's origin as the current transform, before the glyphs.
+//
+// A border with any alpha in it edges the chip the way a fence is edged: the
+// border colour fills the whole rounded box and the chip colour fills a box
+// one hairline smaller, concentric with it, so the rim is drawn without a
+// stroke and without a seam. A stroke would be centred on the path and spill
+// half its width outside the box the line's wrapping reserved, which is a
+// pixel of rim under the word beside it.
 func drawChip(gtx layout.Context, s segment) {
-	r := image.Rectangle{Max: image.Pt(s.width, s.height)}
-	paint.FillShape(gtx.Ops, s.chip.color, clip.UniformRRect(r, s.chip.radius).Op(gtx.Ops))
+	box := image.Rectangle{Max: image.Pt(s.width, s.height)}
+	chip := clip.UniformRRect(box, s.chip.radius)
+	if s.chip.border.A > 0 {
+		edge := max(gtx.Dp(chipEdge), 1)
+		paint.FillShape(gtx.Ops, s.chip.border, chip.Op(gtx.Ops))
+		chip = clip.UniformRRect(box.Inset(edge), max(s.chip.radius-edge, 0))
+	}
+	paint.FillShape(gtx.Ops, s.chip.color, chip.Op(gtx.Ops))
 }
 
 // drawUnderline paints the link underline for one segment, in the segment's

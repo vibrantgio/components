@@ -108,6 +108,20 @@ type SpanStyle struct {
 type Chip struct {
 	// Color fills the chip. A zero alpha draws nothing.
 	Color color.NRGBA
+	// Border strokes a hairline just inside the fill's rounded edge, one dp
+	// wide at every density — the same line width every other edge in this
+	// library draws. A zero alpha draws none, which is what a fill that
+	// stands off its page on its own needs.
+	//
+	// It is here because a fill does not always stand off its page. Since
+	// ADR-022 the elevation ladder climbs toward the light in both schemes,
+	// and a light scheme has almost no room above its paper to climb into:
+	// a raised chip there is a whisper — a fraction of a step — and what
+	// says where it is has to be its edge. A chip carries no shadow and
+	// takes no storey of its own beyond that whisper, so the edge is the
+	// only thing left to say it. The caller decides whether the fill needs
+	// the help; this only draws it.
+	Border color.NRGBA
 	// Padding is the horizontal space between the fill's edge and the glyphs,
 	// on each side.
 	Padding unit.Dp
@@ -176,9 +190,15 @@ type Style struct {
 // controls and so has nothing to say about a paragraph.
 func FromTokens(c tokens.ColorTokens, body tokens.TextStyle) Style {
 	return Style{
-		Color:      c.Text,
-		LinkColor:  c.Primary,
-		FocusColor: focus.Ring(c, c.Surface),
+		Color:     c.Text,
+		LinkColor: c.Primary,
+		// The ground a link's ring is drawn on is the paper the paragraph
+		// is set on — the ladder's level 0, asked of the palette. It used
+		// to name c.Surface, which is a neutral-ramp alias rather than a
+		// storey (ADR-022); over the whole seed sweep the two answer the
+		// same rung, so this moves no pixel and stops claiming that prose
+		// lies on the ramp's first rung.
+		FocusColor: focus.Ring(c, focus.Ground(c, tokens.Level0)),
 		Size:       unit.Sp(body.Size),
 		LineHeight: unit.Sp(body.LineHeight),
 	}
