@@ -55,10 +55,12 @@ var checkboxSeeds = []color.NRGBA{
 // aimed at.
 //
 // Two grounds are measured per storey, because the border has two sides.
-// Outside it is the storey the control stands on; inside it is its own
-// Surface interior, which the component paints itself and therefore always
-// knows, and which no ground the control is handed can excuse it from
-// clearing.
+// Outside it is the storey the control stands on; inside it is the control's
+// own interior, which the component paints itself and therefore always knows,
+// and which no ground the control is handed can excuse it from clearing.
+// Since AU1.4 that interior is a storey too — controlFill, one rung above the
+// same ground — so the two sides of the edge move together, and both are
+// asked rather than one of them being assumed to stand still.
 func TestControlBorderClearsTheGraphicFloor(t *testing.T) {
 	for _, sc := range []struct {
 		name   string
@@ -76,7 +78,7 @@ func TestControlBorderClearsTheGraphicFloor(t *testing.T) {
 					ground color.NRGBA
 				}{
 					{"the " + level.name + " ground it stands on", c.SurfaceAt(level.level)},
-					{"its own Surface interior", c.Surface},
+					{"its own raised interior", controlFill(c, level.level)},
 				} {
 					got := themecolor.ContrastRatio(border, g.ground)
 					t.Logf("%s border %s against %s %s: %.2f:1", level.name, hex(border), g.name, hex(g.ground), got)
@@ -132,7 +134,7 @@ func TestControlBorderClearsTheFloorForEverySeed(t *testing.T) {
 					ground color.NRGBA
 				}{
 					{level.name + " ground", c.SurfaceAt(level.level)},
-					{"Surface interior", c.Surface},
+					{"raised interior", controlFill(c, level.level)},
 				} {
 					got := themecolor.ContrastRatio(border, g.ground)
 					if got < worst {

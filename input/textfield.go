@@ -558,11 +558,18 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 }
 
 // textFieldColors returns (bg, text, border, placeholder) colors for the
-// given state: the Surface ground, body text, the resting border the neutral
-// ramp measures against the storey the field stands on (controlBorder) and
-// ADR-007's low-contrast-text step (Neutral 700) for the placeholder.
-// Disabled fades each to DisabledOpacity (D2.3); focus promotes the border
-// to the focus ring.
+// given state: the field's own raised fill (controlFill), body text, the
+// resting border the neutral ramp measures against the storey the field
+// stands on (controlBorder) and ADR-007's low-contrast-text step (Neutral
+// 700) for the placeholder. Disabled fades each to DisabledOpacity (D2.3);
+// focus promotes the border to the focus ring.
+//
+// The fill used to be c.Surface named outright, and on a platform where a
+// text field is textBackgroundColor and always the lightest thing in the
+// window, that put a light field at #E8E8E8 under its own #F6F6F6 page — the
+// complaint ADR-022 exists to end. It is now a rung walked from the ground
+// the field was handed, so the field is lighter than whatever it lies on in
+// both schemes and stays lighter when the host rises (controlFill).
 //
 // The border used to be the ramp's step 500 named outright, which is a
 // pairing and not a colour: it measured 2.67:1 against the light scheme's
@@ -577,14 +584,14 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // field stands on (focus.Ground). It used to be the bare Primary — the seed
 // itself, which reads on the default palette and measures as low as 1.00:1
 // against the light surface once a caller supplies a seed of their own — and
-// then the field's own Surface fill, which is one of the ring's two
+// then the field's own fill, which is one of the ring's two
 // neighbours and the easier one: the band's outer half meets the host, so a
 // field focused inside a light popover drew a ring measuring 2.14:1 against
 // the surface it was announcing itself on. The storey is the harder ground
 // and clearing it clears the fill as well (see focus.Ground), so one walk
 // answers both edges of the band.
 func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, placeholder color.NRGBA) {
-	bg = c.Surface
+	bg = controlFill(c, s.Ground)
 	text = c.Text
 	border = controlBorder(c, s.Ground)
 	placeholder = c.Ramps.Neutral.Step(700) // low-contrast text

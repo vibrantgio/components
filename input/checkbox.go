@@ -91,13 +91,47 @@ var checkLine = [3]f32.Point{
 // wherever it stands.
 //
 // The control's own interior is the edge's other side, and every rung this
-// walk answers clears the floor against it too: the interior is Surface —
-// the level-1 storey — and the deeper the outer ground, the deeper the ink,
-// so the inner pairing only widens. Measured over the four storeys the
-// light scheme lands 3.55 / 3.55 / 5.46 / 5.46:1 inside and the dark 5.94:1
-// throughout.
+// walk answers clears the floor against it too. That interior is controlFill
+// — the storey one rung above this same ground — so since AU1.4 both sides of
+// the edge move with the ground instead of one of them standing still on the
+// Surface alias. Measured over the four storeys the light scheme lands
+// 4.10 / 4.21 / 4.35 / 4.35:1 inside and the dark 5.94 / 5.07 / 3.47 / 3.47:1,
+// and the ladder's two halves show plainly in those columns: the light
+// scheme's rungs above the pin are whispers, so its inner pairing barely
+// moves off the outer one, while the dark scheme's climb is real and the ink
+// — chosen against the ground OUTSIDE — is closest to the interior at the top
+// of the ladder. 3.47:1 is the worst pairing this walk makes anywhere in the
+// seed sweep, on either side of the edge, and it is the level-3 interior.
 func controlBorder(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
 	return c.MarkOn(tokens.RoleNeutral, c.SurfaceAt(ground), graphicFloor)
+}
+
+// controlFill is the interior of a control that paints a box of its own — the
+// unchecked box, the unselected radio's gap ring, the text field, the dropdown
+// trigger: the fill of the storey one rung nearer the viewer than the ground
+// the control stands on.
+//
+// It used to be c.Surface, and that is a pairing rather than a colour in
+// exactly the way controlBorder's old step 500 was. Surface is the neutral
+// ramp's step 200, and the paired ramps realize step 200 at the same
+// perceptual depth from opposite ends: in the dark scheme that lands on the
+// raised storey by coincidence — #222222 is both — and in the light scheme it
+// lands on nothing the ladder carries. A field filled #E8E8E8 on its #F6F6F6
+// page was painted BELOW the paper it lies on, which is the "darkest thing in
+// the window" complaint ADR-022 was ruled to end. Since that ruling a surface
+// nearer the viewer is lighter in both schemes, and a control that fills a box
+// on its host is raised on it.
+//
+// So the fill is a rung walked from the ground the control was handed, never
+// an absolute step (ADR-022 V3): a field on the paper fills at level 1, the
+// same field inside a level-2 dialog fills at level 3, and one on a sidebar
+// fills at the paper's storey. Level 3 is the ceiling and a control already
+// there stays there. In the light scheme the rungs above the pin are whispers
+// — #F8F8F8 over #F6F6F6 — so what says where the control is, is the
+// controlBorder hairline and the corner radius; that trade is the ladder's,
+// stated in full in the tokens package's elevation header.
+func controlFill(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
+	return c.SurfaceAt(ground.Raised())
 }
 
 // CheckboxRenderState holds explicit visual state for static rendering.
@@ -269,8 +303,9 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	}
 	boxRad := gtx.Dp(unit.Dp(tok.radius.Sm))
 
-	// Border as nested fills: outer rect in border colour, inner rect in
-	// surface colour. Avoids clip.Stroke anti-aliasing variance in tests.
+	// Border as nested fills: outer rect in border colour, inner rect in the
+	// box's own raised fill (controlFill — the storey above the ground the box
+	// stands on). Avoids clip.Stroke anti-aliasing variance in tests.
 	borderPx := gtx.Dp(2)
 	innerRad := boxRad - borderPx
 	if innerRad < 0 {
@@ -319,7 +354,7 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 			border = tokens.Disabled(border)
 		}
 		paint.FillShape(gtx.Ops, border, rrectOuter.Op(gtx.Ops))
-		paint.FillShape(gtx.Ops, tok.color.Surface, rrectInner.Op(gtx.Ops))
+		paint.FillShape(gtx.Ops, controlFill(tok.color, s.Ground), rrectInner.Op(gtx.Ops))
 	}
 
 	// The focus ring: focus.Width around the box, clear of it, in the primary

@@ -189,11 +189,15 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		Max: image.Pt(outerRect.Max.X-borderPx, outerRect.Max.Y-borderPx),
 	}
 
-	// Outer ellipse in the edge colour, surface gap, and — when selected — the
+	// Outer ellipse in the edge colour, the gap, and — when selected — the
 	// dot. Nested fills avoid clip.Stroke anti-aliasing variance in tests.
 	// The unselected ring is the radio's whole statement, so it is derived
 	// rather than named: the neutral rung that clears the graphic floor
-	// against the storey the radio stands on (controlBorder).
+	// against the storey the radio stands on (controlBorder). The gap inside
+	// it is the glyph's own interior, so it takes the storey the glyph is
+	// raised to (controlFill) — the same fill the box, the field and the
+	// trigger carry, in the chosen state as much as the resting one: the dot
+	// is drawn on the radio's surface, not on the host's.
 	edge := controlBorder(tok.color, s.Ground)
 	if s.Selected {
 		edge = tok.color.Primary
@@ -202,7 +206,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		edge = tokens.Disabled(edge)
 	}
 	paint.FillShape(gtx.Ops, edge, clip.Ellipse(outerRect).Op(gtx.Ops))
-	paint.FillShape(gtx.Ops, tok.color.Surface, clip.Ellipse(innerRect).Op(gtx.Ops))
+	paint.FillShape(gtx.Ops, controlFill(tok.color, s.Ground), clip.Ellipse(innerRect).Op(gtx.Ops))
 	if s.Selected {
 		fill := tok.color.Primary
 		if s.Disabled {

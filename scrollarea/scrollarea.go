@@ -119,7 +119,30 @@ type Style struct {
 }
 
 // FromTokens derives the default scroll-area look from colour tokens: the
-// content dissolves into the Surface colour over an S4 run at each cut edge.
+// content dissolves into the window ground over an S4 run at each cut edge.
+//
+// # The fade takes no storey
+//
+// ADR-022's ladder asks every fill in the library which way it moves when the
+// thing under it rises, and this one does not move at all: a fade is an
+// OVERLAY, not a surface. It is painted over the content, inside the area's
+// clip, as the area's own ground run out to zero alpha, and its whole job is
+// to be indistinguishable from what lies behind the content so the hidden end
+// reads as passing UNDER the edge. A surface that rose a rung here would paint
+// a lighter band across the content and become exactly what this field's
+// documentation forbids — a band laid over it. So the fade matches its pane
+// rather than climbing off it, in both schemes.
+//
+// What did have to move is which colour "its pane" names. The default was
+// c.Surface, the neutral ramp's step 200, and the paired ramps realize step
+// 200 at the same perceptual depth from opposite ends: in the dark scheme
+// that happens to be the raised storey and in the light scheme it is no
+// storey at all, so a default fade dissolved a light page's content into
+// #E8E8E8 while the page was #F6F6F6 — a grey smear, the very failure the
+// field is documented against. The default now names the window ground,
+// SurfaceAt(Level0), which is the same convention every Ground field in this
+// library gives its zero value: an area nobody has told anything to stands on
+// the paper.
 //
 // The fade is the affordance, and it is deliberately not a scrollbar. A
 // desktop overlay bar is absent at rest — it appears while the content moves
@@ -131,12 +154,13 @@ type Style struct {
 // layout and no chrome, and stacks with a bar rather than replacing it — see
 // [Style.LayoutScrollbar].
 //
-// Override FadeColor whenever the area sits on something other than Surface;
-// the fade must match what is behind the content or it reads as a smear.
+// Override FadeColor whenever the area sits on something other than the window
+// ground — c.SurfaceAt(the host's own storey), never a rung walked from it. The
+// fade must match what is behind the content or it reads as a smear.
 func FromTokens(c tokens.ColorTokens) Style {
 	return Style{
 		Fade:      unit.Dp(tokens.Spacing.S4),
-		FadeColor: c.Surface,
+		FadeColor: c.SurfaceAt(tokens.Level0),
 	}
 }
 

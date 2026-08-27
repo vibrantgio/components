@@ -162,10 +162,19 @@ func TestLevelZeroGroundMovesNoPixel(t *testing.T) {
 
 // TestPromotedBorderRingClearsBothItsNeighbours holds the claim [focus.Ground]
 // rests on for the text field and the dropdown trigger: their ring is the
-// control's outermost band, so it has two neighbours — the field's own Surface
-// fill on the inside, the host storey on the outside — and one walk has to
-// satisfy them both. Deriving against the storey does; deriving against the
-// fill did not, which is the defect this replaces.
+// control's outermost band, so it has two neighbours — the control's own fill
+// on the inside, the host storey on the outside — and one walk has to satisfy
+// them both. Deriving against the storey does; deriving against the fill did
+// not, which is the defect this replaces.
+//
+// Since AU1.4 the inner neighbour is a storey rather than the Surface alias:
+// a control that fills a box on its host is raised on it, so its fill is the
+// rung above the ground it was handed (input.controlFill, which this package
+// cannot import and therefore restates as the one call it is). That moved the
+// inner neighbour in the direction that matters — toward the light, which in
+// a dark scheme is toward the ring — and the sweep still clears, at 3.44:1
+// worst over both derivations and every storey, the same margin the outer
+// neighbour bottoms out at.
 func TestPromotedBorderRingClearsBothItsNeighbours(t *testing.T) {
 	for _, seed := range sweepSeeds() {
 		light, dark := tokens.FromSeed(seed)
@@ -173,9 +182,10 @@ func TestPromotedBorderRingClearsBothItsNeighbours(t *testing.T) {
 		for _, c := range []tokens.ColorTokens{light, dark, hcLight, hcDark} {
 			for _, level := range storeys {
 				ring := focus.Ring(c, focus.Ground(c, level))
-				if got := color.ContrastRatio(ring, c.Surface); got < focus.Floor {
-					t.Fatalf("seed %v: level %d: ring %v measures %.2f:1 against the field's own fill %v, under the %.1f:1 floor",
-						seed, level, ring, got, c.Surface, focus.Floor)
+				fill := c.SurfaceAt(level.Raised())
+				if got := color.ContrastRatio(ring, fill); got < focus.Floor {
+					t.Fatalf("seed %v: level %d: ring %v measures %.2f:1 against the control's own fill %v, under the %.1f:1 floor",
+						seed, level, ring, got, fill, focus.Floor)
 				}
 			}
 		}

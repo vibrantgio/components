@@ -123,10 +123,14 @@ func Ring(c tokens.ColorTokens, ground color.NRGBA) color.NRGBA {
 // control's outermost edge with the host immediately outside it.
 //
 // The promoted-border family is the reason this resolves to the storey rather
-// than to the field's own fill. That ring has two neighbours — the field's
-// Surface inside, the host storey outside — and one walk has to satisfy both.
+// than to the field's own fill. That ring has two neighbours — the control's
+// fill inside, the host storey outside — and one walk has to satisfy both.
 // Deriving against the storey does, on every palette the seed sweep reaches;
-// deriving against the fill did not, which is the defect this replaces.
+// deriving against the fill did not, which is the defect this replaces. Since
+// AU1.4 the inner neighbour is itself a storey — a control that fills a box on
+// its host is raised on it, so its fill is the rung above the ground handed in
+// here — and the claim is unchanged: the sweep clears at 3.44:1 worst on
+// either side of the band.
 //
 // There is no special case, and that is the whole of the ADR-022 repair. This
 // used to resolve a storey through the retired [tokens.ElevationScale.SurfaceStep]

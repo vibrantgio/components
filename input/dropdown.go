@@ -354,7 +354,11 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	}
 	triggerSize := image.Pt(fieldW, triggerH)
 
-	bg := tok.color.Surface
+	// The trigger's own fill is the storey it is raised to over the ground it
+	// stands on (controlFill), the same walk the field, the box and the radio
+	// take. Disabled fades that fill rather than naming a second one, so the
+	// state follows the storey wherever the trigger was put.
+	bg := controlFill(tok.color, s.Ground)
 	if s.Disabled {
 		bg = tokens.Disabled(bg)
 	}
@@ -364,7 +368,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	// the resting border below is measured against, so promoting the edge
 	// changes its hue and not the ground it answers to. A trigger opened
 	// inside a level-3 menu was the case that made this matter: measured
-	// against its own Surface fill the ring came out 2.14:1 against the
+	// against the trigger's own fill the ring came out 2.14:1 against the
 	// popover it was standing on (focus.Ground).
 	// At rest the trigger's border is the neutral rung the ramp measures as
 	// clearing the graphic floor against that same storey, the same edge the
@@ -423,7 +427,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 // An unselected row is the menu's own plane. The open menu is a floating
 // transient overlay — an unscrimmed, shadowless plane like patterns/popover —
 // so its rows fill at level 3 on the elevation ladder (Neutral 400 on the
-// default scale), not the flat Surface the closed trigger keeps; the ladder
+// default dark scale), not the storey the closed trigger is raised to; the ladder
 // comes from the theme rather than the package default, which is what the
 // component subscribes to it for. The scheme's body text reads on that fill at
 // 9.16:1 light and 8.01:1 dark.
