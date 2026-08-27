@@ -318,6 +318,13 @@ func (inv *Inventory) tabs(c tokens.ColorTokens) layout.Widget {
 			{Label: "History", Content: inv.prose(c, "The third tab's content.")},
 		},
 		Shaper: inv.shaper,
+		// A specimen lifted off the page, like the table beside it: the
+		// section body under it is the Background pin, so a panel taking the
+		// pattern's default ground would dissolve into the page and leave a
+		// strip floating on nothing. On Level1 the panel keeps the Surface it
+		// has always drawn and the strip stands the one rung over it that the
+		// pattern now walks (ADR-021 R4) — which is the tile's only change.
+		Ground: tokens.Level1,
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(460))
