@@ -323,7 +323,10 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	}
 
 	// The focus ring: focus.Width around the box, clear of it, in the primary
-	// rung that reads against the surface it lies on. It rides in the slack
+	// rung that reads against the storey the box stands on — s.Ground through
+	// focus.Ground, the same walk the unchecked edge above takes, so a box in
+	// a dialog wears an edge and a ring that were both measured against the
+	// dialog. It rides in the slack
 	// between the 20 dp glyph and the density's footprint, so taking focus
 	// moves nothing and the ring is the same ring whatever the box is doing.
 	//
@@ -347,7 +350,7 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 			},
 			SE: r, SW: r, NE: r, NW: r,
 		}
-		paint.FillShape(gtx.Ops, focus.Ring(tok.color, tok.color.Surface), clip.Stroke{
+		paint.FillShape(gtx.Ops, focus.Ring(tok.color, focus.Ground(tok.color, s.Ground)), clip.Stroke{
 			Path:  ring.Path(gtx.Ops),
 			Width: float32(w),
 		}.Op())

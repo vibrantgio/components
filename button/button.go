@@ -582,11 +582,13 @@ func drawFocusRing(gtx layout.Context, size image.Point, rad int, ring color.NRG
 
 // ringGround is the ground a focused button's ring circles: the register's own
 // background. A ghost paints none at rest, so what its ring circles is the
-// host surface showing through it — the same storey ghostGroundStep resolves
-// its wash from.
+// host surface showing through it — the storey s.Ground names, resolved by
+// focus.Ground, which is the one rule every control in the library hands its
+// ring and which lands on exactly the rung ghostGroundStep walks the ghost's
+// wash from.
 func ringGround(c tokens.ColorTokens, bg color.NRGBA, s RenderState) color.NRGBA {
 	if bg.A == 0 {
-		return c.Ramps.Neutral.Step(ghostGroundStep(s.Ground))
+		return focus.Ground(c, s.Ground)
 	}
 	return bg
 }

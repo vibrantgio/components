@@ -32,10 +32,17 @@ func sweepSeeds() []stdcolor.NRGBA {
 }
 
 // grounds names, for one scheme, every ground a control in this library draws
-// its focus ring over — one entry per control and per state that changes what
-// the ring circles. Adding a focusable control to the library means adding its
-// ground here; that is what makes this file the gate for the whole idiom
-// rather than for the four packages that happen to exist.
+// its focus ring over — one entry per control and per state or storey that
+// changes what the ring circles. Adding a focusable control to the library
+// means adding its ground here; that is what makes this file the gate for the
+// whole idiom rather than for the four packages that happen to exist.
+//
+// Most controls appear once per storey rather than once. A control's host is
+// a rung of the elevation ladder, its fill deepens as the ladder climbs, and
+// the ring lies on that fill — so "which ground does this control's ring
+// circle" has four answers, not one, and a gate that asked only the first
+// would have passed the level-2 and level-3 readings that were under the
+// floor for as long as the ring was measured against a fixed surface.
 func grounds(c tokens.ColorTokens) []struct {
 	name   string
 	ground stdcolor.NRGBA
@@ -54,20 +61,86 @@ func grounds(c tokens.ColorTokens) []struct {
 		{"button tonal pressed", c.StateColor(tokens.RolePrimary, 200, tokens.StatePressed)},
 		// A ghost paints no ground, so its ring circles the host storey's
 		// surface — every storey the elevation ladder carries.
-		{"button ghost on level 0/1", c.Ramps.Neutral.Step(200)},
-		{"button ghost on level 2", c.Ramps.Neutral.Step(tokens.Elevation.SurfaceStep(2))},
-		{"button ghost on level 3", c.Ramps.Neutral.Step(tokens.Elevation.SurfaceStep(3))},
+		{"button ghost on level 0/1", focus.Ground(c, tokens.Level0)},
+		{"button ghost on level 2", focus.Ground(c, tokens.Level2)},
+		{"button ghost on level 3", focus.Ground(c, tokens.Level3)},
 		{"button ghost hovered", c.StateColor(tokens.RoleNeutral, 200, tokens.StateHover)},
-		// The promoted-border family: the ring is the control's own edge, and
-		// the ground it lies on is the surface the field is filled with.
-		{"text field", c.Surface},
-		{"dropdown trigger", c.Surface},
-		// The clear-of-the-glyph family: the ring rides in the surface beside
-		// the glyph, in every checked or chosen state, and a link's ring in
-		// the paragraph ground it is padded clear into.
-		{"checkbox", c.Surface},
-		{"radio", c.Surface},
+		// The promoted-border family: the ring is the control's own edge, so
+		// the band has the field's fill inside it and the host storey
+		// outside. Both are listed on every storey — the walk is taken
+		// against the storey, and the fill is asserted as the neighbour that
+		// walk must also satisfy.
+		{"text field on level 0/1", focus.Ground(c, tokens.Level0)},
+		{"text field on level 2", focus.Ground(c, tokens.Level2)},
+		{"text field on level 3", focus.Ground(c, tokens.Level3)},
+		{"dropdown trigger on level 0/1", focus.Ground(c, tokens.Level0)},
+		{"dropdown trigger on level 2", focus.Ground(c, tokens.Level2)},
+		{"dropdown trigger on level 3", focus.Ground(c, tokens.Level3)},
+		// The clear-of-the-glyph family: the ring rides in the host storey's
+		// surface beside the glyph, in every checked or chosen state, and a
+		// link's ring in the paragraph ground it is padded clear into. Prose
+		// carries no storey of its own, so the link stays on Surface.
+		{"checkbox on level 0/1", focus.Ground(c, tokens.Level0)},
+		{"checkbox on level 2", focus.Ground(c, tokens.Level2)},
+		{"checkbox on level 3", focus.Ground(c, tokens.Level3)},
+		{"radio on level 0/1", focus.Ground(c, tokens.Level0)},
+		{"radio on level 2", focus.Ground(c, tokens.Level2)},
+		{"radio on level 3", focus.Ground(c, tokens.Level3)},
 		{"link", c.Surface},
+	}
+}
+
+// storeys is the elevation ladder every control in this library can be put
+// on, named as a host says it: a control that is told nothing stands on
+// tokens.Level0.
+var storeys = []tokens.ElevationLevel{tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3}
+
+// TestGroundIsTheStoreysOwnFill holds the resolution [focus.Ground] performs,
+// which the contrast gates above cannot see: they would pass just as happily
+// if Ground answered one fixed colour for every storey.
+//
+// Level 0 is the exception written into the rule. Its fill is the Background
+// pin, off the neutral ramp by design, so there is no step to walk and the
+// answer is Surface — which is also what makes the zero value move no pixel
+// for any control written before storeys existed.
+func TestGroundIsTheStoreysOwnFill(t *testing.T) {
+	for _, s := range []struct {
+		name string
+		tok  tokens.ColorTokens
+	}{
+		{"light", tokens.DefaultLight},
+		{"dark", tokens.DefaultDark},
+	} {
+		if got, want := focus.Ground(s.tok, tokens.Level0), s.tok.Surface; got != want {
+			t.Errorf("%s: Ground(Level0) = %v, want Surface %v — the pin is off-ramp, so level 0 stands on the ladder's first rung", s.name, got, want)
+		}
+		for _, level := range []tokens.ElevationLevel{tokens.Level1, tokens.Level2, tokens.Level3} {
+			if got, want := focus.Ground(s.tok, level), s.tok.SurfaceAt(level); got != want {
+				t.Errorf("%s: Ground(Level%d) = %v, want the storey's own fill %v", s.name, level, got, want)
+			}
+		}
+	}
+}
+
+// TestPromotedBorderRingClearsBothItsNeighbours holds the claim [focus.Ground]
+// rests on for the text field and the dropdown trigger: their ring is the
+// control's outermost band, so it has two neighbours — the field's own Surface
+// fill on the inside, the host storey on the outside — and one walk has to
+// satisfy them both. Deriving against the storey does; deriving against the
+// fill did not, which is the defect this replaces.
+func TestPromotedBorderRingClearsBothItsNeighbours(t *testing.T) {
+	for _, seed := range sweepSeeds() {
+		light, dark := tokens.FromSeed(seed)
+		hcLight, hcDark := tokens.FromSeedHighContrast(seed)
+		for _, c := range []tokens.ColorTokens{light, dark, hcLight, hcDark} {
+			for _, level := range storeys {
+				ring := focus.Ring(c, focus.Ground(c, level))
+				if got := color.ContrastRatio(ring, c.Surface); got < focus.Floor {
+					t.Fatalf("seed %v: level %d: ring %v measures %.2f:1 against the field's own fill %v, under the %.1f:1 floor",
+						seed, level, ring, got, c.Surface, focus.Floor)
+				}
+			}
+		}
 	}
 }
 

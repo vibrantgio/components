@@ -319,6 +319,86 @@ func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 	}
 }
 
+// TestFocusRingFollowsTheStoreyOnEveryControl is the storey half of the same
+// walkthrough. A ring measured once against the page is a ring measured
+// against the wrong thing inside a dialog or a popover: those hosts fill
+// deeper rungs of the neutral ramp, and on the default light palette the
+// page's ring rung reads 2.92:1 over a level-2 fill and 2.14:1 over a level-3
+// one, under focus.Floor. Each control now hands its ring the storey it was
+// told it stands on (focus.Ground), so the assertion is that the pixels
+// actually painted are that storey's answer — not merely that some ring
+// appeared, which the level-0 rung would have satisfied on every storey.
+//
+// A dark scheme's ladder is shallower and its page rung already clears every
+// storey, so the walk answers one rung there for all four levels. That is not
+// a gap in the test: it is the derivation reporting that nothing needs to
+// move, and the same assertion says so.
+func TestFocusRingFollowsTheStoreyOnEveryControl(t *testing.T) {
+	shaper := defaultShaper(t)
+
+	for _, scheme := range []struct {
+		name   string
+		colors tokens.ColorTokens
+	}{
+		{"light", tokens.DefaultLight},
+		{"dark", tokens.DefaultDark},
+	} {
+		c := scheme.colors
+		count := func(sz image.Point, w layout.Widget, want stdcolor.NRGBA) int {
+			img := golden.Capture(t, sz, w)
+			if img == nil {
+				return -1
+			}
+			n := 0
+			b := img.Bounds()
+			for y := b.Min.Y; y < b.Max.Y; y++ {
+				for x := b.Min.X; x < b.Max.X; x++ {
+					if nearlyEqual(img.RGBAAt(x, y), want) {
+						n++
+					}
+				}
+			}
+			return n
+		}
+
+		for _, level := range []tokens.ElevationLevel{
+			tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
+		} {
+			ring := focus.Ring(c, focus.Ground(c, level))
+			if got := tcolor.ContrastRatio(ring, focus.Ground(c, level)); got < focus.Floor {
+				t.Errorf("%s level %d: ring %v measures %.2f:1 against the storey it stands on %v",
+					scheme.name, level, ring, got, focus.Ground(c, level))
+			}
+			for _, control := range []struct {
+				name string
+				size image.Point
+				w    layout.Widget
+			}{
+				{"checkbox", image.Pt(44, 44),
+					input.RenderCheckbox(c, tokens.Spacing, tokens.Radius,
+						input.CheckboxRenderState{Focused: true, Ground: level})},
+				{"radio", image.Pt(44, 44),
+					input.RenderRadio(c, tokens.Spacing, tokens.Radius,
+						input.RadioRenderState{Focused: true, Ground: level})},
+				{"text field", image.Pt(300, 60),
+					input.Render(shaper, "you@example.com", c, tokens.Spacing, tokens.Radius,
+						tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+						input.RenderState{Focused: true, Ground: level})},
+				{"dropdown trigger", image.Pt(200, 44),
+					input.RenderDropdown(shaper, c, tokens.Spacing, tokens.Radius,
+						tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+						input.DropdownRenderState{Focused: true, Ground: level, Options: []string{"One", "Two"}})},
+			} {
+				n := count(control.size, control.w, ring)
+				if n == 0 {
+					t.Errorf("%s %s on level %d: focused, and not one pixel of that storey's ring colour %v",
+						scheme.name, control.name, level, ring)
+				}
+			}
+		}
+	}
+}
+
 // nearlyEqual reports whether a captured pixel is the given token colour, to
 // within the three units per channel the GPU's own rounding moves a flat fill
 // by. The colours compared against here — the ring's rung and the neutral

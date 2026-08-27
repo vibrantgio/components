@@ -16,6 +16,23 @@
 // footprint, and the ring goes in that slack, clear of the glyph, with ground
 // on both sides of it.
 //
+// # The ground is the storey, not the page
+//
+// Whichever placement a control takes, the ring's outer edge lies on the
+// surface of whatever hosts the control — the page, a card, a dialog, a
+// popover. That host is a storey of the elevation ladder and its fill deepens
+// as the ladder climbs, so a ring measured once against the page is a ring
+// measured against the wrong thing three storeys up. [Ground] resolves the
+// storey's fill from the level a control was told it stands on, and every
+// control in this library hands Ring that rather than a fixed surface. The
+// numbers are what make it necessary rather than tidy: on the default light
+// palette the page's rung measures 2.92:1 over a dialog and 2.14:1 over a
+// popover, both under [Floor]; asking the ramp against those grounds answers
+// a deeper rung at 4.53:1 and 3.31:1. A dark scheme's ladder is shallower and
+// its page rung already clears every storey, so it does not move — which is
+// the whole argument for deriving instead of naming: one rule, two schemes,
+// and only the scheme that needed to move moves.
+//
 // The second placement is not a second idiom, and the checkbox is the reason
 // it exists. Its edge is spoken for: unchecked, that edge is the border, and
 // checked, it is the primary fill that says so. A radio's is spoken for
@@ -84,4 +101,36 @@ const Floor = 3.0
 // in the same place.
 func Ring(c tokens.ColorTokens, ground color.NRGBA) color.NRGBA {
 	return c.MarkOn(tokens.RolePrimary, ground, Floor)
+}
+
+// Ground is the ground a control standing on the given storey hands [Ring]:
+// that storey's own surface fill. It is the ground the ring lies on for every
+// control whose ring meets the host rather than a fill of the control's own —
+// a checkbox and a radio, whose ring rides in the slack beside the glyph with
+// the host showing through on both sides; a ghost button, which paints no
+// ground at rest; and the promoted-border family, whose ring sits at the
+// control's outermost edge with the host immediately outside it.
+//
+// The promoted-border family is the reason this resolves to the storey rather
+// than to the field's own fill. That ring has two neighbours — the field's
+// Surface inside, the host storey outside — and the storey is the harder of
+// the two on every palette the seed sweep reaches: a light ladder deepens as
+// it climbs, so the rung that clears the storey clears the lighter fill by
+// more, and a dark ladder lightens as it climbs while its ring walks up, so
+// the rung that clears the storey clears the darker fill by more. Deriving
+// against the storey therefore satisfies both edges of the band at once,
+// which the field's own fill could not do.
+//
+// Level 0 answers with [tokens.ColorTokens.Surface] rather than with the
+// window ground. The window ground is the Background pin — off the neutral
+// ramp by design, so there is no step to walk — and Surface is the rung the
+// ladder's first storey sits on, which is where a control on the page
+// effectively stands and which is the ground every ring in this library was
+// measured against before storeys existed. So the zero value moves no pixel,
+// and it errs, if at all, toward the deeper ground.
+func Ground(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGBA {
+	if step := tokens.Elevation.SurfaceStep(level); step != 0 {
+		return c.Ramps.Neutral.Step(step)
+	}
+	return c.Surface
 }

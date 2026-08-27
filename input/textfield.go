@@ -573,10 +573,16 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 //
 // The promoted border is the shape every control in the library now takes
 // when it is focused, and the colour is the one measured rule behind it: the
-// rung of the primary ramp that clears focus.Floor against the surface the
-// border circles. It used to be the bare Primary — the seed itself, which
-// reads on the default palette and measures as low as 1.00:1 against the
-// light surface once a caller supplies a seed of their own.
+// rung of the primary ramp that clears focus.Floor against the storey the
+// field stands on (focus.Ground). It used to be the bare Primary — the seed
+// itself, which reads on the default palette and measures as low as 1.00:1
+// against the light surface once a caller supplies a seed of their own — and
+// then the field's own Surface fill, which is one of the ring's two
+// neighbours and the easier one: the band's outer half meets the host, so a
+// field focused inside a light popover drew a ring measuring 2.14:1 against
+// the surface it was announcing itself on. The storey is the harder ground
+// and clearing it clears the fill as well (see focus.Ground), so one walk
+// answers both edges of the band.
 func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, placeholder color.NRGBA) {
 	bg = c.Surface
 	text = c.Text
@@ -589,7 +595,7 @@ func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, pla
 		border = tokens.Disabled(border)
 		placeholder = tokens.Disabled(placeholder)
 	case s.Focused:
-		border = focus.Ring(c, bg)
+		border = focus.Ring(c, focus.Ground(c, s.Ground))
 	}
 	return
 }

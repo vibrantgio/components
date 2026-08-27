@@ -218,8 +218,9 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 
 	// The focus ring, drawn exactly as the checkbox draws it: focus.Width
 	// around the glyph, clear of it, in the primary rung that reads against
-	// the surface, riding in the slack between the 20 dp circle and the
-	// density's footprint.
+	// the storey the radio stands on (s.Ground through focus.Ground — the
+	// same ground its resting edge is measured against), riding in the slack
+	// between the 20 dp circle and the density's footprint.
 	//
 	// A selected radio is why the ring cannot be the circle's own edge. That
 	// edge is already primary — it is what says the radio is chosen — so
@@ -234,7 +235,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 			Min: outerRect.Min.Sub(image.Pt(out, out)),
 			Max: outerRect.Max.Add(image.Pt(out, out)),
 		}
-		paint.FillShape(gtx.Ops, focus.Ring(tok.color, tok.color.Surface), clip.Stroke{
+		paint.FillShape(gtx.Ops, focus.Ring(tok.color, focus.Ground(tok.color, s.Ground)), clip.Stroke{
 			Path:  clip.Ellipse(ring).Path(gtx.Ops),
 			Width: float32(w),
 		}.Op())
