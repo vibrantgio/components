@@ -74,25 +74,40 @@ var checkLine = [3]f32.Point{
 // the ramp which rung clears the floor answers 600 in the light scheme and
 // 500 in the dark and needs to know nothing about either.
 //
-// ground is the level-0 plane — the window's own background. A checkbox is
-// not told where it has been put, and this is the ground it is guaranteed
-// against: the app background, and its own Surface interior, which the same
-// rung clears in both schemes because the two are a rung apart. A checkbox
-// placed on a level-2 or level-3 plane — inside a dialog, say — is a
-// narrower pairing than that and is not something the component can derive
-// its way out of without being handed the ground it is standing on.
-func checkboxBorder(c tokens.ColorTokens) color.NRGBA {
-	return c.MarkOn(tokens.RoleNeutral, c.SurfaceAt(tokens.Level0), graphicFloor)
+// ground is the storey the box is standing on, and the walk is taken against
+// that storey's own fill rather than against the window's. It used to be
+// level 0 unconditionally — the one ground a component that is never told
+// where it was put can be sure of — and that assumption is what failed as
+// soon as a checkbox was placed inside a dialog: the light scheme's rung
+// measures 2.94:1 over a level-2 plane and 2.15:1 over a level-3 one, both
+// under the floor, from a derivation that was itself correct and merely
+// aimed at the wrong ground. Handed the level, the same walk answers a
+// deeper rung where the ground is deeper and the box keeps its edge
+// wherever it stands.
+func checkboxBorder(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
+	return c.MarkOn(tokens.RoleNeutral, c.SurfaceAt(ground), graphicFloor)
 }
 
 // CheckboxRenderState holds explicit visual state for static rendering.
-// All fields default to false (normal/unchecked/idle).
+// The zero value is an unchecked, idle, enabled box on the window ground —
+// so CheckboxRenderState{} is exactly today's default checkbox.
 // Intended for golden-image testing; production code obtains state from the
 // Gio event system via Checkbox.
 type CheckboxRenderState struct {
 	Checked  bool
 	Focused  bool
 	Disabled bool
+
+	// Ground is the elevation storey of the surface hosting the checkbox —
+	// the local ground its unchecked edge is derived against, in the same
+	// vocabulary the host names its own fill (tokens.SurfaceAt). A dialog
+	// at tokens.Level2 passes Level2 and the edge takes whichever neutral
+	// rung clears the floor over that storey. The zero value is
+	// tokens.Level0, the window ground, which resolves to exactly the walk
+	// the border always performed — so every state written before this
+	// field existed keeps its colours. A checked box ignores it: it
+	// carries the accent fill, which is its own ground.
+	Ground tokens.ElevationLevel
 }
 
 // CheckboxProps configures a Checkbox instance.
@@ -102,6 +117,15 @@ type CheckboxProps struct {
 
 	// Checked is the initial checked state established on subscribe.
 	Checked bool
+
+	// Ground is the elevation storey of the surface hosting the checkbox,
+	// copied straight into CheckboxRenderState.Ground on every frame: the
+	// local ground the unchecked box's edge is derived against. A
+	// container that raises its surface (a level-2 dialog hosting a
+	// "remember this" toggle) passes its own storey here; the zero value
+	// is the window ground and keeps exactly the colours the border has
+	// always had. See CheckboxRenderState.Ground.
+	Ground tokens.ElevationLevel
 
 	// Disabled, if non-nil, disables the checkbox when it emits true.
 	Disabled rx.Observable[bool]
@@ -184,6 +208,7 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 						Checked:  b.Value,
 						Focused:  foc,
 						Disabled: dis,
+						Ground:   props.Ground,
 					})
 				})
 			}
@@ -277,7 +302,7 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 			Width: checkBandUnits * scale,
 		}.Op())
 	} else {
-		border := checkboxBorder(tok.color)
+		border := checkboxBorder(tok.color, s.Ground)
 		if s.Disabled {
 			border = tokens.Disabled(border)
 		}

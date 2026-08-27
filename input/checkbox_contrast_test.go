@@ -40,10 +40,18 @@ var checkboxSeeds = []color.NRGBA{
 // looked scheme-dependent, which is exactly why the light half went
 // unnoticed.
 //
-// Two grounds are measured, because the border has two sides. Outside it is
-// the level-0 plane, the ground the component is guaranteed against; inside
-// it is the box's own Surface interior, which the component paints itself
-// and therefore always knows.
+// The derivation that replaced it aimed at level 0 unconditionally, and that
+// was the same mistake one storey up: a box inside a dialog stands on the
+// level-2 or level-3 plane, where the rung chosen against the window ground
+// measured 2.94:1 and 2.15:1 in the light scheme. So the sweep runs the whole
+// ladder — every storey a checkbox can be handed — and the border is derived
+// against each in turn rather than measured against grounds it was never
+// aimed at.
+//
+// Two grounds are measured per storey, because the border has two sides.
+// Outside it is the storey the box stands on; inside it is the box's own
+// Surface interior, which the component paints itself and therefore always
+// knows, and which no ground the box is handed can excuse it from clearing.
 func TestCheckboxBorderClearsTheGraphicFloor(t *testing.T) {
 	for _, sc := range []struct {
 		name   string
@@ -54,29 +62,45 @@ func TestCheckboxBorderClearsTheGraphicFloor(t *testing.T) {
 	} {
 		t.Run(sc.name, func(t *testing.T) {
 			c := sc.colors
-			border := checkboxBorder(c)
-			for _, g := range []struct {
-				name   string
-				ground color.NRGBA
-			}{
-				{"the level-0 ground it stands on", c.SurfaceAt(tokens.Level0)},
-				{"its own Surface interior", c.Surface},
-			} {
-				got := themecolor.ContrastRatio(border, g.ground)
-				t.Logf("border %s against %s %s: %.2f:1", hex(border), g.name, hex(g.ground), got)
-				if got < graphicFloor {
-					t.Errorf("border %s against %s %s = %.2f:1, want at least %.1f:1",
-						hex(border), g.name, hex(g.ground), got, graphicFloor)
+			for _, level := range checkboxStoreys {
+				border := checkboxBorder(c, level.level)
+				for _, g := range []struct {
+					name   string
+					ground color.NRGBA
+				}{
+					{"the " + level.name + " ground it stands on", c.SurfaceAt(level.level)},
+					{"its own Surface interior", c.Surface},
+				} {
+					got := themecolor.ContrastRatio(border, g.ground)
+					t.Logf("%s border %s against %s %s: %.2f:1", level.name, hex(border), g.name, hex(g.ground), got)
+					if got < graphicFloor {
+						t.Errorf("%s border %s against %s %s = %.2f:1, want at least %.1f:1",
+							level.name, hex(border), g.name, hex(g.ground), got, graphicFloor)
+					}
 				}
 			}
 		})
 	}
 }
 
-// TestCheckboxBorderClearsTheFloorForEverySeed walks the same pairing over a
-// spread of seeds and both contrast variants. The neutral ramps carry the
-// seed's tint, so the measurements move a little from seed to seed; what may
-// not move is the verdict.
+// checkboxStoreys is the whole elevation ladder, which is the whole set of
+// grounds a checkbox can be handed: CheckboxRenderState.Ground names a
+// tokens.ElevationLevel and the ladder has exactly four rungs, so a sweep
+// over these four is a sweep over every placement the field admits.
+var checkboxStoreys = []struct {
+	name  string
+	level tokens.ElevationLevel
+}{
+	{"level-0", tokens.Level0},
+	{"level-1", tokens.Level1},
+	{"level-2", tokens.Level2},
+	{"level-3", tokens.Level3},
+}
+
+// TestCheckboxBorderClearsTheFloorForEverySeed walks the same pairings, on
+// every storey, over a spread of seeds and both contrast variants. The
+// neutral ramps carry the seed's tint, so the measurements move a little from
+// seed to seed; what may not move is the verdict.
 func TestCheckboxBorderClearsTheFloorForEverySeed(t *testing.T) {
 	worst := 99.0
 	for _, seed := range checkboxSeeds {
@@ -92,21 +116,23 @@ func TestCheckboxBorderClearsTheFloorForEverySeed(t *testing.T) {
 			{"dark high-contrast", darkHC},
 		} {
 			c := sc.colors
-			border := checkboxBorder(c)
-			for _, g := range []struct {
-				name   string
-				ground color.NRGBA
-			}{
-				{"level-0 ground", c.SurfaceAt(tokens.Level0)},
-				{"Surface interior", c.Surface},
-			} {
-				got := themecolor.ContrastRatio(border, g.ground)
-				if got < worst {
-					worst = got
-				}
-				if got < graphicFloor {
-					t.Errorf("seed %s %s: border %s against the %s %s = %.2f:1, want at least %.1f:1",
-						hex(seed), sc.name, hex(border), g.name, hex(g.ground), got, graphicFloor)
+			for _, level := range checkboxStoreys {
+				border := checkboxBorder(c, level.level)
+				for _, g := range []struct {
+					name   string
+					ground color.NRGBA
+				}{
+					{level.name + " ground", c.SurfaceAt(level.level)},
+					{"Surface interior", c.Surface},
+				} {
+					got := themecolor.ContrastRatio(border, g.ground)
+					if got < worst {
+						worst = got
+					}
+					if got < graphicFloor {
+						t.Errorf("seed %s %s: %s border %s against the %s %s = %.2f:1, want at least %.1f:1",
+							hex(seed), sc.name, level.name, hex(border), g.name, hex(g.ground), got, graphicFloor)
+					}
 				}
 			}
 		}
