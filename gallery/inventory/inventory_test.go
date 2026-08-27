@@ -68,6 +68,9 @@ func TestNoSectionIsPinnedToAScheme(t *testing.T) {
 		for i := range lit[g].Sections {
 			s := lit[g].Sections[i]
 			t.Run(s.Name, func(t *testing.T) {
+				if schemeFixedSections[s.Name] {
+					t.Skip("shown precisely because it does not follow the scheme; see TestThePinnedFillHoldsWhileTheSchemeFlips")
+				}
 				pct := changed(shot(t, light, s), shot(t, dark, drk[g].Sections[i]))
 				t.Logf("%s: %.3f%% of the slot follows the scheme", s.Name, pct)
 				if pct < schemeFloor {
@@ -75,6 +78,66 @@ func TestNoSectionIsPinnedToAScheme(t *testing.T) {
 						s.Name, pct, schemeFloor)
 				}
 			})
+		}
+	}
+}
+
+// schemeFixedSections are the sections excused from the hunt above, and the
+// only ones. There is one, and it is the exception that states the rule: a
+// specimen whose subject is a fill the palette does not choose has to hold
+// still while the scheme flips, or it is not showing what it says it shows.
+// The carve-out is by name and cannot widen quietly — the section it names
+// carries the register's own fill in the same row, and the assertion below
+// requires that half to keep moving, so a section that stopped following its
+// tokens by accident could not hide in here.
+var schemeFixedSections = map[string]bool{"components-button-pinned": true}
+
+// sectionNamed returns the components section with the given name, drawn
+// from c.
+func sectionNamed(t *testing.T, inv *Inventory, c tokens.ColorTokens, name string) Section {
+	t.Helper()
+	for _, s := range inv.Components(c) {
+		if s.Name == name {
+			return s
+		}
+	}
+	t.Fatalf("no section named %q", name)
+	return Section{}
+}
+
+// TestThePinnedFillHoldsWhileTheSchemeFlips is the scheme hunt inverted, on
+// the one row that must fail it. Both cells are captured in both schemes:
+// the register's own fill has to move, because it is the palette's; the
+// pinned one has to come back the exact colour it was handed, because it is
+// the caller's. Either half alone would pass for the wrong reason — a row
+// that stopped drawing at all holds still too.
+func TestThePinnedFillHoldsWhileTheSchemeFlips(t *testing.T) {
+	inv := testInventory(t)
+	light, dark := tokens.FromSeed(seedA)
+	lit := shot(t, light, sectionNamed(t, inv, light, "components-button-pinned"))
+	drk := shot(t, dark, sectionNamed(t, inv, dark, "components-button-pinned"))
+	if lit == nil || drk == nil {
+		return // headless unavailable; Capture called t.Skip
+	}
+
+	// A pixel inside each cell's button and left of its label: the row is
+	// laid out from the section's own margin, one cell wide with the gap
+	// between, and the button is the full cell width and 36 dp tall.
+	y := int(SectionPadY) + 18
+	stockX := int(SectionPadX) + 10
+	pinnedX := int(SectionPadX+ButtonCellW+ButtonCellGap) + 10
+
+	if got, want := lit.RGBAAt(stockX, y), drk.RGBAAt(stockX, y); got == want {
+		t.Errorf("the register's own fill is %v in both schemes; the control half of this row has stopped following its tokens", got)
+	}
+	want := color.RGBA{R: PinnedFill.R, G: PinnedFill.G, B: PinnedFill.B, A: PinnedFill.A}
+	for _, c := range []struct {
+		name string
+		img  *image.RGBA
+	}{{"light", lit}, {"dark", drk}} {
+		if got := c.img.RGBAAt(pinnedX, y); got != want {
+			t.Errorf("%s: the pinned cell at (%d,%d) = %v, want the colour it was pinned to %v",
+				c.name, pinnedX, y, got, want)
 		}
 	}
 }

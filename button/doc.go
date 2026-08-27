@@ -29,6 +29,20 @@
 // and not harder to see with a keyboard. The zero value is Filled, so nothing written before the axis
 // existed renders differently.
 //
+// # A pinned fill
+//
+// The filled register alone will take a fill from its caller. Set both halves
+// of Props.Fill and Props.OnFill — RenderState.Fill and OnFill on the pure
+// path — and the button wears that ground under that ink in place of the
+// primary pair, keeping every treatment the register has: the walk toward the
+// 900 end under the pointer, the disabled opacity over both halves, and a
+// focus ring measured against the ground that came back. It is for the action
+// whose colour is not the theme's to choose — a meaning that fixes its own
+// shade, which a paired status ramp would restate one way in light and
+// another in dark. The two are one pin, honoured only together, and their
+// zero value changes nothing: a button that names neither half is the button
+// that was there before.
+//
 // Three things it assumes. Interaction state is allocated inside the
 // component's rx.Defer scope, so press and focus survive the view rebuilds an
 // MVU loop drives; pass Props.Clickable when an enclosing container such as a

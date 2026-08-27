@@ -326,6 +326,132 @@ func TestGhostRestsTransparent(t *testing.T) {
 	}
 }
 
+// ---- A pinned fill on the Filled register (AJ1.1) ----
+
+// pinnedFill and pinnedInk are a pair no scheme carries: a fixed red of the
+// kind a caller pins when the meaning of an action, rather than the palette,
+// chooses its colour, and the ink that reads over it. They are ordinary
+// colour values on purpose — the point of the pair is that nothing in the
+// theme decides them.
+var (
+	pinnedFill = color.NRGBA{0xb3, 0x26, 0x1e, 0xff}
+	pinnedInk  = color.NRGBA{0xff, 0xff, 0xff, 0xff}
+)
+
+// TestPinnedFillGolden records or diffs the pinned filled button through
+// every interaction state in both schemes. Both schemes because that is
+// where the pair earns its keep: the two tiles hold the same red at rest
+// while the stock filled goldens beside them hold two different violets, and
+// the walked states are the same red taken toward each scheme's own 900 end
+// — down in light, up in dark, which is what "the register's treatments,
+// applied to the caller's colours" looks like in pixels.
+func TestPinnedFillGolden(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 60)
+	sharpRadius := tokens.RadiusScale{} // all zeros → sharp corners, no AA
+
+	for _, sc := range []struct {
+		name   string
+		colors tokens.ColorTokens
+	}{
+		{"light", tokens.DefaultLight},
+		{"dark", tokens.DefaultDark},
+	} {
+		for _, st := range emphasisStates {
+			state := st.s
+			state.Fill, state.OnFill = pinnedFill, pinnedInk
+			name := "pin-" + sc.name + "-" + st.name
+			t.Run(name, func(t *testing.T) {
+				w := button.Render(
+					shaper, "Delete",
+					sc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+					state,
+				)
+				golden.Render(t, name, size, onGround(sc.colors, w))
+			})
+		}
+	}
+}
+
+// TestUnpinnedFillDrawsTheStockButton is the zero-value proof in pixels: a
+// state that names no pin, or only half of one, renders the filled button
+// byte for byte as it rendered before the pair existed. It is the assertion
+// the pre-existing goldens make across the whole matrix, made here against
+// the two half-written pins those goldens cannot reach.
+func TestUnpinnedFillDrawsTheStockButton(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 60)
+	colors := tokens.DefaultLight
+
+	shot := func(s button.RenderState) *image.RGBA {
+		return golden.Capture(t, size, onGround(colors, button.Render(
+			shaper, "Delete",
+			colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+			s,
+		)))
+	}
+	stock := shot(button.RenderState{})
+	if stock == nil {
+		return // headless unavailable; Capture called t.Skip
+	}
+	for _, c := range []struct {
+		name string
+		s    button.RenderState
+	}{
+		{"a fill with no ink", button.RenderState{Fill: pinnedFill}},
+		{"an ink with no fill", button.RenderState{OnFill: pinnedInk}},
+		{"a transparent pair", button.RenderState{Fill: color.NRGBA{R: 0xb3}, OnFill: color.NRGBA{R: 0xff}}},
+	} {
+		if n := golden.PixelDiff(stock, shot(c.s)); n != 0 {
+			t.Errorf("%s moved %d pixels; an unset pair must leave the register exactly where it was", c.name, n)
+		}
+	}
+	// The control: a whole pair does move the picture, so the assertions
+	// above are about the pair being unset rather than about it being inert.
+	if n := golden.PixelDiff(stock, shot(button.RenderState{Fill: pinnedFill, OnFill: pinnedInk})); n == 0 {
+		t.Error("a pinned pair rendered the stock button; the pin reached nothing")
+	}
+}
+
+// TestPinnedFillCarriesARingThatReadsOnIt holds the half of the register a
+// pinned fill could quietly break. The focus ring is not a fixed colour: it
+// is the primary rung that clears the non-text floor against the ground it
+// circles, and the ground it circles is now the caller's. So the ring must
+// be chosen against the pin — and drawn in that colour — or a keyboard user
+// loses the button on the one action that most needs confirming.
+func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
+	size := image.Pt(60, 60)
+	side := int(tokens.Comfortable.ControlHeight) // 1 px per dp in the harness
+	w := int(focus.Width)
+
+	for _, scheme := range []struct {
+		name   string
+		colors tokens.ColorTokens
+	}{
+		{"light", tokens.DefaultLight},
+		{"dark", tokens.DefaultDark},
+	} {
+		ring := focus.Ring(scheme.colors, pinnedFill)
+		if got := tcolor.ContrastRatio(ring, pinnedFill); got < focus.Floor {
+			t.Errorf("%s: ring %v measures %.2f:1 against the pinned fill %v",
+				scheme.name, ring, got, pinnedFill)
+		}
+		img := golden.Capture(t, size, onGround(scheme.colors, button.RenderIcon(
+			crossIcon, scheme.colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
+			button.RenderState{Fill: pinnedFill, OnFill: pinnedInk, Focused: true},
+		)))
+		if img == nil {
+			return // headless unavailable; Capture called t.Skip
+		}
+		// A pixel on the ring's left band, clear of both corners: the band
+		// spans w to 2w inside the button's own edge.
+		if at := img.RGBAAt(w, side/2); !nearlyEqual(at, ring) {
+			t.Errorf("%s: ring pixel at (%d,%d) = %v, want the rung measured against the pin %v",
+				scheme.name, w, side/2, at, ring)
+		}
+	}
+}
+
 // ringGround is the ground a focused button's ring circles, per register:
 // the register's own resting background, and — for the ghost, which paints
 // none — the host surface showing through it. It is the test's own copy of

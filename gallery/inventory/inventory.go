@@ -394,6 +394,8 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 	return []Section{
 		{Name: "components-button", Title: "Button — rest, hover, focus, press, disabled", Height: 36,
 			Body: inv.buttonRow(c)},
+		{Name: "components-button-pinned", Title: "Button — the register's own fill, and one pinned from outside the palette", Height: 36,
+			Body: inv.pinnedButtonRow(c)},
 		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 60,
 			Body: inv.textFieldRow(c)},
 		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 56,
@@ -415,27 +417,43 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 	}
 }
 
+// buttonCell is one button in a row, its label doubling as the button's own
+// text — which is what lets a row of them be read without a caption under
+// each.
+type buttonCell struct {
+	label string
+	st    button.RenderState
+}
+
+// ButtonCellW is the width one cell of a button row is laid out at, and
+// ButtonCellGap the space between two of them. Stated because a test that
+// looks at one cell of a row has to know where that cell begins.
+const (
+	ButtonCellW   unit.Dp = 120
+	ButtonCellGap unit.Dp = 12
+)
+
 func (inv *Inventory) buttonRow(c tokens.ColorTokens) layout.Widget {
-	states := []struct {
-		label string
-		st    button.RenderState
-	}{
+	return inv.buttonCells(c, []buttonCell{
 		{"Rest", button.RenderState{}},
 		{"Hover", button.RenderState{Hovered: true}},
 		{"Focus", button.RenderState{Focused: true}},
 		{"Press", button.RenderState{Pressed: true}},
 		{"Disabled", button.RenderState{Disabled: true}},
-	}
+	})
+}
+
+func (inv *Inventory) buttonCells(c tokens.ColorTokens, cells []buttonCell) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		cs := make([]layout.FlexChild, 0, 2*len(states))
-		for i, s := range states {
+		cs := make([]layout.FlexChild, 0, 2*len(cells))
+		for i, s := range cells {
 			s := s
 			if i > 0 {
-				cs = append(cs, layout.Rigid(complayout.HSpacer(12)))
+				cs = append(cs, layout.Rigid(complayout.HSpacer(float32(ButtonCellGap))))
 			}
 			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				gtx.Constraints.Min.X = gtx.Dp(120)
-				gtx.Constraints.Max.X = gtx.Dp(120)
+				gtx.Constraints.Min.X = gtx.Dp(ButtonCellW)
+				gtx.Constraints.Max.X = gtx.Dp(ButtonCellW)
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(button.Render(inv.shaper, s.label, c, tokens.Spacing, tokens.Radius,
 						tokens.DefaultTypography.LabelLarge, tokens.Comfortable, s.st)),
@@ -444,6 +462,31 @@ func (inv *Inventory) buttonRow(c tokens.ColorTokens) layout.Widget {
 		}
 		return layout.Flex{}.Layout(gtx, cs...)
 	}
+}
+
+// PinnedFill and PinnedInk are the pair the pinned specimen wears: a fixed
+// red, and the ink that reads over it. They are ordinary colour values and
+// not tokens, which is the whole of what this row has to say — an action
+// whose colour is chosen by its meaning rather than by the palette hands the
+// button its fill, and the button wears it in both schemes while everything
+// around it inverts. They are exported so the assertion that this row holds
+// still can name the very colour it is looking for.
+var (
+	PinnedFill = color.NRGBA{R: 0xb3, G: 0x26, B: 0x1e, A: 0xff}
+	PinnedInk  = color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+)
+
+// pinnedButtonRow puts the filled register's own pair beside a pinned one, at
+// rest, so the two can be read against each other in one glance and in both
+// schemes: the left cell is the palette's answer and moves with it, the right
+// cell is the caller's and does not. Only the colours differ — the pinned
+// button keeps the register's hover, press, focus and disabled treatments,
+// which the button package's own goldens carry state by state.
+func (inv *Inventory) pinnedButtonRow(c tokens.ColorTokens) layout.Widget {
+	return inv.buttonCells(c, []buttonCell{
+		{"Filled", button.RenderState{}},
+		{"Pinned", button.RenderState{Fill: PinnedFill, OnFill: PinnedInk}},
+	})
 }
 
 func (inv *Inventory) textFieldRow(c tokens.ColorTokens) layout.Widget {

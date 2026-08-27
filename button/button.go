@@ -111,6 +111,33 @@ type RenderState struct {
 	// Filled and Tonal ignore it: they carry their own grounds.
 	Ground tokens.ElevationLevel
 
+	// Fill and OnFill pin the Filled register's ground and the ink over it
+	// to a pair the scheme does not carry: a colour fixed from outside the
+	// palette, which a change of scheme must not move. The case they exist
+	// for is an action whose colour is not the theme's to choose — a
+	// destructive confirmation carrying the one red its platform pins for
+	// that meaning, in both schemes, where a status role would hand it the
+	// scheme's own idea of red instead.
+	//
+	// Nothing else about the register changes. The ground still walks
+	// toward the 900 end under the pointer (tokens.PinnedStateColor: hover
+	// one rung, press two, at the pin's own hue and chroma), still keeps
+	// the pin at rest and under focus, still fades to the disabled opacity
+	// with the ink; and the focus ring is still the rung that reads against
+	// whatever ground came back, so a pinned fill is measured against
+	// exactly as the primary one is.
+	//
+	// The two are one pin and are honoured together. Leave either half
+	// unset — the zero value, alpha zero, which is no colour a fill could
+	// use — and the register resolves from the primary role exactly as it
+	// always has: that is what makes the pair invisible to every state
+	// written before it existed, and it means a half-written pin renders
+	// the stock button rather than an invisible label. Tonal and Ghost
+	// ignore both. A register that paints a tint, or paints no ground at
+	// all, has no solid fill to pin.
+	Fill   color.NRGBA
+	OnFill color.NRGBA
+
 	Hovered  bool
 	Focused  bool
 	Pressed  bool
@@ -141,6 +168,16 @@ type Props struct {
 	// ground and keeps exactly the colours the register has always had.
 	// See RenderState.Ground.
 	Ground tokens.ElevationLevel
+
+	// Fill and OnFill pin the Filled register's ground and its ink to a
+	// pair the scheme does not carry, copied straight into RenderState on
+	// every frame — for the action whose colour is not the theme's to
+	// choose. They are one pin: set both or neither, and the zero value
+	// keeps exactly the colours the register has always had. The hover,
+	// press, focus and disabled treatments are the register's own either
+	// way. See RenderState.Fill.
+	Fill   color.NRGBA
+	OnFill color.NRGBA
 
 	// Icon, when non-nil and Label is empty, renders the button as a compact
 	// icon-only affordance: a square the density's control height on a side
@@ -293,6 +330,8 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 					state := RenderState{
 						Emphasis: props.Emphasis,
 						Ground:   props.Ground,
+						Fill:     props.Fill,
+						OnFill:   props.OnFill,
 						Hovered:  hov,
 						Focused:  foc,
 						Pressed:  prs,
@@ -614,6 +653,17 @@ const (
 // (ghostGroundStep), with the on-wash text riding at the ramp's 900 end,
 // where the walk itself clamps.
 //
+// Filled is also the one register that takes a pin from the caller. A
+// RenderState carrying both halves of a fill pair (RenderState.Fill and
+// OnFill) wears that pair in place of the primary one and keeps everything
+// else: the same walk toward the 900 end, now laddered on the scheme's own
+// lightness scale because a caller's colour belongs to no role
+// (tokens.PinnedStateColor), the same disabled opacity over both halves,
+// and the same ring, which is measured against the ground this function
+// returns and therefore against the pin. Half a pair is no pair; the
+// register resolves from the primary role, exactly as every state written
+// before the pair existed does.
+//
 // Ghost's wash is neutral rather than role-tinted on purpose. A ghost claims
 // no role colour — that is what makes it the quiet register — and tinting
 // one under the pointer would hand the brand hue to the very affordance that
@@ -651,13 +701,30 @@ func buttonColors(c tokens.ColorTokens, s RenderState) (bg, fg color.NRGBA) {
 		}
 
 	default: // Filled
-		fg = c.OnPrimary
+		if pinnedFill(s) {
+			// The caller's pair replaces the role's, and replaces nothing
+			// else: the walk, the opacity and the ring are the register's.
+			fg = s.OnFill
+			bg = c.PinnedStateColor(s.Fill, state)
+		} else {
+			fg = c.OnPrimary
+			bg = c.SolidStateColor(tokens.RolePrimary, state)
+		}
 		if s.Disabled {
 			fg = tokens.Disabled(fg)
 		}
-		bg = c.SolidStateColor(tokens.RolePrimary, state)
 	}
 	return
+}
+
+// pinnedFill reports whether the state carries a fill pin the Filled
+// register should wear instead of the primary pair. Both halves must be
+// there: a fill is no fill at alpha zero, and an ink at alpha zero would
+// draw a label nobody can read, so a half-written pin is no pin — the
+// register falls back to the role it has always resolved from rather than
+// rendering something the caller cannot have meant.
+func pinnedFill(s RenderState) bool {
+	return s.Fill.A != 0 && s.OnFill.A != 0
 }
 
 // ghostGroundStep resolves the neutral-ramp step a ghost's wash walks from:

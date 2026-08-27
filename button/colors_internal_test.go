@@ -7,6 +7,14 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
+// pinFill and pinInk are a pair no scheme carries: a fixed red of the kind a
+// caller pins when the meaning of an action, rather than the palette, chooses
+// its colour, and the ink that reads over it (white measures 6.5:1 there).
+var (
+	pinFill = color.NRGBA{0xb3, 0x26, 0x1e, 0xff}
+	pinInk  = color.NRGBA{0xff, 0xff, 0xff, 0xff}
+)
+
 // The emphasis registers are a choice of rungs on ADR-007's ramps, and this
 // is the table that says which rungs. It is asserted in both schemes because
 // the light and dark ramps are paired scales — the same step keeps the same
@@ -97,6 +105,44 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 				c.SolidStateColor(tokens.RolePrimary, tokens.StateHover), c.OnPrimary},
 			{"tonal/level2/hovered", RenderState{Emphasis: Tonal, Ground: tokens.Level2, Hovered: true},
 				c.Ramps.Primary.Step(300), c.Ramps.Primary.Step(900)},
+
+			// A pinned pair takes the place of the role's, and of nothing
+			// else: the same walk toward the 900 end, the same untouched pin
+			// at rest and under focus, the same opacity over both halves —
+			// the register's treatments, applied to the caller's colours.
+			{"filled/pinned/normal", RenderState{Fill: pinFill, OnFill: pinInk},
+				pinFill, pinInk},
+			{"filled/pinned/hovered", RenderState{Fill: pinFill, OnFill: pinInk, Hovered: true},
+				c.PinnedStateColor(pinFill, tokens.StateHover), pinInk},
+			{"filled/pinned/pressed", RenderState{Fill: pinFill, OnFill: pinInk, Pressed: true},
+				c.PinnedStateColor(pinFill, tokens.StatePressed), pinInk},
+			{"filled/pinned/focused", RenderState{Fill: pinFill, OnFill: pinInk, Focused: true},
+				pinFill, pinInk},
+			{"filled/pinned/disabled", RenderState{Fill: pinFill, OnFill: pinInk, Disabled: true},
+				tokens.Disabled(pinFill), tokens.Disabled(pinInk)},
+
+			// Half a pair is no pair. A fill with no ink would draw a label
+			// nobody can read and an ink with no fill has nothing to read
+			// against, so either alone leaves the register exactly where it
+			// has always resolved from.
+			{"filled/fill-without-ink", RenderState{Fill: pinFill},
+				c.SolidStateColor(tokens.RolePrimary, tokens.StateNormal), c.OnPrimary},
+			{"filled/ink-without-fill", RenderState{OnFill: pinInk},
+				c.SolidStateColor(tokens.RolePrimary, tokens.StateNormal), c.OnPrimary},
+			{"filled/fill-without-ink/hovered", RenderState{Fill: pinFill, Hovered: true},
+				c.SolidStateColor(tokens.RolePrimary, tokens.StateHover), c.OnPrimary},
+
+			// The quieter registers ignore the pair outright: a tint and an
+			// absent ground are not solid fills, so there is nothing in them
+			// to pin.
+			{"tonal/pinned/normal", RenderState{Emphasis: Tonal, Fill: pinFill, OnFill: pinInk},
+				c.Ramps.Primary.Step(200), c.Ramps.Primary.Step(900)},
+			{"tonal/pinned/hovered", RenderState{Emphasis: Tonal, Fill: pinFill, OnFill: pinInk, Hovered: true},
+				c.Ramps.Primary.Step(300), c.Ramps.Primary.Step(900)},
+			{"ghost/pinned/normal", RenderState{Emphasis: Ghost, Fill: pinFill, OnFill: pinInk},
+				transparent, c.Ramps.Neutral.Step(700)},
+			{"ghost/pinned/hovered", RenderState{Emphasis: Ghost, Fill: pinFill, OnFill: pinInk, Hovered: true},
+				c.Ramps.Neutral.Step(300), c.Ramps.Neutral.Step(900)},
 		}
 
 		for _, tc := range cases {
@@ -125,6 +171,32 @@ func TestGhostRestingGroundIsFullyTransparent(t *testing.T) {
 		if bg, _ := buttonColors(tokens.DefaultLight, s); bg.A != 0 {
 			t.Errorf("ghost %+v: background alpha = %d, want 0", s, bg.A)
 		}
+	}
+}
+
+// A pinned pair is the same colour in both schemes while the role it stands
+// in for is not — which is the whole reason the pair exists. A theme carries
+// its red as a paired scale, so the scheme decides how deep that red is; a
+// caller whose colour is fixed from outside the palette needs it not to.
+func TestPinnedFillIsSchemeStableWhereTheRoleIsNot(t *testing.T) {
+	pinned := RenderState{Fill: pinFill, OnFill: pinInk}
+	lightBG, lightFG := buttonColors(tokens.DefaultLight, pinned)
+	darkBG, darkFG := buttonColors(tokens.DefaultDark, pinned)
+	if lightBG != darkBG || lightFG != darkFG {
+		t.Errorf("pinned pair moved between schemes: light %v on %v, dark %v on %v",
+			lightFG, lightBG, darkFG, darkBG)
+	}
+	if lightBG != pinFill || lightFG != pinInk {
+		t.Errorf("pinned pair resolved to %v on %v, want the caller's %v on %v",
+			lightFG, lightBG, pinInk, pinFill)
+	}
+
+	// The control: the register's own pair does move, so the assertion above
+	// is about the pin rather than about the two schemes being alike.
+	stockLight, _ := buttonColors(tokens.DefaultLight, RenderState{})
+	stockDark, _ := buttonColors(tokens.DefaultDark, RenderState{})
+	if stockLight == stockDark {
+		t.Fatal("the stock filled ground is the same in both schemes; this test proves nothing")
 	}
 }
 
