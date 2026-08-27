@@ -140,7 +140,10 @@ func (s SpanStyle) Font() font.Font {
 type Style struct {
 	// Color is the text colour for spans with a zero Color.
 	Color color.NRGBA
-	// LinkColor is the text colour for link spans with a zero Color.
+	// LinkColor is the text colour for link spans with a zero Color. A
+	// paragraph is words on a page, so this is text and owes its ground
+	// WCAG AA; [FromTokens] derives it against that ground rather than
+	// naming a token.
 	LinkColor color.NRGBA
 	// FocusColor is the focus-ring colour drawn around the focused link.
 	FocusColor color.NRGBA
@@ -174,11 +177,24 @@ type Style struct {
 
 // FromTokens derives the default paragraph style from colour tokens and the
 // BodyLarge text style: body text in Text at body.Size, lines in the role's own
-// line height, links in Primary, and the focus ring in the one colour every
+// line height, links in the brand ink measured against the ground the
+// paragraph is set on, and the focus ring in the one colour every
 // control in this library rings a focused element with — the rung of the
 // primary ramp measured to clear the non-text contrast floor against the
 // paragraph ground the ring is drawn on. Pass
 // tokens.DefaultTypography.BodyLarge for the default desktop look.
+//
+// The link ink used to be the bare Primary pin, and that was the ring's own
+// defect one register up. Primary is the brand colour itself at the brand's
+// own depth, so whether a link read on the page was a property of the seed:
+// the canonical #6750A4 measures 5.94:1 over the light paper and every
+// stored image in this design system shows the question solved, while an
+// accent stated at a dark scheme's tone — the shape a palette published for
+// dark mode hands out, and the shape a person seeds a brand with — put a
+// 1.95:1 link on a near-white page. Asking [tokens.ColorTokens.InkOn] for
+// the ink measures it: the brand's own colour stands wherever it clears
+// WCAG AA, and where it does not the ramp answers a rung of the same hue
+// that does. Nothing moves on the canonical seed.
 //
 // Of the role's style Size and LineHeight land in [Style]: a paragraph's
 // typeface, weight and slant are per-span properties, carried by each
@@ -189,16 +205,17 @@ type Style struct {
 // value from theme to paragraph — and takes no [tokens.Density], which sizes
 // controls and so has nothing to say about a paragraph.
 func FromTokens(c tokens.ColorTokens, body tokens.TextStyle) Style {
+	// The ground a link's ink and its ring are both drawn on is the paper
+	// the paragraph is set on — the ladder's level 0, asked of the palette.
+	// It used to name c.Surface, which is a neutral-ramp alias rather than
+	// a storey (ADR-022); over the whole seed sweep the two answer the same
+	// rung, so this moves no pixel and stops claiming that prose lies on
+	// the ramp's first rung.
+	ground := focus.Ground(c, tokens.Level0)
 	return Style{
-		Color:     c.Text,
-		LinkColor: c.Primary,
-		// The ground a link's ring is drawn on is the paper the paragraph
-		// is set on — the ladder's level 0, asked of the palette. It used
-		// to name c.Surface, which is a neutral-ramp alias rather than a
-		// storey (ADR-022); over the whole seed sweep the two answer the
-		// same rung, so this moves no pixel and stops claiming that prose
-		// lies on the ramp's first rung.
-		FocusColor: focus.Ring(c, focus.Ground(c, tokens.Level0)),
+		Color:      c.Text,
+		LinkColor:  c.InkOn(tokens.RolePrimary, ground, tokens.TextFloor),
+		FocusColor: focus.Ring(c, ground),
 		Size:       unit.Sp(body.Size),
 		LineHeight: unit.Sp(body.LineHeight),
 	}
