@@ -26,7 +26,10 @@ const checkboxBoxSize = unit.Dp(20)
 // graphicFloor is WCAG 1.4.11's contrast floor for a graphic that carries
 // meaning without being text — 3:1. A checkbox is entirely such a graphic:
 // nothing about its state is spelled out, so its edge owes the page this
-// much and its mark owes the fill it is drawn on the same.
+// much and its mark owes the fill it is drawn on the same. The same is true
+// of every other control in this package that says what it is with an edge
+// — the radio, the text field, the dropdown trigger — which is why one
+// floor serves the row (see controlBorder).
 const graphicFloor = 3.0
 
 // The check mark is drawn on components/icons' grid rather than on one of
@@ -60,31 +63,40 @@ var checkLine = [3]f32.Point{
 	{X: 19.5, Y: 6},
 }
 
-// checkboxBorder is the ink of an unchecked box's edge: the rung of the
-// neutral ramp nearest its mid-value step that reaches graphicFloor against
-// the ground the box stands on.
+// controlBorder is the ink of a control's resting edge — the unchecked box,
+// the unselected radio, the text field, the dropdown trigger: the rung of
+// the neutral ramp nearest its mid-value step that reaches graphicFloor
+// against the ground the control stands on.
 //
-// It used to be neutral step 500, named once and drawn in both schemes, and
-// that is a pairing rather than a colour. The neutral ramps are paired —
-// light and dark are realized at the same perceptual depths from opposite
-// ends — so step 500 is the one rung that barely moves between schemes while
-// the ground under it moves the whole way. The result was a border measuring
-// 6.63:1 in the dark and 2.67:1 in the light, under the floor in the scheme
-// most people read in, from a line of code that looks scheme-neutral. Asking
-// the ramp which rung clears the floor answers 600 in the light scheme and
-// 500 in the dark and needs to know nothing about either.
+// It used to be neutral step 500, named once and drawn in both schemes at
+// each of those four sites, and that is a pairing rather than a colour. The
+// neutral ramps are paired — light and dark are realized at the same
+// perceptual depths from opposite ends — so step 500 is the one rung that
+// barely moves between schemes while the ground under it moves the whole
+// way. The result was a border measuring 6.63:1 in the dark and 2.67:1 in
+// the light, under the floor in the scheme most people read in, from a line
+// of code that looks scheme-neutral. Asking the ramp which rung clears the
+// floor answers 600 in the light scheme and 500 in the dark and needs to
+// know nothing about either.
 //
-// ground is the storey the box is standing on, and the walk is taken against
-// that storey's own fill rather than against the window's. It used to be
-// level 0 unconditionally — the one ground a component that is never told
-// where it was put can be sure of — and that assumption is what failed as
-// soon as a checkbox was placed inside a dialog: the light scheme's rung
+// ground is the storey the control is standing on, and the walk is taken
+// against that storey's own fill rather than against the window's. It used
+// to be level 0 unconditionally — the one ground a component that is never
+// told where it was put can be sure of — and that assumption is what failed
+// as soon as a control was placed inside a dialog: the light scheme's rung
 // measures 2.94:1 over a level-2 plane and 2.15:1 over a level-3 one, both
 // under the floor, from a derivation that was itself correct and merely
 // aimed at the wrong ground. Handed the level, the same walk answers a
-// deeper rung where the ground is deeper and the box keeps its edge
+// deeper rung where the ground is deeper and the control keeps its edge
 // wherever it stands.
-func checkboxBorder(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
+//
+// The control's own interior is the edge's other side, and every rung this
+// walk answers clears the floor against it too: the interior is Surface —
+// the level-1 storey — and the deeper the outer ground, the deeper the ink,
+// so the inner pairing only widens. Measured over the four storeys the
+// light scheme lands 3.55 / 3.55 / 5.46 / 5.46:1 inside and the dark 5.94:1
+// throughout.
+func controlBorder(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
 	return c.MarkOn(tokens.RoleNeutral, c.SurfaceAt(ground), graphicFloor)
 }
 
@@ -302,7 +314,7 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 			Width: checkBandUnits * scale,
 		}.Op())
 	} else {
-		border := checkboxBorder(tok.color, s.Ground)
+		border := controlBorder(tok.color, s.Ground)
 		if s.Disabled {
 			border = tokens.Disabled(border)
 		}

@@ -32,6 +32,16 @@ import (
 type RenderState struct {
 	Focused  bool
 	Disabled bool
+
+	// Ground is the elevation storey of the surface hosting the field — the
+	// local ground its resting border is derived against, in the same
+	// vocabulary the host names its own fill (tokens.SurfaceAt). A dialog at
+	// tokens.Level2 passes Level2 and the border takes whichever neutral
+	// rung clears the floor over that storey. The zero value is
+	// tokens.Level0, the window ground. A focused field ignores it: its
+	// border is promoted to the focus ring, which derives against the fill
+	// inside the border instead.
+	Ground tokens.ElevationLevel
 	// Text, when non-empty, is rendered in place of the placeholder using the
 	// text colour. It models a field that holds user input for the static
 	// render path; it has no effect on the live TextField, whose text is held
@@ -46,6 +56,13 @@ type TextFieldProps struct {
 
 	// Description is the screen-reader label. Falls back to Placeholder when empty.
 	Description string
+
+	// Ground is the elevation storey of the surface hosting the field,
+	// copied straight into RenderState.Ground on every frame: the local
+	// ground the resting border is derived against. A container that raises
+	// its surface (a level-2 dialog carrying a form) passes its own storey
+	// here; the zero value is the window ground. See RenderState.Ground.
+	Ground tokens.ElevationLevel
 
 	// Seed, when non-empty, pre-fills the editor when the field instance is
 	// created, so an existing value can be EDITED rather than retyped. The
@@ -252,6 +269,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 				return drawTextFieldLive(gtx, shaper, editor, hitTag, props.Placeholder, desc, tok, RenderState{
 					Focused:  foc,
 					Disabled: dis,
+					Ground:   props.Ground,
 				}, showPh)
 			}
 		})
@@ -540,10 +558,18 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 }
 
 // textFieldColors returns (bg, text, border, placeholder) colors for the
-// given state: the Surface ground, body text, ADR-007's strong-border step
-// (Neutral 500) and low-contrast-text step (Neutral 700) for the
-// placeholder. Disabled fades each to DisabledOpacity (D2.3); focus promotes
-// the border to the focus ring.
+// given state: the Surface ground, body text, the resting border the neutral
+// ramp measures against the storey the field stands on (controlBorder) and
+// ADR-007's low-contrast-text step (Neutral 700) for the placeholder.
+// Disabled fades each to DisabledOpacity (D2.3); focus promotes the border
+// to the focus ring.
+//
+// The border used to be the ramp's step 500 named outright, which is a
+// pairing and not a colour: it measured 2.67:1 against the light scheme's
+// window ground and 6.63:1 against the dark one, from a line that looks
+// scheme-neutral. controlBorder asks the ramp instead and the field wears
+// the same edge the checkbox and the radio do, on whatever storey it was
+// put.
 //
 // The promoted border is the shape every control in the library now takes
 // when it is focused, and the colour is the one measured rule behind it: the
@@ -554,7 +580,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, placeholder color.NRGBA) {
 	bg = c.Surface
 	text = c.Text
-	border = c.Ramps.Neutral.Step(500)      // strong border
+	border = controlBorder(c, s.Ground)
 	placeholder = c.Ramps.Neutral.Step(700) // low-contrast text
 	switch {
 	case s.Disabled:

@@ -33,6 +33,16 @@ type DropdownRenderState struct {
 	Disabled bool
 	Selected int
 	Options  []string
+
+	// Ground is the elevation storey of the surface hosting the trigger —
+	// the local ground its resting border is derived against, in the same
+	// vocabulary the host names its own fill (tokens.SurfaceAt). A dialog at
+	// tokens.Level2 passes Level2 and the border takes whichever neutral
+	// rung clears the floor over that storey. The zero value is
+	// tokens.Level0, the window ground. It governs the trigger only: the
+	// open menu is its own plane, a level-3 overlay that draws no edge and
+	// separates by fill (see optionRowColors).
+	Ground tokens.ElevationLevel
 }
 
 // DropdownProps configures a Dropdown instance.
@@ -45,6 +55,13 @@ type DropdownProps struct {
 
 	// Selected is the initial selected index established on subscribe.
 	Selected int
+
+	// Ground is the elevation storey of the surface hosting the dropdown,
+	// copied straight into DropdownRenderState.Ground on every frame: the
+	// local ground the trigger's resting border is derived against. A
+	// container that raises its surface passes its own storey here; the zero
+	// value is the window ground. See DropdownRenderState.Ground.
+	Ground tokens.ElevationLevel
 
 	// Disabled, if non-nil, disables the dropdown when it emits true.
 	Disabled rx.Observable[bool]
@@ -183,6 +200,7 @@ func Dropdown(th rx.Observable[theme.Theme], props DropdownProps) rx.Observable[
 					Disabled: dis,
 					Selected: selected,
 					Options:  props.Options,
+					Ground:   props.Ground,
 				})
 			}
 		})
@@ -343,12 +361,16 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	// Focus promotes the trigger's border to the focus ring, the one idiom
 	// every control in the library wears: the primary rung measured to clear
 	// focus.Floor against the ground inside the border.
-	borderCol := tok.color.Ramps.Neutral.Step(500) // strong border
+	// At rest the trigger's border is the neutral rung the ramp measures as
+	// clearing the graphic floor against the storey the dropdown stands on,
+	// the same edge the field and the radio wear (controlBorder). It used to
+	// be step 500 named outright — 2.67:1 against the light window ground.
+	borderCol := controlBorder(tok.color, s.Ground)
 	if s.Focused {
 		borderCol = focus.Ring(tok.color, bg)
 	}
 	if s.Disabled {
-		borderCol = tokens.Disabled(tok.color.Ramps.Neutral.Step(500))
+		borderCol = tokens.Disabled(controlBorder(tok.color, s.Ground))
 	}
 	borderPx := gtx.Dp(1)
 	if s.Focused {

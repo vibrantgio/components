@@ -1,8 +1,14 @@
-// The checkbox's two pairings, measured rather than eyeballed: the edge an
-// unchecked box draws against the ground it stands on, and the check mark
+// The control row's two pairings, measured rather than eyeballed: the edge a
+// resting control draws against the ground it stands on, and the check mark
 // against the fill it is drawn on. Both are internal because both are
-// derivations rather than fields — checkboxBorder walks the neutral ramp, and
+// derivations rather than fields — controlBorder walks the neutral ramp, and
 // what is worth holding is the ratio it lands on, not the rung.
+//
+// One border sweep covers four controls. The unchecked box, the unselected
+// radio, the text field and the dropdown trigger all take their resting edge
+// from controlBorder against a Ground in the same four-rung vocabulary, so
+// measuring the walk over every storey measures every placement any of them
+// admits; nothing is left for a per-component copy of this test to find.
 package input
 
 import (
@@ -30,7 +36,7 @@ var checkboxSeeds = []color.NRGBA{
 	{A: 0xff},
 }
 
-// TestCheckboxBorderClearsTheGraphicFloor is the defect this derivation
+// TestControlBorderClearsTheGraphicFloor is the defect this derivation
 // replaced, written down. The border was neutral step 500 in both schemes,
 // and the neutral ramps are paired — light and dark are realized at the same
 // perceptual depths from opposite ends — so step 500 is the one rung that
@@ -44,15 +50,16 @@ var checkboxSeeds = []color.NRGBA{
 // was the same mistake one storey up: a box inside a dialog stands on the
 // level-2 or level-3 plane, where the rung chosen against the window ground
 // measured 2.94:1 and 2.15:1 in the light scheme. So the sweep runs the whole
-// ladder — every storey a checkbox can be handed — and the border is derived
+// ladder — every storey a control can be handed — and the border is derived
 // against each in turn rather than measured against grounds it was never
 // aimed at.
 //
 // Two grounds are measured per storey, because the border has two sides.
-// Outside it is the storey the box stands on; inside it is the box's own
+// Outside it is the storey the control stands on; inside it is its own
 // Surface interior, which the component paints itself and therefore always
-// knows, and which no ground the box is handed can excuse it from clearing.
-func TestCheckboxBorderClearsTheGraphicFloor(t *testing.T) {
+// knows, and which no ground the control is handed can excuse it from
+// clearing.
+func TestControlBorderClearsTheGraphicFloor(t *testing.T) {
 	for _, sc := range []struct {
 		name   string
 		colors tokens.ColorTokens
@@ -62,8 +69,8 @@ func TestCheckboxBorderClearsTheGraphicFloor(t *testing.T) {
 	} {
 		t.Run(sc.name, func(t *testing.T) {
 			c := sc.colors
-			for _, level := range checkboxStoreys {
-				border := checkboxBorder(c, level.level)
+			for _, level := range controlStoreys {
+				border := controlBorder(c, level.level)
 				for _, g := range []struct {
 					name   string
 					ground color.NRGBA
@@ -83,11 +90,13 @@ func TestCheckboxBorderClearsTheGraphicFloor(t *testing.T) {
 	}
 }
 
-// checkboxStoreys is the whole elevation ladder, which is the whole set of
-// grounds a checkbox can be handed: CheckboxRenderState.Ground names a
-// tokens.ElevationLevel and the ladder has exactly four rungs, so a sweep
-// over these four is a sweep over every placement the field admits.
-var checkboxStoreys = []struct {
+// controlStoreys is the whole elevation ladder, which is the whole set of
+// grounds a control can be handed: every Ground field in this package —
+// CheckboxRenderState's, RadioRenderState's, RenderState's,
+// DropdownRenderState's — names a tokens.ElevationLevel and the ladder has
+// exactly four rungs, so a sweep over these four is a sweep over every
+// placement those fields admit.
+var controlStoreys = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
@@ -97,11 +106,11 @@ var checkboxStoreys = []struct {
 	{"level-3", tokens.Level3},
 }
 
-// TestCheckboxBorderClearsTheFloorForEverySeed walks the same pairings, on
+// TestControlBorderClearsTheFloorForEverySeed walks the same pairings, on
 // every storey, over a spread of seeds and both contrast variants. The
 // neutral ramps carry the seed's tint, so the measurements move a little from
 // seed to seed; what may not move is the verdict.
-func TestCheckboxBorderClearsTheFloorForEverySeed(t *testing.T) {
+func TestControlBorderClearsTheFloorForEverySeed(t *testing.T) {
 	worst := 99.0
 	for _, seed := range checkboxSeeds {
 		light, dark := tokens.FromSeed(seed)
@@ -116,8 +125,8 @@ func TestCheckboxBorderClearsTheFloorForEverySeed(t *testing.T) {
 			{"dark high-contrast", darkHC},
 		} {
 			c := sc.colors
-			for _, level := range checkboxStoreys {
-				border := checkboxBorder(c, level.level)
+			for _, level := range controlStoreys {
+				border := controlBorder(c, level.level)
 				for _, g := range []struct {
 					name   string
 					ground color.NRGBA

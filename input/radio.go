@@ -32,6 +32,15 @@ type RadioRenderState struct {
 	Selected bool
 	Focused  bool
 	Disabled bool
+
+	// Ground is the elevation storey of the surface hosting the radio — the
+	// local ground its unselected ring is derived against, in the same
+	// vocabulary the host names its own fill (tokens.SurfaceAt). A dialog at
+	// tokens.Level2 passes Level2 and the ring takes whichever neutral rung
+	// clears the floor over that storey. The zero value is tokens.Level0,
+	// the window ground. A selected radio ignores it: it wears the accent
+	// ring, which is its own pairing.
+	Ground tokens.ElevationLevel
 }
 
 // RadioProps configures a Radio instance.
@@ -41,6 +50,13 @@ type RadioProps struct {
 
 	// Selected is the initial selected state established on subscribe.
 	Selected bool
+
+	// Ground is the elevation storey of the surface hosting the radio,
+	// copied straight into RadioRenderState.Ground on every frame: the local
+	// ground the unselected ring is derived against. A container that raises
+	// its surface passes its own storey here; the zero value is the window
+	// ground. See RadioRenderState.Ground.
+	Ground tokens.ElevationLevel
 
 	// Disabled, if non-nil, disables the radio when it emits true.
 	Disabled rx.Observable[bool]
@@ -119,6 +135,7 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 						Selected: b.Value,
 						Focused:  foc,
 						Disabled: dis,
+						Ground:   props.Ground,
 					})
 				})
 			}
@@ -174,7 +191,10 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 
 	// Outer ellipse in the edge colour, surface gap, and — when selected — the
 	// dot. Nested fills avoid clip.Stroke anti-aliasing variance in tests.
-	edge := tok.color.Ramps.Neutral.Step(500) // strong border
+	// The unselected ring is the radio's whole statement, so it is derived
+	// rather than named: the neutral rung that clears the graphic floor
+	// against the storey the radio stands on (controlBorder).
+	edge := controlBorder(tok.color, s.Ground)
 	if s.Selected {
 		edge = tok.color.Primary
 	}
