@@ -14,6 +14,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 
+	tcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -80,27 +81,137 @@ func (s Style) Width() unit.Dp {
 	return s.ThumbMinorWidth + 2*s.TrackPadding
 }
 
-// FromTokens derives the default scrollbar look from colour tokens.
-// The thumb is the Neutral 700 step (ADR-007's low-contrast-text step)
-// alpha-composited (~40% at rest, ~67% while hovered or dragged), so it
-// tracks light and dark schemes automatically. The translucency is the
-// thumb's identity — content shows through the overlay — not an MD3 state
-// layer, so it survives ADR-007's move to ramp-step states.
-// The track is transparent by default.
+// Contrast floors the thumb is derived against.
 //
-// The bar also fades: it is opaque while the content scrolls or the pointer
-// is on the gutter, then fades out a second after the last of either, which
-// is how the desktop platforms' overlay scrollbars behave. The gutter keeps
-// its hit areas while faded, so moving the pointer onto it brings the bar
-// back. Set FadeDelay to zero for a bar that stays visible.
+// At rest the thumb is a graphic that carries meaning without being text —
+// nothing about the position it reports is spelled out anywhere — so it owes
+// the page WCAG 1.4.11's 3:1 and no more. Under the pointer it owes more: a
+// hovered or dragged thumb has stopped reporting a position and become a
+// target, something the reader is aiming at rather than glancing at, so that
+// state takes WCAG 1.4.3's 4.5:1 text floor instead. One derivation, two
+// floors, and that difference is the whole of what separates the two states.
+const (
+	restFloor   = 3.0
+	activeFloor = 4.5
+)
+
+// The coverage the overlay intends: 39% at rest, 67% while hovered or
+// dragged — the alphas this bar has always been drawn at, and the reason it
+// is an overlay at all. They are the least the thumb is ever covered by
+// rather than a setting: the derivation raises coverage when a ground asks
+// for it and never lowers it, so a scheme whose thumb already clears its
+// floor keeps exactly the bar it had.
+const (
+	restCoverage   = 100
+	activeCoverage = 170
+)
+
+// inkStep is where the thumb's ink starts: ADR-007's low-contrast-text step,
+// which is what chrome that must be noticed without being read is drawn in.
+// The derivation walks deeper from here and never shallower.
+const inkStep = 700
+
+// thumbInk derives one of the thumb's two states: the neutral ramp's
+// low-contrast-text rung deepened as far as floor demands over the grounds
+// this bar rides, and coverage raised past the overlay's intent only once
+// the ramp's deepest ink still falls short.
+//
+// The order the two dials are spent in is the design. Deepening the ink
+// costs a reader nothing — two inks that reach the same composited contrast
+// over the same ground *are* the same colour on that ground — while raising
+// coverage costs precisely what an overlay is for, since coverage is how
+// much of the content underneath stops showing through. So the ink is spent
+// first, all the way to the ramp's end, and coverage only after; for a given
+// floor that is the most translucent thumb there is. Concretely, the light
+// scheme's resting thumb reaches 3:1 at 82% coverage in the low-contrast-text
+// rung and at 71% in the ramp's end rung, and the two land on the same grey.
+//
+// It is derived against both grounds an overlay bar rides — the window's own
+// page and the pane fill one storey up — and answers whichever asks more, so
+// one bar reads on both. Handing the bar its ground the way the AQ-era
+// components take one would buy nothing here: over the whole seed sweep the
+// two grounds never disagree about the rung and differ by at most 2/255 of
+// coverage, because an ink at the ramp's end is far from both of them. A bar
+// riding a storey deeper than a pane is another matter — the light scheme's
+// resting thumb measures 2.90:1 over a level-2 surface — and the ground is a
+// parameter of this function, so that day costs a call-site argument and not
+// a redesign.
+//
+// The measurement is taken over the composite, not over the ink: a
+// translucent colour has no contrast of its own, and reading the ink's own
+// ratio off the ramp is exactly how a thumb measuring 1.49:1 against the
+// light page came to be believed legible.
+//
+// A floor no ink at any coverage reaches is answered with the ramp's end
+// rung, opaque, so a caller always has a colour: a thumb too weak for its
+// floor is a contrast defect the gates report, not a reason to paint an
+// unset colour.
+func thumbInk(c tokens.ColorTokens, floor float64, coverage uint8) color.NRGBA {
+	grounds := [...]color.NRGBA{
+		c.SurfaceAt(tokens.Level0),
+		c.SurfaceAt(tokens.Level1),
+	}
+	clears := func(ink color.NRGBA) bool {
+		for _, ground := range grounds {
+			if tcolor.ContrastRatio(tcolor.Over(ink, ground), ground) < floor {
+				return false
+			}
+		}
+		return true
+	}
+	for step := inkStep; step <= 900; step += 100 {
+		ink := c.Ramps.Neutral.Step(step)
+		ink.A = coverage
+		if clears(ink) {
+			return ink
+		}
+	}
+	ink := c.Ramps.Neutral.Step(900)
+	for a := int(coverage); a < 255; a++ {
+		ink.A = uint8(a)
+		if clears(ink) {
+			return ink
+		}
+	}
+	ink.A = 255
+	return ink
+}
+
+// FromTokens derives the default scrollbar look from colour tokens.
+//
+// The thumb is translucent, and that translucency is its identity — content
+// shows through an overlay bar — not an MD3 state layer, so it survives
+// ADR-007's move to ramp-step states. What the translucency is not is a free
+// choice: a translucent ink has no colour until it is composited, and the
+// composite of the low-contrast-text step at 39% coverage over the light
+// page is #CCCCCC, which measures 1.49:1 against that page. A bar at 1.49:1
+// is invisible exactly when a reader looks for it, which is the one moment it
+// exists for. So both states are derived instead — see thumbInk — as the
+// most translucent thumb that still clears its floor over the grounds an
+// overlay bar rides.
+//
+// The two schemes answer differently and the difference is the derivation
+// working rather than a special case. Over a dark page a pale ink at low
+// coverage lifts the composite a long way, so the dark scheme keeps the
+// low-contrast-text step at the coverage it always had and measures 4.49:1.
+// Over a light page the same arithmetic runs backwards — a light ground
+// dominates a linear-light blend — so the light scheme spends the ink all
+// the way to the ramp's end and then buys the rest with coverage, landing at
+// 71% for 3:1 and 84% for 4.5:1. Translucency is simply dearer on a light
+// page than on a dark one, and one rule pricing it correctly is what tells
+// the two apart. The track is transparent by default.
+//
+// The bar also fades: it is fully present while the content scrolls or the
+// pointer is on the gutter, then fades out a second after the last of
+// either, which is how the desktop platforms' overlay scrollbars behave.
+// The floors above are what the bar owes while it is present; a bar in the
+// middle of fading out is on its way to invisible on purpose. The gutter
+// keeps its hit areas while faded, so moving the pointer onto it brings the
+// bar back. Set FadeDelay to zero for a bar that stays visible.
 func FromTokens(c tokens.ColorTokens) Style {
-	thumb := c.Ramps.Neutral.Step(700)
-	thumb.A = 100
-	hover := c.Ramps.Neutral.Step(700)
-	hover.A = 170
 	return Style{
-		ThumbColor:        thumb,
-		ThumbHoverColor:   hover,
+		ThumbColor:        thumbInk(c, restFloor, restCoverage),
+		ThumbHoverColor:   thumbInk(c, activeFloor, activeCoverage),
 		TrackColor:        color.NRGBA{},
 		ThumbMinorWidth:   6,
 		TrackPadding:      2,

@@ -51,22 +51,29 @@ func TestFromTokens(t *testing.T) {
 	cases := []struct {
 		name string
 		c    tokens.ColorTokens
+		// The rung and coverage the derivation answers for this scheme,
+		// spelled out rather than recomputed: the dark scheme keeps the
+		// low-contrast-text step at the coverage the bar always had, and
+		// the light scheme spends the ink to the ramp's end and buys the
+		// rest with coverage. See FromTokens for why they differ.
+		thumbStep, thumbAlpha int
+		hoverStep, hoverAlpha int
 	}{
-		{"DefaultLight", tokens.DefaultLight},
-		{"DefaultDark", tokens.DefaultDark},
+		{"DefaultLight", tokens.DefaultLight, 900, 182, 900, 213},
+		{"DefaultDark", tokens.DefaultDark, 700, 100, 700, 170},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			s := FromTokens(tc.c)
 
-			wantThumb := tc.c.Ramps.Neutral.Step(700)
-			wantThumb.A = 100
+			wantThumb := tc.c.Ramps.Neutral.Step(tc.thumbStep)
+			wantThumb.A = uint8(tc.thumbAlpha)
 			if s.ThumbColor != wantThumb {
 				t.Errorf("ThumbColor = %v, want %v", s.ThumbColor, wantThumb)
 			}
 
-			wantHover := tc.c.Ramps.Neutral.Step(700)
-			wantHover.A = 170
+			wantHover := tc.c.Ramps.Neutral.Step(tc.hoverStep)
+			wantHover.A = uint8(tc.hoverAlpha)
 			if s.ThumbHoverColor != wantHover {
 				t.Errorf("ThumbHoverColor = %v, want %v", s.ThumbHoverColor, wantHover)
 			}
