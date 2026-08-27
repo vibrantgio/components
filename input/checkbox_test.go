@@ -154,6 +154,60 @@ func TestCheckboxCheckedIsVisuallyDistinct(t *testing.T) {
 	}
 }
 
+// TestCheckboxChecksAreDrawn is the other half of "visually distinct", and
+// the half that was missing. A checked box used to be a plain Primary square:
+// distinct from the unchecked one, so the diff test above was satisfied, and
+// distinct only in hue — which reads as a swatch, or as the indeterminate
+// state, to anyone the hue does not reach. So this asserts the mark itself:
+// how much of the checked box reads as check rather than as fill, in both
+// schemes.
+//
+// The count is a band rather than a number because a stroked figure two
+// pixels wide is mostly its own anti-aliased edge. At the 1 px/dp the harness
+// pins, the mark covers 40 px of the light box and 28 of the dark one; the
+// band's job is to fail both a mark that vanished and a mark that swallowed
+// the box, not to pin the figure — that is what the goldens are for.
+func TestCheckboxChecksAreDrawn(t *testing.T) {
+	size := image.Pt(44, 44)
+	for _, scheme := range []struct {
+		name   string
+		colors tokens.ColorTokens
+	}{
+		{"light", tokens.DefaultLight},
+		{"dark", tokens.DefaultDark},
+	} {
+		c := scheme.colors
+		count := func(s input.CheckboxRenderState) int {
+			img := golden.Capture(t, size, input.RenderCheckbox(c, tokens.Spacing, tokens.Radius, s))
+			if img == nil {
+				return -1
+			}
+			n := 0
+			b := img.Bounds()
+			for y := b.Min.Y; y < b.Max.Y; y++ {
+				for x := b.Min.X; x < b.Max.X; x++ {
+					if nearerTo(img.RGBAAt(x, y), c.OnPrimary, c.Primary) {
+						n++
+					}
+				}
+			}
+			return n
+		}
+
+		n := count(input.CheckboxRenderState{Checked: true})
+		switch {
+		case n < 15:
+			t.Errorf("%s: a checked box carries %d pixels of check ink %v over the fill %v — the mark is missing",
+				scheme.name, n, c.OnPrimary, c.Primary)
+		case n > 120:
+			t.Errorf("%s: a checked box carries %d pixels of check ink %v over the fill %v — the mark has taken over the box",
+				scheme.name, n, c.OnPrimary, c.Primary)
+		default:
+			t.Logf("%s: the check covers %d px of the 20 dp box", scheme.name, n)
+		}
+	}
+}
+
 // TestCheckboxFocusRingIsVisuallyDistinct confirms the focused state renders
 // differently from the normal state (focus ring must add pixels).
 func TestCheckboxFocusRingIsVisuallyDistinct(t *testing.T) {
@@ -279,4 +333,21 @@ func nearlyEqual(got stdcolor.RGBA, want stdcolor.NRGBA) bool {
 		return b-a > slack
 	}
 	return !off(got.R, want.R) && !off(got.G, want.G) && !off(got.B, want.B) && got.A == want.A
+}
+
+// nearerTo reports whether a captured pixel lies closer to ink than to fill.
+// An anti-aliased figure a couple of pixels wide has an interior of exactly
+// its ink and edges of everything between ink and ground, so counting exact
+// matches counts the interior only — one pixel, on a dark scheme's mark. The
+// question worth asking of a stroked mark is how much of the box reads as
+// mark rather than as fill, and that is this: squared distance in RGB, the
+// two ends of the blend as the only candidates.
+func nearerTo(got stdcolor.RGBA, ink, fill stdcolor.NRGBA) bool {
+	d := func(c stdcolor.NRGBA) int {
+		dr := int(got.R) - int(c.R)
+		dg := int(got.G) - int(c.G)
+		db := int(got.B) - int(c.B)
+		return dr*dr + dg*dg + db*db
+	}
+	return got.A == 0xff && d(ink) < d(fill)
 }

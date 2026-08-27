@@ -2,7 +2,9 @@ package input
 
 import (
 	"image"
+	"image/color"
 
+	"gioui.org/f32"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
 	"gioui.org/op/clip"
@@ -20,6 +22,68 @@ import (
 
 // checkboxBoxSize is the visual side length of the checkbox square.
 const checkboxBoxSize = unit.Dp(20)
+
+// graphicFloor is WCAG 1.4.11's contrast floor for a graphic that carries
+// meaning without being text — 3:1. A checkbox is entirely such a graphic:
+// nothing about its state is spelled out, so its edge owes the page this
+// much and its mark owes the fill it is drawn on the same.
+const graphicFloor = 3.0
+
+// The check mark is drawn on components/icons' grid rather than on one of
+// its own, so that the library has a single answer to "what does a stroke
+// weigh". checkGrid is that grid — 24 units, whatever size the drawing is
+// realized at — and checkBandUnits is its DIAGONAL band measure: 2 units,
+// the compensation a 45-degree edge needs to cover device pixels whole,
+// against 1.5 for an axis-aligned one. The check is nothing but two
+// 45-degree arms, so it takes the diagonal measure throughout.
+const (
+	checkGrid      = 24.0
+	checkBandUnits = 2.0
+)
+
+// checkLine is the check's centre line on that grid: in from the left, down
+// to the turn, then up and out to the right. Both arms run at exactly 45
+// degrees and every corner sits on the icon set's 1.5 sub-grid. Stroked, the
+// figure spans 17 by 12.5 units, inside the 20-unit allowance a diagonal
+// form is given — a diagonal drawing fills a square keyline less than a
+// square one does, which is why that allowance is the wider of the two.
+//
+// The set's own files draw their caps and turns as an explicit closed
+// contour because their SVG backend cannot ask for a line cap or a join.
+// Here nothing is going through that backend, and Gio's clip.Stroke caps and
+// joins round on its own, so the same figure is the centre line plus a
+// width. It is the identical drawing, arrived at with three points instead
+// of fourteen.
+var checkLine = [3]f32.Point{
+	{X: 4.5, Y: 12},
+	{X: 9, Y: 16.5},
+	{X: 19.5, Y: 6},
+}
+
+// checkboxBorder is the ink of an unchecked box's edge: the rung of the
+// neutral ramp nearest its mid-value step that reaches graphicFloor against
+// the ground the box stands on.
+//
+// It used to be neutral step 500, named once and drawn in both schemes, and
+// that is a pairing rather than a colour. The neutral ramps are paired —
+// light and dark are realized at the same perceptual depths from opposite
+// ends — so step 500 is the one rung that barely moves between schemes while
+// the ground under it moves the whole way. The result was a border measuring
+// 6.63:1 in the dark and 2.67:1 in the light, under the floor in the scheme
+// most people read in, from a line of code that looks scheme-neutral. Asking
+// the ramp which rung clears the floor answers 600 in the light scheme and
+// 500 in the dark and needs to know nothing about either.
+//
+// ground is the level-0 plane — the window's own background. A checkbox is
+// not told where it has been put, and this is the ground it is guaranteed
+// against: the app background, and its own Surface interior, which the same
+// rung clears in both schemes because the two are a rung apart. A checkbox
+// placed on a level-2 or level-3 plane — inside a dialog, say — is a
+// narrower pairing than that and is not something the component can derive
+// its way out of without being handed the ground it is standing on.
+func checkboxBorder(c tokens.ColorTokens) color.NRGBA {
+	return c.MarkOn(tokens.RoleNeutral, c.SurfaceAt(tokens.Level0), graphicFloor)
+}
 
 // CheckboxRenderState holds explicit visual state for static rendering.
 // All fields default to false (normal/unchecked/idle).
@@ -183,13 +247,37 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	rrectInner := clip.RRect{Rect: innerRect, SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad}
 
 	if s.Checked {
+		// The fill says a colour has been applied; the check says what was
+		// applied means. Without the mark the checked state is a swatch, and
+		// a list of them carries completion in hue alone — which is the one
+		// channel a reader may not have. So the box draws a check, in the
+		// on-colour the fill is paired with, at the icon set's weight.
 		fill := tok.color.Primary
+		ink := tok.color.OnPrimary
 		if s.Disabled {
 			fill = tokens.Disabled(fill)
+			ink = tokens.Disabled(ink)
 		}
 		paint.FillShape(gtx.Ops, fill, rrectOuter.Op(gtx.Ops))
+
+		scale := float32(boxSz) / checkGrid
+		org := f32.Pt(float32(boxRect.Min.X), float32(boxRect.Min.Y))
+		var check clip.Path
+		check.Begin(gtx.Ops)
+		for i, u := range checkLine {
+			at := org.Add(f32.Pt(u.X*scale, u.Y*scale))
+			if i == 0 {
+				check.MoveTo(at)
+			} else {
+				check.LineTo(at)
+			}
+		}
+		paint.FillShape(gtx.Ops, ink, clip.Stroke{
+			Path:  check.End(),
+			Width: checkBandUnits * scale,
+		}.Op())
 	} else {
-		border := tok.color.Ramps.Neutral.Step(500) // strong border
+		border := checkboxBorder(tok.color)
 		if s.Disabled {
 			border = tokens.Disabled(border)
 		}

@@ -1,7 +1,7 @@
-// This file is the one internal test in the package: it measures the colour
-// pairing optionRowColors returns rather than the pixels it ends up as, and
-// that function is unexported on purpose — a row's fill and its ink are chosen
-// together, and the pair is what is worth holding.
+// An internal test, like checkbox_contrast_test.go beside it: it measures the
+// colour pairing optionRowColors returns rather than the pixels it ends up as,
+// and that function is unexported on purpose — a row's fill and its ink are
+// chosen together, and the pair is what is worth holding.
 package input
 
 import (
