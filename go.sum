@@ -27,6 +27,8 @@ github.com/vibrantgio/svg/driver/gio v0.0.9 h1:Yetgi4cH9gZi2q/fsJGJesrusjfXle5pe
 github.com/vibrantgio/svg/driver/gio v0.0.9/go.mod h1:iLgoLoboQGZ3W/eaHjUWS0LUnAScoPp9LFBTtJxAAYU=
 github.com/vibrantgio/theme v1.1.0 h1:sn+8H6/C1YrRGEX5JKsKvXLSj8xgXALdnNemcADDBpg=
 github.com/vibrantgio/theme v1.1.0/go.mod h1:ucJaSwmdAOmVi0KESjRZ/XX7oY4jwyimAcD54v4zHRQ=
+github.com/vibrantgio/theme v1.2.0 h1:UoBiXR9aOFlBMj0g7D5TAkh0vAfjGp53YsaBHclN+fw=
+github.com/vibrantgio/theme v1.2.0/go.mod h1:ucJaSwmdAOmVi0KESjRZ/XX7oY4jwyimAcD54v4zHRQ=
 golang.org/x/exp v0.0.0-20260727155853-b88d891fe743 h1:ex206bKw+v3K0dm3andkrIF+ijyQKJG1pLgwQ2PYdQM=
 golang.org/x/exp v0.0.0-20260727155853-b88d891fe743/go.mod h1:EdfpwwqSu+0Li0mzskwHU6FWDV3t9Q+RZDo3QMUtL3Q=
 golang.org/x/exp/shiny v0.0.0-20260727155853-b88d891fe743 h1:rQLtGtwpYzQUyxCqrT3i4lGgvC1Q4G72JTHYncg6AvY=

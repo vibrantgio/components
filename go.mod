@@ -10,7 +10,7 @@ require (
 	github.com/vibrantgio/mvu v1.0.0
 	github.com/vibrantgio/svg v0.0.9
 	github.com/vibrantgio/svg/driver/gio v0.0.9
-	github.com/vibrantgio/theme v1.1.0
+	github.com/vibrantgio/theme v1.2.0
 	golang.org/x/image v0.44.0
 )
 
