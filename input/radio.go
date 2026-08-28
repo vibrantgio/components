@@ -2,6 +2,7 @@ package input
 
 import (
 	"image"
+	"image/color"
 
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
@@ -34,12 +35,13 @@ type RadioRenderState struct {
 	Disabled bool
 
 	// Ground is the elevation storey of the surface hosting the radio — the
-	// local ground its unselected ring is derived against, in the same
-	// vocabulary the host names its own fill (tokens.SurfaceAt). A dialog at
-	// tokens.Level2 passes Level2 and the ring takes whichever neutral rung
+	// local ground the ring is derived against, in the same vocabulary the
+	// host names its own fill (tokens.SurfaceAt). A dialog at tokens.Level2
+	// passes Level2 and the unselected ring takes whichever neutral rung
 	// clears the floor over that storey. The zero value is tokens.Level0,
-	// the window ground. A selected radio ignores it: it wears the accent
-	// ring, which is its own pairing.
+	// the window ground. A selected radio's ring is the primary ink measured
+	// against this same ground (AV1.2; [tokens.ColorTokens.InkOn]) rather
+	// than the bare accent pin, so it too answers to the host it stands on.
 	Ground tokens.ElevationLevel
 }
 
@@ -161,6 +163,19 @@ func RenderRadio(
 	}
 }
 
+// selectedRadioEdge is the colour a selected radio's edge is drawn in: the
+// primary pin while it clears the graphic floor against ground — the same
+// storey controlBorder measures the resting edge against — and otherwise
+// the rung of the primary ramp that does (AV1.2; [tokens.ColorTokens.InkOn]).
+//
+// It used to be the bare Primary pin, which reads only because the
+// canonical seed's own primary clears the window ground already; a pastel
+// seed's pin put a sub-floor ring around a host storey that no golden ever
+// showed. Nothing moves on the canonical seed.
+func selectedRadioEdge(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
+	return c.InkOn(tokens.RolePrimary, c.SurfaceAt(ground), tokens.GraphicFloor)
+}
+
 // drawRadio renders the radio button into gtx. All visual state comes from s;
 // no event queries are performed here.
 func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layout.Dimensions {
@@ -198,9 +213,12 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	// raised to (controlFill) — the same fill the box, the field and the
 	// trigger carry, in the chosen state as much as the resting one: the dot
 	// is drawn on the radio's surface, not on the host's.
+	//
+	// The selected edge is [selectedRadioEdge], measured against that same
+	// ground.
 	edge := controlBorder(tok.color, s.Ground)
 	if s.Selected {
-		edge = tok.color.Primary
+		edge = selectedRadioEdge(tok.color, s.Ground)
 	}
 	if s.Disabled {
 		edge = tokens.Disabled(edge)
