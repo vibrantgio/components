@@ -1,0 +1,267 @@
+// The chip's three pairings, measured rather than eyeballed: the rim against
+// the ground the chip stands on and against the chip's own fill, the label
+// against that fill, and the glyph against it. All four colours come out of
+// derivations rather than fields, so what is worth holding is the ratio each
+// lands on and not the rung it picked.
+//
+// Every sweep here runs the whole elevation ladder, because RenderState.Ground
+// is a tokens.ElevationLevel and the ladder has exactly five rungs: a sweep
+// over those five is a sweep over every placement that field admits. And every
+// sweep runs the chip's interaction states too, because the fill walks under
+// the pointer and the inks are resolved against the fill actually drawn — a
+// floor that holds at rest and fails under a press is a floor that does not
+// hold.
+package chip
+
+import (
+	"image/color"
+	"testing"
+
+	"github.com/vibrantgio/components/internal/focus"
+	vgcolor "github.com/vibrantgio/theme/color"
+	"github.com/vibrantgio/theme/tokens"
+)
+
+// focusFloor is what the ring owes whatever it lies on — the same 3:1 the
+// focus package derives it to, named here so the assertion and the derivation
+// cannot drift apart.
+const focusFloor = focus.Floor
+
+// chipSeeds is the spread the pairings are held over, because a palette is
+// generated and the defaults are only one of its outputs: the default seed,
+// the six saturated corners of sRGB, a seed with no chroma at all, and the two
+// ends of the lightness range. It is the same spread components/input holds
+// its control row to.
+var chipSeeds = []color.NRGBA{
+	{R: 0x6c, G: 0x3a, B: 0xd4, A: 0xff}, // the default seed
+	{R: 0xff, A: 0xff},
+	{G: 0xff, A: 0xff},
+	{B: 0xff, A: 0xff},
+	{R: 0xff, G: 0xff, A: 0xff},
+	{G: 0xff, B: 0xff, A: 0xff},
+	{R: 0xff, G: 0x80, A: 0xff},
+	{R: 0x80, G: 0x80, B: 0x80, A: 0xff},
+	{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
+	{A: 0xff},
+}
+
+// chipStoreys is the whole ladder — every ground a chip can be handed.
+var chipStoreys = []struct {
+	name  string
+	level tokens.ElevationLevel
+}{
+	{"floor", tokens.LevelFloor},
+	{"level-0", tokens.Level0},
+	{"level-1", tokens.Level1},
+	{"level-2", tokens.Level2},
+	{"level-3", tokens.Level3},
+}
+
+// chipStates is the walk the interactive face takes. The badge face draws only
+// the first of them, so measuring all three measures both faces.
+var chipStates = []struct {
+	name  string
+	state tokens.State
+}{
+	{"at rest", tokens.StateNormal},
+	{"hovered", tokens.StateHover},
+	{"pressed", tokens.StatePressed},
+}
+
+func hex(c color.NRGBA) string {
+	const digits = "0123456789abcdef"
+	return string([]byte{'#',
+		digits[c.R>>4], digits[c.R&0xf],
+		digits[c.G>>4], digits[c.G&0xf],
+		digits[c.B>>4], digits[c.B&0xf],
+	})
+}
+
+// edgeHolds is the whole claim the chip's edge makes, in one function: on
+// every storey, in every state, the chip's boundary is legible — either the
+// rim clears the graphic floor against BOTH the ground outside it and the fill
+// inside it, or there is no rim and the fill itself clears the floor against
+// the ground.
+//
+// The two halves are one claim rather than two, and stating them together is
+// the point. A test that only asserted the drawn rim would be satisfied by a
+// derivation that dropped the rim whenever it got hard; a test that only
+// asserted the fill would be satisfied by the light scheme's 1.02:1 whisper.
+// Between them there is no way to have neither.
+func edgeHolds(t *testing.T, label string, c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) float64 {
+	t.Helper()
+	below := c.SurfaceAt(level)
+	fill := Fill(c, level, state)
+	rim, rimmed := Rim(c, level, state)
+	if !rimmed {
+		got := vgcolor.ContrastRatio(fill, below)
+		if got < tokens.GraphicFloor {
+			t.Errorf("%s: no rim and the fill %s only reaches %.2f:1 against the ground %s, want at least %.1f:1",
+				label, hex(fill), got, hex(below), tokens.GraphicFloor)
+		}
+		return got
+	}
+	worst := vgcolor.ContrastRatio(rim, below)
+	if worst < tokens.GraphicFloor {
+		t.Errorf("%s: rim %s against the ground %s = %.2f:1, want at least %.1f:1",
+			label, hex(rim), hex(below), worst, tokens.GraphicFloor)
+	}
+	if got := vgcolor.ContrastRatio(rim, fill); got < tokens.GraphicFloor {
+		t.Errorf("%s: rim %s against its own fill %s = %.2f:1, want at least %.1f:1",
+			label, hex(rim), hex(fill), got, tokens.GraphicFloor)
+	} else if got < worst {
+		worst = got
+	}
+	return worst
+}
+
+// TestEdgeHoldsOnEveryStoreyAndState measures the edge that is the whole
+// reason the chip is visible in the light scheme, on both of its sides, on
+// every storey and in every state the fill walks through.
+func TestEdgeHoldsOnEveryStoreyAndState(t *testing.T) {
+	for _, sc := range []struct {
+		name   string
+		colors tokens.ColorTokens
+	}{
+		{"light", tokens.DefaultLight},
+		{"dark", tokens.DefaultDark},
+	} {
+		t.Run(sc.name, func(t *testing.T) {
+			c := sc.colors
+			for _, storey := range chipStoreys {
+				for _, st := range chipStates {
+					name := storey.name + " " + st.name
+					got := edgeHolds(t, name, c, storey.level, st.state)
+					if rim, rimmed := Rim(c, storey.level, st.state); rimmed {
+						t.Logf("%s: rim %s on %s over %s, worst side %.2f:1", name, hex(rim),
+							hex(Fill(c, storey.level, st.state)), hex(c.SurfaceAt(storey.level)), got)
+					} else {
+						t.Logf("%s: no rim — the fill %s carries its own edge over %s at %.2f:1", name,
+							hex(Fill(c, storey.level, st.state)), hex(c.SurfaceAt(storey.level)), got)
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestInksClearTheirFloors measures the label and the glyph against the fill
+// they are drawn on, in every state and on every storey. The label owes WCAG
+// 1.4.3's 4.5:1 because it is words; the glyph owes 1.4.11's 3:1 because it is
+// a mark. Both are resolved by [Ink] against the fill actually drawn, so this
+// is the derivation reporting on itself — what it is really gating is that the
+// Text pin is not handed back when it has stopped reading.
+func TestInksClearTheirFloors(t *testing.T) {
+	for _, sc := range []struct {
+		name   string
+		colors tokens.ColorTokens
+	}{
+		{"light", tokens.DefaultLight},
+		{"dark", tokens.DefaultDark},
+	} {
+		t.Run(sc.name, func(t *testing.T) {
+			c := sc.colors
+			for _, storey := range chipStoreys {
+				for _, st := range chipStates {
+					fill := Fill(c, storey.level, st.state)
+					for _, ink := range []struct {
+						name  string
+						col   color.NRGBA
+						floor float64
+					}{
+						{"label", Ink(c, fill, tokens.TextFloor), tokens.TextFloor},
+						{"glyph", Ink(c, fill, tokens.GraphicFloor), tokens.GraphicFloor},
+					} {
+						got := vgcolor.ContrastRatio(ink.col, fill)
+						t.Logf("%s %s %s %s on the fill %s: %.2f:1",
+							storey.name, st.name, ink.name, hex(ink.col), hex(fill), got)
+						if got < ink.floor {
+							t.Errorf("%s %s %s %s on the fill %s = %.2f:1, want at least %.1f:1",
+								storey.name, st.name, ink.name, hex(ink.col), hex(fill), got, ink.floor)
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestChipPairingsHoldForEverySeed walks all three pairings over the seed
+// spread and both contrast variants. The ramps carry the seed's tint, so the
+// measurements move a little from seed to seed; what may not move is the
+// verdict.
+func TestChipPairingsHoldForEverySeed(t *testing.T) {
+	worstRim, worstLabel, worstGlyph := 99.0, 99.0, 99.0
+	for _, seed := range chipSeeds {
+		light, dark := tokens.FromSeed(seed)
+		lightHC, darkHC := tokens.FromSeedHighContrast(seed)
+		for _, sc := range []struct {
+			name   string
+			colors tokens.ColorTokens
+		}{
+			{"light", light},
+			{"dark", dark},
+			{"light high-contrast", lightHC},
+			{"dark high-contrast", darkHC},
+		} {
+			c := sc.colors
+			for _, storey := range chipStoreys {
+				for _, st := range chipStates {
+					fill := Fill(c, storey.level, st.state)
+					if got := edgeHolds(t, "seed "+hex(seed)+" "+sc.name+" "+storey.name+" "+st.name,
+						c, storey.level, st.state); got < worstRim {
+						worstRim = got
+					}
+					labelInk := Ink(c, fill, tokens.TextFloor)
+					if got := vgcolor.ContrastRatio(labelInk, fill); got < worstLabel {
+						worstLabel = got
+						if got < tokens.TextFloor {
+							t.Errorf("seed %s %s: %s %s label %s on its fill = %.2f:1, want at least %.1f:1",
+								hex(seed), sc.name, storey.name, st.name, hex(labelInk), got, tokens.TextFloor)
+						}
+					}
+					glyphInk := Ink(c, fill, tokens.GraphicFloor)
+					if got := vgcolor.ContrastRatio(glyphInk, fill); got < worstGlyph {
+						worstGlyph = got
+						if got < tokens.GraphicFloor {
+							t.Errorf("seed %s %s: %s %s glyph %s on its fill = %.2f:1, want at least %.1f:1",
+								hex(seed), sc.name, storey.name, st.name, hex(glyphInk), got, tokens.GraphicFloor)
+						}
+					}
+				}
+			}
+		}
+	}
+	t.Logf("worst over the sweep: edge %.2f:1, label %.2f:1, glyph %.2f:1", worstRim, worstLabel, worstGlyph)
+}
+
+// TestFocusRingClearsItsFloor measures the ring against the one ground it has.
+// The band is held clear of the chip's boundary, so it lies wholly on the
+// chip's own fill with that fill on both sides of it — which is why the ring
+// is derived against the fill in the state it is drawn in and not against the
+// storey the chip stands on. A ring derived against the storey measured 1.01:1
+// on a pressed chip in the dark scheme, where the fill has walked most of the
+// way to the ramp's light end and the storey has not moved at all.
+func TestFocusRingClearsItsFloor(t *testing.T) {
+	worst := 99.0
+	for _, seed := range chipSeeds {
+		light, dark := tokens.FromSeed(seed)
+		lightHC, darkHC := tokens.FromSeedHighContrast(seed)
+		for _, c := range []tokens.ColorTokens{light, dark, lightHC, darkHC} {
+			for _, storey := range chipStoreys {
+				for _, st := range chipStates {
+					fill := Fill(c, storey.level, st.state)
+					ring := focus.Ring(c, fill)
+					if got := vgcolor.ContrastRatio(ring, fill); got < worst {
+						worst = got
+						if got < focusFloor {
+							t.Errorf("seed %s: %s %s focus ring %s on the fill %s = %.2f:1, want at least %.1f:1",
+								hex(seed), storey.name, st.name, hex(ring), hex(fill), got, focusFloor)
+						}
+					}
+				}
+			}
+		}
+	}
+	t.Logf("worst focus-ring pairing over the sweep: %.2f:1", worst)
+}
