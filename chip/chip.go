@@ -6,18 +6,25 @@ import (
 
 	"gioui.org/font"
 	"gioui.org/io/pointer"
+	"gioui.org/io/semantic"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
+	"gioui.org/widget"
+
+	"github.com/reactivego/rx"
 
 	vglayout "github.com/vibrantgio/components/layout"
+	"github.com/vibrantgio/mvu"
 	vgcolor "github.com/vibrantgio/theme/color"
+	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
 
 	"github.com/vibrantgio/components/internal/focus"
+	"github.com/vibrantgio/components/internal/hit"
 )
 
 // edgeDp is the rim's width — one hair at every density, the width every
@@ -135,6 +142,172 @@ func Ink(c tokens.ColorTokens, fill color.NRGBA, floor float64) color.NRGBA {
 		return c.Text
 	}
 	return c.MarkOn(tokens.RoleNeutral, fill, floor)
+}
+
+// Props configures a [Chip] instance: what the pill says, what it stands on,
+// and how an activation is delivered.
+//
+// There is no emphasis field and there will not be one. A chip has one weight
+// by construction — see the package doc — and selection rides
+// components/button's register instead. There is no Disabled field either: a
+// chip that cannot be clicked is a badge, which is a different face and takes
+// [RenderBadge].
+type Props struct {
+	// Label is the text the pill carries.
+	Label string
+
+	// Icon is the mark drawn after the label, in the label's own line box. A
+	// nil Icon draws no mark and the chip is label-only. It is named Icon
+	// rather than Glyph to match components/button's Props, so a caller
+	// moving between the two components writes the same field name.
+	Icon Glyph
+
+	// Description is the screen-reader label. Falls back to Label when empty.
+	Description string
+
+	// Ground is the elevation storey of the surface hosting the chip, copied
+	// straight into [RenderState.Ground] on every frame: the chip fills one
+	// rung above it and derives its rim, its inks and its focus ring from the
+	// pair. A dialog at tokens.Level2 passes Level2. The zero value is
+	// tokens.Level0, the window ground. See [RenderState.Ground].
+	Ground tokens.ElevationLevel
+
+	// Clickable, if non-nil, is used instead of an internally-allocated one.
+	// The caller then owns &Clickable as the chip's focus tag — usable with
+	// key.FocusCmd, key.Filter{Focus: …} and an external Tab cycle — and may
+	// detect activation via Clickable.Clicked(gtx). This is what lets a
+	// container that drives focus itself — a popover anchored on the chip —
+	// avoid a doubled focus ring. When nil the chip allocates and owns its
+	// own clickable, which survives every theme emission.
+	Clickable *widget.Clickable
+
+	// OnClick is called when the chip is activated by click or Space/Enter.
+	// The gtx argument is the layout.Context active on the frame the
+	// activation is processed in, so a consumer may emit
+	// mvu.MessageOp{Message: …}.Add(gtx.Ops) from inside it.
+	OnClick func(gtx layout.Context)
+
+	// Message, if non-nil, is emitted as mvu.MessageOp into gtx.Ops on
+	// activation — the MVU path, where OnClick is the FRP one. Both fire when
+	// both are set, and they fire from the one place the activation is
+	// noticed: the chip polls its clickable once per frame, so a click and a
+	// Space both arrive through the same branch and neither can dispatch
+	// twice.
+	Message any
+
+	// Shaper is an explicit per-instance override of the text shaper. Leave
+	// it nil in normal use: the chip then shapes with the theme's shaper
+	// (tokens.Typography.Shaper()), built once for the process and shared by
+	// every component reading that typography. Set it only when this chip
+	// must shape with a different one — a golden test pinning its faces.
+	Shaper *text.Shaper
+}
+
+// resolvedTokens is the concrete per-emission snapshot the widget closure
+// draws from: the whole theme flattened to the values one frame needs.
+type resolvedTokens struct {
+	color   tokens.ColorTokens
+	label   tokens.TextStyle // the LabelLarge role
+	spacing tokens.SpacingScale
+	radius  tokens.RadiusScale
+	density tokens.Density
+	shaper  *text.Shaper
+}
+
+// Chip returns an rx.Observable[layout.Widget] emitting a new widget whenever
+// the theme changes. It is the live face of [Render]: the same pill, drawn
+// from the theme rather than from tokens handed in, with the three things the
+// pure path cannot carry — the pointer area, the keyboard, and the dispatch.
+//
+// The pointer target is extended to the density's [tokens.Density.MinHitTarget]
+// (44 dp, WCAG 2.5.5) on both axes, centred on the drawn pill, exactly as
+// components/button extends its own: the chip draws at the density's control
+// height and what the pointer may land on does not shrink with it. The widget
+// still reports the pill's size, so a row of chips is laid out at the pill's
+// scale and the slop overhangs the air around it.
+//
+// Keyboard activation is gioui.org/widget.Clickable's: the chip is focusable,
+// Space and Enter activate it, and gtx.Focused drives [RenderState.Focused] —
+// so a focused chip wears the ring the package doc describes, derived against
+// its own storey. Both integration paths are supported and both are read off
+// the one poll of the clickable:
+//   - FRP: set Props.OnClick.
+//   - MVU: set Props.Message; the chip emits mvu.MessageOp on activation.
+//
+// Widget state — hover, press, focus — lives in the rx.Defer scope and
+// survives every theme emission for the life of the subscription.
+func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widget] {
+	// Flatten the nested theme observables into one concrete snapshot. The
+	// typography emission carries both the LabelLarge role the chip is set in
+	// and the theme's cached shaper (ADR-003: the theme owns the typeface).
+	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
+		return rx.Map(
+			rx.CombineLatest5(t.Color, t.Typography, t.Spacing, t.Radius, t.Density),
+			func(n rx.Tuple5[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
+				typ := n.Second
+				return resolvedTokens{
+					color:   n.First,
+					label:   typ.LabelLarge,
+					spacing: n.Third,
+					radius:  n.Fourth,
+					density: n.Fifth,
+					shaper:  typ.Shaper(),
+				}
+			},
+		)
+	})
+
+	return rx.Defer(func() rx.Observable[layout.Widget] {
+		// Allocated once per subscription, so hover, press and focus survive
+		// every theme emission. Used only when the caller supplies none.
+		var ownClick widget.Clickable
+
+		return rx.Map(resolved, func(tok resolvedTokens) layout.Widget {
+			shaper := props.Shaper
+			if shaper == nil {
+				shaper = tok.shaper
+			}
+			desc := props.Description
+			if desc == "" {
+				desc = props.Label
+			}
+
+			return func(gtx layout.Context) layout.Dimensions {
+				click := props.Clickable
+				if click == nil {
+					click = &ownClick
+				}
+
+				// One poll, one dispatch: Clicked reports a pointer click and
+				// a Space or Enter alike, so both paths leave from here.
+				if click.Clicked(gtx) {
+					if props.OnClick != nil {
+						props.OnClick(gtx)
+					}
+					if props.Message != nil {
+						mvu.MessageOp{Message: props.Message}.Add(gtx.Ops)
+					}
+				}
+
+				s := RenderState{
+					Ground:  props.Ground,
+					Hovered: click.Hovered(),
+					Pressed: click.Pressed(),
+					Focused: gtx.Focused(click),
+				}
+
+				return hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), click.Layout,
+					func(gtx layout.Context) layout.Dimensions {
+						semantic.ClassOp(semantic.Button).Add(gtx.Ops)
+						semantic.LabelOp(props.Label).Add(gtx.Ops)
+						semantic.DescriptionOp(desc).Add(gtx.Ops)
+						semantic.EnabledOp(true).Add(gtx.Ops)
+						return draw(gtx, shaper, props.Label, props.Icon, tok.color,
+							tok.spacing, tok.radius, tok.label, tok.density, s, true)
+					})
+			}
+		})
+	})
 }
 
 // Render produces a layout.Widget drawing the interactive chip face in an
@@ -259,16 +432,9 @@ func draw(
 	// Sized to content, not to the width it was given: a chip is a summary of
 	// something, and a summary that stretches is a banner.
 	w := labelDims.Size.X + gap + mark + 2*padH
-	h := labelDims.Size.Y + 2*padV
-	if h < minH {
-		h = minH
-	}
-	if w > gtx.Constraints.Max.X {
-		w = gtx.Constraints.Max.X
-	}
-	if h > gtx.Constraints.Max.Y {
-		h = gtx.Constraints.Max.Y
-	}
+	h := max(labelDims.Size.Y+2*padV, minH)
+	w = min(w, gtx.Constraints.Max.X)
+	h = min(h, gtx.Constraints.Max.Y)
 	size := image.Pt(w, h)
 	box := image.Rectangle{Max: size}
 
@@ -311,10 +477,7 @@ func draw(
 	// Label and mark on one centred row: the label leads, the mark follows it
 	// across the S2 gap, and the pair is centred in what the padding leaves.
 	content := labelDims.Size.X + gap + mark
-	offX := (w - content) / 2
-	if offX < padH {
-		offX = padH
-	}
+	offX := max((w-content)/2, padH)
 	lo := op.Offset(image.Pt(offX, (h-labelDims.Size.Y)/2)).Push(gtx.Ops)
 	labelCall.Add(gtx.Ops)
 	lo.Pop()

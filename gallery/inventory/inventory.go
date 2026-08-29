@@ -44,6 +44,7 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 
 	"github.com/vibrantgio/components/button"
+	"github.com/vibrantgio/components/chip"
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
 )
 
@@ -396,6 +397,8 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.buttonRow(c)},
 		{Name: "components-button-pinned", Title: "Button — the register's own fill, and one pinned from outside the palette", Height: 36,
 			Body: inv.pinnedButtonRow(c)},
+		{Name: "components-chip", Title: "Chip — the clickable face and the badge, on three storeys", Height: chipBlockH,
+			Body: inv.chipBlock(c)},
 		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 60,
 			Body: inv.textFieldRow(c)},
 		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 56,
@@ -487,6 +490,130 @@ func (inv *Inventory) pinnedButtonRow(c tokens.ColorTokens) layout.Widget {
 		{"Filled", button.RenderState{}},
 		{"Pinned", button.RenderState{Fill: PinnedFill, OnFill: PinnedInk}},
 	})
+}
+
+// The chip section's measurements. The pill is the density's control height,
+// and the storey it stands on has to show all round it — a chip captured flush
+// with the edge of its ground is a chip nobody can judge the rim of, which is
+// the one thing the light scheme has to carry the pill with. So each storey is
+// drawn as a panel with the chips inset inside it, and the section is exactly
+// three of those plus the air between them.
+const (
+	chipPanelPadX unit.Dp = 16
+	chipPanelPadY unit.Dp = 12
+	chipRowGap    unit.Dp = 16
+	chipChipGap   unit.Dp = 12
+	chipCaptionW  unit.Dp = 108
+)
+
+// The section's own height, derived from the pill rather than chosen: the
+// density says how tall a control is, and a slot written as a number would
+// have to be re-guessed the day that changed.
+var (
+	chipPanelH = unit.Dp(tokens.Comfortable.ControlHeight) + 2*chipPanelPadY
+	chipBlockH = 3*chipPanelH + 2*chipRowGap
+)
+
+// chipStoreys are the grounds the section shows the chip on, in the order the
+// ladder stacks them: the paper a page is written on, a card raised over it,
+// and a dialog floating above that. Three rather than one because the chip's
+// whole colour model is relative — every colour it draws is derived from the
+// storey it was handed — so a specimen on one ground says nothing about what
+// the component does on another.
+var chipStoreys = []struct {
+	name   string
+	ground tokens.ElevationLevel
+}{
+	{"On the paper", tokens.Level0},
+	{"On a card", tokens.Level1},
+	{"In a dialog", tokens.Level2},
+}
+
+// chipBlock draws both faces of the chip on each of the three storeys: the
+// clickable pill in the states the pointer puts it in, and the badge — the
+// same geometry with no state walk, no ring and no cursor — closing each row.
+//
+// The badge carries no mark. The two faces share a geometry on purpose and
+// must not share a disclosure chevron: a mark that promises a menu on the face
+// that opens none is the one way to make the pair genuinely confusable.
+func (inv *Inventory) chipBlock(c tokens.ColorTokens) layout.Widget {
+	mark := chip.Glyph(inv.marks.Mark(icons.Disclosure))
+	states := []struct {
+		label string
+		st    chip.RenderState
+	}{
+		{"Rest", chip.RenderState{}},
+		{"Hover", chip.RenderState{Hovered: true}},
+		{"Press", chip.RenderState{Pressed: true}},
+		{"Focus", chip.RenderState{Focused: true}},
+	}
+	row := func(storey struct {
+		name   string
+		ground tokens.ElevationLevel
+	}) layout.Widget {
+		cs := make([]layout.FlexChild, 0, 2*len(states)+2)
+		for _, s := range states {
+			s := s
+			if len(cs) > 0 {
+				cs = append(cs, layout.Rigid(complayout.HSpacer(float32(chipChipGap))))
+			}
+			st := s.st
+			st.Ground = storey.ground
+			cs = append(cs, layout.Rigid(chip.Render(inv.shaper, s.label, mark, c,
+				tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
+				tokens.Comfortable, st)))
+		}
+		cs = append(cs,
+			layout.Rigid(complayout.HSpacer(24)),
+			layout.Rigid(chip.RenderBadge(inv.shaper, "Badge", nil, c,
+				tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
+				tokens.Comfortable, storey.ground)),
+		)
+		// The caption stands INSIDE the band rather than beside it. A label
+		// naming a ground while sitting on a different one is a label about
+		// the row and not about the surface — a reviewer handed the section
+		// read the three storeys as one loose row plus two table stripes for
+		// exactly that reason.
+		band := func(gtx layout.Context) layout.Dimensions {
+			return complayout.InsetXY(float32(chipPanelPadX), float32(chipPanelPadY)).Layout(gtx,
+				func(gtx layout.Context) layout.Dimensions {
+					row := append([]layout.FlexChild{
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							gtx.Constraints.Min.X = gtx.Dp(chipCaptionW)
+							gtx.Constraints.Max.X = gtx.Dp(chipCaptionW)
+							return LabelAt(gtx, inv.shaper, storey.name, c.Ramps.Neutral.Step(600), 11, font.Font{})
+						}),
+					}, cs...)
+					return layout.Flex{Alignment: layout.Middle}.Layout(gtx, row...)
+				})
+		}
+		return storeyPanel(c.SurfaceAt(storey.ground), band)
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		cs := make([]layout.FlexChild, 0, 2*len(chipStoreys))
+		for i, storey := range chipStoreys {
+			if i > 0 {
+				cs = append(cs, layout.Rigid(complayout.VSpacer(float32(chipRowGap))))
+			}
+			cs = append(cs, layout.Rigid(row(storey)))
+		}
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
+	}
+}
+
+// storeyPanel draws content over a ground of its own, sized to what the
+// content measured. The fill is painted after the content is recorded and
+// replayed over it, because the panel's size is the content's and there is no
+// way to know it before laying the content out.
+func storeyPanel(fill color.NRGBA, content layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		m := op.Record(gtx.Ops)
+		dims := content(gtx)
+		call := m.Stop()
+		paint.FillShape(gtx.Ops, fill, clip.Rect{Max: dims.Size}.Op())
+		call.Add(gtx.Ops)
+		return dims
+	}
 }
 
 func (inv *Inventory) textFieldRow(c tokens.ColorTokens) layout.Widget {

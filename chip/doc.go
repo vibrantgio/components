@@ -8,8 +8,13 @@
 // pointer cursor. [RenderBadge] draws the BADGE, the same face held still —
 // for a mark that keeps a fill but takes no input, with no state walk, no
 // focus ring and no cursor. Both are the pure path: resolved tokens plus an
-// explicit state in, one frame out, no event handling. The observable path
-// is a separate entry point.
+// explicit state in, one frame out, no event handling.
+//
+// [Chip] is the live face of the first of them: a theme observable and [Props]
+// in, a widget out on every theme emission, with the pointer area, the
+// keyboard and the activation dispatch the pure path cannot carry. The badge
+// has no live twin, because a face that takes no input has no state to keep —
+// [RenderBadge] and a ground is the whole of it.
 //
 // # What the chip is not
 //
@@ -158,7 +163,10 @@
 // its pointer 44 dp on each axis ([tokens.MinHitTarget], WCAG 2.5.5). The pure
 // path draws and does not register pointer areas, so the extension belongs to
 // the live path, exactly as it does for components/button: [Render] reports the
-// pill's own size and the caller that wires input extends it.
+// pill's own size and the caller that wires input extends it. [Chip] is that
+// caller — it spends the difference as slop centred on the pill, so the row
+// the chip stands in is laid out at the pill's size and the target overhangs
+// the air around it.
 //
 // Shaper is not optional. Pass the theme's — tokens.Typography.Shaper() — or,
 // in a golden test, its DeterministicShaper.

@@ -25,6 +25,7 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/button"
+	"github.com/vibrantgio/components/chip"
 	"github.com/vibrantgio/components/gallery/inventory"
 	"github.com/vibrantgio/components/initial"
 	"github.com/vibrantgio/components/input"
@@ -38,6 +39,7 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 
 	"github.com/vibrantgio/components/icon"
+	"github.com/vibrantgio/components/icons"
 	"github.com/vibrantgio/effects/springbutton"
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
 )
@@ -47,13 +49,14 @@ import (
 // are for close-up work on one widget at a time.
 var pageNames = []string{
 	"Everything",
-	"Button", "Inputs", "List", "Richtext", "Icon", "Layout", "A11y", "Initial", "Stream",
+	"Button", "Chip", "Inputs", "List", "Richtext", "Icon", "Layout", "A11y", "Initial", "Stream",
 	"Patterns", "Markdown",
 }
 
 const (
 	pageEverything int = iota
 	pageButton
+	pageChip
 	pageInputs
 	pageList
 	pageRichtext
@@ -97,6 +100,10 @@ type gallery struct {
 	rbALive       layout.Widget
 	rbBLive       layout.Widget
 	ddLive        layout.Widget
+
+	// Chip page: one live chip per storey, each on its own ground.
+	chipLive   []layout.Widget
+	chipClicks []int
 
 	// Button page
 	btnClicks        int
@@ -217,6 +224,25 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 	}, springbutton.Options{}).First()
 	if err != nil {
 		log.Printf("springbutton: %v", err)
+	}
+
+	// One live chip per storey. Each is a real component with its own
+	// clickable, so the page answers the pointer and the Tab key rather than
+	// showing a drawing of a chip that does.
+	g.chipLive = make([]layout.Widget, len(chipStoreys))
+	g.chipClicks = make([]int, len(chipStoreys))
+	for i, storey := range chipStoreys {
+		i, storey := i, storey
+		g.chipLive[i], err = chip.Chip(th, chip.Props{
+			Label:       storey.label,
+			Icon:        chip.Glyph(icons.Mark(icons.Disclosure)),
+			Description: storey.desc,
+			Ground:      storey.ground,
+			OnClick:     func(_ layout.Context) { g.chipClicks[i]++; w.Invalidate() },
+		}).First()
+		if err != nil {
+			log.Printf("chip %s: %v", storey.label, err)
+		}
 	}
 
 	g.tfLive, err = input.TextField(th, input.TextFieldProps{
@@ -397,6 +423,8 @@ func (g *gallery) content(gtx layout.Context) layout.Dimensions {
 		return g.pageMarkdown(gtx)
 	case pageButton:
 		return g.pageButton(gtx)
+	case pageChip:
+		return g.pageChip(gtx)
 	case pageInputs:
 		return g.pageInputs(gtx)
 	case pageList:
@@ -534,6 +562,96 @@ func (g *gallery) buttonVariantRows() []layout.FlexChild {
 		})
 	}
 	return cs
+}
+
+// ── Chip page ─────────────────────────────────────────────────────────────────
+
+// chipStoreys are the grounds the chip page puts a live chip on: the paper, a
+// card raised over it, and a dialog floating above that. The chip derives
+// every colour it draws from the storey it was handed — fill, rim, inks and
+// ring alike — so one specimen on one ground demonstrates nothing about the
+// component. Three do.
+// The label on each is a summary rather than a verb, which is the whole of
+// what separates a chip from a button: what a pane is showing, what a list is
+// filtered by, which model a conversation is on.
+var chipStoreys = []struct {
+	label  string
+	desc   string
+	ground tokens.ElevationLevel
+	title  string
+}{
+	{"Claude Opus 5", "Choose a model", tokens.Level0, "Level 0 — the content ground"},
+	{"main", "Switch branch", tokens.Level1, "Level 1 — a raised inset"},
+	{"3 filters", "Edit filters", tokens.Level2, "Level 2 — floating"},
+}
+
+func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
+	if len(g.chipLive) != len(chipStoreys) {
+		// The live widgets are built against a window; a gallery assembled
+		// without one draws nothing here rather than indexing past its state.
+		return layout.Dimensions{}
+	}
+	return g.scrollPage(gtx, g.scrollSt[pageChip], func(gtx layout.Context) layout.Dimensions {
+		c := tokens.DefaultLight
+		cs := []layout.FlexChild{g.sectionHeader("Chip — live, on each storey (click it, or Tab to it and press Space)")}
+		for i, storey := range chipStoreys {
+			i, storey := i, storey
+			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return complayout.InsetXY(24, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							gtx.Constraints.Min.X = gtx.Dp(unit.Dp(180))
+							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(180))
+							return g.label(gtx, storey.title, c.Ramps.Neutral.Step(600), unit.Sp(12), font.Font{})
+						}),
+						layout.Rigid(g.storeyPanel(c.SurfaceAt(storey.ground), func(gtx layout.Context) layout.Dimensions {
+							return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+								return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
+									layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+										if g.chipLive[i] == nil {
+											return layout.Dimensions{}
+										}
+										return g.chipLive[i](gtx)
+									}),
+									layout.Rigid(complayout.HSpacer(24)),
+									layout.Rigid(chip.RenderBadge(g.shaper, "Badge", nil, c,
+										tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
+										tokens.Comfortable, storey.ground)),
+								)
+							})
+						})),
+						layout.Rigid(complayout.HSpacer(24)),
+						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+							return g.label(gtx, fmt.Sprintf("Clicks: %d", g.chipClicks[i]),
+								c.Text, unit.Sp(14), font.Font{})
+						}),
+					)
+				})
+			}))
+		}
+		cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return complayout.InsetXY(24, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return g.label(gtx,
+					"The clickable face walks its fill under the pointer and wears the focus ring in place of its rim; the badge beside it is the same pill held still.",
+					c.Ramps.Neutral.Step(600), unit.Sp(13), font.Font{})
+			})
+		}))
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
+	})
+}
+
+// storeyPanel draws content over a ground of its own, sized to what the
+// content measured — the fill goes down after the content is recorded,
+// because the panel's size is the content's and nothing knows it sooner.
+func (g *gallery) storeyPanel(fill color.NRGBA, content layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		m := op.Record(gtx.Ops)
+		dims := content(gtx)
+		call := m.Stop()
+		paint.FillShape(gtx.Ops, fill, clip.Rect{Max: dims.Size}.Op())
+		call.Add(gtx.Ops)
+		return dims
+	}
 }
 
 // ── Inputs page ───────────────────────────────────────────────────────────────

@@ -1,1 +1,6 @@
 gallery/gallery
+
+# Golden-image failure artifacts: written by a failing test, never a stored
+# comparison. Four of them were committed by accident and outlived the
+# failures they recorded.
+*.actual.png
