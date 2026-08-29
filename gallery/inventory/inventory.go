@@ -253,7 +253,6 @@ func (inv *Inventory) roleSwatches(c tokens.ColorTokens) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(sw))
 		for i, s := range sw {
-			s := s
 			if i > 0 {
 				cs = append(cs, layout.Rigid(complayout.HSpacer(8)))
 			}
@@ -296,7 +295,6 @@ func (inv *Inventory) rampSwatches(c tokens.ColorTokens) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(ramps))
 		for i, r := range ramps {
-			r := r
 			if i > 0 {
 				cs = append(cs, layout.Rigid(complayout.VSpacer(6)))
 			}
@@ -359,7 +357,6 @@ func (inv *Inventory) typeScale(c tokens.ColorTokens) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, len(roles))
 		for _, r := range roles {
-			r := r
 			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Alignment: layout.Baseline}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -450,7 +447,6 @@ func (inv *Inventory) buttonCells(c tokens.ColorTokens, cells []buttonCell) layo
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(cells))
 		for i, s := range cells {
-			s := s
 			if i > 0 {
 				cs = append(cs, layout.Rigid(complayout.HSpacer(float32(ButtonCellGap))))
 			}
@@ -553,7 +549,6 @@ func (inv *Inventory) chipBlock(c tokens.ColorTokens) layout.Widget {
 	}) layout.Widget {
 		cs := make([]layout.FlexChild, 0, 2*len(states)+2)
 		for _, s := range states {
-			s := s
 			if len(cs) > 0 {
 				cs = append(cs, layout.Rigid(complayout.HSpacer(float32(chipChipGap))))
 			}
@@ -628,7 +623,6 @@ func (inv *Inventory) textFieldRow(c tokens.ColorTokens) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(states))
 		for i, s := range states {
-			s := s
 			if i > 0 {
 				cs = append(cs, layout.Rigid(complayout.HSpacer(16)))
 			}
@@ -666,7 +660,6 @@ func (inv *Inventory) toggleRow(c tokens.ColorTokens) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(cells))
 		for i, cell := range cells {
-			cell := cell
 			if i > 0 {
 				cs = append(cs, layout.Rigid(complayout.HSpacer(16)))
 			}
@@ -700,7 +693,6 @@ func (inv *Inventory) dropdownRow(c tokens.ColorTokens) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(states))
 		for i, s := range states {
-			s := s
 			if i > 0 {
 				cs = append(cs, layout.Rigid(complayout.HSpacer(16)))
 			}
@@ -877,7 +869,6 @@ func (inv *Inventory) iconBlock(c tokens.ColorTokens) layout.Widget {
 		}
 		cs := []layout.FlexChild{cell("vector icon", inv.vectorIcon(c.Text))}
 		for _, m := range marks {
-			m := m
 			cs = append(cs, cell(m.name, func(gtx layout.Context) layout.Dimensions {
 				size := gtx.Dp(20)
 				off := op.Offset(image.Pt(0, gtx.Dp(10))).Push(gtx.Ops)
