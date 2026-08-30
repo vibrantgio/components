@@ -78,6 +78,34 @@ func (inv *Inventory) GroupItems(c tokens.ColorTokens, grp Group) []layout.Widge
 	return items
 }
 
+// TabItems returns one named group as the rows of a surface that shows that
+// group and nothing else: the group's sections, a header and a bounded body
+// each, with the closing line under the last of them — and without the banner
+// [GroupItems] leads with.
+//
+// The banner is dropped because such a surface is already labelled. The
+// inventory bands its groups because in the whole column they run one after
+// another and a reader has to be told where one module's families end; where
+// a whole viewport is one group, the label that was clicked to reach it has
+// said the word already, and a full-width band repeating it directly beneath
+// says nothing new.
+//
+// The group is looked up by name rather than by index, so a group reordered
+// upstream still lands where it is named. A name no group carries returns
+// nil: that is a wiring fault, not an empty catalogue, and it is meant to be
+// caught by a caller's test rather than smoothed over — a surface quietly
+// showing a blank column is exactly what a fallback would hide.
+func (inv *Inventory) TabItems(c tokens.ColorTokens, group string) []layout.Widget {
+	for _, grp := range inv.Groups(c) {
+		if grp.Name != group {
+			continue
+		}
+		rows := inv.GroupItems(c, grp)
+		return append(rows[1:], inv.PageEnd(c, len(grp.Sections)))
+	}
+	return nil
+}
+
 // PageEnd closes the column. A column this tall that simply stops reads as a
 // render that gave out; a line saying how much of the surface has just gone
 // past says it ended on purpose.

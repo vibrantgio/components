@@ -378,3 +378,30 @@ const (
 	// fill stops being mistakable for the ground and not at the mark's.
 	schemeTrackFloor = 1.3
 )
+
+// TestTabItemsDropTheBanner is the whole point of the tab cut: a surface
+// showing one group carries no banner repeating the name that was clicked to
+// reach it. GroupItems leads with that banner, so the cut is its rows less
+// one, plus the closing line.
+func TestTabItemsDropTheBanner(t *testing.T) {
+	inv := testInventory(t)
+	c := tokens.DefaultLight
+	for _, grp := range inv.Groups(c) {
+		want := 2 * len(grp.Sections) // heading + body per section
+		got := len(inv.TabItems(c, grp.Name)) - 1
+		if got != want {
+			t.Errorf("the %s cut lays out %d rows before its closing line, want %d — the group banner is still in",
+				grp.Name, got, want)
+		}
+	}
+}
+
+// TestTabItemsAreNilForAnUnknownGroup pins the wiring guard: a name no group
+// carries is a fault a caller's test must be able to see, not a blank column
+// on screen.
+func TestTabItemsAreNilForAnUnknownGroup(t *testing.T) {
+	inv := testInventory(t)
+	if rows := inv.TabItems(tokens.DefaultLight, "Nothing Named This"); rows != nil {
+		t.Errorf("an unknown group name returned %d rows, want nil", len(rows))
+	}
+}
