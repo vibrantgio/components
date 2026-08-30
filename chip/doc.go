@@ -54,7 +54,7 @@
 //	ring   focus.Ring against the fill the band lies on
 //
 // The fill is relative to the ground the caller names and never an absolute
-// step, which is what ADR-022 prescribes for anything raised: a chip on the
+// step, as everything raised must be: a chip on the
 // paper, the same chip inside a dialog and one on the furniture floor each
 // stand the same distance over what they lie on. Hover and press are that
 // fill's own state walk — tokens.ColorTokens.PinnedStateColor, the walk
@@ -81,8 +81,8 @@
 // +2.65 over the band they are drawn on. Four times the platform's step, in
 // the one role the platform draws as a near-hairline outline rather than a
 // filled block. The reading, from the stored macOS reference
-// (reference/macos/mail-window.png in the org's .github repository, indexed by
-// ADR-019; window-bounded capture, macOS 26.5.2, dark appearance):
+// (reference/macos/mail-window.png in the org's .github repository;
+// window-bounded capture, macOS 26.5.2, dark appearance):
 //
 //	Mail's unified toolbar band          #232A2E   L* 16.555   luminance 40.80
 //	its pop-up capsules on that band     #242D32   L* 17.837   luminance 43.45
@@ -93,8 +93,8 @@
 // luminance, the platform's whisper rather than the block.
 //
 // THE LIGHT STEP IS 0.70 L\*, AND IT IS DERIVED — the gap is real and is
-// recorded here rather than papered over. ADR-019's whole sweep was taken in
-// the DARK appearance; there is no light-appearance capture in
+// recorded here rather than papered over. The stored reference sweep was taken
+// in the DARK appearance; there is no light-appearance capture in
 // reference/macos to measure a light toolbar capsule off, so this half cannot
 // be obtained the way the dark half was. What it takes instead is the number
 // the light scheme already spends on its first storey over the paper: 0.70
@@ -113,7 +113,8 @@
 // half says plainly which of the two it is: the dark number is a
 // measurement, the light number is a derivation awaiting one. A light-
 // appearance capture of a macOS toolbar's pop-up capsules would close it, and
-// should be added to ADR-019 rather than measured privately.
+// belongs in the stored reference (reference/macos) rather than in a private
+// measurement.
 //
 // The rim is why the chip is legible at all in the light scheme. There the
 // ladder has almost no headroom above its paper, so the storey step is a
@@ -164,10 +165,9 @@
 // and the storey has not.
 //
 // A focused chip's edge IS the ring: it takes the rim's place, two dp where the
-// rim was one, rather than being drawn inside it. Drawn inside, the two made a
-// three-line sandwich — hairline, one pixel of fill, then the ring — which a
-// reviewer handed the rendering called a dirty grey halo around a purple
-// outline before naming anything else. It is the same reason components/button
+// rim was one, rather than being drawn inside it. Drawn inside, the two make a
+// three-line sandwich — hairline, one pixel of fill, then the ring — that reads
+// as a smeared halo rather than an edge. It is the same reason components/button
 // holds its ring clear of its own boundary: a band beside a boundary is read as
 // part of that boundary. A button has no rim to collide with and can put air
 // between the two; a chip's rim is a drawn line, so the chip spends it instead.
@@ -190,11 +190,10 @@
 //	Comfortable  LabelMedium   16         32             36              36
 //	Compact      LabelMedium   16         28             28              28
 //
-// The last row is the chip this component replaces: mindchat's model picker
-// was a hand-rolled 28 dp pill set in LabelMedium with 12 dp of side padding,
-// which is exactly Compact × LabelMedium out of the table above, down to the
-// padding. Nothing had to be invented to reproduce it; the numbers were
-// already in the tokens.
+// The last row shows the table reaches real use: a hand-rolled 28 dp pill set
+// in LabelMedium with 12 dp of side padding is exactly Compact × LabelMedium
+// out of the table above, down to the padding — nothing needs inventing; the
+// numbers are already in the tokens.
 //
 // Horizontal padding is d.PaddingX (16 dp Comfortable, 12 dp Compact) at each
 // end. The gap between the label and the glyph is the spacing scale's S2 stop,
