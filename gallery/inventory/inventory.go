@@ -36,6 +36,7 @@ import (
 	"github.com/vibrantgio/components/input"
 	complayout "github.com/vibrantgio/components/layout"
 	"github.com/vibrantgio/components/list"
+	"github.com/vibrantgio/components/picker"
 	"github.com/vibrantgio/components/richtext"
 	"github.com/vibrantgio/components/scrollarea"
 	"github.com/vibrantgio/components/scrollbar"
@@ -402,8 +403,8 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.textFieldRow(c)},
 		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 56,
 			Body: inv.toggleRow(c)},
-		{Name: "components-dropdown", Title: "Dropdown — closed, focused, open, disabled", Height: 180,
-			Body: inv.dropdownRow(c)},
+		{Name: "components-picker", Title: "Picker — the field closed, focused, open under its menu and disabled, then the chrome anchor", Height: 180,
+			Body: inv.pickerRow(c)},
 		{Name: "components-list", Title: "List — a virtual list with its scrollbar in the gutter", Height: 180,
 			Body: inv.listBlock(c)},
 		{Name: "components-scrollbar", Title: "Scrollbar — a standalone bar beside its content", Height: 180,
@@ -730,37 +731,75 @@ func (inv *Inventory) toggleRow(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) dropdownRow(c tokens.ColorTokens) layout.Widget {
+// The picker section's measurements.
+const (
+	// pickerFieldW is the width one field cell is laid out at. The field is a
+	// form control that fills the width it is given, so the cell has to state
+	// one — and it also fixes the menu, which the open field drops at its own
+	// width.
+	pickerFieldW unit.Dp = 160
+	// pickerCellGap is the air between two cells of the row.
+	pickerCellGap = 16
+	// pickerCaptionGap is the drop from a cell's caption to the specimen
+	// under it.
+	pickerCaptionGap = 6
+)
+
+// pickerRow shows the picker's two triggers side by side: the form-register
+// field in each of its states, then the chrome-register anchor at rest.
+//
+// Both stand in one section because they are one component — the same
+// pick-one-from-many drawn for a form and for window furniture — and telling
+// the two registers apart is what a reader comes to this row for. The open
+// field carries the third piece with it: the menu it stacks beneath itself is
+// the shared surface, so the section shows that surface without spending a
+// cell on it.
+//
+// The anchor is sized by its value rather than pinned to the field's cell
+// width. It is the platform's pop-up control, which is as wide as what it
+// says; stretched to a form field's width it would be reporting a geometry
+// the component does not have.
+func (inv *Inventory) pickerRow(c tokens.ColorTokens) layout.Widget {
 	opts := []string{"Apple", "Banana", "Cherry"}
-	states := []struct {
+	fields := []struct {
 		label string
-		st    input.DropdownRenderState
+		st    picker.FieldState
 	}{
-		{"Closed", input.DropdownRenderState{Options: opts}},
-		{"Focused", input.DropdownRenderState{Options: opts, Focused: true}},
-		{"Open", input.DropdownRenderState{Options: opts, Open: true, Selected: 1}},
-		{"Disabled", input.DropdownRenderState{Options: opts, Disabled: true}},
+		{"Closed", picker.FieldState{Options: opts}},
+		{"Focused", picker.FieldState{Options: opts, Focused: true}},
+		{"Open", picker.FieldState{Options: opts, Open: true, Selected: 1}},
+		{"Disabled", picker.FieldState{Options: opts, Disabled: true}},
+	}
+	cell := func(label string, body layout.Widget) layout.Widget {
+		return func(gtx layout.Context) layout.Dimensions {
+			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return LabelAt(gtx, inv.shaper, label, c.Ramps.Neutral.Step(600), 11, font.Font{})
+				}),
+				layout.Rigid(complayout.VSpacer(pickerCaptionGap)),
+				layout.Rigid(body),
+			)
+		}
 	}
 	return func(gtx layout.Context) layout.Dimensions {
-		cs := make([]layout.FlexChild, 0, 2*len(states))
-		for i, s := range states {
-			if i > 0 {
-				cs = append(cs, layout.Rigid(complayout.HSpacer(16)))
+		cs := make([]layout.FlexChild, 0, 2*len(fields)+2)
+		for _, f := range fields {
+			if len(cs) > 0 {
+				cs = append(cs, layout.Rigid(complayout.HSpacer(pickerCellGap)))
 			}
+			w := cell(f.label, picker.RenderField(inv.shaper, c, tokens.Spacing, tokens.Radius,
+				tokens.DefaultTypography.BodyLarge, tokens.Comfortable, f.st))
 			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				gtx.Constraints.Min.X = gtx.Dp(160)
-				gtx.Constraints.Max.X = gtx.Dp(160)
-				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return LabelAt(gtx, inv.shaper, s.label, c.Ramps.Neutral.Step(600), 11, font.Font{})
-					}),
-					layout.Rigid(complayout.VSpacer(6)),
-					layout.Rigid(input.RenderDropdown(inv.shaper, c, tokens.Spacing, tokens.Radius,
-						tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s.st)),
-				)
+				gtx.Constraints.Min.X = gtx.Dp(pickerFieldW)
+				gtx.Constraints.Max.X = gtx.Dp(pickerFieldW)
+				return w(gtx)
 			}))
 		}
-		return layout.Flex{}.Layout(gtx, cs...)
+		return layout.Flex{}.Layout(gtx, append(cs,
+			layout.Rigid(complayout.HSpacer(pickerCellGap)),
+			layout.Rigid(cell("Anchor", picker.RenderAnchor(inv.shaper, opts[0], c,
+				tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
+				tokens.Comfortable, picker.AnchorState{}))))...)
 	}
 }
 
