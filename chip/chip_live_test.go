@@ -68,12 +68,9 @@ func driver(w layout.Widget, r *gioinput.Router, size image.Point) func() layout
 }
 
 // TestChipReportsThePillAndHitsTheFloor is the pointer-target contract: the
-// widget measures the pill it drew — a chip is sized to its content, and a row
-// of them laid out at 44 dp apiece would be a row of gaps — while what the
-// pointer may land on is the 44 dp floor centred on it.
-//
-// The click below is outside the drawn pill on the y axis and inside the slop,
-// which is the only place the two can be told apart.
+// widget measures the pill it drew, while what the pointer may land on is the
+// 44 dp floor centred on it. The click below is outside the drawn pill on the
+// y axis and inside the slop, the only place the two can be told apart.
 func TestChipReportsThePillAndHitsTheFloor(t *testing.T) {
 	var clicked int
 	w := live(t, chip.Props{
@@ -106,11 +103,10 @@ func TestChipReportsThePillAndHitsTheFloor(t *testing.T) {
 }
 
 // TestChipActivatesFromTheKeyboard drives the chip through a caller-owned
-// clickable — the tag a container anchoring a popover on the chip focuses —
-// and activates it with Space and with Enter. Both are widget.Clickable's, and
-// both arrive at the one dispatch branch OnClick and Props.Message share; the
-// message half cannot be observed from outside mvu (its collector is
-// unexported), so OnClick stands for the pair.
+// clickable and activates it with Space and with Enter. Both arrive at the one
+// dispatch branch OnClick and Props.Message share; the message half cannot be
+// observed from outside mvu (its collector is unexported), so OnClick stands
+// for the pair.
 func TestChipActivatesFromTheKeyboard(t *testing.T) {
 	var clicked int
 	var click widget.Clickable
@@ -169,13 +165,10 @@ func TestChipActivatesFromTheKeyboard(t *testing.T) {
 	}
 }
 
-// TestFocusedChipMeasuresTheSameBox is the live half of what the package doc
-// states about the ring: a focused chip's edge IS the focus ring, taking the
-// rim's place rather than being drawn beside it, so nothing about the pill
-// moves when focus arrives. A ring drawn outside the rim, or inside it, would
-// show up here as a chip that grew or a label that shifted the moment the Tab
-// key reached it — and a row of chips that reflows on focus is worse than one
-// with no ring at all.
+// TestFocusedChipMeasuresTheSameBox: a focused chip's edge is the focus ring,
+// taking the rim's place rather than being drawn beside it, so nothing about
+// the pill moves when focus arrives. A ring drawn outside or inside the rim
+// would show here as a chip that grew or a label that shifted.
 func TestFocusedChipMeasuresTheSameBox(t *testing.T) {
 	var click widget.Clickable
 	w := live(t, chip.Props{
@@ -219,13 +212,11 @@ func TestFocusedChipMeasuresTheSameBox(t *testing.T) {
 
 // TestPinnedChipDrawsAtTheEdgeOfTheBox is the pinning seam: the chip is the
 // same pill at the same width, drawn at the edge of the box it was offered,
-// and the widget reports that box so whatever laid it out finds the pinned
-// edge where it asked for one.
+// and the widget reports that box.
 //
 // Where the pill landed is measured with the pointer rather than with pixels,
-// because the pointer is the one thing that cannot be fooled by a stray
-// offset: the target is centred on the drawn pill, so a press two pixels in
-// from the box's trailing edge reaches a trailing-pinned chip and a press two
+// because the target is centred on the drawn pill: a press two pixels in from
+// the box's trailing edge reaches a trailing-pinned chip and a press two
 // pixels in from its leading edge falls in the slack and reaches nothing. A
 // chip that reported the box but drew at the origin would pass a dimension
 // check and fail both of these.

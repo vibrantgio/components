@@ -1,16 +1,13 @@
 // The chip's three pairings, measured rather than eyeballed: the rim against
 // the ground the chip stands on and against the chip's own fill, the label
 // against that fill, and the glyph against it. All four colours come out of
-// derivations rather than fields, so what is worth holding is the ratio each
-// lands on and not the rung it picked.
+// derivations rather than fields, so what is held is the ratio each lands on
+// and not the rung it picked.
 //
-// Every sweep here runs the whole elevation ladder, because RenderState.Ground
-// is a tokens.ElevationLevel and the ladder has exactly five rungs: a sweep
-// over those five is a sweep over every placement that field admits. And every
-// sweep runs the chip's interaction states too, because the fill walks under
-// the pointer and the inks are resolved against the fill actually drawn — a
-// floor that holds at rest and fails under a press is a floor that does not
-// hold.
+// Every sweep here runs the whole elevation ladder — five rungs is every
+// placement RenderState.Ground admits — and every interaction state, because
+// the fill walks under the pointer and the inks are resolved against the fill
+// actually drawn.
 package chip
 
 import (
@@ -30,8 +27,7 @@ const focusFloor = focus.Floor
 // chipSeeds is the spread the pairings are held over, because a palette is
 // generated and the defaults are only one of its outputs: the default seed,
 // the six saturated corners of sRGB, a seed with no chroma at all, and the two
-// ends of the lightness range. It is the same spread components/input holds
-// its control row to.
+// ends of the lightness range.
 var chipSeeds = []color.NRGBA{
 	{R: 0x6c, G: 0x3a, B: 0xd4, A: 0xff}, // the default seed
 	{R: 0xff, A: 0xff},
@@ -79,15 +75,14 @@ func hex(c color.NRGBA) string {
 
 // edgeHolds is the whole claim the chip's edge makes, in one function: on
 // every storey, in every state, the chip's boundary is legible — either the
-// rim clears the graphic floor against BOTH the ground outside it and the fill
+// rim clears the graphic floor against both the ground outside it and the fill
 // inside it, or there is no rim and the fill itself clears the floor against
 // the ground.
 //
-// The two halves are one claim rather than two, and stating them together is
-// the point. A test that only asserted the drawn rim would be satisfied by a
-// derivation that dropped the rim whenever it got hard; a test that only
-// asserted the fill would be satisfied by the light scheme's 1.02:1 whisper.
-// Between them there is no way to have neither.
+// The two halves must be asserted together: asserting only the drawn rim would
+// be satisfied by a derivation that dropped the rim whenever it got hard, and
+// asserting only the fill would be satisfied by the light scheme's 1.02:1
+// whisper.
 func edgeHolds(t *testing.T, label string, c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) float64 {
 	t.Helper()
 	below := c.SurfaceAt(level)
@@ -115,9 +110,8 @@ func edgeHolds(t *testing.T, label string, c tokens.ColorTokens, level tokens.El
 	return worst
 }
 
-// TestEdgeHoldsOnEveryStoreyAndState measures the edge that is the whole
-// reason the chip is visible in the light scheme, on both of its sides, on
-// every storey and in every state the fill walks through.
+// TestEdgeHoldsOnEveryStoreyAndState measures the edge on both of its sides,
+// on every storey and in every state the fill walks through.
 func TestEdgeHoldsOnEveryStoreyAndState(t *testing.T) {
 	for _, sc := range []struct {
 		name   string
@@ -148,9 +142,8 @@ func TestEdgeHoldsOnEveryStoreyAndState(t *testing.T) {
 // TestInksClearTheirFloors measures the label and the glyph against the fill
 // they are drawn on, in every state and on every storey. The label owes WCAG
 // 1.4.3's 4.5:1 because it is words; the glyph owes 1.4.11's 3:1 because it is
-// a mark. Both are resolved by [Ink] against the fill actually drawn, so this
-// is the derivation reporting on itself — what it is really gating is that the
-// Text pin is not handed back when it has stopped reading.
+// a mark. What this gates is that [Ink] does not hand back the Text pin once
+// that pin has stopped reading.
 func TestInksClearTheirFloors(t *testing.T) {
 	for _, sc := range []struct {
 		name   string
@@ -188,8 +181,7 @@ func TestInksClearTheirFloors(t *testing.T) {
 
 // TestChipPairingsHoldForEverySeed walks all three pairings over the seed
 // spread and both contrast variants. The ramps carry the seed's tint, so the
-// measurements move a little from seed to seed; what may not move is the
-// verdict.
+// measurements move from seed to seed; the verdict may not.
 func TestChipPairingsHoldForEverySeed(t *testing.T) {
 	worstRim, worstLabel, worstGlyph := 99.0, 99.0, 99.0
 	for _, seed := range chipSeeds {
@@ -239,9 +231,9 @@ func TestChipPairingsHoldForEverySeed(t *testing.T) {
 // The band is held clear of the chip's boundary, so it lies wholly on the
 // chip's own fill with that fill on both sides of it — which is why the ring
 // is derived against the fill in the state it is drawn in and not against the
-// storey the chip stands on. A ring derived against the storey measured 1.01:1
-// on a pressed chip in the dark scheme, where the fill has walked most of the
-// way to the ramp's light end and the storey has not moved at all.
+// storey the chip stands on. Derived against the storey it measures 1.01:1 on
+// a pressed chip in the dark scheme, where the fill has walked most of the way
+// to the ramp's light end and the storey has not moved.
 func TestFocusRingClearsItsFloor(t *testing.T) {
 	worst := 99.0
 	for _, seed := range chipSeeds {
