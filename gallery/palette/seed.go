@@ -1,74 +1,38 @@
 // seed.go is the head of the story the rest of this package draws: the one
-// colour the ramps, the picks and the bases are all a function of. Until this
-// row a palette section shows every derivation and never the input.
+// colour the ramps, the picks and the bases are all a function of.
 //
-// It is drawn in the story's own vocabulary — the same heading band, the same
-// body ground, cells the size of a picks-board cell with the same swatch, the
-// same hairline frame and the same name-over-rules block — so it reads as the
-// first cells of the story rather than as a second design. It takes the
-// story's own geometry ([PickSwatchW], [PickPairH], [PickTitleH], [PickRuleH],
-// [PickGap]) directly: a swatch above the board and a swatch on it are the
-// same object shown twice, and a second set of numbers for it would be two
-// answers to one question.
+// It is drawn in the story's own vocabulary and geometry ([PickSwatchW],
+// [PickPairH], [PickTitleH], [PickRuleH], [PickGap]) directly, so it reads as
+// the first cells of the story rather than a second design.
 //
-// Honesty is the whole of the difficulty, and it shaped the layout.
-//
-// # Why two colours and not one sentence
-//
-// A palette is not always grown from the colour somebody picked. The
+// A palette is not always grown from the colour somebody picked: the
 // derivation realizes the light Primary base at the picked colour's own hue
 // and depth with the accent chroma dial applied, so a pick under the dial
 // comes back more chromatic than it was handed over, and it is the realized
 // colour — not the pick — that every accent ramp and base is measured off.
+// The row tells the two colours apart as two cells rather than in one
+// sentence, since a sentence relating them has a clause boundary between the
+// two that a narrow window could cut without marking, misattributing one
+// colour's fact to the other. For the same reason every line in this file is
+// written as one clause with no comma, no " ·" and no " /", so [FitLine] has
+// no unmarked seam to cut on any of them. [SeedGrewFrom] leads every rule
+// entitled to make it, since a cut takes words off the tail and a claim at
+// the front survives every cut.
 //
-// So the row has two colours to tell apart, and it tells them apart as two
-// cells rather than inside one sentence. A sentence relating them has its only
-// clause boundary between the two, so a narrow window cuts it to a line naming
-// one colour and claiming the other's fact, with nothing marking the cut —
-// which is the one claim this file exists never to make. Two cells, each with
-// its own swatch and its own name, and no line carrying a relation a cut can
-// invert.
+// The pair is also told apart by size: the two colours are one hue at two
+// chromas — measured, the pair a default seed makes stands at 1.00:1
+// luminance and four greyscale levels apart, indistinguishable to a
+// reduced-chroma reader as a swatch drawn twice. So the colour the palette
+// only took in is drawn inside the slot the realized colour fills whole,
+// smaller by [SeedHandedInset] — the same device as the ramp grid's
+// [RampPinInset] — since size is a channel no display setting removes.
 //
-// Every line here is written as one clause for the same reason. [FitLine] cuts
-// a line at its commas and at " ·" and " /" and marks nothing when it does,
-// and falls back to a word boundary with an ellipsis; a line with no clause
-// seam in it can therefore only ever be cut the marked way. That is a
-// structural guard rather than an editorial one, and it is what the strings
-// below are written to: they say what they say without a comma, which is why
-// they lean on "and" where a comma would read better.
-//
-// The claim leads. [SeedGrewFrom] is the sentence the section is named after,
-// and every rule entitled to make it opens with it — a cut takes words off the
-// tail, so a claim at the front survives every cut a reader is shown a mark
-// for.
-//
-// # Why the pair is told apart by size as well
-//
-// The two colours are one hue at two chromas, which is a difference a
-// reduced-chroma reader does not have: measured, the pair a default seed makes
-// stands at 1.00:1 luminance and four greyscale levels apart, which is one
-// swatch drawn twice. So the colour the palette only took in is drawn inside
-// the slot the realized colour fills whole, smaller by [SeedHandedInset]. It
-// is the grid's own device — [RampPinInset], which stops a pinned chip reading
-// as a tenth step — turned on the one distinction this row exists to draw.
-// Size is a channel no display setting takes away.
-//
-// # What this package does not decide
-//
-// Whether the palette on screen is the candidate's at all. A seed derives a
-// fixed set of token sets, and a window is that seed's only if it wears one of
-// them byte for byte — but which sets a window can be wearing, and whether a
-// candidate's alpha has to be normalized before the comparison, are facts
-// about the window rather than about the row: one window knows its pick
-// first-hand and derives the pair it is drawn from, another infers a seed
-// through the token sets an application theme can hand it. Handing those in as
-// a parameter would be handing in the whole of the check, so the check stays
-// with the window and [SeedCells] is given the answer: a seed and the colour
-// it was realized as, both proven.
-//
-// For the same reason the cells a window draws where nothing is proven — or
-// where nothing is picked yet — are the window's own, and so is the caption
-// over them. What is here is the part that is one row wherever it is drawn.
+// This file does not decide whether the palette on screen is the candidate's
+// at all: which token sets a window can be wearing, and whether a candidate's
+// alpha needs normalizing before comparison, are facts about the window, not
+// the row. [SeedCells] is handed the answer already proven — a seed and the
+// colour it was realized as — and a window with nothing proven, or nothing
+// picked yet, draws and captions its own cells instead.
 package palette
 
 import (
@@ -95,15 +59,9 @@ const SeedSectionRows = 2
 const SeedHandedInset unit.Dp = 4
 
 // What the section says about itself, as [HintSep] clauses so a narrow window
-// drops it a clause at a time — see [FitHint]. A caption is a legend and not a
-// claim under a swatch, and each of these stands alone.
-//
-// The derivation clauses say the hue and the chroma come from different places
-// because they do, and the two cells under the caption are the proof. They say
-// "the accent" rather than "every role" for the same reason: the neutral ramp
-// carries no hue at all, and the four status roles are anchored to fixed hues
-// the seed may only tint. They stop there rather than going on about ramps and
-// bases, which are two bands further down under captions of their own.
+// drops it a clause at a time — see [FitHint]. The hue and chroma clauses say
+// "the accent" rather than "every role": the neutral ramp carries no hue, and
+// the four status roles are anchored to fixed hues the seed may only tint.
 const (
 	SeedLabel = "Palette Seed"
 	// SeedHintPair is the legend for the two sizes, and leads the caption
@@ -115,37 +73,28 @@ const (
 	SeedHintStatus = "it only tints the status hues"
 )
 
-// The names over the cells, in the vocabulary the picks board already uses: it
-// calls the realized colour "the seed, lifted", so the two cells are the seed
-// and the seed lifted. The board's comma is not carried across — a name is cut
-// by the same [FitLine] a rule is, and "Seed, lifted" cuts to "Seed", which is
-// the other cell's name over the other cell's colour.
+// The names over the cells, in the vocabulary the picks board already uses:
+// it calls the realized colour "the seed, lifted", so the two cells are the
+// seed and the seed lifted. The board's comma is not carried across, since a
+// name is cut by the same [FitLine] a rule is and "Seed, lifted" would cut to
+// "Seed" — the other cell's name.
 //
-// The name is also where the dark scheme's disclosure lives, and for a reason
-// a rule cannot serve. A cell draws three lines and each is cut on its own, so
-// a fact on the name line and a fact on the rule line are shed at two
-// different widths while two facts on one line are shed together. This row has
-// two facts that must both survive — which colour the palette grew from, and
-// that a dark scheme does not draw it — so they stand on two lines: the rule
-// opens with the claim, the name carries the scheme. The name is the shorter
-// line in the larger face, so it is the one that survives furthest.
+// The name line is also where the dark scheme's disclosure lives rather than
+// the rule line: a cell's three lines are each cut independently, and this
+// row has two facts that must both survive a cut — which colour the palette
+// grew from, and that a dark scheme does not draw it — so they stand on
+// separate lines, with the shorter name line (larger face) surviving furthest.
 //
-// SeedName is only ever over a colour somebody picked. A window that cannot
-// prove a pick names its cell for the token it is showing instead, in its own
-// words.
+// SeedName is only ever over a colour somebody picked; a window that cannot
+// prove a pick names its cell for the token it is showing instead.
 const (
 	SeedName       = "Seed"
 	SeedLiftedName = "Lifted seed"
 	// SeedLiftedNameDark names the same colour in the scheme that does not draw
-	// it, in the words the picks board names a colour from across the pair in:
-	// the other side's, and pinned there rather than here.
-	//
-	// It is a participle and not a relative clause. The draft read "Lifted seed
-	// the light scheme pins", which is grammatical with the "that" dropped and
-	// which a fresh-eyes pass read as a run-on with a clause missing its
-	// punctuation — and punctuation is the one repair not available here, since
-	// a comma in a name is a seam [FitLine] cuts at without marking. Recast as
-	// one noun phrase it needs no seam and reads as one thing.
+	// it, in the words the picks board uses for a colour from across the pair:
+	// the other side's, pinned there rather than here. Written as one noun
+	// phrase rather than a relative clause, since a comma would be a seam
+	// [FitLine] cuts at without marking.
 	SeedLiftedNameDark = "Lifted seed pinned in the light scheme"
 )
 
@@ -163,12 +112,10 @@ const (
 	// palette did not grow from.
 	SeedPickRule = "the colour picked"
 
-	// SeedLiftedRule and SeedLiftedRuleDark sit under the realized colour. They
-	// differ because the fact differs: a light scheme pins this exact colour as
-	// its Primary base — the chip at the end of the Primary row below is these
-	// very bytes — while a dark scheme pins a re-toned one, so in dark the
-	// swatch is a colour the palette on screen draws nowhere. The dark one says
-	// so inside the clause that names it.
+	// SeedLiftedRule and SeedLiftedRuleDark sit under the realized colour. A
+	// light scheme pins this exact colour as its Primary base (the chip at the
+	// end of the Primary row below is these very bytes), while a dark scheme
+	// pins a re-toned one, so the dark rule discloses that inside its clause.
 	SeedLiftedRule     = SeedGrewFrom + " and pins as its Primary base"
 	SeedLiftedRuleDark = SeedGrewFrom + " before this scheme re-toned it"
 
@@ -232,12 +179,8 @@ func seedScheme(light, dark string, isDark bool) string {
 	return light
 }
 
-// SeedHint is the caption for the cells actually drawn. The legend for the two
-// sizes is only true where two cells are drawn, so it is only said there.
-//
-// A window with cells of its own to draw — a state rather than a derivation —
-// captions them itself: this is the caption for the derivation, and a
-// derivation nobody is looking at is not described.
+// SeedHint is the caption for the cells actually drawn. The legend for the
+// two sizes is only true where two cells are drawn, so it is only said there.
 func SeedHint(cells []SeedCell) string {
 	clauses := []string{SeedHintHue, SeedHintChroma, SeedHintStatus}
 	if len(cells) > 1 {

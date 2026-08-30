@@ -1000,55 +1000,31 @@ func MarkInkOn(step stdcolor.NRGBA) stdcolor.NRGBA {
 // counterpart scheme's surface, near-black under a light page and near-white
 // under a dark one.
 //
-// One colour for the whole section, and not the better of two candidates
-// measured over each fill. Measured per swatch, the frame took the deep
-// candidate over the pale half of a ramp and the pale one over the deep half,
-// so every row turned its edge over somewhere along its own length — at a
-// different column per row, since the eight rows are eight hues carrying their
-// lightness differently — and a table whose boundaries change polarity in the
-// middle of a scale reads as two tables butted together rather than one ramp
-// of nine steps. The flip was louder than the edges it was buying.
+// One colour for the whole section, not the better of two candidates measured
+// per fill, so no row's edge changes polarity partway along its own length.
+// It is strongest exactly where an edge is needed: step 100 of every ramp is
+// the ground, near enough, and that is where the inverse of the page is
+// furthest from the fill. Walking toward the ink end the edge fades, but a
+// fill that far from the page is bounded by its own colour instead.
 //
-// So one voice, and the one that is strongest where an edge is actually needed.
-// An edge is needed where a fill comes near the tone of the page it stands on:
-// step 100 of every ramp is the ground, near enough, and the page, the surface
-// and the divider are three of the colours the board below has to show. That is
-// exactly where the inverse of the page is furthest from the fill. Walking
-// toward the ink end the edge fades, and it may — a fill that far from the page
-// is bounded by its own colour, which is the same boundary read from the other
-// side. The page and its inverse are 14.72:1 apart in a light scheme and 14.49
-// in a dark one, and for a fill between them the two readings multiply out to
-// that: the edge cannot go soft without the fill having already taken the job
-// over. Past the inverse — the deepest rungs of a light scheme, the palest of a
-// dark one — the fill's own reading is larger still. The least-bounded swatch
-// in the section measures 3.98:1 by the better of the two readings, which is
-// the crossover and is above the floor a graphic owes its ground.
-//
-// The range, measured over every fill this section draws — seventy-two rungs,
-// the pinned bases and the board's own cells, over four seeds. A light scheme's
-// edge runs from 1.00:1 to 15.91:1, a dark scheme's from 1.00:1 to 17.14:1,
-// with the page's own swatch — the case the edge exists for — at 14.72:1 and
-// 14.49:1. The soft end is the InverseSurface cell of the picks board, which is
-// this exact colour and so is framed in itself at 1.00:1; behind it come the
-// 900 rungs of every ramp, at 1.16:1 in a light scheme and 1.05:1 in a dark
-// one, which are the fills that read against the page at 17.10:1 and 15.22:1.
-// Getting on for half the fills in the section carry an edge under 3:1 and that
-// is the design: the soft end is named here and left alone rather than
-// engineered away, because engineering it away is what put the polarity flip
-// in the grid.
+// Measured over every fill this section draws (seventy-two rungs, the pinned
+// bases, the board's cells, over four seeds): a light scheme's edge runs from
+// 1.00:1 to 15.91:1, a dark scheme's from 1.00:1 to 17.14:1, with the page's
+// own swatch (the case the edge exists for) at 14.72:1 and 14.49:1. The soft
+// end is the InverseSurface cell, framed in itself at 1.00:1; the 900 rungs of
+// every ramp sit at 1.16:1 (light) and 1.05:1 (dark), reading against the page
+// itself at 17.10:1 and 15.22:1. The least-bounded swatch overall measures
+// 3.98:1 by the better of the two axis-end readings — above the floor a
+// graphic owes its ground, and the point past which a fill's own contrast
+// against the page has already taken over the boundary's job.
 func EdgeIn(c tokens.ColorTokens) stdcolor.NRGBA { return c.InverseSurface }
 
 // pickBoard draws every colour the theme names, in families, across as many
-// columns as the window is wide enough for.
-//
-// A board rather than a list: eleven cells down one column is a column taller
-// than the window, and the families are short enough that side by side they can
-// all be read at once — which is the comparison worth having, since the question
-// a reader brings here is usually about two roles rather than one.
-//
-// How many columns is the window's answer and not a number the board keeps: a
-// third column is worth having only where three of them still hold what the
-// cells have to say, and where they do not the board spreads over two.
+// columns as the window is wide enough for. A board rather than a single
+// list, so families short enough to read side by side can be compared at a
+// glance. Column count is derived from the window width rather than fixed: a
+// column is worth having only where it still holds what its cells have to
+// say.
 func pickBoard(p Chrome, c tokens.ColorTokens, ty Type, groups []Group) func(gtx layout.Context, width int) int {
 	return func(gtx layout.Context, width int) int {
 		gap := gtx.Dp(PickColGap)
@@ -1077,15 +1053,11 @@ func pickBoard(p Chrome, c tokens.ColorTokens, ty Type, groups []Group) func(gtx
 	}
 }
 
-// drawFamily draws the name over one family of cells and the line under it, and
-// answers how much of the column the pair took.
-//
-// The line is what makes the name out-rank the cells below it. The names in
-// those cells are set at the size a name is read at, and a family heading a
-// point or two larger than them is not a level of its own — it is the same level
-// slightly emphasised, which is worse than no level at all. A rule across the
-// column is unmistakably a break, costs one point of height, and binds the name
-// to what is under it rather than leaving it floating between two families.
+// drawFamily draws the name over one family of cells and the line under it,
+// and answers how much of the column the pair took. The line under the name
+// is what makes it out-rank the cells below, since a heading only a point or
+// two larger than its cells' names would read as the same level, not a level
+// of its own.
 func drawFamily(gtx layout.Context, p Chrome, ty Type, name string, x, y, w int) int {
 	head := gtx.Dp(PickHeadH)
 	textdraw.FillText(gtx, ty.Shaper, ty.Head, image.Rect(x, y, x+w, y+head), 0, 0.5, p.Text,
@@ -1096,12 +1068,9 @@ func drawFamily(gtx layout.Context, p Chrome, ty Type, name string, x, y, w int)
 }
 
 // drawCell draws one cell in the slot it was given: the colour, with the ink
-// written on it where there is one, and beside them the names over their rules.
-//
-// The rules are a rung quieter than the names. They are two different kinds of
-// thing — one is what the theme calls this colour, the other is where it came
-// from — and a reader scanning for a token name has to be able to skip the
-// halves that are not names.
+// written on it where there is one, and beside them the names over their
+// rules. The rules are a rung quieter than the names, since a reader scanning
+// for a token name has to be able to skip the halves that are not names.
 func drawCell(gtx layout.Context, p Chrome, c tokens.ColorTokens, ty Type, cell Cell, r image.Rectangle) {
 	if r.Dx() <= 0 {
 		return
@@ -1111,18 +1080,15 @@ func drawCell(gtx layout.Context, p Chrome, c tokens.ColorTokens, ty Type, cell 
 	box := image.Rect(r.Min.X, top, r.Min.X+sw, top+sh)
 	radius := gtx.Dp(innerR) / 2
 	fillRRect(gtx, box, radius, cell.Fill)
-	// The one frame the grid above uses — see [EdgeIn] — and here for the reason
-	// it is there: a Background swatch on the page it is the background of has
-	// no boundary of its own, and without one it reads as a swatch that failed
-	// to draw. This board is where that case is certain rather than possible,
-	// since the page, the surface and the divider are three of the colours it
-	// has to show, and it is where the edge is at its strongest.
+	// The one frame the grid above uses — see [EdgeIn] — needed here since the
+	// Background swatch, among others, has no boundary of its own against the
+	// page it is the background of.
 	strokeRRect(gtx, box, radius, gtx.Dp(hairline), EdgeIn(c))
 	switch {
 	case cell.Mark:
 		// In the colour the derivation chose, over the ground it chose it
-		// against: this cell is the specimen of that pairing, and a mark drawn
-		// in anything else would be a claim nobody could check by looking.
+		// against: a mark drawn in any other colour would be an unverifiable
+		// claim.
 		markGlyph(gtx, box, cell.On)
 	case cell.Paired():
 		textdraw.FillText(gtx, ty.Shaper, ty.Label, box, 0.5, 0.5, cell.On, PickGlyph)
@@ -1131,18 +1097,13 @@ func drawCell(gtx layout.Context, p Chrome, c tokens.ColorTokens, ty Type, cell 
 	if lines >= r.Max.X {
 		return
 	}
-	// What the words have to fit in, which is what is left of the slot once the
-	// swatch and the air beside it have taken theirs. Every line drawn below is
-	// cut to it at its own boundaries rather than handed over long — see
-	// [FitLine] — because the shaper's answer to a line that does not fit is to
-	// break a word, and a broken token name is a name a reader cannot look up.
+	// Every line below is cut to this room at its own boundaries rather than
+	// handed over long — see [FitLine] — since the shaper's fallback is to
+	// break a word, and a broken token name cannot be looked up.
 	room := r.Max.X - lines
-	// The lines stand in a block shorter than the slot, which is where the air
-	// between one cell and the next comes from. Set at the slot's full height
-	// they came out on an even pitch from the top of the column to the bottom,
-	// and an even pitch is what a list of thirty lines looks like rather than
-	// eleven cells: nothing in the spacing said which rule belonged to which
-	// name.
+	// The lines stand in a block shorter than the slot rather than spread to
+	// the slot's full height, which is where the air between cells comes from
+	// and what keeps each rule visually paired with its own name.
 	title, rule := gtx.Dp(PickTitleH), gtx.Dp(PickRuleH)
 	rules := 1
 	if cell.Paired() {
@@ -1165,19 +1126,12 @@ func drawCell(gtx layout.Context, p Chrome, c tokens.ColorTokens, ty Type, cell 
 	}
 }
 
-// markGlyph draws a status role's mark on its own container: a square, which is
-// the plainest thing that is a graphic and not a letter.
-//
-// A square and not a disc, though a disc is plainer still, because the grid
-// above already spends a disc on something else — a dot there says a pick came
-// off this rung — and one shape carrying two unrelated meanings in one section
-// is a legend a reader has to hold two entries for. The square is nearly the
-// same weight of ink and cannot be confused with the marker.
-//
-// The size is a share of the swatch rather than a number of its own. A mark
-// measured against the non-text floor is legible at the size a graphic is drawn
-// at and not at the size text is, and a mark small enough to pass for a full
-// stop would understate a contrast the derivation actually achieved.
+// markGlyph draws a status role's mark on its own container: a square rather
+// than a disc, since the ramp grid's dot already uses a disc for an unrelated
+// meaning (a pick's rung) and the two must not be confused. Sized as a share
+// of the swatch rather than a fixed number, since a mark is measured against
+// the non-text contrast floor and must be legible at graphic size, not text
+// size.
 func markGlyph(gtx layout.Context, box image.Rectangle, mark stdcolor.NRGBA) {
 	d := min(box.Dx(), box.Dy()) / 2
 	if d <= 0 {
@@ -1187,29 +1141,23 @@ func markGlyph(gtx layout.Context, box image.Rectangle, mark stdcolor.NRGBA) {
 	fillRRect(gtx, image.Rect(mid.X-d/2, mid.Y-d/2, mid.X-d/2+d, mid.Y-d/2+d), gtx.Dp(hairline), mark)
 }
 
-// Narrowest is the narrowest a column is worth having: a swatch, the air beside
-// it, and the longest name the board is about to draw, whole.
+// Narrowest is the narrowest a column is worth having: a swatch, the air
+// beside it, and the longest name the board is about to draw, whole.
 //
-// Measured off those names rather than written down as a number, because the
-// number is a fact about the token vocabulary and not about this layout. It was
-// written down, at two hundred and fifty points, and the vocabulary grew past
-// it: "InverseSurface / OnInverseSurface" wants two hundred and seventeen and
-// the widest family name a hundred and eighteen, so a window at nine hundred
-// took the three columns the constant said it could afford and cut two of them
-// mid-name. A board is worth spreading over another column only when the extra
-// column can still say what a cell says, so the names decide, and they decide
-// again whenever a role is renamed or the theme names a new one.
+// Measured off those names rather than a fixed constant, since the width is a
+// fact about the current token vocabulary and must track it as roles are
+// renamed or added — a fixed number silently goes stale and starts cutting
+// names mid-word.
 //
-// The rules under the names are not in this measurement. A rule is a sentence
-// about a name and it is longer than the name by design — sizing columns to the
-// longest of them would cost the board a column at widths where every name and
-// most rules fit — so the rules are what [FitLine] cuts at their own clauses,
-// and the names are what never has to be cut at all.
+// Rules under the names are excluded from this measurement: a rule is longer
+// than its name by design, so sizing columns to it would cost a column at
+// widths where every name and most rules still fit. Rules are instead what
+// [FitLine] cuts at their own clauses; names are never cut.
 func Narrowest(gtx layout.Context, ty Type, groups []Group) int {
 	lead, narrowest := gtx.Dp(PickSwatchW)+gtx.Dp(PickGap), 0
 	for _, g := range groups {
-		// A family's name stands across the column, over the swatches rather
-		// than beside them, so it asks for the column and not for the text.
+		// A family's name stands across the column, over the swatches, so it
+		// asks for the column width rather than a text-sized slot.
 		narrowest = max(narrowest, natural(gtx, ty.Shaper, ty.Head, g.Name))
 		for _, cell := range g.Cells {
 			narrowest = max(narrowest, lead+natural(gtx, ty.Shaper, ty.Body, cell.Title()))
@@ -1240,24 +1188,16 @@ func Load(g Group) int {
 	return h
 }
 
-// Pack deals the families into n columns so that the tallest column is as short
-// as it can be, each family whole and none of them out of order.
+// Pack deals the families into n columns so that the tallest column is as
+// short as it can be, each family whole and none of them out of order: whole
+// because a family split across a column boundary reads as two families, and
+// in order because the board is read column by column and an out-of-order
+// deal would give the same board different reading orders at different window
+// widths.
 //
-// Whole, because a family cut across a column boundary is two families as far as
-// anybody reading is concerned. In order, because the board is read down one
-// column and then down the next, and a deal free to put the fourth family in the
-// first column would give the same board two different reading orders at two
-// window widths — a reader dragging the window watches a family change
-// neighbours.
-//
-// So a deal is not an assignment of families to columns, it is a run of
-// boundaries in the reading order, and the search is over where the boundaries
-// fall. Which is the difference between a handful of arrangements and a number
-// that grows by a factor of three every time the board gains a family: this
-// section stood at four families and grew to six the moment the containers and
-// the ends of the axis joined it, and enumerating assignments would have gone
-// from eighty-one arrangements a frame to seven hundred and twenty-nine, to
-// find what twenty-eight runs of boundaries answer.
+// The search is over runs of boundaries in the reading order rather than over
+// column assignments, since the number of boundary runs is combinatorially
+// far smaller than the number of assignments for the same family count.
 func Pack(groups []Group, n int) [][]Group {
 	if n < 1 {
 		n = 1
@@ -1276,11 +1216,9 @@ func Pack(groups []Group, n int) [][]Group {
 // bestCuts is where the column boundaries fall in the evenest in-order deal:
 // n-1 indices into groups, never going backwards, cut[j] naming the first
 // family of column j+1. A boundary at the end of the run leaves its column
-// empty, which is what a board with fewer families than columns comes to.
-//
-// Ties go to the first arrangement found, and the walk starts each boundary as
-// far along the run as it can go, so the first arrangement found — and the one
-// a tie keeps — is the one that fills the leftmost column first.
+// empty, for a board with fewer families than columns. Ties go to the first
+// arrangement found; the walk starts each boundary as far along the run as it
+// can go, so a tie fills the leftmost column first.
 func bestCuts(groups []Group, n int) []int {
 	cuts, best, tallest := make([]int, n-1), make([]int, n-1), -1
 	var walk func(j, from int)
@@ -1326,20 +1264,9 @@ const sectionTitleSep = " — "
 
 // TypeLadderRows is the inventory's type ladder as two rows in the story's own
 // bands: the heading band the story's own sections wear, over the inventory
-// section's own body.
-//
-// The ladder rides with the story rather than standing on a page of its own
-// because a theme is a palette and a typeface: the type roles are generated
-// from the same theme the ramps are, so whatever answers "what is this theme"
-// has to answer both halves of it. It wears the band its neighbours wear —
-// a column with two sections banded one way and a third banded another is
-// inconsistent with itself, in a column whose whole subject is that a theme is
-// coherent — and the inventory's own words are kept, split at the em dash its
-// titles are already written with, so nothing is reworded here and a title
-// reworded upstream arrives reworded.
-//
-// A section whose title carries no separator lands with the whole title as the
-// label and no caption, which is what the band does with an empty hint anyway.
+// section's own body. The inventory's own title words are kept, split at the
+// em dash its titles are already written with, so nothing is reworded here.
+// A title with no separator lands as the whole label with no caption.
 func TypeLadderRows(inv *inventory.Inventory, p Chrome, c tokens.ColorTokens, ty Type) []layout.Widget {
 	for _, s := range inv.Foundations(c) {
 		if s.Name != typeSection {
@@ -1356,10 +1283,8 @@ func TypeLadderRows(inv *inventory.Inventory, p Chrome, c tokens.ColorTokens, ty
 
 // ladderBody adapts an inventory section's body to the story body's shape: the
 // story measures its content and reports the height, while a section body is
-// laid out in a slot of the height the section states. So the slot is stated
-// here — bounded, because the type ladder measures nothing of its own and an
-// unbounded one would take the column with it — and handed back as the height
-// the band wraps.
+// laid out in a slot of the height the section states — bounded, since the
+// type ladder measures nothing of its own.
 func ladderBody(s inventory.Section) func(gtx layout.Context, width int) int {
 	return func(gtx layout.Context, width int) int {
 		h := gtx.Dp(s.Height)
