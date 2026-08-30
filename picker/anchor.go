@@ -117,13 +117,17 @@ type AnchorProps struct {
 }
 
 // Anchor returns an rx.Observable[layout.Widget] emitting the chrome
-// register's trigger: the platform's pop-up control, at the button's
-// rounded-rect corner with the paired up/down chevrons drawn by the component.
+// register's trigger: the platform's pull-down control, at the button's
+// rounded-rect corner with the single down chevron drawn by the component.
 //
 // It has no menu of its own — a chrome-register menu floats against the window
 // and patterns/popover places it, so the caller hands this widget to the
 // popover as its anchor and a [Menu] as its content. [Field] is the trigger
 // that drops its own menu.
+//
+// The mark commits the caller to that placement: the chevron says a menu opens
+// BELOW this control, so the popover it is handed to must place the menu below
+// it. See the package doc for what a trigger the menu stands over would need.
 //
 // The pointer target is extended to the density's tokens.Density.MinHitTarget
 // (44 dp, WCAG 2.5.5) on both axes, centred on the drawn control, exactly as
@@ -221,16 +225,16 @@ func Anchor(th rx.Observable[theme.Theme], props AnchorProps) rx.Observable[layo
 // RenderAnchor produces a layout.Widget drawing the chrome register's trigger
 // in an explicit visual state, without event processing: the control filled
 // the measured step over s.Ground and walked by the pointer, its one-dp rim,
-// the value in the ink that clears the text floor on that fill, and the
-// chevron pair in the ink that clears the graphic floor. When s.Focused, the
-// focus ring — measured against that fill — takes the rim's place at the
-// control's edge, two dp instead of one.
+// the value in the ink that clears the text floor on that fill, and the down
+// chevron in the ink that clears the graphic floor. When s.Focused, the focus
+// ring — measured against that fill — takes the rim's place at the control's
+// edge, two dp instead of one.
 //
 // It takes no glyph, and that is the point rather than an omission: the mark
-// on a pop-up anchor is not the caller's to choose, and it does not change
-// when the menu opens. The platform's anchor says "this pops up" and never
-// "this is open"; a caller that flipped a chevron would be saying the second
-// thing in a vocabulary the platform reserves for a disclosure triangle.
+// on a pull-down anchor is not the caller's to choose, and it does not change
+// when the menu opens. The platform's anchor says "a menu opens below this" and
+// never "this is open"; a caller that flipped the chevron would be saying the
+// second thing in a vocabulary the platform reserves for a disclosure triangle.
 //
 // labelStyle is the whole text style the value is set in; pass
 // tokens.DefaultTypography.LabelLarge with tokens.Comfortable for the default

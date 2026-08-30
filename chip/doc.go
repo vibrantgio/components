@@ -18,11 +18,11 @@
 //
 // # The anchor face has moved
 //
-// The pop-up anchor — the same geometry at the button's rounded-rect corner
-// with the paired up/down chevrons — is components/picker's, where it is the
-// chrome register's trigger over the menu the form register's trigger shares.
-// A pop-up control is not a summary that happens to be clickable; it names a
-// choice and stands under a list of the alternatives, and that is a picker.
+// The pull-down anchor — the same geometry at the button's rounded-rect corner
+// with the down chevron — is components/picker's, where it is the chrome
+// register's trigger over the menu the form register's trigger shares. A
+// menu-bearing control is not a summary that happens to be clickable; it names
+// a choice and stands over a list of the alternatives, and that is a picker.
 // [RenderAnchor] forwards to picker.RenderAnchor and is deprecated; the live
 // path is picker.Anchor. The geometry both draw from is one geometry, so
 // nothing about the drawn control changed with the address.

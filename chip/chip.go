@@ -35,12 +35,12 @@ const (
 	// and the zero value, so a [Props] that says nothing draws the chip.
 	FaceChip Face = Face(chipface.FaceChip)
 
-	// FaceAnchor is the pop-up anchor: the same chip at the button's own
-	// rounded-rect radius, with the paired up/down chevrons drawn by the
-	// component instead of a caller's glyph.
+	// FaceAnchor is the pull-down anchor: the same chip at the button's own
+	// rounded-rect radius, with the down chevron drawn by the component
+	// instead of a caller's glyph.
 	//
-	// Deprecated: the pop-up anchor is components/picker's, where it is one
-	// of two triggers over a shared menu. Use picker.Anchor.
+	// Deprecated: the pull-down anchor is components/picker's, where it is
+	// one of two triggers over a shared menu. Use picker.Anchor.
 	FaceAnchor Face = Face(chipface.FaceAnchor)
 )
 
@@ -146,8 +146,8 @@ type Props struct {
 	Label string
 
 	// Face is which member of the family this widget draws: [FaceChip], the
-	// zero value and the pill, or [FaceAnchor], the pop-up anchor. The anchor
-	// draws its own paired chevrons and ignores Icon.
+	// zero value and the pill, or [FaceAnchor], the pull-down anchor. The
+	// anchor draws its own chevron and ignores Icon.
 	Face Face
 
 	// Icon is the mark drawn after the label, in the label's own line box. A
@@ -156,7 +156,7 @@ type Props struct {
 	// moving between the two components writes the same field name.
 	//
 	// Ignored when Face is [FaceAnchor]: that face's mark is the component's
-	// own chevron pair, which is the whole reason the face exists.
+	// own chevron, which is the whole reason the face exists.
 	Icon Glyph
 
 	// Description is the screen-reader label. Falls back to Label when empty.
@@ -355,8 +355,8 @@ func Render(
 
 // RenderAnchor produces a layout.Widget drawing the ANCHOR face.
 //
-// Deprecated: the pop-up anchor is components/picker's — the chrome register's
-// trigger over the menu the picker's other trigger shares. Use
+// Deprecated: the pull-down anchor is components/picker's — the chrome
+// register's trigger over the menu the picker's other trigger shares. Use
 // picker.RenderAnchor, which this forwards to; it draws the same control from
 // the same geometry.
 func RenderAnchor(

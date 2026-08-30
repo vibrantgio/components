@@ -7,9 +7,9 @@
 //	[Field]   the FORM register — the flat bar that stands in a form beside a
 //	          text field and a checkbox, at the same control height, with the
 //	          same bezel and the same focus ring
-//	[Anchor]  the CHROME register — the platform's pop-up control, at the
-//	          button's rounded-rect corner with the paired up/down chevrons,
-//	          for a toolbar, a header row or any other furniture
+//	[Anchor]  the CHROME register — the platform's pull-down control, at the
+//	          button's rounded-rect corner with a single down chevron, for a
+//	          toolbar, a header row or any other furniture
 //	[Menu]    the surface both of them stand under: the level-3 rows, the
 //	          accent selection and the accent's quieter wash under the
 //	          pointer
@@ -34,7 +34,8 @@
 // select does and what its [FieldState.Open] draws — beneath by default, and
 // above it when the caller says [DropUp] because the room below is somebody
 // else's. Either way the open field is one widget reporting one box, and an
-// upward field is placed by that box's bottom edge. [Anchor] does not:
+// upward field is placed by that box's bottom edge, with its trigger's triangle
+// pointing the way its menu goes. [Anchor] does not:
 // a chrome-register menu is a floating surface placed against the window, and
 // placing it is patterns/popover's job — a component may not reach up into a
 // pattern. So an anchor's caller hands the anchor to the popover as the anchor
@@ -67,21 +68,35 @@
 // this system already owns is the button's; the anchor reads that stop rather
 // than naming a number, so the two cannot drift.
 //
-// THE MARK. The paired up/down chevrons, drawn by the component, not passed
-// in. Two consequences, both deliberate. A caller cannot put a different mark
-// on a pop-up anchor, because the mark is what says the control pops up. And
-// a caller cannot FLIP it: on this platform the pair says "this pops up" and
-// never "this is open", so the trigger carries no open state and offers
-// nowhere to hang one. An anchor whose glyph turned over when its menu stood
-// would be speaking the vocabulary the platform reserves for a disclosure
-// triangle. It is also why the two triggers do not share one state: the
-// field's mark and its menu are one widget, and the anchor's menu is
-// somewhere else on the window.
+// THE MARK. A single down chevron, drawn by the component, not passed in.
+// Three consequences, all deliberate. A caller cannot put a different mark on
+// an anchor, because the mark is what says the control opens a menu. A caller
+// cannot FLIP it: on this platform a pull-down's chevron says "a menu opens
+// below this" and never "this is open", so the trigger carries no open state
+// and offers nowhere to hang one; an anchor whose glyph turned over when its
+// menu stood would be speaking the vocabulary the platform reserves for a
+// disclosure triangle. And the mark is a claim about PLACEMENT, so the caller
+// owes it: whatever places the menu — patterns/popover, in the only
+// arrangement this component has — must place it below the anchor, because a
+// mark that announces a direction the menu does not take is a defect and not a
+// style. It is also why the two triggers do not share one state: the field's
+// mark and its menu are one widget, and the anchor's menu is somewhere else on
+// the window.
 //
-// The chevrons' proportions are measured off the stored macOS reference and
-// their internal spacing is not; the constants say which is which, along with
-// the capture the numbers were read from and the one figure the reference
-// cannot answer.
+// THE PAIRED CHEVRONS, and what they would take. The platform's OTHER
+// menu-bearing control is the pop-up button: its menu stands OVER the trigger
+// with the selected row aligned on it, and it wears an up chevron over a down
+// one to say the choice can move either way. That is a different control, so
+// it is a different face rather than a flag on this one, and it may only be
+// drawn once something places a menu that way — no caller does. Two things are
+// owed before it can be: a placement that stands the menu over the anchor with
+// the selected row on it, and a macOS pop-up-button capture in the platform
+// reference. The stored reference holds only single-chevron pull-downs, so the
+// air between the pair's halves — whether the platform narrows or flattens
+// each half rather than spacing them — is a number nothing here can answer.
+//
+// The chevron's proportions are measured off that stored reference; the
+// constants in components/internal/chipface carry the capture and the figures.
 //
 // # Uncontrolled
 //

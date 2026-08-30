@@ -575,7 +575,7 @@ var chipStoreys = []struct {
 //
 // The three stand side by side because the section's whole job is telling them
 // apart. The anchor is the one that differs in shape: the button's rounded
-// rectangle rather than the pill, with the chevron pair the component draws
+// rectangle rather than the pill, with the down chevron the component draws
 // itself. The badge carries no mark at all — the faces share a geometry on
 // purpose and must not share a disclosure chevron, because a mark that
 // promises a menu on the face that opens none is the one way to make them

@@ -28,10 +28,10 @@ import (
 )
 
 // fieldChevron is the box the field trigger's mark is drawn in: a solid
-// downward triangle, the form register's own mark rather than the chrome
-// register's paired chevrons. It is a fixed size because the trigger's other
-// numbers come from the density and the mark is what tells the two registers
-// apart at a glance.
+// triangle, the form register's own mark rather than the chrome register's
+// stroked chevron. It is a fixed size because the trigger's other numbers come
+// from the density and the mark is what tells the two registers apart at a
+// glance.
 const fieldChevron = unit.Dp(16)
 
 // dismissReach is how far the outside-press absorber reaches beyond the box
@@ -53,6 +53,10 @@ const dismissReach = unit.Dp(8192)
 // TRIGGER at the bottom of the reported box, so a caller placing an upward
 // field aligns that box's BOTTOM edge with the row the trigger stands in —
 // record the widget, read the height it reports, and offset by it.
+//
+// It is also what the trigger's own mark says, open or closed: the triangle
+// points the way the menu will go. A mark that pointed down over a menu that
+// stands above it would be announcing a motion the control does not have.
 type Drop uint8
 
 const (
@@ -628,31 +632,37 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	labelCall.Add(gtx.Ops)
 	st.Pop()
 
-	// Chevron: downward triangle aligned to the right.
+	// The mark, aligned to the right: the triangle points the way this field's
+	// menu opens, which is the whole of what it has to say. See [Drop].
 	cx := fieldW - padH - chevronSz/2
 	cy := triggerH / 2
 	chevronCol := tok.color.Ramps.Neutral.Step(700) // low-contrast glyph
 	if s.Disabled {
 		chevronCol = tokens.Disabled(chevronCol)
 	}
-	drawChevron(gtx, cx, cy, chevronSz, chevronCol)
+	drawChevron(gtx, cx, cy, chevronSz, chevronCol, s.Drop == DropUp)
 
 	return layout.Dimensions{Size: triggerSize}
 }
 
-// drawChevron draws a downward-pointing solid triangle centered at (cx, cy)
-// with overall width sz.
-func drawChevron(gtx layout.Context, cx, cy, sz int, col color.NRGBA) {
+// drawChevron draws a solid triangle centered at (cx, cy) with overall width
+// sz, pointing up when up is set and down otherwise.
+func drawChevron(gtx layout.Context, cx, cy, sz int, col color.NRGBA, up bool) {
 	half := float32(sz) / 2
 	quarter := float32(sz) / 4
 	fcx := float32(cx)
 	fcy := float32(cy)
 
+	base, apex := fcy-quarter, fcy+quarter
+	if up {
+		base, apex = fcy+quarter, fcy-quarter
+	}
+
 	var p clip.Path
 	p.Begin(gtx.Ops)
-	p.MoveTo(f32.Pt(fcx-half, fcy-quarter))
-	p.LineTo(f32.Pt(fcx+half, fcy-quarter))
-	p.LineTo(f32.Pt(fcx, fcy+quarter))
+	p.MoveTo(f32.Pt(fcx-half, base))
+	p.LineTo(f32.Pt(fcx+half, base))
+	p.LineTo(f32.Pt(fcx, apex))
 	p.Close()
 	paint.FillShape(gtx.Ops, col, clip.Outline{Path: p.End()}.Op())
 }

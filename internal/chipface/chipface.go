@@ -1,7 +1,7 @@
 // Package chipface holds the one geometry the chip family draws, so that its
 // faces can live in the packages they belong to without either of them
 // redrawing it: components/chip's pill and badge, and components/picker's
-// pop-up anchor.
+// pull-down anchor.
 //
 // One geometry means one answer to every question that is not the face's own —
 // the measured fill, the two-sided rim, the walked inks, the focus ring that
@@ -56,9 +56,15 @@ const (
 	// glyph. It is the zero value, so a widget that names no face is a chip.
 	FaceChip Face = iota
 
-	// FaceAnchor is the pop-up anchor: the same geometry at the button's own
-	// rounded-rect radius, with the paired up/down chevrons drawn here
+	// FaceAnchor is the pull-down anchor: the same geometry at the button's
+	// own rounded-rect radius, with the single down chevron drawn here
 	// instead of a caller's glyph.
+	//
+	// The mark is a claim about placement — a menu opens BELOW this control —
+	// so it holds only while the caller places the menu there. A trigger the
+	// menu stands OVER wears a different mark and is therefore a different
+	// face, not this one with a flag; picker's package doc carries what that
+	// face would need.
 	FaceAnchor
 
 	// FaceBadge is the non-interactive face: no state walk, no focus ring,
@@ -86,10 +92,10 @@ func (f Face) radius(rad tokens.RadiusScale) float32 {
 	return rad.Full
 }
 
-// The pop-up chevrons' proportions, measured off the stored macOS reference
+// The pull-down chevron's proportions, measured off the stored macOS reference
 // (reference/macos/mail-window.png in the org's .github repository;
 // window-bounded capture, macOS 26.5.2, dark appearance, one pixel per dp on
-// that display). Both pop-up controls in Mail's toolbar — the folder one and
+// that display). Both pull-down controls in Mail's toolbar — the folder one and
 // the flag one — draw a chevron whose ink measures 9 × 5 px inside a control
 // 29 px tall, identical to the pixel, and the folder control's chevron ends
 // 9 px inside the control's own trailing edge.
@@ -100,68 +106,47 @@ func (f Face) radius(rad tokens.RadiusScale) float32 {
 //	chevronAspect      the ink's height, 5 of its own 9
 //
 // which at this system's 36 dp comfortable control comes out at 11.2 × 6.2 dp.
-//
-// WHAT THE REFERENCE CANNOT ANSWER, stated rather than papered over: neither
-// stored control is a PAIRED-chevron pop-up. Both are single-chevron pull-down
-// buttons, and no capture in reference/macos holds the up/down pair. So the
-// pair is BUILT from the measured single chevron rather than measured: each
-// half is that chevron at its measured width and aspect, and the air between
-// the two is one chevron's own ink height, which makes the pair three chevron
-// heights tall overall. Whether the platform instead narrows or flattens each
-// half of its pair is a number the stored reference does not carry — the air
-// is the one figure here that is a choice, and it is the smallest one that
-// stops the two halves closing into a diamond. A capture of a macOS pop-up
-// button would settle it, and belongs in the platform reference rather than
-// being measured privately.
 const (
 	chevronWidthRatio = 9.0 / 29.0
 	chevronAspect     = 5.0 / 9.0
 )
 
-// chevronStroke is the pair's line weight. The platform reference measured its
+// chevronStroke is the mark's line weight. The platform reference measured its
 // chevron band at ≈1.44 px at 16 pt from an offscreen render — the platform
 // draws diagonals heavier than its axis-aligned strokes — so 1.5 dp is that
 // measurement at the nearest weight this system draws.
 const chevronStroke = unit.Dp(1.5)
 
 // chevronWidth is the mark's column for [FaceAnchor] at density d, in pixels:
-// the platform's ratio of the CONTROL's height, so the pair keeps the
+// the platform's ratio of the CONTROL's height, so the mark keeps the
 // platform's proportion at every density rather than taking a line box the way
 // an inline glyph does.
 func chevronWidth(gtx layout.Context, d tokens.Density) int {
 	return gtx.Dp(unit.Dp(d.ControlHeight * chevronWidthRatio))
 }
 
-// chevrons paints the pop-up pair — one chevron up over one chevron down —
-// spanning box horizontally and centred in it vertically.
+// chevron paints the pull-down mark — one chevron pointing down — spanning box
+// horizontally and centred in it vertically.
 //
-// The pair is STATIC. On the platform a pop-up button's chevrons say "this
-// pops up" and never "this is open": the glyph does not flip when the menu
+// It is STATIC. On the platform a pull-down button's chevron says "a menu opens
+// below this" and never "this is open": the glyph does not flip when the menu
 // stands, and an anchor that flipped one would be describing its own menu in a
 // vocabulary the platform reserves for a disclosure triangle.
-func chevrons(gtx layout.Context, box image.Rectangle, col color.NRGBA) {
+func chevron(gtx layout.Context, box image.Rectangle, col color.NRGBA) {
 	w := float32(box.Dx())
 	h := w * chevronAspect
 	stroke := float32(gtx.Dp(chevronStroke))
 	if stroke < 1 {
 		stroke = 1
 	}
-	// One chevron height of air between the two halves, so the pair is three
-	// of them tall. Closer than that and the arms meet at the waist and the
-	// mark reads as a diamond rather than as two chevrons.
-	total := 3 * h
 	x0 := float32(box.Min.X)
-	top := float32(box.Min.Y) + (float32(box.Dy())-total)/2
+	top := float32(box.Min.Y) + (float32(box.Dy())-h)/2
 
 	var p clip.Path
 	p.Begin(gtx.Ops)
-	p.MoveTo(f32.Pt(x0, top+h))
-	p.LineTo(f32.Pt(x0+w/2, top))
-	p.LineTo(f32.Pt(x0+w, top+h))
-	bot := top + 2*h
-	p.MoveTo(f32.Pt(x0, bot))
-	p.LineTo(f32.Pt(x0+w/2, bot+h))
-	p.LineTo(f32.Pt(x0+w, bot))
+	p.MoveTo(f32.Pt(x0, top))
+	p.LineTo(f32.Pt(x0+w/2, top+h))
+	p.LineTo(f32.Pt(x0+w, top))
 	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: stroke}.Op())
 }
 
@@ -172,7 +157,8 @@ func chevrons(gtx layout.Context, box image.Rectangle, col color.NRGBA) {
 // by hand and a chevron built for one screen are interchangeable here.
 //
 // A nil Glyph draws no mark; the geometry loses the mark and the gap before it
-// and nothing else. [FaceAnchor] ignores it — its mark is the chevron pair.
+// and nothing else. [FaceAnchor] ignores it — its mark is the pull-down
+// chevron.
 type Glyph func(gtx layout.Context, sizePx int, col color.NRGBA)
 
 // State is the explicit visual state a static render draws in. The zero value
@@ -393,8 +379,8 @@ func (p Pin) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 
 // Draw paints one member of the family. face selects which: the chip walks its
 // fill, wears the ring and asks for the cursor; the badge does none of the
-// three; the anchor does all of them at the button's corner with the chevron
-// pair for a mark. Everything else, geometry and colour alike, is shared.
+// three; the anchor does all of them at the button's corner with the pull-down
+// chevron for a mark. Everything else, geometry and colour alike, is shared.
 func Draw(
 	gtx layout.Context,
 	shaper *text.Shaper,
@@ -424,8 +410,8 @@ func Draw(
 	gap := gtx.Dp(unit.Dp(sp.S2))
 	// The glyph is the label's own line box — see components/chip's package
 	// doc for why that is the same number components/icon answers at each
-	// density's own role. The anchor's chevron pair is not a glyph and does
-	// not take the line box: it is the platform's own ratio of the CONTROL's
+	// density's own role. The anchor's chevron is not a glyph and does not
+	// take the line box: it is the platform's own ratio of the CONTROL's
 	// height, so the mark keeps the platform's proportion at every density.
 	mark := 0
 	switch {
@@ -507,11 +493,11 @@ func Draw(
 	switch {
 	case mark == 0:
 	case face == FaceAnchor:
-		// The pair is handed the mark's column at the shape's full height and
-		// centres itself in it, so its own ink height stays the platform's
+		// The chevron is handed the mark's column at the shape's full height
+		// and centres itself in it, so its own ink height stays the platform's
 		// ratio rather than being stretched to a box.
 		mo := op.Offset(image.Pt(offX+labelDims.Size.X+gap, 0)).Push(gtx.Ops)
-		chevrons(gtx, image.Rect(0, 0, mark, h), glyphInk)
+		chevron(gtx, image.Rect(0, 0, mark, h), glyphInk)
 		mo.Pop()
 	case glyph != nil:
 		mo := op.Offset(image.Pt(offX+labelDims.Size.X+gap, (h-mark)/2)).Push(gtx.Ops)

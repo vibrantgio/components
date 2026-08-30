@@ -184,7 +184,10 @@ func TestOpenFieldStacksTheSharedMenuOverItsTrigger(t *testing.T) {
 		rows := menu(t, picker.MenuState{Options: options, Selected: 1})(gtx)
 		planeEdge(gtx, rows.Size)
 		off := op.Offset(image.Pt(0, rows.Size.Y)).Push(gtx.Ops)
-		trigger := field(t, picker.FieldState{Options: options, Selected: 1})(gtx)
+		// The same trigger, which means the same DIRECTION: its mark points
+		// the way its menu goes, so a downward trigger under an upward menu
+		// would be a different control.
+		trigger := field(t, picker.FieldState{Options: options, Selected: 1, Drop: picker.DropUp})(gtx)
 		off.Pop()
 		return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, trigger.Size.Y+rows.Size.Y)}
 	})
@@ -217,7 +220,7 @@ func TestOpenFieldDrawsItsPlaneEdgeBothWaysUp(t *testing.T) {
 				triggerY, menuY = row*len(options), 0
 			}
 			off := op.Offset(image.Pt(0, triggerY)).Push(gtx.Ops)
-			field(t, picker.FieldState{Options: options, Selected: 1})(gtx)
+			field(t, picker.FieldState{Options: options, Selected: 1, Drop: d.drop})(gtx)
 			off.Pop()
 			off = op.Offset(image.Pt(0, menuY)).Push(gtx.Ops)
 			menu(t, picker.MenuState{Options: options, Selected: 1})(gtx)
@@ -336,14 +339,35 @@ func TestBothDropDirectionsMeasureTheSameStack(t *testing.T) {
 	}
 }
 
-// TestClosedFieldIgnoresTheDropDirection: a closed trigger has no menu to
-// place, so the direction cannot show — the two draw the same control.
-func TestClosedFieldIgnoresTheDropDirection(t *testing.T) {
+// TestTheTriggersMarkPointsTheWayItsMenuOpens: the triangle announces the
+// motion the control has, so an upward field's trigger is not the downward
+// one's — closed or open, since the direction is a property of the field and
+// not of its open state. And the announcement is the mark's alone: every pixel
+// the direction moves lies in the trailing quarter of the control, where the
+// mark is drawn, so nothing else about the trigger turns over with it.
+func TestTheTriggersMarkPointsTheWayItsMenuOpens(t *testing.T) {
 	size := image.Pt(200, 44)
 	down := golden.Capture(t, size, field(t, picker.FieldState{Options: options, Selected: 1}))
 	up := golden.Capture(t, size, field(t, picker.FieldState{Options: options, Selected: 1, Drop: picker.DropUp}))
-	if n := golden.PixelDiff(down, up); n != 0 {
-		t.Errorf("a closed upward field differs from a closed downward one in %d pixels", n)
+
+	moved, leading := 0, 0
+	for y := 0; y < size.Y; y++ {
+		for x := 0; x < size.X; x++ {
+			if down.At(x, y) == up.At(x, y) {
+				continue
+			}
+			moved++
+			if x < size.X-size.X/4 {
+				leading++
+			}
+		}
+	}
+	if moved == 0 {
+		t.Error("an upward field's closed trigger draws the downward one's image: the mark says nothing about where the menu goes")
+	}
+	if leading != 0 {
+		t.Errorf("the drop direction moved %d pixels outside the mark's own column (%d in all); the triangle turns over and nothing else does",
+			leading, moved)
 	}
 }
 

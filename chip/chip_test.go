@@ -154,11 +154,11 @@ func TestBadgeGoldenOnEveryGround(t *testing.T) {
 	}
 }
 
-// TestAnchorGoldenOnEveryGround is the same six for the pop-up anchor: the
+// TestAnchorGoldenOnEveryGround is the same six for the pull-down anchor: the
 // chip's fill, rim and inks at the button's rounded-rect corner, with the
-// paired chevrons the component draws itself. Stored beside the chip's own
-// six rather than asserted against them, because the pair of images is what
-// shows the corner and the mark are the ONLY things that differ.
+// chevron the component draws itself. Stored beside the chip's own six rather
+// than asserted against them, because the pair of images is what shows the
+// corner and the mark are the ONLY things that differ.
 func TestAnchorGoldenOnEveryGround(t *testing.T) {
 	shaper := defaultShaper(t)
 	for _, sc := range goldenSchemes {
@@ -240,12 +240,12 @@ func TestAnchorIsTheChipWithADifferentCornerAndMark(t *testing.T) {
 }
 
 // TestAnchorMarkIsSteadyAcrossTheWalk is the platform ruling written down
-// where a future change cannot quietly undo it: a pop-up anchor's chevrons say
-// "this pops up" and never "this is open", so nothing about the pointer's
-// state may move them. The face offers no open flag to flip — that is the
-// structural half — and this is the drawn half: the box the anchor reports is
-// the same box in all four states, so the mark neither grows nor shifts under
-// the pointer while the fill walks beneath it.
+// where a future change cannot quietly undo it: a pull-down anchor's chevron
+// says "a menu opens below this" and never "this is open", so nothing about
+// the pointer's state may move it. The face offers no open flag to flip — that
+// is the structural half — and this is the drawn half: the box the anchor
+// reports is the same box in all four states, so the mark neither grows nor
+// shifts under the pointer while the fill walks beneath it.
 func TestAnchorMarkIsSteadyAcrossTheWalk(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := func(s chip.RenderState) image.Point {
@@ -269,23 +269,23 @@ func TestAnchorMarkIsSteadyAcrossTheWalk(t *testing.T) {
 	}
 }
 
-// TestAnchorChevronsReachTheGraphicFloor is the contrast sweep's extension to
+// TestAnchorChevronReachesTheGraphicFloor is the contrast sweep's extension to
 // the anchor face, and it is a PIXEL measurement rather than another pass over
 // the derivations. chip_contrast_test.go already sweeps the five colours on
 // every storey and in every state, and the anchor changes none of them — it
 // shares Fill, Rim and Ink with the chip, so that whole sweep covers this face
 // as it stands.
 //
-// What it cannot cover is the mark. The chevron pair is a 1.5 dp DIAGONAL
-// stroke, and a diagonal hairline is antialiased: the colour Ink derives may
-// clear the graphic floor while no pixel actually drawn does. The platform has
-// the same problem and answers it by drawing diagonals heavier than its
-// axis-aligned strokes (ADR-019 measured 1.44 px against 1.26 px at 16 pt),
-// and Gio composites in linear light where CoreGraphics composites in encoded
-// sRGB, which costs a hairline more ink still. So the claim worth holding is
-// about the drawn pixels: somewhere in the mark, in every scheme and every
-// state, the pair reaches the floor it owes.
-func TestAnchorChevronsReachTheGraphicFloor(t *testing.T) {
+// What it cannot cover is the mark. The chevron is a 1.5 dp DIAGONAL stroke,
+// and a diagonal hairline is antialiased: the colour Ink derives may clear the
+// graphic floor while no pixel actually drawn does. The platform has the same
+// problem and answers it by drawing diagonals heavier than its axis-aligned
+// strokes (ADR-019 measured 1.44 px against 1.26 px at 16 pt), and Gio
+// composites in linear light where CoreGraphics composites in encoded sRGB,
+// which costs a hairline more ink still. So the claim worth holding is about
+// the drawn pixels: somewhere in the mark, in every scheme and every state,
+// the chevron reaches the floor it owes.
+func TestAnchorChevronReachesTheGraphicFloor(t *testing.T) {
 	shaper := defaultShaper(t)
 	states := []struct {
 		name string
@@ -326,9 +326,9 @@ func TestAnchorChevronsReachTheGraphicFloor(t *testing.T) {
 							}
 						}
 					}
-					t.Logf("%s: the pair's heaviest pixel reaches %.2f:1 on the fill", name, best)
+					t.Logf("%s: the mark's heaviest pixel reaches %.2f:1 on the fill", name, best)
 					if best < tokens.GraphicFloor {
-						t.Errorf("%s: the chevron pair's heaviest drawn pixel reaches only %.2f:1 on the fill, want at least %.1f:1",
+						t.Errorf("%s: the chevron's heaviest drawn pixel reaches only %.2f:1 on the fill, want at least %.1f:1",
 							name, best, tokens.GraphicFloor)
 					}
 				})
