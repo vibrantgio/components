@@ -24,11 +24,10 @@ import (
 // stated at a dark scheme's tone, and four hundred random colours from a
 // fixed source.
 //
-// The three pastels are the shape that produced the AV1 defect family. A
-// palette published for a dark scheme states its accents high on the tonal
-// axis, and a brand seeded with one of them derives a light scheme whose
-// primary pin sits a whisper off its own ground — which is exactly what a
-// selected radio's edge used to be coloured with.
+// The three pastels represent a palette published for a dark scheme that
+// states its accents high on the tonal axis: a brand seeded with one of
+// them derives a light scheme whose primary pin sits a whisper off its own
+// ground, which is the shape this sweep needs to exercise.
 func radioEdgeSweepSeeds() []stdcolor.NRGBA {
 	rng := rand.New(rand.NewSource(20260827))
 	seeds := []stdcolor.NRGBA{
@@ -75,8 +74,8 @@ var radioEdgeGrounds = []tokens.ElevationLevel{
 	tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
 }
 
-// TestSelectedRadioEdgeClearsTheGraphicFloorForEverySeed is AV1.2's
-// site-level gate: whatever a caller seeds the palette with, and whatever
+// TestSelectedRadioEdgeClearsTheGraphicFloorForEverySeed is the site-level
+// gate: whatever a caller seeds the palette with, and whatever
 // storey hosts the radio, a selected radio's edge reaches WCAG 1.4.11
 // against that storey's own fill.
 func TestSelectedRadioEdgeClearsTheGraphicFloorForEverySeed(t *testing.T) {
@@ -105,11 +104,10 @@ func TestSelectedRadioEdgeClearsTheGraphicFloorForEverySeed(t *testing.T) {
 		len(radioEdgeSweepSeeds()), worstLight, worstLightAt, worstDark, worstDarkAt)
 }
 
-// TestTheCanonicalSeedsSelectedRadioEdgeIsThePrimaryPin states what this
-// repair costs every stored image in the design system, which is nothing:
-// on the seed every golden is rendered from, the brand's own colour clears
-// the floor on every host storey and is what a selected radio's edge gets,
-// exactly as before.
+// TestTheCanonicalSeedsSelectedRadioEdgeIsThePrimaryPin asserts that on the
+// seed every golden is rendered from, the brand's own colour clears the
+// floor on every host storey, so a selected radio's edge is exactly the
+// Primary pin there.
 func TestTheCanonicalSeedsSelectedRadioEdgeIsThePrimaryPin(t *testing.T) {
 	for _, s := range []struct {
 		name string
@@ -127,10 +125,11 @@ func TestTheCanonicalSeedsSelectedRadioEdgeIsThePrimaryPin(t *testing.T) {
 	}
 }
 
-// TestAPastelSeedsSelectedRadioEdgeLeavesThePin is the regression itself,
-// read on the shape that produced it: a light scheme seeded with a dark
-// scheme's accent. Before the gate a selected radio's edge was the bare
-// pin at a sub-floor ratio.
+// TestAPastelSeedsSelectedRadioEdgeLeavesThePin exercises a light scheme
+// seeded with a dark scheme's accent, where the seed's own primary pin
+// falls under the graphic floor against the window ground: it asserts that
+// selectedRadioEdge does not return the bare pin in that case, while a
+// scheme whose primary already clears its host keeps that pin.
 func TestAPastelSeedsSelectedRadioEdgeLeavesThePin(t *testing.T) {
 	seed := stdcolor.NRGBA{0x89, 0xb4, 0xfa, 0xff}
 	light, dark := tokens.FromSeed(seed)

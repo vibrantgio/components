@@ -35,7 +35,7 @@ const graphicFloor = control.GraphicFloor
 // The check mark is drawn on components/icons' grid rather than on one of
 // its own, so that the library has a single answer to "what does a stroke
 // weigh". checkGrid is that grid — 24 units, whatever size the drawing is
-// realized at — and checkBandUnits is its DIAGONAL band measure: 2 units,
+// realized at — and checkBandUnits is its diagonal band measure: 2 units,
 // the compensation a 45-degree edge needs to cover device pixels whole,
 // against 1.5 for an axis-aligned one. The check is nothing but two
 // 45-degree arms, so it takes the diagonal measure throughout.
@@ -96,9 +96,7 @@ type CheckboxRenderState struct {
 	// vocabulary the host names its own fill (tokens.SurfaceAt). A dialog
 	// at tokens.Level2 passes Level2 and the edge takes whichever neutral
 	// rung clears the floor over that storey. The zero value is
-	// tokens.Level0, the window ground, which resolves to exactly the walk
-	// the border always performed — so every state written before this
-	// field existed keeps its colours. A checked box ignores it: it
+	// tokens.Level0, the window ground. A checked box ignores it: it
 	// carries the accent fill, which is its own ground.
 	Ground tokens.ElevationLevel
 }
@@ -116,8 +114,7 @@ type CheckboxProps struct {
 	// local ground the unchecked box's edge is derived against. A
 	// container that raises its surface (a level-2 dialog hosting a
 	// "remember this" toggle) passes its own storey here; the zero value
-	// is the window ground and keeps exactly the colours the border has
-	// always had. See CheckboxRenderState.Ground.
+	// is the window ground. See CheckboxRenderState.Ground.
 	Ground tokens.ElevationLevel
 
 	// Disabled, if non-nil, disables the checkbox when it emits true.
@@ -218,9 +215,8 @@ func RenderCheckbox(
 	rad tokens.RadiusScale,
 	s CheckboxRenderState,
 ) layout.Widget {
-	// Density is not a parameter (the signature predates E1.3): the static
-	// path renders at tokens.Comfortable; density-aware rendering goes
-	// through Checkbox.
+	// Density is not a parameter: the static path always renders at
+	// tokens.Comfortable; density-aware rendering goes through Checkbox.
 	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, density: tokens.Comfortable}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawCheckbox(gtx, tok, s)
@@ -230,8 +226,8 @@ func RenderCheckbox(
 // drawCheckbox renders the checkbox into gtx. All visual state comes from s;
 // no event queries are performed here.
 func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState) layout.Dimensions {
-	// E1.3 sizing rule: the visual glyph keeps its 20 dp box at every
-	// density; the footprint (the touch row the glyph is centred in) is the
+	// Sizing rule: the visual glyph keeps its 20 dp box at every density;
+	// the footprint (the touch row the glyph is centred in) is the
 	// density's control height — 36 dp Comfortable, 28 dp Compact. The
 	// glyph's box is never the pointer target: the live path extends the hit
 	// area to at least 44 dp around this footprint via hit.Extend.
@@ -308,19 +304,14 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	// rung that reads against the storey the box stands on — s.Ground through
 	// focus.Ground, the same walk the unchecked edge above takes, so a box in
 	// a dialog wears an edge and a ring that were both measured against the
-	// dialog. It rides in the slack
-	// between the 20 dp glyph and the density's footprint, so taking focus
-	// moves nothing and the ring is the same ring whatever the box is doing.
+	// dialog. It rides in the slack between the 20 dp glyph and the density's
+	// footprint, so taking focus moves nothing and the ring is the same ring
+	// whatever the box is doing.
 	//
-	// Clear of the box, and that gap is the fix. The ring used to be stroked
-	// on the box's own boundary in neutral step 500 — the exact colour of the
-	// unchecked border it landed on, 1.00:1 against the edge it was circling —
-	// and the box then overdrew its inner half, leaving one device pixel of
-	// grey against grey. A ring that touches the edge it marks cannot be read
-	// separately from it, and a checked box has no free edge to promote at
-	// all: its border is the primary fill that says it is checked. So the ring
-	// sits outside the glyph with clear ground on both sides of it, which is
-	// the one placement that reads in all four states.
+	// The ring must sit outside the glyph with clear ground on both sides: a
+	// ring that touches the edge it marks cannot be read separately from it,
+	// and a checked box has no free edge to promote at all — its border is
+	// the primary fill that says it is checked.
 	if s.Focused && !s.Disabled {
 		w := gtx.Dp(focus.Width)
 		out := w + w/2 // stroke centreline: the band spans w..2w clear of the box

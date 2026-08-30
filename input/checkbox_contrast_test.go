@@ -41,31 +41,18 @@ var checkboxSeeds = []color.NRGBA{
 	{A: 0xff},
 }
 
-// TestControlBorderClearsTheGraphicFloor is the defect this derivation
-// replaced, written down. The border was neutral step 500 in both schemes,
-// and the neutral ramps are paired — light and dark are realized at the same
-// perceptual depths from opposite ends — so step 500 is the one rung that
-// barely moves while the ground under it moves the whole way: 6.63:1 against
-// the dark background and 2.67:1 against the light one, under WCAG 1.4.11's
-// floor in the scheme most people read in. Nothing in that line of code
-// looked scheme-dependent, which is exactly why the light half went
-// unnoticed.
-//
-// The derivation that replaced it aimed at level 0 unconditionally, and that
-// was the same mistake one storey up: a box inside a dialog stands on the
-// level-2 or level-3 plane, where the rung chosen against the window ground
-// measured 2.94:1 and 2.15:1 in the light scheme. So the sweep runs the whole
-// ladder — every storey a control can be handed — and the border is derived
-// against each in turn rather than measured against grounds it was never
-// aimed at.
+// TestControlBorderClearsTheGraphicFloor asserts controlBorder clears WCAG
+// 1.4.11 against every storey a control can be handed, not merely the window
+// ground: a border derivation that only clears the floor against level 0 can
+// still fail against a level-2 or level-3 host, so the sweep runs the whole
+// elevation ladder and derives the border against each rung in turn.
 //
 // Two grounds are measured per storey, because the border has two sides.
 // Outside it is the storey the control stands on; inside it is the control's
-// own interior, which the component paints itself and therefore always knows,
-// and which no ground the control is handed can excuse it from clearing.
-// Since AU1.4 that interior is a storey too — controlFill, one rung above the
-// same ground — so the two sides of the edge move together, and both are
-// asked rather than one of them being assumed to stand still.
+// own interior (controlFill, one rung above the same ground), which the
+// component paints itself and which no ground the control is handed can
+// excuse it from clearing. Both sides move together as the ground changes,
+// so both are asked rather than one being assumed to stand still.
 func TestControlBorderClearsTheGraphicFloor(t *testing.T) {
 	for _, sc := range []struct {
 		name   string

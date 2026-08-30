@@ -41,7 +41,7 @@ func TestRadioGolden(t *testing.T) {
 // ---- Accessibility tests ----
 
 // TestRadioFootprintIsControlHeight checks the radio's visual footprint is
-// the density's control-height square (E1.3: 36 dp Comfortable) with the
+// the density's control-height square (36 dp Comfortable) with the
 // 20 dp glyph centred in it. The 44 dp WCAG 2.5.5 floor applies to the
 // pointer target, not the footprint: the live Radio extends its hit area via
 // internal/hit (same mechanism TestCheckboxHitSlopToggles exercises).

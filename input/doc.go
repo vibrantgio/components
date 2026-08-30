@@ -11,18 +11,15 @@
 // callback, or through Props.Message, which adds an mvu.MessageOp to the
 // frame's ops for the runtime to deliver to Update.
 //
-// # The dropdown has moved
-//
 // Pick-one-from-many is components/picker's, where one menu serves both a
 // form-register trigger and a chrome-register one. Dropdown and RenderDropdown
 // forward to picker.Field and picker.RenderField and are deprecated;
 // DropdownProps and DropdownRenderState are aliases of picker's, so props and
 // states written against either name are the same values.
 //
-// What is left here is flat by construction: the text field, checkbox and
-// radio inner fills paint the storey above the ground they stand on and sit in
-// the page plane. The one raised plane the package used to carry — the
-// dropdown's open option menu — went with the dropdown.
+// The text field, checkbox and radio inner fills paint the storey above the
+// ground they stand on and sit in the page plane; none of them raises a plane
+// above the page.
 //
 // The text field is uncontrolled. Props.Seed pre-fills a newly created
 // instance so an existing value can be edited rather than retyped, but a later

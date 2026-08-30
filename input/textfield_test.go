@@ -25,8 +25,7 @@ import (
 // defaultShaper returns the shaper every golden here draws with: the default
 // typography's faces pinned, system fonts off, so the stored images are the
 // same on every machine. A golden test pins its faces with
-// DeterministicShaper; application code takes the fallback Shaper. See
-// AGENTS.md.
+// DeterministicShaper; application code takes the fallback Shaper.
 func defaultShaper(t *testing.T) *text.Shaper {
 	t.Helper()
 	return tokens.DefaultTypography.DeterministicShaper()
@@ -40,10 +39,10 @@ func TestTextFieldGolden(t *testing.T) {
 	size := image.Pt(300, 60)
 
 	// Zero corner radius keeps the edges sharp: anti-aliased rounded corners
-	// vary between GPU context initialisations. The placeholder is real text
-	// (F4.4) — the faces are pinned by DeterministicShaper, so Latin glyphs
-	// rasterise identically on every machine and the placeholder's own type
-	// role is now on screen where a regression in it would show.
+	// vary between GPU context initialisations. The placeholder is real text —
+	// the faces are pinned by DeterministicShaper, so Latin glyphs rasterise
+	// identically on every machine and the placeholder's own type role is on
+	// screen where a regression in it would show.
 	sharpRadius := tokens.RadiusScale{}
 	// Disabled is intentionally omitted: semi-transparent disabled colours
 	// composite non-deterministically against the headless window background.
@@ -80,8 +79,8 @@ func TestTextFieldGolden(t *testing.T) {
 // the two readings differ. BodyLarge is a 24 dp line box, so a Comfortable
 // field is 24 + 16 = 40 dp, four taller than the 36 dp floor and four taller
 // than a Comfortable button in the 20 dp LabelLarge role. That is the type
-// roles talking, not a defect: F4.4c made the line height mean the line box,
-// and a field set in a larger role is a larger field.
+// roles talking, not a defect: line height means the line box, so a field
+// set in a larger role is a larger field.
 //
 // The 44 dp WCAG 2.5.5 floor applies to the pointer target, verified by
 // TestTextFieldHitSlopFocusesEditor.
@@ -332,7 +331,7 @@ func driveTextFieldFrame(w layout.Widget, ops *op.Ops, r *gioinput.Router, size 
 // TestTextFieldSubmitFiresCallbacksAndClears drives a real key.EditEvent with a
 // trailing newline through a focused TextField in submit mode and verifies that
 // SubmitMessage and OnSubmit fire with the editor's text and that the editor
-// is cleared on the following frame (Measurable a + b).
+// is cleared on the following frame.
 func TestTextFieldSubmitFiresCallbacksAndClears(t *testing.T) {
 	var (
 		gotSubmit  string
@@ -393,10 +392,10 @@ func TestTextFieldSubmitFiresCallbacksAndClears(t *testing.T) {
 }
 
 // TestTextFieldChangeEventStillFiresWithoutSubmit confirms callers without
-// Submit: true continue to see ChangeEvent-driven OnChange/Message dispatch
-// (Measurable c — no behavioural regression). The exported MessageOp collector
-// is unreachable from outside mvu, so OnChange (which sits on the same code
-// path one branch above the Message dispatch) is used as the live proxy.
+// Submit: true see ChangeEvent-driven OnChange/Message dispatch. The exported
+// MessageOp collector is unreachable from outside mvu, so OnChange (which
+// sits on the same code path one branch above the Message dispatch) is used
+// as the live proxy.
 func TestTextFieldChangeEventStillFiresWithoutSubmit(t *testing.T) {
 	var got []string
 	props := input.TextFieldProps{

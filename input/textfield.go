@@ -66,7 +66,7 @@ type TextFieldProps struct {
 	Ground tokens.ElevationLevel
 
 	// Seed, when non-empty, pre-fills the editor when the field instance is
-	// created, so an existing value can be EDITED rather than retyped. The
+	// created, so an existing value can be edited rather than retyped. The
 	// field stays uncontrolled: later Seed values have no effect on a live
 	// instance — rebuild the field (e.g. keyed on an epoch, the modal-form
 	// pattern) to reseed it.
@@ -119,7 +119,7 @@ type TextFieldProps struct {
 	// shaper (Typography.Shaper()), which is built once for the process and
 	// shared by every component reading that typography — the cache lives
 	// behind the Typography value, so it survives the copy this component's
-	// map function makes of it (spectrum F5.1). Set it only when this field
+	// map function makes of it. Set it only when this field
 	// must shape with a different shaper than the theme provides.
 	//
 	// A shaper is not safe to use from two goroutines; Gio lays the widget
@@ -134,7 +134,7 @@ type resolvedTokens struct {
 	body    tokens.TextStyle // the BodyLarge role: typeface, weight, size, line height
 	spacing tokens.SpacingScale
 	radius  tokens.RadiusScale
-	density tokens.Density // control height and inner padding (E1.3)
+	density tokens.Density // control height and inner padding
 	shaper  *text.Shaper   // the theme's shaper; nil in the Render* paths
 }
 
@@ -163,7 +163,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 
 	// Flatten the nested theme observables into a concrete snapshot. The
 	// typography emission supplies both the BodyLarge text style and the
-	// theme's cached shaper (ADR-003: the theme owns the typeface).
+	// theme's cached shaper — the theme owns the typeface.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
 			rx.CombineLatest5(t.Color, t.Typography, t.Spacing, t.Radius, t.Density),
@@ -187,7 +187,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 		// Allocated once per subscription — survives all theme and disabled
 		// emissions for the lifetime of this TextField instance.
 		editor := &widget.Editor{SingleLine: true, Submit: props.Submit, Mask: props.Mask}
-		// hitTag identifies the extended pointer-target area (E1.3): the
+		// hitTag identifies the extended pointer-target area: the
 		// visual field is the density's control height tall, but a press
 		// anywhere in the ≥44 dp hit rectangle focuses the editor.
 		hitTag := new(int)
@@ -300,7 +300,7 @@ func Render(
 
 // drawTextFieldLive renders a live text field containing a widget.Editor.
 func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.Editor, hitTag *int, placeholder, desc string, tok resolvedTokens, s RenderState, showPlaceholder bool) layout.Dimensions {
-	// E1.3 sizing rule: field height = Density.ControlHeight (36 dp
+	// Sizing rule: field height = Density.ControlHeight (36 dp
 	// Comfortable, 28 dp Compact — shadcn's h-9 input), vertical padding =
 	// Density.PaddingY. Horizontal padding stays spacing.S3 (12 dp): shadcn
 	// keeps px-3 on inputs across sizes, so it does not follow density.
@@ -417,7 +417,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 		pointer.CursorText.Add(gtx.Ops)
 	}
 
-	// Pointer-target extension (E1.3): the drawn field may be shorter than
+	// Pointer-target extension: the drawn field may be shorter than
 	// the WCAG 2.5.5 floor, but the pointer target never is. Register a
 	// pass-through input area over the hit rectangle — max(field, 44 dp) per
 	// axis, centred on the field, extending beyond its bounds — whose press
@@ -477,7 +477,7 @@ func editorInkShift(gtx layout.Context, sh *text.Shaper, lbl widget.Label, f fon
 // drawTextFieldStatic renders a static text field for golden-image testing.
 // It always shows the placeholder text; there is no live editor.
 func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder string, tok resolvedTokens, s RenderState) layout.Dimensions {
-	// Same E1.3 sizing rules as drawTextFieldLive.
+	// Same sizing rules as drawTextFieldLive.
 	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
@@ -561,32 +561,19 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // draws its prompt in, named once so the two cannot drift. Disabled fades
 // each to DisabledOpacity; focus promotes the border to the focus ring.
 //
-// The fill used to be c.Surface named outright, and on a platform where a
-// text field is textBackgroundColor and always the lightest thing in the
-// window, that put a light field at #E8E8E8 under its own #F6F6F6 page — the
-// complaint ADR-022 exists to end. It is now a rung walked from the ground
-// the field was handed, so the field is lighter than whatever it lies on in
-// both schemes and stays lighter when the host rises (controlFill).
+// The fill is walked from the ground the field was handed (controlFill)
+// rather than a named surface colour, so the field stays lighter than
+// whatever it lies on in both colour schemes and stays lighter as the host
+// rises.
 //
-// The border used to be the ramp's step 500 named outright, which is a
-// pairing and not a colour: it measured 2.67:1 against the light scheme's
-// window ground and 6.63:1 against the dark one, from a line that looks
-// scheme-neutral. controlBorder asks the ramp instead and the field wears
-// the same edge the checkbox and the radio do, on whatever storey it was
-// put.
+// The border is derived from the neutral ramp against the field's ground
+// (controlBorder) rather than a named ramp step, so the field wears the same
+// edge the checkbox and the radio do, on whatever storey it is put.
 //
-// The promoted border is the shape every control in the library now takes
-// when it is focused, and the colour is the one measured rule behind it: the
-// rung of the primary ramp that clears focus.Floor against the storey the
-// field stands on (focus.Ground). It used to be the bare Primary — the seed
-// itself, which reads on the default palette and measures as low as 1.00:1
-// against the light surface once a caller supplies a seed of their own — and
-// then the field's own fill, which is one of the ring's two
-// neighbours and the easier one: the band's outer half meets the host, so a
-// field focused inside a light popover drew a ring measuring 2.14:1 against
-// the surface it was announcing itself on. The storey is the harder ground
-// and clearing it clears the fill as well (see focus.Ground), so one walk
-// answers both edges of the band.
+// The focused border's colour is the rung of the primary ramp that clears
+// focus.Floor against the storey the field stands on (focus.Ground), which
+// also governs the field's own fill, so one walk keeps both the ring and the
+// fill it sits against above the floor.
 func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, placeholder color.NRGBA) {
 	bg = controlFill(c, s.Ground)
 	text = c.Text

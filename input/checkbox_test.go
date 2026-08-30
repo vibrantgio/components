@@ -37,11 +37,9 @@ func TestCheckboxGolden(t *testing.T) {
 		colors tokens.ColorTokens
 		state  input.CheckboxRenderState
 	}{
-		// Every name carries the component prefix. All four inputs share one
-		// testdata/golden directory, and until F4.1 the unprefixed
-		// "light-focused" here and in textfield_test.go named one file: the
-		// checkbox compared its 44x44 render against the text field's 300x60
-		// golden, and the size mismatch made the comparison pass.
+		// Every name carries the component prefix: all four inputs share one
+		// testdata/golden directory, so an unprefixed name risks one golden
+		// file silently serving two different components' renders.
 		{"checkbox-light-unchecked", tokens.DefaultLight, input.CheckboxRenderState{}},
 		{"checkbox-dark-unchecked", tokens.DefaultDark, input.CheckboxRenderState{}},
 		{"checkbox-light-checked", tokens.DefaultLight, input.CheckboxRenderState{Checked: true}},
@@ -58,7 +56,7 @@ func TestCheckboxGolden(t *testing.T) {
 // ---- Accessibility tests ----
 
 // TestCheckboxFootprintIsControlHeight checks the checkbox's visual footprint
-// is the density's control-height square (E1.3: 36 dp Comfortable) with the
+// is the density's control-height square (36 dp Comfortable) with the
 // 20 dp glyph centred in it. The 44 dp WCAG 2.5.5 floor applies to the pointer
 // target, not the footprint: the live Checkbox extends its hit area via
 // internal/hit, exercised by TestCheckboxHitSlopToggles.
@@ -154,13 +152,11 @@ func TestCheckboxCheckedIsVisuallyDistinct(t *testing.T) {
 	}
 }
 
-// TestCheckboxChecksAreDrawn is the other half of "visually distinct", and
-// the half that was missing. A checked box used to be a plain Primary square:
-// distinct from the unchecked one, so the diff test above was satisfied, and
-// distinct only in hue — which reads as a swatch, or as the indeterminate
-// state, to anyone the hue does not reach. So this asserts the mark itself:
-// how much of the checked box reads as check rather than as fill, in both
-// schemes.
+// TestCheckboxChecksAreDrawn asserts the check mark itself is present, not
+// merely that the checked state differs in colour from the unchecked one —
+// a colour-only difference reads as a swatch, or as an indeterminate state,
+// to anyone who cannot use hue. It measures how much of the checked box
+// reads as check versus as fill, in both schemes.
 //
 // The count is a band rather than a number because a stroked figure two
 // pixels wide is mostly its own anti-aliased edge. At the 1 px/dp the harness
@@ -230,20 +226,14 @@ func TestCheckboxFocusRingIsVisuallyDistinct(t *testing.T) {
 	}
 }
 
-// TestFocusIsVisibleOnEveryControlInEveryState is the walkthrough defect,
-// written down. A focused checkbox and a focused radio used to show no ring
-// at all, and the code and the eye were both right about why: a ring was
-// stroked, in neutral step 500, on the boundary of a box whose border is
-// neutral step 500 — 1.00:1 against the very edge it was circling — and the
-// box then overdrew its inner half, so the one thing that escaped was a
-// single device pixel of grey against grey.
-//
-// Colour alone would not have fixed it either, and the chosen radio is the
-// proof: its edge is already primary, so promoting that edge on focus moves
-// primary to a neighbouring rung of primary and a chosen radio looks the same
-// focused as unfocused. So the assertion is the one that catches both: the
-// ring colour is absent from the resting control and present in the focused
-// one — in every state each control has, in both schemes.
+// TestFocusIsVisibleOnEveryControlInEveryState asserts that the ring colour
+// is absent from every control's resting state and present in its focused
+// state, across every state each control has and in both colour schemes.
+// A colour-only signal is not enough on its own: the chosen radio's edge is
+// already primary, so promoting that same edge on focus would move primary
+// to a neighbouring rung of primary rather than adding a distinguishable
+// mark. The assertion instead counts the ring's own colour at the pixel
+// level, in both the resting and focused renders.
 func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 	size := image.Pt(44, 44)
 	shaper := defaultShaper(t)
@@ -319,20 +309,20 @@ func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 	}
 }
 
-// TestFocusRingFollowsTheStoreyOnEveryControl is the storey half of the same
-// walkthrough. A ring measured once against the page is a ring measured
-// against the wrong thing inside a dialog or a popover: those hosts fill
-// deeper rungs of the neutral ramp, and on the default light palette the
-// page's ring rung reads 2.92:1 over a level-2 fill and 2.14:1 over a level-3
-// one, under focus.Floor. Each control now hands its ring the storey it was
-// told it stands on (focus.Ground), so the assertion is that the pixels
-// actually painted are that storey's answer — not merely that some ring
-// appeared, which the level-0 rung would have satisfied on every storey.
+// TestFocusRingFollowsTheStoreyOnEveryControl asserts the ring colour tracks
+// the storey the control stands on rather than being fixed to the page. A
+// ring measured only against the page reads wrong inside a dialog or
+// popover: those hosts fill deeper rungs of the neutral ramp, and on the
+// default light palette the page's ring rung measures 2.92:1 over a level-2
+// fill and 2.14:1 over a level-3 one — under focus.Floor. Each control hands
+// its ring the storey it was told it stands on (focus.Ground), so the
+// assertion checks that the pixels actually painted are that storey's
+// answer, not merely that some ring appeared (which the level-0 rung would
+// satisfy on every storey).
 //
 // A dark scheme's ladder is shallower and its page rung already clears every
-// storey, so the walk answers one rung there for all four levels. That is not
-// a gap in the test: it is the derivation reporting that nothing needs to
-// move, and the same assertion says so.
+// storey, so the walk answers with one rung there across all four levels;
+// that reflects the derivation, not a gap in the test.
 func TestFocusRingFollowsTheStoreyOnEveryControl(t *testing.T) {
 	shaper := defaultShaper(t)
 

@@ -23,15 +23,14 @@ import (
 func TestDropdownGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 
-	// Real option text (F4.4): DeterministicShaper pins the faces, so Latin
-	// glyphs rasterise the same everywhere and the trigger's selected label
-	// and the option rows are now visible rather than implied.
+	// Real option text: DeterministicShaper pins the faces, so Latin glyphs
+	// rasterise the same everywhere and the trigger's selected label and the
+	// option rows are visible rather than implied.
 	opts := []string{"Alpha", "Beta", "Gamma"}
 	// Trigger and option rows are each one BodyLarge line box plus the
-	// density's vertical padding, floored at ControlHeight (E1.3). That is 40
-	// dp Comfortable, not the 36 dp floor: sizing this window off ControlHeight
-	// alone clipped 4 px off the last option row, which is how F4.4c's line-box
-	// change first showed up here.
+	// density's vertical padding, floored at ControlHeight. That is 40 dp
+	// Comfortable, not the 36 dp floor: sizing this window off ControlHeight
+	// alone clips 4 px off the last option row.
 	row := int(tokens.DefaultTypography.BodyLarge.LineHeight + 2*tokens.Comfortable.PaddingY)
 	if floor := int(tokens.Comfortable.ControlHeight); row < floor {
 		row = floor

@@ -40,8 +40,8 @@ type RadioRenderState struct {
 	// passes Level2 and the unselected ring takes whichever neutral rung
 	// clears the floor over that storey. The zero value is tokens.Level0,
 	// the window ground. A selected radio's ring is the primary ink measured
-	// against this same ground (AV1.2; [tokens.ColorTokens.InkOn]) rather
-	// than the bare accent pin, so it too answers to the host it stands on.
+	// against this same ground ([tokens.ColorTokens.InkOn]) rather than the
+	// bare accent pin, so it too answers to the host it stands on.
 	Ground tokens.ElevationLevel
 }
 
@@ -154,9 +154,8 @@ func RenderRadio(
 	rad tokens.RadiusScale,
 	s RadioRenderState,
 ) layout.Widget {
-	// Density is not a parameter (the signature predates E1.3): the static
-	// path renders at tokens.Comfortable; density-aware rendering goes
-	// through Radio.
+	// Density is not a parameter: the static path always renders at
+	// tokens.Comfortable; density-aware rendering goes through Radio.
 	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, density: tokens.Comfortable}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawRadio(gtx, tok, s)
@@ -166,12 +165,9 @@ func RenderRadio(
 // selectedRadioEdge is the colour a selected radio's edge is drawn in: the
 // primary pin while it clears the graphic floor against ground — the same
 // storey controlBorder measures the resting edge against — and otherwise
-// the rung of the primary ramp that does (AV1.2; [tokens.ColorTokens.InkOn]).
-//
-// It used to be the bare Primary pin, which reads only because the
-// canonical seed's own primary clears the window ground already; a pastel
-// seed's pin put a sub-floor ring around a host storey that no golden ever
-// showed. Nothing moves on the canonical seed.
+// the rung of the primary ramp that does ([tokens.ColorTokens.InkOn]). The
+// bare Primary pin is not used directly because a pastel seed's primary can
+// fall under the graphic floor against some host grounds.
 func selectedRadioEdge(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
 	return c.InkOn(tokens.RolePrimary, c.SurfaceAt(ground), tokens.GraphicFloor)
 }
@@ -179,8 +175,8 @@ func selectedRadioEdge(c tokens.ColorTokens, ground tokens.ElevationLevel) color
 // drawRadio renders the radio button into gtx. All visual state comes from s;
 // no event queries are performed here.
 func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layout.Dimensions {
-	// E1.3 sizing rule: the visual glyph keeps its 20 dp circle at every
-	// density; the footprint (the touch row the glyph is centred in) is the
+	// Sizing rule: the visual glyph keeps its 20 dp circle at every density;
+	// the footprint (the touch row the glyph is centred in) is the
 	// density's control height — 36 dp Comfortable, 28 dp Compact. The
 	// glyph's circle is never the pointer target: the live path extends the
 	// hit area to at least 44 dp around this footprint via hit.Extend.
