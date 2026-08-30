@@ -5,11 +5,13 @@ import (
 	"image/color"
 	"math"
 
+	"gioui.org/f32"
 	"gioui.org/font"
 	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
@@ -33,6 +35,125 @@ import (
 // chipEdge, components/input's field bezel). It is a width rather than a
 // token because no scale in the system carries line weights.
 const edgeDp = unit.Dp(1)
+
+// Face is which member of the chip family a widget draws. The geometry is one
+// geometry — the measured fill, the two-sided rim, the density's height and
+// padding, the state walk, the pointer target — and the face names what varies
+// on top of it.
+//
+// [FaceChip] and [FaceAnchor] are the two a caller may ask for. The badge is a
+// face too, but it is not selectable: it takes no input, so it has no live
+// path to select it in, and [RenderBadge] is the whole of it.
+type Face uint8
+
+const (
+	// FaceChip is the pill: the scale's Full radius, the caller's own glyph,
+	// and the zero value, so a [Props] that says nothing draws the chip.
+	FaceChip Face = iota
+
+	// FaceAnchor is the pop-up anchor: the same chip at the button's own
+	// rounded-rect radius, with the paired up/down chevrons drawn by the
+	// component instead of a caller's glyph. See [RenderAnchor].
+	FaceAnchor
+)
+
+// faceBadge is the non-interactive face. It is deliberately outside the
+// exported run above so that no [Props.Face] value can name it: a badge does
+// not hover, press or focus, and the live path has nothing to give it.
+const faceBadge Face = 255
+
+// interactive reports whether the face walks its fill, wears a focus ring and
+// asks for the pointer cursor. Two of the three do.
+func (f Face) interactive() bool { return f != faceBadge }
+
+// radius is the face's corner, off the radius scale rather than a number.
+//
+// The chip and the badge take the scale's Full stop — a pill, which is the
+// chip's ruled identity. The anchor takes Md, the SAME stop components/button
+// reads for every one of its registers: the anchor is the platform's pop-up
+// control, the platform draws that control as a rounded rectangle rather than
+// a capsule, and the rounded rectangle this system already owns is the
+// button's. Deriving it here rather than picking a number is what keeps the
+// two in step if the scale ever moves.
+func (f Face) radius(rad tokens.RadiusScale) float32 {
+	if f == FaceAnchor {
+		return rad.Md
+	}
+	return rad.Full
+}
+
+// The pop-up chevrons' proportions, measured off the stored macOS reference
+// (reference/macos/mail-window.png in the org's .github repository, indexed by
+// ADR-019; window-bounded capture, macOS 26.5.2, dark appearance, one pixel
+// per dp on that display). Both pop-up controls in Mail's toolbar — the folder
+// one and the flag one — draw a chevron whose ink measures 9 × 5 px inside a
+// control 29 px tall, identical to the pixel, and the folder control's chevron
+// ends 9 px inside the control's own trailing edge.
+//
+// So the chevron is a RATIO of the control's height, not a fixed size:
+//
+//	chevronWidthRatio  the ink's width, 9 of the control's 29
+//	chevronAspect      the ink's height, 5 of its own 9
+//
+// which at this system's 36 dp comfortable control comes out at 11.2 × 6.2 dp.
+//
+// WHAT THE REFERENCE CANNOT ANSWER, stated rather than papered over: neither
+// stored control is a PAIRED-chevron pop-up. Both are single-chevron pull-down
+// buttons, and no capture in reference/macos holds the up/down pair. So the
+// pair is BUILT from the measured single chevron rather than measured: each
+// half is that chevron at its measured width and aspect, and the air between
+// the two is one chevron's own ink height, which makes the pair three chevron
+// heights tall overall. Whether the platform instead narrows or flattens each
+// half of its pair is a number the stored reference does not carry — the air
+// is the one figure here that is a choice, and it is the smallest one that
+// stops the two halves closing into a diamond. A capture of a macOS pop-up
+// button would settle it, and belongs in ADR-019 rather than measured
+// privately.
+const (
+	chevronWidthRatio = 9.0 / 29.0
+	chevronAspect     = 5.0 / 9.0
+)
+
+// chevronStroke is the pair's line weight. ADR-019 measured the platform's
+// chevron band at ≈1.44 px at 16 pt from an offscreen render — the platform
+// draws diagonals heavier than its axis-aligned strokes — so 1.5 dp is that
+// measurement at the nearest weight this system draws, and it is the same
+// weight every hand-drawn chevron in the org already used.
+const chevronStroke = unit.Dp(1.5)
+
+// chevrons paints the pop-up pair — one chevron up over one chevron down —
+// spanning box horizontally and centred in it vertically.
+//
+// The pair is STATIC. On the platform a pop-up button's chevrons say "this
+// pops up" and never "this is open": the glyph does not flip when the menu
+// stands, and an anchor that flipped one would be describing its own menu in a
+// vocabulary the platform reserves for a disclosure triangle.
+func chevrons(gtx layout.Context, box image.Rectangle, col color.NRGBA) {
+	w := float32(box.Dx())
+	h := w * chevronAspect
+	stroke := float32(gtx.Dp(chevronStroke))
+	if stroke < 1 {
+		stroke = 1
+	}
+	// One chevron height of air between the two halves, so the pair is three
+	// of them tall. Closer than that and the arms meet at the waist and the
+	// mark reads as a diamond rather than as two chevrons — which is what the
+	// first draft drew.
+	total := 3 * h
+	x0 := float32(box.Min.X)
+	top := float32(box.Min.Y) + (float32(box.Dy())-total)/2
+
+	var p clip.Path
+	p.Begin(gtx.Ops)
+	p.MoveTo(f32.Pt(x0, top+h))
+	p.LineTo(f32.Pt(x0+w/2, top))
+	p.LineTo(f32.Pt(x0+w, top+h))
+	bot := top + 2*h
+	p.MoveTo(f32.Pt(x0, bot))
+	p.LineTo(f32.Pt(x0+w/2, bot+h))
+	p.LineTo(f32.Pt(x0+w, bot))
+	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: stroke}.Op())
+}
 
 // Glyph is the painter a chip draws its mark with: it fills a sizePx×sizePx
 // box at the current origin in colour col. It is the same signature
@@ -283,10 +404,18 @@ type Props struct {
 	// Label is the text the pill carries.
 	Label string
 
+	// Face is which member of the family this widget draws: [FaceChip], the
+	// zero value and the pill, or [FaceAnchor], the pop-up anchor. The anchor
+	// draws its own paired chevrons and ignores Icon.
+	Face Face
+
 	// Icon is the mark drawn after the label, in the label's own line box. A
 	// nil Icon draws no mark and the chip is label-only. It is named Icon
 	// rather than Glyph to match components/button's Props, so a caller
 	// moving between the two components writes the same field name.
+	//
+	// Ignored when Face is [FaceAnchor]: that face's mark is the component's
+	// own chevron pair, which is the whole reason the face exists.
 	Icon Glyph
 
 	// Description is the screen-reader label. Falls back to Label when empty.
@@ -440,7 +569,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 							semantic.DescriptionOp(desc).Add(gtx.Ops)
 							semantic.EnabledOp(true).Add(gtx.Ops)
 							return draw(gtx, shaper, props.Label, props.Icon, tok.color,
-								tok.spacing, tok.radius, tok.label, tok.density, s, true)
+								tok.spacing, tok.radius, tok.label, tok.density, s, props.Face)
 						})
 				})
 			}
@@ -476,7 +605,39 @@ func Render(
 	s RenderState,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return draw(gtx, shaper, label, glyph, colors, sp, rad, labelStyle, d, s, true)
+		return draw(gtx, shaper, label, glyph, colors, sp, rad, labelStyle, d, s, FaceChip)
+	}
+}
+
+// RenderAnchor produces a layout.Widget drawing the ANCHOR face: the chip in
+// every respect that is the chip's — the measured fill, the two-sided rim, the
+// state walk, the focus ring that replaces that rim, the density's height and
+// padding, the inks derived against the fill actually drawn — at the rounded
+// rectangle [Face.radius] reads off the same stop components/button reads, and
+// with the paired up/down chevrons drawn by the component.
+//
+// It takes no glyph, and that is the point rather than an omission: the mark
+// on a pop-up anchor is not the caller's to choose, and it does not change
+// when the menu opens. The platform's anchor says "this pops up" and never
+// "this is open"; a caller that flipped a chevron would be saying the second
+// thing in a vocabulary the platform reserves for a disclosure triangle.
+//
+// Use it for the control that stands under a menu — a model picker in a chat's
+// chrome row, a filter that opens a list. Something clickable that opens
+// nothing is a chip and takes [Render]; something a reader can only read is a
+// badge and takes [RenderBadge].
+func RenderAnchor(
+	shaper *text.Shaper,
+	label string,
+	colors tokens.ColorTokens,
+	sp tokens.SpacingScale,
+	rad tokens.RadiusScale,
+	labelStyle tokens.TextStyle,
+	d tokens.Density,
+	s RenderState,
+) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		return draw(gtx, shaper, label, nil, colors, sp, rad, labelStyle, d, s, FaceAnchor)
 	}
 }
 
@@ -504,14 +665,15 @@ func RenderBadge(
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		return draw(gtx, shaper, label, glyph, colors, sp, rad, labelStyle, d,
-			RenderState{Ground: ground}, false)
+			RenderState{Ground: ground}, faceBadge)
 	}
 }
 
-// draw paints one chip. interactive selects the face: true draws the state
-// walk, the focus ring and the pointer cursor, false draws the badge — the
-// identical pill with none of the three. Everything else, geometry and colour
-// alike, is shared, which is what "one geometry, two faces" means in code.
+// draw paints one member of the family. face selects which: the chip walks its
+// fill, wears the ring and asks for the cursor; the badge does none of the
+// three; the anchor does all of them at the button's corner with the chevron
+// pair for a mark. Everything else, geometry and colour alike, is shared,
+// which is what "one geometry, three faces" means in code.
 func draw(
 	gtx layout.Context,
 	shaper *text.Shaper,
@@ -523,8 +685,9 @@ func draw(
 	labelStyle tokens.TextStyle,
 	d tokens.Density,
 	s RenderState,
-	interactive bool,
+	face Face,
 ) layout.Dimensions {
+	interactive := face.interactive()
 	st := s.state()
 	if !interactive {
 		st = tokens.StateNormal
@@ -540,11 +703,17 @@ func draw(
 	gap := gtx.Dp(unit.Dp(sp.S2))
 	// The glyph is the label's own line box — see the package doc for why
 	// that is the same number components/icon answers at each density's own
-	// role.
+	// role. The anchor's chevron pair is not a glyph and does not take the
+	// line box: it is the platform's own ratio of the CONTROL's height, so
+	// the mark keeps the platform's proportion at every density.
 	mark := 0
-	if glyph != nil {
+	switch {
+	case face == FaceAnchor:
+		mark = gtx.Dp(unit.Dp(d.ControlHeight * chevronWidthRatio))
+	case glyph != nil:
 		mark = gtx.Dp(unit.Dp(labelStyle.LineHeight))
-	} else {
+	}
+	if mark == 0 {
 		gap = 0
 	}
 
@@ -597,7 +766,7 @@ func draw(
 	// collide with; a chip does, so the chip trades its one hair for the
 	// ring's two while the ring is up. Nothing else moves: the pill measures
 	// the same box focused as at rest, and the label does not shift.
-	radius := gtx.Dp(unit.Dp(rad.Full))
+	radius := gtx.Dp(unit.Dp(face.radius(rad)))
 	focused := interactive && s.Focused
 	band, edgeInk, edged := max(gtx.Dp(edgeDp), 1), rim, rimmed
 	if focused {
@@ -620,7 +789,16 @@ func draw(
 	labelCall.Add(gtx.Ops)
 	lo.Pop()
 
-	if glyph != nil && mark > 0 {
+	switch {
+	case mark == 0:
+	case face == FaceAnchor:
+		// The pair is handed the mark's column at the pill's full height and
+		// centres itself in it, so its own ink height stays the platform's
+		// ratio rather than being stretched to a box.
+		mo := op.Offset(image.Pt(offX+labelDims.Size.X+gap, 0)).Push(gtx.Ops)
+		chevrons(gtx, image.Rect(0, 0, mark, h), glyphInk)
+		mo.Pop()
+	case glyph != nil:
 		mo := op.Offset(image.Pt(offX+labelDims.Size.X+gap, (h-mark)/2)).Push(gtx.Ops)
 		glyph(gtx, mark, glyphInk)
 		mo.Pop()

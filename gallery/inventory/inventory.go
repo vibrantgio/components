@@ -394,7 +394,7 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.buttonRow(c)},
 		{Name: "components-button-pinned", Title: "Button — the register's own fill, and one pinned from outside the palette", Height: 36,
 			Body: inv.pinnedButtonRow(c)},
-		{Name: "components-chip", Title: "Chip — the clickable face and the badge, on three storeys", Height: chipBlockH,
+		{Name: "components-chip", Title: "Chip — the clickable face, the pop-up anchor and the badge, on three storeys", Height: chipBlockH,
 			Body: inv.chipBlock(c)},
 		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 60,
 			Body: inv.textFieldRow(c)},
@@ -525,13 +525,18 @@ var chipStoreys = []struct {
 	{"In a dialog", tokens.Level2},
 }
 
-// chipBlock draws both faces of the chip on each of the three storeys: the
-// clickable pill in the states the pointer puts it in, and the badge — the
-// same geometry with no state walk, no ring and no cursor — closing each row.
+// chipBlock draws all three faces of the chip on each of the three storeys:
+// the clickable pill in the states the pointer puts it in, then the pop-up
+// anchor, then the badge — the same geometry with no state walk, no ring and
+// no cursor — closing each row.
 //
-// The badge carries no mark. The two faces share a geometry on purpose and
-// must not share a disclosure chevron: a mark that promises a menu on the face
-// that opens none is the one way to make the pair genuinely confusable.
+// The three stand side by side because the section's whole job is telling them
+// apart. The anchor is the one that differs in shape: the button's rounded
+// rectangle rather than the pill, with the chevron pair the component draws
+// itself. The badge carries no mark at all — the faces share a geometry on
+// purpose and must not share a disclosure chevron, because a mark that
+// promises a menu on the face that opens none is the one way to make them
+// genuinely confusable.
 func (inv *Inventory) chipBlock(c tokens.ColorTokens) layout.Widget {
 	mark := chip.Glyph(inv.marks.Mark(icons.Disclosure))
 	states := []struct {
@@ -560,6 +565,10 @@ func (inv *Inventory) chipBlock(c tokens.ColorTokens) layout.Widget {
 		}
 		cs = append(cs,
 			layout.Rigid(complayout.HSpacer(24)),
+			layout.Rigid(chip.RenderAnchor(inv.shaper, "Anchor", c,
+				tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
+				tokens.Comfortable, chip.RenderState{Ground: storey.ground})),
+			layout.Rigid(complayout.HSpacer(float32(chipChipGap))),
 			layout.Rigid(chip.RenderBadge(inv.shaper, "Badge", nil, c,
 				tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
 				tokens.Comfortable, storey.ground)),
