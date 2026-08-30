@@ -3,6 +3,7 @@ package chip
 import (
 	"image"
 	"image/color"
+	"math"
 
 	"gioui.org/font"
 	"gioui.org/io/pointer"
@@ -77,15 +78,84 @@ func (s RenderState) state() tokens.State {
 	return tokens.StateNormal
 }
 
-// Fill is the chip's ground: the storey one rung nearer the viewer than the
-// one it stands on, walked by the interaction state.
+// darkFillStep is how far over its ground a resting chip stands where the
+// Background pin is the darkest surface the neutral ramp carries, in CIELAB
+// L\*. It is a MEASUREMENT of the platform, not a derivation: 1.28 L\*, the
+// step macOS takes between a unified toolbar's band and the pop-up capsules
+// drawn on it — the chip's exact role. The package doc quotes the capture,
+// the two fills and the method.
+const darkFillStep = 1.28
+
+// lightFillStep is the same step where the pin is the lightest surface the
+// ramp carries, in CIELAB L\*. It is a DERIVATION and the package doc says
+// so: the stored macOS reference holds no light-appearance capture to
+// measure, so this half takes the ladder's own first storey over the paper —
+// the 0.70 L\* the light scheme already spends on Level1 over Level0, now
+// spent identically over every ground rather than growing with the ground's
+// position on the ladder.
+const lightFillStep = 0.70
+
+// fillStep is how far above its ground a resting chip's fill stands, in
+// CIELAB L\*. One number per scheme, and the scheme is never named: which
+// half applies is read off the neutral surface band's direction, exactly as
+// theme/tokens reads it for the floor's own two measurements.
+//
+// A scheme whose band climbs away from its 100 stop has its pin as the
+// darkest surface the ramp carries — the dark scheme — and takes the
+// platform's measured capsule step. One whose band descends has the pin as
+// its lightest surface and almost no room above it, and takes the derived
+// whisper.
+func fillStep(c tokens.ColorTokens) float64 {
+	pin, _, _ := vgcolor.LabFromNRGBA(c.Background)
+	top := math.Inf(-1)
+	for i := 1; i <= 4; i++ {
+		l, _, _ := vgcolor.LabFromNRGBA(c.Ramps.Neutral.Step(i * 100))
+		if l > top {
+			top = l
+		}
+	}
+	if top > pin {
+		return darkFillStep
+	}
+	return lightFillStep
+}
+
+// restFill is the chip's fill at rest: the surface it stands on, lifted by
+// the measured step for its scheme, realized at the ground's own hue and
+// chroma so the pill carries whatever tint the ladder carries and none of
+// its own. Nothing is mixed and no colour is named — the step is a depth in
+// L\* and the palette renders it, the way theme/tokens realizes a storey.
+//
+// It is a step over the LOCAL GROUND rather than a walk to the next storey,
+// which is the change BB1.1 makes. The storey above was correct as depth and
+// wrong as loudness: in the dark scheme it stood 10.0 luminance over the
+// window's paper where the platform's own toolbar capsules stand 2.65 over
+// their band — a filled block at four times the platform's step, in the one
+// role the platform draws as a near-hairline outline. The rim still carries
+// the edge; the fill no longer shouts under it.
+func restFill(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
+	base := c.SurfaceAt(ground)
+	l, _, _ := vgcolor.LabFromNRGBA(base)
+	target := min(l+fillStep(c), 100)
+	_, chroma, hue := vgcolor.OKLChFromNRGBA(base)
+	return vgcolor.NRGBAFromToneChromaHue(target, chroma, hue)
+}
+
+// Fill is the chip's ground: the measured step over the surface it stands
+// on, walked by the interaction state.
+//
+// The walk is [tokens.ColorTokens.PinnedStateColor] — the same walk
+// [tokens.ColorTokens.StateAt] takes from a storey, taken from the chip's own
+// resting fill instead, because that fill is no longer a storey. Hover and
+// press therefore follow the new rest automatically and their stride is
+// untouched.
 //
 // It is exported because a container that draws behind or beside a chip — a
 // header band deciding what its own seam should clear, a test measuring the
 // pill — needs the same answer the chip drew with, and re-deriving it at the
 // call site is how two answers appear.
 func Fill(c tokens.ColorTokens, ground tokens.ElevationLevel, state tokens.State) color.NRGBA {
-	return c.StateAt(ground.Raised(), state)
+	return c.PinnedStateColor(restFill(c, ground), state)
 }
 
 // Rim is the chip's edge, and whether it has one: the rung of the neutral ramp

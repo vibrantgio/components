@@ -1,6 +1,6 @@
 // Package chip provides the Vibrant Gio chip: a small pill that carries a
-// data-bearing summary — a label and, optionally, one glyph — filled one
-// storey above the ground it rests on.
+// data-bearing summary — a label and, optionally, one glyph — filled a
+// measured step above the ground it rests on.
 //
 // It has two faces and one geometry. [Render] draws the CHIP, which is
 // clickable: it takes a [RenderState] carrying hover, press, focus and the
@@ -34,22 +34,75 @@
 //
 // Five colours, five derivations, no literal in the package:
 //
-//	fill   c.StateAt(ground.Raised(), state)   the storey above the ground,
-//	                                           walked by the pointer
+//	fill   the ground lifted by the scheme's measured step, walked by the
+//	       pointer
 //	rim    the neutral rung that clears GraphicFloor against the ground AND
 //	       against the fill — or none, when no rung reaches both
 //	label  the Text pin, or the neutral rung that clears TextFloor on the fill
 //	glyph  the Text pin, or the neutral rung that clears GraphicFloor on the fill
 //	ring   focus.Ring against the fill the band lies on
 //
-// The fill is the walk ADR-022 prescribes for anything raised: a rung from the
-// ground the caller names, never an absolute step, so a chip on the paper
-// fills at level 1, the same chip inside a level-2 dialog fills at level 3,
-// and one on the furniture floor fills at the paper's storey. Hover and press
-// are that storey's own state walk, which still heads toward the ramp's 900
-// end — so a chip DARKENS under the pointer on paper and lightens on slate.
-// The two directions are not a mirror: the ladder answers to the linchpin,
-// feedback does not.
+// The fill is relative to the ground the caller names and never an absolute
+// step, which is what ADR-022 prescribes for anything raised: a chip on the
+// paper, the same chip inside a dialog and one on the furniture floor each
+// stand the same distance over what they lie on. Hover and press are that
+// fill's own state walk — tokens.ColorTokens.PinnedStateColor, the walk
+// tokens.ColorTokens.StateAt takes from a storey, taken from the chip's
+// resting fill instead — which still heads toward the ramp's 900 end, so a
+// chip DARKENS under the pointer on paper and lightens on slate. The two
+// directions are not a mirror: the ladder answers to the linchpin, feedback
+// does not.
+//
+// # The fill's two steps
+//
+// The step itself is a MEASUREMENT, in CIELAB L\*, one number per scheme —
+// documented here the way theme/tokens documents the floor's own two
+// measurements, and read the same way: off the direction of the neutral
+// surface band, never off a mode flag. A scheme whose band climbs away from
+// its 100 stop has its pin as the darkest surface the ramp carries and takes
+// the first number; one whose band descends takes the second.
+//
+// THE DARK STEP IS 1.28 L\*, AND IT IS MEASURED. Through the ladder's first
+// year the chip filled at ground.Raised() — a whole storey. That was right as
+// depth and wrong as loudness: on the dark scheme's paper it put the pill at
+// #222222 over #181818, +10.0 luminance, where the platform's own toolbar
+// pop-up capsules — a chevron beside a label, the chip's exact role — stand
+// +2.65 over the band they are drawn on. Four times the platform's step, in
+// the one role the platform draws as a near-hairline outline rather than a
+// filled block. The reading, from the stored macOS reference
+// (reference/macos/mail-window.png in the org's .github repository, indexed by
+// ADR-019; window-bounded capture, macOS 26.5.2, dark appearance):
+//
+//	Mail's unified toolbar band          #232A2E   L* 16.555   luminance 40.80
+//	its pop-up capsules on that band     #242D32   L* 17.837   luminance 43.45
+//	                                               step 1.28   step +2.65
+//
+// so 1.28 L\* is the platform's step in the ladder's own unit, and on the
+// default dark palette it realizes #1B1B1B over the #181818 paper — +3.0
+// luminance, the platform's whisper rather than the block.
+//
+// THE LIGHT STEP IS 0.70 L\*, AND IT IS DERIVED — the gap is real and is
+// recorded here rather than papered over. ADR-019's whole sweep was taken in
+// the DARK appearance; there is no light-appearance capture in
+// reference/macos to measure a light toolbar capsule off, so this half cannot
+// be obtained the way the dark half was. What it takes instead is the number
+// the light scheme already spends on its first storey over the paper: 0.70
+// L\*, Level1 over Level0 on the default light palette. The reason it is not
+// simply the dark measurement is the light scheme's headroom. That scheme has
+// 3.12 L\* in total between its #F6F6F6 paper and the tonal axis, and the
+// ladder spends all three of its storeys inside it; a chip taking the
+// platform's 1.28 L\* there would spend 41% of the whole ladder on one pill
+// and stand above where a dialog sits.
+//
+// The two schemes differing is the platform's own precedent, not an
+// inconsistency. theme/tokens' floor takes 4.89 L\* down in the light scheme
+// and 1.48 L\* down in the dark one, because a light window separates its
+// furniture with a step the ramp happens to carry and a dark window with a
+// whisper. The same asymmetry governs here, read off the same band, and each
+// half says plainly which of the two it is: the dark number is a
+// measurement, the light number is a derivation awaiting one. A light-
+// appearance capture of a macOS toolbar's pop-up capsules would close it, and
+// should be added to ADR-019 rather than measured privately.
 //
 // The rim is why the chip is legible at all in the light scheme. There the
 // ladder has almost no headroom above its paper, so the storey step is a
@@ -73,10 +126,13 @@
 // condition patterns/tag states for its own pill, translated into the
 // elevation ladder's vocabulary: a fill that stands off its page needs no
 // outline, and a fill that cannot never will. It happens in the dark scheme
-// only, on a hovered or pressed chip at level 1 and above, where the walk
-// carries the fill most of the way to the ramp's light end; the chip reads
-// there as a solid block under the finger. In the light scheme, on every
-// storey and in every state, the rim is always drawn.
+// only, on a pressed chip at level 2 and above and on a hovered one at level
+// 3, where the walk carries the fill most of the way to the ramp's light end;
+// the chip reads there as a solid block under the finger. In the light
+// scheme, on every storey and in every state, the rim is always drawn. The
+// quieter fill above moved that boundary rather than removing it: at level 1
+// the rim now clears both sides in every state, where a pressed chip used to
+// lose it.
 //
 // The label and the glyph are inks over the fill, and they are derived the way
 // [tokens.ColorTokens.InkOn] derives one — the pinned base while it clears the
