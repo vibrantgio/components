@@ -15,6 +15,7 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/list"
+	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
@@ -258,7 +259,7 @@ func menuTokens(th rx.Observable[theme.Theme]) rx.Observable[resolvedTokens] {
 // the 24 dp AA criterion these rows are held to. See tokens.MinHitTarget for
 // why 2.5.5's 44 dp is not that criterion.
 func layoutMenuLive(gtx layout.Context, shaper *text.Shaper, optClicks []widget.Clickable, rows *list.State, tok resolvedTokens, s MenuState) layout.Dimensions {
-	return stackRows(gtx, rows, len(s.Options), s.MaxHeight, func(gtx layout.Context, i int) layout.Dimensions {
+	return stackRows(gtx, rows, len(s.Options), s.MaxHeight, tok, func(gtx layout.Context, i int) layout.Dimensions {
 		return optClicks[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			semantic.Button.Add(gtx.Ops)
 			return drawOptionRow(gtx, shaper, tok, i == s.Selected, i+1 == s.Hovered, s.Options[i])
@@ -271,7 +272,7 @@ func drawMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Men
 	// A viewport with no frames behind it: a static render of a capped menu
 	// is its resting state, the rows from the top, because a scroll position
 	// is something a menu acquires by being scrolled.
-	return stackRows(gtx, nil, len(s.Options), s.MaxHeight, func(gtx layout.Context, i int) layout.Dimensions {
+	return stackRows(gtx, nil, len(s.Options), s.MaxHeight, tok, func(gtx layout.Context, i int) layout.Dimensions {
 		return drawOptionRow(gtx, shaper, tok, i == s.Selected, i+1 == s.Hovered, s.Options[i])
 	})
 }
@@ -287,8 +288,16 @@ func drawMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Men
 // laid out, which is what virtualising means and what the cap trades for
 // reaching a catalogue longer than the window.
 //
+// The capped viewport is drawn through [list.LayoutSelectableScrollbar] with
+// [list.Overlay]: the same coupling components/gallery/inventory's list block
+// already draws its own bar through. The bar is scrollbar.FromTokens(tok.color)
+// — the rows' own palette — and scrollbar.Style.Layout draws nothing when the
+// viewport shows the whole of the content, so a capped menu whose rows all
+// fit is exactly as bare as an uncapped one; only a cap that actually cuts the
+// catalogue short earns the bar.
+//
 // rows may be nil, and is where there are no frames to keep a position across.
-func stackRows(gtx layout.Context, rows *list.State, n int, maxH unit.Dp, row func(gtx layout.Context, i int) layout.Dimensions) layout.Dimensions {
+func stackRows(gtx layout.Context, rows *list.State, n int, maxH unit.Dp, tok resolvedTokens, row func(gtx layout.Context, i int) layout.Dimensions) layout.Dimensions {
 	if n == 0 {
 		// An empty menu is not an empty plane, it is nothing at all.
 		return layout.Dimensions{}
@@ -333,7 +342,8 @@ func stackRows(gtx layout.Context, rows *list.State, n int, maxH unit.Dp, row fu
 	for i := range idx {
 		idx[i] = i
 	}
-	return list.LayoutSelectable(viewGtx, rows, idx, func(gtx layout.Context, i int, _ bool) layout.Dimensions {
+	bar := scrollbar.FromTokens(tok.color)
+	return list.LayoutSelectableScrollbar(viewGtx, rows, bar, list.Overlay, idx, func(gtx layout.Context, i int, _ bool) layout.Dimensions {
 		return row(gtx, i)
 	})
 }
