@@ -112,6 +112,46 @@ func TestFieldOpensItsMenuAndSelectsFromIt(t *testing.T) {
 	}
 }
 
+// TestUpwardFieldSelectsFromTheMenuAboveItsTrigger walks the same path with
+// the menu on the other side: opening moves the trigger to the BOTTOM of the
+// box, the rows take the space above it, and a click lands on the option that
+// is drawn where it was clicked. The direction is a placement and the field
+// stays one widget — nothing about picking changes with it.
+func TestUpwardFieldSelectsFromTheMenuAboveItsTrigger(t *testing.T) {
+	var picked []int
+	w := materialize(t, picker.Field(rx.Of(liveTheme()), picker.FieldProps{
+		Description: "choose",
+		Options:     options,
+		Drop:        picker.DropUp,
+		Shaper:      defaultShaper(t),
+		OnSelect:    func(_ layout.Context, i int) { picked = append(picked, i) },
+	}))
+
+	r := new(gioinput.Router)
+	drive := driver(w, r, image.Pt(200, 400))
+	row := rowHeight(tokens.Comfortable)
+
+	if dims := drive(); dims.Size.Y != row {
+		t.Fatalf("closed upward field measured %d px tall, want the trigger's %d px", dims.Size.Y, row)
+	}
+
+	// Closed, the trigger is the whole widget and stands at the top.
+	dims := click(r, drive, f32.Pt(100, float32(row)/2))
+	if want := row * (1 + len(options)); dims.Size.Y != want {
+		t.Fatalf("after clicking the trigger the field measured %d px tall, want the open %d px", dims.Size.Y, want)
+	}
+
+	// Open, the rows are above: index i occupies [ i*row, (i+1)*row ) and the
+	// trigger has moved down to the last band.
+	dims = click(r, drive, f32.Pt(100, float32(row)+float32(row)/2))
+	if len(picked) != 1 || picked[0] != 1 {
+		t.Fatalf("OnSelect fired with %v, want exactly one call carrying index 1", picked)
+	}
+	if dims.Size.Y != row {
+		t.Errorf("after picking, the field measured %d px tall, want the closed %d px: choosing closes the menu", dims.Size.Y, row)
+	}
+}
+
 // TestFieldTriggerHitsTheFloorBelowItsBar is the pointer-target contract for
 // the form register: the widget measures the bar it drew, while what the
 // pointer may land on is the density's 44 dp floor centred on it. The click

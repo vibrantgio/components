@@ -31,6 +31,30 @@ import (
 // apart at a glance.
 const fieldChevron = unit.Dp(16)
 
+// Drop is the direction an open [Field] stacks its menu in.
+//
+// It answers a question only the caller can see: whether the room beneath the
+// trigger is room the menu may have. A field at the foot of a dialog whose
+// action row is drawn after the body has none — a menu dropped there is
+// painted over by the row — so that caller says [DropUp] and the menu stands
+// above instead.
+//
+// Either way the open field is the trigger plus the menu, stacked, and the
+// widget reports both; what changes is the order. [DropUp] therefore puts the
+// TRIGGER at the bottom of the reported box, so a caller placing an upward
+// field aligns that box's BOTTOM edge with the row the trigger stands in —
+// record the widget, read the height it reports, and offset by it.
+type Drop uint8
+
+const (
+	// DropDown is the zero value: the menu stands directly beneath the
+	// trigger, which is what a form's select does.
+	DropDown Drop = iota
+
+	// DropUp stands the menu directly above the trigger.
+	DropUp
+)
+
 // FieldState holds the explicit visual state a static field render draws in.
 // All fields default to their zero values (normal, closed, idle, on the window
 // ground).
@@ -43,6 +67,10 @@ type FieldState struct {
 	Disabled bool
 	Selected int
 	Options  []string
+
+	// Drop is which way the open menu stacks. The zero value is [DropDown],
+	// beneath the trigger. See [Drop].
+	Drop Drop
 
 	// Ground is the elevation storey of the surface hosting the trigger —
 	// the local ground its resting border is derived against, in the same
@@ -65,6 +93,12 @@ type FieldProps struct {
 
 	// Selected is the initial selected index established on subscribe.
 	Selected int
+
+	// Drop is which way the open menu stacks, copied straight into
+	// [FieldState.Drop] on every frame. The zero value is [DropDown]. A caller
+	// with no room beneath the trigger says [DropUp] and then places the
+	// widget by its bottom edge. See [Drop].
+	Drop Drop
 
 	// Ground is the elevation storey of the surface hosting the field, copied
 	// straight into [FieldState.Ground] on every frame: the local ground the
@@ -102,9 +136,10 @@ type FieldProps struct {
 
 // Field returns an rx.Observable[layout.Widget] that emits a new widget
 // whenever the theme or disabled state changes: the form register's picker —
-// the flat trigger bar and, while it is open, the [Menu] it drops directly
-// beneath itself. Widget state (open/closed, selected index, focus) lives in
-// the rx.Defer scope and persists across emissions.
+// the flat trigger bar and, while it is open, the [Menu] it stacks against
+// itself, beneath by default and above under [DropUp]. Widget state
+// (open/closed, selected index, focus) lives in the rx.Defer scope and
+// persists across emissions.
 //
 // A trigger that must stand under a floating menu instead — one placed against
 // the window by patterns/popover — is [Anchor]; see the package doc.
@@ -185,6 +220,7 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 					Disabled: dis,
 					Selected: selected,
 					Options:  props.Options,
+					Drop:     props.Drop,
 					Ground:   props.Ground,
 				})
 			}
@@ -222,6 +258,7 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 	// axis, centred on the visual bar: density shrinks the drawn trigger,
 	// never the hit target. The menu's rows are not extended — see
 	// layoutMenuLive.
+	triggerMacro := op.Record(gtx.Ops)
 	triggerDims := hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), trigger.Layout, func(gtx layout.Context) layout.Dimensions {
 		semantic.Button.Add(gtx.Ops)
 		if desc != "" {
@@ -229,32 +266,55 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 		}
 		return drawTrigger(gtx, shaper, tok, s)
 	})
+	triggerCall := triggerMacro.Stop()
 
 	if !s.Open || len(s.Options) == 0 {
+		triggerCall.Add(gtx.Ops)
 		return triggerDims
 	}
 
-	off := op.Offset(image.Pt(0, triggerDims.Size.Y)).Push(gtx.Ops)
+	menuMacro := op.Record(gtx.Ops)
 	menuDims := layoutMenuLive(gtx, shaper, optClicks, tok, MenuState{Options: s.Options, Selected: s.Selected})
-	off.Pop()
+	menuCall := menuMacro.Stop()
 
+	return stackOpen(gtx, s.Drop, triggerCall, triggerDims, menuCall, menuDims)
+}
+
+// stackOpen places the recorded trigger and menu in the [Drop]'s order and
+// reports the whole stack, because what was drawn is what a container has to
+// make room for. Under [DropUp] the trigger is the LOWER half, which is what
+// lets an upward field be placed by the bottom edge of the box it reports.
+func stackOpen(gtx layout.Context, d Drop, trigger op.CallOp, triggerDims layout.Dimensions, menu op.CallOp, menuDims layout.Dimensions) layout.Dimensions {
+	triggerY, menuY := 0, triggerDims.Size.Y
+	if d == DropUp {
+		triggerY, menuY = menuDims.Size.Y, 0
+	}
+	off := op.Offset(image.Pt(0, triggerY)).Push(gtx.Ops)
+	trigger.Add(gtx.Ops)
+	off.Pop()
+	off = op.Offset(image.Pt(0, menuY)).Push(gtx.Ops)
+	menu.Add(gtx.Ops)
+	off.Pop()
 	return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, triggerDims.Size.Y+menuDims.Size.Y)}
 }
 
 // drawField renders the static field — the trigger and, when open, the menu
 // under it — for golden-image testing.
 func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s FieldState) layout.Dimensions {
+	triggerMacro := op.Record(gtx.Ops)
 	triggerDims := drawTrigger(gtx, shaper, tok, s)
+	triggerCall := triggerMacro.Stop()
 
 	if !s.Open || len(s.Options) == 0 {
+		triggerCall.Add(gtx.Ops)
 		return triggerDims
 	}
 
-	off := op.Offset(image.Pt(0, triggerDims.Size.Y)).Push(gtx.Ops)
+	menuMacro := op.Record(gtx.Ops)
 	menuDims := drawMenu(gtx, shaper, tok, MenuState{Options: s.Options, Selected: s.Selected})
-	off.Pop()
+	menuCall := menuMacro.Stop()
 
-	return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, triggerDims.Size.Y+menuDims.Size.Y)}
+	return stackOpen(gtx, s.Drop, triggerCall, triggerDims, menuCall, menuDims)
 }
 
 // drawTrigger renders the field trigger bar (the closed face).

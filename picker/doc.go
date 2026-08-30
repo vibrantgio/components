@@ -29,8 +29,11 @@
 //
 // # Where the menu is placed
 //
-// [Field] drops its menu directly beneath its own trigger, which is what a
-// form's select does and what its [FieldState.Open] draws. [Anchor] does not:
+// [Field] stacks its menu against its own trigger, which is what a form's
+// select does and what its [FieldState.Open] draws — beneath by default, and
+// above it when the caller says [DropUp] because the room below is somebody
+// else's. Either way the open field is one widget reporting one box, and an
+// upward field is placed by that box's bottom edge. [Anchor] does not:
 // a chrome-register menu is a floating surface placed against the window, and
 // placing it is patterns/popover's job — a component may not reach up into a
 // pattern. So an anchor's caller hands the anchor to the popover as the anchor

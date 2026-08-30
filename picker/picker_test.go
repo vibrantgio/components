@@ -136,6 +136,62 @@ func TestOpenFieldMeasuresTheTriggerPlusEveryRow(t *testing.T) {
 	}
 }
 
+// TestOpenFieldStacksTheSharedMenuOverItsTrigger is the same contract the
+// other way up: a field told there is no room below it draws the one surface
+// ABOVE the trigger, and the trigger lands at the bottom of the box — which is
+// the half a caller needs, because an upward field can only be placed by that
+// bottom edge.
+func TestOpenFieldStacksTheSharedMenuOverItsTrigger(t *testing.T) {
+	row := rowHeight(tokens.Comfortable)
+	size := image.Pt(200, row*(1+len(options)))
+
+	open := golden.Capture(t, size, field(t, picker.FieldState{
+		Open: true, Drop: picker.DropUp, Options: options, Selected: 1,
+	}))
+	composed := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
+		rows := menu(t, picker.MenuState{Options: options, Selected: 1})(gtx)
+		off := op.Offset(image.Pt(0, rows.Size.Y)).Push(gtx.Ops)
+		trigger := field(t, picker.FieldState{Options: options, Selected: 1})(gtx)
+		off.Pop()
+		return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, trigger.Size.Y+rows.Size.Y)}
+	})
+	if n := golden.PixelDiff(open, composed); n != 0 {
+		t.Errorf("an upward field differs from a standalone menu plus its own trigger under it in %d pixels; the direction changes the order and nothing else", n)
+	}
+}
+
+// TestBothDropDirectionsMeasureTheSameStack: which way the menu goes is a
+// placement, not a size — a container makes room for the trigger and every row
+// either way, and the two orders are the same box.
+func TestBothDropDirectionsMeasureTheSameStack(t *testing.T) {
+	row := rowHeight(tokens.Comfortable)
+	want := row * (1 + len(options))
+	for _, d := range []struct {
+		name string
+		drop picker.Drop
+	}{{"down", picker.DropDown}, {"up", picker.DropUp}} {
+		t.Run(d.name, func(t *testing.T) {
+			dims := measure(t, image.Pt(200, 400), field(t, picker.FieldState{
+				Open: true, Drop: d.drop, Options: options,
+			}))
+			if dims.Size.Y != want {
+				t.Errorf("open field measured %d px tall, want %d px (trigger + %d rows of %d)", dims.Size.Y, want, len(options), row)
+			}
+		})
+	}
+}
+
+// TestClosedFieldIgnoresTheDropDirection: a closed trigger has no menu to
+// place, so the direction cannot show — the two draw the same control.
+func TestClosedFieldIgnoresTheDropDirection(t *testing.T) {
+	size := image.Pt(200, 44)
+	down := golden.Capture(t, size, field(t, picker.FieldState{Options: options, Selected: 1}))
+	up := golden.Capture(t, size, field(t, picker.FieldState{Options: options, Selected: 1, Drop: picker.DropUp}))
+	if n := golden.PixelDiff(down, up); n != 0 {
+		t.Errorf("a closed upward field differs from a closed downward one in %d pixels", n)
+	}
+}
+
 // TestMenuWithNoOptionsIsNoSurface: an empty menu is not an empty plane, it is
 // nothing at all, so a caller that opens one with nothing to offer paints no
 // overlay over its content.
