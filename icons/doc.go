@@ -82,9 +82,8 @@
 //
 // One weight for the whole set, written as two measures: a band 1.5 units
 // thick where its edges are axis-aligned, and 2 units where they run
-// diagonally. The two are the same weight on screen, which is the point. One
-// number is not, and the set was drawn with one number first: the marks came
-// out uneven, and the paragraphs below are what the pixels said about it.
+// diagonally. The two are the same weight on screen, which is the point — one
+// number for both draws marks that come out uneven.
 //
 // The floor fixes the axis-aligned number. Below one device pixel an
 // antialiased line is drawn as grey rather than as the control's colour, so the
@@ -94,15 +93,13 @@
 // range: at 1 px per dp it is 1.0 px at 16 dp, 1.25 px at 20 dp and 1.5 px at
 // 24 dp, and double that at 2 px per dp.
 //
-// Heavier buys nothing there. 1.5 units already covers whole pixels and already
-// comes out at the control's colour undiluted; 2 units would be 1.33 px at
-// 16 dp, off the pixel grid the keyline and the band are chosen together to
-// land on (below), for ink that is already full. And the reading that a heavier
-// band would sit in a bolder register than the platform's own marks does not
-// survive being measured: the platform's axis-aligned band is 1.26 px at 16 pt
-// against this set's 1.0, so the set is the lighter of the two and not the
-// heavier. What settles a measure is how much of a pixel the band covers, not
-// how its number compares to somebody else's.
+// Heavier buys nothing there. 1.5 units already covers whole pixels and comes
+// out at the control's colour undiluted; 2 units would be 1.33 px at 16 dp,
+// off the pixel grid the keyline and the band are chosen together to land on
+// (below), for ink that is already full. Nor is the set bolder than the
+// platform's own marks at that weight: the platform's axis-aligned band is
+// 1.26 px at 16 pt against this set's 1.0. What settles a measure is how much
+// of a pixel the band covers, not how its number compares to another set's.
 //
 // The keyline and the band are chosen together, and that is what makes the
 // small sizes crisp. A band running from unit 3 to unit 4.5 covers device

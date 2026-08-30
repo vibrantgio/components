@@ -701,7 +701,7 @@ func TestFromTokensDefaults(t *testing.T) {
 // ---- Color emoji ----
 
 // emojiShaper is the pinned collection plus Noto Color Emoji. WithEmoji
-// does not exist yet (AD2.2); this is the equivalent that already does.
+// does not exist yet; this is the equivalent that already does.
 func emojiShaper(t *testing.T) *text.Shaper {
 	t.Helper()
 	typ := tokens.DefaultTypography.WithFaces(notocoloremoji.FontFace())
