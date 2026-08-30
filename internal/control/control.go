@@ -29,17 +29,15 @@ const GraphicFloor = 3.0
 // in both schemes. A named step cannot: the neutral ramps are paired — light
 // and dark realized at the same perceptual depths from opposite ends — so a
 // fixed rung barely moves between schemes while the ground under it moves the
-// whole way. Step 500, the edge this walk replaced, measured 6.63:1 in the
-// dark scheme and 2.67:1 in the light one, under the floor in the scheme most
-// people read in, from a line of code that looks scheme-neutral.
+// whole way.
 //
 // ground is the storey the control is standing on, and the walk is taken
 // against that storey's own fill rather than against the window's. Aimed at
-// level 0 unconditionally the light scheme's rung measures 2.94:1 over a
-// level-2 plane and 2.15:1 over a level-3 one, both under the floor, from a
-// derivation that is itself correct and merely aimed at the wrong ground.
-// Handed the level, the same walk answers a deeper rung where the ground is
-// deeper and the control keeps its edge wherever it stands.
+// level 0 unconditionally, the same derivation measures the light scheme's
+// rung at 2.94:1 over a level-2 plane and 2.15:1 over a level-3 one, both
+// under the floor. Handed the level, the same walk answers a deeper rung
+// where the ground is deeper and the control keeps its edge wherever it
+// stands.
 //
 // The control's own interior is the edge's other side, and every rung this
 // walk answers clears the floor against it too — both sides of the edge move
@@ -47,7 +45,7 @@ const GraphicFloor = 3.0
 // 4.10 / 4.21 / 4.35 / 4.35:1 inside and the dark 5.94 / 5.07 / 3.47 / 3.47:1;
 // the light scheme's rungs above the pin are whispers, so its inner pairing
 // barely moves off the outer one, while the dark scheme's climb is real and
-// the ink — chosen against the ground OUTSIDE — is closest to the interior at
+// the ink — chosen against the ground outside — is closest to the interior at
 // the top of the ladder. 3.47:1 is the worst pairing this walk makes anywhere
 // in the seed sweep, on either side of the edge, and it is the level-3
 // interior.
@@ -71,10 +69,9 @@ func Border(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
 // perceptual depth from opposite ends: in the dark scheme that lands on the
 // raised storey by coincidence — #222222 is both — and in the light scheme it
 // lands on nothing the ladder carries. A field filled #E8E8E8 on its #F6F6F6
-// page is painted BELOW the paper it lies on, which is the "darkest thing in
-// the window" the ladder's linchpin ruling ends. A surface nearer the viewer
-// is lighter in both schemes, and a control that fills a box on its host is
-// raised on it.
+// page is painted below the paper it lies on, and the paper is the darkest
+// thing in the window. A surface nearer the viewer is lighter in both
+// schemes, and a control that fills a box on its host is raised on it.
 //
 // In the light scheme the rungs above the pin are whispers — #F8F8F8 over
 // #F6F6F6 — so what says where the control is, is the [Border] hairline and

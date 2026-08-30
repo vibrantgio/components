@@ -26,23 +26,12 @@
 // own fill from the level a control was told it stands on, and every control
 // in this library hands Ring that rather than a fixed surface.
 //
-// What that resolution buys changed with ADR-022. On the pre-AU1 ladder,
-// which darkened as it climbed in the light scheme, it moved the rung: the
-// page's rung measured 2.92:1 over a light dialog and 2.14:1 over a light
-// popover, both under [Floor], and asking the ramp against those grounds
-// answered a deeper rung at 4.53:1 and 3.31:1. The re-founded ladder climbs
-// toward the light in both schemes and is shallow in each — whisper steps
-// toward white above a light page, a compact climb above a dark one — and
-// over the 822 palettes this package sweeps the rung derived against a
-// storey is now the same rung derived against the page, every time, in both
-// schemes and both derivations. So the resolution no longer buys a different
-// colour. It buys a measured one: the floor is met against the fill the ring
-// is actually drawn on rather than against a surface that happens to agree,
-// and the thinnest margin anywhere in that sweep is 3.44:1, a dark scheme's
-// level-3 popover — the ladder's lightest rung and the one with the least
-// room left. Deriving is what keeps that true when a scale, a headroom or a
-// seed moves; naming the page is what stops being true the first time one
-// does.
+// Deriving the ground from the storey rather than naming a fixed surface is
+// what keeps this true when a scale, a headroom or a seed moves: the floor is
+// met against the fill the ring is actually drawn on, not against a surface
+// that merely happens to agree with it. Over the 822 palettes this package
+// sweeps, the thinnest margin anywhere is 3.44:1, a dark scheme's level-3
+// popover — the ladder's lightest rung and the one with the least room left.
 //
 // The second placement is not a second idiom, and the checkbox is the reason
 // it exists. Its edge is spoken for: unchecked, that edge is the border, and
@@ -54,32 +43,24 @@
 // one width, one hue, one measured contrast, at the edge of whatever has the
 // keyboard.
 //
-// # Why the ring is not one fixed colour
+// # Why the ring is a walked rung, not a fixed colour
 //
-// It was, and that is what this package replaces: a single neutral step 500
-// ring, chosen once and drawn everywhere. Neutral 500 measures 2.35:1 against
-// the light surface and 1.42:1 against a level-3 one — under the 3:1 floor
-// WCAG 1.4.11 sets for a non-text graphic — and on a checkbox it was strictly
-// worse than that. The unchecked box's border is neutral step 500 too, so a
-// focused unchecked box drew the ring's colour onto its own border colour and
-// the ring measured 1.00:1 against the thing it was circling. Both readings
-// of that defect are true at once: the code did stroke a ring, and there was
-// nothing to see.
-//
-// Nor is the answer the bare Primary the text field promoted its border to.
+// A fixed colour cannot satisfy both requirements the ring has: a known
+// lightness whatever the seed is, and never too close to what it circles.
 // Primary is the seed the palette is derived from, and a seed may be any
-// colour a caller likes: over a 411-seed sweep, bare Primary measures under
-// 3:1 against the light surface for 226 of them, bottoming out at 1.00:1. It
-// reads on the default seed and is a coin toss on the rest.
+// colour a caller likes, so a ring pinned to bare Primary is a colour nobody
+// in this library has seen — over a 411-seed sweep, bare Primary measures
+// under 3:1 against the light surface for 226 of them, bottoming out at
+// 1.00:1.
 //
-// Walking the primary ramp fixes both. The ramp is realized at fixed
+// Walking the primary ramp to the rung nearest its mid-value step that clears
+// the floor answers both requirements: the ramp is realized at fixed
 // perceptual depths, so a rung is a known lightness whatever the seed is, and
-// asking for the rung nearest the middle that clears the floor answers with a
-// colour that is unmistakably the brand hue and is never too close to its
-// ground. Over that same sweep, both derivations and both schemes, the worst
-// pairing any control's ring makes with the ground it circles measures 3.00:1
-// in a light scheme and 3.44:1 in a dark one, and there is no seed for which
-// any of them fails.
+// the result is unmistakably the brand hue and never too close to its ground.
+// Over that same sweep, both derivations and both schemes, the worst pairing
+// any control's ring makes with the ground it circles measures 3.00:1 in a
+// light scheme and 3.44:1 in a dark one, and there is no seed for which any
+// of them fails.
 package focus
 
 import (
@@ -122,27 +103,19 @@ func Ring(c tokens.ColorTokens, ground color.NRGBA) color.NRGBA {
 // ground at rest; and the promoted-border family, whose ring sits at the
 // control's outermost edge with the host immediately outside it.
 //
-// The promoted-border family is the reason this resolves to the storey rather
-// than to the field's own fill. That ring has two neighbours — the control's
-// fill inside, the host storey outside — and one walk has to satisfy both.
-// Deriving against the storey does, on every palette the seed sweep reaches;
-// deriving against the fill did not, which is the defect this replaces. Since
-// AU1.4 the inner neighbour is itself a storey — a control that fills a box on
-// its host is raised on it, so its fill is the rung above the ground handed in
-// here — and the claim is unchanged: the sweep clears at 3.44:1 worst on
-// either side of the band.
+// The promoted-border family is why this resolves to the storey rather than
+// to the field's own fill. That ring has two neighbours — the control's fill
+// inside, the host storey outside — and one walk has to satisfy both:
+// deriving against the storey does, on every palette the seed sweep reaches.
+// The inner neighbour is itself a storey — a control that fills a box on its
+// host is raised on it, so its fill is the rung above the ground handed in
+// here — and the sweep clears at 3.44:1 worst on either side of the band.
 //
-// There is no special case, and that is the whole of the ADR-022 repair. This
-// used to resolve a storey through the retired [tokens.ElevationScale.SurfaceStep]
-// and fall back to [tokens.ColorTokens.Surface] when the answer was the
-// accessor's zero sentinel, which meant it handed [Ring] a neutral-ramp rung
-// — a ladder that had left the ramp. [tokens.ColorTokens.SurfaceAt] answers
-// every storey the ladder carries, the Background pin at level 0 and the
-// floor beneath it included, so the storey's own fill is simply asked for.
-// Level 0 moves no pixel by that change: over 1644 palettes the rung derived
-// against the pin and the rung derived against Surface are the same rung
-// every time, so the zero value keeps the ring every control written before
-// storeys existed already drew, and now keeps it for a stated reason.
+// There is no special case: [tokens.ColorTokens.SurfaceAt] answers every
+// storey the ladder carries, the Background pin at level 0 and the floor
+// beneath it included, so the storey's own fill is simply asked for. Over
+// 1644 palettes the rung derived against the pin and the rung derived
+// against Surface are the same rung every time, so level 0 moves no pixel.
 func Ground(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGBA {
 	return c.SurfaceAt(level)
 }

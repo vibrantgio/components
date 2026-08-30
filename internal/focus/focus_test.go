@@ -40,12 +40,11 @@ func sweepSeeds() []stdcolor.NRGBA {
 // Most controls appear once per storey rather than once. A control's host is
 // a rung of the elevation ladder, the ring lies on that host's fill, and the
 // fill moves with the ladder — so "which ground does this control's ring
-// circle" has one answer per storey and a gate that asked only the first
-// would have passed the level-2 and level-3 readings that were under the
-// floor for as long as the ring was measured against a fixed surface. Since
-// ADR-022 the ladder carries a storey under the paper as well, so the list
-// walks [storeys] rather than naming three of them: a control on a sidebar
-// stands on the furniture floor and its ring is measured there too.
+// circle" has one answer per storey, and a gate that asked only one storey
+// would miss readings under the floor at another. The ladder carries a storey
+// under the paper as well, so the list walks [storeys] rather than naming
+// three of them: a control on a sidebar stands on the furniture floor and its
+// ring is measured there too.
 func grounds(c tokens.ColorTokens) []struct {
 	name   string
 	ground stdcolor.NRGBA
@@ -72,10 +71,10 @@ func grounds(c tokens.ColorTokens) []struct {
 	for _, level := range storeys {
 		at := storeyName(level)
 		// A ghost paints no ground, so its ring circles the host storey's
-		// surface. Hovered and pressed it paints that storey's own walk and
-		// the ring circles the wash instead — since ADR-022 the wash is
-		// taken from the storey's fill rather than from a ramp step, so
-		// there are as many washes as there are storeys.
+		// surface. Hovered and pressed it paints that storey's own wash and
+		// the ring circles the wash instead: the wash is taken from the
+		// storey's fill rather than from a ramp step, so there are as many
+		// washes as there are storeys.
 		out = append(out,
 			entry{"button ghost " + at, focus.Ground(c, level)},
 			entry{"button ghost hovered " + at, c.StateAt(level, tokens.StateHover)},
@@ -110,7 +109,7 @@ func storeyName(level tokens.ElevationLevel) string {
 // storeys is the elevation ladder every control in this library can be put
 // on, named as a host says it: a control that is told nothing stands on
 // tokens.Level0, and a control on a sidebar, a rail or a toolbar stands on
-// the furniture floor beneath it (ADR-022).
+// the furniture floor beneath it.
 var storeys = []tokens.ElevationLevel{
 	tokens.LevelFloor, tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
 }
@@ -119,11 +118,9 @@ var storeys = []tokens.ElevationLevel{
 // which the contrast gates above cannot see: they would pass just as happily
 // if Ground answered one fixed colour for every storey.
 //
-// Every storey, with no exception written into the rule. Level 0 used to be
-// one — its fill is the Background pin, off the neutral ramp, so a resolution
-// that answered ramp steps had no step to walk and fell back to Surface. A
-// resolution that answers fills has nothing to fall back from, and the floor
-// beneath the paper is asked for on the same terms as the storeys above it.
+// Every storey is asked for on the same terms, with no exception written
+// into the rule: the floor beneath the paper is asked for the same way as
+// the storeys above it.
 func TestGroundIsTheStoreysOwnFill(t *testing.T) {
 	for _, s := range []struct {
 		name string
@@ -142,12 +139,10 @@ func TestGroundIsTheStoreysOwnFill(t *testing.T) {
 	}
 }
 
-// TestLevelZeroGroundMovesNoPixel holds the claim the Level 0 case rests on
-// now that it has stopped being an exception: the ring a control on the page
-// draws is the ring it drew when Ground answered Surface there. Both grounds
-// are asked for the rung, over the whole sweep and both derivations, and they
-// answer the same rung every time — so the repair is a change of reasoning
-// and not a repaint.
+// TestLevelZeroGroundMovesNoPixel holds the claim that resolving level 0
+// through [tokens.ColorTokens.SurfaceAt] rather than naming Surface directly
+// moves no pixel: both grounds are asked for the rung, over the whole sweep
+// and both derivations, and they answer the same rung every time.
 func TestLevelZeroGroundMovesNoPixel(t *testing.T) {
 	for _, seed := range sweepSeeds() {
 		light, dark := tokens.FromSeed(seed)
@@ -164,17 +159,14 @@ func TestLevelZeroGroundMovesNoPixel(t *testing.T) {
 // rests on for the text field and the dropdown trigger: their ring is the
 // control's outermost band, so it has two neighbours — the control's own fill
 // on the inside, the host storey on the outside — and one walk has to satisfy
-// them both. Deriving against the storey does; deriving against the fill did
-// not, which is the defect this replaces.
+// them both. Deriving against the storey does.
 //
-// Since AU1.4 the inner neighbour is a storey rather than the Surface alias:
-// a control that fills a box on its host is raised on it, so its fill is the
-// rung above the ground it was handed (input.controlFill, which this package
-// cannot import and therefore restates as the one call it is). That moved the
-// inner neighbour in the direction that matters — toward the light, which in
-// a dark scheme is toward the ring — and the sweep still clears, at 3.44:1
-// worst over both derivations and every storey, the same margin the outer
-// neighbour bottoms out at.
+// The inner neighbour is a storey rather than the Surface alias: a control
+// that fills a box on its host is raised on it, so its fill is the rung above
+// the ground it was handed (input.controlFill, which this package cannot
+// import and therefore restates as the one call it is). The sweep clears at
+// 3.44:1 worst over both derivations and every storey, the same margin the
+// outer neighbour bottoms out at.
 func TestPromotedBorderRingClearsBothItsNeighbours(t *testing.T) {
 	for _, seed := range sweepSeeds() {
 		light, dark := tokens.FromSeed(seed)

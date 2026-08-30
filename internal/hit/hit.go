@@ -1,6 +1,6 @@
 // Package hit extends a control's pointer target beyond its visual bounds.
 //
-// Density (E1.3) shrinks the drawn control — tokens.Density.ControlHeight is
+// Density shrinks the drawn control — tokens.Density.ControlHeight is
 // 36 dp Comfortable, 28 dp Compact — but the WCAG 2.5.5 pointer target never
 // shrinks below tokens.Density.MinHitTarget (44 dp). Before density the two
 // rectangles coincided: a control's event area was exactly its visual area.
