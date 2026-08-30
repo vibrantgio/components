@@ -38,9 +38,7 @@
 //
 // The dirty flag is the caller's responsibility. Compute it in screen-pixel
 // space rather than physics- or model-coordinate space: a sub-pixel move
-// does not warrant a re-record. The rule is empirical — validation
-// Experiment B established it; that experiment's record predates the
-// organization and is not preserved, and its surviving measurements are
+// does not warrant a re-record. The rule is empirical; the measurements are
 // reproduced below.
 //
 // # Performance reference (Experiment B, Apple M1, darwin/arm64)

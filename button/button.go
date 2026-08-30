@@ -50,7 +50,7 @@ const (
 	Filled Emphasis = iota
 
 	// Tonal is the middle register: a tinted fill off the role's own ramp
-	// with the ramp's text shade on top (ADR-007's 100–300 tinted fills and
+	// with the ramp's text shade on top (the ramp's 100–300 tinted fills and
 	// 700–900 text over them). It reads as an action without claiming the
 	// surface's one loud slot — the register for a secondary action, and
 	// the one a row of equals wears.
@@ -216,8 +216,8 @@ type Props struct {
 	// shaper (Typography.Shaper()), which is built once for the process and
 	// shared by every component reading that typography — the cache lives
 	// behind the Typography value, so it survives the copy this component's
-	// map function makes of it (spectrum F5.1). Set it only when this button
-	// must shape with a different shaper than the theme provides.
+	// map function makes of it. Set it only when this button must shape with
+	// a different shaper than the theme provides.
 	//
 	// A shaper is not safe to use from two goroutines; Gio lays the widget
 	// forest out on the one goroutine that runs the event loop, which is what
@@ -231,7 +231,7 @@ type resolvedTokens struct {
 	label   tokens.TextStyle // the LabelLarge role: typeface, weight, size, line height
 	spacing tokens.SpacingScale
 	radius  tokens.RadiusScale
-	density tokens.Density // control height and inner padding (E1.3)
+	density tokens.Density // control height and inner padding
 	shaper  *text.Shaper   // the theme's shaper; nil in the Render/RenderIcon path
 }
 
@@ -250,7 +250,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 
 	// Flatten the nested theme observables into a concrete snapshot. The
 	// typography emission supplies both the LabelLarge text style and the
-	// theme's cached shaper (ADR-003: the theme owns the typeface).
+	// theme's cached shaper — the theme owns the typeface.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
 			rx.CombineLatest5(t.Color, t.Typography, t.Spacing, t.Radius, t.Density),
@@ -417,11 +417,10 @@ func RenderIcon(
 // drawButton renders the button visual into gtx. All visual state comes from s;
 // no event queries are performed here.
 func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resolvedTokens, s RenderState) layout.Dimensions {
-	// E1.3 sizing rule: button height = Density.ControlHeight (36 dp
+	// Sizing rule: button height = Density.ControlHeight (36 dp
 	// Comfortable, 28 dp Compact), inner padding = Density.PaddingX/PaddingY
-	// (16/8 and 12/6). The 44 dp of the pre-density button was the WCAG hit
-	// floor, not a control height; the pointer target keeps it via hit.Extend
-	// in the live path.
+	// (16/8 and 12/6). 44 dp is the WCAG hit floor, not a control height;
+	// the pointer target keeps it via hit.Extend in the live path.
 	padH := gtx.Dp(unit.Dp(tok.density.PaddingX))
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
@@ -500,7 +499,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 // hover/press/focus/disabled treatments match. All visual state comes from s;
 // no event queries are performed here.
 func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int, col color.NRGBA), tok resolvedTokens, s RenderState) layout.Dimensions {
-	// E1.3 sizing rule: side = Density.ControlHeight, glyph inset =
+	// Sizing rule: side = Density.ControlHeight, glyph inset =
 	// Density.PaddingY, so the glyph gets ControlHeight − 2·PaddingY — the
 	// same content-box rule icon.Size documents (20 dp Comfortable, 16 dp
 	// Compact). The pointer target stays the 44 dp square via hit.Extend in
@@ -593,20 +592,20 @@ func ringGround(c tokens.ColorTokens, bg color.NRGBA, s RenderState) color.NRGBA
 	return bg
 }
 
-// Ramp steps the quieter registers resolve against, in ADR-007's vocabulary.
-// Every one of them is a step the ADR already names, so a register is a
-// choice of rungs on the existing ramps rather than a second colour model.
+// Ramp steps the quieter registers resolve against. Every one of them is a
+// step already named on the existing ramps, so a register is a choice of
+// rungs on those ramps rather than a second colour model.
 //
 // Both grounds are step 200, and the APCA gate is what fixes them there
 // rather than taste. A tinted ground presses two steps deeper, and 200 is
-// the only rung of ADR-007's 100–300 tinted band whose press still carries
+// the only rung of the 100–300 tinted band whose press still carries
 // the 900 text: measured on the default seed, primary 900 over primary 400
 // is Lc 62.8 light and −84.5 dark, and neutral 900 over neutral 400 is
 // Lc 63.4 and −84.6 — all above the ADR's Lc 60 floor. A ground of 300
 // would press onto 500 and take its label to Lc 47.5, unreadable, in
 // exchange for a slightly louder button.
 const (
-	// tonalGround is the tinted fill (ADR-007's 100–300 band) a tonal
+	// tonalGround is the tinted fill (the 100–300 tinted band) a tonal
 	// button rests on, and the ground its hover and press walk from — one
 	// step to 300, two to 400, exactly as any tinted surface walks. It is
 	// the step a card sits on, which is the relationship a tonal button
@@ -616,9 +615,8 @@ const (
 	// stop the APCA gate holds at Lc ≥ 90 over the 100 and 200 grounds.
 	tonalText = 900
 
-	// ghostText is the resting label shade: neutral step 700, ADR-007's
-	// low-contrast text (Lc ≥ 60) — the resolution the deleted
-	// OnSurfaceVariant alias carried.
+	// ghostText is the resting label shade: neutral step 700, the
+	// low-contrast text floor (Lc ≥ 60).
 	ghostText = 700
 	// ghostTextOnWash is the label shade once a wash appears under it.
 	// The ground walks toward the 900 end, so the label walks with it and
@@ -630,9 +628,9 @@ const (
 // register and interaction state.
 //
 // Filled — the zero register — is the treatment components has always drawn: the
-// Primary solid fill resolved through the D2.3 state walk (ADR-007: hover
-// and pressed step the pin toward the 900 end of the primary ramp; focus
-// keeps the fill and draws the ring) under OnPrimary, faded to
+// Primary solid fill resolved through the state walk (hover and pressed step
+// the pin toward the 900 end of the primary ramp; focus keeps the fill and
+// draws the ring) under OnPrimary, faded to
 // DisabledOpacity when disabled. Tonal and Ghost resolve through the same
 // two entry points on the same ramps, only from different rungs: tonal is
 // the tinted-ground walk on the primary ramp, ghost the same walk on the
@@ -720,17 +718,11 @@ func pinnedFill(s RenderState) bool {
 // walk taken from the fill of the storey the ghost stands on, so the wash is
 // its host surface's own one-rung walk and nothing else.
 //
-// This used to resolve a neutral-ramp STEP and walk that, which meant it
-// could not answer for a storey the ramp does not carry — level 0's fill is
-// the Background pin, off-ramp by design, and since ADR-022 so is every
-// light storey above it and the dark furniture floor below. The register
-// covered the gap by assuming the level-1 step for the window ground, which
-// read one step strong on the page and had nothing at all to say about the
-// floor. [tokens.ColorTokens.StateAt] walks from the storey's own colour on
-// the neutral ladder, so there is no gap left to cover and no assumption
-// left to make: every storey the ladder carries walks from what it is
-// actually filled with, and the ghost's wash is the surface it is sitting
-// on, one rung along.
+// [tokens.ColorTokens.StateAt] walks from the storey's own colour on the
+// neutral ladder, so every storey the ladder carries walks from what it is
+// actually filled with — including a storey off the ramp by design, such as
+// the window ground's Background pin — and the ghost's wash is always the
+// surface it is sitting on, one rung along.
 func ghostWash(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) color.NRGBA {
 	return c.StateAt(level, state)
 }

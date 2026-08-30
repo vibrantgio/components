@@ -15,8 +15,8 @@ import (
 
 // specimen is the string every typography golden draws. It is deliberately
 // dull: ASCII only, so the pinned Roboto and Roboto Mono faces both carry
-// every rune and no symbol face is involved (F4.2 keeps symbols out of stored
-// images). It is also deliberately chosen to make the four properties legible
+// every rune and no symbol face is involved. It is also deliberately chosen
+// to make the four properties legible
 // — "Il1" and "Wm" separate a proportional face from a monospaced one at a
 // glance, and the "g" descender shows where the line box sits.
 const specimen = "Il1 Wm gj 018"
@@ -25,39 +25,34 @@ const specimen = "Il1 Wm gj 018"
 // LabelLarge role, then one variant per property the role promises, each
 // differing from the baseline in exactly that one field.
 //
-// Why button.Render is the subject. F3.3 re-cut every static Render signature
-// in this repo from a bare size onto a whole tokens.TextStyle, and
-// button.Render is the canonical consumer of the result: drawButton reads
-// Typeface, Weight, Size and LineHeight off the style and puts all four into
-// the shaping call. That re-cut moved zero pixels, because no golden drew
-// enough text to notice. These do.
+// button.Render is the subject because it is the canonical consumer of a
+// whole tokens.TextStyle: drawButton reads Typeface, Weight, Size and
+// LineHeight off the style and puts all four into the shaping call.
 //
-// All four properties are here. LineHeight used to be absent, with a comment
-// explaining that it could not move a pixel on this path — true at the time,
-// and the defect rather than the excuse for it. gioui.org/text's
-// calculateYOffsets baselines the first line at that line's own ascent and
-// spends the line height only on the gap to the next one, and widget.Label
-// reports the glyph ink as its size, so a MaxLines:1 label rendered
-// identically at any LineHeight at all. F4.4c made the label box the role's
-// line box via theme/typeset, so the property is now observable exactly
-// where it is documented to arrive.
+// All four properties are exercised here, LineHeight included.
+// gioui.org/text's calculateYOffsets baselines the first line at that line's
+// own ascent and spends the line height only on the gap to the next one, and
+// widget.Label reports the glyph ink as its size — so a MaxLines:1 label
+// rendered through widget.Label is identical at any LineHeight. The label
+// box must instead be sized as the role's line box via theme/typeset, so the
+// property is observable exactly where it is documented to arrive.
 var typographyCases = []struct {
 	name  string
 	style tokens.TextStyle
 }{
 	// LabelLarge as shipped: Roboto, weight 500, 14 dp.
 	{"type-label-large", tokens.DefaultTypography.LabelLarge},
-	// Typeface only: the same metrics on Roboto Mono. This is the monospace
-	// case — Code's face, the newest role's — and the one image where every
-	// advance is uniform.
+	// Typeface only: the same metrics on Roboto Mono — the monospace case,
+	// Code's face — and the one image where every advance is uniform.
 	//
-	// It is also where F5.3 landed. This button stood 38 px tall against the
-	// baseline's 36, on a role declaring the same 20 dp line height, because
-	// theme/typeset measured its natural line by shaping the empty string:
-	// an empty string has no run in the face it names, so the probe returned
-	// Roboto's 17 px for a label set in Roboto Mono's 19 and the deficit came
-	// out 2 px too generous. Measuring the text being laid out puts the label
-	// box back on 20 and the button back on the density's 36.
+	// This is also the case that exposes a hazard in measuring a role's
+	// natural line by shaping the empty string: an empty string has no run
+	// in the face it names, so the probe falls back to the shaper's default
+	// face. On a role declaring a 20 dp line height set in Roboto Mono, that
+	// returns Roboto's 17 px instead of Roboto Mono's 19, a 2 px deficit that
+	// renders the button 38 px tall against the baseline's 36. Measuring the
+	// text actually being laid out puts the label box back on 20 and the
+	// button back on the density's 36.
 	{"type-typeface-mono", withTypeface(tokens.DefaultTypography.LabelLarge, tokens.DefaultTypography.Code.Typeface)},
 	// Weight only: 400 instead of 500. Thinner stems.
 	{"type-weight-regular", withWeight(tokens.DefaultTypography.LabelLarge, tokens.WeightRegular)},
@@ -121,14 +116,14 @@ func TestTypographyGolden(t *testing.T) {
 	}
 }
 
-// TestLineHeightSizesTheLabelBox is the numeric half of the line-height pin,
-// and the one that fails against the behaviour F4.4 measured. Before F4.4c a
-// button at line height 20, 32 and 64 rendered byte-identical with a 17 px
-// label box in all three, because gioui.org/widget.Label reports glyph ink and
-// gioui.org/text spends the line height on the gap to a next line that a
-// MaxLines:1 label never has. Now the label box is the role's line box, so the
-// button's height is the line height plus its padding — and every number below
-// is derived from the tokens rather than from the letters in the label.
+// TestLineHeightSizesTheLabelBox is the numeric half of the line-height
+// constraint: gioui.org/widget.Label reports glyph ink as its size, and
+// gioui.org/text spends the line height only on the gap to a next line that
+// a MaxLines:1 label never has, so a naive label box does not move with
+// LineHeight at all. The label box must instead be sized as the role's line
+// box, so the button's height is the line height plus its padding — and
+// every number below is derived from the tokens rather than from the
+// letters in the label.
 //
 // The golden above shows the same fact in pixels; this one says which number
 // is wrong when it moves.

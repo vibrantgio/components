@@ -51,8 +51,7 @@ func crossIcon(gtx layout.Context, sizePx int, col color.NRGBA) {
 // defaultShaper returns the shaper every golden here draws with: the default
 // typography's faces pinned, system fonts off, so the stored images are the
 // same on every machine. A golden test pins its faces with
-// DeterministicShaper; application code takes the fallback Shaper. See
-// AGENTS.md.
+// DeterministicShaper; application code takes the fallback Shaper.
 func defaultShaper(t *testing.T) *text.Shaper {
 	t.Helper()
 	return tokens.DefaultTypography.DeterministicShaper()
@@ -68,10 +67,9 @@ func TestButtonGolden(t *testing.T) {
 
 	// Zero corner radius keeps the edges sharp: anti-aliased rounded corners
 	// vary slightly between GPU context initialisations. The label is real
-	// text — F4.2 split the shaper so a golden pins its faces explicitly, and
-	// Latin text in the pinned Roboto faces rasterises identically everywhere,
-	// so the old empty label bought nothing and hid every typography
-	// regression (F4.4).
+	// text: Latin text in the pinned Roboto faces rasterises identically
+	// everywhere, so this exercises typography regressions that an empty
+	// label would hide.
 	sharpRadius := tokens.RadiusScale{} // all zeros → sharp corners, no AA
 	cases := []struct {
 		name   string
@@ -203,8 +201,8 @@ func TestIconButtonEmphasisGolden(t *testing.T) {
 
 // onLevel2Ground paints the whole canvas in the level-2 surface fill — the
 // raised storey patterns/modal's dialog occupies — before drawing w over it.
-// It is the local ground of the I3.1 goldens: a ghost hosted on a raised
-// surface sits on that surface's own step, not the window ground.
+// It is the local ground the ghost goldens below use: a ghost hosted on a
+// raised surface sits on that surface's own step, not the window ground.
 func onLevel2Ground(c tokens.ColorTokens, w layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.Level2), clip.Rect{Max: gtx.Constraints.Max}.Op())
@@ -225,15 +223,11 @@ func TestGhostIconButtonWashesAboveRaisedGroundGolden(t *testing.T) {
 	golden.Render(t, "emph-icon-ghost-level2-hovered", size, onLevel2Ground(colors, w))
 }
 
-// TestGhostWashDiffersFromItsRaisedGround is the I3.1 defect assertion in
-// pixels: a ghost hosted on a level-2 surface must hover in a wash that
-// differs from the ground it sits on. Before the wash walked from the local
-// ground it resolved to neutral 300 — exactly the level-2 fill — and this
-// test's sampled pixel equalled the ground: an invisible hover. The wash
-// must now be the host surface's own one-rung walk, which since ADR-022 is
-// asked of the storey rather than of a ramp index: tokens.ColorTokens.StateAt
-// walks the neutral ladder from whatever the storey is actually filled with,
-// and the light level-2 fill is off the ramp entirely.
+// TestGhostWashDiffersFromItsRaisedGround asserts, in pixels, that a ghost
+// hosted on a level-2 surface must hover in a wash that differs from the
+// ground it sits on. The light level-2 fill is off the neutral ramp
+// entirely, so the wash must be resolved from the storey's own colour
+// (tokens.ColorTokens.StateAt) rather than from a ramp index.
 func TestGhostWashDiffersFromItsRaisedGround(t *testing.T) {
 	size := image.Pt(60, 60)
 	colors := tokens.DefaultLight
@@ -329,7 +323,7 @@ func TestGhostRestsTransparent(t *testing.T) {
 	}
 }
 
-// ---- A pinned fill on the Filled register (AJ1.1) ----
+// ---- A pinned fill on the Filled register ----
 
 // pinnedFill and pinnedInk are a pair no scheme carries: a fixed red of the
 // kind a caller pins when the meaning of an action, rather than the palette,
@@ -478,12 +472,10 @@ func ringGround(c tokens.ColorTokens, e button.Emphasis) color.NRGBA {
 // circles. So a ghost button's ring is neither thinner, dimmer nor smaller
 // than a filled one's.
 //
-// What the registers do not share is the rung, and asserting one flat colour
-// across all three is what this test used to do. It cannot be asked for and
-// have the ring read as well: a filled button's ring circles the primary fill
-// and a ghost's circles the surface, and no single rung of the primary ramp
-// clears 3:1 against both. Sameness belongs to the ring's geometry; the rung
-// belongs to the ground.
+// What the registers do not share is the rung: a filled button's ring
+// circles the primary fill and a ghost's circles the surface, and no single
+// rung of the primary ramp clears 3:1 against both. Sameness belongs to the
+// ring's geometry; the rung belongs to the ground.
 //
 // The geometry is stated here rather than compared between registers — the
 // outermost ring.Width dp of the button's own square, and nothing outside it
@@ -629,7 +621,7 @@ func TestGhostIconButtonKeepsFullHitTarget(t *testing.T) {
 	}
 }
 
-// ---- Density (E1.3) ----
+// ---- Density ----
 
 // densityTheme returns a theme whose density is d, with sharp corners for
 // golden determinism (anti-aliased rounded corners vary between GPU context
@@ -675,9 +667,9 @@ func TestButtonCompactGolden(t *testing.T) {
 
 // ---- Accessibility tests ----
 
-// TestButtonVisualHeightIsControlHeight checks the drawn button is exactly the
-// density's control height (E1.3: 36 dp Comfortable), not the old 44 dp — the
-// 44 dp figure is a pointer-target floor, verified separately below.
+// TestButtonVisualHeightIsControlHeight checks the drawn button is exactly
+// the density's control height (36 dp Comfortable) — distinct from the 44 dp
+// pointer-target floor, verified separately below.
 //
 // Comfortable is the density where the floor and the content box agree:
 // LabelLarge's 20 dp line box plus 2×8 dp of padding is 36, which is
@@ -705,9 +697,9 @@ func TestButtonVisualHeightIsControlHeight(t *testing.T) {
 	}
 }
 
-// TestCompactButtonClearsTheControlHeightFloor pins the answer F4.4 asked for:
-// a Compact button draws taller than CompactControlHeight, and that is
-// correct, because ControlHeight is a floor and not a height.
+// TestCompactButtonClearsTheControlHeightFloor pins the rule that a Compact
+// button draws taller than CompactControlHeight, because ControlHeight is a
+// floor and not a height.
 //
 // The measurement that raised it found 29 px against a floor of 28 — the
 // glyph ink box of 17 px plus 2×6 dp — and reproduced it with an empty label,
@@ -921,7 +913,7 @@ func TestIconButtonGolden(t *testing.T) {
 }
 
 // TestIconButtonVisualIsControlHeightSquare checks the icon-only button draws
-// as a square the density's control height on a side (E1.3: 36 dp
+// as a square the density's control height on a side (36 dp
 // Comfortable). The 44 dp pointer-target floor is enforced by the live path's
 // hit extension, exercised by TestButtonMinHitTarget and internal/hit.
 func TestIconButtonVisualIsControlHeightSquare(t *testing.T) {

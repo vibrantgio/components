@@ -15,19 +15,20 @@ import (
 // sinkData prevents the compiler from eliding heap allocations in indicatorCompute.
 var sinkData []float64
 
-// indicatorCompute simulates one call to indicator.Compute (EMA, SMA, Bollinger, etc.)
-// from the coinviz baseline. The //go:noinline directive plus sinkData assignment ensure
-// make([]float64, 500) escapes to the heap, producing exactly 1 heap alloc per call.
+// indicatorCompute simulates one call to a typical indicator-computation
+// function (EMA, SMA, Bollinger, etc.). The //go:noinline directive plus
+// sinkData assignment ensure make([]float64, 500) escapes to the heap,
+// producing exactly 1 heap alloc per call.
 //
 //go:noinline
 func indicatorCompute() []float64 {
-	s := make([]float64, 500) // matches coinviz bench numCandles=500
+	s := make([]float64, 500) // matches a typical chart benchmark's candle count
 	s[0] = 1.0
 	sinkData = s
 	return s
 }
 
-// simulateRender models a coinviz pane's Render call: n indicator.Compute calls
+// simulateRender models a chart pane's Render call: n indicator-compute calls
 // (each 1 alloc) followed by clip/paint op encoding (0 allocs).
 func simulateRender(ops *op.Ops, n int) {
 	for range n {
@@ -39,8 +40,8 @@ func simulateRender(ops *op.Ops, n int) {
 }
 
 // BenchmarkNaive re-records every pane every frame without caching.
-// Calibrated to ~120 allocs/op (12 panes × 10 allocs each), close to the
-// G−1.6 BenchmarkAllPanes baseline of 115 allocs/op.
+// Calibrated to ~120 allocs/op (12 panes × 10 allocs each), close to a
+// measured baseline of 115 allocs/op.
 func BenchmarkNaive(b *testing.B) {
 	const (
 		numPanes    = 12
@@ -87,7 +88,7 @@ func BenchmarkCached(b *testing.B) {
 // TestAllocationRegression verifies that FrameCache achieves at least 30%
 // fewer allocations per frame than naive re-recording.
 //
-// Reference: G−1.6 BenchmarkAllPanes baseline = 115 allocs/op.
+// Reference: measured baseline = 115 allocs/op.
 // Scenario: 4/12 dirty panes → expected cached = ~40 allocs (67% reduction).
 func TestAllocationRegression(t *testing.T) {
 	const (

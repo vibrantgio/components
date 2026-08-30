@@ -13,11 +13,10 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// BenchmarkButtonRender exercises widget(gtx) for b.N synthetic frames via the
-// shared bench.BenchFrame harness (DESIGN-v1.md §Performance — Methodology,
-// in github.com/vibrantgio/design). The
-// harness enables b.ReportAllocs so per-frame allocation regressions (>5%
-// threshold) are measurable. This is the idle render: default unfocused state.
+// BenchmarkButtonRender exercises widget(gtx) for b.N synthetic frames via
+// the shared bench.BenchFrame harness. The harness enables b.ReportAllocs so
+// per-frame allocation regressions (>5% threshold) are measurable. This is
+// the idle render: default unfocused state.
 func BenchmarkButtonRender(b *testing.B) {
 	shaper := tokens.DefaultTypography.DeterministicShaper()
 	w := button.Render(
@@ -45,7 +44,7 @@ func BenchmarkButtonRenderFocused(b *testing.B) {
 // SwitchMap/CombineLatest5 map function exactly once. That map function is
 // where the component pulls a tokens.Typography *value* out of the rx tuple and
 // asks it for the theme's shaper, so this benchmark is the direct measure of
-// whether the shaper cache survives that copy (F5.1).
+// whether the shaper cache survives that copy.
 //
 // It is deliberately not a BenchFrame: the cost under test is the emission, not
 // the paint. Every dark-mode toggle, density change and first subscription in a

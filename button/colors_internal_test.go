@@ -15,8 +15,8 @@ var (
 	pinInk  = color.NRGBA{0xff, 0xff, 0xff, 0xff}
 )
 
-// The emphasis registers are a choice of rungs on ADR-007's ramps, and this
-// is the table that says which rungs. It is asserted in both schemes because
+// The emphasis registers are a choice of rungs on the design system's ramps,
+// and this is the table that says which rungs. It is asserted in both schemes because
 // the light and dark ramps are paired scales — the same step keeps the same
 // job — so the register table must be written once and hold in both. If a
 // register ever needs a mode-specific rule, this test is where that shows up.
@@ -72,11 +72,7 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 			//
 			// A ghost that is told nothing stands on the paper, so its wash
 			// is the paper's own walk — tokens.ColorTokens.StateAt at level
-			// 0. It used to be neutral 300, because the ladder could not
-			// walk the off-ramp Background pin and the register assumed the
-			// level-1 ramp step instead, which read one rung strong. Since
-			// ADR-022 the walk is taken from the storey's fill and the page's
-			// own one-rung wash lands on neutral 200 in both schemes.
+			// 0, which lands on neutral 200 in both schemes.
 			{"ghost/normal", RenderState{Emphasis: Ghost},
 				transparent, c.Ramps.Neutral.Step(700)},
 			{"ghost/hovered", RenderState{Emphasis: Ghost, Hovered: true},
@@ -88,9 +84,9 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 			{"ghost/disabled", RenderState{Emphasis: Ghost, Disabled: true},
 				transparent, tokens.Disabled(c.Ramps.Neutral.Step(700))},
 
-			// Ghost on a host that is not the paper (I3.1, re-founded by
-			// ADR-022): the wash is that host surface's own one-rung walk,
-			// on every storey the ladder carries — the furniture floor below
+			// Ghost on a host that is not the paper: the wash is that host
+			// surface's own one-rung walk, on every storey the ladder
+			// carries — the furniture floor below
 			// the paper included, which is where a rail's or a toolbar's
 			// ghost buttons actually stand. Rest stays transparent on every
 			// storey; the ground is the host's to paint.

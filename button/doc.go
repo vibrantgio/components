@@ -19,7 +19,7 @@
 // A button also carries a visual weight register — [Filled], the default,
 // [Tonal] and [Ghost] — set through Props.Emphasis or, on the pure path,
 // through RenderState.Emphasis. It is a colour axis and only a colour axis:
-// each register resolves its ground and its label from ADR-007's ramps (the
+// each register resolves its ground and its label from the same ramps (the
 // pinned solid fill for filled, the primary ramp's tinted 200 ground under
 // its 900 text for tonal, no ground at all under the neutral ramp's 700 text
 // for ghost, with the tinted walk supplying hover and press in each). The
