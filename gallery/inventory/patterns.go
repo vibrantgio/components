@@ -31,6 +31,7 @@ import (
 	"github.com/vibrantgio/patterns/modal"
 	"github.com/vibrantgio/patterns/navbar"
 	"github.com/vibrantgio/patterns/pagination"
+	"github.com/vibrantgio/patterns/pane"
 	"github.com/vibrantgio/patterns/popover"
 	"github.com/vibrantgio/patterns/pricing"
 	"github.com/vibrantgio/patterns/shell"
@@ -72,6 +73,8 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 			Body: inv.navbar(c)},
 		{Name: "patterns-sidebar", Title: "Sidebar — expanded beside its collapsed rail", Height: 210,
 			Body: inv.sidebar(c)},
+		{Name: "patterns-pane", Title: "Floating pane — chrome that floats inside the window's edges, with ground on every side of it", Height: paneSpecimenH,
+			Body: inv.pane(c)},
 		{Name: "patterns-table", Title: "Table — sortable columns, sorted ascending on the first", Height: 176,
 			Body: inv.table(c)},
 		{Name: "patterns-modal", Title: "Modal — a decision answered from its footer, and a panel closed from the mark at its corner", Height: 260,
@@ -402,6 +405,93 @@ func (inv *Inventory) sidebar(c tokens.ColorTokens) layout.Widget {
 			layout.Rigid(complayout.HSpacer(24)),
 			layout.Rigid(one(true)),
 		)
+	}
+}
+
+// The floating pane specimen's measurements.
+//
+// The pane is furniture inside a WINDOW, not a widget on a page: the inset,
+// the corner radius and the internal hairline only say what they say when the
+// window's own ground shows around them. So the specimen draws a window of
+// its own inside the slot, and the pane floats in that.
+//
+// The window is outlined with a hairline because the ground it paints is the
+// scheme's Background — which is exactly what the section row itself is
+// painted in, so without the outline the window has no edge and the pane
+// reads as floating on the page rather than inside anything. The outline is
+// the specimen's frame and not the pattern's: nothing in the pane package
+// draws it.
+const (
+	paneSpecimenW unit.Dp = 560
+	paneSpecimenH unit.Dp = 200
+	// paneColumnW is the width the pane is asked for — a chrome column beside
+	// a document rather than half the window, which is what the pattern's own
+	// stored images show it at.
+	paneColumnW unit.Dp = 168
+	// paneGutter is the air between the pane's trailing edge and the document
+	// that reflows beside it.
+	paneGutter unit.Dp = 16
+)
+
+// pane draws the floating pane beside the content it floats over: the window
+// ground visible on every side of it, the rounded corners and the hairline
+// just inside its own edge, and a document column starting where the pane
+// stops.
+//
+// The content beside it is what makes the specimen a specimen. A pane alone
+// in a box shows a rounded rectangle; a pane with a document reflowed against
+// it shows the one thing the pattern is for — that the pane is an object
+// standing on the window rather than an edge of it.
+func (inv *Inventory) pane(c tokens.ColorTokens) layout.Widget {
+	contents := func(gtx layout.Context) layout.Dimensions {
+		// The strip at the top of the pane is the window buttons' band. This
+		// specimen draws no window buttons — they belong to the window and
+		// not to the pattern — so the pane's own content starts under it,
+		// which is where a caller's content starts too.
+		inset := gtx.Dp(12)
+		defer op.Offset(image.Pt(inset, gtx.Dp(pane.StripDp))).Push(gtx.Ops).Pop()
+		gtx.Constraints.Max.X -= 2 * inset
+		return inv.prose(c,
+			"Navigator",
+			"",
+			"Chrome the reader can",
+			"send away, and what it",
+			"stood over reflows.",
+		)(gtx)
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		// The specimen is a window, so it is drawn at the size a window would
+		// show the pattern at — narrowed only when the column itself is
+		// narrower than that, the way every other bounded specimen here is.
+		size := image.Pt(min(gtx.Constraints.Max.X, gtx.Dp(paneSpecimenW)), gtx.Dp(paneSpecimenH))
+		gtx.Constraints = layout.Exact(size)
+		paint.FillShape(gtx.Ops, c.Background, clip.Rect{Max: size}.Op())
+
+		b := pane.Bounds(gtx, size, paneColumnW, false)
+		pane.Layout(gtx, c, b, contents)
+
+		// The document, starting one gutter past the pane's trailing edge —
+		// the reflow the pattern's hidden state completes by starting it at
+		// the window's own edge instead.
+		doc := gtx
+		docW := max(0, size.X-b.Max.X-gtx.Dp(paneGutter+pane.MarginDp))
+		doc.Constraints = layout.Exact(image.Pt(docW, size.Y-2*gtx.Dp(pane.MarginDp)))
+		off := op.Offset(image.Pt(b.Max.X+gtx.Dp(paneGutter), gtx.Dp(pane.MarginDp))).Push(gtx.Ops)
+		inv.prose(c,
+			"The document beside it",
+			"",
+			"A pane floats one margin inside the",
+			"window's leading, top and bottom edges,",
+			"with ground showing all the way round it.",
+			"",
+			"Its storey is the floor, a step darker",
+			"than the paper: a pane is read through",
+			"its edge and not through its lightness.",
+		)(doc)
+		off.Pop()
+
+		swatchBorder(gtx, c.Divider, size, 1)
+		return layout.Dimensions{Size: size}
 	}
 }
 

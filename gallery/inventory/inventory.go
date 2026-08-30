@@ -392,6 +392,8 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 	return []Section{
 		{Name: "components-button", Title: "Button — rest, hover, focus, press, disabled", Height: 36,
 			Body: inv.buttonRow(c)},
+		{Name: "components-button-emphasis", Title: "Button — the three emphasis registers at rest, and the icon-only face", Height: 36,
+			Body: inv.emphasisButtonRow(c)},
 		{Name: "components-button-pinned", Title: "Button — the register's own fill, and one pinned from outside the palette", Height: 36,
 			Body: inv.pinnedButtonRow(c)},
 		{Name: "components-chip", Title: "Chip — the clickable face, the pop-up anchor and the badge, on three storeys", Height: chipBlockH,
@@ -423,6 +425,12 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 type buttonCell struct {
 	label string
 	st    button.RenderState
+	// icon, when set, makes the cell the icon-only face: the glyph the button
+	// draws in place of a label. Such a cell is laid out at the square the
+	// density gives it rather than at the row's cell width — an icon button
+	// stretched to a text cell's width is a text button with no text in it,
+	// which is the one thing this face is not.
+	icon func(gtx layout.Context, sizePx int, col color.NRGBA)
 }
 
 // ButtonCellW is the width one cell of a button row is laid out at, and
@@ -435,11 +443,40 @@ const (
 
 func (inv *Inventory) buttonRow(c tokens.ColorTokens) layout.Widget {
 	return inv.buttonCells(c, []buttonCell{
-		{"Rest", button.RenderState{}},
-		{"Hover", button.RenderState{Hovered: true}},
-		{"Focus", button.RenderState{Focused: true}},
-		{"Press", button.RenderState{Pressed: true}},
-		{"Disabled", button.RenderState{Disabled: true}},
+		{label: "Rest", st: button.RenderState{}},
+		{label: "Hover", st: button.RenderState{Hovered: true}},
+		{label: "Focus", st: button.RenderState{Focused: true}},
+		{label: "Press", st: button.RenderState{Pressed: true}},
+		{label: "Disabled", st: button.RenderState{Disabled: true}},
+	})
+}
+
+// emphasisButtonRow puts the three registers side by side at rest, and the
+// icon-only face after them.
+//
+// The registers are shown at rest and at rest only. Emphasis is a question of
+// how loudly a button sits on the page when nobody is touching it — the
+// loudest one a surface is about, the middle one beside it, the quiet one
+// that must be present without competing — and that is a judgement made on
+// three still buttons next to each other. The state walk is the row above,
+// which the filled register already carries for all three.
+//
+// Each register's own name is the button's label, the way the state row's
+// labels are its states: a caption under a button that already says "Tonal"
+// is the same word twice.
+//
+// The icon face closes the row rather than standing in a section of its own,
+// because it is the same button with a glyph where the label was — same
+// register, same corner, same target — and the one thing worth seeing about
+// it is how its square sits beside the rectangles it is cut from. It is drawn
+// in the filled register so the square itself is visible; the ghost cell to
+// its left already shows what a register with no ground at rest looks like.
+func (inv *Inventory) emphasisButtonRow(c tokens.ColorTokens) layout.Widget {
+	return inv.buttonCells(c, []buttonCell{
+		{label: "Filled", st: button.RenderState{Emphasis: button.Filled}},
+		{label: "Tonal", st: button.RenderState{Emphasis: button.Tonal}},
+		{label: "Ghost", st: button.RenderState{Emphasis: button.Ghost}},
+		{icon: inv.marks.Mark(icons.Sidebar), st: button.RenderState{Emphasis: button.Filled}},
 	})
 }
 
@@ -449,6 +486,11 @@ func (inv *Inventory) buttonCells(c tokens.ColorTokens, cells []buttonCell) layo
 		for i, s := range cells {
 			if i > 0 {
 				cs = append(cs, layout.Rigid(complayout.HSpacer(float32(ButtonCellGap))))
+			}
+			if s.icon != nil {
+				cs = append(cs, layout.Rigid(button.RenderIcon(s.icon, c, tokens.Spacing,
+					tokens.Radius, tokens.Comfortable, s.st)))
+				continue
 			}
 			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = gtx.Dp(ButtonCellW)
@@ -483,8 +525,8 @@ var (
 // which the button package's own goldens carry state by state.
 func (inv *Inventory) pinnedButtonRow(c tokens.ColorTokens) layout.Widget {
 	return inv.buttonCells(c, []buttonCell{
-		{"Filled", button.RenderState{}},
-		{"Pinned", button.RenderState{Fill: PinnedFill, OnFill: PinnedInk}},
+		{label: "Filled", st: button.RenderState{}},
+		{label: "Pinned", st: button.RenderState{Fill: PinnedFill, OnFill: PinnedInk}},
 	})
 }
 
