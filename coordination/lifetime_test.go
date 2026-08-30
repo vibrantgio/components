@@ -48,14 +48,11 @@ func awaitValue[T any](t *testing.T, what string, values <-chan T, errs <-chan e
 	return zero
 }
 
-// TestUnsubscribeReleasesTheSlot is the G0B.1 regression. Before the fix a
-// Subject leaked a subscription slot on every Unsubscribe, so this loop died
-// on the ninth iteration with rx's "out of subject subscriptions" — reported,
-// in a test binary, against whichever unlucky test subscribed next.
-//
-// The loop deliberately runs far past MaxSubscribers with only ever one live
-// subscription, because that is the shape of a long-running application:
-// shells open and close, and at no instant are many subscribed at once.
+// TestUnsubscribeReleasesTheSlot: a Subject must not leak a subscription slot
+// on Unsubscribe. The loop deliberately runs far past MaxSubscribers with only
+// ever one live subscription, because that is the shape of a long-running
+// application: shells open and close, and at no instant are many subscribed at
+// once.
 func TestUnsubscribeReleasesTheSlot(t *testing.T) {
 	obs, stream := coordination.Subject[int](coordination.BufCapSignal)
 
@@ -69,11 +66,11 @@ func TestUnsubscribeReleasesTheSlot(t *testing.T) {
 	}
 }
 
-// TestProducerRunsFreeAfterUnsubscribe covers the harsher half of the same
-// defect. A departed rx subscription keeps a frozen cursor, and the producer's
-// ring window is pinned to the slowest cursor — so once bufCap more items had
-// been written the producer blocked forever, with nothing subscribed. On the
-// Gio frame goroutine that is a hung window, not a dropped signal.
+// TestProducerRunsFreeAfterUnsubscribe: a departed rx subscription keeps a
+// frozen cursor and the producer's ring window is pinned to the slowest
+// cursor, so a producer must not block once bufCap more items are written with
+// nothing subscribed. On the Gio frame goroutine that would be a hung window,
+// not a dropped signal.
 func TestProducerRunsFreeAfterUnsubscribe(t *testing.T) {
 	obs, stream := coordination.Subject[int](coordination.BufCapSignal)
 
@@ -96,9 +93,8 @@ func TestProducerRunsFreeAfterUnsubscribe(t *testing.T) {
 	}
 }
 
-// TestManyConcurrentSubscribers proves the ceiling really moved: far more than
-// the eight subscriptions the package allowed before G0B.1 are live at once,
-// and every one of them receives the emission.
+// TestManyConcurrentSubscribers holds the ceiling: many subscriptions are live
+// at once and every one of them receives the emission.
 func TestManyConcurrentSubscribers(t *testing.T) {
 	const n = coordination.MaxSubscribers
 	obs, stream := coordination.Subject[int](coordination.BufCapSignal)
@@ -126,9 +122,8 @@ func TestManyConcurrentSubscribers(t *testing.T) {
 	}
 }
 
-// TestSubscriberLimitNamesItself is the third step of G0B.1. Overrunning the
-// limit must say what ran out and who is holding it, because the failure it
-// replaces named neither and surfaced on an innocent bystander.
+// TestSubscriberLimitNamesItself: overrunning the limit must say what ran out
+// and who is holding it, rather than surfacing on an innocent bystander.
 func TestSubscriberLimitNamesItself(t *testing.T) {
 	_, stream := coordination.Subject[int](coordination.BufCapSignal)
 

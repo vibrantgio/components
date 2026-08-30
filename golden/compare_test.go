@@ -25,9 +25,8 @@ func TestCompareMatch(t *testing.T) {
 	}
 }
 
-// TestCompareSizeChange is the regression test for the defect this harness
-// shipped with: a golden whose dimensions moved used to compare as a pass,
-// because PixelDiff answered -1 and Render only failed on a count above zero.
+// TestCompareSizeChange: a golden whose dimensions moved must compare as a
+// failure, not a pass.
 func TestCompareSizeChange(t *testing.T) {
 	err := compare(filled(300, 60, blue), filled(44, 44, blue))
 	if err == nil {

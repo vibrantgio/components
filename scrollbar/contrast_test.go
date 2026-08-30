@@ -1,10 +1,9 @@
 // The thumb's one pairing, measured over the composite rather than off the
 // ramp. An overlay thumb is translucent, so it has no colour until it is
-// drawn: what a reader sees is the ink mixed with the ground in linear
-// light, and that mix is the only thing a contrast floor can be applied to.
-// Reading a ratio off the ink instead is how a bar measuring 1.49:1 against
-// the light page — the low-contrast-text step at 39% coverage, composited to
-// #CCCCCC — was carried for a year as though it read.
+// drawn: what a reader sees is the ink mixed with the ground in linear light,
+// and that mix is the only thing a contrast floor can be applied to. The ink's
+// own ratio says nothing — the low-contrast-text step at 39% coverage measures
+// 6.19:1 as an ink and 1.49:1 composited over the light page.
 package scrollbar
 
 import (
@@ -33,13 +32,10 @@ var thumbSeeds = []color.NRGBA{
 }
 
 // thumbGrounds are the storeys an overlay bar rides: the window's own page in
-// a document, and the furniture floor the panes are filled with everywhere
-// else. Both are measured for both states, because the derivation answers
-// whichever of the two asks more and the other has to come out no worse.
-//
-// The pane was level 1 until ADR-022 re-founded the ladder and made chrome
-// furniture the storey below the paper rather than one above it. It is the
-// harder of the two grounds now, in both schemes and for one reason: the
+// a document, and the chrome furniture floor the panes are filled with
+// everywhere else. Both are measured for both states, because the derivation
+// answers whichever of the two asks more and the other has to come out no
+// worse. The furniture floor is the harder of the two in both schemes: the
 // thumb's ink is dark, and the floor is the darker ground.
 var thumbGrounds = []struct {
 	name  string
@@ -49,17 +45,11 @@ var thumbGrounds = []struct {
 	{"the furniture floor, a pane", tokens.LevelFloor},
 }
 
-// TestTheThumbClearsItsFloorOnEveryGroundItRides is the defect Phase AS was
-// opened by, written down: FromTokens gave the thumb the neutral ramp's
-// low-contrast-text step at coverage 100 in both schemes, and over the light
-// page that composites to #CCCCCC — 1.49:1, under any graphic floor there
-// is. The bar was invisible in the one moment it exists for, and nothing
-// caught it because the ink it was named from measures 6.19:1 all by itself.
-//
-// So the floors are asserted where they apply, on the composite, in both
-// states and on both grounds. The rest state owes WCAG 1.4.11's 3:1 as a
-// graphic that carries meaning without being text; the hover and drag state
-// owes 4.5:1, because a thumb the pointer is on is a target being aimed at.
+// TestTheThumbClearsItsFloorOnEveryGroundItRides asserts the floors where they
+// apply — on the composite, in both states and on both grounds. The rest state
+// owes WCAG 1.4.11's 3:1 as a graphic that carries meaning without being text;
+// the hover and drag state owes 4.5:1, because a thumb the pointer is on is a
+// target being aimed at.
 func TestTheThumbClearsItsFloorOnEveryGroundItRides(t *testing.T) {
 	for _, scheme := range []struct {
 		name string
@@ -133,13 +123,11 @@ func TestTheThumbClearsItsFloorForEverySeed(t *testing.T) {
 }
 
 // TestTheThumbIsAsTranslucentAsItsFloorAllows is the other half of the
-// derivation, and the half a floor alone would let rot: the point of an
-// overlay bar is that content shows through it, so the thumb owes its floor
-// and owes the reader everything past it. The gate is minimality in the two
-// dials, in the order the derivation spends them — one step less coverage
-// must fail, and at the coverage it settled on, the rung one step shallower
-// must fail too. Together those say the answer is the most translucent thumb
-// that clears, and that no future edit can quietly thicken it.
+// derivation: the point of an overlay bar is that content shows through it, so
+// the thumb owes its floor and owes the reader everything past it. The gate is
+// minimality in the two dials, in the order the derivation spends them — one
+// step less coverage must fail, and at the coverage it settled on, the rung
+// one step shallower must fail too.
 func TestTheThumbIsAsTranslucentAsItsFloorAllows(t *testing.T) {
 	clears := func(c tokens.ColorTokens, ink color.NRGBA, floor float64) bool {
 		for _, g := range thumbGrounds {
@@ -189,12 +177,10 @@ func TestTheThumbIsAsTranslucentAsItsFloorAllows(t *testing.T) {
 	}
 }
 
-// TestTheTwoStatesComeFromOneRecipe: hover and drag are not a second colour
-// picked to look right beside the first, they are the same walk against a
-// higher floor. What that guarantees, and what this holds, is that the
-// active thumb is never weaker than the resting one on any ground it rides —
-// the failure mode of two independently chosen colours, and the one a reader
-// would read as the bar reacting backwards.
+// TestTheTwoStatesComeFromOneRecipe: hover and drag are the same walk as rest
+// against a higher floor, not a second colour picked to look right beside the
+// first. So the active thumb is never weaker than the resting one on any
+// ground it rides.
 func TestTheTwoStatesComeFromOneRecipe(t *testing.T) {
 	for _, scheme := range []struct {
 		name string

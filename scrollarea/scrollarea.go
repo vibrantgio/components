@@ -123,26 +123,20 @@ type Style struct {
 //
 // # The fade takes no storey
 //
-// ADR-022's ladder asks every fill in the library which way it moves when the
-// thing under it rises, and this one does not move at all: a fade is an
-// OVERLAY, not a surface. It is painted over the content, inside the area's
-// clip, as the area's own ground run out to zero alpha, and its whole job is
-// to be indistinguishable from what lies behind the content so the hidden end
-// reads as passing UNDER the edge. A surface that rose a rung here would paint
-// a lighter band across the content and become exactly what this field's
-// documentation forbids — a band laid over it. So the fade matches its pane
-// rather than climbing off it, in both schemes.
+// A fade is an overlay, not a surface: it does not climb the elevation ladder
+// when the thing under it rises. It is painted over the content, inside the
+// area's clip, as the area's own ground run out to zero alpha, and its whole
+// job is to be indistinguishable from what lies behind the content so the
+// hidden end reads as passing under the edge. A fill that rose a rung here
+// would paint a lighter band across the content, which is exactly what
+// [Style.FadeColor] forbids.
 //
-// What did have to move is which colour "its pane" names. The default was
-// c.Surface, the neutral ramp's step 200, and the paired ramps realize step
-// 200 at the same perceptual depth from opposite ends: in the dark scheme
-// that happens to be the raised storey and in the light scheme it is no
-// storey at all, so a default fade dissolved a light page's content into
-// #E8E8E8 while the page was #F6F6F6 — a grey smear, the very failure the
-// field is documented against. The default now names the window ground,
-// SurfaceAt(Level0), which is the same convention every Ground field in this
-// library gives its zero value: an area nobody has told anything to stands on
-// the paper.
+// The default names the window ground, SurfaceAt(Level0) — the convention
+// every Ground field in this library gives its zero value. It may not name a
+// ramp step instead: the paired ramps realize a given step at the same
+// perceptual depth from opposite ends, so one step is a storey in one scheme
+// and no storey at all in the other, and a fade that dissolved a light page's
+// content into #E8E8E8 while the page was #F6F6F6 is a grey smear.
 //
 // The fade is the affordance, and it is deliberately not a scrollbar. A
 // desktop overlay bar is absent at rest — it appears while the content moves

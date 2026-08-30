@@ -1,19 +1,8 @@
 // Package golden provides a golden-image test harness for Gio widgets.
 //
-// It is exported rather than internal on purpose: it owns the organization's
-// one headless-Gio capture path. Until F5.5 that claim was aspirational —
-// twenty-nine packages across five repositories carried their own inlined
-// copy, which is why F4.1 fixed the size-mismatch defect twenty-nine times
-// instead of once. Every one of them now imports this package.
-//
-// # Where it lives, and why here
-//
-// components is tier 2 in ADR-001, so effects (3), patterns and markdown (4) and the
-// workbench applications may all depend on it; scripts/check-layers.sh is what
-// says so. theme (tier 1) may not — and does not need to: it renders no
-// widgets and stores no goldens, so nothing pulls the harness below components.
-// Should theme ever grow a golden test, that is the argument for moving
-// this package down a tier, not for inlining copy thirty.
+// It is exported rather than internal on purpose: it owns the one headless-Gio
+// capture path, so a golden test anywhere imports it rather than inlining a
+// copy.
 //
 // # Usage
 //
@@ -37,11 +26,8 @@
 //
 // That directory is shared by every test file in the package, so names must be
 // unique across the whole package and not merely within one test. Prefix them
-// with the component: components/input holds four components in one directory, and
-// the checkbox's "light-focused" and the text field's "light-focused" named one
-// file until F4.1 — the checkbox compared its 44x44 render against the text
-// field's 300x60 golden, and until this package learned to fail on a size
-// change that comparison passed.
+// with the component: a directory holding several components will otherwise
+// have two of them collide on a state name.
 //
 // # Updating goldens
 //
@@ -139,10 +125,8 @@ func Compare(t *testing.T, name string, img *image.RGBA) {
 //
 // The two are the same bytes here and the conversion is free: Screenshot writes
 // straight-alpha (non-premultiplied) samples into its *image.RGBA, which is
-// exactly what an *image.NRGBA holds, and saveImage already re-labels them the
-// other way round before encoding. So a golden stored by either path is the
-// same file, and effects/transition's CPU-drawn swatches diff against the same
-// stored PNGs they always did.
+// exactly what an *image.NRGBA holds, and saveImage re-labels them the other
+// way round before encoding. A golden stored by either path is the same file.
 func CompareNRGBA(t *testing.T, name string, img *image.NRGBA) {
 	t.Helper()
 	Compare(t, name, &image.RGBA{Pix: img.Pix, Stride: img.Stride, Rect: img.Rect})
@@ -151,10 +135,9 @@ func CompareNRGBA(t *testing.T, name string, img *image.NRGBA) {
 // compare reports how img fails to match stored, or nil if it matches.
 //
 // The size check comes first and is a failure in its own right: once the
-// bounds differ there is no pixel count to report, so a harness that only
-// asked "how many pixels differ?" could not see a size change at all. It is
-// a separate function from Render so that both failure conditions can be
-// tested without a *testing.T that has to actually fail.
+// bounds differ there is no pixel count to report. It is a separate function
+// from Render so that both failure conditions can be tested without a
+// *testing.T that has to actually fail.
 func compare(stored, img *image.RGBA) error {
 	if sb, ib := stored.Bounds(), img.Bounds(); sb != ib {
 		return fmt.Errorf("size changed: golden is %dx%d, render is %dx%d",
@@ -168,18 +151,13 @@ func compare(stored, img *image.RGBA) error {
 
 // Capture renders draw into a headless window of size and returns the RGBA
 // pixel data. The test is skipped if headless rendering is not available on
-// the current platform, so it never returns nil — callers do not need the
-// `if img == nil { return }` guard the inlined copies carried.
+// the current platform, so it never returns nil.
 //
-// The metric is pinned at one pixel per dp and per sp. That is what the zero
-// unit.Metric already means to every conversion in gioui.org/unit, which is why
-// the copies that set it and the copies that left it zero produced identical
-// images — but it is not what it means to the two places that read PxPerDp
-// straight out of the struct instead of converting through it. gio's
-// widget.Image multiplies its transform by PxPerDp with no zero guard, so an
-// image laid out under the zero metric collapses to nothing; patterns/shell's
-// aside drag reads it too, and only survives because it clamps. Stating the
-// scale removes the trap rather than documenting it.
+// The metric is pinned at one pixel per dp and per sp. Every conversion in
+// gioui.org/unit reads the zero unit.Metric as exactly that, but code that
+// reads PxPerDp straight out of the struct does not: gio's widget.Image
+// multiplies its transform by PxPerDp with no zero guard, so an image laid out
+// under the zero metric collapses to nothing.
 func Capture(t *testing.T, size image.Point, draw layout.Widget) *image.RGBA {
 	t.Helper()
 	w, err := headless.NewWindow(size.X, size.Y)
@@ -210,21 +188,18 @@ func Capture(t *testing.T, size image.Point, draw layout.Widget) *image.RGBA {
 // PixelDiff counts the number of pixels that differ between a and b, which
 // must have equal bounds. It panics if they do not.
 //
-// The panic is deliberate, and it replaces a returned -1. "How many pixels
-// differ" has no answer for two images of different shapes, so there is no
-// count to return — and the count is what callers test. Every one of them
-// asks some variant of `n > 0` or `n == 0`, and a -1 answers both of those
-// wrongly: it reads as "no difference" to the first and as "differs" to the
-// second, silently, with no way to tell the two apart from the value alone.
-// A whole organization's golden images were guarded by that.
+// The panic is deliberate rather than a sentinel count. "How many pixels
+// differ" has no answer for two images of different shapes, and callers test
+// the count with some variant of n > 0 or n == 0, which a sentinel answers
+// wrongly in one direction or the other with no way to tell it apart from a
+// real count.
 //
-// So the only caller for which a size change is a real outcome rather than a
-// bug — the stored-golden comparison, which is exactly where an image is
-// allowed to have changed shape since it was recorded — must compare Bounds
-// itself first and report the change on its own terms. compare does. Every
-// other caller diffs two images it captured in the same test at the same
-// requested size; there differing bounds is a defect in the test, and a panic
-// is the honest report of it.
+// So the one caller for which a size change is a real outcome rather than a
+// bug — the stored-golden comparison, where an image is allowed to have
+// changed shape since it was recorded — compares Bounds itself first and
+// reports the change on its own terms. Every other caller diffs two images it
+// captured in the same test at the same requested size, where differing bounds
+// is a defect in the test.
 func PixelDiff(a, b *image.RGBA) int {
 	if a.Bounds() != b.Bounds() {
 		panic(fmt.Sprintf("golden: PixelDiff: images must have equal bounds, got %v and %v",
@@ -249,9 +224,8 @@ func PixelDiff(a, b *image.RGBA) int {
 
 // Save writes img to path as a PNG, creating the containing directory if it is
 // missing. It is the same encoder [Compare] stores goldens with, exported for
-// the tests that write an image without diffing it — effects/glow's blur-vs-
-// gradient dump behind -blurglow.dump is the one in the org — so that a
-// diagnostic PNG and a stored golden are byte-for-byte the same file.
+// tests that write an image without diffing it, so that a diagnostic PNG and a
+// stored golden are byte-for-byte the same file.
 func Save(path string, img *image.RGBA) error { return saveImage(path, img) }
 
 func saveImage(path string, img *image.RGBA) error {

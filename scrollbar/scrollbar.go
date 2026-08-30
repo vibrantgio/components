@@ -95,20 +95,17 @@ const (
 	activeFloor = 4.5
 )
 
-// The coverage the overlay intends: 39% at rest, 67% while hovered or
-// dragged — the alphas this bar has always been drawn at, and the reason it
-// is an overlay at all. They are the least the thumb is ever covered by
-// rather than a setting: the derivation raises coverage when a ground asks
-// for it and never lowers it, so a scheme whose thumb already clears its
-// floor keeps exactly the bar it had.
+// The coverage the overlay intends: 39% at rest, 67% while hovered or dragged.
+// They are the least the thumb is ever covered by rather than a setting — the
+// derivation raises coverage when a ground asks for it and never lowers it.
 const (
 	restCoverage   = 100
 	activeCoverage = 170
 )
 
-// inkStep is where the thumb's ink starts: ADR-007's low-contrast-text step,
-// which is what chrome that must be noticed without being read is drawn in.
-// The derivation walks deeper from here and never shallower.
+// inkStep is where the thumb's ink starts: the neutral ramp's low-contrast-text
+// step, which is what chrome that must be noticed without being read is drawn
+// in. The derivation walks deeper from here and never shallower.
 const inkStep = 700
 
 // thumbInk derives one of the thumb's two states: the neutral ramp's
@@ -127,23 +124,19 @@ const inkStep = 700
 // rung and at 71% in the ramp's end rung, and the two land on the same grey.
 //
 // It is derived against both grounds an overlay bar rides — the window's own
-// page and the furniture the panes are filled with — and answers whichever
-// asks more, so one bar reads on both. Which storey the second one is, is
-// ADR-022's: chrome furniture is the floor beneath the paper rather than a
-// storey above it, and the floor is the harder of the two grounds in both
-// schemes for the same reason in each — the thumb's ink is dark, the floor
-// is the darker ground, and a dark ink over a darker ground has the less to
-// spare. Handing the bar its ground the way the AQ-era components take one
-// would buy little here: over the whole seed sweep the two grounds never
-// disagree about the rung and differ only in coverage, because an ink at the
-// ramp's end is far from both of them. A bar riding a raised or floating
-// surface is another matter, and the ground is a parameter of this function,
-// so that day costs a call-site argument and not a redesign.
+// page and the chrome furniture the panes are filled with — and answers
+// whichever asks more, so one bar reads on both. Chrome furniture is the floor
+// beneath the paper rather than a storey above it, and it is the harder of the
+// two grounds in both schemes: the thumb's ink is dark, and a dark ink over
+// the darker ground has the less to spare. Over the whole seed sweep the two
+// grounds never disagree about the rung and differ only in coverage, because
+// an ink at the ramp's end is far from both of them.
 //
-// The measurement is taken over the composite, not over the ink: a
-// translucent colour has no contrast of its own, and reading the ink's own
-// ratio off the ramp is exactly how a thumb measuring 1.49:1 against the
-// light page came to be believed legible.
+// The measurement is taken over the composite, not over the ink: a translucent
+// colour has no contrast of its own, and the ink's own ratio off the ramp says
+// nothing about what a reader sees — the low-contrast-text step at 39%
+// coverage measures 6.19:1 as an ink and 1.49:1 composited over the light
+// page.
 //
 // A floor no ink at any coverage reaches is answered with the ramp's end
 // rung, opaque, so a caller always has a colour: a thumb too weak for its
@@ -182,27 +175,22 @@ func thumbInk(c tokens.ColorTokens, floor float64, coverage uint8) color.NRGBA {
 
 // FromTokens derives the default scrollbar look from colour tokens.
 //
-// The thumb is translucent, and that translucency is its identity — content
-// shows through an overlay bar — not an MD3 state layer, so it survives
-// ADR-007's move to ramp-step states. What the translucency is not is a free
-// choice: a translucent ink has no colour until it is composited, and the
-// composite of the low-contrast-text step at 39% coverage over the light
-// page is #CCCCCC, which measures 1.49:1 against that page. A bar at 1.49:1
-// is invisible exactly when a reader looks for it, which is the one moment it
-// exists for. So both states are derived instead — see thumbInk — as the
-// most translucent thumb that still clears its floor over the grounds an
-// overlay bar rides.
+// The thumb is translucent, and that translucency is its identity: content
+// shows through an overlay bar. It is not a free choice, though — a
+// translucent ink has no colour until it is composited, and the composite of
+// the low-contrast-text step at 39% coverage over the light page is #CCCCCC,
+// 1.49:1 against that page, invisible exactly when a reader looks for it. So
+// both states are derived — see thumbInk — as the most translucent thumb that
+// still clears its floor over the grounds an overlay bar rides.
 //
-// The two schemes answer differently and the difference is the derivation
-// working rather than a special case. Over a dark page a pale ink at low
-// coverage lifts the composite a long way, so the dark scheme keeps the
-// low-contrast-text step at the coverage it always had and measures 4.49:1.
-// Over a light page the same arithmetic runs backwards — a light ground
-// dominates a linear-light blend — so the light scheme spends the ink all
-// the way to the ramp's end and then buys the rest with coverage, landing at
-// 71% for 3:1 and 84% for 4.5:1. Translucency is simply dearer on a light
-// page than on a dark one, and one rule pricing it correctly is what tells
-// the two apart. The track is transparent by default.
+// The two schemes answer differently, which is the derivation working rather
+// than a special case. Over a dark page a pale ink at low coverage lifts the
+// composite a long way, so the dark scheme keeps the low-contrast-text step at
+// the intended coverage and measures 4.49:1. Over a light page the arithmetic
+// runs backwards — a light ground dominates a linear-light blend — so the
+// light scheme spends the ink all the way to the ramp's end and buys the rest
+// with coverage, landing at 71% for 3:1 and 84% for 4.5:1. The track is
+// transparent by default.
 //
 // The bar also fades: it is fully present while the content scrolls or the
 // pointer is on the gutter, then fades out a second after the last of

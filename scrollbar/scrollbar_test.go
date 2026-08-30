@@ -53,9 +53,9 @@ func TestFromTokens(t *testing.T) {
 		c    tokens.ColorTokens
 		// The rung and coverage the derivation answers for this scheme,
 		// spelled out rather than recomputed: the dark scheme keeps the
-		// low-contrast-text step at the coverage the bar always had, and
-		// the light scheme spends the ink to the ramp's end and buys the
-		// rest with coverage. See FromTokens for why they differ.
+		// low-contrast-text step at the intended coverage, and the light
+		// scheme spends the ink to the ramp's end and buys the rest with
+		// coverage. See FromTokens for why they differ.
 		thumbStep, thumbAlpha int
 		hoverStep, hoverAlpha int
 	}{

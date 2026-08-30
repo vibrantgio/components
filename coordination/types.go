@@ -1,9 +1,7 @@
 // Package coordination provides the Subject primitive for cross-widget
 // coordination in Gio applications.
 //
-// The package codifies four invariants established by validation
-// Experiments C1–C2 (their record predates the organization and is not
-// preserved; the invariants below are its surviving summary):
+// The package codifies four invariants:
 //
 //  1. One-frame lag. Subject delivery is asynchronous. Cross-widget state
 //     changes are visible on the frame AFTER the emitting frame. This is
@@ -26,19 +24,19 @@
 //
 // # Subscriptions are released on Unsubscribe
 //
-// A fifth invariant, added by G0B.1, is not an rx property but a property of
-// this package: unsubscribing a Subject subscription releases its slot, at
-// once and deterministically.
+// A fifth invariant, not an rx property but a property of this package:
+// unsubscribing a Subject subscription releases its slot, at once and
+// deterministically.
 //
 // rx.Subject does not do that. Its subscription list reuses an entry only
 // once that entry's cursor has been parked, and the only code that parks a
 // cursor runs inside the subscription's own scheduled receiver task — which
 // Unsubscribe cancels before it can run. So under a bare rx.Subject a slot is
-// consumed for the life of the process, and, worse, the departed
-// subscription's frozen cursor pins the ring buffer's window: once the
-// producer has written bufCap more items it blocks forever, on whatever
-// goroutine called it. For a process-global Subject emitted from the Gio
-// frame goroutine that is a hung application, not a dropped signal.
+// consumed for the life of the process, and the departed subscription's
+// frozen cursor pins the ring buffer's window: once the producer has written
+// bufCap more items it blocks forever, on whatever goroutine called it. For a
+// process-global Subject emitted from the Gio frame goroutine that is a hung
+// application, not a dropped signal.
 //
 // Subject therefore does not hand rx.Subject's subscription list to callers.
 // It keeps its own registry of live subscriptions and gives each one a
@@ -50,53 +48,19 @@
 //
 // # Deprecated
 //
-// Deprecated: use [github.com/vibrantgio/mvu/stream.Value] instead.
+// Deprecated: use [github.com/vibrantgio/mvu/stream.Value] instead. That
+// primitive is smaller and faster, has no subscriber ceiling, and its
+// conflating write cannot be blocked by a consumer that stops draining.
 //
-// ADR-008 (G-G0C) retired the reason this package existed. The three concerns
-// its doc names above — drag, modal and tooltip — are frame state now, owned
-// by the goroutine Gio lays a frame out on and read during layout; toasts are
-// messages reduced onto the model. Not one of them wanted a bus, and three of
-// the four that existed turned out to have no subscriber at all. What is left
-// is a genuine stream, of which the organization has exactly one
-// (theme/preferences), and it cannot live here: preferences is tier 1 and
-// this is tier 2, so by F5.5's rule the package lived too high.
-//
-// The replacement is not this code moved down a tier. G0C.5 measured it
-// against rx's own [rx.Observable.Behavior] and found this wrapper both
-// larger and slower: 292 lines against 14, a 64-subscriber ceiling against
-// none, one full arrival cycle at 52.0 µs against 1.3 µs on an M1 Max, and —
-// because
-// delivery still goes through a private rx.Subject per subscription — a
-// producer that a live consumer can still block, which rx.Behavior's
-// conflating write cannot. The slot leak this package was written to fix was
-// real; the fix was reaching for a different rx primitive, not wrapping the
-// wrong one.
-//
-// # When this goes
-//
-// It has no users left in the organization at all. G0C.5 emptied the library
-// side; G0C.6 moved the last two, the demo mains in prism/gallery and
-// patterns/modal/gallery, onto stream.Value — so the precondition for removing
-// it is already met and nothing in here is exercised by anything but its own
-// tests.
-//
-// It is still not removed yet, and the reason is a rule rather than a
-// hesitation. The org's Release protocol removes a deprecated package in the
-// final major bump, alongside ADR-001's and ADR-003's alias shims, so that a
-// consumer outside the organization meets every removal at one version
-// boundary instead of discovering them one patch at a time. These are public
-// modules and the notice you are reading shipped in prism v0.6.1; taking the
-// code out in the same release would be a deprecation window zero releases
-// wide, which is not a window. So: **this package is removed at components
-// v1.0.0**, and nothing but that bump closes it. Until then it stays exactly
-// as it is — unchanged and still tested, because a deprecated package that
-// quietly rots is worse than one that works.
+// This package is removed at components v1.0.0, and nothing but that bump
+// closes it: a deprecated package is removed in the final major bump so a
+// consumer meets every removal at one version boundary. Until then it stays
+// unchanged and still tested.
 //
 // It is deliberately not a forwarder to stream.Value. A forwarder would
 // compile everywhere and change delivery policy, subscriber ceiling and
-// buffering under a signature that still type-checks; ADR-008's rule is to
-// break loudly rather than deprecate quietly, and its corollary is that if
-// you are not breaking, you must not change behaviour either.
+// buffering under a signature that still type-checks; the rule is to break
+// loudly rather than deprecate quietly.
 package coordination
 
 import (
@@ -130,9 +94,9 @@ const BufCapSignal = 8
 // as unbounded goroutine and buffer growth.
 //
 // The value is deliberately well above any plausible live subscriber count
-// (rx's own default subscription capacity is 32) and well above the eight this
-// package allowed before G0B.1. Each live subscription costs one goroutine and
-// one ring of bufCap items, so it is not free, merely cheap.
+// (rx's own default subscription capacity is 32). Each live subscription costs
+// one goroutine and one ring of bufCap items, so it is not free, merely
+// cheap.
 const MaxSubscribers = 64
 
 // ErrSubscriberLimit is returned to a subscriber that arrives when a Subject
