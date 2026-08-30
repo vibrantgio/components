@@ -2,51 +2,30 @@
 // data-bearing summary — a label and, optionally, one glyph — filled a
 // measured step above the ground it rests on.
 //
-// It has three faces and one geometry. [Render] draws the CHIP, which is
+// It has two faces and one geometry. [Render] draws the CHIP, which is
 // clickable: it takes a [RenderState] carrying hover, press, focus and the
 // storey it stands on, walks its fill under the pointer and asks for the
 // pointer cursor. [RenderBadge] draws the BADGE, the same face held still —
 // for a mark that keeps a fill but takes no input, with no state walk, no
-// focus ring and no cursor. [RenderAnchor] draws the ANCHOR, the pop-up
-// control: everything the chip is, at the button's rounded-rect corner, with
-// the paired up/down chevrons drawn by the component. All three are the pure
-// path: resolved tokens plus an explicit state in, one frame out, no event
-// handling.
+// focus ring and no cursor. Both are the pure path: resolved tokens plus an
+// explicit state in, one frame out, no event handling.
 //
-// [Chip] is the live face of the two interactive ones, selected by
-// [Props.Face]: a theme observable and [Props] in, a widget out on every theme
-// emission, with the pointer area, the keyboard and the activation dispatch
-// the pure path cannot carry. The badge has no live twin, because a face that
-// takes no input has no state to keep — [RenderBadge] and a ground is the
-// whole of it.
+// [Chip] is the live face of the clickable one: a theme observable and [Props]
+// in, a widget out on every theme emission, with the pointer area, the
+// keyboard and the activation dispatch the pure path cannot carry. The badge
+// has no live twin, because a face that takes no input has no state to keep —
+// [RenderBadge] and a ground is the whole of it.
 //
-// # The anchor face
+// # The anchor face has moved
 //
-// The pop-up anchor is a face rather than a restyle, and the difference
-// matters: the pill IS the chip, so a chip that stopped being a pill would
-// have stopped being a chip. The anchor keeps every one of the chip's own
-// answers — the measured fill, the two-sided rim, the walked inks, the focus
-// ring that replaces that rim, the density's height and padding, the 44 dp
-// pointer target, [Props.Pin] — and changes exactly two things.
-//
-// THE CORNER. The scale's Md stop, the same one components/button reads for
-// every register it draws. The platform's pop-up control is a rounded
-// rectangle where its toolbar capsules are pills, and the rounded rectangle
-// this system already owns is the button's; the anchor reads that stop rather
-// than naming a number, so the two cannot drift.
-//
-// THE MARK. The paired up/down chevrons, drawn by the component, not passed
-// in. Two consequences, both deliberate. A caller cannot put a different mark
-// on a pop-up anchor, because the mark is what says the control pops up. And
-// a caller cannot FLIP it: on this platform the pair says "this pops up" and
-// never "this is open", so the face carries no open state and offers nowhere
-// to hang one. An anchor whose glyph turned over when its menu stood would be
-// speaking the vocabulary the platform reserves for a disclosure triangle.
-//
-// The chevrons' proportions are measured off the stored macOS reference and
-// their internal spacing is not; the package says which is which at the
-// constants, along with the capture the numbers were read from and the one
-// figure the reference cannot answer.
+// The pop-up anchor — the same geometry at the button's rounded-rect corner
+// with the paired up/down chevrons — is components/picker's, where it is the
+// chrome register's trigger over the menu the form register's trigger shares.
+// A pop-up control is not a summary that happens to be clickable; it names a
+// choice and stands under a list of the alternatives, and that is a picker.
+// [RenderAnchor] forwards to picker.RenderAnchor and is deprecated; the live
+// path is picker.Anchor. The geometry both draw from is one geometry, so
+// nothing about the drawn control changed with the address.
 //
 // # What the chip is not
 //
@@ -233,8 +212,7 @@
 //
 // The corner radius is the scale's Full stop, clamped to half the pill's
 // shorter side by components/layout's Pill — a chip is a pill, which is what
-// separates it at a glance from a button's 6 dp Md corner. The anchor face is
-// the exception and takes that Md stop itself; see above. The rim is one dp
+// separates it at a glance from a button's 6 dp Md corner. The rim is one dp
 // at every density, the width every other derived edge in this library draws,
 // and it is painted as nested fills rather than as a stroke on the pill's
 // path: a stroke is centred on the path, so half of it would fall outside the

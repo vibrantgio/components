@@ -1,40 +1,24 @@
 package chip
 
 import (
-	"image"
 	"image/color"
-	"math"
 
-	"gioui.org/f32"
-	"gioui.org/font"
-	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
-	"gioui.org/op"
-	"gioui.org/op/clip"
-	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
 
-	vglayout "github.com/vibrantgio/components/layout"
 	"github.com/vibrantgio/mvu"
-	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
-	"github.com/vibrantgio/theme/typeset"
 
-	"github.com/vibrantgio/components/internal/focus"
+	"github.com/vibrantgio/components/internal/chipface"
 	"github.com/vibrantgio/components/internal/hit"
+	"github.com/vibrantgio/components/picker"
 )
-
-// edgeDp is the rim's width — one hair at every density, the width every
-// other derived edge in this library is drawn at (components/richtext's
-// chipEdge, components/input's field bezel). It is a width rather than a
-// token because no scale in the system carries line weights.
-const edgeDp = unit.Dp(1)
 
 // Face is which member of the chip family a widget draws. The geometry is one
 // geometry — the measured fill, the two-sided rim, the density's height and
@@ -49,111 +33,16 @@ type Face uint8
 const (
 	// FaceChip is the pill: the scale's Full radius, the caller's own glyph,
 	// and the zero value, so a [Props] that says nothing draws the chip.
-	FaceChip Face = iota
+	FaceChip Face = Face(chipface.FaceChip)
 
 	// FaceAnchor is the pop-up anchor: the same chip at the button's own
 	// rounded-rect radius, with the paired up/down chevrons drawn by the
-	// component instead of a caller's glyph. See [RenderAnchor].
-	FaceAnchor
+	// component instead of a caller's glyph.
+	//
+	// Deprecated: the pop-up anchor is components/picker's, where it is one
+	// of two triggers over a shared menu. Use picker.Anchor.
+	FaceAnchor Face = Face(chipface.FaceAnchor)
 )
-
-// faceBadge is the non-interactive face. It is deliberately outside the
-// exported run above so that no [Props.Face] value can name it: a badge does
-// not hover, press or focus, and the live path has nothing to give it.
-const faceBadge Face = 255
-
-// interactive reports whether the face walks its fill, wears a focus ring and
-// asks for the pointer cursor. Two of the three do.
-func (f Face) interactive() bool { return f != faceBadge }
-
-// radius is the face's corner, off the radius scale rather than a number.
-//
-// The chip and the badge take the scale's Full stop — a pill, which is the
-// chip's ruled identity. The anchor takes Md, the SAME stop components/button
-// reads for every one of its registers: the anchor is the platform's pop-up
-// control, the platform draws that control as a rounded rectangle rather than
-// a capsule, and the rounded rectangle this system already owns is the
-// button's. Deriving it here rather than picking a number is what keeps the
-// two in step if the scale ever moves.
-func (f Face) radius(rad tokens.RadiusScale) float32 {
-	if f == FaceAnchor {
-		return rad.Md
-	}
-	return rad.Full
-}
-
-// The pop-up chevrons' proportions, measured off the stored macOS reference
-// (reference/macos/mail-window.png in the org's .github repository, indexed by
-// ADR-019; window-bounded capture, macOS 26.5.2, dark appearance, one pixel
-// per dp on that display). Both pop-up controls in Mail's toolbar — the folder
-// one and the flag one — draw a chevron whose ink measures 9 × 5 px inside a
-// control 29 px tall, identical to the pixel, and the folder control's chevron
-// ends 9 px inside the control's own trailing edge.
-//
-// So the chevron is a RATIO of the control's height, not a fixed size:
-//
-//	chevronWidthRatio  the ink's width, 9 of the control's 29
-//	chevronAspect      the ink's height, 5 of its own 9
-//
-// which at this system's 36 dp comfortable control comes out at 11.2 × 6.2 dp.
-//
-// WHAT THE REFERENCE CANNOT ANSWER, stated rather than papered over: neither
-// stored control is a PAIRED-chevron pop-up. Both are single-chevron pull-down
-// buttons, and no capture in reference/macos holds the up/down pair. So the
-// pair is BUILT from the measured single chevron rather than measured: each
-// half is that chevron at its measured width and aspect, and the air between
-// the two is one chevron's own ink height, which makes the pair three chevron
-// heights tall overall. Whether the platform instead narrows or flattens each
-// half of its pair is a number the stored reference does not carry — the air
-// is the one figure here that is a choice, and it is the smallest one that
-// stops the two halves closing into a diamond. A capture of a macOS pop-up
-// button would settle it, and belongs in ADR-019 rather than measured
-// privately.
-const (
-	chevronWidthRatio = 9.0 / 29.0
-	chevronAspect     = 5.0 / 9.0
-)
-
-// chevronStroke is the pair's line weight. ADR-019 measured the platform's
-// chevron band at ≈1.44 px at 16 pt from an offscreen render — the platform
-// draws diagonals heavier than its axis-aligned strokes — so 1.5 dp is that
-// measurement at the nearest weight this system draws, and it is the same
-// weight every hand-drawn chevron in the org already used.
-const chevronStroke = unit.Dp(1.5)
-
-// chevrons paints the pop-up pair — one chevron up over one chevron down —
-// spanning box horizontally and centred in it vertically.
-//
-// The pair is STATIC. On the platform a pop-up button's chevrons say "this
-// pops up" and never "this is open": the glyph does not flip when the menu
-// stands, and an anchor that flipped one would be describing its own menu in a
-// vocabulary the platform reserves for a disclosure triangle.
-func chevrons(gtx layout.Context, box image.Rectangle, col color.NRGBA) {
-	w := float32(box.Dx())
-	h := w * chevronAspect
-	stroke := float32(gtx.Dp(chevronStroke))
-	if stroke < 1 {
-		stroke = 1
-	}
-	// One chevron height of air between the two halves, so the pair is three
-	// of them tall. Closer than that and the arms meet at the waist and the
-	// mark reads as a diamond rather than as two chevrons — which is what the
-	// first draft drew.
-	total := 3 * h
-	x0 := float32(box.Min.X)
-	top := float32(box.Min.Y) + (float32(box.Dy())-total)/2
-
-	var p clip.Path
-	p.Begin(gtx.Ops)
-	p.MoveTo(f32.Pt(x0, top+h))
-	p.LineTo(f32.Pt(x0+w/2, top))
-	p.LineTo(f32.Pt(x0+w, top+h))
-	bot := top + 2*h
-	p.MoveTo(f32.Pt(x0, bot))
-	p.LineTo(f32.Pt(x0+w/2, bot+h))
-	p.LineTo(f32.Pt(x0+w, bot))
-	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: stroke}.Op())
-}
 
 // Glyph is the painter a chip draws its mark with: it fills a sizePx×sizePx
 // box at the current origin in colour col. It is the same signature
@@ -174,11 +63,10 @@ type Glyph func(gtx layout.Context, sizePx int, col color.NRGBA)
 type RenderState struct {
 	// Ground is the elevation storey of the surface hosting the chip, in the
 	// same vocabulary the host names its own fill (tokens.SurfaceAt). It is
-	// the input to every colour the chip resolves: the fill is the storey one
-	// rung nearer the viewer than this one, and the rim is the neutral rung
-	// that clears the graphic floor against both. A dialog at tokens.Level2 passes Level2 and
-	// its chips fill at Level3. The zero value is tokens.Level0, the window
-	// ground.
+	// the input to every colour the chip resolves: the fill is the measured
+	// step over that storey, and the rim is the neutral rung that clears the
+	// graphic floor against both. A dialog at tokens.Level2 passes Level2.
+	// The zero value is tokens.Level0, the window ground.
 	Ground tokens.ElevationLevel
 
 	Hovered bool
@@ -186,153 +74,34 @@ type RenderState struct {
 	Focused bool
 }
 
-// state is the token vocabulary's name for the interaction the chip is in.
-// Press wins over hover, because a pressed chip is under the pointer by
-// definition and the deeper walk is the one that has something to say.
-func (s RenderState) state() tokens.State {
-	switch {
-	case s.Pressed:
-		return tokens.StatePressed
-	case s.Hovered:
-		return tokens.StateHover
-	}
-	return tokens.StateNormal
-}
-
-// darkFillStep is how far over its ground a resting chip stands where the
-// Background pin is the darkest surface the neutral ramp carries, in CIELAB
-// L\*. It is a MEASUREMENT of the platform, not a derivation: 1.28 L\*, the
-// step macOS takes between a unified toolbar's band and the pop-up capsules
-// drawn on it — the chip's exact role. The package doc quotes the capture,
-// the two fills and the method.
-const darkFillStep = 1.28
-
-// lightFillStep is the same step where the pin is the lightest surface the
-// ramp carries, in CIELAB L\*. It is a DERIVATION and the package doc says
-// so: the stored macOS reference holds no light-appearance capture to
-// measure, so this half takes the ladder's own first storey over the paper —
-// the 0.70 L\* the light scheme already spends on Level1 over Level0, now
-// spent identically over every ground rather than growing with the ground's
-// position on the ladder.
-const lightFillStep = 0.70
-
-// fillStep is how far above its ground a resting chip's fill stands, in
-// CIELAB L\*. One number per scheme, and the scheme is never named: which
-// half applies is read off the neutral surface band's direction, exactly as
-// theme/tokens reads it for the floor's own two measurements.
-//
-// A scheme whose band climbs away from its 100 stop has its pin as the
-// darkest surface the ramp carries — the dark scheme — and takes the
-// platform's measured capsule step. One whose band descends has the pin as
-// its lightest surface and almost no room above it, and takes the derived
-// whisper.
-func fillStep(c tokens.ColorTokens) float64 {
-	pin, _, _ := vgcolor.LabFromNRGBA(c.Background)
-	top := math.Inf(-1)
-	for i := 1; i <= 4; i++ {
-		l, _, _ := vgcolor.LabFromNRGBA(c.Ramps.Neutral.Step(i * 100))
-		if l > top {
-			top = l
-		}
-	}
-	if top > pin {
-		return darkFillStep
-	}
-	return lightFillStep
-}
-
-// restFill is the chip's fill at rest: the surface it stands on, lifted by
-// the measured step for its scheme, realized at the ground's own hue and
-// chroma so the pill carries whatever tint the ladder carries and none of
-// its own. Nothing is mixed and no colour is named — the step is a depth in
-// L\* and the palette renders it, the way theme/tokens realizes a storey.
-//
-// It is a step over the LOCAL GROUND rather than a walk to the next storey,
-// which is the change BB1.1 makes. The storey above was correct as depth and
-// wrong as loudness: in the dark scheme it stood 10.0 luminance over the
-// window's paper where the platform's own toolbar capsules stand 2.65 over
-// their band — a filled block at four times the platform's step, in the one
-// role the platform draws as a near-hairline outline. The rim still carries
-// the edge; the fill no longer shouts under it.
-func restFill(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
-	base := c.SurfaceAt(ground)
-	l, _, _ := vgcolor.LabFromNRGBA(base)
-	target := min(l+fillStep(c), 100)
-	_, chroma, hue := vgcolor.OKLChFromNRGBA(base)
-	return vgcolor.NRGBAFromToneChromaHue(target, chroma, hue)
-}
-
 // Fill is the chip's ground: the measured step over the surface it stands
-// on, walked by the interaction state.
-//
-// The walk is [tokens.ColorTokens.PinnedStateColor] — the same walk
-// [tokens.ColorTokens.StateAt] takes from a storey, taken from the chip's own
-// resting fill instead, because that fill is no longer a storey. Hover and
-// press therefore follow the new rest automatically and their stride is
-// untouched.
+// on, walked by the interaction state. The package doc states the step and
+// which half of it is measured.
 //
 // It is exported because a container that draws behind or beside a chip — a
 // header band deciding what its own seam should clear, a test measuring the
 // pill — needs the same answer the chip drew with, and re-deriving it at the
 // call site is how two answers appear.
 func Fill(c tokens.ColorTokens, ground tokens.ElevationLevel, state tokens.State) color.NRGBA {
-	return c.PinnedStateColor(restFill(c, ground), state)
+	return chipface.Fill(c, ground, state)
 }
 
 // Rim is the chip's edge, and whether it has one: the rung of the neutral ramp
 // that reaches the graphic floor against BOTH of the edge's neighbours — the
 // ground outside it and the chip's own fill inside it — or no rim at all when
-// no rung can reach both.
-//
-// An edge has two sides and one colour, so a walk aimed at one side is a
-// promise about the other. components/input's control border aims at the
-// ground and gets away with it because a field's interior never moves; a
-// chip's does, one and two rungs under the pointer, and in the dark scheme
-// those rungs are long. Aimed at the ground alone, the rim landed ON the
-// pressed fill at level 1 — 1.00:1, the same colour twice — and aimed at the
-// fill alone it would vanish into the ground at rest in the light scheme,
-// where the storey step is 1.02:1 and the rim is the only thing there is. So
-// both candidates are derived and the one that clears both sides is kept.
-//
-// When neither clears both, the two neighbours are further apart than twice
-// the floor and no colour on any ramp could sit between them — which is
-// exactly the case where the chip needs no rim, because a fill that far off
-// its ground is carrying its own edge. That is patterns/tag's ruling in the
-// elevation ladder's vocabulary: a fill that separates on its own needs no
-// outline, and a fill that cannot never will. So the second return is false
-// there and the caller draws the pill without one, which is what a pressed
-// chip on a dark dialog looks like: a solid block under the finger.
+// no rung can reach both, which is the case where the fill is carrying its own
+// edge. The package doc states why one side is not enough.
 func Rim(c tokens.ColorTokens, ground tokens.ElevationLevel, state tokens.State) (color.NRGBA, bool) {
-	below := c.SurfaceAt(ground)
-	above := Fill(c, ground, state)
-	for _, cand := range [...]color.NRGBA{
-		c.MarkOn(tokens.RoleNeutral, below, tokens.GraphicFloor),
-		c.MarkOn(tokens.RoleNeutral, above, tokens.GraphicFloor),
-	} {
-		if vgcolor.ContrastRatio(cand, below) >= tokens.GraphicFloor &&
-			vgcolor.ContrastRatio(cand, above) >= tokens.GraphicFloor {
-			return cand, true
-		}
-	}
-	return color.NRGBA{}, false
+	return chipface.Rim(c, ground, state)
 }
 
 // Ink is the colour something reads in when it is drawn on a chip's fill: the
 // Text pin while that pin clears floor against fill, and otherwise the rung of
 // the neutral ramp nearest its mid-value step that does.
 //
-// That is tokens.ColorTokens.InkOn's own rule, applied to the one role InkOn
-// refuses. InkOn asks a role for its pinned base and RoleNeutral has none —
-// the neutral ink's pin is the Text pin, which is derived against the
-// Background pin already — so the rule is spelled out here rather than
-// reinvented: pin first, walk only when the pin stops reading.
-//
 // Pass tokens.TextFloor for the label and tokens.GraphicFloor for the glyph.
 func Ink(c tokens.ColorTokens, fill color.NRGBA, floor float64) color.NRGBA {
-	if vgcolor.ContrastRatio(c.Text, fill) >= floor {
-		return c.Text
-	}
-	return c.MarkOn(tokens.RoleNeutral, fill, floor)
+	return chipface.Ink(c, fill, floor)
 }
 
 // Pin is the edge of the box a chip is offered that its pill is pinned to.
@@ -355,42 +124,14 @@ const (
 	// PinNone is the zero value and the chip's own habit: the widget reports
 	// the pill it drew and no more, so a row of chips is laid out at the
 	// pills' own scale and the box around them is the container's business.
-	PinNone Pin = iota
+	PinNone Pin = Pin(chipface.PinNone)
 
 	// PinLeading draws the pill at the leading edge of the offered box.
-	PinLeading
+	PinLeading Pin = Pin(chipface.PinLeading)
 
 	// PinTrailing draws the pill at the trailing edge of the offered box.
-	PinTrailing
+	PinTrailing Pin = Pin(chipface.PinTrailing)
 )
-
-// layout draws w at p's edge of the box the chip was offered — the horizontal
-// half of gtx.Constraints.Max — and reports that box rather than w's own size,
-// which is what lets a caller upstream of the chip find the pinned edge where
-// it asked for it. PinNone lays w out untouched, so a chip that pins nothing
-// pays nothing.
-//
-// The whole widget is offset, slop and all, so the pointer target stays
-// centred on the pill it was extended around.
-func (p Pin) layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
-	if p == PinNone {
-		return w(gtx)
-	}
-	macro := op.Record(gtx.Ops)
-	dims := w(gtx)
-	call := macro.Stop()
-
-	box := dims.Size
-	box.X = max(box.X, gtx.Constraints.Max.X)
-	off := 0
-	if p == PinTrailing {
-		off = box.X - dims.Size.X
-	}
-	o := op.Offset(image.Pt(off, 0)).Push(gtx.Ops)
-	call.Add(gtx.Ops)
-	o.Pop()
-	return layout.Dimensions{Size: box, Baseline: dims.Baseline}
-}
 
 // Props configures a [Chip] instance: what the pill says, what it stands on,
 // and how an activation is delivered.
@@ -422,10 +163,10 @@ type Props struct {
 	Description string
 
 	// Ground is the elevation storey of the surface hosting the chip, copied
-	// straight into [RenderState.Ground] on every frame: the chip fills one
-	// rung above it and derives its rim, its inks and its focus ring from the
-	// pair. A dialog at tokens.Level2 passes Level2. The zero value is
-	// tokens.Level0, the window ground. See [RenderState.Ground].
+	// straight into [RenderState.Ground] on every frame: the chip fills the
+	// measured step over it and derives its rim, its inks and its focus ring
+	// from the pair. A dialog at tokens.Level2 passes Level2. The zero value
+	// is tokens.Level0, the window ground. See [RenderState.Ground].
 	Ground tokens.ElevationLevel
 
 	// Pin is the edge of the offered box the pill is drawn at. The zero value
@@ -554,22 +295,23 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 					}
 				}
 
-				s := RenderState{
+				s := chipface.State{
 					Ground:  props.Ground,
 					Hovered: click.Hovered(),
 					Pressed: click.Pressed(),
 					Focused: gtx.Focused(click),
 				}
 
-				return props.Pin.layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return chipface.Pin(props.Pin).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), click.Layout,
 						func(gtx layout.Context) layout.Dimensions {
 							semantic.ClassOp(semantic.Button).Add(gtx.Ops)
 							semantic.LabelOp(props.Label).Add(gtx.Ops)
 							semantic.DescriptionOp(desc).Add(gtx.Ops)
 							semantic.EnabledOp(true).Add(gtx.Ops)
-							return draw(gtx, shaper, props.Label, props.Icon, tok.color,
-								tok.spacing, tok.radius, tok.label, tok.density, s, props.Face)
+							return chipface.Draw(gtx, shaper, props.Label, chipface.Glyph(props.Icon),
+								tok.color, tok.spacing, tok.radius, tok.label, tok.density,
+								s, chipface.Face(props.Face))
 						})
 				})
 			}
@@ -578,11 +320,12 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 }
 
 // Render produces a layout.Widget drawing the interactive chip face in an
-// explicit visual state, without event processing: the pill filled one storey
-// over s.Ground and walked by the pointer, its one-dp rim, the label in the
-// ink that clears the text floor on that fill, and the glyph in the ink that
-// clears the graphic floor. When s.Focused, the focus ring — measured against
-// that fill — takes the rim's place at the chip's edge, two dp instead of one.
+// explicit visual state, without event processing: the pill filled the
+// measured step over s.Ground and walked by the pointer, its one-dp rim, the
+// label in the ink that clears the text floor on that fill, and the glyph in
+// the ink that clears the graphic floor. When s.Focused, the focus ring —
+// measured against that fill — takes the rim's place at the chip's edge, two
+// dp instead of one.
 //
 // glyph may be nil, in which case the chip is label-only. labelStyle is the
 // whole text style the label is set in; pass tokens.DefaultTypography.LabelLarge
@@ -605,27 +348,17 @@ func Render(
 	s RenderState,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return draw(gtx, shaper, label, glyph, colors, sp, rad, labelStyle, d, s, FaceChip)
+		return chipface.Draw(gtx, shaper, label, chipface.Glyph(glyph), colors, sp, rad,
+			labelStyle, d, chipface.State(s), chipface.FaceChip)
 	}
 }
 
-// RenderAnchor produces a layout.Widget drawing the ANCHOR face: the chip in
-// every respect that is the chip's — the measured fill, the two-sided rim, the
-// state walk, the focus ring that replaces that rim, the density's height and
-// padding, the inks derived against the fill actually drawn — at the rounded
-// rectangle [Face.radius] reads off the same stop components/button reads, and
-// with the paired up/down chevrons drawn by the component.
+// RenderAnchor produces a layout.Widget drawing the ANCHOR face.
 //
-// It takes no glyph, and that is the point rather than an omission: the mark
-// on a pop-up anchor is not the caller's to choose, and it does not change
-// when the menu opens. The platform's anchor says "this pops up" and never
-// "this is open"; a caller that flipped a chevron would be saying the second
-// thing in a vocabulary the platform reserves for a disclosure triangle.
-//
-// Use it for the control that stands under a menu — a model picker in a chat's
-// chrome row, a filter that opens a list. Something clickable that opens
-// nothing is a chip and takes [Render]; something a reader can only read is a
-// badge and takes [RenderBadge].
+// Deprecated: the pop-up anchor is components/picker's — the chrome register's
+// trigger over the menu the picker's other trigger shares. Use
+// picker.RenderAnchor, which this forwards to; it draws the same control from
+// the same geometry.
 func RenderAnchor(
 	shaper *text.Shaper,
 	label string,
@@ -636,9 +369,7 @@ func RenderAnchor(
 	d tokens.Density,
 	s RenderState,
 ) layout.Widget {
-	return func(gtx layout.Context) layout.Dimensions {
-		return draw(gtx, shaper, label, nil, colors, sp, rad, labelStyle, d, s, FaceAnchor)
-	}
+	return picker.RenderAnchor(shaper, label, colors, sp, rad, labelStyle, d, picker.AnchorState(s))
 }
 
 // RenderBadge produces a layout.Widget drawing the non-interactive chip face:
@@ -664,148 +395,7 @@ func RenderBadge(
 	ground tokens.ElevationLevel,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return draw(gtx, shaper, label, glyph, colors, sp, rad, labelStyle, d,
-			RenderState{Ground: ground}, faceBadge)
+		return chipface.Draw(gtx, shaper, label, chipface.Glyph(glyph), colors, sp, rad,
+			labelStyle, d, chipface.State{Ground: ground}, chipface.FaceBadge)
 	}
-}
-
-// draw paints one member of the family. face selects which: the chip walks its
-// fill, wears the ring and asks for the cursor; the badge does none of the
-// three; the anchor does all of them at the button's corner with the chevron
-// pair for a mark. Everything else, geometry and colour alike, is shared,
-// which is what "one geometry, three faces" means in code.
-func draw(
-	gtx layout.Context,
-	shaper *text.Shaper,
-	label string,
-	glyph Glyph,
-	c tokens.ColorTokens,
-	sp tokens.SpacingScale,
-	rad tokens.RadiusScale,
-	labelStyle tokens.TextStyle,
-	d tokens.Density,
-	s RenderState,
-	face Face,
-) layout.Dimensions {
-	interactive := face.interactive()
-	st := s.state()
-	if !interactive {
-		st = tokens.StateNormal
-	}
-	fill := Fill(c, s.Ground, st)
-	rim, rimmed := Rim(c, s.Ground, st)
-	labelInk := Ink(c, fill, tokens.TextFloor)
-	glyphInk := Ink(c, fill, tokens.GraphicFloor)
-
-	padH := gtx.Dp(unit.Dp(d.PaddingX))
-	padV := gtx.Dp(unit.Dp(d.PaddingY))
-	minH := gtx.Dp(unit.Dp(d.ControlHeight))
-	gap := gtx.Dp(unit.Dp(sp.S2))
-	// The glyph is the label's own line box — see the package doc for why
-	// that is the same number components/icon answers at each density's own
-	// role. The anchor's chevron pair is not a glyph and does not take the
-	// line box: it is the platform's own ratio of the CONTROL's height, so
-	// the mark keeps the platform's proportion at every density.
-	mark := 0
-	switch {
-	case face == FaceAnchor:
-		mark = gtx.Dp(unit.Dp(d.ControlHeight * chevronWidthRatio))
-	case glyph != nil:
-		mark = gtx.Dp(unit.Dp(labelStyle.LineHeight))
-	}
-	if mark == 0 {
-		gap = 0
-	}
-
-	// Record the label's material and its layout to learn its size before
-	// anything is painted. typeset.Layout rather than widget.Label.Layout
-	// because the role's line height has to be the height of the label box
-	// and Gio alone reports the glyph ink instead — see theme/typeset.
-	mColor := op.Record(gtx.Ops)
-	paint.ColorOp{Color: labelInk}.Add(gtx.Ops)
-	material := mColor.Stop()
-
-	labelGtx := gtx
-	labelGtx.Constraints.Min = image.Point{}
-	if maxLabelW := gtx.Constraints.Max.X - 2*padH - gap - mark; maxLabelW > 0 {
-		labelGtx.Constraints.Max.X = maxLabelW
-	}
-	mLabel := op.Record(gtx.Ops)
-	labelDims := typeset.Layout(labelGtx, shaper,
-		typeset.Label(labelStyle, 1), typeset.Font(labelStyle, font.Normal),
-		unit.Sp(labelStyle.Size), label, material)
-	labelCall := mLabel.Stop()
-
-	// Sized to content, not to the width it was given: a chip is a summary of
-	// something, and a summary that stretches is a banner.
-	w := labelDims.Size.X + gap + mark + 2*padH
-	h := max(labelDims.Size.Y+2*padV, minH)
-	w = min(w, gtx.Constraints.Max.X)
-	h = min(h, gtx.Constraints.Max.Y)
-	size := image.Pt(w, h)
-	box := image.Rectangle{Max: size}
-
-	// The rim as nested fills — the pill in the rim's colour, the fill inset
-	// by one hair inside it — and not as a stroke on the pill's path. A
-	// stroke is centred on its path, so half a hair of it would fall outside
-	// the box the chip reports and every pixel of it would be a blend of the
-	// two colours rather than either.
-	// The edge, as nested fills — the pill in the edge's colour, the fill
-	// inset inside it — and not as a stroke on the pill's path. A stroke is
-	// centred on its path, so half its width would fall outside the box the
-	// chip reports and every pixel of it would be a blend of the two colours
-	// rather than either.
-	//
-	// A focused chip's edge IS the focus ring: the ring replaces the rim
-	// rather than being drawn inside it. Drawn inside, the two made a
-	// three-line sandwich — hairline, a pixel of fill, then the ring — which
-	// a reviewer handed the rendering called a dirty halo around a purple
-	// outline before naming anything else, and which is the same "a band
-	// beside a boundary reads as part of that boundary" that put
-	// components/button's ring clear of its edge. A button has no rim to
-	// collide with; a chip does, so the chip trades its one hair for the
-	// ring's two while the ring is up. Nothing else moves: the pill measures
-	// the same box focused as at rest, and the label does not shift.
-	radius := gtx.Dp(unit.Dp(face.radius(rad)))
-	focused := interactive && s.Focused
-	band, edgeInk, edged := max(gtx.Dp(edgeDp), 1), rim, rimmed
-	if focused {
-		band, edgeInk, edged = gtx.Dp(focus.Width), focus.Ring(c, fill), true
-	}
-	inner, innerRad := box, radius
-	if edged {
-		paint.FillShape(gtx.Ops, edgeInk, vglayout.Pill(gtx.Ops, box, radius))
-		if in := box.Inset(band); in.Dx() > 0 && in.Dy() > 0 {
-			inner, innerRad = in, max(radius-band, 0)
-		}
-	}
-	paint.FillShape(gtx.Ops, fill, vglayout.Pill(gtx.Ops, inner, innerRad))
-
-	// Label and mark on one centred row: the label leads, the mark follows it
-	// across the S2 gap, and the pair is centred in what the padding leaves.
-	content := labelDims.Size.X + gap + mark
-	offX := max((w-content)/2, padH)
-	lo := op.Offset(image.Pt(offX, (h-labelDims.Size.Y)/2)).Push(gtx.Ops)
-	labelCall.Add(gtx.Ops)
-	lo.Pop()
-
-	switch {
-	case mark == 0:
-	case face == FaceAnchor:
-		// The pair is handed the mark's column at the pill's full height and
-		// centres itself in it, so its own ink height stays the platform's
-		// ratio rather than being stretched to a box.
-		mo := op.Offset(image.Pt(offX+labelDims.Size.X+gap, 0)).Push(gtx.Ops)
-		chevrons(gtx, image.Rect(0, 0, mark, h), glyphInk)
-		mo.Pop()
-	case glyph != nil:
-		mo := op.Offset(image.Pt(offX+labelDims.Size.X+gap, (h-mark)/2)).Push(gtx.Ops)
-		glyph(gtx, mark, glyphInk)
-		mo.Pop()
-	}
-
-	if interactive {
-		pointer.CursorPointer.Add(gtx.Ops)
-	}
-	return layout.Dimensions{Size: size}
 }

@@ -1,8 +1,8 @@
-// An internal test, like checkbox_contrast_test.go beside it: it measures the
-// colour pairing optionRowColors returns rather than the pixels it ends up as,
-// and that function is unexported on purpose — a row's fill and its ink are
-// chosen together, and the pair is what is worth holding.
-package input
+// An internal test: it measures the colour pairing optionRowColors returns
+// rather than the pixels it ends up as, and that function is unexported on
+// purpose — a row's fill and its ink are chosen together, and the pair is what
+// is worth holding.
+package picker
 
 import (
 	"fmt"
@@ -25,11 +25,7 @@ func hex(c color.NRGBA) string {
 	return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B)
 }
 
-func rowTokens(c tokens.ColorTokens) resolvedTokens {
-	return resolvedTokens{color: c, elevation: tokens.Elevation}
-}
-
-// TestDropdownOptionRowContrast measures both option-row pairings in both
+// TestMenuOptionRowContrast measures both option-row pairings in both
 // schemes and records the numbers in the test log.
 //
 // The selected row is the pairing that was lost. Its highlight flipped with
@@ -39,7 +35,7 @@ func rowTokens(c tokens.ColorTokens) resolvedTokens {
 // light ink on a light-grey highlight at 1.75:1: a selected row whose label
 // all but vanished in the dark. A highlight and its ink are one decision, and
 // this is the test that says so.
-func TestDropdownOptionRowContrast(t *testing.T) {
+func TestMenuOptionRowContrast(t *testing.T) {
 	for _, sc := range []struct {
 		name   string
 		colors tokens.ColorTokens
@@ -48,9 +44,8 @@ func TestDropdownOptionRowContrast(t *testing.T) {
 		{"dark", tokens.DefaultDark},
 	} {
 		t.Run(sc.name, func(t *testing.T) {
-			tok := rowTokens(sc.colors)
-			restFill, restInk := optionRowColors(tok, false)
-			selFill, selInk := optionRowColors(tok, true)
+			restFill, restInk := optionRowColors(sc.colors, false)
+			selFill, selInk := optionRowColors(sc.colors, true)
 
 			for _, row := range []struct {
 				name string
@@ -79,12 +74,12 @@ func TestDropdownOptionRowContrast(t *testing.T) {
 	}
 }
 
-// TestDropdownOptionRowContrastHoldsForEverySeed walks the pairing over a
+// TestMenuOptionRowContrastHoldsForEverySeed walks the pairing over a
 // spread of seeds, because a palette is generated and the defaults are only
 // one of its outputs. The neutral ramps carry the seed's tint, so the
 // measurements move a little from seed to seed; what may not move is the
 // verdict.
-func TestDropdownOptionRowContrastHoldsForEverySeed(t *testing.T) {
+func TestMenuOptionRowContrastHoldsForEverySeed(t *testing.T) {
 	seeds := []color.NRGBA{
 		{R: 0x6c, G: 0x3a, B: 0xd4, A: 0xff}, // the default seed
 		{R: 0xff, G: 0x00, B: 0x00, A: 0xff},
@@ -105,9 +100,8 @@ func TestDropdownOptionRowContrastHoldsForEverySeed(t *testing.T) {
 			{"light", light},
 			{"dark", dark},
 		} {
-			tok := rowTokens(sc.colors)
-			restFill, restInk := optionRowColors(tok, false)
-			selFill, selInk := optionRowColors(tok, true)
+			restFill, restInk := optionRowColors(sc.colors, false)
+			selFill, selInk := optionRowColors(sc.colors, true)
 			for _, row := range []struct {
 				name string
 				fill color.NRGBA

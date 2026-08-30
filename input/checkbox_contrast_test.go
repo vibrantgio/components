@@ -12,12 +12,17 @@
 package input
 
 import (
+	"fmt"
 	"image/color"
 	"testing"
 
 	themecolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
+
+func hex(c color.NRGBA) string {
+	return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B)
+}
 
 // checkboxSeeds is the spread the pairings are held over, because a palette
 // is generated and the defaults are only one of its outputs: the default
