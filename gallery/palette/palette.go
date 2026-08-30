@@ -1,142 +1,42 @@
-// Package palette draws the palette story: what a seed actually generated,
-// said in two parts — the ramps a theme has to pick from, and the colours it
-// picked, each beside the rule that chose it.
+// Package palette draws the palette story: the ramps a theme has to pick
+// from, and the colours it picked, each beside the rule that chose it.
 //
-// It is a sibling of the inventory rather than a section of it. The inventory
-// answers "what does this colour look like" across every published family; the
-// story answers the step nobody sees between a seed and a window — a seed does
-// not become a window, it becomes a palette, and the palette is what the
-// window is drawn from. A person judging a seed by the drawn surface alone can
-// tell that something is wrong without being able to say what — the dividers
-// are too faint, the warning is too close to the error — because the thing
-// that decided both is not on screen anywhere.
-//
-// So it is put on screen, and in the order the derivation works in. The ramps
-// first, which are what there is to pick from: eight roles, nine steps each,
-// on one shared lightness scale. Then the picks, which are the colours the
-// theme actually names, each beside the rule that chose it. Ramps above picks,
-// because a pick that says "Neutral 300" means nothing until the row it came
-// out of is the thing directly above it.
-//
-// Every function here is a pure function of the [tokens.ColorTokens] it is
-// handed, plus the furniture colours and type roles a caller states in
-// [Chrome] and [Type]. Nothing reads a default palette, so the same code draws
-// the story in either scheme, a caller can push a generated palette through it
-// and see the result on the next frame, and a test can capture it without a
+// Ramps stand above picks, so a pick naming a rung ("Neutral 300") reads
+// against the row it came from. Every function is a pure function of the
+// [tokens.ColorTokens] handed in, plus the furniture colours and type roles a
+// caller states in [Chrome] and [Type]; nothing reads a default palette, so
+// the same code draws either scheme and a test can capture it without a
 // window.
 //
-// # Why the picks carry a rule and not just a colour
+// Rules are read off the colours themselves — a pin compared against its own
+// ramp, an ink against the two ends of the tonal axis and its role's deepest
+// step — rather than written down statically, so a derivation change updates
+// what this package says in the same build.
 //
-// A swatch labelled "Divider" is a colour. A swatch labelled "Divider —
-// Neutral 300" is a colour and an explanation, and the explanation is what
-// makes the grid above it useful: it says which of the seventy-two cells up
-// there this one came out of. The rules are read off the colours themselves
-// rather than written down here — a pin is compared against its own ramp, an
-// ink against the two ends of the tonal axis and its role's deepest step — so
-// a derivation that changes what it pins changes what this section says about
-// it, in the same build, rather than leaving a caption behind that is quietly
-// no longer true.
+// A base and its ink are one cell because they are one decision: the
+// derivation pins the base, then measures both ends of the tonal axis over
+// that exact colour and keeps the better one, so the ink cannot be understood
+// apart from the fill it was measured against. Surface and Divider stand
+// alone because the theme names no ink for either.
 //
-// Some of them are not a rung and still have to point at one. A light scheme's
-// accents are pinned a unit of lightness off their own 700 — three parts in
-// 255, which no eye and no display can show — and a light Primary is the
-// chosen seed lifted, sitting at whatever depth that seed has. Comparing
-// bytes, none of the three is on the ramp; looking at the grid, all three
-// plainly are. So the rule says both: how the colour was pinned, and the rung
-// it is indistinguishable from, which is the rung the grid marks. Saying only
-// the first left three rows of the grid unmarked beside four that were marked,
-// and the only reading available for that is that Primary is not in the table.
+// Each ramp row ends with the base that role pinned, drawn as a chip because
+// two roles (a light scheme's Primary, Secondary, Tertiary) pin a colour that
+// is off its own ramp by construction. Where the pin is a rung exactly, the
+// chip and the marked cell are the same colour; where the pin is
+// indistinguishable from no rung at all, the dot moves onto the chip itself so
+// every row still answers where its pinned colour lives. Neutral's chip is
+// absent because Neutral pins no solid fill.
 //
-// # Why a base and its ink are one cell
+// Status containers and the two axis ends (white, black) get cells of their
+// own because neither is a colour any ramp cell holds: a container is its
+// role's hue at a rung's tone with the chroma pulled to the container dial,
+// and white/black belong to no ramp.
 //
-// Because they are one decision. The derivation does not pick a primary and
-// then, separately, pick something to write on it: it pins the base and then
-// measures both ends of the tonal axis over that exact colour and keeps the
-// better one, which is why the ink cannot be understood apart from the fill it
-// was measured against. Two cells side by side would be the section claiming
-// they are two facts about two colours, and would leave the ink drawn on a
-// ground nobody said it was for.
-//
-// So the pair is one swatch: the base as the fill, the ink as two letters on
-// it, and under the pair of names the two rules in the order the names are in.
-// The specimen is the claim and the claim is checkable by looking. Surface and
-// Divider stand alone because nothing is written on them — they are grounds
-// and borders, and the theme names no ink for either.
-//
-// # Why the pinned bases stand at the end of their own rows
-//
-// A grid of seventy-two rungs beside a list saying "Primary — the seed,
-// lifted" is a section telling a reader that the colour their window is
-// actually painted with is somewhere near a cell up there. It is not in the
-// grid: a light scheme's Primary is the chosen seed at the seed's own depth,
-// and its Secondary and Tertiary are pinned a unit of lightness off their own
-// 700. The ramps were the only picture of the palette, and the picture was
-// missing the three colours a person came to look at.
-//
-// So each row ends with the base that role pinned, past a gap and under a word
-// of its own, drawn as a chip rather than a cell so that nothing reads it as a
-// tenth step. Beside it, on the same row, are the nine rungs, and in the row is
-// the dot on the rung the pin is indistinguishable from — which is the relation
-// between the two, shown rather than asserted. Where the pin is a rung exactly,
-// which is every role in a dark scheme and the four status roles in a light one,
-// the chip and the marked cell are the same colour, and that is the answer to
-// "is this pin on the ramp" rather than a repetition: a column that appeared on
-// one side of the switch and vanished on the other would leave a reader unable
-// to tell a role with no pin from a pin the section declined to show. Neutral's
-// chip is the one that is absent, because Neutral is the one role the theme
-// pins no solid fill for.
-//
-// And where the pin is indistinguishable from no rung at all — the light
-// scheme's Primary, whenever the seed's own depth falls between two steps of
-// the scale — the dot moves to the chip. Nearest-rung matching honestly
-// claimed nothing, but a row with no dot anywhere, beside seven rows that
-// carry one, reads as a role the palette is not using, when the truth is that
-// the role's pinned colour is in use and is the chip. So the chip carries the
-// dot itself, in the ink measured over the chip the way every cell's dot is
-// measured over its step, and every row answers one question one way: the
-// pinned colour lives here — on a rung, or on the chip.
-//
-// # Why the containers and the two ends of the axis are cells of their own
-//
-// Both are colours a widget is painted with at rest and neither is on a rung.
-// A status container is its role's own hue realized at one rung's tone with the
-// chroma pulled down to the container dial, which is a colour no cell of the
-// grid holds; the two ends of the tonal axis are white and black, which belong
-// to no ramp at all and which almost every ink in a light scheme literally is.
-// Before they were cells, the only place either appeared was inside somebody
-// else's swatch — the axis ends as the two letters written on a base, the
-// containers nowhere — and a colour visible only as a letterform is a colour a
-// reader cannot judge.
-//
-// The containers are drawn as what they are: a ground with the mark that reads
-// on it, and the mark is a glyph of its own rather than the two letters the
-// other pairs carry, because a mark is not text and is not measured against a
-// text floor. Writing "Aa" on a container would be this section claiming a
-// legibility the derivation never promised.
-//
-// Each container stands under the role it belongs to rather than in a family of
-// containers, which is a decision about repetition. In a light scheme the mark
-// on Error's container is Error's own 700 — the same colour as the solid fill
-// the role puts a label on — and shown as two families those two landed in two
-// columns, four rows each, aligned, with the same colour under two names and
-// nothing joining them. One under the other, it reads as what it is.
-//
-// # What the section leaves out, and why
-//
-// Three families of colour a component can be painted with are deliberately not
-// here. The state walks — hover, pressed, selected and dragged, which walk one
-// or two rungs toward the deep end of a ramp — are not colours the palette
-// publishes, they are what a component does to a colour it was given while a
-// pointer is over it. The disabled colours are the same colour at a fraction of
-// its alpha, which is a transparency rather than a member of the palette. The
-// focus ring is Neutral 500, so it is already a cell of the grid and already
-// marked wherever some other pick took that rung.
-//
-// The line between what is in and what is out is rest: everything shown is a
-// colour some widget is painted with while nothing is happening to it.
-// Interaction states are a second axis over the whole of this palette — a
-// hover for every one of these cells — and drawing them here would quadruple
-// the section to say one rule eight times.
+// Deliberately out of scope: interaction-state colours (hover, pressed,
+// selected, dragged — a component's own transform of a colour it was given),
+// disabled colours (an alpha fraction, not a palette member), and the focus
+// ring (Neutral 500, already a cell here). Everything this package draws is a
+// colour some widget is painted with at rest.
 package palette
 
 import (
@@ -160,20 +60,11 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// Chrome is the story's own furniture: the four colours it draws with that are
-// not the palette it is describing.
-//
-// It is stated by the caller rather than derived here, because a heading band
-// belongs to the page the story is a section of — an application whose column
-// bands its sections one way would otherwise have one section banded another,
-// in a column whose whole subject is that a theme is coherent. Four fields and
-// no more: everything else this package draws is a colour of the palette
-// itself, which is what a caller hands over as [tokens.ColorTokens].
-//
-// The two applications drawing this story each keep a larger palette of their
-// own — one names a selection fill, the other does not — and neither of those
-// extra colours reaches the story. Narrowing to the four is what makes that
-// true by construction rather than by discipline.
+// Chrome is the story's own furniture: the four colours it draws with that
+// are not the palette it is describing. Stated by the caller rather than
+// derived here, since a heading band belongs to the page the story sits in.
+// Exactly four fields — everything else this package draws is a colour of the
+// palette itself, handed over as [tokens.ColorTokens].
 type Chrome struct {
 	// Surface is the ground a section's heading band is filled with.
 	Surface stdcolor.NRGBA
@@ -188,13 +79,10 @@ type Chrome struct {
 }
 
 // Type is the story's view of the theme's typography: the roles it draws
-// directly, as textdraw styles, plus the shaper it draws them with.
-//
-// The shaper is a field rather than something read off a [tokens.Typography]
-// here, because the two applications resolve it differently and both are
-// right: one takes the theme's cached shaper, the other hands in a
-// deterministic one so a capture is reproducible. Neither of those is a fact
-// about the story, so neither is decided here.
+// directly, as textdraw styles, plus the shaper it draws them with. The
+// shaper is a field rather than read off a [tokens.Typography] here, since
+// callers may need either the theme's cached shaper or a deterministic one
+// for reproducible captures.
 type Type struct {
 	Shaper *text.Shaper
 	Head   textdraw.TextStyle // family names on the picks board
@@ -247,20 +135,8 @@ const (
 	RampHeadH unit.Dp = 18
 	// A cell has no maximum: the nine steps divide whatever the row has left
 	// once the names at one end and the chip at the other are reserved, so the
-	// row fills its width at every window.
-	//
-	// It used to stop at ninety-six points, and the judgement is worth writing
-	// down because the cap looked like the careful choice. A capped table in a
-	// container wider than the cap has width it cannot spend, and there are only
-	// two places to put it: past the last cell, which is a ragged right edge
-	// under a heading bar and over a picks board that both run the full width;
-	// or into the gap before the trailing chip, which was tried and measured —
-	// at a 1440-point window it opened a hole of 356 points, nearly four cells
-	// wide, and eight chips across a hole that size stop reading as the ends of
-	// eight rows and start reading as a strip of their own. Both of those break
-	// something the row is, to prevent a swatch from being wide. A wide swatch
-	// is a wide swatch; a row that comes apart in the middle is a table that has
-	// stopped being one. So the cells stretch.
+	// row fills its width at every window rather than leaving a ragged edge or
+	// a gap ahead of the trailing chip.
 	//
 	// RampMark is the dot on a rung a pick sits at. It is a dot and not a ring, a
 	// label or a heavier frame: a fifth of the cells carry one, and anything with
@@ -274,15 +150,12 @@ const (
 	// The gap is wider than any space inside the grid and the inset makes the
 	// chip shorter than a cell, which between them are what stop nine steps and
 	// a pin from reading as ten steps. The chip is the width of the swatch a
-	// pick carries below, because it is the same colour shown twice in one
-	// section and two sizes would read as two different claims.
+	// pick carries below: the same colour shown twice, so it takes one size.
 	//
-	// A least and not a fixed distance because the chips are ranged against the
-	// grid's trailing edge rather than set one gap past step 900: nine cells of
-	// a whole number of points rarely divide the row exactly, and the eight
-	// points or fewer left over land here. Eight points is a gap a hair wider,
-	// which is a gap; the same slack left past the chip would be the section
-	// ending in a different place from the bar above it.
+	// A least and not a fixed distance: the chips are ranged against the grid's
+	// trailing edge rather than set one gap past step 900, since nine cells of a
+	// whole number of points rarely divide the row exactly and the slack (up to
+	// eight points) lands here instead of past the chip.
 	RampPinW     unit.Dp = 44
 	RampPinGap   unit.Dp = 14
 	RampPinInset unit.Dp = 3
@@ -322,79 +195,42 @@ const (
 	PickMaxCols = 3
 )
 
-// What the story says about itself. The two names are the two halves of the
-// derivation named for what they are: a ramp is a scale to pick from and a pick
+// What the story says about itself. A ramp is a scale to pick from and a pick
 // is a colour taken off one.
 //
-// The ramps' line leads with the mark and not with the table. A caption is
-// truncated from its tail, and at a width where only one clause survives the one
-// worth keeping is the one nothing else on screen says: the column headers
-// already print 100 to 900, and which end of the scale is nearest the page is
-// visible the moment anybody looks — while a dot is a mark with no other legend
-// anywhere. Ordered the other way round, the clause that died at the tight width
-// was the only one that was doing any work.
+// RampsHint is ordered so the mark's legend survives truncation before the
+// scale clause does: the column headers already print 100–900 and which end
+// is nearest the page is visible on sight, so a caption cut to one clause
+// keeps the one fact nothing else on screen states — what the dot means.
 //
-// What the line says about the scale is still worth saying, because it turns
-// over between the schemes: step 100 is the palest rung in a light theme and the
-// deepest in a dark one, and it is the same step in both — the one nearest the
-// page — which is the whole reason a component asking for 100 gets a tint on
-// either side. Everybody double-takes at the first press of the switch.
+// Step 100 is the palest rung in a light theme and the deepest in a dark one,
+// and it is the same step in both (the one nearest the page), which is why a
+// component asking for 100 gets a tint on either side of the scheme switch.
 //
-// And the mark's own clause says what a dot is, in the words anybody reads it
-// with: where a pick lives, which is an answer a chip can give as well as a
-// rung, since a pin indistinguishable from no rung carries its dot on the chip
-// itself. Some picks are not on the rung they are marked at — a light scheme's
-// accents are pinned a hair off their own 700, by three parts in 255 — but the
-// caption is the wrong place to carry that: hedging it there costs every reader
-// a sentence they have to stop and parse, to buy a distinction that is invisible
-// on the grid it describes. The cells below say it per colour, beside the colour
-// it is about, and a reader who wants to know how a pick was pinned is already
-// reading the line that tells them. So the caption is left doing a legend's job.
+// A pin indistinguishable from no rung carries its dot on the chip instead of
+// a cell; that per-pin distinction (some accents are pinned a hair off their
+// own 700) lives on the cell's own rule rather than in the caption.
 const (
 	RampsLabel = "Palette Ramps"
 	RampsHint  = "a dot marks where each pick lives · nine steps a role · 100 nearest the page · each row ends with its role's pinned base, and Neutral pins none"
 	PicksLabel = "Palette Picks"
 	PicksHint  = "every colour the theme names, and where it came from"
-	// HintSep joins one clause of a caption to the next, and is therefore where
-	// a caption too wide for its bar is cut — see [FitHint]. It is written down
-	// because it is two things at once: the mark a reader sees between the
-	// facts, and the seam the layout takes them apart at. A caption whose
-	// clauses were joined by a character the cut did not know about would
-	// truncate to nothing and vanish, silently, at exactly the widths this is
-	// meant to serve.
+	// HintSep joins one caption clause to the next and is the seam [FitHint]
+	// truncates at.
 	HintSep = " · "
-	// RampPinHead stands over the chips at the ends of the rows, where the step
-	// numbers stand over the columns. It is the word the rules under the picks
-	// already use for a pinned colour — an ink says it was measured over the
-	// base — so a reader meets one name for one thing in both halves of the
-	// section. One word over a column is a label and not an explanation, which
-	// is why the caption gained a clause naming the column as well; the clause
-	// is last, so it is the first thing a narrow window gives up and the legend
-	// the dot needs is never the clause that dies.
+	// RampPinHead labels the chip column, in the same word the picks' rules use
+	// for a pinned colour.
 	RampPinHead = "base"
-	// RampPinNone stands where a role pins nothing, which is Neutral and only
-	// Neutral. An empty slot at the end of one row of eight is a chip that
-	// failed to draw as far as anybody looking can tell, and the one thing the
-	// column must not do is look unfinished in the row where the answer is that
-	// there is nothing to draw. The caption says which row that is, because a
-	// dash is an answer only to a reader who already knows there was a question:
-	// told that every row ends with a base, they read the dash as the row that
-	// disagrees with the caption rather than as the row the caption is about.
+	// RampPinNone marks the one row that pins nothing (Neutral).
 	RampPinNone = "—"
 )
 
-// The families the cells are read in. Page and surfaces first because it is the
-// ground everything else stands on, and the inverse pair straight after it:
-// those two are surfaces as well, borrowed whole from the other side of the
-// scheme, and a reader looking for a surface should not have to pass the accents
-// and the status roles to find the last two. Then the accents the seed rotates,
-// and the status roles it may only tint.
-//
-// The containers have no family of their own: each stands under the role it
-// belongs to, inside Status. The ends of the tonal axis come last — they are
-// what the inks in every family above them turned out to be, so they are the
-// footnote the rest of the board points at rather than a family a reader goes
-// looking for.
+// The families the cells are read in: page and surfaces (the ground
+// everything else stands on) and the inverse pair (also surfaces, borrowed
+// from the other side of the scheme) first, then the accents the seed
+// rotates, then the status roles it may only tint. Containers have no family
+// of their own — each stands under its role, inside Status. The tonal axis
+// ends come last: they are what the inks above turned out to be.
 const (
 	PickPageGroup    = "Page and surfaces"
 	PickInverseGroup = "Inverse"
@@ -420,52 +256,40 @@ const (
 // The rules, as they are written under a pair of names.
 const (
 	PickGlyph = "Aa"
-	// PickPairSep joins the two names a cell carries, in the order their rules
-	// are written under them: the fill first, then what is written on it.
+	// PickPairSep joins a cell's fill name to its ink name.
 	PickPairSep = " / "
-	// PickMeasured is how an ink's rule ends when the ink's own name has already
-	// said which role the cell is about — a rung of the role's own ramp, which is
-	// what a dark scheme's inks are.
-	//
-	// PickMeasuredOver is how it ends when the ink's name has not: white and
-	// black belong to no role, so seven cells of a light scheme would otherwise
-	// carry one identical sentence between them, saying nothing per cell that the
-	// first of them had not already said. Naming the base makes every line its
-	// own, and it is on the ink's line rather than in the section's caption
-	// because a cell has to derive both the colours it carries.
+	// PickMeasured closes an ink's rule when the ink's name already names the
+	// role (a rung of that role's own ramp — a dark scheme's inks).
+	// PickMeasuredOver closes it when the ink is white or black, which name no
+	// role, so the base is named instead.
 	PickMeasured     = ", measured over the base"
 	PickMeasuredOver = ", measured over %s"
 	PickWhite        = "white"
 	PickBlack        = "black"
-	// PickMeasuredOn is what an ink says when it is neither end of the axis nor
-	// a rung of its own ramp, which no derivation shipping today produces.
+	// PickMeasuredOn is an ink that is neither an axis end nor a rung of its own
+	// ramp; no derivation shipping today produces this case.
 	PickMeasuredOn = "measured over the base"
-	// PickSeed is the light scheme's Primary where it fell between rungs: the
-	// colour that was chosen, lifted onto the palette's own chroma and pinned at
-	// its own depth, which is a depth no scale has a say in.
+	// PickSeed is the light scheme's Primary where the chosen colour fell
+	// between rungs: lifted onto the palette's own chroma, pinned at its own
+	// depth.
 	PickSeed = "the seed, lifted"
-	// PickJustOff is a base that landed beside a rung rather than on it — the
-	// light scheme's accents, which are pinned one unit of lightness off their
-	// own 700. It names the rung because a base a reader cannot find on the grid
-	// above is a provenance that provenances nothing, and because the rung is
-	// where the grid marks it: the two are one answer and are written from one.
+	// PickJustOff is a base pinned one unit of lightness off its own 700 rung
+	// (the light scheme's accents) — named by that rung, since it is
+	// indistinguishable from it on the grid.
 	PickJustOff = "pinned just off %s %d"
-	// PickSeedNear is the light scheme's Primary where the seed it was lifted
-	// from landed beside a rung. Which rung that is depends on the seed's own
-	// depth and is worth saying: it is where on its own ramp the colour somebody
-	// chose actually sits.
+	// PickSeedNear is PickSeed's rule where the lifted seed lands beside a rung
+	// rather than on one.
 	PickSeedNear = "the seed, lifted, just off %s %d"
-	// PickPinned is a base near no rung at all, which the derivations shipping
-	// today do not produce for any role but Primary.
+	// PickPinned is a base near no rung at all; no derivation shipping today
+	// produces this case for any role but Primary.
 	PickPinned = "pinned off the ramp"
-	// PickOffRamp is what a neutral resolution says when it is not on the
-	// neutral ramp, which no derivation shipping today produces. It is here so
-	// that one which did would say so rather than say nothing.
+	// PickOffRamp is a neutral resolution off the neutral ramp; no derivation
+	// shipping today produces this case.
 	PickOffRamp = "off the neutral ramp"
-	// The side of the scheme the caller is not showing, which is where the
-	// inverse pair comes from, filled in with that side's own role name: a light
-	// window's inverse surface is the dark scheme's Surface, exactly, and saying
-	// "Neutral 200" instead would name a step of the wrong ramp.
+	// The side of the scheme the caller is not showing, filled in with that
+	// side's own role name: a light window's inverse surface is the dark
+	// scheme's Surface exactly, so it is named as that role rather than as a
+	// step of the wrong ramp.
 	PickOtherLight = "the light scheme's %s"
 	PickOtherDark  = "the dark scheme's %s"
 	PickOtherSide  = "the other scheme's %s"
@@ -473,59 +297,36 @@ const (
 	// pair resolves from.
 	PickSurfaceRole = "Surface"
 	PickTextRole    = "Text"
-	// PickContainerRule is a status container: its role's own rung, kept at that
-	// rung's tone and hue with the chroma pulled down to the one the containers
-	// share. Naming the rung is what makes it findable — the container is not
-	// that cell of the grid and is the only colour in the section derived from
-	// one without being it — and naming what was done to it is what says why the
-	// two are not the same swatch.
+	// PickContainerRule is a status container: its role's own rung, kept at
+	// that rung's tone and hue with the chroma pulled down to the containers'
+	// shared chroma. Naming the rung is what makes it findable on the grid.
 	PickContainerRule = "%s %d, held at the container chroma"
 	// PickMarkRule is the mark read on a container: a rung of the role's own
-	// ramp, chosen against the container it stands on rather than against a page.
-	// It ends the way an ink's rule ends, because it is the same measurement done
-	// to the same end — a colour that has to clear the ground it is drawn on.
+	// ramp, chosen against the container rather than against a page.
 	PickMarkRule = "%s %d, measured over the container"
-	// PickMarkOff is what a mark says when it is not a rung of its own ramp,
-	// which no derivation shipping today produces: the rule the mark is chosen by
-	// walks that ramp and can return nothing else.
+	// PickMarkOff is a mark that is not a rung of its own ramp; no derivation
+	// shipping today produces this case.
 	PickMarkOff = "measured over the container"
-	// The two ends of the tonal axis, each named for the end it is and then
-	// answered for: does anything on this board turn out to be it.
-	//
-	// The second half is the half that earns the cell. These two are the only
-	// colours here a reader cannot point at in the grid above — they are on no
-	// ramp — so a cell that said what they are and stopped would read as a
-	// legend that wandered into a listing of colours the palette uses, and in a
-	// dark scheme, where every ink comes off its own role's ramp and neither end
-	// is written anywhere, it would be a legend for nothing. Whether the scheme
-	// on screen writes in it is read off that scheme's own inks, so the answer
-	// turns over with the switch, which is the fact worth having: white is the
-	// ink over almost everything on one side and over nothing on the other.
+	// The two ends of the tonal axis, on no ramp, each named for the end it is
+	// and whether the scheme on screen writes any ink in it — read off that
+	// scheme's own inks rather than asserted, so the answer turns over with the
+	// scheme switch.
 	PickAxisLight = "the tonal axis's light end"
 	PickAxisDark  = "the tonal axis's dark end"
 	PickAxisInk   = "%s, an ink here"
 	PickAxisNoInk = "%s, no ink here"
 )
 
-// The token names the cells carry, which are the names in the theme's own
-// source. They are the vocabulary a person reads the palette in, and renaming
-// them for the sake of a prettier caption would mean this section describes a
-// palette nobody can look up.
+// The token names the cells carry: the names in the theme's own source, so
+// this package describes a palette a reader can look up.
 //
-// Two of them are names this section builds rather than reads. The theme holds
-// no field for a container — it derives one from a role when it is asked — and
-// states the two ends of the tonal axis as colours of the package rather than
-// of a palette. So the containers are named out of the words the theme uses for
-// them: a role and the container it fills, a role and the mark read on it.
-//
-// The mark is named a mark rather than an On-colour, which is the one place
-// this section departs from the theme's own On-something convention, and it
-// departs deliberately. An On-colour is the text a base is read in and is
-// measured against a text floor; a mark is a graphic — an icon, a leading edge,
-// a rule — and is measured against a lower one. Calling it OnErrorContainer
-// would put it in the same category as the six inks above it in the same
-// column, at the same moment the cell is drawing it as a shape to say it is
-// not.
+// Container and Mark are names this section builds rather than reads, since
+// the theme derives a container from a role on request rather than holding a
+// field for one. Mark departs deliberately from the theme's On-something
+// naming: an On-colour is text measured against a text contrast floor, while
+// a mark is a graphic (icon, leading edge, rule) measured against a lower
+// one, so naming it OnErrorContainer would claim it is text when the cell
+// draws it as a shape.
 const (
 	BackgroundPick       = "Background"
 	TextPick             = "Text"
@@ -549,21 +350,10 @@ type RampRow struct {
 	Pin  stdcolor.NRGBA
 }
 
-// RampRows is the grid, in the order it is read.
-//
-// The seed's own roles lead, because they are the ones a choice moves: Primary
-// is the colour that was picked, Secondary and Tertiary are rotated off it, and
-// a reader watching a candidate change watches these three. The status roles
-// follow — anchored hues the seed may only tint a few degrees, so they barely
-// move and belong under the ones that do. Neutral is last and not first: it is
-// the largest of the eight, carrying every surface, border and line of text
-// there is, and precisely because it is everywhere it is the one nobody is
-// choosing. A grid that opens on it opens on the row the seed has least to say
-// about.
-//
-// Primary leads for the same reason again, and now with a second thing to say:
-// its chip is the seed itself, lifted, and a reader who wants to know what the
-// colour they chose became looks at the first chip in the grid.
+// RampRows is the grid, in the order it is read: the seed's own roles first
+// (Primary, then Secondary and Tertiary rotated off it — the rows a choice
+// moves), then the status roles (anchored hues the seed only tints), then
+// Neutral last, since it is the row the seed has least to say about.
 func RampRows(c tokens.ColorTokens) []RampRow {
 	return []RampRow{
 		{PrimaryName, c.Ramps.Primary, c.Primary},
@@ -586,15 +376,8 @@ type Claim struct {
 }
 
 // Claims is every rung the picks below the grid took, which is what the grid
-// marks.
-//
-// It is read off the picks rather than written down beside them, so the two
-// halves of this section cannot drift: a rule saying "Error 700" and a marker
-// on any other cell would be one section disagreeing with itself in the two
-// places it is read. What claims nothing is as informative as what claims
-// something — a light scheme's inks are literally white and its accents are
-// pinned off their rung, so the light grid is marked in far fewer places than
-// the dark one, and that is the derivation being visible rather than a gap.
+// marks. It is read off the picks rather than tracked separately, so a rule
+// and its marker cannot disagree.
 func Claims(groups []Group) map[Claim]bool {
 	out := map[Claim]bool{}
 	for _, g := range groups {
@@ -610,12 +393,9 @@ func Claims(groups []Group) map[Claim]bool {
 }
 
 // Part is one colour token in a cell: what the theme calls it, what chose it,
-// and — where what chose it was a rung of a ramp — which row and which step, so
-// the grid above can mark the rung this pick took.
-//
-// The rung and the rule are resolved together and never separately. A rule that
-// says "Error 700" and a marker on a different cell would be the section
-// disagreeing with itself in the two places it is read.
+// and — where what chose it was a rung of a ramp — which row and which step,
+// so the grid above can mark the rung this pick took. Rung and rule must be
+// resolved together, never separately, or a rule and its marker can disagree.
 type Part struct {
 	Name, Rule string
 	Role       string // the ramp row the rule names, empty when it names none
@@ -662,12 +442,10 @@ type Group struct {
 }
 
 // Groups is every colour token the theme names, grouped as they are read, with
-// each rule resolved against the colours themselves.
-//
-// c is the side of the pair being drawn and other is the side it is not — the
-// inverse pair is the only thing here that comes from across the scheme, and it
-// is handed the counterpart rather than deriving one, so this section costs the
-// caller no palette of its own.
+// each rule resolved against the colours themselves. c is the side of the pair
+// being drawn and other is the side it is not — only the inverse pair reads
+// other, and it is handed the counterpart rather than deriving one, so the
+// caller need not build a palette of its own.
 func Groups(c, other tokens.ColorTokens, dark bool) []Group {
 	n := c.Ramps.Neutral
 	alone := func(base Part, fill stdcolor.NRGBA) Cell {
@@ -676,8 +454,7 @@ func Groups(c, other tokens.ColorTokens, dark bool) []Group {
 	groups := []Group{
 		{PickPageGroup, []Cell{
 			// The page and the ink it is read in: the one pair in the theme
-			// that is two pins rather than a pin and a measurement, and still
-			// one decision — the ink is chosen for that ground.
+			// that is two pins rather than a pin and a measurement.
 			{
 				Base: neutralPart(BackgroundPick, n, c.Background),
 				Ink:  neutralPart(TextPick, n, c.Text),
@@ -697,15 +474,10 @@ func Groups(c, other tokens.ColorTokens, dark bool) []Group {
 			pinnedCell(TertiaryName, c.Ramps.Tertiary, c.Tertiary, c.OnTertiary, PickJustOff, PickPinned),
 		}},
 		// Each status role twice over: the solid fill it puts a label on, and
-		// under it the ground it fills a whole band with and the mark read on
-		// that. Under it, and not in a family of containers of its own, because
-		// in a light scheme the mark on Error's container is Error's own 700 —
-		// the same colour as the solid fill directly above it — and two columns
-		// of four rows each, aligned, both ending in "measured over", read as
-		// one table split in half with the same colour twice in it and nothing
-		// saying why. Beside its own role the repeat stops being a coincidence
-		// and becomes the fact it is: a role marks its quiet ground in the same
-		// colour it fills its loud one with.
+		// under it the container it fills a band with plus the mark read on
+		// that. The container stands under its own role rather than in a
+		// family of its own, since in a light scheme its mark is that role's
+		// own 700 — the same colour as the fill directly above it.
 		{PickStatusGroup, []Cell{
 			pinnedCell(ErrorName, c.Ramps.Error, c.Error, c.OnError, PickJustOff, PickPinned),
 			containerCell(ErrorName, c, tokens.RoleError, c.Ramps.Error),
@@ -717,11 +489,10 @@ func Groups(c, other tokens.ColorTokens, dark bool) []Group {
 			containerCell(InfoName, c, tokens.RoleInfo, c.Ramps.Info),
 		}},
 	}
-	// And the two colours every ink above was chosen between, at last shown as
-	// colours rather than as letterforms — and each told whether this scheme
-	// wrote anything in it, which is read off the families already built rather
-	// than asserted, so the answer is the board's own inks answering for
-	// themselves.
+	// The two colours every ink above was chosen between, shown as colours
+	// rather than as letterforms, each told whether this scheme writes
+	// anything in it — read off the families already built rather than
+	// asserted.
 	return append(groups, Group{PickAxisGroup, []Cell{
 		alone(axisPart(WhitePick, PickAxisLight, tokens.White, groups), tokens.White),
 		alone(axisPart(BlackPick, PickAxisDark, tokens.Black, groups), tokens.Black),
@@ -767,21 +538,14 @@ func containerCell(role string, c tokens.ColorTokens, id tokens.Role, r tokens.R
 // containerPart is a container as a cell carries it: the rung it was realized
 // at, and what was done to that rung to get it.
 //
-// The rung is found by tone rather than by colour, which is the one place in
-// this section a colour is identified by something other than itself. A
-// container keeps its rung's lightness and its hue and gives up chroma, so
-// comparing bytes finds nothing and measuring a distance finds whichever rung
-// happens to be nearest in a space the difference is not in. What survives the
-// derivation intact is the tone, so the tone is what says which rung this was.
+// The rung is found by tone (lightness) rather than by colour: a container
+// keeps its rung's lightness and hue but gives up chroma, so comparing bytes
+// finds nothing and lightness is the one dimension that survives intact.
 //
-// It claims that rung, and claims it whether or not the container came out
-// close enough to be mistaken for it. The dot on the grid marks the step a
-// pick's rule names — that is what it has meant since the light accents, which
-// are pinned off their rung and marked on it — and a rule that names Error 300
-// beside a grid with nothing at Error 300 leaves a reader unable to say which
-// of the two is lying. How close the container lands varies with how much
-// chroma the rung had to give, so marking only the close ones would put dots
-// under two of four rows whose rules are word for word the same.
+// It claims that rung unconditionally, even where the container is not close
+// enough to be mistaken for it — the dot on the grid always marks the step a
+// pick's rule names, and marking only the close containers would leave two of
+// four rows with word-for-word identical rules dotted differently.
 func containerPart(role string, r tokens.Ramp, ground stdcolor.NRGBA) Part {
 	step := ToneStep(r, ground)
 	return Part{
@@ -820,10 +584,9 @@ func ToneStep(r tokens.Ramp, col stdcolor.NRGBA) int {
 }
 
 // pinnedCell is one role's cell: the base the derivation pinned and the ink it
-// measured over that exact colour, named for it — the token is called OnPrimary
-// because Primary is what it has to clear. near is what the base's rule says
-// when it landed beside a rung rather than on one, and off what it says when it
-// landed beside none.
+// measured over that exact colour, named OnPrimary etc. for the base it has
+// to clear. near is what the base's rule says when it landed beside a rung
+// rather than on one; off is what it says when it landed beside none.
 func pinnedCell(role string, r tokens.Ramp, base, ink stdcolor.NRGBA, near, off string) Cell {
 	return Cell{
 		Base: BasePart(role, r, base, near, off),
@@ -832,10 +595,10 @@ func pinnedCell(role string, r tokens.Ramp, base, ink stdcolor.NRGBA, near, off 
 	}
 }
 
-// StepIn reports which step of r the colour is, or 0 when it is not on the ramp
-// at all. It compares bytes rather than measuring a distance: a pin that is a
-// rung is that rung exactly, and a pin that is near one is a different colour,
-// which is the whole distinction this section exists to draw.
+// StepIn reports which step of r the colour is, or 0 when it is not on the
+// ramp at all. It compares bytes rather than measuring a distance: a pin that
+// is a rung is that rung exactly, and a pin that is merely near one is a
+// different colour.
 func StepIn(r tokens.Ramp, col stdcolor.NRGBA) int {
 	for i := range r {
 		if r[i] == col {
@@ -859,26 +622,17 @@ func BasePart(role string, r tokens.Ramp, col stdcolor.NRGBA, near, off string) 
 	return Part{Name: role, Rule: off, Role: role}
 }
 
-// NearestStep is the rung of r a colour is indistinguishable from, or 0 when it
-// is distinguishable from all nine.
+// NearestStep is the rung of r a colour is indistinguishable from, or 0 when
+// it is distinguishable from all nine. "On the ramp" and "the same colour as
+// the ramp" are different questions; this answers the second, since every
+// light-scheme accent is pinned one unit of lightness off its own 700 rung
+// (three parts in 255 — invisible to eye or display).
 //
-// It exists because "on the ramp" and "the same colour as the ramp" are not the
-// same question, and the grid answers the second. Every light-scheme accent is
-// pinned one unit of lightness off its own 700 rung — three parts in 255, which
-// is nothing an eye or a display can show — and comparing bytes left three rows
-// of the grid unmarked beside four that were marked, whose only possible reading
-// is that Primary is not in the table at all.
-//
-// The distance is measured in OKLab, where a step is a step wherever it is
-// taken, and the tolerance is set by measurement rather than by taste. It has a
-// floor and a ceiling and sits between them: the pins that ought to match sit up
-// to sixteen thousandths from their rung, so anything under that misses a match;
-// and the closest two rungs of any ramp this derivation builds are forty-one
-// thousandths apart, so anything over half of that would put a colour within
-// reach of two rungs at once and leave a mark unable to say which it meant.
-// Eighteen is the point that is as far from one bound as from the other, and the
-// two measurements are asserted by the applications drawing this story rather
-// than trusted.
+// Distance is measured in OKLab, and [RungTolerance] is set by measurement:
+// pins that should match sit up to 0.016 from their rung, and the closest two
+// rungs of any ramp this derivation builds are 0.041 apart, so the tolerance
+// must clear the first and stay under half the second or a colour could sit
+// within reach of two rungs at once.
 func NearestStep(r tokens.Ramp, col stdcolor.NRGBA) int {
 	best, at := RungTolerance, 0
 	for i := range r {
@@ -922,15 +676,11 @@ func neutralPart(name string, n tokens.Ramp, col stdcolor.NRGBA) Part {
 	return part
 }
 
-// inkPart names what the derivation put over the base and kept: one of the two
-// ends of the tonal axis, named for the base it was measured over, or — where
-// the base is a dark scheme's, and white would be the wrong half of the pair —
-// the role's own deepest rung, which names the role itself.
-//
-// The ends of the axis are on no ramp, so an ink that is one of them claims no
-// rung and the grid above marks nothing for it. That is the fact, and it is
-// worth being able to see: under a light theme almost every ink is literally
-// white, and under a dark one every one of them comes off its own role's ramp.
+// inkPart names what the derivation put over the base and kept: one of the
+// two ends of the tonal axis, named for the base it was measured over, or —
+// where the base is a dark scheme's — the role's own deepest rung. The axis
+// ends are on no ramp, so an ink that is one of them claims no rung and the
+// grid marks nothing for it.
 func inkPart(role string, r tokens.Ramp, ink stdcolor.NRGBA) Part {
 	part := Part{Name: "On" + role, Role: role}
 	switch ink {
@@ -996,29 +746,15 @@ func Heading(p Chrome, c tokens.ColorTokens, ty Type, title, hint string) layout
 		box := image.Rect(pad, 0, max(pad, size.X-pad), size.Y)
 		textdraw.FillText(gtx, ty.Shaper, ty.Label, box, 0, 0.5, p.Text, title)
 		// The caption takes what the title leaves rather than the whole bar, so
-		// a narrow window truncates it instead of running it into the title:
-		// two runs of text laid out from opposite ends of one box meet in the
-		// middle the moment the box is narrower than the two of them.
+		// a narrow window truncates it instead of running it into the title.
 		//
-		// In the ink the title is in, and not a rung quieter. This is the one
-		// caption in the story that reads at full strength, and both
-		// applications drawing it landed on that independently, so the reason
-		// travels with the code rather than staying in one of them. The
-		// caption's leading clause is the only legend the mark on the grid
-		// below has — nothing else on the screen says what a dot on a swatch
-		// means — and the numbers over that grid are set in this same ink for
-		// the same reason: a legend drawn fainter than the thing it explains is
-		// a legend somebody has to go looking for. It is the ink that keeps a
-		// caption in the register of the words around it on both sides of the
-		// switch, too, which a step of the neutral ramp does not: the quiet
-		// step reads at two-thirds of its neighbours' contrast against a dark
-		// ground and a third of it against a light one, so a caption set in it
-		// is quiet in one scheme and faint in the other.
-		//
-		// It is louder than the hints a surrounding page sets elsewhere, and
-		// that is a standing question about the hint ladder rather than about
-		// this band: if it turns, it turns for every heading band at once, not
-		// for this one alone.
+		// Drawn in the ink the title is in, not a rung quieter: the caption's
+		// leading clause is the only legend the mark on the grid below has —
+		// nothing else on screen says what a dot on a swatch means — so it (and
+		// the grid's own step numbers) must read at full strength. The neutral
+		// ramp's quiet step reads at two-thirds its neighbours' contrast
+		// against a dark ground and a third against a light one, which would
+		// make the caption quiet in one scheme and faint in the other.
 		if lead := box.Min.X + natural(gtx, ty.Shaper, ty.Label, title) + gtx.Dp(captionGap); lead < box.Max.X {
 			if fit := FitHint(gtx, ty, hint, box.Max.X-lead); fit != "" {
 				textdraw.FillText(gtx, ty.Shaper, ty.Small,
@@ -1029,28 +765,11 @@ func Heading(p Chrome, c tokens.ColorTokens, ty Type, title, hint string) layout
 	}
 }
 
-// FitHint is a section's caption cut to the room it has, at the boundaries the
-// caption is written in.
-//
-// A caption is a list of clauses joined by [HintSep], and what a narrow window
-// takes off it is whole clauses from the tail. The shaper's own truncation is
-// what this replaces, and it is the wrong cut here for two reasons. It cuts
-// mid-word — the caption arrived at a width reading "100 nearest the pa…",
-// which is not a shorter caption but a caption that failed to finish — and the
-// ellipsis it leaves says the text was clipped, when the fact is that a window
-// this wide gets the three clauses that fit and the fourth was never going to
-// be read. Cut at the clauses, every word on the bar is a whole word and every
-// clause a whole fact, and the line ends where a list ends.
-//
-// Nothing marks the cut. A list that stops is a list of what fits; an ellipsis
-// on the end of it is an invitation to go looking for a clause that was written
-// to be the one nobody has to read. The order is what does the work here — the
-// caption constants say why their clauses stand in the order they do, and it is
-// tail-droppable on purpose — and the cut only has to respect it.
-//
-// With room for not even the leading clause the caption is dropped whole. Half
-// a sentence in a heading bar is not a shorter caption: it is a caption that
-// says something else, and the bar already knows how to carry a title alone.
+// FitHint is a section's caption cut to the room it has: whole clauses
+// dropped from the tail (never a mid-word cut), and nothing marks the cut —
+// clauses are written tail-droppable on purpose, in an order that keeps the
+// load-bearing ones first. With room for not even the leading clause, the
+// caption is dropped whole rather than shown as a fragment.
 func FitHint(gtx layout.Context, ty Type, hint string, room int) string {
 	if natural(gtx, ty.Shaper, ty.Small, hint) <= room {
 		return hint
@@ -1063,36 +782,15 @@ func FitHint(gtx layout.Context, ty Type, hint string, room int) string {
 	return longestHead(gtx, ty.Shaper, ty.Small, heads, "", room)
 }
 
-// FitLine is one line of the picks board cut to the room its column has, at the
-// boundaries the line is written in.
-//
-// The board is the other place in this section where a run of text can outgrow
-// the box it is in, and the shaper's own truncation is the wrong cut here for
-// the reason it was wrong on the heading bar: it cuts mid-word. What it left on
-// a narrow board was a cell titled "SuccessContainer / SuccessM…" over a rule
-// ending "held at the container chro…" — a token name nobody can look up and a
-// sentence stopped in the middle of a word — where every line on the board is
-// either a name or a sentence with a name at the front of it, and both have
-// boundaries worth cutting at.
-//
-// Clauses first, and with nothing marking the cut. A rule reads "Success 300,
-// held at the container chroma", and its first clause is the identifier the
-// reader came for: cut there it says "Success 300", which is a shorter true
-// sentence and not a sentence that was interrupted. The marks a clause ends at
-// are the ones this section writes its lines with — the comma inside a rule,
-// the slash between the two names of a cell, and the [HintSep] a caption's
-// clauses are strung on.
-//
-// Words second, and with an ellipsis, because a cut inside a sentence is not
-// the sentence any more: "the seed, lifted, just off…" has to say that it
-// stopped, or a reader takes the fragment for the whole rule. This is the case
-// the columns are sized to make rare — see [Narrowest] — and not the case they
-// can make impossible, since a rule is longer than the name over it.
-//
-// With room for not even the first word, the line goes to the shaper whole and
-// wears whatever truncation the shaper gives it. That is a board narrower than
-// one identifier, which is narrower than either window opens or resizes to; a
-// line dropped instead would be a cell with a colour and no name at all.
+// FitLine is one line of the picks board cut to the room its column has,
+// never at a mid-word boundary. It tries a clause cut first (at the comma
+// inside a rule, the slash between a cell's two names, or [HintSep]), which
+// leaves a shorter true sentence rather than an interrupted one — e.g. "Success
+// 300, held at the container chroma" cuts to "Success 300". Failing that it
+// falls back to a word boundary with a trailing ellipsis, since a mid-sentence
+// cut must say that it stopped. With room for not even the first word, the
+// line is handed to the shaper whole and wears whatever truncation it gives:
+// a dropped line would leave a cell with a colour and no name at all.
 func FitLine(gtx layout.Context, shaper *text.Shaper, style textdraw.TextStyle, line string, room int) string {
 	if room <= 0 || natural(gtx, shaper, style, line) <= room {
 		return line
@@ -1106,14 +804,11 @@ func FitLine(gtx layout.Context, shaper *text.Shaper, style textdraw.TextStyle, 
 	return line
 }
 
-// LineHeads is every head this line can be cut down to, longest first: the head
-// at each of its clause boundaries when clauses is set, and the head at each of
-// its word boundaries when it is not.
-//
-// A boundary is a space, and a clause boundary is a space the line's own
-// punctuation stands in front of. The separator itself is taken off the head —
-// a line ending in a dangling comma reads as a line that lost its second half,
-// which is exactly what a cut at a clause is trying not to say.
+// LineHeads is every head this line can be cut down to, longest first: the
+// head at each of its clause boundaries when clauses is set, and the head at
+// each of its word boundaries when it is not. A boundary is a space; a clause
+// boundary is a space preceded by the line's own punctuation, which is
+// trimmed off the head so it never ends in a dangling separator.
 func LineHeads(line string, clauses bool) []string {
 	var heads []string
 	for i := len(line) - 1; i > 0; i-- {
@@ -1146,12 +841,9 @@ func longestHead(gtx layout.Context, shaper *text.Shaper, style textdraw.TextSty
 // Body lays one section's content out on the page's own ground, inside the
 // margin every other body in that column keeps.
 //
-// The content is drawn before the ground is painted and replayed over it. The
-// height is the content's — a grid of eight rows and a board of however many
-// columns the window is wide enough for are two different heights, and neither
-// is a number worth writing down beside them — so the ground cannot be filled
-// until the content has been measured, and the content cannot be drawn under a
-// ground that is not there yet.
+// The content is drawn before the ground is painted and replayed over it: the
+// height is the content's own (a grid and a board differ, and neither is
+// fixed), so the ground cannot be filled until the content is measured.
 func Body(c tokens.ColorTokens, body func(gtx layout.Context, width int) int) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		padX, padY := gtx.Dp(inventory.SectionPadX), gtx.Dp(inventory.SectionPadY)
@@ -1167,19 +859,11 @@ func Body(c tokens.ColorTokens, body func(gtx layout.Context, width int) int) la
 	}
 }
 
-// rampGrid draws the eight ramps as a table: the step numbers standing over the
-// columns once, and under them a row per role — its name at the leading edge
-// and its nine steps beside it, each in its own cell.
-//
-// The numbers are headers rather than captions under every swatch. Nine numbers
-// repeated eight times is seventy-two numbers on a grid whose whole point is the
-// colour, and the column a cell is in is what says which step it is.
-//
-// A rung one of the picks took carries a mark. Without one the two halves of
-// this section sit next to each other describing the same eight roles and never
-// point at each other: the picks say "Error 700", the grid has an Error row and
-// a 700 column, and joining them is left to a reader holding a number in their
-// head while they count columns. The marks join them, and they cost one dot.
+// rampGrid draws the eight ramps as a table: the step numbers standing over
+// the columns once, and under them a row per role — its name at the leading
+// edge and its nine steps beside it, each in its own cell. A rung one of the
+// picks took carries a mark, joining the picks' rules ("Error 700") to the
+// grid's row and column.
 func rampGrid(p Chrome, c tokens.ColorTokens, ty Type, claims map[Claim]bool) func(gtx layout.Context, width int) int {
 	rows := RampRows(c)
 	return func(gtx layout.Context, width int) int {
@@ -1198,15 +882,11 @@ func rampGrid(p Chrome, c tokens.ColorTokens, ty Type, claims map[Claim]bool) fu
 		if cellW <= 0 {
 			return total
 		}
-		// Ranged against the trailing edge, which is where the heading bar's own
-		// caption ends and where the picks board below ends: the names stand at
-		// the leading margin, the chips at the trailing one, and the section has
-		// one right edge at every width instead of a grid that stops wherever
-		// nine whole-point cells happen to run out. The width reserved above is
-		// what guarantees the chips cannot reach step 900 — the cells were
-		// divided out of a width the chip and its least gap had already been
-		// taken from, so the slack that lands here is never less than
-		// [RampPinGap] and never more than eight points past it.
+		// Ranged against the trailing edge, matching the heading bar's caption
+		// and the picks board below, rather than left wherever nine whole-point
+		// cells happen to run out. The reserved width above guarantees the gap
+		// before the chip is never less than [RampPinGap] and never more than
+		// eight points past it.
 		pinX := width - pinW
 		// The numbers are set in the ink the names are, not a rung quieter. They
 		// are the table's only legend — every cell under them is a colour with
@@ -1236,21 +916,12 @@ func rampGrid(p Chrome, c tokens.ColorTokens, ty Type, claims map[Claim]bool) fu
 				// A point off the row top and bottom, so two ramps a rung apart
 				// are two rows rather than one block of colour.
 				cell := image.Rect(labelW+n*cellW, y+1, labelW+(n+1)*cellW, y+rowH-1)
-				// The frame is a fill with the colour inset into it, and not a
-				// stroke over it, for the reason every other swatch here wears
-				// the same one: a one-point stroke is centred on the boundary
-				// and lands as two rows of half-strength antialiasing, which is
-				// a line between two colours that differ and nothing at all
-				// between a step and a page it is within a shade of. That case
-				// is not the exception here, it is the first column — step 100
-				// of every ramp is the ground, near enough — and a grid whose
-				// first column dissolves is a grid claiming nine steps and
-				// showing eight.
-				//
-				// The ink of that frame is one colour for the whole section —
-				// see [EdgeIn] — and it is at its strongest over exactly the
-				// cells that need it, which are the ones whose fill is within a
-				// shade of the ground they stand on.
+				// A fill with the colour inset into it, not a stroke over it: a
+				// one-point centred stroke antialiases to half strength, which
+				// draws no visible boundary between a step and a page it is
+				// within a shade of (the case at step 100 of every ramp — the
+				// ground, near enough). [EdgeIn] is the one frame colour used
+				// for the whole section.
 				step := r.Ramp.Step((n + 1) * 100)
 				paint.FillShape(gtx.Ops, EdgeIn(c), clip.Rect(cell).Op())
 				if in := cell.Inset(line); !in.Empty() {
@@ -1264,11 +935,8 @@ func rampGrid(p Chrome, c tokens.ColorTokens, ty Type, claims map[Claim]bool) fu
 				slot := image.Rect(pinX, y+gtx.Dp(RampPinInset), pinX+pinW, y+rowH-gtx.Dp(RampPinInset))
 				if r.Pin.A != 0 {
 					markPin(gtx, c, slot, r.Pin)
-					// A pin that claims no rung has no cell to dot, and a row
-					// with no dot anywhere reads as a role nothing picked. The
-					// dot lands on the chip instead — the pinned colour lives
-					// here — in the ink measured over the chip the way every
-					// cell's dot is measured over its step.
+					// A pin that claims no rung has no cell to dot, so the dot
+					// lands on the chip instead.
 					if PinRung(r.Ramp, r.Pin) == 0 {
 						markRung(gtx, slot, r.Pin)
 					}
@@ -1281,16 +949,9 @@ func rampGrid(p Chrome, c tokens.ColorTokens, ty Type, claims map[Claim]bool) fu
 	}
 }
 
-// markPin draws the base a role pinned, at the end of that role's row.
-//
-// It is a rounded chip with a frame rather than a square butted against its
-// neighbours, which is the whole of what separates it from the nine cells it
-// stands beside — that and the gap. The frame is the one the cells in that row
-// wear, and it is here for the reason it is there: a pinned base can be any
-// colour a seed produces, pale ones included, and a pale chip on a pale ground
-// with no boundary reads as a chip that failed to draw. A row whose nine cells
-// wore the section's edge and whose tenth swatch wore some other one would say
-// the chip came from somewhere else.
+// markPin draws the base a role pinned, at the end of that role's row: a
+// rounded chip with the row cells' own frame, so a pale pinned colour still
+// shows a boundary against a pale ground.
 func markPin(gtx layout.Context, c tokens.ColorTokens, box image.Rectangle, pin stdcolor.NRGBA) {
 	if box.Empty() {
 		return
@@ -1302,14 +963,9 @@ func markPin(gtx layout.Context, c tokens.ColorTokens, box image.Rectangle, pin 
 
 // markRung puts the dot on the ground a pick lives on: the cell of a rung it
 // took, or — for a pin that claims no rung — the chip at the end of its row.
-//
-// Its ink is measured over the ground it stands on rather than taken from the
-// page: this mark lands on seventy-two possible rungs running from the page
-// itself to nearly black, and on a chip that can be any colour a seed
-// produces, and one ink chosen for the page would be invisible on a third of
-// them. The two candidates are the ends of the tonal axis, which is the same
-// pair the derivation itself chooses an on-colour from — the mark is doing the
-// same job on the same ground.
+// Its ink is measured over that ground rather than taken from the page, since
+// the mark can land on any of seventy-two rungs or on an arbitrary pinned
+// chip and a page-chosen ink would be invisible on some of them.
 func markRung(gtx layout.Context, cell image.Rectangle, step stdcolor.NRGBA) {
 	d := min(gtx.Dp(RampMark), min(cell.Dx(), cell.Dy())/2)
 	if d <= 0 {

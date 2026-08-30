@@ -147,9 +147,9 @@ func TestThePinnedFillHoldsWhileTheSchemeFlips(t *testing.T) {
 // inverts, so all a section leaves standing is the odd antialiased pixel
 // where two edges happen to blend to the same byte — and the floor is set
 // just under the whole slot rather than at some cautious fraction. A fraction
-// is what lets a pinned surface hide: the recorded case was a popup drawn
-// light on a dark page, and its panel is a fifth of the slot it sits in, so
-// anything below about 80% would have called it well themed.
+// is what lets a pinned surface hide: a popup drawn light on a dark page,
+// with its panel a fifth of the slot it sits in, would pass any floor below
+// about 80% as well themed.
 const schemeFloor = 99.5
 
 // TestTheSeedReachesEveryGroup: a brand colour is meant to reach all four

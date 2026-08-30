@@ -616,11 +616,9 @@ func (inv *Inventory) chipBlock(c tokens.ColorTokens) layout.Widget {
 				tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
 				tokens.Comfortable, storey.ground)),
 		)
-		// The caption stands INSIDE the band rather than beside it. A label
+		// The caption stands inside the band rather than beside it. A label
 		// naming a ground while sitting on a different one is a label about
-		// the row and not about the surface — a reviewer handed the section
-		// read the three storeys as one loose row plus two table stripes for
-		// exactly that reason.
+		// the row and not about the surface.
 		band := func(gtx layout.Context) layout.Dimensions {
 			return complayout.InsetXY(float32(chipPanelPadX), float32(chipPanelPadY)).Layout(gtx,
 				func(gtx layout.Context) layout.Dimensions {

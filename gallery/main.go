@@ -300,7 +300,7 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 		g.sbItems[i] = fmt.Sprintf("Fake content row %d of %d", i+1, len(g.sbItems))
 	}
 
-	// Richtext: live link state; OnLinkClick carries gtx per GX.8.
+	// Richtext: live link state; OnLinkClick carries gtx.
 	g.rtState = richtext.NewState()
 	g.rtStyle = richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	g.rtStyle.OnLinkClick = func(_ layout.Context, url string) {
@@ -334,9 +334,7 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 		}
 	})
 
-	// Stream: mvu/stream.Value[string] for the producer/consumer demo. ADR-008's
-	// third destination — components/coordination is deprecated and this demo was its
-	// last user in the organization.
+	// Stream: mvu/stream.Value[string] for the producer/consumer demo.
 	var streamObs rx.Observable[string]
 	g.streamObserver, streamObs = stream.Value("")
 	g.streamSub = streamObs.Subscribe(rx.GoroutineContext(), func(msg string, err error, done bool) {
@@ -377,8 +375,8 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 	c := g.chrome()
 
 	// The gallery's own rail is chrome furniture, so it fills at the
-	// window's floor (ADR-022 V2). Neutral 200, which this used to name, is
-	// a ramp alias that coincides with the floor in the light scheme only.
+	// window's floor. This coincides with the Neutral 200 ramp alias in the
+	// light scheme only.
 	paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelFloor), clip.Rect{Max: gtx.Constraints.Max}.Op())
 
 	cs := make([]layout.FlexChild, 0, 1+len(pageNames))
@@ -400,10 +398,8 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 			}
 			return g.nav[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				sz := image.Pt(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(40)))
-				// Only the selected entry carries a fill of its own. An
-				// unselected one used to paint the window's background over
-				// the rail, which made the rail's ground stop at the last
-				// entry and left the rest of the column a different shade.
+				// Only the selected entry carries a fill of its own, so an
+				// unselected entry lets the rail's own ground show through.
 				if active {
 					paint.FillShape(gtx.Ops, c.Primary, clip.Rect{Max: sz}.Op())
 				}

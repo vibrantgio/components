@@ -67,17 +67,14 @@ const inkCoverageTolerance = 0.15
 // names, the label on it is the ink that role names, and the two measure at
 // or above WCAG AA for body text.
 //
-// It is a render-side gate and not a token-side one on purpose. The tokens
-// have gates of their own in the derivation's own package, and they were
-// passing while a review of this page reported the dark Inverse chip as a
-// weak grey label on a near-white ground — a report a token gate cannot
-// confirm or refute, because the question it asks is what the page painted.
-// So the question is asked of the pixels: the fill is compared to the token
-// exactly, and the label's most-covered pixel is measured for how far it
-// travelled from that fill toward the token's ink. A chip painting an ink
-// its role does not name lands short of the floor; a chip painting the right
-// ink lands within a pixel's antialiasing of it, whichever way round the
-// scheme puts the pair.
+// It is a render-side gate and not a token-side one: a token gate checks the
+// derivation, not what the page painted, so it cannot confirm or refute a
+// chip drawn with the wrong ink. The question is asked of the pixels
+// instead: the fill is compared to the token exactly, and the label's
+// most-covered pixel is measured for how far it travelled from that fill
+// toward the token's ink. A chip painting an ink its role does not name
+// lands short of the floor; a chip painting the right ink lands within a
+// pixel's antialiasing of it, whichever way round the scheme puts the pair.
 func TestRoleSwatchesPaintTheirTokenPairs(t *testing.T) {
 	for _, sc := range schemes() {
 		sc := sc

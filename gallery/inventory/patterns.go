@@ -186,9 +186,7 @@ func (inv *Inventory) toasts(c tokens.ColorTokens) layout.Widget {
 		// margin in from it. A section's slot is not a canvas: its own margin
 		// already holds the specimen that distance off the page, so a canvas
 		// the size of the slot would indent the chips by two margins and drop
-		// them the same distance below the heading — which is what put this
-		// stack 84 px in from where every other specimen starts, and what ran
-		// its last chip into the section below.
+		// them the same distance below the heading.
 		//
 		// So the canvas is handed out one edge margin past the slot on the
 		// leading and top sides, and the stack drawn back into it. The corner
@@ -325,8 +323,7 @@ func (inv *Inventory) tabs(c tokens.ColorTokens) layout.Widget {
 		// section body under it is the Background pin, so a panel taking the
 		// pattern's default ground would dissolve into the page and leave a
 		// strip floating on nothing. On Level1 the panel keeps the Surface it
-		// has always drawn and the strip stands the one rung over it that the
-		// pattern now walks (ADR-021 R4) — which is the tile's only change.
+		// has always drawn and the strip stands one rung over it.
 		Ground: tokens.Level1,
 	}
 	return func(gtx layout.Context) layout.Dimensions {
@@ -410,7 +407,7 @@ func (inv *Inventory) sidebar(c tokens.ColorTokens) layout.Widget {
 
 // The floating pane specimen's measurements.
 //
-// The pane is furniture inside a WINDOW, not a widget on a page: the inset,
+// The pane is furniture inside a window, not a widget on a page: the inset,
 // the corner radius and the internal hairline only say what they say when the
 // window's own ground shows around them. So the specimen draws a window of
 // its own inside the slot, and the pane floats in that.
@@ -729,9 +726,9 @@ func (inv *Inventory) shell(c tokens.ColorTokens) layout.Widget {
 	sidebarW := patsidebar.Render(inv.shaper, inv.sidebarProps(c), false, c, tokens.Spacing,
 		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
 	asideW := func(gtx layout.Context) layout.Dimensions {
-		// An aside is an inspector, which ADR-022 names as furniture: it
-		// fills at the window's floor, the same storey the frame around it
-		// paints, rather than at the c.Surface ramp alias.
+		// An aside is an inspector, which counts as furniture: it fills at
+		// the window's floor, the same storey the frame around it paints,
+		// rather than at the c.Surface ramp alias.
 		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelFloor), clip.Rect{Max: gtx.Constraints.Max}.Op())
 		return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return inv.prose(c, "Aside", "", "Inspector, outline", "or details.")(gtx)
