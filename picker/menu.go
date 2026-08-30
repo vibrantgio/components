@@ -14,6 +14,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/list"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
@@ -30,10 +31,27 @@ type MenuState struct {
 	// Options is the list of selectable items, in the order they are drawn.
 	Options []string
 
-	// Selected is the index of the one row drawn on the inverted plane. An
+	// Selected is the index of the one row drawn on the accent plane. An
 	// index outside Options selects nothing, which is what a picker with no
 	// value yet looks like.
 	Selected int
+
+	// Hovered is the row the pointer is over, counted from ONE, so that the
+	// zero value is no row.
+	//
+	// Selected counts from zero because a picker always holds a value and
+	// some row is always it. Hover is the opposite: a menu holds a pointer
+	// for a moment and holds none the rest of the time, so the state a
+	// caller writes when it has nothing to say has to mean nothing is
+	// hovered, and zero is the only value a caller can leave out.
+	Hovered int
+
+	// MaxHeight caps the plane the rows are drawn on. The zero value is no
+	// cap: the menu draws its full height, which is what a handful of
+	// options wants and what runs off the bottom of the window at forty.
+	// Above the cap the rows scroll inside it and the plane is the cap
+	// exactly — see [MenuProps.MaxHeight] for what the cap costs.
+	MaxHeight unit.Dp
 }
 
 // MenuProps configures a [Menu] instance.
@@ -44,6 +62,22 @@ type MenuProps struct {
 	// Selected is the initial selected index established on subscribe. A
 	// later value does not move a running instance — see the package doc.
 	Selected int
+
+	// MaxHeight caps the height of the plane the rows are drawn on. The zero
+	// value is no cap and the menu draws every row, which is what it has
+	// always done and what a handful of options wants.
+	//
+	// A capped menu scrolls (components/list) and keeps the selected row in
+	// view, and the cap is the whole of what makes a long list usable: a
+	// catalogue of forty options is taller than the window it opens in, so
+	// uncapped its far end is not merely unscrolled but undrawn.
+	//
+	// What the cap costs is per-row focus tags for the rows a frame did not
+	// lay out — a scrolling viewport has tags for what is on screen, where
+	// the uncapped menu has one for every option (see the keyboard-reach
+	// note below). It buys back the rows the uncapped menu drew past the
+	// bottom edge, which no tag could reach either.
+	MaxHeight unit.Dp
 
 	// OnSelect is called with the newly selected index on every selection.
 	// This is the FRP path. The gtx argument is the layout.Context active on
@@ -82,26 +116,32 @@ type MenuProps struct {
 //
 // # Keyboard reach
 //
-// The menu is not virtualised: it walks every option, so while it stands every
-// option row exists in the op tree with its own widget.Clickable focus tag,
-// and Tab plus Enter/Space reaches all of them. There is no unreachable option
-// because there is no offscreen option — unlike a virtualised region, which
-// reaches only the rows a frame laid out.
+// Uncapped, the menu is not virtualised: it walks every option, so while it
+// stands every option row exists in the op tree with its own widget.Clickable
+// focus tag, and Tab plus Enter/Space reaches all of them. There is no
+// unreachable option because there is no offscreen option.
 //
-// Two things follow. First, that guarantee is bounded by the option count: the
-// menu draws its full height and would run off the window before it ran out of
-// focus tags, so an options list long enough to need virtualising must move to
-// components/list's LayoutSelectable rather than grow per-row tags. Second,
-// Tab-per-option is not the menu behaviour a listbox implies — arrow keys
-// should move a highlight within the open menu and Escape should close it.
-// That is a real gap, and it is a menu-semantics gap rather than a
-// virtualisation one.
+// That guarantee is bounded by the option count, and [MenuProps.MaxHeight] is
+// where the bound is answered: an uncapped menu draws its full height and runs
+// off the window long before it runs out of focus tags, so a catalogue that
+// long is drawn where nothing can reach it either. A capped menu is a
+// components/list viewport, which reaches rows a different way — one focus tag
+// for the whole list, arrow keys and Home/End moving the selection over every
+// option including the ones no frame laid out, and the viewport following the
+// row that moved. Per-row tags then cover what is on screen, and the list's
+// own tag covers the rest.
 func Menu(th rx.Observable[theme.Theme], props MenuProps) rx.Observable[layout.Widget] {
 	resolved := menuTokens(th)
 
 	return rx.Defer(func() rx.Observable[layout.Widget] {
 		optClicks := make([]widget.Clickable, len(props.Options))
 		selected := props.Selected
+		// The viewport a capped menu scrolls in. It is seeded with the
+		// selection so that the first frame of a long menu shows the row the
+		// picker is holding rather than the top of the catalogue.
+		rows := list.NewState()
+		rows.Select(selected)
+		rows.Reveal(selected)
 
 		return rx.Map(resolved, func(tok resolvedTokens) layout.Widget {
 			shaper := props.Shaper
@@ -113,21 +153,50 @@ func Menu(th rx.Observable[theme.Theme], props MenuProps) rx.Observable[layout.W
 				for i := range optClicks {
 					for optClicks[i].Clicked(gtx) {
 						selected = i
-						if props.OnSelect != nil {
-							props.OnSelect(gtx, i)
-						}
-						if props.Message != nil {
-							mvu.MessageOp{Message: props.Message}.Add(gtx.Ops)
-						}
+						dispatch(gtx, props.OnSelect, props.Message, i)
 					}
 				}
-				return layoutMenuLive(gtx, shaper, optClicks, tok, MenuState{
-					Options:  props.Options,
-					Selected: selected,
+				if rows.Selected() != selected {
+					rows.Select(selected)
+					rows.Reveal(selected)
+				}
+				dims := layoutMenuLive(gtx, shaper, optClicks, rows, tok, MenuState{
+					Options:   props.Options,
+					Selected:  selected,
+					Hovered:   hoveredRow(optClicks),
+					MaxHeight: props.MaxHeight,
 				})
+				if moved := rows.Selected(); moved >= 0 && moved != selected {
+					selected = moved
+					dispatch(gtx, props.OnSelect, props.Message, moved)
+				}
+				return dims
 			}
 		})
 	})
+}
+
+// dispatch announces one selection down both integration paths from the one
+// place the selection is noticed, so neither can fire twice for one change.
+func dispatch(gtx layout.Context, onSelect func(layout.Context, int), message any, index int) {
+	if onSelect != nil {
+		onSelect(gtx, index)
+	}
+	if message != nil {
+		mvu.MessageOp{Message: message}.Add(gtx.Ops)
+	}
+}
+
+// hoveredRow reports which row the pointer is over in [MenuState.Hovered]'s
+// counting: the first hovered clickable plus one, or zero for none. Rows abut
+// without overlapping, so at most one can answer.
+func hoveredRow(optClicks []widget.Clickable) int {
+	for i := range optClicks {
+		if optClicks[i].Hovered() {
+			return i + 1
+		}
+	}
+	return 0
 }
 
 // RenderMenu produces a layout.Widget for the open surface in an explicit
@@ -188,50 +257,85 @@ func menuTokens(th rx.Observable[theme.Theme]) rx.Observable[resolvedTokens] {
 // floor in both densities — so both clear WCAG 2.5.8 Target Size (Minimum),
 // the 24 dp AA criterion these rows are held to. See tokens.MinHitTarget for
 // why 2.5.5's 44 dp is not that criterion.
-func layoutMenuLive(gtx layout.Context, shaper *text.Shaper, optClicks []widget.Clickable, tok resolvedTokens, s MenuState) layout.Dimensions {
-	if len(s.Options) == 0 {
-		return layout.Dimensions{}
-	}
-	fieldW := gtx.Constraints.Max.X
-	totalH := 0
-	for i := range optClicks {
-		off := op.Offset(image.Pt(0, totalH)).Push(gtx.Ops)
-		optGtx := gtx
-		optGtx.Constraints = layout.Constraints{
-			Min: image.Pt(0, 0),
-			Max: image.Pt(fieldW, gtx.Constraints.Max.Y),
-		}
-		idx := i
-		label := s.Options[idx]
-		optDims := optClicks[idx].Layout(optGtx, func(gtx layout.Context) layout.Dimensions {
+func layoutMenuLive(gtx layout.Context, shaper *text.Shaper, optClicks []widget.Clickable, rows *list.State, tok resolvedTokens, s MenuState) layout.Dimensions {
+	return stackRows(gtx, rows, len(s.Options), s.MaxHeight, func(gtx layout.Context, i int) layout.Dimensions {
+		return optClicks[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			semantic.Button.Add(gtx.Ops)
-			return drawOptionRow(gtx, shaper, tok, idx == s.Selected, label)
+			return drawOptionRow(gtx, shaper, tok, i == s.Selected, i+1 == s.Hovered, s.Options[i])
 		})
-		off.Pop()
-		totalH += optDims.Size.Y
-	}
-	return layout.Dimensions{Size: image.Pt(fieldW, totalH)}
+	})
 }
 
 // drawMenu stacks the option rows for the pure path.
 func drawMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s MenuState) layout.Dimensions {
-	if len(s.Options) == 0 {
+	// A viewport with no frames behind it: a static render of a capped menu
+	// is its resting state, the rows from the top, because a scroll position
+	// is something a menu acquires by being scrolled.
+	return stackRows(gtx, nil, len(s.Options), s.MaxHeight, func(gtx layout.Context, i int) layout.Dimensions {
+		return drawOptionRow(gtx, shaper, tok, i == s.Selected, i+1 == s.Hovered, s.Options[i])
+	})
+}
+
+// stackRows draws n option rows down the box it is handed and reports the
+// plane they fill, which is the whole of what a menu is.
+//
+// Uncapped, the rows are stacked directly — the menu is exactly as tall as its
+// options and every one of them exists in the op tree with its own focus tag,
+// which is the keyboard-reach guarantee [Menu]'s doc makes. Capped, they are
+// laid out in a components/list viewport of that height instead, so the plane
+// is the cap and the rows move under it; rows outside the viewport are not
+// laid out, which is what virtualising means and what the cap trades for
+// reaching a catalogue longer than the window.
+//
+// rows may be nil, and is where there are no frames to keep a position across.
+func stackRows(gtx layout.Context, rows *list.State, n int, maxH unit.Dp, row func(gtx layout.Context, i int) layout.Dimensions) layout.Dimensions {
+	if n == 0 {
+		// An empty menu is not an empty plane, it is nothing at all.
 		return layout.Dimensions{}
 	}
 	fieldW := gtx.Constraints.Max.X
-	totalH := 0
-	for i, opt := range s.Options {
-		off := op.Offset(image.Pt(0, totalH)).Push(gtx.Ops)
-		optGtx := gtx
-		optGtx.Constraints = layout.Constraints{
-			Min: image.Pt(0, 0),
-			Max: image.Pt(fieldW, gtx.Constraints.Max.Y),
+
+	if maxH <= 0 {
+		totalH := 0
+		for i := 0; i < n; i++ {
+			off := op.Offset(image.Pt(0, totalH)).Push(gtx.Ops)
+			rowGtx := gtx
+			rowGtx.Constraints = layout.Constraints{
+				Min: image.Pt(0, 0),
+				Max: image.Pt(fieldW, gtx.Constraints.Max.Y),
+			}
+			rowDims := row(rowGtx, i)
+			off.Pop()
+			totalH += rowDims.Size.Y
 		}
-		optDims := drawOptionRow(optGtx, shaper, tok, i == s.Selected, opt)
-		off.Pop()
-		totalH += optDims.Size.Y
+		return layout.Dimensions{Size: image.Pt(fieldW, totalH)}
 	}
-	return layout.Dimensions{Size: image.Pt(fieldW, totalH)}
+
+	capPx := gtx.Dp(maxH)
+	if capPx < 1 {
+		capPx = 1
+	}
+	if rows == nil {
+		rows = list.NewState()
+	}
+	// The cap is the caller's number and not a share of the box the menu was
+	// offered: a field's menu is drawn outside the trigger's own row and the
+	// height it was handed says nothing about the room the menu has.
+	viewGtx := gtx
+	viewGtx.Constraints = layout.Constraints{
+		Min: image.Pt(fieldW, 0),
+		Max: image.Pt(fieldW, capPx),
+	}
+	// The list's items are the row indices, because what a row draws is a
+	// function of where it sits in the menu and not of its label alone —
+	// two providers may well offer the same model name.
+	idx := make([]int, n)
+	for i := range idx {
+		idx[i] = i
+	}
+	return list.LayoutSelectable(viewGtx, rows, idx, func(gtx layout.Context, i int, _ bool) layout.Dimensions {
+		return row(gtx, i)
+	})
 }
 
 // optionRowColors returns an option row's fill and the ink that reads on it,
@@ -239,36 +343,60 @@ func drawMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Men
 // colours are never picked apart: they are returned as a pair and measured as
 // a pair (TestMenuOptionRowContrast).
 //
-// An unselected row is the menu's own plane. The open menu is a floating
+// THE MENU'S OWN PLANE. A resting row is it. The open menu is a floating
 // transient overlay — an unscrimmed, shadowless plane like patterns/popover —
 // so its rows fill at level 3 on the elevation ladder, the top of the ladder,
 // asked of the palette rather than of a ramp index. The scheme's body text
-// reads on that fill at 9.16:1 light and 8.01:1 dark.
+// reads on that fill at 18.58:1 light and 8.01:1 dark.
 //
-// A selected row is the menu's one inverted plane: the theme's inverse pair, a
-// surface built from the counterpart scheme carrying the ink the theme derives
-// to read on it — 13.71:1 light and 15.16:1 dark, the counterpart scheme's own
-// reading pair.
+// THE SELECTED ROW is the accent, which is the one thing on the menu that is
+// not neutral and the one row that is not a choice but the answer. The fill is
+// the rung of the accent ramp nearest its mid-value step that reaches WCAG
+// 1.4.3's 4.5:1 against the menu's own plane, and the ink is the neutral rung
+// that reaches the same floor against that fill — each side asked of the ramp
+// against the ground it actually meets, neither named. Aiming the fill at the
+// 3:1 non-text floor instead is not enough by half: it answers a mid-tone the
+// neutral ramp cannot carry text on at all, 4.27:1 at its best, which is the
+// same wall a mid-grey highlight runs into. Held at the text floor the pairing
+// measures 6.72:1 selected-against-menu and 4.53:1 ink-on-selected in the
+// light scheme, 4.58 and 4.58 in the dark, and over a ten-seed sweep of both
+// schemes and both contrast variants no pairing falls under 4.56 and 4.50.
 //
-// A neutral state walk on the menu's own ground cannot serve, and that is the
-// constraint the inverse pair exists for. A mid-grey ground is precisely where
-// no neutral ink can reach WCAG 1.4.3's 4.5:1 for text — the whole ramp tops
-// out at 4.27:1 over the light scheme's Neutral 600 — and a walk whose ground
-// flips with the scheme while its ink does not measures 1.75:1 in the dark
-// scheme: light text on a light-grey highlight. The inverse pair keeps the
-// direction that walk had in each scheme — a selected row is darker than the
-// menu in a light scheme and lighter in a dark one — separates from the menu
-// fill by 7.85:1 light and 7.58:1 dark, well past 1.4.11's 3:1 for a non-text
-// indicator, and carries an ink that reads on it in both.
-func optionRowColors(c tokens.ColorTokens, selected bool) (fill, ink color.NRGBA) {
-	if selected {
-		return c.InverseSurface, c.OnInverseSurface
+// A neutral state walk on the menu's own ground cannot serve for either
+// coloured row, and this is where that is settled once. A mid-grey ground is
+// precisely where no neutral ink reaches the text floor, and a walk whose
+// ground flips with the scheme while its ink does not measures 1.75:1 in the
+// dark scheme: light text on a light-grey highlight. The neutral ramp's 900
+// end is the DARK end in one scheme and the light end in the other, so "one
+// step further along the ramp" is not one direction.
+//
+// THE HOVERED ROW is the accent again, a storey quieter: the role's tonal
+// container, its hue held at one measured chroma and one measured depth. It
+// is the same colour family as the selection and nowhere near its weight, so
+// the pointer says "here" without ever being mistaken for the answer — the
+// two are 4.53:1 apart in light and 6.66:1 in dark. Body text reads on it at
+// 12.53:1 and 11.64:1, worst 11.65 over the sweep. The container carries no
+// contrast floor of its own because hover is not a mark: it says nothing the
+// reader cannot already see from where the pointer is, and it is gone the
+// moment the pointer is.
+//
+// Selection wins over hover, the way a press wins over a hover elsewhere in
+// this library: the selected row is already the row the menu is pointing at,
+// and a transient wash has nothing to add to a standing answer.
+func optionRowColors(c tokens.ColorTokens, selected, hovered bool) (fill, ink color.NRGBA) {
+	plane := c.SurfaceAt(tokens.Level3)
+	switch {
+	case selected:
+		f := c.MarkOn(tokens.RolePrimary, plane, tokens.TextFloor)
+		return f, c.MarkOn(tokens.RoleNeutral, f, tokens.TextFloor)
+	case hovered:
+		return c.StatusContainer(tokens.RolePrimary), c.Text
 	}
-	return c.SurfaceAt(tokens.Level3), c.Text
+	return plane, c.Text
 }
 
 // drawOptionRow renders a single option row.
-func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, selected bool, label string) layout.Dimensions {
+func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, selected, hovered bool, label string) layout.Dimensions {
 	// Option rows are list rows — row height = Density.ControlHeight exactly
 	// (components/list's RowHeight rule: 36 dp Comfortable, 28 dp Compact) —
 	// with the same static S3 side padding the field trigger takes.
@@ -278,7 +406,7 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	fieldW := gtx.Constraints.Max.X
 
-	bg, textCol := optionRowColors(tok.color, selected)
+	bg, textCol := optionRowColors(tok.color, selected, hovered)
 	innerW := fieldW - 2*padH
 	if innerW < 1 {
 		innerW = 1

@@ -25,16 +25,17 @@ func hex(c color.NRGBA) string {
 	return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B)
 }
 
-// TestMenuOptionRowContrast measures both option-row pairings in both
+// TestMenuOptionRowContrast measures all three option-row pairings in both
 // schemes and records the numbers in the test log.
 //
-// The selected row is the pairing that was lost. Its highlight flipped with
-// the scheme — a neutral state walk two steps past the menu's own level-3
-// ground — while its ink stayed the scheme's body text, so the light scheme
-// read dark ink on a mid-grey highlight at 4.27:1 and the dark scheme read
-// light ink on a light-grey highlight at 1.75:1: a selected row whose label
-// all but vanished in the dark. A highlight and its ink are one decision, and
-// this is the test that says so.
+// The coloured rows are the pairings that keep being lost, and always the same
+// way: a highlight is picked, and the ink on it is not picked with it. A
+// neutral state walk past the menu's own level-3 ground under the scheme's
+// body text read 4.27:1 in the light scheme — a mid-grey ground is where no
+// neutral ink reaches the text floor at all — and 1.75:1 in the dark, where
+// the walk runs toward the LIGHT end and the ink does not move. Asking each
+// ramp for the rung that clears its own ground is what cannot make that
+// mistake, and this test is the pair being measured as a pair.
 func TestMenuOptionRowContrast(t *testing.T) {
 	for _, sc := range []struct {
 		name   string
@@ -44,8 +45,9 @@ func TestMenuOptionRowContrast(t *testing.T) {
 		{"dark", tokens.DefaultDark},
 	} {
 		t.Run(sc.name, func(t *testing.T) {
-			restFill, restInk := optionRowColors(sc.colors, false)
-			selFill, selInk := optionRowColors(sc.colors, true)
+			restFill, restInk := optionRowColors(sc.colors, false, false)
+			hovFill, hovInk := optionRowColors(sc.colors, false, true)
+			selFill, selInk := optionRowColors(sc.colors, true, false)
 
 			for _, row := range []struct {
 				name string
@@ -53,6 +55,7 @@ func TestMenuOptionRowContrast(t *testing.T) {
 				ink  color.NRGBA
 			}{
 				{"unselected", restFill, restInk},
+				{"hovered", hovFill, hovInk},
 				{"selected", selFill, selInk},
 			} {
 				got := themecolor.ContrastRatio(row.ink, row.fill)
@@ -64,12 +67,29 @@ func TestMenuOptionRowContrast(t *testing.T) {
 
 			// A row that reads is only half of it: the selected row has to
 			// stay the one that looks selected, which is its fill against
-			// the fill every other row paints.
-			sep := themecolor.ContrastRatio(selFill, restFill)
-			t.Logf("selected fill against the menu's own fill %.2f:1", sep)
-			if sep < wcagIndicator {
-				t.Errorf("selected fill against the menu's own fill = %.2f:1, want at least %.1f:1", sep, wcagIndicator)
+			// the fill every other row paints — and against the wash the
+			// pointer leaves, which is the same accent family and must not
+			// be mistakable for the answer.
+			for _, sep := range []struct {
+				name   string
+				ground color.NRGBA
+			}{
+				{"the menu's own fill", restFill},
+				{"a hovered row", hovFill},
+			} {
+				got := themecolor.ContrastRatio(selFill, sep.ground)
+				t.Logf("selected fill against %s %.2f:1", sep.name, got)
+				if got < wcagIndicator {
+					t.Errorf("selected fill against %s = %.2f:1, want at least %.1f:1", sep.name, got, wcagIndicator)
+				}
 			}
+
+			// Hover owes no separation floor of its own: it is not a mark,
+			// it says nothing the pointer does not already say, and it is
+			// gone the moment the pointer is. The number is logged because
+			// a wash nobody can see is still worth knowing about.
+			t.Logf("hovered fill against the menu's own fill %.2f:1 (no floor: hover is not a mark)",
+				themecolor.ContrastRatio(hovFill, restFill))
 		})
 	}
 }
@@ -100,14 +120,16 @@ func TestMenuOptionRowContrastHoldsForEverySeed(t *testing.T) {
 			{"light", light},
 			{"dark", dark},
 		} {
-			restFill, restInk := optionRowColors(sc.colors, false)
-			selFill, selInk := optionRowColors(sc.colors, true)
+			restFill, restInk := optionRowColors(sc.colors, false, false)
+			hovFill, hovInk := optionRowColors(sc.colors, false, true)
+			selFill, selInk := optionRowColors(sc.colors, true, false)
 			for _, row := range []struct {
 				name string
 				fill color.NRGBA
 				ink  color.NRGBA
 			}{
 				{"unselected", restFill, restInk},
+				{"hovered", hovFill, hovInk},
 				{"selected", selFill, selInk},
 			} {
 				got := themecolor.ContrastRatio(row.ink, row.fill)
@@ -119,15 +141,23 @@ func TestMenuOptionRowContrastHoldsForEverySeed(t *testing.T) {
 						hex(seed), sc.name, row.name, got, wcagText)
 				}
 			}
-			sep := themecolor.ContrastRatio(selFill, restFill)
-			if sep < worstSep {
-				worstSep = sep
-			}
-			if sep < wcagIndicator {
-				t.Errorf("seed %s %s: selected fill against the menu's own fill = %.2f:1, want at least %.1f:1",
-					hex(seed), sc.name, sep, wcagIndicator)
+			for _, sep := range []struct {
+				name   string
+				ground color.NRGBA
+			}{
+				{"the menu's own fill", restFill},
+				{"a hovered row", hovFill},
+			} {
+				got := themecolor.ContrastRatio(selFill, sep.ground)
+				if got < worstSep {
+					worstSep = got
+				}
+				if got < wcagIndicator {
+					t.Errorf("seed %s %s: selected fill against %s = %.2f:1, want at least %.1f:1",
+						hex(seed), sc.name, sep.name, got, wcagIndicator)
+				}
 			}
 		}
 	}
-	t.Logf("worst label over its row %.2f:1; worst selected fill against the menu %.2f:1", worstText, worstSep)
+	t.Logf("worst label over its row %.2f:1; worst selected fill against what it stands beside %.2f:1", worstText, worstSep)
 }

@@ -18,6 +18,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/theme/theme"
@@ -555,9 +556,10 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // textFieldColors returns (bg, text, border, placeholder) colors for the
 // given state: the field's own raised fill (controlFill), body text, the
 // resting border the neutral ramp measures against the storey the field
-// stands on (controlBorder) and ADR-007's low-contrast-text step (Neutral
-// 700) for the placeholder. Disabled fades each to DisabledOpacity (D2.3);
-// focus promotes the border to the focus ring.
+// stands on (controlBorder) and the control register's own prompt ink
+// (control.Placeholder) — the same rung components/picker's field trigger
+// draws its prompt in, named once so the two cannot drift. Disabled fades
+// each to DisabledOpacity; focus promotes the border to the focus ring.
 //
 // The fill used to be c.Surface named outright, and on a platform where a
 // text field is textBackgroundColor and always the lightest thing in the
@@ -589,7 +591,7 @@ func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, pla
 	bg = controlFill(c, s.Ground)
 	text = c.Text
 	border = controlBorder(c, s.Ground)
-	placeholder = c.Ramps.Neutral.Step(700) // low-contrast text
+	placeholder = control.Placeholder(c)
 	switch {
 	case s.Disabled:
 		bg = tokens.Disabled(bg)

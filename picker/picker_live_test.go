@@ -7,6 +7,7 @@ import (
 
 	"gioui.org/f32"
 	gioinput "gioui.org/io/input"
+	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -255,5 +256,133 @@ func TestAnchorPinTrailingReportsTheBoxItWasOffered(t *testing.T) {
 	}
 	if pinnedDims.Size.Y != freeDims.Size.Y {
 		t.Errorf("pinning changed the anchor's height, %d px against %d px: a pin is a placement, not a stretch", pinnedDims.Size.Y, freeDims.Size.Y)
+	}
+}
+
+// TestOpenFieldClosesOnAPressLandingElsewhere is half of what a transient
+// overlay owes the window it covers: while the menu stands, the next press
+// anywhere but on the field puts it away. The press below lands well under the
+// last row, where nothing the field drew is.
+func TestOpenFieldClosesOnAPressLandingElsewhere(t *testing.T) {
+	var picked []int
+	w := materialize(t, picker.Field(rx.Of(liveTheme()), picker.FieldProps{
+		Options:  options,
+		Shaper:   defaultShaper(t),
+		OnSelect: func(_ layout.Context, i int) { picked = append(picked, i) },
+	}))
+
+	r := new(gioinput.Router)
+	drive := driver(w, r, image.Pt(200, 400))
+	row := rowHeight(tokens.Comfortable)
+
+	drive()
+	if dims := click(r, drive, f32.Pt(100, float32(row)/2)); dims.Size.Y != row*(1+len(options)) {
+		t.Fatalf("after clicking the trigger the field measured %d px tall, want the open %d px", dims.Size.Y, row*(1+len(options)))
+	}
+	drive() // the absorber registers with the open menu, one frame behind
+
+	dims := click(r, drive, f32.Pt(100, 300))
+	if dims.Size.Y != row {
+		t.Errorf("after a press below the menu the field measured %d px tall, want the closed %d px", dims.Size.Y, row)
+	}
+	if len(picked) != 0 {
+		t.Errorf("a press that dismissed the menu also selected %v; dismissal is not a choice", picked)
+	}
+}
+
+// TestEscapeClosesTheMenuAndGoesNoFurther is the other half, and the half a
+// dialog around the field depends on: Escape with the menu open closes the
+// menu and is CONSUMED, so the dialog that would also have answered it never
+// sees the key. Closed, the field asks for nothing and the same key reaches
+// the dialog untouched.
+//
+// The stand-in dialog below asks the way patterns/modal asks — a key.Filter
+// for Escape, drained after its content has been laid out — so what is
+// measured is the ordering the real one has.
+func TestEscapeClosesTheMenuAndGoesNoFurther(t *testing.T) {
+	field := materialize(t, picker.Field(rx.Of(liveTheme()), picker.FieldProps{
+		Options: options,
+		Shaper:  defaultShaper(t),
+	}))
+	var reachedTheDialog int
+	w := func(gtx layout.Context) layout.Dimensions {
+		dims := field(gtx)
+		for {
+			e, ok := gtx.Event(key.Filter{Name: key.NameEscape})
+			if !ok {
+				break
+			}
+			if ke, ok := e.(key.Event); ok && ke.State == key.Press {
+				reachedTheDialog++
+			}
+		}
+		return dims
+	}
+
+	r := new(gioinput.Router)
+	drive := driver(w, r, image.Pt(200, 400))
+	row := rowHeight(tokens.Comfortable)
+
+	// Closed: the field asks for nothing and Escape is the dialog's.
+	drive()
+	drive()
+	r.Queue(key.Event{Name: key.NameEscape, State: key.Press})
+	drive()
+	if reachedTheDialog != 1 {
+		t.Fatalf("with the menu closed Escape reached the dialog %d times, want 1", reachedTheDialog)
+	}
+
+	// Open: the field asks first and takes it.
+	if dims := click(r, drive, f32.Pt(100, float32(row)/2)); dims.Size.Y != row*(1+len(options)) {
+		t.Fatalf("after clicking the trigger the field measured %d px tall, want the open %d px", dims.Size.Y, row*(1+len(options)))
+	}
+	drive()
+	r.Queue(key.Event{Name: key.NameEscape, State: key.Press})
+	dims := drive()
+	if dims.Size.Y != row {
+		t.Errorf("after Escape the field measured %d px tall, want the closed %d px", dims.Size.Y, row)
+	}
+	if reachedTheDialog != 1 {
+		t.Errorf("Escape reached the dialog %d times, want the 1 it arrived with: an open menu consumes the key", reachedTheDialog)
+	}
+}
+
+// TestCappedMenuOpensOnTheSelectedRow: a cap makes the menu a viewport, and a
+// viewport that opens at the top of a forty-row catalogue hides the answer the
+// field is already holding. The row it opens on is the selected one, which the
+// pointer can then reach — a click at the leading edge of the capped plane
+// picks a row near the selection rather than the first option.
+func TestCappedMenuOpensOnTheSelectedRow(t *testing.T) {
+	long := make([]string, 40)
+	for i := range long {
+		long[i] = "Option " + string(rune('A'+i%26))
+	}
+	var picked []int
+	row := rowHeight(tokens.Comfortable)
+	w := materialize(t, picker.Field(rx.Of(liveTheme()), picker.FieldProps{
+		Options:   long,
+		Selected:  30,
+		MaxHeight: unit.Dp(row * 5),
+		Shaper:    defaultShaper(t),
+		OnSelect:  func(_ layout.Context, i int) { picked = append(picked, i) },
+	}))
+
+	r := new(gioinput.Router)
+	drive := driver(w, r, image.Pt(200, 600))
+
+	drive()
+	dims := click(r, drive, f32.Pt(100, float32(row)/2))
+	if want := row * 6; dims.Size.Y != want {
+		t.Fatalf("the open capped field measured %d px tall, want the trigger plus the cap: %d px", dims.Size.Y, want)
+	}
+
+	// The first row of the viewport, which is the selected row's own band
+	// once the viewport has been scrolled to it.
+	click(r, drive, f32.Pt(100, float32(row)+float32(row)/2))
+	if len(picked) != 1 {
+		t.Fatalf("clicking the first visible row selected %v, want exactly one option", picked)
+	}
+	if picked[0] < 26 {
+		t.Errorf("clicking the first visible row of a menu holding option 30 selected option %d; the viewport opened at the top instead of on the selection", picked[0])
 	}
 }

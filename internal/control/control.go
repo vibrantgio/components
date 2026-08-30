@@ -1,9 +1,9 @@
-// Package control holds the two colours every Vibrant Gio form control
-// derives for the box it paints: the interior it fills and the edge it draws
-// around it. They live here rather than in components/input because
-// components/picker's field trigger is the same box under a different package
-// — one control register, one derivation, and no second answer to keep in
-// step.
+// Package control holds the colours every Vibrant Gio form control derives
+// for the box it paints: the interior it fills, the edge it draws around it,
+// and the ink of the prompt it shows where a value is not there yet. They
+// live here rather than in components/input because components/picker's field
+// trigger is the same box under a different package — one control register,
+// one derivation, and no second answer to keep in step.
 package control
 
 import (
@@ -82,4 +82,20 @@ func Border(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
 // package's elevation header.
 func Fill(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
 	return c.SurfaceAt(ground.Raised())
+}
+
+// Placeholder is the ink of a control's prompt: the wording a text field or a
+// picker's field trigger draws in the space its value will occupy, while
+// there is no value there yet.
+//
+// It is the neutral ramp's low-contrast-text rung, the one step the ramp
+// carries for words the reader is allowed to skip. The prompt has two things
+// to do at once and they pull against each other — it has to be readable,
+// because it says what the control is for, and it has to be visibly NOT a
+// value, or an empty field reads as a filled one. A rung is what settles
+// that: it is the same distance from the ink beside it in both schemes,
+// where an alpha over the fill would fade with whatever storey the control
+// was put on.
+func Placeholder(c tokens.ColorTokens) color.NRGBA {
+	return c.Ramps.Neutral.Step(700)
 }

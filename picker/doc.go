@@ -10,8 +10,9 @@
 //	[Anchor]  the CHROME register — the platform's pop-up control, at the
 //	          button's rounded-rect corner with the paired up/down chevrons,
 //	          for a toolbar, a header row or any other furniture
-//	[Menu]    the surface both of them stand under: the level-3 rows and the
-//	          inverse-pair selection
+//	[Menu]    the surface both of them stand under: the level-3 rows, the
+//	          accent selection and the accent's quieter wash under the
+//	          pointer
 //
 // Each has a live path and a pure one, the contract every component in this
 // library keeps: an rx.Observable[theme.Theme] and a props struct in, an
@@ -41,8 +42,15 @@
 //
 // Either way the surface is the same one: a floating, unscrimmed, shadowless
 // transient plane whose rows fill at level 3 on the elevation ladder and whose
-// selected row is the theme's inverse pair. [Menu]'s optionRowColors carries
-// the measurements.
+// coloured rows are the accent — the selection at the weight text is held to
+// against the plane, the pointer's wash at the accent's own container depth.
+// [Menu]'s optionRowColors carries the measurements.
+//
+// Who draws the plane's EDGE depends on who placed the plane. [Field] draws it
+// around the menu it stacks, because inline there is nobody else to; a [Menu]
+// handed to patterns/popover is circled by that pattern's surface and draws
+// none of its own, which is the only arrangement in which the plane wears one
+// line.
 //
 // # The chrome register's trigger
 //
