@@ -146,11 +146,6 @@ const (
 	// punctuation — and punctuation is the one repair not available here, since
 	// a comma in a name is a seam [FitLine] cuts at without marking. Recast as
 	// one noun phrase it needs no seam and reads as one thing.
-	//
-	// It is the one line of the row [SeedCells] takes as a parameter rather
-	// than reading from here, so that rewording a disclosure is a deliberate
-	// change to what a window draws rather than one that arrives with a
-	// version bump.
 	SeedLiftedNameDark = "Lifted seed pinned in the light scheme"
 )
 
@@ -215,20 +210,14 @@ func (c SeedCell) Height() unit.Dp {
 // scheme's pinned base. Where the dial left the pick alone the two are one
 // colour and the row draws one cell that says both things about it; where it
 // did not, they are two cells and the pick is the one drawn smaller.
-//
-// liftedDark is the name over the realized colour in a dark scheme. The
-// story's own is [SeedLiftedNameDark]; it is a parameter because that line is
-// a disclosure a window may already be drawing in different words, and one
-// wording silently replacing another is a change to what is on screen rather
-// than to how it gets there.
-func SeedCells(seed, grown stdcolor.NRGBA, dark bool, liftedDark string) []SeedCell {
+func SeedCells(seed, grown stdcolor.NRGBA, dark bool) []SeedCell {
 	if grown == seed {
 		return []SeedCell{{Col: grown, Name: SeedName,
 			Rule: seedScheme(SeedKeptRule, SeedKeptRuleDark, dark)}}
 	}
 	return []SeedCell{
 		{Col: seed, Name: SeedName, Rule: SeedPickRule, HandedIn: true},
-		{Col: grown, Name: seedScheme(SeedLiftedName, liftedDark, dark),
+		{Col: grown, Name: seedScheme(SeedLiftedName, SeedLiftedNameDark, dark),
 			Rule: seedScheme(SeedLiftedRule, SeedLiftedRuleDark, dark)},
 	}
 }

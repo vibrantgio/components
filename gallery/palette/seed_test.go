@@ -122,7 +122,7 @@ func TestSeedCellsNameWhatTheyShow(t *testing.T) {
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := SeedCells(tc.seed, tc.grown, tc.dark, SeedLiftedNameDark)
+			got := SeedCells(tc.seed, tc.grown, tc.dark)
 			if len(got) != len(tc.cells) {
 				t.Fatalf("the row draws %d cells, want %d", len(got), len(tc.cells))
 			}
@@ -151,7 +151,7 @@ func TestSeedCellsNameWhatTheyShow(t *testing.T) {
 	} {
 		lifted := tc.pair[0].Primary
 		said := false
-		for _, cell := range SeedCells(tc.seed, lifted, tc.dark, SeedLiftedNameDark) {
+		for _, cell := range SeedCells(tc.seed, lifted, tc.dark) {
 			if cell.Rule == SeedPickRule && cell.Col != tc.seed {
 				t.Errorf("a cell showing %s is captioned %q, and the colour picked is %s",
 					SeedHex(cell.Col), cell.Rule, SeedHex(tc.seed))
@@ -176,11 +176,11 @@ func TestSeedCellsNameWhatTheyShow(t *testing.T) {
 func TestSeedCaptionSizesItselfToWhatIsDrawn(t *testing.T) {
 	moved := tokens.DefaultSeed
 	light, _ := tokens.FromSeed(moved)
-	pair := SeedHint(SeedCells(moved, light.Primary, false, SeedLiftedNameDark))
+	pair := SeedHint(SeedCells(moved, light.Primary, false))
 	if !strings.HasPrefix(pair, SeedHintPair) {
 		t.Errorf("the two-cell caption is %q, want it to lead with the legend for the sizes", pair)
 	}
-	one := SeedHint(SeedCells(moved, moved, false, SeedLiftedNameDark))
+	one := SeedHint(SeedCells(moved, moved, false))
 	if strings.Contains(one, SeedHintPair) {
 		t.Errorf("the one-cell caption is %q, want no legend for a size distinction it does not draw", one)
 	}
