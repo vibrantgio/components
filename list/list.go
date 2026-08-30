@@ -56,8 +56,8 @@ import (
 )
 
 // RowHeight returns the standard list row height for a density: exactly
-// ControlHeight — 36 dp at tokens.Comfortable, 28 dp at tokens.Compact (E1.3;
-// the same rule sizes dropdown option rows). Rows are drawn by the caller's
+// ControlHeight — 36 dp at tokens.Comfortable, 28 dp at tokens.Compact; the
+// same rule sizes dropdown option rows. Rows are drawn by the caller's
 // rowFn, so this is the height rowFn should give a standard single-line row;
 // the list itself imposes no height. Adjacent full-width rows are their own
 // pointer targets, so a row-builder wiring interaction should keep the row's
@@ -79,7 +79,7 @@ type State struct {
 	// while ScrollDistance remains reachable via promotion.
 	sb scrollbar.State
 
-	// focus is the list's single keyboard focus target (F4.7). One tag for
+	// focus is the list's single keyboard focus target. One tag for
 	// the whole list, never one per row: a row that virtualisation skipped
 	// has no tag, so per-row tags can only ever reach what is on screen.
 	focus focusTag

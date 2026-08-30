@@ -26,7 +26,7 @@ const (
 	// rows and 23 px of a fifth. It is deliberately *not* a multiple of rowPx,
 	// because an exact multiple is the one shape in which no row is ever
 	// clipped — and therefore the one shape in which a window test that counts
-	// the clipped trailing row cannot be caught being wrong (F5.2). Real rows
+	// the clipped trailing row cannot be caught being wrong. Real rows
 	// are 36 dp scaled by the display's DPI and essentially never divide the
 	// viewport, so the partial row is the normal case, not the exotic one.
 	viewHPartial = 143
@@ -81,7 +81,7 @@ func TestListGolden(t *testing.T) {
 }
 
 // TestListDensityRowGolden records or diffs a list whose rows are the
-// standard density-derived height, list.RowHeight (E1.3: row = ControlHeight;
+// standard density-derived height, list.RowHeight (row = ControlHeight;
 // 36 px Comfortable, 28 px Compact at 1:1 scale). The 150 px viewport shows
 // the divergence directly: just over four comfortable rows against just over
 // five compact ones.

@@ -19,16 +19,16 @@ import (
 
 // viewportHeights is the set of viewport heights every scrolling test here runs
 // at. Only the first is a whole number of rows; the others leave a partial row
-// at the trailing edge, which is where F5.2's off-by-one lived — the window
-// test counted that clipped row as visible, so a selection could land on it and
-// the next arrow press then moved the viewport two rows. An exact multiple is
-// the one shape in which no row is ever clipped, and so the one shape that
-// cannot catch it.
+// at the trailing edge, which is the case the window test must get right: it
+// must not count a clipped trailing row as visible, or a selection could land
+// on it and the next arrow press then move the viewport two rows. An exact
+// multiple is the one shape in which no row is ever clipped, and so the one
+// shape that cannot catch that miscount.
 var viewportHeights = []struct {
 	name string
 	h    int
 }{
-	{"exact-5-rows", viewH},             // 150 px: the shape the defect hid in
+	{"exact-5-rows", viewH},             // 150 px: no row is ever clipped here
 	{"4-rows-plus-17px", 137},           // 137 px
 	{"4-rows-plus-23px", viewHPartial},  // 143 px: the permanent fixture height
 	{"5-rows-plus-5px", 155},            // 155 px: barely a sixth row
@@ -115,8 +115,9 @@ func (s *selectableList) sawRow(i int) bool {
 //
 // Pixels are the only honest answer to "what does the viewport actually show".
 // The laid-out set cannot say it: a row clipped by the viewport edge is laid out
-// exactly like one that fits — that is precisely how F5.2's defect passed its
-// own tests — and the *order* of that set is not the scroll position either,
+// exactly like one that fits, so the laid-out set alone cannot distinguish a
+// clipped row from a whole one — and the *order* of that set is not the scroll
+// position either,
 // since Gio lays out its look-ahead children forwards or backwards depending on
 // where the previous frame left Position.
 //
@@ -301,8 +302,8 @@ func TestSelectionScrollsIntoViewOneRowAtATime(t *testing.T) {
 	}
 }
 
-// TestRevealLandsRowFullyInView states the contract F5.2 repairs in one line:
-// whatever the viewport height, the row Reveal names is drawn whole afterwards.
+// TestRevealLandsRowFullyInView states the contract in one line: whatever the
+// viewport height, the row Reveal names is drawn whole afterwards.
 //
 // The targets walk deliberately through the awkward ones — the clipped row at
 // the trailing edge of the first window, the row just past it, a row far below,

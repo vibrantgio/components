@@ -250,7 +250,7 @@ func menuTokens(th rx.Observable[theme.Theme]) rx.Observable[resolvedTokens] {
 
 // layoutMenuLive stacks the option rows with their Clickable hit areas.
 //
-// The rows are NOT extended to the density's minimum pointer target: they
+// The rows are not extended to the density's minimum pointer target: they
 // stack directly against each other, so a ≥44 dp slop per row would overlap
 // the neighbouring rows' targets. They rely on their full-row width instead.
 // What they measure, at 1:1, is 40 dp Comfortable and 36 dp Compact —

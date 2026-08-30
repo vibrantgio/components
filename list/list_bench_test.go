@@ -16,9 +16,7 @@ import (
 // BenchmarkListLayout demonstrates O(visible) layout cost: ns/op stays roughly
 // constant as total item count grows from 10 to 10000, because only the
 // viewport-visible rows (~5 at viewH=150px, rowPx=30px) are ever laid out.
-// Each sub-case plugs into the shared bench.BenchFrame harness; the
-// BASELINE.md (in github.com/vibrantgio/workbench)
-// "Phase 1 component baseline" row is taken from the N=1000 sub-case.
+// Each sub-case plugs into the shared bench.BenchFrame harness.
 func BenchmarkListLayout(b *testing.B) {
 	for _, n := range []int{10, 100, 1000, 10000} {
 		items := makeItems(n)
@@ -43,15 +41,14 @@ func BenchmarkListLayout(b *testing.B) {
 //	BenchmarkLayoutScrollbar/Occupy-8   1379 ns/op   0 B/op   0 allocs/op
 //	BenchmarkLayoutScrollbar/Overlay-8  1390 ns/op   0 B/op   0 allocs/op
 //
-// FINDING: the delta over plain Layout is ~+107% (665 → ~1385 ns/op), well
-// past the ~10% threshold, so a CPU profile was taken before considering any
-// optimisation. It shows the entire gap is scrollbar.Style.Layout drawing the
-// bar itself (~31% of samples, dominated by clip.Path.CubeTo / op.Offset
-// building the rounded-corner thumb path in Gio) — a constant ~0.7 µs per
-// frame that is independent of item count and adds zero allocations. The
-// per-row list path is untouched (colorRowFn + List.layout costs match the
-// baseline), so this is the inherent O(1) price of rendering the bar, not a
-// regression in the virtual-list machinery; nothing to optimise in Components.
+// Finding: the delta over plain Layout is ~+107% (665 → ~1385 ns/op). A CPU
+// profile attributes the entire gap to scrollbar.Style.Layout drawing the bar
+// itself (~31% of samples, dominated by clip.Path.CubeTo / op.Offset building
+// the rounded-corner thumb path in Gio) — a constant ~0.7 µs per frame that is
+// independent of item count and adds zero allocations. The per-row list path
+// is untouched (colorRowFn + List.layout costs match the baseline), so this is
+// the inherent O(1) price of rendering the bar, not a regression in the
+// virtual-list machinery.
 func BenchmarkLayoutScrollbar(b *testing.B) {
 	items := makeItems(10000)
 	for _, tc := range []struct {
