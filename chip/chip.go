@@ -214,6 +214,63 @@ func Ink(c tokens.ColorTokens, fill color.NRGBA, floor float64) color.NRGBA {
 	return c.MarkOn(tokens.RoleNeutral, fill, floor)
 }
 
+// Pin is the edge of the box a chip is offered that its pill is pinned to.
+//
+// It is a placement, not a stretch: the pill stays sized to its content —
+// see the package doc — and what changes is where in the offered box it is
+// drawn and how much of that box the widget reports having used. Only the
+// horizontal axis is pinned, because the vertical one is already settled by
+// whatever row the chip stands in.
+//
+// The seam exists because a chip alone can be placed by its container and a
+// chip handed to a pattern cannot. patterns/popover measures its anchor and
+// centres it in the canvas it was given, so a container that reserves a cap
+// for the anchor and wants the pill on the cap's trailing edge — a picker
+// standing over the content column it belongs to — has nothing to say. With
+// a pin it says it once, to the chip, where the drawn width is known.
+type Pin uint8
+
+const (
+	// PinNone is the zero value and the chip's own habit: the widget reports
+	// the pill it drew and no more, so a row of chips is laid out at the
+	// pills' own scale and the box around them is the container's business.
+	PinNone Pin = iota
+
+	// PinLeading draws the pill at the leading edge of the offered box.
+	PinLeading
+
+	// PinTrailing draws the pill at the trailing edge of the offered box.
+	PinTrailing
+)
+
+// layout draws w at p's edge of the box the chip was offered — the horizontal
+// half of gtx.Constraints.Max — and reports that box rather than w's own size,
+// which is what lets a caller upstream of the chip find the pinned edge where
+// it asked for it. PinNone lays w out untouched, so a chip that pins nothing
+// pays nothing.
+//
+// The whole widget is offset, slop and all, so the pointer target stays
+// centred on the pill it was extended around.
+func (p Pin) layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
+	if p == PinNone {
+		return w(gtx)
+	}
+	macro := op.Record(gtx.Ops)
+	dims := w(gtx)
+	call := macro.Stop()
+
+	box := dims.Size
+	box.X = max(box.X, gtx.Constraints.Max.X)
+	off := 0
+	if p == PinTrailing {
+		off = box.X - dims.Size.X
+	}
+	o := op.Offset(image.Pt(off, 0)).Push(gtx.Ops)
+	call.Add(gtx.Ops)
+	o.Pop()
+	return layout.Dimensions{Size: box, Baseline: dims.Baseline}
+}
+
 // Props configures a [Chip] instance: what the pill says, what it stands on,
 // and how an activation is delivered.
 //
@@ -241,6 +298,13 @@ type Props struct {
 	// pair. A dialog at tokens.Level2 passes Level2. The zero value is
 	// tokens.Level0, the window ground. See [RenderState.Ground].
 	Ground tokens.ElevationLevel
+
+	// Pin is the edge of the offered box the pill is drawn at. The zero value
+	// is [PinNone] and the chip reports the pill alone, which is every chip
+	// laid out by its own container. Set it where the box is a cap the caller
+	// sized and something between the caller and the chip does the placing —
+	// see [Pin].
+	Pin Pin
 
 	// Clickable, if non-nil, is used instead of an internally-allocated one.
 	// The caller then owns &Clickable as the chip's focus tag — usable with
@@ -294,7 +358,9 @@ type resolvedTokens struct {
 // components/button extends its own: the chip draws at the density's control
 // height and what the pointer may land on does not shrink with it. The widget
 // still reports the pill's size, so a row of chips is laid out at the pill's
-// scale and the slop overhangs the air around it.
+// scale and the slop overhangs the air around it — unless [Props.Pin] asks
+// for the box instead, in which case the slop travels with the pill it was
+// centred on.
 //
 // Keyboard activation is gioui.org/widget.Clickable's: the chip is focusable,
 // Space and Enter activate it, and gtx.Focused drives [RenderState.Focused] —
@@ -366,15 +432,17 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 					Focused: gtx.Focused(click),
 				}
 
-				return hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), click.Layout,
-					func(gtx layout.Context) layout.Dimensions {
-						semantic.ClassOp(semantic.Button).Add(gtx.Ops)
-						semantic.LabelOp(props.Label).Add(gtx.Ops)
-						semantic.DescriptionOp(desc).Add(gtx.Ops)
-						semantic.EnabledOp(true).Add(gtx.Ops)
-						return draw(gtx, shaper, props.Label, props.Icon, tok.color,
-							tok.spacing, tok.radius, tok.label, tok.density, s, true)
-					})
+				return props.Pin.layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					return hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), click.Layout,
+						func(gtx layout.Context) layout.Dimensions {
+							semantic.ClassOp(semantic.Button).Add(gtx.Ops)
+							semantic.LabelOp(props.Label).Add(gtx.Ops)
+							semantic.DescriptionOp(desc).Add(gtx.Ops)
+							semantic.EnabledOp(true).Add(gtx.Ops)
+							return draw(gtx, shaper, props.Label, props.Icon, tok.color,
+								tok.spacing, tok.radius, tok.label, tok.density, s, true)
+						})
+				})
 			}
 		})
 	})

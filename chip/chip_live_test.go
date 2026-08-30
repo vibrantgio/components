@@ -216,3 +216,82 @@ func TestFocusedChipMeasuresTheSameBox(t *testing.T) {
 			focused.Size, atRest.Size)
 	}
 }
+
+// TestPinnedChipDrawsAtTheEdgeOfTheBox is the pinning seam: the chip is the
+// same pill at the same width, drawn at the edge of the box it was offered,
+// and the widget reports that box so whatever laid it out finds the pinned
+// edge where it asked for one.
+//
+// Where the pill landed is measured with the pointer rather than with pixels,
+// because the pointer is the one thing that cannot be fooled by a stray
+// offset: the target is centred on the drawn pill, so a press two pixels in
+// from the box's trailing edge reaches a trailing-pinned chip and a press two
+// pixels in from its leading edge falls in the slack and reaches nothing. A
+// chip that reported the box but drew at the origin would pass a dimension
+// check and fail both of these.
+func TestPinnedChipDrawsAtTheEdgeOfTheBox(t *testing.T) {
+	const label = "OpenAI · gpt-5.5"
+	box := image.Pt(300, 120)
+
+	// The pill's own width, which the pin must not change.
+	pill := driver(live(t, chip.Props{Label: label, Icon: chevron}), new(gioinput.Router), box)()
+	if pill.Size.X >= box.X {
+		t.Fatalf("the unpinned chip measured %d px in a %d px box; there is no slack to pin across",
+			pill.Size.X, box.X)
+	}
+
+	for _, tc := range []struct {
+		name   string
+		pin    chip.Pin
+		hits   int // an x that must reach the pill
+		misses int // an x that must fall in the slack
+	}{
+		{"trailing", chip.PinTrailing, box.X - 2, 2},
+		{"leading", chip.PinLeading, 2, box.X - 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var clicked int
+			w := live(t, chip.Props{
+				Label:   label,
+				Icon:    chevron,
+				Pin:     tc.pin,
+				OnClick: func(_ layout.Context) { clicked++ },
+			})
+			r := new(gioinput.Router)
+			drive := driver(w, r, box)
+
+			dims := drive()
+			if dims.Size.X != box.X {
+				t.Fatalf("a pinned chip measured %d px wide, want the %d px box it was offered",
+					dims.Size.X, box.X)
+			}
+			if dims.Size.Y != pill.Size.Y {
+				t.Errorf("a pinned chip measured %d px tall and the pill is %d: pinning is horizontal only",
+					dims.Size.Y, pill.Size.Y)
+			}
+
+			press(r, tc.misses, pill.Size.Y/2)
+			drive()
+			if clicked != 0 {
+				t.Errorf("a press %d px in from the box's other edge activated the chip: the pill is not pinned %s",
+					tc.misses, tc.name)
+			}
+
+			press(r, tc.hits, pill.Size.Y/2)
+			drive()
+			if clicked != 1 {
+				t.Errorf("a press %d px in from the %s edge reached the chip %d times, want once",
+					tc.hits, tc.name, clicked)
+			}
+		})
+	}
+}
+
+// press queues a click at one point.
+func press(r *gioinput.Router, x, y int) {
+	pos := f32.Pt(float32(x), float32(y))
+	r.Queue(
+		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+	)
+}

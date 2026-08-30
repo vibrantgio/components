@@ -213,6 +213,30 @@
 // constraints it is handed, so a chip in a box narrower than its label is
 // truncated by the box rather than overflowing it.
 //
+// # Pinning the pill to an edge
+//
+// A box wider than the pill therefore has slack in it, and by default the
+// pill sits at the box's leading edge with the slack behind it and the widget
+// reports the pill alone. [Props.Pin] moves the pill to a named edge of that
+// box and reports the box — [PinLeading] or [PinTrailing], the horizontal axis
+// only. It is a placement, not a stretch: the drawn pill is the same pill at
+// the same width, and a chip that pins nothing is unchanged.
+//
+// Say it only where the box is a cap the caller sized. A chip laid out Rigid
+// in a flex is offered the whole row, and a pin would have it report the whole
+// row; the container that reserved a cap for it is the one with something to
+// pin to.
+//
+// The seam is for the case where the container cannot do the placing itself.
+// A chip its container lays out needs nothing here — the container knows both
+// boxes and offsets the widget. A chip handed to a pattern does: patterns/
+// popover measures its anchor and centres it in the canvas it was given, so
+// the reserved cap and the pill part company by half the slack, and the only
+// place the two widths are both known is inside the chip. A model picker in
+// a window's chrome row is that case — a cap at the trailing edge of the row,
+// whose pill has to land on the content column's own edge rather than a few
+// pixels inboard of it.
+//
 // # The pointer target
 //
 // The drawn pill is the density's control height and a standalone control owes
