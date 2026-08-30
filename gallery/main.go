@@ -394,15 +394,19 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 				g.page = i
 			}
 			active := g.page == i
-			bg := c.Background
 			fg := c.Text
 			if active {
-				bg = c.Primary
 				fg = c.OnPrimary
 			}
 			return g.nav[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				sz := image.Pt(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(40)))
-				paint.FillShape(gtx.Ops, bg, clip.Rect{Max: sz}.Op())
+				// Only the selected entry carries a fill of its own. An
+				// unselected one used to paint the window's background over
+				// the rail, which made the rail's ground stop at the last
+				// entry and left the rest of the column a different shade.
+				if active {
+					paint.FillShape(gtx.Ops, c.Primary, clip.Rect{Max: sz}.Op())
+				}
 				return complayout.InsetXY(16, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return g.label(gtx, name, fg, unit.Sp(14), font.Font{})
 				})
