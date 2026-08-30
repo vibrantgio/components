@@ -24,13 +24,14 @@ import (
 // because the vertical one is already settled by whatever row the anchor
 // stands in.
 //
-// Say it only where the box is a cap the caller sized and something between
-// the caller and the anchor does the placing. An anchor its container lays out
-// needs nothing here — the container knows both boxes and offsets the widget.
-// An anchor handed to patterns/popover does: the popover measures its anchor
-// and centres it in the canvas it was given, so the reserved cap and the drawn
-// control part company by half the slack, and the only place both widths are
-// known is inside the anchor.
+// Say it only where the box is a cap the caller sized and what stands between
+// the caller and the anchor centres whatever it is given: the reserved cap and
+// the drawn control then part company by half the slack, and the only place
+// both widths are known is inside the anchor.
+//
+// A pinned anchor reports the cap, not the control, so anything upstream that
+// needs the DRAWN rect — a surface aiming a tail at this control — loses it.
+// An anchor its container lays out or aligns needs nothing here.
 type Pin uint8
 
 const (

@@ -329,11 +329,15 @@ func Ink(c tokens.ColorTokens, fill color.NRGBA, floor float64) color.NRGBA {
 // stands in.
 //
 // The seam exists because a widget alone can be placed by its container and
-// one handed to a pattern cannot. patterns/popover measures its anchor and
-// centres it in the canvas it was given, so a container that reserves a cap
-// for the anchor and wants the shape on the cap's trailing edge — a picker
-// standing over the content column it belongs to — has nothing to say. With
-// a pin it says it once, where the drawn width is known.
+// one handed on to a container that centres whatever it is given cannot: the
+// reserved cap and the drawn shape then part company by half the slack, and
+// the only place both widths are known is inside the widget. A pin says it
+// there, once.
+//
+// It costs the container the drawn rect, which is the whole box as far as it
+// can tell, so say it only where nothing upstream needs that rect. A
+// container that aligns what it is given needs no pin at all, and a pinned
+// widget would leave it aiming at a box nothing was drawn in.
 type Pin uint8
 
 const (

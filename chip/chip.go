@@ -113,11 +113,14 @@ func Ink(c tokens.ColorTokens, fill color.NRGBA, floor float64) color.NRGBA {
 // whatever row the chip stands in.
 //
 // The seam exists because a chip alone can be placed by its container and a
-// chip handed to a pattern cannot. patterns/popover measures its anchor and
-// centres it in the canvas it was given, so a container that reserves a cap
-// for the anchor and wants the pill on the cap's trailing edge — a picker
-// standing over the content column it belongs to — has nothing to say. With
-// a pin it says it once, to the chip, where the drawn width is known.
+// chip handed on to a container that centres whatever it is given cannot: the
+// reserved cap and the drawn pill then part company by half the slack, and
+// the only place both widths are known is inside the chip. A pin says it
+// there, once.
+//
+// It costs the container the drawn rect, which is the whole box as far as it
+// can tell, so say it only where nothing upstream needs that rect. A
+// container that aligns what it is given needs no pin at all.
 type Pin uint8
 
 const (
