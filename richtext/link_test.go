@@ -18,11 +18,11 @@ import (
 // three pastels stated at a dark scheme's tone, and four hundred random
 // colours from a fixed source.
 //
-// The three pastels are the shape that produced the defect this file gates.
-// A palette published for a dark scheme states its accents high on the tonal
-// axis, and a brand seeded with one of them derives a light scheme whose
-// primary pin sits a whisper off the paper — which is exactly what a link
-// coloured with the bare pin used to be.
+// The three pastels are stated at a dark scheme's tone: a palette published
+// for a dark scheme states its accents high on the tonal axis, and a brand
+// seeded with one of them derives a light scheme whose primary pin sits a
+// whisper off the paper — the case a link coloured with the bare pin would
+// fail contrast on.
 func linkSweepSeeds() []stdcolor.NRGBA {
 	rng := rand.New(rand.NewSource(20260818))
 	seeds := []stdcolor.NRGBA{
@@ -83,10 +83,10 @@ func TestLinkInkClearsTheTextFloorForEverySeed(t *testing.T) {
 		len(linkSweepSeeds()), worstLight, worstLightAt, worstDark, worstDarkAt)
 }
 
-// TestTheCanonicalSeedsLinkInkIsThePrimaryPin states what this repair costs
-// every stored image in the design system, which is nothing: on the seed
-// every golden is rendered from, the brand's own colour clears the floor and
-// is what the paragraph gets, exactly as before.
+// TestTheCanonicalSeedsLinkInkIsThePrimaryPin asserts that deriving link ink
+// via InkOn costs no stored golden image: on the seed every golden is
+// rendered from, the brand's own colour already clears the floor, so it is
+// what the paragraph gets.
 func TestTheCanonicalSeedsLinkInkIsThePrimaryPin(t *testing.T) {
 	for _, s := range []struct {
 		name string
@@ -103,9 +103,8 @@ func TestTheCanonicalSeedsLinkInkIsThePrimaryPin(t *testing.T) {
 	}
 }
 
-// TestAPastelSeedsLinkInkLeavesThePin is the regression itself, read on the
-// shape that produced it: a light scheme seeded with a dark scheme's accent.
-// Before the gate this paragraph's links were the bare pin at 1.95:1.
+// TestAPastelSeedsLinkInkLeavesThePin covers a light scheme seeded with a
+// dark scheme's accent, where the bare primary pin fails the text floor.
 func TestAPastelSeedsLinkInkLeavesThePin(t *testing.T) {
 	seed := stdcolor.NRGBA{0x89, 0xb4, 0xfa, 0xff}
 	light, dark := tokens.FromSeed(seed)

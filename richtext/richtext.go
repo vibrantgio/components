@@ -1,9 +1,7 @@
 // Package richtext provides the Components inline styled-text primitive: a span
-// model with wrapped paragraph layout and interactive link spans. The
-// layering decision that put it here — the inline primitive in the
-// component library, the goldmark document renderer a module above — is
-// recorded in §Markdown of the design document's first edition,
-// https://github.com/vibrantgio/design/blob/master/DESIGN-v1.md.
+// model with wrapped paragraph layout and interactive link spans. The inline
+// primitive lives in the component library; a goldmark document renderer
+// lives a module above it.
 //
 // # Entry points
 //
@@ -24,11 +22,10 @@
 // same URL form one link. Links render underlined in [Style].LinkColor, show
 // the pointer cursor on hover, and participate in window Tab traversal: each
 // link registers a focus tag, so Gio's default Tab handling moves focus
-// across them, and the focused link draws a visible focus ring
-// (per DESIGN-v1.md §Accessibility). Space or Enter on a focused link fires
-// OnLinkClick, which carries the frame's layout.Context per GX.8 so
-// consumers can emit mvu.MessageOp{Message: ...}.Add(gtx.Ops) inside the
-// callback. Inline links are text-sized: the 44 dp hit-target rule does not
+// across them, and the focused link draws a visible focus ring. Space or
+// Enter on a focused link fires OnLinkClick, which carries the frame's live
+// layout.Context so consumers can emit mvu.MessageOp{Message: ...}.Add(gtx.Ops)
+// inside the callback. Inline links are text-sized: the 44 dp hit-target rule does not
 // apply to inline text links (WCAG 2.5.5 inline exception).
 //
 // # Zero dependencies
@@ -113,10 +110,10 @@ type Chip struct {
 	// library draws. A zero alpha draws none, which is what a fill that
 	// stands off its page on its own needs.
 	//
-	// It is here because a fill does not always stand off its page. Since
-	// ADR-022 the elevation ladder climbs toward the light in both schemes,
-	// and a light scheme has almost no room above its paper to climb into:
-	// a raised chip there is a whisper — a fraction of a step — and what
+	// It is here because a fill does not always stand off its page. The
+	// elevation ladder climbs toward the light in both schemes, and a light
+	// scheme has almost no room above its paper to climb into: a raised
+	// chip there is a whisper — a fraction of a step — and what
 	// says where it is has to be its edge. A chip carries no shadow and
 	// takes no storey of its own beyond that whisper, so the edge is the
 	// only thing left to say it. The caller decides whether the fill needs
@@ -168,10 +165,9 @@ type Style struct {
 	// ink would overlap, so the metrics stand.
 	LineHeight unit.Sp
 	// OnLinkClick is called when a link is activated by pointer click or by
-	// Space/Enter while focused. The gtx argument is the layout.Context
-	// active on the frame the activation is processed (GX.8), allowing
-	// consumers to emit mvu.MessageOp{Message: ...}.Add(gtx.Ops) inside the
-	// callback.
+	// Space/Enter while focused. The gtx argument is the live layout.Context
+	// active on the frame the activation is processed, allowing consumers to
+	// emit mvu.MessageOp{Message: ...}.Add(gtx.Ops) inside the callback.
 	OnLinkClick func(gtx layout.Context, url string)
 }
 
@@ -184,17 +180,14 @@ type Style struct {
 // paragraph ground the ring is drawn on. Pass
 // tokens.DefaultTypography.BodyLarge for the default desktop look.
 //
-// The link ink used to be the bare Primary pin, and that was the ring's own
-// defect one register up. Primary is the brand colour itself at the brand's
-// own depth, so whether a link read on the page was a property of the seed:
-// the canonical #6750A4 measures 5.94:1 over the light paper and every
-// stored image in this design system shows the question solved, while an
-// accent stated at a dark scheme's tone — the shape a palette published for
-// dark mode hands out, and the shape a person seeds a brand with — put a
-// 1.95:1 link on a near-white page. Asking [tokens.ColorTokens.InkOn] for
-// the ink measures it: the brand's own colour stands wherever it clears
-// WCAG AA, and where it does not the ramp answers a rung of the same hue
-// that does. Nothing moves on the canonical seed.
+// The link ink is derived via [tokens.ColorTokens.InkOn] rather than taken as
+// the bare Primary pin, because Primary is the brand colour at the brand's
+// own depth and whether a link reads on the page would otherwise be a
+// property of the seed: an accent stated at a dark scheme's tone — the shape
+// a palette published for dark mode hands out, and the shape a person seeds
+// a brand with — can put a near-white link on a near-white page. InkOn keeps
+// the brand's own colour wherever it clears WCAG AA, and answers a rung of
+// the same hue where it does not.
 //
 // Of the role's style Size and LineHeight land in [Style]: a paragraph's
 // typeface, weight and slant are per-span properties, carried by each
@@ -207,10 +200,6 @@ type Style struct {
 func FromTokens(c tokens.ColorTokens, body tokens.TextStyle) Style {
 	// The ground a link's ink and its ring are both drawn on is the paper
 	// the paragraph is set on — the ladder's level 0, asked of the palette.
-	// It used to name c.Surface, which is a neutral-ramp alias rather than
-	// a storey (ADR-022); over the whole seed sweep the two answer the same
-	// rung, so this moves no pixel and stops claiming that prose lies on
-	// the ramp's first rung.
 	ground := focus.Ground(c, tokens.Level0)
 	return Style{
 		Color:      c.Text,

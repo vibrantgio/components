@@ -1,8 +1,8 @@
 package richtext
 
 // Paragraph wrapping over Gio's text.Shaper. The algorithm follows the
-// gioui.org/x/styledtext reference (evaluated 2026-07-20, DESIGN-v1.md §Markdown;
-// reference material only, not a dependency): each span is shaped one line at
+// gioui.org/x/styledtext reference (reference material only, not a
+// dependency): each span is shaped one line at
 // a time with MaxLines=1 and a zero-width-space truncator against the width
 // remaining on the current line, so the number of runes that fit can be read
 // back; a span that does not fit entirely is split at that rune count and its

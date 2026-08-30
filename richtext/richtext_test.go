@@ -30,8 +30,7 @@ import (
 // defaultShaper returns the shaper every golden here draws with: the default
 // typography's faces pinned, system fonts off, so the stored images are the
 // same on every machine. A golden test pins its faces with
-// DeterministicShaper; application code takes the fallback Shaper. See
-// AGENTS.md.
+// DeterministicShaper; application code takes the fallback Shaper.
 func defaultShaper(t *testing.T) *text.Shaper {
 	t.Helper()
 	return tokens.DefaultTypography.DeterministicShaper()
@@ -549,7 +548,7 @@ func linkFirstSpans(url string) []richtext.SpanStyle {
 
 // TestLinkClickFiresOnLinkClick drives a pointer press+release over the link
 // segment and expects OnLinkClick to fire with the link's URL and a live
-// layout.Context (GX.8).
+// layout.Context.
 func TestLinkClickFiresOnLinkClick(t *testing.T) {
 	shaper := defaultShaper(t)
 	const url = "https://example.com/docs"
