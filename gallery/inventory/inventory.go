@@ -22,6 +22,7 @@ import (
 	"image/color"
 	"runtime"
 
+	"gioui.org/f32"
 	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -44,6 +45,7 @@ import (
 	"github.com/vibrantgio/markdown/highlight"
 	"github.com/vibrantgio/theme/tokens"
 
+	"github.com/vibrantgio/components/badge"
 	"github.com/vibrantgio/components/button"
 	"github.com/vibrantgio/components/chip"
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
@@ -125,6 +127,10 @@ type Inventory struct {
 	// specimen dismiss itself would leave a hole where the family it
 	// demonstrates used to be.
 	tagDismiss [2]widget.Clickable
+
+	// The dismissible badges' close targets, for the same reason and drained
+	// the same way.
+	badgeDismiss [2]widget.Clickable
 }
 
 // SetTypography names the type roles the reading and code sections draw
@@ -399,6 +405,8 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.pinnedButtonRow(c)},
 		{Name: "components-chip", Title: "Chip — rest, hover, press and focus, on three storeys", Height: chipBlockH,
 			Body: inv.chipBlock(c)},
+		{Name: "components-badge", Title: "Badge — the five variants, the three utterances, and the close mark", Height: badgeBlockH,
+			Body: inv.badgeBlock(c)},
 		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 60,
 			Body: inv.textFieldRow(c)},
 		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 56,
@@ -638,6 +646,138 @@ func storeyPanel(fill color.NRGBA, content layout.Widget) layout.Widget {
 		paint.FillShape(gtx.Ops, fill, clip.Rect{Max: dims.Size}.Op())
 		call.Add(gtx.Ops)
 		return dims
+	}
+}
+
+// The badge section's measurements. A badge carries no padding of its own —
+// it is a run of text — so every number here belongs to the section rather
+// than to the component: what separates two badges, what separates the rows,
+// and how much room the row's caption is given.
+const (
+	badgeRowGap   unit.Dp = 14
+	badgeGap      unit.Dp = 20
+	badgeCaptionW unit.Dp = 108
+)
+
+// The section's own height, derived from the badge rather than chosen: the
+// type role's line box is the whole of a badge's height, and a slot written as
+// a number would have to be re-guessed the day the type scale moved.
+var (
+	badgeLineBox = unit.Dp(badge.Style(tokens.DefaultTypography, tokens.Comfortable).LineHeight)
+	badgeBlockH  = 3*badgeLineBox + 2*badgeRowGap
+)
+
+// badgeCheck is the verdict sign the badge specimens draw, as a vector rather
+// than a font or SVG rasterisation so the stored images hold still. Its ink
+// spans most of the box it is handed and is centred on it, which is what the
+// Glyph contract asks: the badge reserves the box, and a sign that under-fills
+// it reads as a gap in the line.
+func badgeCheck(gtx layout.Context, sizePx int, col color.NRGBA) {
+	w := float32(sizePx)
+	stroke := float32(gtx.Dp(unit.Dp(1.5)))
+	if stroke < 1 {
+		stroke = 1
+	}
+	var p clip.Path
+	p.Begin(gtx.Ops)
+	p.MoveTo(f32.Pt(w*0.16, w*0.52))
+	p.LineTo(f32.Pt(w*0.42, w*0.76))
+	p.LineTo(f32.Pt(w*0.84, w*0.24))
+	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: stroke}.Op())
+}
+
+// badgeBlock shows the vocabulary in one column and the anatomy under it: the
+// five variants as the words they name, then the three utterances a badge can
+// make, then the close mark through the states the pointer puts it in.
+//
+// Three rows and no panels, where the chip above it needs one panel per
+// storey. A badge has no fill, so what it separates from is the page it is
+// written on and there is only one of those to show; what a reader has to be
+// able to judge is whether five hues read as five and whether a word, a count
+// and a sign read at one weight, and both of those are questions about one
+// ground.
+func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
+	style := badge.Style(inv.typography(), tokens.Comfortable)
+	variants := []struct {
+		label string
+		v     badge.Variant
+	}{
+		{"Neutral", badge.Neutral},
+		{"Success", badge.Success},
+		{"Warning", badge.Warning},
+		{"Error", badge.Error},
+		{"Info", badge.Info},
+	}
+	plain := func(label string, glyph badge.Glyph, v badge.Variant) layout.Widget {
+		return badge.Render(inv.shaper, label, glyph, v, c, tokens.Spacing, style,
+			badge.RenderState{})
+	}
+
+	// Each row varies one thing and each row varies a DIFFERENT thing, which
+	// is what makes the two dials readable as two: hue across the first row
+	// at one utterance, utterance across the second at one hue, the close
+	// mark's states across the third at a third hue. Drawing every row in one
+	// variant would leave a reader unable to tell whether the utterances and
+	// the close mark belong to that variant or to the component.
+	//
+	// Exactly three cells stand in the utterance row, because there are
+	// exactly three utterances. A sign set beside a word is a composition of
+	// two of them and would read as a fourth.
+	rows := []struct {
+		caption string
+		cells   []layout.Widget
+	}{
+		{caption: "Variants"},
+		{caption: "Utterances", cells: []layout.Widget{
+			plain("Popular", nil, badge.Success),
+			plain("128", nil, badge.Success),
+			plain("", badgeCheck, badge.Success),
+		}},
+		{caption: "Dismissible", cells: []layout.Widget{
+			// Real targets rather than drawings of a mark: the specimen is
+			// one a pointer can reach. Their clicks are drained and dropped —
+			// an inventory that let a specimen dismiss itself would leave a
+			// hole where the family it demonstrates used to be.
+			badge.RenderDismissible(inv.shaper, "Filtered by owner", nil, badge.Info,
+				&inv.badgeDismiss[0], c, tokens.Spacing, style, badge.RenderState{}),
+			badge.RenderDismissible(inv.shaper, "Hover", nil, badge.Info,
+				&inv.badgeDismiss[1], c, tokens.Spacing, style,
+				badge.RenderState{DismissHovered: true}),
+			badge.RenderDismissible(inv.shaper, "Press", nil, badge.Info,
+				nil, c, tokens.Spacing, style,
+				badge.RenderState{DismissPressed: true}),
+		}},
+	}
+	for _, va := range variants {
+		rows[0].cells = append(rows[0].cells, plain(va.label, nil, va.v))
+	}
+
+	line := func(caption string, cells []layout.Widget) layout.Widget {
+		return func(gtx layout.Context) layout.Dimensions {
+			cs := make([]layout.FlexChild, 0, 2*len(cells)+1)
+			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Min.X = gtx.Dp(badgeCaptionW)
+				gtx.Constraints.Max.X = gtx.Dp(badgeCaptionW)
+				return LabelAt(gtx, inv.shaper, caption, c.Ramps.Neutral.Step(600), 11, font.Font{})
+			}))
+			for i, cell := range cells {
+				if i > 0 {
+					cs = append(cs, layout.Rigid(complayout.HSpacer(float32(badgeGap))))
+				}
+				cs = append(cs, layout.Rigid(cell))
+			}
+			return layout.Flex{Alignment: layout.Middle}.Layout(gtx, cs...)
+		}
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		cs := make([]layout.FlexChild, 0, 2*len(rows))
+		for i, r := range rows {
+			if i > 0 {
+				cs = append(cs, layout.Rigid(complayout.VSpacer(float32(badgeRowGap))))
+			}
+			cs = append(cs, layout.Rigid(line(r.caption, r.cells)))
+		}
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
 	}
 }
 
