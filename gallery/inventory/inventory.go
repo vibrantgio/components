@@ -401,7 +401,7 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.pinnedButtonRow(c)},
 		{Name: "components-chip", Title: "Chip — rest, hover, press and focus, on three storeys", Height: chipBlockH,
 			Body: inv.chipBlock(c)},
-		{Name: "components-badge", Title: "Badge — the five variants, the three utterances, and the close mark", Height: badgeBlockH,
+		{Name: "components-badge", Title: "Badge — the five variants on three storeys, the three utterances, and the close mark", Height: badgeBlockH,
 			Body: inv.badgeBlock(c)},
 		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 60,
 			Body: inv.textFieldRow(c)},
@@ -645,14 +645,17 @@ func storeyPanel(fill color.NRGBA, content layout.Widget) layout.Widget {
 	}
 }
 
-// The badge section's measurements. A badge carries no padding of its own —
-// it is a run of text — so every number here belongs to the section rather
-// than to the component: what separates two badges, what separates the rows,
-// and how much room the row's caption is given.
+// The badge section's measurements. A badge pads its own content but nothing
+// outside itself, so every number here belongs to the section rather than to
+// the component: what separates two badges, what separates the rows, how much
+// room the row's caption is given, and how much air a storey panel holds
+// around the badges standing on it.
 const (
-	badgeRowGap   unit.Dp = 14
-	badgeGap      unit.Dp = 20
-	badgeCaptionW unit.Dp = 108
+	badgeRowGap    unit.Dp = 14
+	badgeGap       unit.Dp = 20
+	badgeCaptionW  unit.Dp = 108
+	badgePanelPadX unit.Dp = 16
+	badgePanelPadY unit.Dp = 10
 )
 
 // The section's own height, derived from the badge rather than chosen: the
@@ -660,8 +663,24 @@ const (
 // a number would have to be re-guessed the day the type scale moved.
 var (
 	badgeLineBox = unit.Dp(badge.Style(tokens.DefaultTypography, tokens.Comfortable).LineHeight)
-	badgeBlockH  = 3*badgeLineBox + 2*badgeRowGap
+	badgePanelH  = badgeLineBox + 2*badgePanelPadY
+	badgeBlockH  = 3*badgePanelH + 2*badgeLineBox + 4*badgeRowGap
 )
+
+// badgeStoreys are the grounds the section shows the vocabulary on, in the
+// order the ladder stacks them. Three rather than one because a badge's fill
+// is derived against the storey it is put on and not against a fixed depth:
+// the ladder walks through the depth a fixed fill would sit at, so a specimen
+// on one ground cannot say whether the fill on another is a field or a
+// coincidence.
+var badgeStoreys = []struct {
+	name   string
+	ground tokens.ElevationLevel
+}{
+	{"On the paper", tokens.Level0},
+	{"On a card", tokens.Level1},
+	{"In a dialog", tokens.Level2},
+}
 
 // badgeCheck is the verdict sign the badge specimens draw, as a vector rather
 // than a font or SVG rasterisation so the stored images hold still. Its ink
@@ -693,12 +712,13 @@ func (inv *Inventory) badgeStyle() tokens.TextStyle {
 // five variants as the words they name, then the three utterances a badge can
 // make, then the close mark through the states the pointer puts it in.
 //
-// Three rows and no panels, where the chip above it needs one panel per
-// storey. A badge has no fill, so what it separates from is the page it is
-// written on and there is only one of those to show; what a reader has to be
-// able to judge is whether five hues read as five and whether a word, a count
-// and a sign read at one weight, and both of those are questions about one
-// ground.
+// The vocabulary is drawn once per storey, exactly as the chip's is, because
+// a badge's fill is derived against the ground it is put on and a specimen on
+// one ground says nothing about the others. The anatomy rows below stand on
+// the page: what they ask a reader to judge — whether a word, a count and a
+// sign read at one weight, and whether the close mark answers the pointer —
+// is the same question on every ground, and asking it three times would bury
+// the one question that is not.
 func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 	style := inv.badgeStyle()
 	variants := []struct {
@@ -712,7 +732,7 @@ func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 		{"Info", badge.Info},
 	}
 	plain := func(label string, glyph badge.Glyph, v badge.Variant) layout.Widget {
-		return badge.Render(inv.shaper, label, glyph, v, c, tokens.Spacing, style,
+		return badge.Render(inv.shaper, label, glyph, v, c, tokens.Spacing, tokens.Radius, style,
 			badge.RenderState{})
 	}
 
@@ -730,7 +750,6 @@ func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 		caption string
 		cells   []layout.Widget
 	}{
-		{caption: "Variants"},
 		{caption: "Utterances", cells: []layout.Widget{
 			plain("Popular", nil, badge.Success),
 			plain("128", nil, badge.Success),
@@ -742,45 +761,73 @@ func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 			// an inventory that let a specimen dismiss itself would leave a
 			// hole where the family it demonstrates used to be.
 			badge.RenderDismissible(inv.shaper, "Filtered by owner", nil, badge.Info,
-				&inv.badgeDismiss[0], c, tokens.Spacing, style, badge.RenderState{}),
+				&inv.badgeDismiss[0], c, tokens.Spacing, tokens.Radius, style, badge.RenderState{}),
 			badge.RenderDismissible(inv.shaper, "Hover", nil, badge.Info,
-				&inv.badgeDismiss[1], c, tokens.Spacing, style,
+				&inv.badgeDismiss[1], c, tokens.Spacing, tokens.Radius, style,
 				badge.RenderState{DismissHovered: true}),
 			badge.RenderDismissible(inv.shaper, "Press", nil, badge.Info,
-				nil, c, tokens.Spacing, style,
+				nil, c, tokens.Spacing, tokens.Radius, style,
 				badge.RenderState{DismissPressed: true}),
 		}},
 	}
-	for _, va := range variants {
-		rows[0].cells = append(rows[0].cells, plain(va.label, nil, va.v))
+	// One panel per storey, the caption standing inside the band rather than
+	// beside it: a label naming a ground while sitting on a different one is a
+	// label about the row and not about the surface.
+	storey := func(st struct {
+		name   string
+		ground tokens.ElevationLevel
+	}) layout.Widget {
+		cells := make([]layout.Widget, 0, len(variants))
+		for _, va := range variants {
+			cells = append(cells, badge.Render(inv.shaper, va.label, nil, va.v, c,
+				tokens.Spacing, tokens.Radius, style, badge.RenderState{Ground: st.ground}))
+		}
+		band := func(gtx layout.Context) layout.Dimensions {
+			return complayout.InsetXY(float32(badgePanelPadX), float32(badgePanelPadY)).Layout(gtx,
+				badgeLine(inv, c, st.name, cells))
+		}
+		return storeyPanel(c.SurfaceAt(st.ground), band)
 	}
 
-	line := func(caption string, cells []layout.Widget) layout.Widget {
-		return func(gtx layout.Context) layout.Dimensions {
-			cs := make([]layout.FlexChild, 0, 2*len(cells)+1)
-			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				gtx.Constraints.Min.X = gtx.Dp(badgeCaptionW)
-				gtx.Constraints.Max.X = gtx.Dp(badgeCaptionW)
-				return LabelAt(gtx, inv.shaper, caption, c.Ramps.Neutral.Step(600), 11, font.Font{})
-			}))
-			for i, cell := range cells {
-				if i > 0 {
-					cs = append(cs, layout.Rigid(complayout.HSpacer(float32(badgeGap))))
-				}
-				cs = append(cs, layout.Rigid(cell))
-			}
-			return layout.Flex{Alignment: layout.Middle}.Layout(gtx, cs...)
-		}
-	}
 	return func(gtx layout.Context) layout.Dimensions {
-		cs := make([]layout.FlexChild, 0, 2*len(rows))
-		for i, r := range rows {
-			if i > 0 {
+		cs := make([]layout.FlexChild, 0, 2*(len(badgeStoreys)+len(rows)))
+		for _, st := range badgeStoreys {
+			if len(cs) > 0 {
 				cs = append(cs, layout.Rigid(complayout.VSpacer(float32(badgeRowGap))))
 			}
-			cs = append(cs, layout.Rigid(line(r.caption, r.cells)))
+			cs = append(cs, layout.Rigid(storey(st)))
+		}
+		for _, r := range rows {
+			line := badgeLine(inv, c, r.caption, r.cells)
+			cs = append(cs, layout.Rigid(complayout.VSpacer(float32(badgeRowGap))))
+			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				// Indented by the panel's own padding so every caption in the
+				// section starts at one x, panel or page.
+				return complayout.InsetXY(float32(badgePanelPadX), 0).Layout(gtx, line)
+			}))
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
+	}
+}
+
+// badgeLine lays a captioned row of specimens out: the caption in a fixed
+// column so every row's badges start at one x, then the cells across the
+// section's own gap.
+func badgeLine(inv *Inventory, c tokens.ColorTokens, caption string, cells []layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		cs := make([]layout.FlexChild, 0, 2*len(cells)+1)
+		cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min.X = gtx.Dp(badgeCaptionW)
+			gtx.Constraints.Max.X = gtx.Dp(badgeCaptionW)
+			return LabelAt(gtx, inv.shaper, caption, c.Ramps.Neutral.Step(600), 11, font.Font{})
+		}))
+		for i, cell := range cells {
+			if i > 0 {
+				cs = append(cs, layout.Rigid(complayout.HSpacer(float32(badgeGap))))
+			}
+			cs = append(cs, layout.Rigid(cell))
+		}
+		return layout.Flex{Alignment: layout.Middle}.Layout(gtx, cs...)
 	}
 }
 

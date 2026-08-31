@@ -196,7 +196,7 @@ func TestOneDoubleClickIsOneDismissal(t *testing.T) {
 func TestTheLiveBadgeDrawsWhatRenderDraws(t *testing.T) {
 	shaper := defaultShaper(t)
 	pure := measure(t, badge.Render(shaper, "Popular", nil, badge.Success,
-		tokens.DefaultLight, tokens.Spacing, badgeStyle(), badge.RenderState{}))
+		tokens.DefaultLight, tokens.Spacing, tokens.Radius, badgeStyle(), badge.RenderState{}))
 
 	w := live(t, badge.Props{Label: "Popular", Variant: badge.Success, Shaper: shaper})
 	got := driver(w, new(gioinput.Router), image.Pt(1000, 1000))()

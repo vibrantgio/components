@@ -213,9 +213,9 @@ func (inv *Inventory) cards(c tokens.ColorTokens) layout.Widget {
 	)
 	return func(gtx layout.Context) layout.Dimensions {
 		one := func(title string, elevated bool) layout.Widget {
-			// The footer badge has no fill, so it is derived against the
-			// card's own storey rather than the page's: a flat card is a
-			// level-1 surface and an elevated one a level-2.
+			// The footer badge's fill is derived against the card's own
+			// storey rather than the page's: a flat card is a level-1
+			// surface and an elevated one a level-2.
 			ground := tokens.Level1
 			if elevated {
 				ground = tokens.Level2
@@ -227,7 +227,7 @@ func (inv *Inventory) cards(c tokens.ColorTokens) layout.Widget {
 					Header: header(title),
 					Body:   body,
 					Footer: badge.Render(inv.shaper, "Footer", nil, badge.Neutral, c, tokens.Spacing,
-						inv.badgeStyle(), badge.RenderState{Ground: ground}),
+						tokens.Radius, inv.badgeStyle(), badge.RenderState{Ground: ground}),
 					Elevated: elevated,
 				}, c, tokens.Spacing, tokens.Radius)(gtx)
 			}
@@ -309,7 +309,7 @@ func (inv *Inventory) navbarProps(c tokens.ColorTokens) navbar.Props {
 			// The bar fills the floor storey, and a badge with no fill of its
 			// own is derived against whatever it stands on.
 			badge.Render(inv.shaper, "v1", nil, badge.Neutral, c, tokens.Spacing,
-				inv.badgeStyle(), badge.RenderState{Ground: tokens.LevelFloor}),
+				tokens.Radius, inv.badgeStyle(), badge.RenderState{Ground: tokens.LevelFloor}),
 		},
 		Shaper: inv.shaper,
 	}
@@ -553,7 +553,7 @@ func (inv *Inventory) popover(c tokens.ColorTokens) layout.Widget {
 		gtx.Constraints.Min = gtx.Constraints.Max
 		props := popover.Props{
 			Anchor: badge.Render(inv.shaper, "Anchor", nil, badge.Neutral, c, tokens.Spacing,
-				inv.badgeStyle(), badge.RenderState{}),
+				tokens.Radius, inv.badgeStyle(), badge.RenderState{}),
 			Content:   inv.prose(c, "A popover holds content", "beside what opened it."),
 			Placement: popover.Bottom,
 		}
@@ -568,7 +568,7 @@ func (inv *Inventory) tooltip(c tokens.ColorTokens) layout.Widget {
 		props := tooltip.Props{
 			Text: "Reload the theme",
 			Trigger: badge.Render(inv.shaper, "Trigger", nil, badge.Neutral, c, tokens.Spacing,
-				inv.badgeStyle(), badge.RenderState{}),
+				tokens.Radius, inv.badgeStyle(), badge.RenderState{}),
 			Placement: tooltip.Top,
 			Shaper:    inv.shaper,
 		}

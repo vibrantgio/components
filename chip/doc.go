@@ -19,10 +19,11 @@
 // weight because that summary has exactly one job.
 //
 // Nor is it components/badge. A badge is the system's own word about a thing,
-// set at the size of its type in a role's own hue with no fill under it at
-// all, and it does not move under the pointer. This one is neutral by
-// construction, wears the elevation ladder rather than a ramp, is sized off
-// the control ladder, and is the only one of the two that can be clicked.
+// set at the size of its type in a role's own hue over a pale fill of that
+// same hue, and it does not move under the pointer. This one is neutral by
+// construction, wears the elevation ladder rather than a ramp, takes the pill
+// corner where a badge takes a rounded-rect one, is sized off the control
+// ladder, and is the only one of the two that can be clicked.
 //
 // Nor is it the pull-down anchor. A control that names a choice and stands
 // over a list of the alternatives is picker.Anchor, which draws the same
