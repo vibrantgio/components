@@ -685,7 +685,7 @@ func TestFromTokensDefaults(t *testing.T) {
 		if st.LinkColor != s.tok.Primary {
 			t.Errorf("%s: LinkColor = %v, want Primary %v", s.name, st.LinkColor, s.tok.Primary)
 		}
-		if want := focus.Ring(s.tok, s.tok.Surface); st.FocusColor != want {
+		if want := focus.Ring(s.tok); st.FocusColor != want {
 			t.Errorf("%s: FocusColor = %v, want the measured ring %v", s.name, st.FocusColor, want)
 		}
 		if got := tcolor.ContrastRatio(st.FocusColor, s.tok.Surface); got < focus.Floor {

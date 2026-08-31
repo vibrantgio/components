@@ -428,7 +428,7 @@ func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
 		{"light", tokens.DefaultLight},
 		{"dark", tokens.DefaultDark},
 	} {
-		ring := focus.Ring(scheme.colors, pinnedFill)
+		ring := focus.RingOn(scheme.colors, pinnedFill)
 		if got := tcolor.ContrastRatio(ring, pinnedFill); got < focus.Floor {
 			t.Errorf("%s: ring %v measures %.2f:1 against the pinned fill %v",
 				scheme.name, ring, got, pinnedFill)
@@ -459,7 +459,7 @@ func ringGround(c tokens.ColorTokens, e button.Emphasis) color.NRGBA {
 	case button.Tonal:
 		return c.StateColor(tokens.RolePrimary, 200, tokens.StateFocus)
 	case button.Ghost:
-		return c.Ramps.Neutral.Step(200) // the level-1 surface a ghost assumes
+		return c.SurfaceAt(tokens.Level0) // a ghost paints none; the paper shows through
 	default:
 		return c.SolidStateColor(tokens.RolePrimary, tokens.StateFocus)
 	}
@@ -472,10 +472,12 @@ func ringGround(c tokens.ColorTokens, e button.Emphasis) color.NRGBA {
 // circles. So a ghost button's ring is neither thinner, dimmer nor smaller
 // than a filled one's.
 //
-// What the registers do not share is the rung: a filled button's ring
-// circles the primary fill and a ghost's circles the surface, and no single
-// rung of the primary ramp clears 3:1 against both. Sameness belongs to the
-// ring's geometry; the rung belongs to the ground.
+// The rung is the scheme's one focus colour wherever that colour reads on the
+// ground the band lies on, which is what a ghost's and a tonal's do. A filled
+// register's ground is a solid primary, a rung of the very ramp the ring is a
+// rung of, and no rung clears 3:1 against a neighbouring one — so that band
+// alone is walked against its own fill (focus.RingOn). Sameness belongs to the
+// ring's geometry always, and to the rung everywhere the fill allows it.
 //
 // The geometry is stated here rather than compared between registers — the
 // outermost ring.Width dp of the button's own square, and nothing outside it
@@ -521,7 +523,7 @@ func TestFocusRingIsTheSameRingInEveryRegister(t *testing.T) {
 			// The rung this register's ring lands on must reach the floor
 			// against the ground it circles.
 			ground := ringGround(colors, e)
-			ring := focus.Ring(colors, ground)
+			ring := focus.RingOn(colors, ground)
 			if got := tcolor.ContrastRatio(ring, ground); got < focus.Floor {
 				t.Errorf("%s %s: ring %v measures %.2f:1 against the ground it circles %v",
 					scheme.name, e, ring, got, ground)

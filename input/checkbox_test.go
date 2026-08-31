@@ -15,7 +15,6 @@ import (
 	"github.com/reactivego/rx"
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/input"
-	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
 	tcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
@@ -247,7 +246,7 @@ func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 		{"dark", tokens.DefaultDark},
 	} {
 		c := scheme.colors
-		ring := focus.Ring(c, c.Surface)
+		ring := focus.Ring(c)
 		if got := tcolor.ContrastRatio(ring, c.Surface); got < focus.Floor {
 			t.Errorf("%s: ring %v measures %.2f:1 against the surface it lies on %v",
 				scheme.name, ring, got, c.Surface)
@@ -310,23 +309,17 @@ func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 	}
 }
 
-// TestFocusRingFollowsTheStoreyOnEveryControl asserts the ring colour tracks
-// the storey the control stands on rather than being fixed to the page. A
-// ring measured only against the page reads wrong inside a dialog or
-// popover: those hosts fill deeper rungs of the neutral ramp, and on the
-// default light palette the page's ring rung measures 2.92:1 over a level-2
-// fill and 2.14:1 over a level-3 one — under focus.Floor. Each control hands
-// its ring the storey it was told it stands on (focus.Ground), so the
-// assertion checks that the pixels actually painted are that storey's
-// answer, not merely that some ring appeared (which the level-0 rung would
-// satisfy on every storey).
+// TestFocusRingIsOneColourOnEveryStoreyAndControl asserts in pixels what
+// focus states as a rule: the ring a control paints is the scheme's one focus
+// colour, whatever storey the control was told it stands on and whichever of
+// the two placements it takes. The assertion is over painted pixels rather
+// than over the derivation, because what the rule forbids is a caller handing
+// the walk a ground of its own and painting the answer.
 //
-// The two families answer differently and both are checked. A ring that rides
-// in slack has the storey on both sides of it and takes focus.Ring; a promoted
-// border has the control's own fill inside it and takes focus.RingBetween,
-// which on the default dark palette answers a different rung at level 1 than
-// the storey alone would.
-func TestFocusRingFollowsTheStoreyOnEveryControl(t *testing.T) {
+// Both placements are checked, since the two have different neighbours: a ring
+// that rides in slack has the storey on both sides of it, and a promoted border
+// has the control's own fill inside it and the storey outside.
+func TestFocusRingIsOneColourOnEveryStoreyAndControl(t *testing.T) {
 	shaper := defaultShaper(t)
 
 	for _, scheme := range []struct {
@@ -357,12 +350,11 @@ func TestFocusRingFollowsTheStoreyOnEveryControl(t *testing.T) {
 		for _, level := range []tokens.ElevationLevel{
 			tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
 		} {
-			ring := focus.Ring(c, focus.Ground(c, level))
-			if got := tcolor.ContrastRatio(ring, focus.Ground(c, level)); got < focus.Floor {
+			ring := focus.Ring(c)
+			if got := tcolor.ContrastRatio(ring, c.SurfaceAt(level)); got < focus.Floor {
 				t.Errorf("%s level %d: ring %v measures %.2f:1 against the storey it stands on %v",
-					scheme.name, level, ring, got, focus.Ground(c, level))
+					scheme.name, level, ring, got, c.SurfaceAt(level))
 			}
-			promoted := focus.RingBetween(c, focus.Ground(c, level), control.Fill(c, level))
 			for _, ctl := range []struct {
 				name string
 				size image.Point
@@ -378,15 +370,15 @@ func TestFocusRingFollowsTheStoreyOnEveryControl(t *testing.T) {
 				{"text field", image.Pt(300, 60),
 					input.Render(shaper, "you@example.com", c, tokens.Spacing, tokens.Radius,
 						tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
-						input.RenderState{Focused: true, Ground: level}), promoted},
+						input.RenderState{Focused: true, Ground: level}), ring},
 				{"dropdown trigger", image.Pt(200, 44),
 					input.RenderDropdown(shaper, c, tokens.Spacing, tokens.Radius,
 						tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
-						input.DropdownRenderState{Focused: true, Ground: level, Options: []string{"One", "Two"}}), promoted},
+						input.DropdownRenderState{Focused: true, Ground: level, Options: []string{"One", "Two"}}), ring},
 			} {
 				n := count(ctl.size, ctl.w, ctl.ring)
 				if n == 0 {
-					t.Errorf("%s %s on level %d: focused, and not one pixel of that storey's ring colour %v",
+					t.Errorf("%s %s on level %d: focused, and not one pixel of the scheme's ring colour %v",
 						scheme.name, ctl.name, level, ctl.ring)
 				}
 			}

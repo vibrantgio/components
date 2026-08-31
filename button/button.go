@@ -468,14 +468,15 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	rrect := clip.RRect{Rect: image.Rectangle{Max: btnSize}, SE: rad, SW: rad, NE: rad, NW: rad}
 	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
 
-	// Focus ring: the button's outermost 2 dp, in the primary rung that reads
-	// against the ground it circles (focus.Ring). Same shape, same width and
-	// same place in every emphasis register — keyboard visibility is not a
-	// loudness property, so a ghost button's ring is exactly a filled one's.
-	// The rung differs where the ground does, which is the only way the ring
-	// can clear its floor over a filled ground as well as an empty one.
+	// Focus ring: the button's outermost 2 dp, inset in its own background.
+	// Same shape, same width and same place in every emphasis register —
+	// keyboard visibility is not a loudness property, so a ghost button's ring
+	// is exactly a filled one's. focus.RingOn hands back the scheme's one focus
+	// colour wherever it reads on that background, and walks against the
+	// background only where it cannot: a solid primary fill is a rung of the
+	// same ramp the ring is a rung of.
 	if s.Focused {
-		drawFocusRing(gtx, btnSize, rad, focus.Ring(tok.color, ringGround(tok.color, bg, s)))
+		drawFocusRing(gtx, btnSize, rad, focus.RingOn(tok.color, bg))
 	}
 
 	// Replay the label centered within the button.
@@ -518,7 +519,7 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 
 	// Focus ring, matching drawButton.
 	if s.Focused {
-		drawFocusRing(gtx, sz, rad, focus.Ring(tok.color, ringGround(tok.color, bg, s)))
+		drawFocusRing(gtx, sz, rad, focus.RingOn(tok.color, bg))
 	}
 
 	// Glyph, centred within the padded square.
@@ -577,19 +578,6 @@ func drawFocusRing(gtx layout.Context, size image.Point, rad int, ring color.NRG
 		Path:  rrect.Path(gtx.Ops),
 		Width: float32(w),
 	}.Op())
-}
-
-// ringGround is the ground a focused button's ring circles: the register's own
-// background. A ghost paints none at rest, so what its ring circles is the
-// host surface showing through it — the storey s.Ground names, resolved by
-// focus.Ground, which is the one rule every control in the library hands its
-// ring and which lands on exactly the fill ghostWash walks the ghost's wash
-// from.
-func ringGround(c tokens.ColorTokens, bg color.NRGBA, s RenderState) color.NRGBA {
-	if bg.A == 0 {
-		return focus.Ground(c, s.Ground)
-	}
-	return bg
 }
 
 // Ramp steps the quieter registers resolve against. Every one of them is a

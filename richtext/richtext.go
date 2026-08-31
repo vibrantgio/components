@@ -198,13 +198,14 @@ type Style struct {
 // value from theme to paragraph — and takes no [tokens.Density], which sizes
 // controls and so has nothing to say about a paragraph.
 func FromTokens(c tokens.ColorTokens, body tokens.TextStyle) Style {
-	// The ground a link's ink and its ring are both drawn on is the paper
-	// the paragraph is set on — the ladder's level 0, asked of the palette.
-	ground := focus.Ground(c, tokens.Level0)
+	// The ground a link's ink is drawn on is the paper the paragraph is set
+	// on — the ladder's level 0, asked of the palette. The ring beside it
+	// asks for no ground at all: focus.Ring is the scheme's one focus colour.
+	ground := c.SurfaceAt(tokens.Level0)
 	return Style{
 		Color:      c.Text,
 		LinkColor:  c.InkOn(tokens.RolePrimary, ground, tokens.TextFloor),
-		FocusColor: focus.Ring(c, ground),
+		FocusColor: focus.Ring(c),
 		Size:       unit.Sp(body.Size),
 		LineHeight: unit.Sp(body.LineHeight),
 	}

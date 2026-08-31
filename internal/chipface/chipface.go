@@ -512,7 +512,7 @@ func Draw(
 	radius := gtx.Dp(unit.Dp(face.radius(rad)))
 	band, edgeInk, edged := max(gtx.Dp(edgeDp), 1), rim, rimmed
 	if s.Focused {
-		band, edgeInk, edged = gtx.Dp(focus.Width), focus.Ring(c, fill), true
+		band, edgeInk, edged = gtx.Dp(focus.Width), focus.Ring(c), true
 	}
 	inner, innerRad := box, radius
 	if edged {

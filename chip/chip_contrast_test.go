@@ -227,29 +227,31 @@ func TestChipPairingsHoldForEverySeed(t *testing.T) {
 	t.Logf("worst over the sweep: edge %.2f:1, label %.2f:1, glyph %.2f:1", worstRim, worstLabel, worstGlyph)
 }
 
-// TestFocusRingClearsItsFloor measures the ring against the one ground it has.
-// The band is held clear of the chip's boundary, so it lies wholly on the
-// chip's own fill with that fill on both sides of it — which is why the ring
-// is derived against the fill in the state it is drawn in and not against the
-// storey the chip stands on. Derived against the storey it measures 1.01:1 on
-// a pressed chip in the dark scheme, where the fill has walked most of the way
-// to the ramp's light end and the storey has not moved.
+// TestFocusRingClearsItsFloor measures the ring against the side of the band
+// that owes it a floor. A focused chip's ring takes the rim's place, so the
+// storey the chip stands on lies immediately outside it and the chip's own fill
+// immediately inside; the storey is the side that is the same for every control
+// on that storey and the side the ring is read against.
+//
+// The fill inside is not measured, and the pressed chip is why: it walks up to
+// 20 L* off its storey, so no one colour could clear both it and the ground the
+// chip lies on. Derived against that fill instead — as this family once did —
+// the walk answered the fill rather than the scheme, and a chip resting on a
+// card came out 19 L* from the button beside it.
 func TestFocusRingClearsItsFloor(t *testing.T) {
 	worst := 99.0
 	for _, seed := range chipSeeds {
 		light, dark := tokens.FromSeed(seed)
 		lightHC, darkHC := tokens.FromSeedHighContrast(seed)
 		for _, c := range []tokens.ColorTokens{light, dark, lightHC, darkHC} {
+			ring := focus.Ring(c)
 			for _, storey := range chipStoreys {
-				for _, st := range chipStates {
-					fill := Fill(c, storey.level, st.state)
-					ring := focus.Ring(c, fill)
-					if got := vgcolor.ContrastRatio(ring, fill); got < worst {
-						worst = got
-						if got < focusFloor {
-							t.Errorf("seed %s: %s %s focus ring %s on the fill %s = %.2f:1, want at least %.1f:1",
-								hex(seed), storey.name, st.name, hex(ring), hex(fill), got, focusFloor)
-						}
+				ground := c.SurfaceAt(storey.level)
+				if got := vgcolor.ContrastRatio(ring, ground); got < worst {
+					worst = got
+					if got < focusFloor {
+						t.Errorf("seed %s: %s focus ring %s on the storey %s = %.2f:1, want at least %.1f:1",
+							hex(seed), storey.name, hex(ring), hex(ground), got, focusFloor)
 					}
 				}
 			}

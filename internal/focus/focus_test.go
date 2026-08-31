@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/vibrantgio/components/internal/chipface"
+	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
@@ -31,80 +33,22 @@ func sweepSeeds() []stdcolor.NRGBA {
 	return seeds
 }
 
-// grounds names, for one scheme, every ground a control in this library draws
-// its focus ring over — one entry per control and per state or storey that
-// changes what the ring circles. Adding a focusable control to the library
-// means adding its ground here; that is what makes this file the gate for the
-// whole idiom rather than for the four packages that happen to exist.
-//
-// Most controls appear once per storey rather than once. A control's host is
-// a rung of the elevation ladder, the ring lies on that host's fill, and the
-// fill moves with the ladder — so "which ground does this control's ring
-// circle" has one answer per storey, and a gate that asked only one storey
-// would miss readings under the floor at another. The ladder carries a storey
-// under the paper as well, so the list walks [storeys] rather than naming
-// three of them: a control on a sidebar stands on the furniture floor and its
-// ring is measured there too.
-//
-// Each entry carries the ring the control actually draws beside the ground it
-// draws it on, because the two families derive it differently: a ring with the
-// same colour on both sides takes [focus.Ring] and one with a different
-// neighbour on each side takes [focus.RingBetween].
-func grounds(c tokens.ColorTokens) []struct {
-	name   string
-	ground stdcolor.NRGBA
-	ring   stdcolor.NRGBA
-} {
-	type entry = struct {
-		name   string
-		ground stdcolor.NRGBA
-		ring   stdcolor.NRGBA
-	}
-	oneSided := func(name string, ground stdcolor.NRGBA) entry {
-		return entry{name, ground, focus.Ring(c, ground)}
-	}
-	out := []entry{
-		// A button's ring circles its own background, in each register and
-		// each interaction state that walks it.
-		oneSided("button filled", c.SolidStateColor(tokens.RolePrimary, tokens.StateFocus)),
-		oneSided("button filled hovered", c.SolidStateColor(tokens.RolePrimary, tokens.StateHover)),
-		oneSided("button filled pressed", c.SolidStateColor(tokens.RolePrimary, tokens.StatePressed)),
-		oneSided("button tonal", c.StateColor(tokens.RolePrimary, 200, tokens.StateFocus)),
-		oneSided("button tonal hovered", c.StateColor(tokens.RolePrimary, 200, tokens.StateHover)),
-		oneSided("button tonal pressed", c.StateColor(tokens.RolePrimary, 200, tokens.StatePressed)),
-		// A link's ring rides in the paragraph ground it is padded clear
-		// into. Prose carries no storey of its own, so a paragraph lies on
-		// the paper — richtext.FromTokens derives the ring against level 0
-		// for exactly that reason.
-		oneSided("link", focus.Ground(c, tokens.Level0)),
-	}
-	for _, level := range storeys {
-		at := storeyName(level)
-		// The promoted-border family: the ring is the control's own edge, so
-		// the band has the field's fill inside it and the host storey
-		// outside, and it is walked against both
-		// (TestPromotedBorderRingClearsBothItsNeighbours). The ground named
-		// beside it is the outer one, which is the side this file measures.
-		promoted := focus.RingBetween(c, focus.Ground(c, level), c.SurfaceAt(level.Raised()))
-		// A ghost paints no ground, so its ring circles the host storey's
-		// surface. Hovered and pressed it paints that storey's own wash and
-		// the ring circles the wash instead: the wash is taken from the
-		// storey's fill rather than from a ramp step, so there are as many
-		// washes as there are storeys.
-		out = append(out,
-			oneSided("button ghost "+at, focus.Ground(c, level)),
-			oneSided("button ghost hovered "+at, c.StateAt(level, tokens.StateHover)),
-			oneSided("button ghost pressed "+at, c.StateAt(level, tokens.StatePressed)),
-			entry{"text field " + at, focus.Ground(c, level), promoted},
-			entry{"dropdown trigger " + at, focus.Ground(c, level), promoted},
-			// The clear-of-the-glyph family: the ring rides in the host
-			// storey's surface beside the glyph, in every checked or chosen
-			// state.
-			oneSided("checkbox "+at, focus.Ground(c, level)),
-			oneSided("radio "+at, focus.Ground(c, level)),
-		)
-	}
-	return out
+// palettes is every palette one seed produces: both schemes of both
+// derivations. The two are not each other's mirror image — a light scheme's
+// ramp is walked from the opposite end and its ladder climbs the other way —
+// so a claim asserted on one says nothing about the other.
+func palettes(seed stdcolor.NRGBA) []tokens.ColorTokens {
+	light, dark := tokens.FromSeed(seed)
+	hcLight, hcDark := tokens.FromSeedHighContrast(seed)
+	return []tokens.ColorTokens{light, dark, hcLight, hcDark}
+}
+
+// storeys is the elevation ladder every control in this library can be put
+// on, named as a host says it: a control that is told nothing stands on
+// tokens.Level0, and a control on a sidebar, a rail or a toolbar stands on the
+// furniture floor beneath it.
+var storeys = []tokens.ElevationLevel{
+	tokens.LevelFloor, tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
 }
 
 // storeyName spells a storey the way this file's failure messages want to
@@ -117,88 +61,125 @@ func storeyName(level tokens.ElevationLevel) string {
 	return "on level " + string(rune('0'+int(level)))
 }
 
-// storeys is the elevation ladder every control in this library can be put
-// on, named as a host says it: a control that is told nothing stands on
-// tokens.Level0, and a control on a sidebar, a rail or a toolbar stands on
-// the furniture floor beneath it.
-var storeys = []tokens.ElevationLevel{
-	tokens.LevelFloor, tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
-}
-
-// TestGroundIsTheStoreysOwnFill holds the resolution [focus.Ground] performs,
-// which the contrast gates above cannot see: they would pass just as happily
-// if Ground answered one fixed colour for every storey.
+// drawn names, for one scheme, the ring every focusable control in this
+// library actually draws, restating each caller's own call. Adding a focusable
+// control means adding its ring here; that is what makes this file the gate for
+// the whole idiom rather than for the packages that happen to exist.
 //
-// Every storey is asked for on the same terms, with no exception written
-// into the rule: the floor beneath the paper is asked for the same way as
-// the storeys above it.
-func TestGroundIsTheStoreysOwnFill(t *testing.T) {
-	for _, s := range []struct {
+// Every entry names a storey, because a control's host is a rung of the
+// elevation ladder and a gate that asked only one rung would miss a ring that
+// moved on another. The point of the list is that the answer does not move: it
+// is the census the single-colour claim is asserted over.
+func drawn(c tokens.ColorTokens) []struct {
+	name string
+	ring stdcolor.NRGBA
+} {
+	type entry = struct {
 		name string
-		tok  tokens.ColorTokens
-	}{
-		{"light", tokens.DefaultLight},
-		{"dark", tokens.DefaultDark},
-	} {
-		for _, level := range []tokens.ElevationLevel{
-			tokens.LevelFloor, tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
-		} {
-			if got, want := focus.Ground(s.tok, level), s.tok.SurfaceAt(level); got != want {
-				t.Errorf("%s: Ground(%d) = %v, want the storey's own fill %v", s.name, level, got, want)
-			}
-		}
+		ring stdcolor.NRGBA
 	}
+	// A link's ring rides in the paragraph ground it is padded clear into.
+	// Prose carries no storey of its own, so a paragraph lies on the paper.
+	out := []entry{{"link", focus.Ring(c)}}
+	for _, level := range storeys {
+		at := storeyName(level)
+		out = append(out,
+			// The clear-of-the-glyph family: the ring rides in the host
+			// storey's surface beside the glyph, in every checked or chosen
+			// state.
+			entry{"checkbox " + at, focus.Ring(c)},
+			entry{"radio " + at, focus.Ring(c)},
+			// The promoted-border family: the ring is the control's own
+			// outermost band, with the host storey immediately outside it.
+			entry{"text field " + at, focus.Ring(c)},
+			entry{"dropdown trigger " + at, focus.Ring(c)},
+			// The chip family trades its rim for the ring, in every state its
+			// own fill walks to.
+			entry{"chip " + at, focus.Ring(c)},
+			// A ghost paints no ground at rest, so its ring lies on the host
+			// storey showing through it.
+			entry{"button ghost " + at, focus.RingOn(c, stdcolor.NRGBA{})},
+		)
+	}
+	return out
 }
 
-// TestLevelZeroGroundMovesNoPixel holds the claim that resolving level 0
-// through [tokens.ColorTokens.SurfaceAt] rather than naming Surface directly
-// moves no pixel: both grounds are asked for the rung, over the whole sweep
-// and both derivations, and they answer the same rung every time.
-func TestLevelZeroGroundMovesNoPixel(t *testing.T) {
-	for _, seed := range sweepSeeds() {
-		light, dark := tokens.FromSeed(seed)
-		hcLight, hcDark := tokens.FromSeedHighContrast(seed)
-		for _, c := range []tokens.ColorTokens{light, dark, hcLight, hcDark} {
-			if got, want := focus.Ring(c, focus.Ground(c, tokens.Level0)), focus.Ring(c, c.Surface); got != want {
-				t.Fatalf("seed %v: level 0 ring %v against the pin, %v against Surface — the pre-storey ground and the paper no longer answer one rung", seed, got, want)
-			}
-		}
-	}
-}
-
-// TestPromotedBorderRingClearsBothItsNeighbours holds the claim the text field
-// and the dropdown trigger rest on: their ring is the control's outermost
-// band, so it has two neighbours — the control's own fill on the inside, the
-// host storey on the outside — and the rung drawn has to satisfy them both.
-// [focus.RingBetween] is the walk that does; one aimed at the storey alone
-// measures 2.62:1 against the fill inside it at a dark scheme's level 1.
+// TestEveryControlDrawsOneColour is the ruling this package exists to hold:
+// the ring's colour depends on the scheme and on nothing else. Every control
+// in [drawn], on every storey the ladder carries, over the whole seed sweep and
+// both derivations, draws the same pixel.
 //
-// The inner neighbour is a storey rather than the Surface alias: a control
-// that fills a box on its host is raised on it, so its fill is the rung above
-// the ground it was handed (input.controlFill, which this package cannot
-// import and therefore restates as the one call it is). The sweep clears at
-// 3.05:1 worst over both derivations, every storey and both sides of the band.
-func TestPromotedBorderRingClearsBothItsNeighbours(t *testing.T) {
+// Asserted per palette rather than per storey, because that is the shape of
+// the claim: a page carries controls standing on several storeys at once, and
+// what a keyboard user must not see is two of them ringing differently.
+func TestEveryControlDrawsOneColour(t *testing.T) {
+	for _, seed := range sweepSeeds() {
+		for _, c := range palettes(seed) {
+			want := focus.Ring(c)
+			for _, d := range drawn(c) {
+				if d.ring != want {
+					t.Fatalf("seed %v: %s draws ring %v, but the scheme's ring is %v — two focus colours on one page",
+						seed, d.name, d.ring, want)
+				}
+			}
+		}
+	}
+}
+
+// TestRingClearsTheFloorOnEveryStorey holds the promise the single colour is
+// bought with: one rung that reaches [focus.Floor] against every surface the
+// elevation ladder carries, so a control keeps its ring wherever it is put.
+// This is the outer side of every band in the library — the side that is the
+// same for every control on a storey, and the side a ring is read against.
+func TestRingClearsTheFloorOnEveryStorey(t *testing.T) {
 	worst := 99.0
 	for _, seed := range sweepSeeds() {
-		light, dark := tokens.FromSeed(seed)
-		hcLight, hcDark := tokens.FromSeedHighContrast(seed)
-		for _, c := range []tokens.ColorTokens{light, dark, hcLight, hcDark} {
+		for _, c := range palettes(seed) {
+			ring := focus.Ring(c)
 			for _, level := range storeys {
-				storey := focus.Ground(c, level)
-				fill := c.SurfaceAt(level.Raised())
-				ring := focus.RingBetween(c, storey, fill)
+				ground := c.SurfaceAt(level)
+				got := color.ContrastRatio(ring, ground)
+				if got < focus.Floor {
+					t.Fatalf("seed %v: ring %v measures %.2f:1 against the storey %s %v, under the %.1f:1 floor",
+						seed, ring, got, storeyName(level), ground, focus.Floor)
+				}
+				if got < worst {
+					worst = got
+				}
+			}
+		}
+	}
+	t.Logf("worst storey of the scheme's ring over the sweep: %.2f:1", worst)
+}
+
+// TestRingClearsTheRestingFillsInsideIt measures the other side of the band —
+// the control's own fill, where the control has one — at rest, which is the
+// worst pairing the ring is asked to hold there.
+//
+// Two fills answer for every control that fills a box: the rung above the
+// storey, which the text field and the dropdown trigger fill with
+// (control.Fill), and the chip family's measured step over the storey, which is
+// neither a storey nor on the ramp. A pressed fill is left out on purpose: it
+// walks up to 20 L* off its storey, no one colour could clear both it and the
+// storey, and it is where the control's own state is spoken rather than where
+// focus is.
+func TestRingClearsTheRestingFillsInsideIt(t *testing.T) {
+	worst := 99.0
+	for _, seed := range sweepSeeds() {
+		for _, c := range palettes(seed) {
+			ring := focus.Ring(c)
+			for _, level := range storeys {
 				for _, side := range []struct {
-					name   string
-					ground stdcolor.NRGBA
+					name string
+					fill stdcolor.NRGBA
 				}{
-					{"the control's own fill", fill},
-					{"the storey it stands on", storey},
+					{"a field's own fill", control.Fill(c, level)},
+					{"a chip's resting fill", chipface.Fill(c, level, tokens.StateFocus)},
 				} {
-					got := color.ContrastRatio(ring, side.ground)
+					got := color.ContrastRatio(ring, side.fill)
 					if got < focus.Floor {
-						t.Fatalf("seed %v: level %d: ring %v measures %.2f:1 against %s %v, under the %.1f:1 floor",
-							seed, level, ring, got, side.name, side.ground, focus.Floor)
+						t.Fatalf("seed %v: %s: ring %v measures %.2f:1 against %s %v, under the %.1f:1 floor",
+							seed, storeyName(level), ring, got, side.name, side.fill, focus.Floor)
 					}
 					if got < worst {
 						worst = got
@@ -207,100 +188,96 @@ func TestPromotedBorderRingClearsBothItsNeighbours(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("worst side of the promoted border's ring over the sweep: %.2f:1", worst)
+	t.Logf("worst resting fill inside the ring over the sweep: %.2f:1", worst)
 }
 
-// TestRingClearsTheFloorOnEveryGroundItCircles is the whole idiom's gate: for
-// every ground any control in this library draws a focus ring over, in both
-// schemes, the ring reaches focus.Floor against that ground.
-//
-// Both schemes and not just the default one, because the two are not each
-// other's mirror image: a light scheme's ring walks down its ramp from the
-// mid-value rung and a dark scheme's walks up, and the grounds they walk
-// against are built by different halves of the derivation.
-func TestRingClearsTheFloorOnEveryGroundItCircles(t *testing.T) {
-	for _, s := range []struct {
-		name string
-		tok  tokens.ColorTokens
-	}{
-		{"light", tokens.DefaultLight},
-		{"dark", tokens.DefaultDark},
-	} {
-		for _, g := range grounds(s.tok) {
-			ring := focus.Ring(s.tok, g.ground)
-			got := color.ContrastRatio(ring, g.ground)
-			if got < focus.Floor {
-				t.Errorf("%s: %s: ring %v measures %.2f:1 against %v, under the %.1f:1 floor",
-					s.name, g.name, ring, got, g.ground, focus.Floor)
-			}
-		}
-	}
-}
-
-// TestRingClearsTheFloorForEverySeed extends the same gate over the seed
-// sweep and both derivations, which is where the rule earns its keep. Primary
-// is the seed a caller chose, so "focus is Primary" is a claim about a colour
-// nobody in this library has seen: over this population bare Primary measures
-// under the floor against the light surface for more than half the seeds and
-// bottoms out at 1.00:1. Walking the primary ramp to the rung that reads has
-// no such gap — and the walk lands on one rung per ground per scheme for
-// every seed there is, which is why one ring colour looks like one idiom
-// rather than a colour that wanders with the palette.
-func TestRingClearsTheFloorForEverySeed(t *testing.T) {
-	worstLight, worstDark := 99.0, 99.0
-	for _, seed := range sweepSeeds() {
-		light, dark := tokens.FromSeed(seed)
-		hcLight, hcDark := tokens.FromSeedHighContrast(seed)
-		for _, s := range []struct {
-			name  string
-			tok   tokens.ColorTokens
-			light bool
-		}{
-			{"FromSeed light", light, true},
-			{"FromSeed dark", dark, false},
-			{"FromSeedHighContrast light", hcLight, true},
-			{"FromSeedHighContrast dark", hcDark, false},
-		} {
-			for _, g := range grounds(s.tok) {
-				got := color.ContrastRatio(g.ring, g.ground)
-				if got < focus.Floor {
-					t.Errorf("seed %v: %s: %s: ring %v measures %.2f:1 against %v, under the %.1f:1 floor",
-						seed, s.name, g.name, g.ring, got, g.ground, focus.Floor)
-				}
-				if s.light {
-					if got < worstLight {
-						worstLight = got
-					}
-				} else if got < worstDark {
-					worstDark = got
-				}
-			}
-		}
-	}
-	t.Logf("over %d seeds and both derivations: worst light ring %.2f:1, worst dark %.2f:1",
-		len(sweepSeeds()), worstLight, worstDark)
-}
-
-// TestRingIsARungOfThePrimaryRamp holds the "primary-coloured" half of the
-// rule the floor cannot see. A ring that met its floor by reaching for a
-// neutral, an inverse surface or an invented colour would satisfy every
-// contrast assertion above and would not be the brand's focus ring.
+// TestRingIsARungOfThePrimaryRamp holds the "primary-coloured" half of the rule
+// the floor cannot see. A ring that met its floor by reaching for a neutral, an
+// inverse surface or an invented colour would satisfy every contrast assertion
+// above and would not be the brand's focus ring.
 func TestRingIsARungOfThePrimaryRamp(t *testing.T) {
 	for _, seed := range sweepSeeds() {
-		light, dark := tokens.FromSeed(seed)
-		for _, c := range []tokens.ColorTokens{light, dark} {
-			for _, g := range grounds(c) {
-				onRamp := false
-				for _, rung := range c.Ramps.Primary {
-					if rung == g.ring {
-						onRamp = true
-						break
-					}
+		for _, c := range palettes(seed) {
+			ring := focus.Ring(c)
+			onRamp := false
+			for _, rung := range c.Ramps.Primary {
+				if rung == ring {
+					onRamp = true
+					break
 				}
-				if !onRamp {
-					t.Fatalf("seed %v: %s: ring %v is not a rung of the primary ramp", seed, g.name, g.ring)
+			}
+			if !onRamp {
+				t.Fatalf("seed %v: ring %v is not a rung of the primary ramp", seed, ring)
+			}
+		}
+	}
+}
+
+// TestRingOnAnswersTheSchemesRingWhereverItReads holds [focus.RingOn]'s first
+// clause, which is what keeps the button inside the idiom rather than beside
+// it: a band inset in a fill of the control's own takes the scheme's ring
+// unchanged wherever that ring reaches the floor on that fill. A ghost's
+// transparent rest fill is no fill at all and always takes it.
+func TestRingOnAnswersTheSchemesRingWhereverItReads(t *testing.T) {
+	for _, seed := range sweepSeeds() {
+		for _, c := range palettes(seed) {
+			ring := focus.Ring(c)
+			if got := focus.RingOn(c, stdcolor.NRGBA{}); got != ring {
+				t.Fatalf("seed %v: a ghost's transparent rest fill drew %v, want the scheme's ring %v", seed, got, ring)
+			}
+			for _, level := range storeys {
+				for _, fill := range []stdcolor.NRGBA{
+					c.StateAt(level, tokens.StateHover),
+					c.StateAt(level, tokens.StatePressed),
+				} {
+					if color.ContrastRatio(ring, fill) < focus.Floor {
+						continue
+					}
+					if got := focus.RingOn(c, fill); got != ring {
+						t.Fatalf("seed %v: fill %v reads the scheme's ring at %.2f:1 yet drew %v, want %v",
+							seed, fill, color.ContrastRatio(ring, fill), got, ring)
+					}
 				}
 			}
 		}
 	}
+}
+
+// TestRingOnClearsTheFillItLiesOn holds the second clause. A solid primary fill
+// is a rung of the very ramp the ring is a rung of, so no scheme's ring can
+// read on it — over the sweep the two land on the same colour, 1.00:1 — and a
+// ring nobody can see is not a ring. There the band is walked against the fill
+// it lies on, and this asserts the walk lands somewhere legible.
+func TestRingOnClearsTheFillItLiesOn(t *testing.T) {
+	worst, shared, walked := 99.0, 0, 0
+	for _, seed := range sweepSeeds() {
+		for _, c := range palettes(seed) {
+			ring := focus.Ring(c)
+			for _, fill := range []stdcolor.NRGBA{
+				c.SolidStateColor(tokens.RolePrimary, tokens.StateFocus),
+				c.SolidStateColor(tokens.RolePrimary, tokens.StateHover),
+				c.SolidStateColor(tokens.RolePrimary, tokens.StatePressed),
+				c.StateColor(tokens.RolePrimary, 200, tokens.StateFocus),
+				c.StateColor(tokens.RolePrimary, 200, tokens.StateHover),
+				c.StateColor(tokens.RolePrimary, 200, tokens.StatePressed),
+			} {
+				got := focus.RingOn(c, fill)
+				if got == ring {
+					shared++
+				} else {
+					walked++
+				}
+				r := color.ContrastRatio(got, fill)
+				if r < focus.Floor {
+					t.Fatalf("seed %v: a button's ring %v measures %.2f:1 on its own fill %v, under the %.1f:1 floor",
+						seed, got, r, fill, focus.Floor)
+				}
+				if r < worst {
+					worst = r
+				}
+			}
+		}
+	}
+	t.Logf("button bands: %d take the scheme's ring, %d are walked against their own fill; worst %.2f:1",
+		shared, walked, worst)
 }

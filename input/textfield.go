@@ -570,10 +570,10 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // (controlBorder) rather than a named ramp step, so the field wears the same
 // edge the checkbox and the radio do, on whatever storey it is put.
 //
-// The focused border's colour is the rung of the primary ramp that clears
-// focus.Floor against both sides of the band it becomes — the storey the field
-// stands on outside it (focus.Ground) and the field's own fill within it
-// (controlFill) — which is focus.RingBetween's two-sided walk.
+// The focused border's colour is focus.Ring — the scheme's one focus colour,
+// the same on every storey and on every control, so promoting the edge changes
+// its hue and not what it has to answer to. The storey lies immediately outside
+// the promoted band and that is the side the ring's floor is measured to.
 func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, placeholder color.NRGBA) {
 	bg = controlFill(c, s.Ground)
 	text = c.Text
@@ -586,7 +586,7 @@ func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, pla
 		border = tokens.Disabled(border)
 		placeholder = tokens.Disabled(placeholder)
 	case s.Focused:
-		border = focus.RingBetween(c, focus.Ground(c, s.Ground), controlFill(c, s.Ground))
+		border = focus.Ring(c)
 	}
 	return
 }

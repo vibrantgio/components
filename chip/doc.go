@@ -39,7 +39,7 @@
 //	       against the fill — or none, when no rung reaches both
 //	label  the Text pin, or the neutral rung that clears TextFloor on the fill
 //	glyph  the Text pin, or the neutral rung that clears GraphicFloor on the fill
-//	ring   focus.Ring against the fill the band lies on
+//	ring   focus.Ring, the scheme's one focus colour
 //
 // The fill is relative to the ground the caller names and never an absolute
 // step, as everything raised must be: a chip on the
@@ -145,12 +145,14 @@
 // far enough to threaten its own label re-derives it rather than keeping a
 // colour that no longer reads.
 //
-// The focus ring is components/internal/focus's, measured against the chip's
-// own storey — its fill, in the state it is drawn in. That is the ground
-// focus.Ring asks for and the one components/button hands it for a filled
-// register. Measured against the storey UNDER the chip instead, the ring came
-// out at 1.01:1 on a pressed chip in the dark scheme, where the fill has walked
-// and the storey has not.
+// The focus ring is components/internal/focus's, and it asks for no ground at
+// all: one colour per scheme, the same on the paper, on a card and in a dialog.
+// Derived against the chip's own fill instead — as it was — the walk answered
+// the fill, and a chip resting on a card came out 19 L* from the button beside
+// it because the two grounds lay three units apart with a rung between them.
+// The band's outer side is the storey and that is where its floor is measured;
+// its inner side is this family's own fill, which walks 20 L* under a press and
+// is where the chip's state is spoken, not its focus.
 //
 // A focused chip's edge IS the ring: it takes the rim's place, two dp where the
 // rim was one, rather than being drawn inside it. Drawn inside, the two make a
