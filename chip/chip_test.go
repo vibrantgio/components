@@ -15,7 +15,6 @@ import (
 
 	"github.com/vibrantgio/components/chip"
 	"github.com/vibrantgio/components/golden"
-	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -45,18 +44,6 @@ func chevron(gtx layout.Context, sizePx int, col color.NRGBA) {
 	p.LineTo(f32.Pt(w*0.5, w*0.72))
 	p.LineTo(f32.Pt(w*0.88, w*0.34))
 	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: stroke}.Op())
-}
-
-// dot is the badge goldens' mark: a filled disc, centred, at half the box. A
-// badge is not a disclosure affordance and must not wear a chevron —
-// the same reviewer, handed a badge with one, could not tell the two faces
-// apart at all. The faces do share a geometry by design; what they must not
-// share is a mark that promises something one of them does not do.
-func dot(gtx layout.Context, sizePx int, col color.NRGBA) {
-	d := sizePx / 2
-	off := (sizePx - d) / 2
-	paint.FillShape(gtx.Ops, col,
-		clip.Ellipse(image.Rect(off, off, off+d, off+d)).Op(gtx.Ops))
 }
 
 // defaultShaper returns the shaper every golden here draws with: the default
@@ -132,222 +119,6 @@ func TestChipGoldenOnEveryGround(t *testing.T) {
 			})
 		}
 	}
-}
-
-// TestBadgeGoldenOnEveryGround is the same six for the non-interactive face.
-// Its images are stored separately rather than asserted equal to the chip's:
-// the two faces share a geometry and are allowed to diverge in treatment, and
-// a stored pair is what would show it if they ever did.
-func TestBadgeGoldenOnEveryGround(t *testing.T) {
-	shaper := defaultShaper(t)
-	for _, sc := range goldenSchemes {
-		for _, g := range goldenGrounds {
-			name := "badge-" + sc.name + "-" + g.name
-			t.Run(name, func(t *testing.T) {
-				w := chip.RenderBadge(shaper, "3 unread", dot,
-					sc.colors, tokens.Spacing, tokens.Radius,
-					tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
-					g.level)
-				golden.Render(t, name, goldenSize, onStorey(sc.colors, g.level, w))
-			})
-		}
-	}
-}
-
-// TestAnchorGoldenOnEveryGround is the same six for the pull-down anchor: the
-// chip's fill, rim and inks at the button's rounded-rect corner, with the
-// chevron the component draws itself. Stored beside the chip's own six rather
-// than asserted against them, because the pair of images is what shows the
-// corner and the mark are the ONLY things that differ.
-func TestAnchorGoldenOnEveryGround(t *testing.T) {
-	shaper := defaultShaper(t)
-	for _, sc := range goldenSchemes {
-		for _, g := range goldenGrounds {
-			name := "anchor-" + sc.name + "-" + g.name
-			t.Run(name, func(t *testing.T) {
-				w := chip.RenderAnchor(shaper, "OpenAI · gpt-5.5",
-					sc.colors, tokens.Spacing, tokens.Radius,
-					tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
-					chip.RenderState{Ground: g.level})
-				golden.Render(t, name, goldenSize, onStorey(sc.colors, g.level, w))
-			})
-		}
-	}
-}
-
-// TestAnchorStateGolden records the anchor's walk on the paper in both
-// schemes. The focused image is the one worth storing twice over: the ring
-// replaces the rim at the anchor's corner too, so a ring drawn at the pill's
-// Full radius over a rounded-rect fill would show here as a halo that misses
-// its corners.
-func TestAnchorStateGolden(t *testing.T) {
-	shaper := defaultShaper(t)
-	states := []struct {
-		name string
-		s    chip.RenderState
-	}{
-		{"hovered", chip.RenderState{Hovered: true}},
-		{"pressed", chip.RenderState{Pressed: true}},
-		{"focused", chip.RenderState{Focused: true}},
-	}
-	for _, sc := range goldenSchemes {
-		for _, st := range states {
-			name := "anchor-" + sc.name + "-" + st.name
-			t.Run(name, func(t *testing.T) {
-				w := chip.RenderAnchor(shaper, "OpenAI · gpt-5.5",
-					sc.colors, tokens.Spacing, tokens.Radius,
-					tokens.DefaultTypography.LabelLarge, tokens.Comfortable, st.s)
-				golden.Render(t, name, goldenSize, onStorey(sc.colors, tokens.Level0, w))
-			})
-		}
-	}
-}
-
-// TestAnchorIsTheChipWithADifferentCornerAndMark holds the seam the anchor
-// face was cut at. Everything the chip contributes — the measured fill, the
-// two-sided rim, the walked inks, the density's height — is shared code, so
-// the two faces may differ in their corner and their mark and must not differ
-// anywhere else. The heights are the check that says so without a stored
-// image: a face that reached for its own padding or its own line box would
-// draw a different box.
-func TestAnchorIsTheChipWithADifferentCornerAndMark(t *testing.T) {
-	shaper := defaultShaper(t)
-	for _, d := range []struct {
-		name string
-		d    tokens.Density
-		ts   tokens.TextStyle
-	}{
-		{"comfortable", tokens.Comfortable, tokens.DefaultTypography.LabelLarge},
-		{"compact", tokens.Compact, tokens.DefaultTypography.LabelMedium},
-	} {
-		t.Run(d.name, func(t *testing.T) {
-			anchor := measure(t, chip.RenderAnchor(shaper, "Model", tokens.DefaultLight,
-				tokens.Spacing, tokens.Radius, d.ts, d.d, chip.RenderState{}))
-			pill := measure(t, chip.Render(shaper, "Model", chevron, tokens.DefaultLight,
-				tokens.Spacing, tokens.Radius, d.ts, d.d, chip.RenderState{}))
-			if anchor.Y != pill.Y {
-				t.Errorf("anchor height %d, chip height %d: the faces share a geometry and must share this",
-					anchor.Y, pill.Y)
-			}
-			// The mark is the only width difference, and it is the platform's
-			// ratio of the control height rather than the label's line box.
-			if anchor.X == pill.X {
-				t.Errorf("anchor and chip both %d wide: the anchor's mark is the "+
-					"control's own ratio and the chip's is the line box, so they cannot match by construction", anchor.X)
-			}
-		})
-	}
-}
-
-// TestAnchorMarkIsSteadyAcrossTheWalk is the platform ruling written down
-// where a future change cannot quietly undo it: a pull-down anchor's chevron
-// says "a menu opens below this" and never "this is open", so nothing about
-// the pointer's state may move it. The face offers no open flag to flip — that
-// is the structural half — and this is the drawn half: the box the anchor
-// reports is the same box in all four states, so the mark neither grows nor
-// shifts under the pointer while the fill walks beneath it.
-func TestAnchorMarkIsSteadyAcrossTheWalk(t *testing.T) {
-	shaper := defaultShaper(t)
-	size := func(s chip.RenderState) image.Point {
-		return measure(t, chip.RenderAnchor(shaper, "OpenAI · gpt-5.5", tokens.DefaultDark,
-			tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
-			tokens.Comfortable, s))
-	}
-	rest := size(chip.RenderState{})
-	for _, tc := range []struct {
-		name string
-		s    chip.RenderState
-	}{
-		{"hovered", chip.RenderState{Hovered: true}},
-		{"pressed", chip.RenderState{Pressed: true}},
-		{"focused", chip.RenderState{Focused: true}},
-	} {
-		if got := size(tc.s); got != rest {
-			t.Errorf("%s anchor measures %v, resting %v: the anchor's mark is fixed and its box must not move",
-				tc.name, got, rest)
-		}
-	}
-}
-
-// TestAnchorChevronReachesTheGraphicFloor is the contrast sweep's extension to
-// the anchor face, and it is a PIXEL measurement rather than another pass over
-// the derivations. chip_contrast_test.go already sweeps the five colours on
-// every storey and in every state, and the anchor changes none of them — it
-// shares Fill, Rim and Ink with the chip, so that whole sweep covers this face
-// as it stands.
-//
-// What it cannot cover is the mark. The chevron is a 1.5 dp DIAGONAL stroke,
-// and a diagonal hairline is antialiased: the colour Ink derives may clear the
-// graphic floor while no pixel actually drawn does. The platform has the same
-// problem and answers it by drawing diagonals heavier than its axis-aligned
-// strokes (ADR-019 measured 1.44 px against 1.26 px at 16 pt), and Gio
-// composites in linear light where CoreGraphics composites in encoded sRGB,
-// which costs a hairline more ink still. So the claim worth holding is about
-// the drawn pixels: somewhere in the mark, in every scheme and every state,
-// the chevron reaches the floor it owes.
-func TestAnchorChevronReachesTheGraphicFloor(t *testing.T) {
-	shaper := defaultShaper(t)
-	states := []struct {
-		name string
-		s    chip.RenderState
-	}{
-		{"at rest", chip.RenderState{}},
-		{"hovered", chip.RenderState{Hovered: true}},
-		{"pressed", chip.RenderState{Pressed: true}},
-		{"focused", chip.RenderState{Focused: true}},
-	}
-	for _, sc := range goldenSchemes {
-		for _, g := range goldenGrounds {
-			for _, st := range states {
-				name := sc.name + " " + g.name + " " + st.name
-				t.Run(name, func(t *testing.T) {
-					s := st.s
-					s.Ground = g.level
-					w := chip.RenderAnchor(shaper, "OpenAI · gpt-5.5",
-						sc.colors, tokens.Spacing, tokens.Radius,
-						tokens.DefaultTypography.LabelLarge, tokens.Comfortable, s)
-					img := golden.Capture(t, goldenSize, onStorey(sc.colors, g.level, w))
-					fill := chip.Fill(sc.colors, g.level, stateOf(s))
-
-					// The mark's own column: the trailing padding's width in
-					// from the pill's trailing edge, which is where draw puts
-					// it. Measured off the drawn box rather than assumed.
-					box := measure(t, w)
-					pad := int(tokens.Comfortable.PaddingX)
-					x0 := goldenInset + box.X - pad - int(float32(tokens.Comfortable.ControlHeight)*9/29) - 2
-					x1 := goldenInset + box.X - pad + 2
-					best := 0.0
-					for y := goldenInset; y < goldenInset+box.Y; y++ {
-						for x := max(x0, 0); x < min(x1, img.Bounds().Dx()); x++ {
-							r, gg, b, _ := img.At(x, y).RGBA()
-							px := color.NRGBA{R: uint8(r >> 8), G: uint8(gg >> 8), B: uint8(b >> 8), A: 255}
-							if v := vgcolor.ContrastRatio(px, fill); v > best {
-								best = v
-							}
-						}
-					}
-					t.Logf("%s: the mark's heaviest pixel reaches %.2f:1 on the fill", name, best)
-					if best < tokens.GraphicFloor {
-						t.Errorf("%s: the chevron's heaviest drawn pixel reaches only %.2f:1 on the fill, want at least %.1f:1",
-							name, best, tokens.GraphicFloor)
-					}
-				})
-			}
-		}
-	}
-}
-
-// stateOf is RenderState.state() from outside the package: the walk the drawn
-// fill took, so the assertion above measures against the fill actually painted
-// rather than the resting one.
-func stateOf(s chip.RenderState) tokens.State {
-	switch {
-	case s.Pressed:
-		return tokens.StatePressed
-	case s.Hovered:
-		return tokens.StateHover
-	}
-	return tokens.StateNormal
 }
 
 // TestChipStateGolden records or diffs the interaction states on the paper in
@@ -478,13 +249,11 @@ func TestGlyphCostsTheChipItsOwnWidth(t *testing.T) {
 	}
 }
 
-// TestBadgeDrawsNoStateWalkAndNoRing is the difference between the two faces,
-// stated in pixels: the badge takes a ground and not a state, so nothing a
-// pointer or a keyboard does to a chip has any effect on it. The chip's own
-// hovered and focused frames are compared against its resting one in the same
-// breath, because "the badge does not move" only means something if the chip
-// does.
-func TestBadgeDrawsNoStateWalkAndNoRing(t *testing.T) {
+// TestEveryStateIsDrawnApartFromRest is the state walk stated in pixels: a
+// chip is clickable and every state a pointer or a keyboard can put it in
+// changes what it draws. The stored state tiles show WHAT each one looks like;
+// this is the claim that none of them is the resting image.
+func TestEveryStateIsDrawnApartFromRest(t *testing.T) {
 	shaper := defaultShaper(t)
 	frame := func(w layout.Widget) *image.RGBA {
 		return golden.Capture(t, goldenSize, onStorey(tokens.DefaultLight, tokens.Level0, w))
@@ -494,13 +263,7 @@ func TestBadgeDrawsNoStateWalkAndNoRing(t *testing.T) {
 			tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
 			tokens.Comfortable, s)
 	}
-	badge := frame(chip.RenderBadge(shaper, "Model", chevron, tokens.DefaultLight,
-		tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
-		tokens.Comfortable, tokens.Level0))
 	rest := frame(render(chip.RenderState{}))
-	if n := golden.PixelDiff(badge, rest); n != 0 {
-		t.Errorf("the badge differs from a resting chip in %d pixels; the two faces share one geometry", n)
-	}
 	for _, tc := range []struct {
 		name string
 		s    chip.RenderState

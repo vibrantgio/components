@@ -48,12 +48,3 @@ func BenchmarkChipRenderFocused(b *testing.B) {
 		tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		chip.RenderState{Focused: true}))
 }
-
-// BenchmarkBadgeRender is the non-interactive face, which does the same work
-// minus the state walk and the cursor.
-func BenchmarkBadgeRender(b *testing.B) {
-	benchFrame(b, chip.RenderBadge(
-		tokens.DefaultTypography.DeterministicShaper(), "3 unread", chevron,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
-		tokens.DefaultTypography.LabelLarge, tokens.Comfortable, tokens.Level0))
-}

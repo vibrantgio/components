@@ -1,18 +1,17 @@
 // Package chipface holds the one geometry the chip family draws, so that its
 // faces can live in the packages they belong to without either of them
-// redrawing it: components/chip's pill and badge, and components/picker's
-// pull-down anchor.
+// redrawing it: components/chip's pill and components/picker's pull-down
+// anchor.
 //
 // One geometry means one answer to every question that is not the face's own —
-// the measured fill, the two-sided rim, the walked inks, the focus ring that
-// replaces that rim, the density's height and padding, the pointer target's
-// placement. [Face] names the three things that vary on top of it: whether the
-// widget walks its fill and wears a ring, which corner it takes, and which
-// mark it carries.
+// the measured fill, the state walk, the two-sided rim, the walked inks, the
+// focus ring that replaces that rim, the density's height and padding, the
+// pointer target's placement. [Face] names the two things that vary on top of
+// it: which corner the widget takes and which mark it carries.
 //
 // It is internal because it is a seam between two published packages, not a
-// component: a caller reaches for chip.Render, chip.RenderBadge or
-// picker.RenderAnchor, and each of those documents the face it draws.
+// component: a caller reaches for chip.Render or picker.RenderAnchor, and each
+// of those documents the face it draws.
 package chipface
 
 import (
@@ -44,11 +43,8 @@ import (
 // token because no scale in the system carries line weights.
 const edgeDp = unit.Dp(1)
 
-// Face is which member of the family a widget draws.
-//
-// [FaceChip] and [FaceAnchor] are the two a caller may ask for through a
-// published package. The badge is a face too, but it is not selectable: it
-// takes no input, so it has no live path to select it in.
+// Face is which member of the family a widget draws: the corner it takes and
+// the mark it carries. Every other answer is the geometry's and is shared.
 type Face uint8
 
 const (
@@ -66,20 +62,12 @@ const (
 	// face, not this one with a flag; picker's package doc carries what that
 	// face would need.
 	FaceAnchor
-
-	// FaceBadge is the non-interactive face: no state walk, no focus ring,
-	// no pointer cursor.
-	FaceBadge Face = 255
 )
-
-// interactive reports whether the face walks its fill, wears a focus ring and
-// asks for the pointer cursor. Two of the three do.
-func (f Face) interactive() bool { return f != FaceBadge }
 
 // radius is the face's corner, off the radius scale rather than a number.
 //
-// The chip and the badge take the scale's Full stop — a pill, which is the
-// chip's ruled identity. The anchor takes Md, the SAME stop components/button
+// The chip takes the scale's Full stop — a pill, which is the chip's ruled
+// identity. The anchor takes Md, the SAME stop components/button
 // reads for every one of its registers: the anchor is the platform's pop-up
 // control, the platform draws that control as a rounded rectangle rather than
 // a capsule, and the rounded rectangle this system already owns is the
@@ -381,10 +369,11 @@ func (p Pin) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	return layout.Dimensions{Size: box, Baseline: dims.Baseline}
 }
 
-// Draw paints one member of the family. face selects which: the chip walks its
-// fill, wears the ring and asks for the cursor; the badge does none of the
-// three; the anchor does all of them at the button's corner with the pull-down
-// chevron for a mark. Everything else, geometry and colour alike, is shared.
+// Draw paints one member of the family. face selects which: the chip takes the
+// pill's corner and the caller's own glyph, the anchor the button's corner and
+// the pull-down chevron it draws itself. Everything else, geometry and colour
+// alike, is shared — both walk their fill, wear the ring and ask for the
+// cursor.
 func Draw(
 	gtx layout.Context,
 	shaper *text.Shaper,
@@ -398,11 +387,7 @@ func Draw(
 	s State,
 	face Face,
 ) layout.Dimensions {
-	interactive := face.interactive()
 	st := s.state()
-	if !interactive {
-		st = tokens.StateNormal
-	}
 	fill := Fill(c, s.Ground, st)
 	rim, rimmed := Rim(c, s.Ground, st)
 	labelInk := Ink(c, fill, tokens.TextFloor)
@@ -472,9 +457,8 @@ func Draw(
 	// Nothing else moves: the shape measures the same box focused as at rest,
 	// and the label does not shift.
 	radius := gtx.Dp(unit.Dp(face.radius(rad)))
-	focused := interactive && s.Focused
 	band, edgeInk, edged := max(gtx.Dp(edgeDp), 1), rim, rimmed
-	if focused {
+	if s.Focused {
 		band, edgeInk, edged = gtx.Dp(focus.Width), focus.Ring(c, fill), true
 	}
 	inner, innerRad := box, radius
@@ -509,8 +493,6 @@ func Draw(
 		mo.Pop()
 	}
 
-	if interactive {
-		pointer.CursorPointer.Add(gtx.Ops)
-	}
+	pointer.CursorPointer.Add(gtx.Ops)
 	return layout.Dimensions{Size: size}
 }

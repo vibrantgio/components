@@ -606,18 +606,10 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(g.storeyPanel(c.SurfaceAt(storey.ground), func(gtx layout.Context) layout.Dimensions {
 							return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
-									layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-										if g.chipLive[i] == nil {
-											return layout.Dimensions{}
-										}
-										return g.chipLive[i](gtx)
-									}),
-									layout.Rigid(complayout.HSpacer(24)),
-									layout.Rigid(chip.RenderBadge(g.shaper, "Badge", nil, c,
-										tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
-										tokens.Comfortable, storey.ground)),
-								)
+								if g.chipLive[i] == nil {
+									return layout.Dimensions{}
+								}
+								return g.chipLive[i](gtx)
 							})
 						})),
 						layout.Rigid(complayout.HSpacer(24)),
@@ -632,7 +624,7 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 		cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return complayout.InsetXY(24, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return g.label(gtx,
-					"The clickable face walks its fill under the pointer and wears the focus ring in place of its rim; the badge beside it is the same pill held still.",
+					"The chip walks its fill under the pointer and wears the focus ring in place of its rim.",
 					c.Ramps.Neutral.Step(600), unit.Sp(13), font.Font{})
 			})
 		}))

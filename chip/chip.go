@@ -17,31 +17,19 @@ import (
 
 	"github.com/vibrantgio/components/internal/chipface"
 	"github.com/vibrantgio/components/internal/hit"
-	"github.com/vibrantgio/components/picker"
 )
 
-// Face is which member of the chip family a widget draws. The geometry is one
-// geometry — the measured fill, the two-sided rim, the density's height and
-// padding, the state walk, the pointer target — and the face names what varies
-// on top of it.
-//
-// [FaceChip] and [FaceAnchor] are the two a caller may ask for. The badge is a
-// face too, but it is not selectable: it takes no input, so it has no live
-// path to select it in, and [RenderBadge] is the whole of it.
+// Face is which member of the chip family a widget draws. The chip has one
+// face — the pill — and it is the zero value, so a [Props] that names no face
+// draws it. The type is here because the geometry the pill is drawn from is
+// shared with components/picker's pull-down anchor, and a shared geometry is
+// asked which member it is drawing.
 type Face uint8
 
 const (
-	// FaceChip is the pill: the scale's Full radius, the caller's own glyph,
-	// and the zero value, so a [Props] that says nothing draws the chip.
+	// FaceChip is the pill: the scale's Full radius and the caller's own
+	// glyph.
 	FaceChip Face = Face(chipface.FaceChip)
-
-	// FaceAnchor is the pull-down anchor: the same chip at the button's own
-	// rounded-rect radius, with the down chevron drawn by the component
-	// instead of a caller's glyph.
-	//
-	// Deprecated: the pull-down anchor is components/picker's, where it is
-	// one of two triggers over a shared menu. Use picker.Anchor.
-	FaceAnchor Face = Face(chipface.FaceAnchor)
 )
 
 // Glyph is the painter a chip draws its mark with: it fills a sizePx×sizePx
@@ -142,24 +130,20 @@ const (
 // There is no emphasis field and there will not be one. A chip has one weight
 // by construction — see the package doc — and selection rides
 // components/button's register instead. There is no Disabled field either: a
-// chip that cannot be clicked is a badge, which is a different face and takes
-// [RenderBadge].
+// chip is clickable by construction, and something a reader can only read is
+// not one.
 type Props struct {
 	// Label is the text the pill carries.
 	Label string
 
-	// Face is which member of the family this widget draws: [FaceChip], the
-	// zero value and the pill, or [FaceAnchor], the pull-down anchor. The
-	// anchor draws its own chevron and ignores Icon.
+	// Face is which member of the family this widget draws. [FaceChip], the
+	// pill, is the zero value and the only one the chip has.
 	Face Face
 
 	// Icon is the mark drawn after the label, in the label's own line box. A
 	// nil Icon draws no mark and the chip is label-only. It is named Icon
 	// rather than Glyph to match components/button's Props, so a caller
 	// moving between the two components writes the same field name.
-	//
-	// Ignored when Face is [FaceAnchor]: that face's mark is the component's
-	// own chevron, which is the whole reason the face exists.
 	Icon Glyph
 
 	// Description is the screen-reader label. Falls back to Label when empty.
@@ -322,7 +306,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 	})
 }
 
-// Render produces a layout.Widget drawing the interactive chip face in an
+// Render produces a layout.Widget drawing the chip in an
 // explicit visual state, without event processing: the pill filled the
 // measured step over s.Ground and walked by the pointer, its one-dp rim, the
 // label in the ink that clears the text floor on that fill, and the glyph in
@@ -353,52 +337,5 @@ func Render(
 	return func(gtx layout.Context) layout.Dimensions {
 		return chipface.Draw(gtx, shaper, label, chipface.Glyph(glyph), colors, sp, rad,
 			labelStyle, d, chipface.State(s), chipface.FaceChip)
-	}
-}
-
-// RenderAnchor produces a layout.Widget drawing the ANCHOR face.
-//
-// Deprecated: the pull-down anchor is components/picker's — the chrome
-// register's trigger over the menu the picker's other trigger shares. Use
-// picker.RenderAnchor, which this forwards to; it draws the same control from
-// the same geometry.
-func RenderAnchor(
-	shaper *text.Shaper,
-	label string,
-	colors tokens.ColorTokens,
-	sp tokens.SpacingScale,
-	rad tokens.RadiusScale,
-	labelStyle tokens.TextStyle,
-	d tokens.Density,
-	s RenderState,
-) layout.Widget {
-	return picker.RenderAnchor(shaper, label, colors, sp, rad, labelStyle, d, picker.AnchorState(s))
-}
-
-// RenderBadge produces a layout.Widget drawing the non-interactive chip face:
-// the same pill, the same rim, the same inks and the same geometry, held at
-// rest. It takes a ground rather than a RenderState because there is no state
-// to take — a badge does not hover, does not press, does not focus and does
-// not ask for the pointer cursor.
-//
-// It is for a mark that keeps a fill: a count beside a heading, a build's
-// status in a toolbar, a label that says what a pane is showing. Something a
-// reader can click is a chip and takes [Render]; something a reader can only
-// read is a badge and takes this, so the pointer never changes over a thing
-// that would not have answered.
-func RenderBadge(
-	shaper *text.Shaper,
-	label string,
-	glyph Glyph,
-	colors tokens.ColorTokens,
-	sp tokens.SpacingScale,
-	rad tokens.RadiusScale,
-	labelStyle tokens.TextStyle,
-	d tokens.Density,
-	ground tokens.ElevationLevel,
-) layout.Widget {
-	return func(gtx layout.Context) layout.Dimensions {
-		return chipface.Draw(gtx, shaper, label, chipface.Glyph(glyph), colors, sp, rad,
-			labelStyle, d, chipface.State{Ground: ground}, chipface.FaceBadge)
 	}
 }

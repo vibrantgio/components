@@ -2,30 +2,12 @@
 // data-bearing summary — a label and, optionally, one glyph — filled a
 // measured step above the ground it rests on.
 //
-// It has two faces and one geometry. [Render] draws the CHIP, which is
-// clickable: it takes a [RenderState] carrying hover, press, focus and the
-// storey it stands on, walks its fill under the pointer and asks for the
-// pointer cursor. [RenderBadge] draws the BADGE, the same face held still —
-// for a mark that keeps a fill but takes no input, with no state walk, no
-// focus ring and no cursor. Both are the pure path: resolved tokens plus an
-// explicit state in, one frame out, no event handling.
-//
-// [Chip] is the live face of the clickable one: a theme observable and [Props]
-// in, a widget out on every theme emission, with the pointer area, the
-// keyboard and the activation dispatch the pure path cannot carry. The badge
-// has no live twin, because a face that takes no input has no state to keep —
-// [RenderBadge] and a ground is the whole of it.
-//
-// # The anchor face has moved
-//
-// The pull-down anchor — the same geometry at the button's rounded-rect corner
-// with the down chevron — is components/picker's, where it is the chrome
-// register's trigger over the menu the form register's trigger shares. A
-// menu-bearing control is not a summary that happens to be clickable; it names
-// a choice and stands over a list of the alternatives, and that is a picker.
-// [RenderAnchor] forwards to picker.RenderAnchor and is deprecated; the live
-// path is picker.Anchor. The geometry both draw from is one geometry, so
-// nothing about the drawn control changed with the address.
+// It has one face and it is clickable. [Render] is the pure path: resolved
+// tokens plus a [RenderState] carrying hover, press, focus and the storey it
+// stands on, one frame out, no event handling. [Chip] is the live one — a
+// theme observable and [Props] in, a widget out on every theme emission, with
+// the pointer area, the keyboard and the activation dispatch the pure path
+// cannot carry.
 //
 // # What the chip is not
 //
@@ -40,6 +22,10 @@
 // own hue — Success, Warning, Error — and it does not move under the pointer.
 // This one is neutral by construction, wears the elevation ladder rather than
 // a ramp, and is the only one of the two that can be clicked.
+//
+// Nor is it the pull-down anchor. A control that names a choice and stands
+// over a list of the alternatives is picker.Anchor, which draws the same
+// geometry at the button's rounded-rect corner with a chevron of its own.
 //
 // # Colour: everything is walked, nothing is mixed
 //

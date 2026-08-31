@@ -11,7 +11,6 @@ import (
 	"gioui.org/text"
 	"gioui.org/unit"
 
-	"github.com/vibrantgio/components/chip"
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/picker"
 	"github.com/vibrantgio/theme/tokens"
@@ -411,36 +410,6 @@ func TestAnchorIsSizedToItsValue(t *testing.T) {
 	}
 	if want := int(tokens.Comfortable.ControlHeight); dims.Size.Y != want {
 		t.Errorf("anchor height = %d px, want the density's control height %d px", dims.Size.Y, want)
-	}
-}
-
-// TestAnchorAndTheChipForwarderAgree holds the forwarder honest: chip's
-// deprecated RenderAnchor and this package's draw the same control from the
-// same geometry, so a caller that has not moved yet loses no pixel.
-func TestAnchorAndTheChipForwarderAgree(t *testing.T) {
-	const value = "Anthropic · Opus 5"
-	size := image.Pt(240, 60)
-	for _, s := range []struct {
-		name string
-		st   picker.AnchorState
-	}{
-		{"rest", picker.AnchorState{}},
-		{"hovered", picker.AnchorState{Hovered: true}},
-		{"pressed", picker.AnchorState{Pressed: true}},
-		{"focused", picker.AnchorState{Focused: true}},
-		{"raised", picker.AnchorState{Ground: tokens.Level2}},
-	} {
-		t.Run(s.name, func(t *testing.T) {
-			shaper := defaultShaper(t)
-			mine := golden.Capture(t, size, picker.RenderAnchor(shaper, value, tokens.DefaultDark,
-				tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, s.st))
-			theirs := golden.Capture(t, size, chip.RenderAnchor(shaper, value, tokens.DefaultDark,
-				tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
-				chip.RenderState(s.st)))
-			if n := golden.PixelDiff(mine, theirs); n != 0 {
-				t.Errorf("chip.RenderAnchor and picker.RenderAnchor differ in %d pixels", n)
-			}
-		})
 	}
 }
 
