@@ -629,8 +629,8 @@ func BasePart(role string, r tokens.Ramp, col stdcolor.NRGBA, near, off string) 
 // (three parts in 255 — invisible to eye or display).
 //
 // Distance is measured in OKLab, and [RungTolerance] is set by measurement:
-// pins that should match sit up to 0.016 from their rung, and the closest two
-// rungs of any ramp this derivation builds are 0.041 apart, so the tolerance
+// pins that should match sit up to 0.0158 from their rung, and the closest two
+// rungs of any ramp this derivation builds are 0.0330 apart, so the tolerance
 // must clear the first and stay under half the second or a colour could sit
 // within reach of two rungs at once.
 func NearestStep(r tokens.Ramp, col stdcolor.NRGBA) int {
@@ -646,7 +646,7 @@ func NearestStep(r tokens.Ramp, col stdcolor.NRGBA) int {
 // RungTolerance is how far from a rung a colour may sit and still be that
 // rung as far as anybody looking is concerned. See [NearestStep] for the two
 // measurements it stands between.
-const RungTolerance = 0.018
+const RungTolerance = 0.016
 
 // PinRung is the rung a pinned base claims: the step it is exactly, else the
 // one it is indistinguishable from, else 0 — the two questions [BasePart]
