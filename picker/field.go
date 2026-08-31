@@ -590,18 +590,20 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	}
 	// Focus promotes the trigger's border to the focus ring, the one idiom
 	// every control in the library wears: the primary rung measured to clear
-	// focus.Floor against the storey the trigger stands on — the same ground
-	// the resting border below is measured against, so promoting the edge
-	// changes its hue and not the ground it answers to. A trigger opened
-	// inside a level-3 menu is the case that makes this matter: measured
-	// against the trigger's own fill the ring comes out 2.14:1 against the
-	// popover it is standing on (focus.Ground).
+	// focus.Floor against both sides of the band the edge becomes — the storey
+	// the trigger stands on outside it (focus.Ground) and the trigger's own
+	// fill within it — so promoting the edge changes its hue and not what it
+	// has to answer to. Both sides are asked because neither alone is enough:
+	// measured against the fill alone the ring comes out 2.14:1 against a
+	// level-3 popover the trigger stands on, and against the storey alone
+	// 2.62:1 against the fill it encloses at level 1 in a dark scheme.
 	// At rest the trigger's border is the neutral rung the ramp measures as
-	// clearing the graphic floor against that same storey, the same edge the
-	// field and the radio wear (control.Border).
+	// clearing the graphic floor against those same two sides, the same edge
+	// the field and the radio wear (control.Border).
 	borderCol := control.Border(tok.color, s.Ground)
 	if s.Focused {
-		borderCol = focus.Ring(tok.color, focus.Ground(tok.color, s.Ground))
+		borderCol = focus.RingBetween(tok.color,
+			focus.Ground(tok.color, s.Ground), control.Fill(tok.color, s.Ground))
 	}
 	if s.Disabled {
 		borderCol = tokens.Disabled(control.Border(tok.color, s.Ground))

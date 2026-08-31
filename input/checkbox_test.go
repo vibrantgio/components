@@ -15,6 +15,7 @@ import (
 	"github.com/reactivego/rx"
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/input"
+	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
 	tcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
@@ -320,9 +321,11 @@ func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 // answer, not merely that some ring appeared (which the level-0 rung would
 // satisfy on every storey).
 //
-// A dark scheme's ladder is shallower and its page rung already clears every
-// storey, so the walk answers with one rung there across all four levels;
-// that reflects the derivation, not a gap in the test.
+// The two families answer differently and both are checked. A ring that rides
+// in slack has the storey on both sides of it and takes focus.Ring; a promoted
+// border has the control's own fill inside it and takes focus.RingBetween,
+// which on the default dark palette answers a different rung at level 1 than
+// the storey alone would.
 func TestFocusRingFollowsTheStoreyOnEveryControl(t *testing.T) {
 	shaper := defaultShaper(t)
 
@@ -359,30 +362,32 @@ func TestFocusRingFollowsTheStoreyOnEveryControl(t *testing.T) {
 				t.Errorf("%s level %d: ring %v measures %.2f:1 against the storey it stands on %v",
 					scheme.name, level, ring, got, focus.Ground(c, level))
 			}
-			for _, control := range []struct {
+			promoted := focus.RingBetween(c, focus.Ground(c, level), control.Fill(c, level))
+			for _, ctl := range []struct {
 				name string
 				size image.Point
 				w    layout.Widget
+				ring stdcolor.NRGBA
 			}{
 				{"checkbox", image.Pt(44, 44),
 					input.RenderCheckbox(c, tokens.Spacing, tokens.Radius,
-						input.CheckboxRenderState{Focused: true, Ground: level})},
+						input.CheckboxRenderState{Focused: true, Ground: level}), ring},
 				{"radio", image.Pt(44, 44),
 					input.RenderRadio(c, tokens.Spacing, tokens.Radius,
-						input.RadioRenderState{Focused: true, Ground: level})},
+						input.RadioRenderState{Focused: true, Ground: level}), ring},
 				{"text field", image.Pt(300, 60),
 					input.Render(shaper, "you@example.com", c, tokens.Spacing, tokens.Radius,
 						tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
-						input.RenderState{Focused: true, Ground: level})},
+						input.RenderState{Focused: true, Ground: level}), promoted},
 				{"dropdown trigger", image.Pt(200, 44),
 					input.RenderDropdown(shaper, c, tokens.Spacing, tokens.Radius,
 						tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
-						input.DropdownRenderState{Focused: true, Ground: level, Options: []string{"One", "Two"}})},
+						input.DropdownRenderState{Focused: true, Ground: level, Options: []string{"One", "Two"}}), promoted},
 			} {
-				n := count(control.size, control.w, ring)
+				n := count(ctl.size, ctl.w, ctl.ring)
 				if n == 0 {
 					t.Errorf("%s %s on level %d: focused, and not one pixel of that storey's ring colour %v",
-						scheme.name, control.name, level, ring)
+						scheme.name, ctl.name, level, ctl.ring)
 				}
 			}
 		}

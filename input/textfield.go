@@ -571,9 +571,9 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // edge the checkbox and the radio do, on whatever storey it is put.
 //
 // The focused border's colour is the rung of the primary ramp that clears
-// focus.Floor against the storey the field stands on (focus.Ground), which
-// also governs the field's own fill, so one walk keeps both the ring and the
-// fill it sits against above the floor.
+// focus.Floor against both sides of the band it becomes — the storey the field
+// stands on outside it (focus.Ground) and the field's own fill within it
+// (controlFill) — which is focus.RingBetween's two-sided walk.
 func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, placeholder color.NRGBA) {
 	bg = controlFill(c, s.Ground)
 	text = c.Text
@@ -586,7 +586,7 @@ func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, pla
 		border = tokens.Disabled(border)
 		placeholder = tokens.Disabled(placeholder)
 	case s.Focused:
-		border = focus.Ring(c, focus.Ground(c, s.Ground))
+		border = focus.RingBetween(c, focus.Ground(c, s.Ground), controlFill(c, s.Ground))
 	}
 	return
 }

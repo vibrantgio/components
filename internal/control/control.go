@@ -9,6 +9,7 @@ package control
 import (
 	"image/color"
 
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -23,7 +24,8 @@ const GraphicFloor = 3.0
 // Border is the ink of a control's resting edge — the unchecked box, the
 // unselected radio, the text field, the picker's field trigger: the rung of
 // the neutral ramp nearest its mid-value step that reaches [GraphicFloor]
-// against the ground the control stands on.
+// against BOTH sides of that edge, the storey the control stands on outside it
+// and the control's own interior ([Fill]) inside it.
 //
 // Asking the ramp which rung clears the floor is what keeps the edge legible
 // in both schemes. A named step cannot: the neutral ramps are paired — light
@@ -39,18 +41,28 @@ const GraphicFloor = 3.0
 // where the ground is deeper and the control keeps its edge wherever it
 // stands.
 //
-// The control's own interior is the edge's other side, and every rung this
-// walk answers clears the floor against it too — both sides of the edge move
-// with the ground. Measured over the four storeys the light scheme lands
-// 4.10 / 4.21 / 4.35 / 4.35:1 inside and the dark 5.94 / 5.07 / 3.47 / 3.47:1;
-// the light scheme's rungs above the pin are whispers, so its inner pairing
-// barely moves off the outer one, while the dark scheme's climb is real and
-// the ink — chosen against the ground outside — is closest to the interior at
-// the top of the ladder. 3.47:1 is the worst pairing this walk makes anywhere
-// in the seed sweep, on either side of the edge, and it is the level-3
-// interior.
+// An edge has two sides and one colour, so a walk aimed at one of them is a
+// promise about the other, and where the ramp carries a rung BETWEEN the two
+// neighbours the walk stops on it and breaks that promise: aimed at the ground
+// alone the rung comes back 2.62:1 against the interior it encloses at a dark
+// scheme's level 1, on every seed. So both candidates are derived — the rung
+// clear of the ground outside and the rung clear of the interior inside — and
+// the first that clears both is the edge. Over the seed sweep, both
+// derivations and every storey, one of the two always does, and the worst side
+// of the kept rung measures 3.07:1.
 func Border(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
-	return c.MarkOn(tokens.RoleNeutral, c.SurfaceAt(ground), GraphicFloor)
+	outside, inside := c.SurfaceAt(ground), Fill(c, ground)
+	against := c.MarkOn(tokens.RoleNeutral, outside, GraphicFloor)
+	for _, cand := range [...]color.NRGBA{
+		against,
+		c.MarkOn(tokens.RoleNeutral, inside, GraphicFloor),
+	} {
+		if vgcolor.ContrastRatio(cand, outside) >= GraphicFloor &&
+			vgcolor.ContrastRatio(cand, inside) >= GraphicFloor {
+			return cand
+		}
+	}
+	return against
 }
 
 // Fill is the interior of a control that paints a box of its own — the

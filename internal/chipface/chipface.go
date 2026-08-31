@@ -243,14 +243,66 @@ func restFill(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
 }
 
 // Fill is the family's ground: the measured step over the surface it stands
-// on, walked by the interaction state.
+// on, walked by the interaction state and stopped short of any depth its own
+// label could not be read on.
 //
 // The walk is [tokens.ColorTokens.PinnedStateColor] — the same walk
 // [tokens.ColorTokens.StateAt] takes from a storey, taken from the resting
 // fill instead, because that fill is not a storey. Hover and press therefore
 // follow the rest automatically and their stride is untouched.
+//
+// The stopping is the label's, and it binds where the ramp's own two ends are
+// too close together to write on its middle. A ramp writes with its ends, so
+// between them lies a band of depths no rung of it reaches tokens.TextFloor
+// against — for the dark ramp, L\* 46.0 to 53.8 — and a widget standing high
+// on the elevation ladder walks into it: pressed on a level-2 plane the walk
+// lands at 48.1 and hovered on a level-3 one at 47.6, where the best ink the
+// palette carries measures 4.09:1 and 4.21:1. A fill nothing can be written on
+// is not a state to walk to, so the walk stops at the last depth on its way
+// that the palette can still write on. Both fills come to rest at 45.7 with
+// their label at 4.51:1, and nothing else on either scheme's ladder moves: the
+// light ramp's ends are a near-black and a near-white, its band lies at L\* 47
+// to 52, and the deepest fill this family walks to in that scheme is 75.5.
 func Fill(c tokens.ColorTokens, ground tokens.ElevationLevel, state tokens.State) color.NRGBA {
-	return c.PinnedStateColor(restFill(c, ground), state)
+	rest := restFill(c, ground)
+	return legible(c, rest, c.PinnedStateColor(rest, state))
+}
+
+// legible is the walk's stop: walked itself while the palette can write a
+// label on it, and otherwise the last depth between rest and walked that it
+// can, at walked's own hue and chroma.
+//
+// The depth is found by measuring the realized tone rather than by solving for
+// the band's edge, because a tone is realized in 8-bit sRGB and a depth solved
+// exactly on the edge rounds to either side of it; halving the interval keeps
+// the answer on the side that measured legible. A rest fill that cannot be
+// written on has no such side and is left alone — that is a defect in the
+// resting appearance and belongs to the gates, not to a state walk.
+func legible(c tokens.ColorTokens, rest, walked color.NRGBA) color.NRGBA {
+	if writable(c, walked) || !writable(c, rest) {
+		return walked
+	}
+	restL, _, _ := vgcolor.LabFromNRGBA(rest)
+	walkedL, _, _ := vgcolor.LabFromNRGBA(walked)
+	_, chroma, hue := vgcolor.OKLChFromNRGBA(walked)
+	// lo is always a depth that measured legible, hi one that did not.
+	lo, hi := restL, walkedL
+	for range 24 {
+		mid := (lo + hi) / 2
+		if writable(c, vgcolor.NRGBAFromToneChromaHue(mid, chroma, hue)) {
+			lo = mid
+		} else {
+			hi = mid
+		}
+	}
+	return vgcolor.NRGBAFromToneChromaHue(lo, chroma, hue)
+}
+
+// writable reports whether the ink this family would write a label in reaches
+// its floor on fill — [Ink]'s own answer, measured, since Ink hands back the
+// best-reading rung when no rung reaches the floor at all.
+func writable(c tokens.ColorTokens, fill color.NRGBA) bool {
+	return vgcolor.ContrastRatio(Ink(c, fill, tokens.TextFloor), fill) >= tokens.TextFloor
 }
 
 // Rim is the edge, and whether there is one: the rung of the neutral ramp
@@ -259,14 +311,15 @@ func Fill(c tokens.ColorTokens, ground tokens.ElevationLevel, state tokens.State
 // reach both.
 //
 // An edge has two sides and one colour, so a walk aimed at one side is a
-// promise about the other. components/input's control border aims at the
-// ground and gets away with it because a field's interior never moves; this
-// family's does, one and two rungs under the pointer, and in the dark scheme
-// those rungs are long. Aimed at the ground alone, the rim lands ON the
-// pressed fill at level 1 — 1.00:1, the same colour twice — and aimed at the
-// fill alone it vanishes into the ground at rest in the light scheme, where
-// the storey step is 1.02:1 and the rim is the only thing there is. So both
-// candidates are derived and the one that clears both sides is kept.
+// promise about the other, and this family's inner side moves besides — one
+// and two rungs under the pointer, and in the dark scheme those rungs are
+// long. Aimed at the ground alone, the rim lands ON the pressed fill at level
+// 1 — 1.00:1, the same colour twice — and aimed at the fill alone it vanishes
+// into the ground at rest in the light scheme, where the storey step is 1.02:1
+// and the rim is the only thing there is. So both candidates are derived and
+// the one that clears both sides is kept, which is the rule every two-sided
+// edge in this library takes (components/internal/control's border, the focus
+// ring that replaces this rim).
 //
 // When neither clears both, the two neighbours are further apart than twice
 // the floor and no colour on any ramp could sit between them — which is

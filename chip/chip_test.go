@@ -122,9 +122,9 @@ func TestChipGoldenOnEveryGround(t *testing.T) {
 }
 
 // TestChipStateGolden records or diffs the interaction states on the paper in
-// both schemes. The dark hovered and pressed images are where the package
-// doc's rimless case is actually visible: the fill has walked far enough to
-// carry its own edge and the hairline is gone.
+// both schemes. The dark hovered and pressed images are where the walk is
+// visible as a walk: three fills a rung apart under one hairline, the rim
+// answering a deeper rung as the fill it encloses climbs.
 func TestChipStateGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	states := []struct {

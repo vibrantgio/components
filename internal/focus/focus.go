@@ -29,9 +29,12 @@
 // Deriving the ground from the storey rather than naming a fixed surface is
 // what keeps this true when a scale, a headroom or a seed moves: the floor is
 // met against the fill the ring is actually drawn on, not against a surface
-// that merely happens to agree with it. Over the 822 palettes this package
-// sweeps, the thinnest margin anywhere is 3.44:1, a dark scheme's level-3
-// popover — the ladder's lightest rung and the one with the least room left.
+// that merely happens to agree with it. Where the band has a different
+// neighbour on each side — a control's own fill within it, the host storey
+// beyond it — both are asked and the rung that clears both is kept
+// ([RingBetween]). Over the 822 palettes this package sweeps, the thinnest
+// margin anywhere is 3.05:1, and it is the inner side: a dark scheme's field
+// interior on the paper.
 //
 // The second placement is not a second idiom, and the checkbox is the reason
 // it exists. Its edge is spoken for: unchecked, that edge is the border, and
@@ -59,7 +62,7 @@
 // the result is unmistakably the brand hue and never too close to its ground.
 // Over that same sweep, both derivations and both schemes, the worst pairing
 // any control's ring makes with the ground it circles measures 3.00:1 in a
-// light scheme and 3.44:1 in a dark one, and there is no seed for which any
+// light scheme and 3.05:1 in a dark one, and there is no seed for which any
 // of them fails.
 package focus
 
@@ -68,6 +71,7 @@ import (
 
 	"gioui.org/unit"
 
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -91,8 +95,45 @@ const Floor = 3.0
 // and no rung that reads against the page reads against that fill; the rung
 // that does is a pale one, and it is still the same ring, at the same width,
 // in the same place.
+//
+// This is the one-ground form, for a band with the same colour on both sides:
+// a checkbox's ring and a radio's, riding in the host's slack; a link's, in
+// the paragraph ground; a button's, inset in its own fill. A band with a
+// different neighbour on each side takes [RingBetween].
 func Ring(c tokens.ColorTokens, ground color.NRGBA) color.NRGBA {
-	return c.MarkOn(tokens.RolePrimary, ground, Floor)
+	return RingBetween(c, ground, ground)
+}
+
+// RingBetween is the ring for a band whose two sides are different colours:
+// outer is what lies beyond the ring, inner what lies within it. It is the
+// promoted-border family's ring — the host storey outside, the control's own
+// fill inside — and it answers [Ring] for a band whose neighbours agree.
+//
+// One walk cannot be aimed at one side and trusted on the other. Aimed at the
+// storey alone the rung clears the storey and lands 2.62:1 on the fill inside
+// it at a dark scheme's level 1, where the ramp carries a rung between the two
+// neighbours and the walk stops on it; aimed at the fill alone it comes back
+// 2.14:1 against a level-3 popover. So both candidates are derived — the rung
+// [Floor] clear of the outer side and the rung [Floor] clear of the inner one
+// — and the first that clears BOTH is the ring, which is the same two-sided
+// rule the chip family's rim takes.
+//
+// A band has to be drawn whatever it measures, so a palette that offered
+// neither candidate would take the outer one; over the seed sweep, both
+// derivations and every storey, there is no such palette and the worst side of
+// the kept rung measures 3.05:1.
+func RingBetween(c tokens.ColorTokens, outer, inner color.NRGBA) color.NRGBA {
+	against := c.MarkOn(tokens.RolePrimary, outer, Floor)
+	for _, cand := range [...]color.NRGBA{
+		against,
+		c.MarkOn(tokens.RolePrimary, inner, Floor),
+	} {
+		if vgcolor.ContrastRatio(cand, outer) >= Floor &&
+			vgcolor.ContrastRatio(cand, inner) >= Floor {
+			return cand
+		}
+	}
+	return against
 }
 
 // Ground is the ground a control standing on the given storey hands [Ring]:
@@ -105,11 +146,12 @@ func Ring(c tokens.ColorTokens, ground color.NRGBA) color.NRGBA {
 //
 // The promoted-border family is why this resolves to the storey rather than
 // to the field's own fill. That ring has two neighbours — the control's fill
-// inside, the host storey outside — and one walk has to satisfy both:
-// deriving against the storey does, on every palette the seed sweep reaches.
-// The inner neighbour is itself a storey — a control that fills a box on its
-// host is raised on it, so its fill is the rung above the ground handed in
-// here — and the sweep clears at 3.44:1 worst on either side of the band.
+// inside, the host storey outside — and this is the outer one. No single walk
+// satisfies both: the rung derived here measures 2.62:1 against the fill
+// inside it at a dark scheme's level 1. So that family hands this ground and
+// its own fill to [RingBetween] and takes the rung that clears both. The inner
+// neighbour is itself a storey — a control that fills a box on its host is
+// raised on it, so its fill is the rung above the ground handed in here.
 //
 // There is no special case: [tokens.ColorTokens.SurfaceAt] answers every
 // storey the ladder carries, the Background pin at level 0 and the floor
