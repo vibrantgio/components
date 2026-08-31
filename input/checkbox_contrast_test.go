@@ -146,9 +146,8 @@ func TestControlBorderClearsTheFloorForEverySeed(t *testing.T) {
 // TestCheckboxCheckClearsTheGraphicFloor measures the other pairing: the
 // check mark against the Primary fill it is drawn on. The mark takes
 // OnPrimary — the on-colour the pin is derived with, which is what
-// components/button's filled label and patterns/tag's filled register both
-// take over the same fill — so a checkbox agrees with every other thing in
-// the library that puts a mark on the accent.
+// components/button's filled label takes over the same fill — so a checkbox
+// agrees with every other thing in the library that puts a mark on the accent.
 func TestCheckboxCheckClearsTheGraphicFloor(t *testing.T) {
 	for _, sc := range []struct {
 		name   string

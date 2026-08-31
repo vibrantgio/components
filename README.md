@@ -66,6 +66,7 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 
 | Package | |
 | --- | --- |
+| `badge` | The inline annotation: the system's own word about a thing, set at the size of its own type and off the control ladder entirely. It speaks as a word, a count or a glyph, in one derived ink and with no fill, no corner and no boundary — five variants differing in hue alone (`Neutral` for a plain category label, `Success`/`Warning`/`Error`/`Info` for the four statuses) and no emphasis axis, because a badge is read rather than used. `Props.OnDismiss` grows the close mark, whose invisible target is 24 dp on an 8 dp drawing; what it removes is the label and never the behaviour. |
 | `bench` | `BenchFrame`, the shared per-frame benchmark harness every component's benchmarks run through. |
 | `button` | The button: text or icon-only, in three emphasis registers (filled, tonal, ghost — the filled one able to wear a fill and ink pinned by its caller), hover/focus/press/disabled, keyboard activation, density-sized with a 44 dp pointer target; clicks arrive as a callback or as an MVU message. |
 | `cache` | `FrameCache`, an op-recording cache that replays a widget's recorded draw commands on frames where its inputs have not changed. |

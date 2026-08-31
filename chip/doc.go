@@ -18,10 +18,11 @@
 // the branch a pane is on, the filter a list is under — and it has exactly one
 // weight because that summary has exactly one job.
 //
-// Nor is it patterns/tag. That pill is a status vocabulary drawn in a role's
-// own hue — Success, Warning, Error — and it does not move under the pointer.
-// This one is neutral by construction, wears the elevation ladder rather than
-// a ramp, and is the only one of the two that can be clicked.
+// Nor is it components/badge. A badge is the system's own word about a thing,
+// set at the size of its type in a role's own hue with no fill under it at
+// all, and it does not move under the pointer. This one is neutral by
+// construction, wears the elevation ladder rather than a ramp, is sized off
+// the control ladder, and is the only one of the two that can be clicked.
 //
 // Nor is it the pull-down anchor. A control that names a choice and stands
 // over a list of the alternatives is picker.Anchor, which draws the same
@@ -121,7 +122,7 @@
 // When no rung reaches both, the chip draws NO rim, and that is not a
 // concession. The two neighbours are then further apart than twice the floor,
 // which means the fill is separating from its ground on its own — the
-// condition patterns/tag states for its own pill, translated into the
+// condition this library's outline ruling states, translated into the
 // elevation ladder's vocabulary: a fill that stands off its page needs no
 // outline, and a fill that cannot never will. It happens in the dark scheme
 // only, on a pressed chip at level 2 and above and on a hovered one at level
@@ -182,10 +183,9 @@
 // numbers are already in the tokens.
 //
 // Horizontal padding is d.PaddingX (16 dp Comfortable, 12 dp Compact) at each
-// end. The gap between the label and the glyph is the spacing scale's S2 stop,
-// the same 8 dp patterns/tag gives its close mark and for the same reason: at
-// S1 a trailing mark reads as the end of the word rather than as something of
-// its own.
+// end. The gap between the label and the glyph is the spacing scale's S2 stop:
+// at S1 a trailing mark reads as the end of the word rather than as something
+// of its own.
 //
 // The glyph is the label's own line box — 20 dp in LabelLarge, 16 dp in
 // LabelMedium — because an inline mark belongs to the line it sits on rather

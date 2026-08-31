@@ -271,8 +271,8 @@ func Fill(c tokens.ColorTokens, ground tokens.ElevationLevel, state tokens.State
 // When neither clears both, the two neighbours are further apart than twice
 // the floor and no colour on any ramp could sit between them — which is
 // exactly the case where no rim is needed, because a fill that far off its
-// ground is carrying its own edge. That is patterns/tag's ruling in the
-// elevation ladder's vocabulary: a fill that separates on its own needs no
+// ground is carrying its own edge. That is this library's outline ruling in
+// the elevation ladder's vocabulary: a fill that separates on its own needs no
 // outline, and a fill that cannot never will. So the second return is false
 // there and the caller draws the shape without one.
 func Rim(c tokens.ColorTokens, ground tokens.ElevationLevel, state tokens.State) (color.NRGBA, bool) {

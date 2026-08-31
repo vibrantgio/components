@@ -121,15 +121,11 @@ type Inventory struct {
 	// SetTypography; the parsed documents stay.
 	typo tokens.Typography
 
-	// The dismissible chips' close targets, so the specimens are real ones
+	// The dismissible badges' close targets, so the specimens are real ones
 	// the pointer and the keyboard can reach rather than drawings of a
 	// mark. Their clicks are drained and dropped: an inventory that let a
 	// specimen dismiss itself would leave a hole where the family it
 	// demonstrates used to be.
-	tagDismiss [2]widget.Clickable
-
-	// The dismissible badges' close targets, for the same reason and drained
-	// the same way.
 	badgeDismiss [2]widget.Clickable
 }
 
@@ -686,6 +682,13 @@ func badgeCheck(gtx layout.Context, sizePx int, col color.NRGBA) {
 	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: stroke}.Op())
 }
 
+// badgeStyle is the type role every badge on the page is set in. The whole
+// inventory is drawn at the comfortable density, so the badge's own density
+// question has one answer here and is asked in one place.
+func (inv *Inventory) badgeStyle() tokens.TextStyle {
+	return badge.Style(inv.typography(), tokens.Comfortable)
+}
+
 // badgeBlock shows the vocabulary in one column and the anatomy under it: the
 // five variants as the words they name, then the three utterances a badge can
 // make, then the close mark through the states the pointer puts it in.
@@ -697,7 +700,7 @@ func badgeCheck(gtx layout.Context, sizePx int, col color.NRGBA) {
 // and a sign read at one weight, and both of those are questions about one
 // ground.
 func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
-	style := badge.Style(inv.typography(), tokens.Comfortable)
+	style := inv.badgeStyle()
 	variants := []struct {
 		label string
 		v     badge.Variant

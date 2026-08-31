@@ -18,8 +18,8 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
-	"gioui.org/widget"
 
+	"github.com/vibrantgio/components/badge"
 	"github.com/vibrantgio/components/button"
 	complayout "github.com/vibrantgio/components/layout"
 	"github.com/vibrantgio/patterns/accordion"
@@ -38,7 +38,6 @@ import (
 	patsidebar "github.com/vibrantgio/patterns/sidebar"
 	"github.com/vibrantgio/patterns/table"
 	"github.com/vibrantgio/patterns/tabs"
-	"github.com/vibrantgio/patterns/tag"
 	"github.com/vibrantgio/patterns/testimonial"
 	"github.com/vibrantgio/patterns/toast"
 	"github.com/vibrantgio/patterns/tooltip"
@@ -57,8 +56,6 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 		// of the section below.
 		{Name: "patterns-toast", Title: "Toast — the transient message at every level", Height: 177,
 			Body: inv.toasts(c)},
-		{Name: "patterns-tag", Title: "Tag — filled, tonal and the three status levels, two of the five carrying the close mark every treatment can take", Height: 20,
-			Body: inv.tags(c)},
 		{Name: "patterns-card", Title: "Card — flat and elevated, header, body and footer", Height: 150,
 			Body: inv.cards(c)},
 		{Name: "patterns-accordion", Title: "Accordion — one section open, the rest closed", Height: 240,
@@ -203,65 +200,6 @@ func (inv *Inventory) toasts(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) tags(c tokens.ColorTokens) layout.Widget {
-	variants := []struct {
-		label string
-		v     tag.Variant
-	}{
-		{"Filled", tag.Filled},
-		{"Tonal", tag.Tonal},
-		{"Success", tag.Success},
-		{"Warning", tag.Warning},
-		{"Error", tag.Error},
-	}
-	return func(gtx layout.Context) layout.Dimensions {
-		// The close mark rides chips already in the row rather than adding
-		// one of its own. It is not a sixth treatment — every treatment can
-		// carry it — and a sixth specimen could only be one of the five
-		// again with a mark on it, which reads as exactly the thing it is
-		// not.
-		//
-		// It rides two of them, because the mark takes the label's colour
-		// and one specimen can only show one of the two inks a chip label
-		// ever wears: the filled chip's is an on-colour over a pinned fill,
-		// a status chip's the neutral Text pin over a tint. Showing it once
-		// leaves the other half of that unproven.
-		//
-		// The status one is warning rather than error on purpose. A close
-		// mark on a red chip labelled for failure reads as "dismiss this
-		// failure" — which is what the banner and the transient message in
-		// this same library are for — and a catalogue that says the wrong
-		// thing loudly is worse than one that says less.
-		//
-		// Clicks are drained so none queues up behind a specimen: an
-		// inventory that let one dismiss itself would leave a hole where
-		// the family it demonstrates used to be.
-		for i := range inv.tagDismiss {
-			for inv.tagDismiss[i].Clicked(gtx) {
-			}
-		}
-		marked := map[int]*widget.Clickable{
-			0:                 &inv.tagDismiss[0],
-			len(variants) - 2: &inv.tagDismiss[1],
-		}
-		cs := make([]layout.FlexChild, 0, 2*len(variants))
-		for i, v := range variants {
-			v := v
-			if i > 0 {
-				cs = append(cs, layout.Rigid(complayout.HSpacer(10)))
-			}
-			if click, ok := marked[i]; ok {
-				cs = append(cs, layout.Rigid(tag.RenderDismissible(inv.shaper, v.label, v.v, click, c,
-					tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelSmall)))
-				continue
-			}
-			cs = append(cs, layout.Rigid(tag.Render(inv.shaper, v.label, v.v, c,
-				tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelSmall)))
-		}
-		return layout.Flex{Alignment: layout.Middle}.Layout(gtx, cs...)
-	}
-}
-
 func (inv *Inventory) cards(c tokens.ColorTokens) layout.Widget {
 	header := func(s string) layout.Widget {
 		return func(gtx layout.Context) layout.Dimensions {
@@ -275,13 +213,21 @@ func (inv *Inventory) cards(c tokens.ColorTokens) layout.Widget {
 	)
 	return func(gtx layout.Context) layout.Dimensions {
 		one := func(title string, elevated bool) layout.Widget {
+			// The footer badge has no fill, so it is derived against the
+			// card's own storey rather than the page's: a flat card is a
+			// level-1 surface and an elevated one a level-2.
+			ground := tokens.Level1
+			if elevated {
+				ground = tokens.Level2
+			}
 			return func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(260))
 				gtx.Constraints.Min = gtx.Constraints.Max
 				return card.Render(card.Props{
-					Header:   header(title),
-					Body:     body,
-					Footer:   tag.Render(inv.shaper, "Footer", tag.Tonal, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelSmall),
+					Header: header(title),
+					Body:   body,
+					Footer: badge.Render(inv.shaper, "Footer", nil, badge.Neutral, c, tokens.Spacing,
+						inv.badgeStyle(), badge.RenderState{Ground: ground}),
 					Elevated: elevated,
 				}, c, tokens.Spacing, tokens.Radius)(gtx)
 			}
@@ -360,7 +306,10 @@ func (inv *Inventory) navbarProps(c tokens.ColorTokens) navbar.Props {
 			{Label: "Patterns"},
 		},
 		Actions: []layout.Widget{
-			tag.Render(inv.shaper, "v1", tag.Tonal, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelSmall),
+			// The bar fills the floor storey, and a badge with no fill of its
+			// own is derived against whatever it stands on.
+			badge.Render(inv.shaper, "v1", nil, badge.Neutral, c, tokens.Spacing,
+				inv.badgeStyle(), badge.RenderState{Ground: tokens.LevelFloor}),
 		},
 		Shaper: inv.shaper,
 	}
@@ -603,8 +552,8 @@ func (inv *Inventory) popover(c tokens.ColorTokens) layout.Widget {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(320))
 		gtx.Constraints.Min = gtx.Constraints.Max
 		props := popover.Props{
-			Anchor: tag.Render(inv.shaper, "Anchor", tag.Filled, c, tokens.Spacing, tokens.Radius,
-				tokens.DefaultTypography.LabelSmall),
+			Anchor: badge.Render(inv.shaper, "Anchor", nil, badge.Neutral, c, tokens.Spacing,
+				inv.badgeStyle(), badge.RenderState{}),
 			Content:   inv.prose(c, "A popover holds content", "beside what opened it."),
 			Placement: popover.Bottom,
 		}
@@ -618,8 +567,8 @@ func (inv *Inventory) tooltip(c tokens.ColorTokens) layout.Widget {
 		gtx.Constraints.Min = gtx.Constraints.Max
 		props := tooltip.Props{
 			Text: "Reload the theme",
-			Trigger: tag.Render(inv.shaper, "Trigger", tag.Tonal, c, tokens.Spacing, tokens.Radius,
-				tokens.DefaultTypography.LabelSmall),
+			Trigger: badge.Render(inv.shaper, "Trigger", nil, badge.Neutral, c, tokens.Spacing,
+				inv.badgeStyle(), badge.RenderState{}),
 			Placement: tooltip.Top,
 			Shaper:    inv.shaper,
 		}
