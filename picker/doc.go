@@ -55,18 +55,19 @@
 //
 // # The chrome register's trigger
 //
-// [Anchor] is a face of the chip family rather than a restyle of one: it keeps
-// every one of the chip's own answers — the measured fill, the two-sided rim,
-// the walked inks, the focus ring that replaces that rim, the density's height
-// and padding, the 44 dp pointer target, the pin — and changes exactly two
-// things. components/chip's package doc carries the derivations those answers
-// come from.
+// [Anchor] is the platform's pull-down control, drawn from the measured
+// geometry components/internal/chipface holds: the fill a measured step over
+// the surface it stands on and walked by the pointer, the rim derived against
+// both of its sides, the inks resolved against the fill actually drawn, the
+// focus ring that replaces that rim, the density's height and padding, the
+// 44 dp pointer target, the pin. [AnchorFill] is that fill, for a caller that
+// must clear it. Two things are the anchor's own.
 //
 // THE CORNER. The scale's Md stop, the same one components/button reads for
-// every register it draws. The platform's pop-up control is a rounded
-// rectangle where its toolbar capsules are pills, and the rounded rectangle
-// this system already owns is the button's; the anchor reads that stop rather
-// than naming a number, so the two cannot drift.
+// every register it draws. The platform draws its pop-up control as a rounded
+// rectangle, and the rounded rectangle this system already owns is the
+// button's; the anchor reads that stop rather than naming a number, so the two
+// cannot drift.
 //
 // THE MARK. A single down chevron, drawn by the component, not passed in.
 // Three consequences, all deliberate. A caller cannot put a different mark on

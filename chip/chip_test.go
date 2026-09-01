@@ -18,20 +18,16 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// chevron is the deterministic mark the chip goldens draw: a downward chevron
-// built from two clip.Stroke lines in a sizePx×sizePx box. It is the glyph the
-// chip this component replaces carried, and being vector rather than font or
-// SVG rasterisation it keeps the stored images stable.
+// chevron is the deterministic mark the chip goldens lead with: a downward
+// chevron built from two clip.Stroke lines in a sizePx×sizePx box. Being
+// vector rather than font or SVG rasterisation, it keeps the stored images
+// stable.
 //
 // Its ink is centred on the box and spans most of it, both deliberately. A
 // painter that draws a small figure in the middle of the box it was given
 // leaves slack the chip cannot see — the chip reserves the box, so a mark that
-// under-fills it reads as extra trailing padding — and one whose ink is not
-// centred on the box drops below the label, because the box is what the chip
-// centres. The first draft did both and a reviewer handed the rendering caught
-// both: "the chevron sits 2px low" and "the right side has visibly more air".
-// Neither was the component; both were this fixture, and the contract Glyph
-// states — fill the box — is what they were breaking.
+// under-fills it reads as extra padding — and one whose ink is not centred on
+// the box drops below the label, because the box is what the chip centres.
 func chevron(gtx layout.Context, sizePx int, col color.NRGBA) {
 	w := float32(sizePx)
 	stroke := float32(gtx.Dp(unit.Dp(1.5)))
@@ -46,6 +42,15 @@ func chevron(gtx layout.Context, sizePx int, col color.NRGBA) {
 	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: stroke}.Op())
 }
 
+// block fills the whole box it is given, which is what an avatar painter does:
+// a picture, not a sign. It is the fixture that shows the corner-full clip an
+// Input chip's leading slot applies — a painter drawing square corners into a
+// round slot is exactly what that clip is for, and only a painter that fills
+// the box can prove the slot is round.
+func block(gtx layout.Context, sizePx int, col color.NRGBA) {
+	paint.FillShape(gtx.Ops, col, clip.Rect{Max: image.Pt(sizePx, sizePx)}.Op())
+}
+
 // defaultShaper returns the shaper every golden here draws with: the default
 // typography's faces pinned, system fonts off, so the stored images are the
 // same on every machine. See components/AGENTS.md.
@@ -57,15 +62,12 @@ func defaultShaper(t *testing.T) *text.Shaper {
 // onStorey paints the whole canvas in the fill of the storey the chip is
 // standing on and draws w inset inside it, and it has to do both.
 //
-// The ground, because a chip's whole subject is how it separates from it:
-// against the headless window's own clear colour, a correct chip and one that
-// resolved its fill from the wrong storey look identical. The inset, because a
-// chip drawn at the canvas origin has the host on two sides and the image edge
-// on the other two, and an image framed that way cannot show whether anything
-// — a ring, a shadow, a stray half-pixel of rim — spills outside the box the
-// chip reported. A reviewer handed the first set said so: for a focus-state
-// review that is the wrong framing. Every stored image here has ground on all
-// four sides.
+// The ground, because a resting chip carries no fill of its own: against the
+// headless window's own clear colour, a correct chip and one that resolved its
+// body from the wrong storey look identical. The inset, because a chip drawn at
+// the canvas origin has the host on two sides and the image edge on the other
+// two, and an image framed that way cannot show whether anything — a ring, a
+// stray half-pixel of outline — spills outside the box the chip reported.
 const goldenInset = 12
 
 func onStorey(c tokens.ColorTokens, level tokens.ElevationLevel, w layout.Widget) layout.Widget {
@@ -75,10 +77,30 @@ func onStorey(c tokens.ColorTokens, level tokens.ElevationLevel, w layout.Widget
 	}
 }
 
-// The three grounds a chip actually rests on. The ladder has five rungs and
-// the contrast sweep walks all of them; these are the three a chip is put on
-// in practice — the content paper, the chrome furniture a toolbar band is, and
-// a dialog — so they are the three whose pixels are worth storing.
+// rowGap is the air between two chips in a stored row, wide enough that the
+// chips' own edges are never in doubt for the reader of the image.
+const rowGap = 16
+
+// row lays specimens out left to right with rowGap between them.
+func row(ws ...layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		cs := make([]layout.FlexChild, 0, 2*len(ws))
+		for i, w := range ws {
+			if i > 0 {
+				cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return layout.Dimensions{Size: image.Pt(gtx.Dp(unit.Dp(rowGap)), 0)}
+				}))
+			}
+			cs = append(cs, layout.Rigid(w))
+		}
+		return layout.Flex{Alignment: layout.Middle}.Layout(gtx, cs...)
+	}
+}
+
+// The three grounds a chip actually rests on. The ladder has five rungs and the
+// contrast sweep walks all of them; these are the three a chip is put on in
+// practice — the content paper, the chrome furniture a toolbar band is, and a
+// dialog — so they are the three whose pixels are worth storing.
 var goldenGrounds = []struct {
 	name  string
 	level tokens.ElevationLevel
@@ -96,73 +118,115 @@ var goldenSchemes = []struct {
 	{"dark", tokens.DefaultDark},
 }
 
-// goldenSize is a canvas comfortably larger than the chip, so the stored image
-// carries the host storey around the pill as well as the pill: the separation
-// is the thing under test and it cannot be seen in a crop of the fill.
-var goldenSize = image.Pt(220, 60)
+// goldenSize is a canvas comfortably larger than the row it holds, so the
+// stored image carries the host storey around the chips as well as the chips:
+// the separation is the thing under test and it cannot be seen in a crop.
+var goldenSize = image.Pt(660, 60)
 
-// TestChipGoldenOnEveryGround records or diffs the resting chip in both
+// render is the pure path at the comfortable default, which is what every
+// golden here draws through.
+func render(shaper *text.Shaper, label string, i chip.Intent, icon chip.Glyph,
+	c tokens.ColorTokens, s chip.RenderState,
+) layout.Widget {
+	return chip.Render(shaper, label, i, icon, c, tokens.Spacing, tokens.Radius,
+		tokens.DefaultTypography.LabelLarge, tokens.Comfortable, s)
+}
+
+// intentRow is the anatomy in one image: every intent, and for the filter both
+// of its two rests. Left to right — assist with a leading mark, a filter that
+// is not selected, the same filter selected, an input chip with an avatar and
+// its dismiss mark, and a label-only suggestion.
+func intentRow(shaper *text.Shaper, c tokens.ColorTokens, level tokens.ElevationLevel) layout.Widget {
+	rest := chip.RenderState{Ground: level}
+	picked := chip.RenderState{Ground: level, Selected: true}
+	return row(
+		render(shaper, "Assist", chip.Assist, chevron, c, rest),
+		render(shaper, "Filter", chip.Filter, nil, c, rest),
+		render(shaper, "Filter", chip.Filter, nil, c, picked),
+		render(shaper, "Input", chip.Input, block, c, rest),
+		render(shaper, "Suggestion", chip.Suggestion, nil, c, rest),
+	)
+}
+
+// TestChipIntentsOnEveryGround records or diffs the whole anatomy in both
 // schemes on each of the three grounds. Six images, and between them they are
-// the claim the package doc makes about the light scheme: the pill is visible
-// there because of its rim, not because of its fill.
-func TestChipGoldenOnEveryGround(t *testing.T) {
+// the claim the package doc makes: a resting chip is an outline and colour
+// arrives only with selection.
+func TestChipIntentsOnEveryGround(t *testing.T) {
 	shaper := defaultShaper(t)
 	for _, sc := range goldenSchemes {
 		for _, g := range goldenGrounds {
 			name := "chip-" + sc.name + "-" + g.name
 			t.Run(name, func(t *testing.T) {
-				w := chip.Render(shaper, "Claude · Opus 5", chevron,
-					sc.colors, tokens.Spacing, tokens.Radius,
-					tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
-					chip.RenderState{Ground: g.level})
-				golden.Render(t, name, goldenSize, onStorey(sc.colors, g.level, w))
+				golden.Render(t, name, goldenSize,
+					onStorey(sc.colors, g.level, intentRow(shaper, sc.colors, g.level)))
 			})
 		}
 	}
+}
+
+// stateRow is one chip in each of the four states the pointer and the keyboard
+// put it in, at the given selection.
+func stateRow(shaper *text.Shaper, c tokens.ColorTokens, selected bool) layout.Widget {
+	ws := make([]layout.Widget, 0, 4)
+	for _, st := range []struct {
+		label string
+		s     chip.RenderState
+	}{
+		{"Rest", chip.RenderState{}},
+		{"Hover", chip.RenderState{Hovered: true}},
+		{"Press", chip.RenderState{Pressed: true}},
+		{"Focus", chip.RenderState{Focused: true}},
+	} {
+		s := st.s
+		s.Selected = selected
+		ws = append(ws, render(shaper, st.label, chip.Filter, nil, c, s))
+	}
+	return row(ws...)
 }
 
 // TestChipStateGolden records or diffs the interaction states on the paper in
-// both schemes. The dark hovered and pressed images are where the walk is
-// visible as a walk: three fills a rung apart under one hairline, the rim
-// answering a deeper rung as the fill it encloses climbs.
+// both schemes and at both rests. The unselected rows are where the walk is
+// visible as a walk on a chip that has no fill: a body appears under the
+// pointer where there was none, and the outline answers a different rung as it
+// does.
 func TestChipStateGolden(t *testing.T) {
 	shaper := defaultShaper(t)
-	states := []struct {
-		name string
-		s    chip.RenderState
-	}{
-		{"hovered", chip.RenderState{Hovered: true}},
-		{"pressed", chip.RenderState{Pressed: true}},
-		{"focused", chip.RenderState{Focused: true}},
-	}
 	for _, sc := range goldenSchemes {
-		for _, st := range states {
-			name := "chip-" + sc.name + "-" + st.name
+		for _, sel := range []struct {
+			name     string
+			selected bool
+		}{
+			{"states", false},
+			{"selected-states", true},
+		} {
+			name := "chip-" + sc.name + "-" + sel.name
 			t.Run(name, func(t *testing.T) {
-				w := chip.Render(shaper, "Claude · Opus 5", chevron,
-					sc.colors, tokens.Spacing, tokens.Radius,
-					tokens.DefaultTypography.LabelLarge, tokens.Comfortable, st.s)
-				golden.Render(t, name, goldenSize, onStorey(sc.colors, tokens.Level0, w))
+				golden.Render(t, name, goldenSize,
+					onStorey(sc.colors, tokens.Level0, stateRow(shaper, sc.colors, sel.selected)))
 			})
 		}
 	}
 }
 
-// TestChipCompactGolden records the dense chip: Compact density in LabelMedium,
-// which the package doc's table says draws at 28 dp with 12 dp of side padding
-// — the hand-rolled pill this component replaces, reproduced out of the tokens.
+// TestChipCompactGolden records the dense chip: Compact density, where the
+// chip height is 24 dp and the marks do not shrink with it.
 func TestChipCompactGolden(t *testing.T) {
 	shaper := defaultShaper(t)
-	w := chip.Render(shaper, "Claude · Opus 5", chevron,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
-		tokens.DefaultTypography.LabelMedium, tokens.Compact, chip.RenderState{})
-	golden.Render(t, "chip-light-compact", goldenSize, onStorey(tokens.DefaultLight, tokens.Level0, w))
+	c := tokens.DefaultLight
+	w := row(
+		chip.Render(shaper, "Assist", chip.Assist, chevron, c, tokens.Spacing, tokens.Radius,
+			tokens.DefaultTypography.LabelLarge, tokens.Compact, chip.RenderState{}),
+		chip.Render(shaper, "Filter", chip.Filter, nil, c, tokens.Spacing, tokens.Radius,
+			tokens.DefaultTypography.LabelLarge, tokens.Compact, chip.RenderState{Selected: true}),
+		chip.Render(shaper, "Input", chip.Input, block, c, tokens.Spacing, tokens.Radius,
+			tokens.DefaultTypography.LabelLarge, tokens.Compact, chip.RenderState{}),
+	)
+	golden.Render(t, "chip-light-compact", goldenSize, onStorey(c, tokens.Level0, w))
 }
 
 // measure lays a widget out at one pixel per dp in a generous box and reports
-// what it drew, which is the only honest way to ask a component its height:
-// the density header's whole point is that ControlHeight is a floor and the
-// drawn number is the answer.
+// what it drew, which is the only honest way to ask a component its height.
 func measure(t *testing.T, w layout.Widget) image.Point {
 	t.Helper()
 	var ops op.Ops
@@ -174,48 +238,62 @@ func measure(t *testing.T, w layout.Widget) image.Point {
 	return w(gtx).Size
 }
 
-// TestHeightFollowsTheDensityTable measures the four rows of the package doc's
-// table. It is the gate on the one number a reader is most likely to
-// re-invent: a chip is as tall as its content box needs and never shorter than
-// the density says, which for Compact × LabelLarge means 32 and not 28.
-func TestHeightFollowsTheDensityTable(t *testing.T) {
+// TestHeightIsTheDensityChipHeight is the gate on the number a reader is most
+// likely to re-invent. A chip is off the control ladder's padding rule: its
+// height is tokens.Density.ChipHeight outright — 32 dp Comfortable, 24 dp
+// Compact — and neither the type role nor the marks move it, because both fit
+// inside that box at every pairing a chip is drawn at.
+func TestHeightIsTheDensityChipHeight(t *testing.T) {
 	shaper := defaultShaper(t)
-	cases := []struct {
-		name  string
-		style tokens.TextStyle
-		d     tokens.Density
-		want  int
+	for _, d := range []struct {
+		name string
+		d    tokens.Density
+		want int
 	}{
-		{"comfortable label-large", tokens.DefaultTypography.LabelLarge, tokens.Comfortable, 36},
-		{"compact label-large", tokens.DefaultTypography.LabelLarge, tokens.Compact, 32},
-		{"comfortable label-medium", tokens.DefaultTypography.LabelMedium, tokens.Comfortable, 36},
-		{"compact label-medium", tokens.DefaultTypography.LabelMedium, tokens.Compact, 28},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := measure(t, chip.Render(shaper, "Model", chevron,
-				tokens.DefaultLight, tokens.Spacing, tokens.Radius, tc.style, tc.d,
-				chip.RenderState{}))
-			if got.Y != tc.want {
-				t.Errorf("height = %d dp, want %d — the density table says max(ControlHeight, %g + 2×%g)",
-					got.Y, tc.want, tc.style.LineHeight, tc.d.PaddingY)
+		{"comfortable", tokens.Comfortable, 32},
+		{"compact", tokens.Compact, 24},
+	} {
+		for _, style := range []struct {
+			name string
+			ts   tokens.TextStyle
+		}{
+			{"label-large", tokens.DefaultTypography.LabelLarge},
+			{"label-medium", tokens.DefaultTypography.LabelMedium},
+		} {
+			for _, in := range []struct {
+				name string
+				i    chip.Intent
+				icon chip.Glyph
+				s    chip.RenderState
+			}{
+				{"assist with a mark", chip.Assist, chevron, chip.RenderState{}},
+				{"filter selected", chip.Filter, nil, chip.RenderState{Selected: true}},
+				{"input with an avatar", chip.Input, block, chip.RenderState{}},
+				{"suggestion bare", chip.Suggestion, nil, chip.RenderState{}},
+			} {
+				name := d.name + " " + style.name + " " + in.name
+				t.Run(name, func(t *testing.T) {
+					got := measure(t, chip.Render(shaper, "Model", in.i, in.icon,
+						tokens.DefaultLight, tokens.Spacing, tokens.Radius, style.ts, d.d, in.s))
+					if got.Y != d.want {
+						t.Errorf("height = %d dp, want the density's chip height %d (%g − %g)",
+							got.Y, d.want, d.d.ControlHeight, tokens.ChipDrop)
+					}
+				})
 			}
-		})
+		}
 	}
 }
 
-// TestChipIsSizedToItsContent is the other half of what makes a chip not a
-// button: a button fills the width it is given and a chip does not. A chip
-// that stretched would be a banner, and the difference is invisible in a
-// golden recorded at an exact size.
+// TestChipIsSizedToItsContent is what makes a chip not a button: a button fills
+// the width it is given and a chip does not. A chip that stretched would be a
+// banner, and the difference is invisible in a golden recorded at an exact
+// size.
 func TestChipIsSizedToItsContent(t *testing.T) {
 	shaper := defaultShaper(t)
-	short := measure(t, chip.Render(shaper, "A", chevron,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
-		tokens.DefaultTypography.LabelLarge, tokens.Comfortable, chip.RenderState{}))
-	long := measure(t, chip.Render(shaper, "A considerably longer summary", chevron,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
-		tokens.DefaultTypography.LabelLarge, tokens.Comfortable, chip.RenderState{}))
+	short := measure(t, render(shaper, "A", chip.Assist, chevron, tokens.DefaultLight, chip.RenderState{}))
+	long := measure(t, render(shaper, "A considerably longer summary", chip.Assist, chevron,
+		tokens.DefaultLight, chip.RenderState{}))
 	if short.X >= long.X {
 		t.Errorf("a one-letter chip measured %d dp wide and a long one %d: the chip is not sized to its label",
 			short.X, long.X)
@@ -225,55 +303,100 @@ func TestChipIsSizedToItsContent(t *testing.T) {
 	}
 }
 
-// TestGlyphCostsTheChipItsOwnWidth pins the geometry the package doc states
-// for the mark: the glyph is the label's line box and it is separated from the
-// label by the spacing scale's S2 stop, so a chip with a mark is exactly
-// LineHeight + S2 wider than the same chip without one.
-func TestGlyphCostsTheChipItsOwnWidth(t *testing.T) {
+// TestEachMarkCostsItsOwnSlot pins the anatomy in widths, which is the one
+// place a slot can be silently dropped or silently doubled: a leading icon
+// costs IconDp and the gap after it, an Input chip's avatar costs AvatarDp
+// instead because its leading slot is the avatar slot, and the dismiss mark
+// costs a second IconDp and a second gap.
+func TestEachMarkCostsItsOwnSlot(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := tokens.DefaultTypography.LabelLarge
-	bare := measure(t, chip.Render(shaper, "Model", nil,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, style, tokens.Comfortable,
-		chip.RenderState{}))
-	marked := measure(t, chip.Render(shaper, "Model", chevron,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, style, tokens.Comfortable,
-		chip.RenderState{}))
-	want := int(style.LineHeight) + int(tokens.Spacing.S2)
-	if got := marked.X - bare.X; got != want {
-		t.Errorf("the mark cost the chip %d dp, want %d (the label's %g dp line box plus the S2 %g dp gap)",
-			got, want, style.LineHeight, tokens.Spacing.S2)
+	gap := int(tokens.Spacing.S2)
+	width := func(i chip.Intent, icon chip.Glyph, s chip.RenderState) int {
+		return measure(t, render(shaper, "Model", i, icon, tokens.DefaultLight, s)).X
 	}
-	if bare.Y != marked.Y {
-		t.Errorf("a chip with a mark is %d dp tall and one without is %d: the mark must not move the height",
-			marked.Y, bare.Y)
+	bare := width(chip.Suggestion, nil, chip.RenderState{})
+	for _, tc := range []struct {
+		name string
+		got  int
+		want int
+	}{
+		{"a leading icon", width(chip.Assist, chevron, chip.RenderState{}) - bare, chip.IconDp + gap},
+		{"a filter's checkmark", width(chip.Filter, nil, chip.RenderState{Selected: true}) - bare, chip.IconDp + gap},
+		{"an input chip's dismiss mark", width(chip.Input, nil, chip.RenderState{}) - bare, chip.IconDp + gap},
+		{"an input chip's avatar and dismiss mark",
+			width(chip.Input, block, chip.RenderState{}) - bare, chip.AvatarDp + chip.IconDp + 2*gap},
+	} {
+		if tc.got != tc.want {
+			t.Errorf("%s cost the chip %d dp, want %d", tc.name, tc.got, tc.want)
+		}
 	}
 }
 
-// TestEveryStateIsDrawnApartFromRest is the state walk stated in pixels: a
-// chip is clickable and every state a pointer or a keyboard can put it in
-// changes what it draws. The stored state tiles show WHAT each one looks like;
-// this is the claim that none of them is the resting image.
+// TestASelectedFilterLeadsWithTheCheckmark is the slot rule where it is easiest
+// to get wrong: the checkmark takes the leading slot rather than standing
+// beside whatever icon the caller gave, so selecting a filter that already had
+// one must not widen it.
+func TestASelectedFilterLeadsWithTheCheckmark(t *testing.T) {
+	shaper := defaultShaper(t)
+	withIcon := measure(t, render(shaper, "Model", chip.Filter, chevron,
+		tokens.DefaultLight, chip.RenderState{Selected: true})).X
+	withNone := measure(t, render(shaper, "Model", chip.Filter, nil,
+		tokens.DefaultLight, chip.RenderState{Selected: true})).X
+	if withIcon != withNone {
+		t.Errorf("a selected filter with an icon measured %d dp and one without %d: the checkmark takes the slot",
+			withIcon, withNone)
+	}
+}
+
+// TestEveryStateIsDrawnApartFromRest is the state walk stated in pixels: a chip
+// is clickable and every state a pointer or a keyboard can put it in changes
+// what it draws. The stored tiles show WHAT each one looks like; this is the
+// claim that none of them is the resting image — including on a chip whose rest
+// has no fill at all, where a walk that did nothing would be invisible rather
+// than wrong-looking.
 func TestEveryStateIsDrawnApartFromRest(t *testing.T) {
 	shaper := defaultShaper(t)
 	frame := func(w layout.Widget) *image.RGBA {
 		return golden.Capture(t, goldenSize, onStorey(tokens.DefaultLight, tokens.Level0, w))
 	}
-	render := func(s chip.RenderState) layout.Widget {
-		return chip.Render(shaper, "Model", chevron, tokens.DefaultLight,
-			tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
-			tokens.Comfortable, s)
-	}
-	rest := frame(render(chip.RenderState{}))
-	for _, tc := range []struct {
-		name string
-		s    chip.RenderState
+	for _, sel := range []struct {
+		name     string
+		selected bool
 	}{
-		{"hovered", chip.RenderState{Hovered: true}},
-		{"pressed", chip.RenderState{Pressed: true}},
-		{"focused", chip.RenderState{Focused: true}},
+		{"unselected", false},
+		{"selected", true},
 	} {
-		if n := golden.PixelDiff(rest, frame(render(tc.s))); n == 0 {
-			t.Errorf("a %s chip is pixel-identical to a resting one", tc.name)
+		draw := func(s chip.RenderState) layout.Widget {
+			s.Selected = sel.selected
+			return render(shaper, "Model", chip.Filter, nil, tokens.DefaultLight, s)
 		}
+		rest := frame(draw(chip.RenderState{}))
+		for _, tc := range []struct {
+			name string
+			s    chip.RenderState
+		}{
+			{"hovered", chip.RenderState{Hovered: true}},
+			{"pressed", chip.RenderState{Pressed: true}},
+			{"focused", chip.RenderState{Focused: true}},
+		} {
+			if n := golden.PixelDiff(rest, frame(draw(tc.s))); n == 0 {
+				t.Errorf("a %s %s chip is pixel-identical to a resting one", sel.name, tc.name)
+			}
+		}
+	}
+}
+
+// TestSelectionIsDrawn is selection stated in pixels rather than in a
+// derivation: a selected filter chip and an unselected one cannot look alike,
+// because selection is the whole of what a filter chip has to say.
+func TestSelectionIsDrawn(t *testing.T) {
+	shaper := defaultShaper(t)
+	frame := func(selected bool) *image.RGBA {
+		return golden.Capture(t, goldenSize, onStorey(tokens.DefaultLight, tokens.Level0,
+			render(shaper, "Model", chip.Filter, nil, tokens.DefaultLight,
+				chip.RenderState{Selected: selected})))
+	}
+	if n := golden.PixelDiff(frame(false), frame(true)); n == 0 {
+		t.Error("a selected filter chip is pixel-identical to an unselected one")
 	}
 }

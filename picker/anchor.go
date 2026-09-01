@@ -1,6 +1,8 @@
 package picker
 
 import (
+	"image/color"
+
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
 	"gioui.org/text"
@@ -149,8 +151,9 @@ type AnchorProps struct {
 // survives every theme emission for the life of the subscription.
 func Anchor(th rx.Observable[theme.Theme], props AnchorProps) rx.Observable[layout.Widget] {
 	// The typography emission carries both the LabelLarge role the anchor is
-	// set in — the chip family's role, because the anchor is one of its faces
-	// — and the theme's cached shaper (the theme owns the typeface).
+	// set in — the role a control that names a value is set in, not the
+	// BodyLarge the form triggers take — and the theme's cached shaper (the
+	// theme owns the typeface).
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
 			rx.CombineLatest5(t.Color, t.Typography, t.Spacing, t.Radius, t.Density),
@@ -214,8 +217,8 @@ func Anchor(th rx.Observable[theme.Theme], props AnchorProps) rx.Observable[layo
 							semantic.LabelOp(props.Value).Add(gtx.Ops)
 							semantic.DescriptionOp(desc).Add(gtx.Ops)
 							semantic.EnabledOp(true).Add(gtx.Ops)
-							return chipface.Draw(gtx, shaper, props.Value, nil, tok.color,
-								tok.spacing, tok.radius, tok.label, tok.density, s, chipface.FaceAnchor)
+							return chipface.Draw(gtx, shaper, props.Value, tok.color,
+								tok.spacing, tok.radius, tok.label, tok.density, s)
 						})
 				})
 			}
@@ -253,7 +256,18 @@ func RenderAnchor(
 	s AnchorState,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return chipface.Draw(gtx, shaper, value, nil, colors, sp, rad, labelStyle, d,
-			chipface.State(s), chipface.FaceAnchor)
+		return chipface.Draw(gtx, shaper, value, colors, sp, rad, labelStyle, d,
+			chipface.State(s))
 	}
+}
+
+// AnchorFill is the fill the chrome register's trigger draws at on ground,
+// under the given interaction state: the platform's measured step over the
+// surface it stands on, walked by the pointer.
+//
+// It is exported because a window deciding what its own chrome must clear, or
+// a test measuring that ladder, needs the answer the anchor drew with, and
+// re-deriving it at the call site is how two answers appear.
+func AnchorFill(c tokens.ColorTokens, ground tokens.ElevationLevel, state tokens.State) color.NRGBA {
+	return chipface.Fill(c, ground, state)
 }

@@ -596,7 +596,7 @@ func (inv *Inventory) chipBlock(c tokens.ColorTokens) layout.Widget {
 			}
 			st := s.st
 			st.Ground = storey.ground
-			cs = append(cs, layout.Rigid(chip.Render(inv.shaper, s.label, mark, c,
+			cs = append(cs, layout.Rigid(chip.Render(inv.shaper, s.label, chip.Assist, mark, c,
 				tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
 				tokens.Comfortable, st)))
 		}

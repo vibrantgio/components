@@ -15,8 +15,8 @@ import (
 //
 // Two text roles, because the two triggers are drawn for two registers. The
 // field and the menu rows are BodyLarge, the role the form controls beside
-// them are set in; the anchor is LabelLarge, the role the chip family it
-// belongs to is set in.
+// them are set in; the anchor is LabelLarge, the role a control that names a
+// value rather than accepting one is set in.
 type resolvedTokens struct {
 	color   tokens.ColorTokens
 	body    tokens.TextStyle // the BodyLarge role: the field and the menu rows

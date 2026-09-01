@@ -11,7 +11,6 @@ import (
 	"gioui.org/op/paint"
 	"gioui.org/unit"
 
-	"github.com/vibrantgio/components/chip"
 	"github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/picker"
 	vgcolor "github.com/vibrantgio/theme/color"
@@ -118,38 +117,32 @@ func TestAnchorStateGolden(t *testing.T) {
 	}
 }
 
-// TestAnchorIsTheChipWithADifferentCornerAndMark holds the seam the anchor was
-// cut at. Everything components/chip contributes — the measured fill, the
-// two-sided rim, the walked inks, the density's height — is shared code, so the
-// two faces may differ in their corner and their mark and must not differ
-// anywhere else. The heights are the check that says so without a stored image:
-// a face that reached for its own padding or its own line box would draw a
-// different box.
-func TestAnchorIsTheChipWithADifferentCornerAndMark(t *testing.T) {
+// TestAnchorDrawsAtTheDensityTable holds the geometry the anchor takes off the
+// tokens rather than off numbers of its own: the height is the density's own
+// rule for a control — max(ControlHeight, line box + 2×PaddingY) — so a face
+// that reached for its own padding or its own line box would draw a different
+// box.
+func TestAnchorDrawsAtTheDensityTable(t *testing.T) {
 	shaper := defaultShaper(t)
 	box := image.Pt(1000, 1000)
 	for _, d := range []struct {
 		name string
 		d    tokens.Density
 		ts   tokens.TextStyle
+		want int
 	}{
-		{"comfortable", tokens.Comfortable, tokens.DefaultTypography.LabelLarge},
-		{"compact", tokens.Compact, tokens.DefaultTypography.LabelMedium},
+		{"comfortable", tokens.Comfortable, tokens.DefaultTypography.LabelLarge, 36},
+		{"compact", tokens.Compact, tokens.DefaultTypography.LabelMedium, 28},
 	} {
 		t.Run(d.name, func(t *testing.T) {
 			trigger := measure(t, box, picker.RenderAnchor(shaper, "Model", tokens.DefaultLight,
 				tokens.Spacing, tokens.Radius, d.ts, d.d, picker.AnchorState{})).Size
-			pill := measure(t, box, chip.Render(shaper, "Model", chevron, tokens.DefaultLight,
-				tokens.Spacing, tokens.Radius, d.ts, d.d, chip.RenderState{})).Size
-			if trigger.Y != pill.Y {
-				t.Errorf("anchor height %d, chip height %d: the faces share a geometry and must share this",
-					trigger.Y, pill.Y)
+			if trigger.Y != d.want {
+				t.Errorf("anchor height %d, want %d — max(ControlHeight %g, %g + 2×%g)",
+					trigger.Y, d.want, d.d.ControlHeight, d.ts.LineHeight, d.d.PaddingY)
 			}
-			// The mark is the only width difference, and it is the platform's
-			// ratio of the control height rather than the label's line box.
-			if trigger.X == pill.X {
-				t.Errorf("anchor and chip both %d wide: the anchor's mark is the "+
-					"control's own ratio and the chip's is the line box, so they cannot match by construction", trigger.X)
+			if trigger.X >= box.X {
+				t.Errorf("anchor measured %d dp wide in a %d dp box: it is sized to its value", trigger.X, box.X)
 			}
 		})
 	}
@@ -185,10 +178,9 @@ func TestAnchorMarkIsSteadyAcrossTheWalk(t *testing.T) {
 
 // TestAnchorChevronReachesTheGraphicFloor is the contrast sweep's extension to
 // the anchor, and it is a PIXEL measurement rather than another pass over the
-// derivations. components/chip's contrast sweep already walks the five colours
-// on every storey and in every state, and the anchor changes none of them — it
-// shares Fill, Rim and Ink with the chip, so that whole sweep covers this
-// control as it stands.
+// derivations. The geometry's own sweep
+// (components/internal/chipface) already walks the colours on every storey and
+// in every state, so the derivations are covered where they live.
 //
 // What it cannot cover is the mark. The chevron is a 1.5 dp DIAGONAL stroke,
 // and a diagonal hairline is antialiased: the colour Ink derives may clear the
@@ -218,7 +210,7 @@ func TestAnchorChevronReachesTheGraphicFloor(t *testing.T) {
 					s.Ground = g.level
 					w := anchor(t, sc.colors, s)
 					img := golden.Capture(t, goldenSize, onStorey(sc.colors, g.level, w))
-					fill := chip.Fill(sc.colors, g.level, stateOf(s))
+					fill := picker.AnchorFill(sc.colors, g.level, stateOf(s))
 
 					// The mark's own column: the trailing padding's width in
 					// from the control's trailing edge, which is where Draw

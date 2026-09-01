@@ -67,11 +67,11 @@ func driver(w layout.Widget, r *gioinput.Router, size image.Point) func() layout
 	}
 }
 
-// TestChipReportsThePillAndHitsTheFloor is the pointer-target contract: the
-// widget measures the pill it drew, while what the pointer may land on is the
-// 44 dp floor centred on it. The click below is outside the drawn pill on the
+// TestChipReportsItsBoxAndHitsTheFloor is the pointer-target contract: the
+// widget measures the chip it drew, while what the pointer may land on is the
+// 44 dp floor centred on it. The click below is outside the drawn chip on the
 // y axis and inside the slop, the only place the two can be told apart.
-func TestChipReportsThePillAndHitsTheFloor(t *testing.T) {
+func TestChipReportsItsBoxAndHitsTheFloor(t *testing.T) {
 	var clicked int
 	w := live(t, chip.Props{
 		Label:   "gpt-5",
@@ -82,23 +82,23 @@ func TestChipReportsThePillAndHitsTheFloor(t *testing.T) {
 	drive := driver(w, r, image.Pt(300, 120))
 
 	dims := drive() // register the input area
-	pill := int(tokens.Comfortable.ControlHeight)
-	if dims.Size.Y != pill {
-		t.Fatalf("chip measured %d px tall, want the density's control height %d", dims.Size.Y, pill)
+	box := int(tokens.Comfortable.ChipHeight())
+	if dims.Size.Y != box {
+		t.Fatalf("chip measured %d px tall, want the density's chip height %d", dims.Size.Y, box)
 	}
 	if dims.Size.X >= 300 {
 		t.Fatalf("chip measured %d px wide at a 300 px constraint: a chip is sized to its content", dims.Size.X)
 	}
 
-	// The hit rect is 44 px centred on the 36 px pill: −4..40 on the y axis.
-	pos := f32.Pt(float32(dims.Size.X)/2, 38)
+	// The hit rect is 44 px centred on the 32 px chip: −6..38 on the y axis.
+	pos := f32.Pt(float32(dims.Size.X)/2, 36)
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 	)
 	drive()
 	if clicked != 1 {
-		t.Errorf("click in the slop below the pill: OnClick fired %d times, want 1", clicked)
+		t.Errorf("click in the slop below the chip: OnClick fired %d times, want 1", clicked)
 	}
 }
 
@@ -166,9 +166,9 @@ func TestChipActivatesFromTheKeyboard(t *testing.T) {
 }
 
 // TestFocusedChipMeasuresTheSameBox: a focused chip's edge is the focus ring,
-// taking the rim's place rather than being drawn beside it, so nothing about
-// the pill moves when focus arrives. A ring drawn outside or inside the rim
-// would show here as a chip that grew or a label that shifted.
+// taking the outline's place rather than being drawn beside it, so nothing
+// about the box moves when focus arrives. A ring drawn outside or inside the
+// outline would show here as a chip that grew or a label that shifted.
 func TestFocusedChipMeasuresTheSameBox(t *testing.T) {
 	var click widget.Clickable
 	w := live(t, chip.Props{
@@ -205,17 +205,17 @@ func TestFocusedChipMeasuresTheSameBox(t *testing.T) {
 		t.Fatal("the chip did not take focus: the live path registered no focusable tag")
 	}
 	if focused.Size != atRest.Size {
-		t.Errorf("focused chip measured %v, at rest %v: the ring must replace the rim, not widen the pill",
+		t.Errorf("focused chip measured %v, at rest %v: the ring must replace the outline, not widen the chip",
 			focused.Size, atRest.Size)
 	}
 }
 
 // TestPinnedChipDrawsAtTheEdgeOfTheBox is the pinning seam: the chip is the
-// same pill at the same width, drawn at the edge of the box it was offered,
+// same chip at the same width, drawn at the edge of the box it was offered,
 // and the widget reports that box.
 //
-// Where the pill landed is measured with the pointer rather than with pixels,
-// because the target is centred on the drawn pill: a press two pixels in from
+// Where the chip landed is measured with the pointer rather than with pixels,
+// because the target is centred on the drawn chip: a press two pixels in from
 // the box's trailing edge reaches a trailing-pinned chip and a press two
 // pixels in from its leading edge falls in the slack and reaches nothing. A
 // chip that reported the box but drew at the origin would pass a dimension
@@ -224,7 +224,7 @@ func TestPinnedChipDrawsAtTheEdgeOfTheBox(t *testing.T) {
 	const label = "OpenAI · gpt-5.5"
 	box := image.Pt(300, 120)
 
-	// The pill's own width, which the pin must not change.
+	// The chip's own width, which the pin must not change.
 	pill := driver(live(t, chip.Props{Label: label, Icon: chevron}), new(gioinput.Router), box)()
 	if pill.Size.X >= box.X {
 		t.Fatalf("the unpinned chip measured %d px in a %d px box; there is no slack to pin across",
@@ -285,4 +285,108 @@ func press(r *gioinput.Router, x, y int) {
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 	)
+}
+
+// TestFilterChipTogglesAndReports is the one intent that holds state: the live
+// chip keeps its own selection, seeded by Props, and reports every move through
+// OnSelect while OnClick still fires for the activation itself.
+func TestFilterChipTogglesAndReports(t *testing.T) {
+	var moves []bool
+	var clicked int
+	w := live(t, chip.Props{
+		Label:    "Unread",
+		Intent:   chip.Filter,
+		OnSelect: func(_ layout.Context, selected bool) { moves = append(moves, selected) },
+		OnClick:  func(_ layout.Context) { clicked++ },
+	})
+
+	r := new(gioinput.Router)
+	size := image.Pt(300, 120)
+	drive := driver(w, r, size)
+
+	dims := drive()
+	mid := dims.Size.Y / 2
+	press(r, dims.Size.X/2, mid)
+	drive()
+	press(r, dims.Size.X/2, mid)
+	drive()
+
+	if want := []bool{true, false}; len(moves) != len(want) || moves[0] != want[0] || moves[1] != want[1] {
+		t.Errorf("OnSelect saw %v, want %v: a filter chip toggles and reports where it landed", moves, want)
+	}
+	if clicked != 2 {
+		t.Errorf("OnClick fired %d times, want 2: a toggle is still an activation", clicked)
+	}
+}
+
+// TestOnlyAFilterReportsSelection is the anatomy rule on the live path: the
+// other three intents have no selection to move, so nothing they are clicked
+// with may reach OnSelect.
+func TestOnlyAFilterReportsSelection(t *testing.T) {
+	for _, in := range []struct {
+		name string
+		i    chip.Intent
+	}{
+		{"assist", chip.Assist},
+		{"input", chip.Input},
+		{"suggestion", chip.Suggestion},
+	} {
+		t.Run(in.name, func(t *testing.T) {
+			moved := 0
+			w := live(t, chip.Props{
+				Label:    "Token",
+				Intent:   in.i,
+				Selected: true, // ignored: this intent carries no selection
+				OnSelect: func(_ layout.Context, _ bool) { moved++ },
+			})
+			r := new(gioinput.Router)
+			drive := driver(w, r, image.Pt(300, 120))
+			dims := drive()
+			press(r, int(tokens.Comfortable.PaddingX), dims.Size.Y/2)
+			drive()
+			if moved != 0 {
+				t.Errorf("OnSelect fired %d times on a %s chip: only a filter chip is selectable", moved, in.name)
+			}
+		})
+	}
+}
+
+// TestInputChipDismissesFromItsOwnTarget drives the dismiss mark, which is the
+// second pointer target the live path registers: it lies over the body's and
+// takes the pointer where the two overlap, so a click on the mark dismisses
+// rather than activating.
+func TestInputChipDismissesFromItsOwnTarget(t *testing.T) {
+	var dismissed, clicked int
+	w := live(t, chip.Props{
+		Label:     "recipient@example.com",
+		Intent:    chip.Input,
+		OnDismiss: func(_ layout.Context) { dismissed++ },
+		OnClick:   func(_ layout.Context) { clicked++ },
+	})
+
+	r := new(gioinput.Router)
+	drive := driver(w, r, image.Pt(400, 120))
+	dims := drive()
+
+	// The mark's centre: half an icon in from where the trailing padding
+	// starts, which is where the anatomy puts it.
+	markX := dims.Size.X - int(tokens.Comfortable.PaddingX) - chip.IconDp/2
+	press(r, markX, dims.Size.Y/2)
+	drive()
+	if dismissed != 1 {
+		t.Errorf("a click on the dismiss mark dismissed %d times, want 1", dismissed)
+	}
+	if clicked != 0 {
+		t.Errorf("a click on the dismiss mark also activated the chip %d times: the mark's target is on top", clicked)
+	}
+
+	// The label's own ground still activates the chip.
+	press(r, int(tokens.Comfortable.PaddingX), dims.Size.Y/2)
+	drive()
+	if clicked != 1 {
+		t.Errorf("a click on the label activated the chip %d times, want 1", clicked)
+	}
+	if dismissed != 1 {
+		t.Errorf("a click on the label dismissed the chip %d times, want none beyond the first", dismissed-1)
+	}
 }

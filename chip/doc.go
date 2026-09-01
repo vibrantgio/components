@@ -1,252 +1,167 @@
-// Package chip provides the Vibrant Gio chip: a small pill that carries a
-// data-bearing summary — a label and, optionally, one glyph — filled a
-// measured step above the ground it rests on.
+// Package chip provides the Vibrant Gio chip: the small control that content
+// sprouts — an outline at rest, coloured only when meaning arrives.
 //
-// It has one face and it is clickable. [Render] is the pure path: resolved
-// tokens plus a [RenderState] carrying hover, press, focus and the storey it
-// stands on, one frame out, no event handling. [Chip] is the live one — a
-// theme observable and [Props] in, a widget out on every theme emission, with
-// the pointer area, the keyboard and the activation dispatch the pure path
-// cannot carry.
+// A chip is defined by its intent and by nothing else. [Assist] offers a
+// contextual action, [Filter] narrows a set and is the one that toggles,
+// [Input] is a token the reader entered and carries a dismiss mark, and
+// [Suggestion] is a generated prompt. The four are the whole variation: one
+// anatomy, one silhouette, one height, four purposes.
+//
+// [Render] is the pure path: resolved tokens plus a [RenderState] carrying the
+// storey, the selection and the pointer, one frame out, no event handling.
+// [Chip] is the live one — a theme observable and [Props] in, a widget out on
+// every theme emission, with the pointer areas, the keyboard, the filter's own
+// selection and the activation dispatch the pure path cannot carry.
+//
+// # The anatomy
+//
+//	[mark] label [dismiss]
+//
+// Both brackets are optional and both are decided by the intent rather than by
+// a flag. The leading slot holds the caller's [Props.Icon] at [IconDp]; on an
+// [Input] chip it is the avatar slot instead, [AvatarDp] behind a full-round
+// corner, because what leads a token the reader entered is a picture of the
+// thing rather than a sign for it. A selected [Filter] chip draws the
+// checkmark there — the mark that says it is selected takes the slot rather
+// than standing beside a second one. Only [Input] carries the trailing dismiss
+// mark, and it always carries it.
+//
+// The parts are set an S2 stop apart, the spacing scale's own answer for two
+// things that belong to one utterance without being one word, and the row is
+// laid from the leading padding rather than centred: the anatomy is read from
+// its leading edge, so a chip clamped narrower than its content loses its
+// trailing end and not both ends at once.
 //
 // # What the chip is not
 //
-// There is no emphasis axis. A chip is not a quiet button and a button is not
-// a loud chip: selection rides components/button's emphasis register (Tonal
-// when picked, Ghost when not), and a button's label stays a verb. The chip is
-// where a data-bearing summary with a glyph lives — the model a chat is using,
-// the branch a pane is on, the filter a list is under — and it has exactly one
-// weight because that summary has exactly one job.
+// Not a quiet button. A button is a fixture — placed by the author, always
+// there, always offering the same action; a chip appears out of content and
+// context. Marking a choice is the [Filter] chip's job and no button's,
+// whatever the button's emphasis register.
 //
-// Nor is it components/badge. A badge is the system's own word about a thing,
-// set at the size of its type in a role's own hue over a pale fill of that
-// same hue, and it does not move under the pointer. This one is neutral by
-// construction, wears the elevation ladder rather than a ramp, takes the pill
-// corner where a badge takes a rounded-rect one, is sized off the control
-// ladder, and is the only one of the two that can be clicked.
+// Not components/badge. A badge is the system's word ABOUT a thing and is read
+// rather than used; it is off the control ladder, sized to its type, and does
+// not move under the pointer. The line between the two families is read/use.
 //
-// Nor is it the pull-down anchor. A control that names a choice and stands
-// over a list of the alternatives is picker.Anchor, which draws the same
-// geometry at the button's rounded-rect corner with a chevron of its own.
+// Not the pull-down anchor. A control that names a choice and stands over a
+// list of the alternatives is components/picker's, which draws the platform's
+// own measured pop-up capsule.
 //
-// # Colour: everything is walked, nothing is mixed
+// # Colour: an outline at rest, a container when selected
 //
-// Five colours, five derivations, no literal in the package:
+// Everything is derived and nothing is a literal. [Resolve] carries the whole
+// table and states each derivation; what follows is why it is that shape.
 //
-//	fill   the ground lifted by the scheme's measured step, walked by the
-//	       pointer
-//	rim    the neutral rung that clears GraphicFloor against the ground AND
-//	       against the fill — or none, when no rung reaches both
-//	label  the Text pin, or the neutral rung that clears TextFloor on the fill
-//	glyph  the Text pin, or the neutral rung that clears GraphicFloor on the fill
-//	ring   focus.Ring, the scheme's one focus colour
+// The resting chip has NO fill. Its body is painted in the storey the caller
+// named, so what a reader sees is the outline and the ink inside it — a
+// control that is present without claiming to be a filled thing. That outline
+// is [tokens.ColorTokens.OutlineVariant], the neutral rung floored by
+// construction against Surface and Background; the chip takes it as a pin
+// rather than as an answer, because the elevation ladder reaches past that
+// pair and the token measures 1.80:1 on the dark scheme's level-3 plane. The
+// ink is [tokens.ColorTokens.OnSurfaceVariant], the muted rung that is still a
+// colour text may legally be set in — except on [Assist], which reads in the
+// page's full-strength Text pin, because an assist chip proposes something to
+// do and is read at the weight of what it proposes.
 //
-// The fill is relative to the ground the caller names and never an absolute
-// step, as everything raised must be: a chip on the
-// paper, the same chip inside a dialog and one on the furniture floor each
-// stand the same distance over what they lie on. Hover and press are that
-// fill's own state walk — tokens.ColorTokens.PinnedStateColor, the walk
-// tokens.ColorTokens.StateAt takes from a storey, taken from the chip's
-// resting fill instead — which still heads toward the ramp's 900 end, so a
-// chip DARKENS under the pointer on paper and lightens on slate. The two
-// directions are not a mirror: the ladder answers to the linchpin, feedback
-// does not.
+// Selection is where colour arrives. A selected [Filter] chip fills with the
+// secondary container and drops its outline: the fill has arrived and the edge
+// is not needed twice. Its words read in InkOn(RoleSecondary, fill, TextFloor)
+// and its marks in OnContainer's own derivation against that fill — words owe
+// WCAG 1.4.3's 4.5:1 and a mark owes 1.4.11's 3:1, and the split is the whole
+// reason the two are named separately.
 //
-// # The fill's two steps
+// The container is a derivation and not a copied tone: it asks the role's ramp
+// and holds the hue exactly, so a brandless palette yields a brandless chip
+// rather than inventing a hue the theme does not have. It is realized against
+// the storey the chip stands on rather than at the family's fixed step, for
+// the reason everything else here is ground-relative — the ladder walks
+// through that fixed step, and in the dark scheme a level-2 surface and the
+// fixed secondary container measure 1.00:1 against each other.
 //
-// The step itself is a MEASUREMENT, in CIELAB L\*, one number per scheme —
-// documented here the way theme/tokens documents the floor's own two
-// measurements, and read the same way: off the direction of the neutral
-// surface band, never off a mode flag. A scheme whose band climbs away from
-// its 100 stop has its pin as the darkest surface the ramp carries and takes
-// the first number; one whose band descends takes the second.
+// Hover and press are the same state walk every other control in this system
+// takes ([tokens.ColorTokens.PinnedStateColor]), started from whichever rest
+// the chip is in: an unselected chip walks from the storey it stands on, so a
+// body appears under the pointer where there was none, and a selected one
+// walks from its container. Only the resting targets differ; the feedback
+// grammar is one grammar.
 //
-// THE DARK STEP IS 1.28 L\*, AND IT IS MEASURED. Through the ladder's first
-// year the chip filled at ground.Raised() — a whole storey. That was right as
-// depth and wrong as loudness: on the dark scheme's paper it put the pill at
-// #222222 over #181818, +10.0 luminance, where the platform's own toolbar
-// pop-up capsules — a chevron beside a label, the chip's exact role — stand
-// +2.65 over the band they are drawn on. Four times the platform's step, in
-// the one role the platform draws as a near-hairline outline rather than a
-// filled block. The reading, from the stored macOS reference
-// (reference/macos/mail-window.png in the org's .github repository;
-// window-bounded capture, macOS 26.5.2, dark appearance):
-//
-//	Mail's unified toolbar band          #232A2E   L* 16.555   luminance 40.80
-//	its pop-up capsules on that band     #242D32   L* 17.837   luminance 43.45
-//	                                               step 1.28   step +2.65
-//
-// so 1.28 L\* is the platform's step in the ladder's own unit, and on the
-// default dark palette it realizes #1B1B1B over the #181818 paper — +3.0
-// luminance, the platform's whisper rather than the block.
-//
-// THE LIGHT STEP IS 0.70 L\*, AND IT IS DERIVED — the gap is real and is
-// recorded here rather than papered over. The stored reference sweep was taken
-// in the DARK appearance; there is no light-appearance capture in
-// reference/macos to measure a light toolbar capsule off, so this half cannot
-// be obtained the way the dark half was. What it takes instead is the number
-// the light scheme already spends on its first storey over the paper: 0.70
-// L\*, Level1 over Level0 on the default light palette. The reason it is not
-// simply the dark measurement is the light scheme's headroom. That scheme has
-// 3.12 L\* in total between its #F6F6F6 paper and the tonal axis, and the
-// ladder spends all three of its storeys inside it; a chip taking the
-// platform's 1.28 L\* there would spend 41% of the whole ladder on one pill
-// and stand above where a dialog sits.
-//
-// The two schemes differing is the platform's own precedent, not an
-// inconsistency. theme/tokens' floor takes 4.89 L\* down in the light scheme
-// and 1.48 L\* down in the dark one, because a light window separates its
-// furniture with a step the ramp happens to carry and a dark window with a
-// whisper. The same asymmetry governs here, read off the same band, and each
-// half says plainly which of the two it is: the dark number is a
-// measurement, the light number is a derivation awaiting one. A light-
-// appearance capture of a macOS toolbar's pop-up capsules would close it, and
-// belongs in the stored reference (reference/macos) rather than in a private
-// measurement.
-//
-// The rim is why the chip is legible at all in the light scheme. There the
-// ladder has almost no headroom above its paper, so the storey step is a
-// fraction of an L* — a chip filled one storey over the light paper measures
-// 1.02:1 against it, which is a pill with no pill in it. The fill is correct
-// and it is not the thing that can carry the edge; the rim is.
-//
-// An edge has two sides and one colour, though, and the chip's inner side
-// moves: the fill walks one and two rungs under the pointer, and in the dark
-// scheme those rungs are long. So the rim is derived against both neighbours
-// rather than against one of them — components/input can aim a field's bezel
-// at the ground alone because a field's interior never moves, and a chip's
-// does. Aimed at the ground alone the rim landed exactly ON the pressed fill
-// at level 1 in the dark scheme, the same colour twice; aimed at the fill
-// alone it would vanish into the light scheme's paper at rest. Both candidate
-// rungs are derived and the one that clears the floor on both sides is kept.
-//
-// When no rung reaches both, the chip draws NO rim, and that is not a
-// concession. The two neighbours are then further apart than twice the floor,
-// which means the fill is separating from its ground on its own — the
-// condition this library's outline ruling states, translated into the
-// elevation ladder's vocabulary: a fill that stands off its page needs no
-// outline, and a fill that cannot never will. It happens in the dark scheme
-// only, on a pressed chip at level 2 and above and on a hovered one at level
-// 3, where the walk carries the fill most of the way to the ramp's light end;
-// the chip reads there as a solid block under the finger. In the light
-// scheme, on every storey and in every state, the rim is always drawn. The
-// quieter fill above moved that boundary rather than removing it: at level 1
-// the rim now clears both sides in every state, where a pressed chip used to
-// lose it.
-//
-// The label and the glyph are inks over the fill, and they are derived the way
-// [tokens.ColorTokens.InkOn] derives one — the pinned base while it clears the
-// floor against the ground it is drawn on, and the walked rung otherwise. InkOn
-// itself refuses RoleNeutral, which has no pin; a neutral ink's pin is the Text
-// pin, so that is the base this package hands the same rule. The label owes
-// WCAG 1.4.3's 4.5:1 ([tokens.TextFloor]) because it is words; the glyph owes
-// 1.4.11's 3:1 ([tokens.GraphicFloor]) because it is a mark. They are resolved
-// against the fill actually drawn, state included, so a chip whose fill walks
-// far enough to threaten its own label re-derives it rather than keeping a
-// colour that no longer reads.
+// Both inks are resolved against the body ACTUALLY drawn, state included, so a
+// chip whose body has walked re-derives rather than keeping a colour that no
+// longer reads. The walk also STOPS. A ramp writes with its ends, so between
+// them lies a band of depths no rung reaches the text floor against, and a body
+// nothing can be written on is not a state to walk to; the selected walk adds a
+// second stop, because a filled chip carries no outline and a walk that took
+// its fill through the ground's own depth would erase the chip at the crossing.
+// Either walk halts at the last depth that still holds. [Resolve] carries the
+// rule.
 //
 // The focus ring is components/internal/focus's, and it asks for no ground at
-// all: one colour per scheme, the same on the paper, on a card and in a dialog.
-// Derived against the chip's own fill instead — as it was — the walk answered
-// the fill, and a chip resting on a card came out 19 L* from the button beside
-// it because the two grounds lay three units apart with a rung between them.
-// The band's outer side is the storey and that is where its floor is measured;
-// its inner side is this family's own fill, which walks 20 L* under a press and
-// is where the chip's state is spoken, not its focus.
+// all: one colour per scheme, the same on the paper, on a card and in a
+// dialog. A focused chip's edge IS the ring — it takes the outline's place,
+// two dp where the outline was one, rather than being drawn inside it. Drawn
+// inside, the two make a three-line sandwich that reads as a smeared halo; it
+// is the same reason components/button holds its ring clear of its own
+// boundary. The chip measures the same box focused as at rest and the label
+// does not shift.
 //
-// A focused chip's edge IS the ring: it takes the rim's place, two dp where the
-// rim was one, rather than being drawn inside it. Drawn inside, the two make a
-// three-line sandwich — hairline, one pixel of fill, then the ring — that reads
-// as a smeared halo rather than an edge. It is the same reason components/button
-// holds its ring clear of its own boundary: a band beside a boundary is read as
-// part of that boundary. A button has no rim to collide with and can put air
-// between the two; a chip's rim is a drawn line, so the chip spends it instead.
-// The pill measures the same box focused as at rest and the label does not
-// shift — what changes is which colour draws the edge.
+// # Geometry
 //
-// # Geometry: the density table, not a new set of numbers
+// The height is [tokens.Density.ChipHeight] — the density's control height
+// less the system's chip drop, 32 dp Comfortable and 24 dp Compact. It is a
+// height and not a floor over the padding rule, which is the rule for controls
+// on the ladder the chip has just left: a chip is smaller than a button by
+// construction, and the label's line box fits inside that height at both
+// densities. What the height still yields to is a caller's own oversized
+// style, because a box shorter than the words in it is not a chip either.
 //
-// Height is the rule theme/tokens' density header states for every control in
-// the system — a control height is a floor, not a height:
+// Horizontal padding is d.PaddingX at each end. The silhouette is the radius
+// scale's Lg stop, 8 dp, clamped to half the height — a rounded rectangle, not
+// a capsule. The edge is one dp at every density, the width every other
+// derived edge in this library draws, and it is painted as nested fills rather
+// than as a stroke on the shape's path: a stroke is centred on the path, so
+// half of it would fall outside the box the chip reports and every pixel of it
+// would be a blend of the two colours rather than either.
 //
-//	height = max(d.ControlHeight, labelStyle.LineHeight + 2×d.PaddingY)
+// A chip is sized to its content and does not fill the width it is given. It
+// clamps to the constraints it is handed, so a chip in a box narrower than its
+// label is truncated by the box rather than overflowing it.
 //
-// which for the two roles a chip is set in comes out as:
+// # Pinning the chip to an edge
 //
-//	density      role          line box   + 2×PaddingY   ControlHeight   drawn
-//	-------      ----          --------   ------------   -------------   -----
-//	Comfortable  LabelLarge    20         36             36              36
-//	Compact      LabelLarge    20         32             28              32
-//	Comfortable  LabelMedium   16         32             36              36
-//	Compact      LabelMedium   16         28             28              28
-//
-// The last row shows the table reaches real use: a hand-rolled 28 dp pill set
-// in LabelMedium with 12 dp of side padding is exactly Compact × LabelMedium
-// out of the table above, down to the padding — nothing needs inventing; the
-// numbers are already in the tokens.
-//
-// Horizontal padding is d.PaddingX (16 dp Comfortable, 12 dp Compact) at each
-// end. The gap between the label and the glyph is the spacing scale's S2 stop:
-// at S1 a trailing mark reads as the end of the word rather than as something
-// of its own.
-//
-// The glyph is the label's own line box — 20 dp in LabelLarge, 16 dp in
-// LabelMedium — because an inline mark belongs to the line it sits on rather
-// than to the control around it. That rule agrees with components/icon's
-// [icon.Size] exactly on the pairing each density was derived for:
-// icon.Size(Comfortable) is 36 − 2×8 = 20, LabelLarge's line box; and
-// icon.Size(Compact) is 28 − 2×6 = 16, LabelMedium's. The two rules meet where
-// they should and the chip needs no third number.
-//
-// The corner radius is the scale's Full stop, clamped to half the pill's
-// shorter side by components/layout's Pill — a chip is a pill, which is what
-// separates it at a glance from a button's 6 dp Md corner. The rim is one dp
-// at every density, the width every other derived edge in this library draws,
-// and it is painted as nested fills rather than as a stroke on the pill's
-// path: a stroke is centred on the path, so half of it would fall outside the
-// box the chip reports and every pixel of it would be a blend of the two
-// colours rather than either.
-//
-// A chip is sized to its content and does not fill the width it is given —
-// that is the other half of what makes it not a button. It clamps to the
-// constraints it is handed, so a chip in a box narrower than its label is
-// truncated by the box rather than overflowing it.
-//
-// # Pinning the pill to an edge
-//
-// A box wider than the pill therefore has slack in it, and by default the
-// pill sits at the box's leading edge with the slack behind it and the widget
-// reports the pill alone. [Props.Pin] moves the pill to a named edge of that
-// box and reports the box — [PinLeading] or [PinTrailing], the horizontal axis
-// only. It is a placement, not a stretch: the drawn pill is the same pill at
-// the same width, and a chip that pins nothing is unchanged.
+// A box wider than the chip therefore has slack in it, and by default the chip
+// sits at the box's leading edge with the slack behind it and the widget
+// reports the chip alone. [Props.Pin] moves it to a named edge of that box and
+// reports the box — [PinLeading] or [PinTrailing], the horizontal axis only.
+// It is a placement, not a stretch: the drawn chip is the same chip at the
+// same width, and a chip that pins nothing is unchanged.
 //
 // Say it only where the box is a cap the caller sized. A chip laid out Rigid
 // in a flex is offered the whole row, and a pin would have it report the whole
 // row; the container that reserved a cap for it is the one with something to
-// pin to.
+// pin to. The seam is for the case where the container cannot do the placing
+// itself — a pattern that measures what it is given and centres it in a canvas
+// has the two widths part company by half the slack, and the only place both
+// are known is inside the chip.
 //
-// The seam is for the case where the container cannot do the placing itself.
-// A chip its container lays out needs nothing here — the container knows both
-// boxes and offsets the widget. A chip handed to a pattern does: patterns/
-// popover measures its anchor and centres it in the canvas it was given, so
-// the reserved cap and the pill part company by half the slack, and the only
-// place the two widths are both known is inside the chip. A model picker in
-// a window's chrome row is that case — a cap at the trailing edge of the row,
-// whose pill has to land on the content column's own edge rather than a few
-// pixels inboard of it.
+// # The pointer targets
 //
-// # The pointer target
-//
-// The drawn pill is the density's control height and a standalone control owes
+// The drawn chip is the density's chip height and a standalone control owes
 // its pointer 44 dp on each axis ([tokens.MinHitTarget], WCAG 2.5.5). The pure
 // path draws and does not register pointer areas, so the extension belongs to
-// the live path, exactly as it does for components/button: [Render] reports the
-// pill's own size and the caller that wires input extends it. [Chip] is that
-// caller — it spends the difference as slop centred on the pill, so the row
-// the chip stands in is laid out at the pill's size and the target overhangs
-// the air around it.
+// the live path, exactly as it does for components/button: [Render] reports
+// the chip's own size and the caller that wires input extends it. [Chip] is
+// that caller — it spends the difference as slop centred on the chip, so the
+// row the chip stands in is laid out at the chip's size and the target
+// overhangs the air around it.
 //
-// Shaper is not optional. Pass the theme's — tokens.Typography.Shaper() — or,
-// in a golden test, its DeterministicShaper.
+// The dismiss mark registers a second target of its own, [DismissHitDp] — WCAG
+// 2.5.8's AA minimum rather than 44 dp, because a 44 dp target centred on the
+// mark would reach past both ends of the chip carrying it. It lies over the
+// body's target and takes the pointer where they overlap, so the body reads
+// the mark's hover as its own: a chip whose mark is under the finger is a chip
+// under the finger.
+//
+// Shaper is not optional in the pure path. Pass the theme's —
+// tokens.Typography.Shaper() — or, in a golden test, its DeterministicShaper.
 package chip
