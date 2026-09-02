@@ -94,7 +94,7 @@ var goldenLevels = []struct {
 	level tokens.ElevationLevel
 }{
 	{"paper", tokens.Level0},
-	{"floor", tokens.LevelFloor},
+	{"floor", tokens.LevelBackdrop},
 	{"dialog", tokens.Level2},
 }
 

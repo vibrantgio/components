@@ -343,7 +343,7 @@ func (inv *Inventory) navbarProps(c tokens.ColorTokens) navbar.Props {
 			// The bar fills the floor level, and a badge with no fill of its
 			// own is derived against whatever it stands on.
 			badge.Render(inv.shaper, "v1", nil, badge.Neutral, c, tokens.Spacing,
-				tokens.Radius, inv.badgeStyle(), badge.RenderState{Level: tokens.LevelFloor}),
+				tokens.Radius, inv.badgeStyle(), badge.RenderState{Level: tokens.LevelBackdrop}),
 		},
 		Shaper: inv.shaper,
 	}
@@ -713,7 +713,7 @@ func (inv *Inventory) shell(c tokens.ColorTokens) layout.Widget {
 		// An aside is an inspector, which counts as furniture: it fills at
 		// the window's floor, the same level the frame around it paints,
 		// rather than at the c.Surface ramp alias.
-		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelFloor), clip.Rect{Max: gtx.Constraints.Max}.Op())
+		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelBackdrop), clip.Rect{Max: gtx.Constraints.Max}.Op())
 		return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return inv.prose(c, "Aside", "", "Inspector, outline", "or details.")(gtx)
 		})

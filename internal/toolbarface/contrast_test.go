@@ -47,7 +47,7 @@ var levels = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
-	{"floor", tokens.LevelFloor},
+	{"floor", tokens.LevelBackdrop},
 	{"level-0", tokens.Level0},
 	{"level-1", tokens.Level1},
 	{"level-2", tokens.Level2},

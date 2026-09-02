@@ -31,7 +31,7 @@ var thumbSeeds = []color.NRGBA{
 	{A: 0xff},
 }
 
-// thumbGrounds are the storeys an overlay bar rides: the window's own page in
+// thumbGrounds are the levels an overlay bar rides: the window's own page in
 // a document, and the chrome furniture floor the panes are filled with
 // everywhere else. Both are measured for both states, because the derivation
 // answers whichever of the two asks more and the other has to come out no
@@ -42,7 +42,7 @@ var thumbGrounds = []struct {
 	level tokens.ElevationLevel
 }{
 	{"level 0, the page", tokens.Level0},
-	{"the furniture floor, a pane", tokens.LevelFloor},
+	{"the furniture floor, a pane", tokens.LevelBackdrop},
 }
 
 // TestTheThumbClearsItsFloorOnEveryGroundItRides asserts the floors where they

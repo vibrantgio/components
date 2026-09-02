@@ -5,20 +5,20 @@
 //
 // A focused control shows a [Width] ring in the primary hue at its focus
 // boundary, in [Ring]: one colour per scheme, drawn by every control, on every
-// storey, in every state. A keyboard user learns one width, one hue and one
+// level, in every state. A keyboard user learns one width, one hue and one
 // value, and learns it once.
 //
 // # One colour, not one per ground
 //
 // A walk aimed at a ground answers the ground, and the grounds controls stand
-// on differ: two controls whose fills lie three units apart on one storey come
+// on differ: two controls whose fills lie three units apart on one level come
 // back rungs 19 L* apart, because the ramp carries a rung between them. Two
 // purples for one state on one page is not an idiom, so the ground is out of
 // the derivation: [Ring] takes the scheme and nothing else.
 //
 // One colour that reads everywhere is possible because the ring only ever has
-// to clear [Floor] against surfaces the elevation ladder carries, and the
-// ladder is five storeys deep, not the whole scheme. The rung nearest the
+// to clear [Floor] against the surfaces elevation carries, and there are
+// five levels, not the whole scheme. The rung nearest the
 // primary ramp's mid-value step that clears every one of those five is the
 // ring. Over 1644 palettes — 411 seeds, both schemes, both derivations — such
 // a rung exists for every palette and the thinnest margin anywhere is 3.33:1.
@@ -34,14 +34,14 @@
 // inside its own fill rather than at its boundary, which is what [RingOn] is
 // for.
 //
-// Either way the storey the control stands on lies immediately outside the
+// Either way the level the control stands on lies immediately outside the
 // ring, and that is the side the floor is owed to — the side that is the same
-// for every control on that storey, and the side a ring is read against. What
+// for every control on that level, and the side a ring is read against. What
 // lies inside the ring is the control's own fill, which the control moves as
-// its own state moves: a chip's fill is a whisper over the storey at rest and
+// its own state moves: a chip's fill is a whisper over the level at rest and
 // climbs 20 L* above it under a press. A band measured to the floor on both
 // sides could not be one colour, because those two sides span most of the
-// scheme; measured to the storey it can. The resting fills are close enough
+// scheme; measured to the level it can. The resting fills are close enough
 // that the ring clears them anyway — over the same 1644 palettes the ring
 // measures 3.17:1 at worst against a resting fill — and a pressed fill is
 // where the control's own state is spoken, not where focus is.
@@ -65,7 +65,7 @@
 // The ramp is realized at fixed perceptual depths, so a rung of it is a known
 // lightness whatever the seed is, and it is unmistakably the brand hue. Aiming
 // the pick at the ramp's mid-value step is what keeps the ring from drifting to
-// an end of the ramp when a shallow ladder would allow it.
+// an end of the ramp when a shallow stack would allow it.
 package focus
 
 import (
@@ -91,36 +91,36 @@ const Floor = 3.0
 // pick is aimed at. tokens.Ramp is nine rungs, 100 through 900.
 const midStep = 4
 
-// storeys is the elevation ladder every control in this library can be put on,
+// levels is every elevation level a control in this library can be put on,
 // and so every surface a focus ring can lie on. A control that is told nothing
 // stands on tokens.Level0; one on a sidebar, a rail or a toolbar stands on the
 // furniture floor beneath it; a menu or a popover stands at the ceiling.
-var storeys = [...]tokens.ElevationLevel{
-	tokens.LevelFloor, tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
+var levels = [...]tokens.ElevationLevel{
+	tokens.LevelBackdrop, tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
 }
 
 // Ring is the colour every focused control in this library draws its ring in:
 // the rung of the primary ramp nearest that ramp's mid-value step which reaches
-// [Floor] against every storey the elevation ladder carries.
+// [Floor] against every elevation level.
 //
-// The ladder rather than one storey, because the ring is one colour and a
-// control may stand anywhere on it. Asking every storey at once is what makes
+// Every level rather than one, because the ring is one colour and a
+// control may stand anywhere on it. Asking every level at once is what makes
 // the answer the scheme's rather than the caller's: a chip on a card and the
 // button beside it hand this the same argument and get the same pixel.
 //
 // The ramp is walked from its middle out, so where several rungs clear the
-// whole ladder the ring is the one nearest the ramp's mid-value depth — the
+// whole set the ring is the one nearest the ramp's mid-value depth — the
 // depth the brand hue is most itself at, and the one furthest from both ends.
 //
-// A ring has to be drawn whatever it measures, so a palette whose ladder no
-// rung cleared would take the rung that comes closest. Over 1644 palettes there
-// is no such palette, and the worst storey of the kept rung measures 3.33:1.
+// A ring has to be drawn whatever it measures, so a palette no rung cleared
+// on every level would take the rung that comes closest. Over 1644 palettes there
+// is no such palette, and the worst level of the kept rung measures 3.33:1.
 func Ring(c tokens.ColorTokens) color.NRGBA {
 	pick, dist := -1, len(c.Ramps.Primary)
 	widest, widestAt := -1.0, 0
 	for i, rung := range c.Ramps.Primary {
 		worst := 99.0
-		for _, level := range storeys {
+		for _, level := range levels {
 			if got := vgcolor.ContrastRatio(rung, c.SurfaceAt(level)); got < worst {
 				worst = got
 			}
@@ -146,7 +146,7 @@ func Ring(c tokens.ColorTokens) color.NRGBA {
 }
 
 // RingOn is [Ring] for a band that lies inside a fill of the control's own,
-// with that fill on both sides of it and no storey anywhere near it.
+// with that fill on both sides of it and no level anywhere near it.
 // components/button is the only such band in this library: its ring is inset in
 // its own background, its own width clear of the edge, because a band flush
 // with a boundary reads as that boundary.
@@ -160,7 +160,7 @@ func Ring(c tokens.ColorTokens) color.NRGBA {
 // against the fill it lies on instead.
 //
 // A transparent fill is no fill: a ghost button paints no ground at rest, so
-// what its ring lies on is the storey showing through it, and the storey is
+// what its ring lies on is the level showing through it, and the level is
 // what [Ring] already answers.
 func RingOn(c tokens.ColorTokens, fill color.NRGBA) color.NRGBA {
 	ring := Ring(c)

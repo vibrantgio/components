@@ -89,10 +89,10 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 			// floor below the paper included, which is where a rail's or a
 			// toolbar's ghost buttons actually stand. Rest stays transparent
 			// on every level; the fill is the host's to paint.
-			{"ghost/floor/normal", RenderState{Emphasis: Ghost, Level: tokens.LevelFloor},
+			{"ghost/floor/normal", RenderState{Emphasis: Ghost, Level: tokens.LevelBackdrop},
 				transparent, c.Ramps.Neutral.Step(700)},
-			{"ghost/floor/hovered", RenderState{Emphasis: Ghost, Level: tokens.LevelFloor, Hovered: true},
-				c.StateAt(tokens.LevelFloor, tokens.StateHover), c.Ramps.Neutral.Step(900)},
+			{"ghost/floor/hovered", RenderState{Emphasis: Ghost, Level: tokens.LevelBackdrop, Hovered: true},
+				c.StateAt(tokens.LevelBackdrop, tokens.StateHover), c.Ramps.Neutral.Step(900)},
 			{"ghost/level1/hovered", RenderState{Emphasis: Ghost, Level: tokens.Level1, Hovered: true},
 				c.StateAt(tokens.Level1, tokens.StateHover), c.Ramps.Neutral.Step(900)},
 			{"ghost/level2/normal", RenderState{Emphasis: Ghost, Level: tokens.Level2},

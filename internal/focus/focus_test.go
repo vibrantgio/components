@@ -35,7 +35,7 @@ func sweepSeeds() []stdcolor.NRGBA {
 
 // palettes is every palette one seed produces: both schemes of both
 // derivations. The two are not each other's mirror image — a light scheme's
-// ramp is walked from the opposite end and its ladder climbs the other way —
+// ramp is walked from the opposite end and its levels climb the other way —
 // so a claim asserted on one says nothing about the other.
 func palettes(seed stdcolor.NRGBA) []tokens.ColorTokens {
 	light, dark := tokens.FromSeed(seed)
@@ -43,19 +43,19 @@ func palettes(seed stdcolor.NRGBA) []tokens.ColorTokens {
 	return []tokens.ColorTokens{light, dark, hcLight, hcDark}
 }
 
-// storeys is the elevation ladder every control in this library can be put
+// levels is every elevation level a control in this library can be put
 // on, named as a host says it: a control that is told nothing stands on
 // tokens.Level0, and a control on a sidebar, a rail or a toolbar stands on the
 // furniture floor beneath it.
-var storeys = []tokens.ElevationLevel{
-	tokens.LevelFloor, tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
+var levels = []tokens.ElevationLevel{
+	tokens.LevelBackdrop, tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
 }
 
-// storeyName spells a storey the way this file's failure messages want to
+// levelName spells a level the way this file's failure messages want to
 // read it, so a report names the rung a developer would put a control on
 // rather than an integer that counts from the paper.
-func storeyName(level tokens.ElevationLevel) string {
-	if level == tokens.LevelFloor {
+func levelName(level tokens.ElevationLevel) string {
+	if level == tokens.LevelBackdrop {
 		return "on the furniture floor"
 	}
 	return "on level " + string(rune('0'+int(level)))
@@ -66,8 +66,8 @@ func storeyName(level tokens.ElevationLevel) string {
 // control means adding its ring here; that is what makes this file the gate for
 // the whole idiom rather than for the packages that happen to exist.
 //
-// Every entry names a storey, because a control's host is a rung of the
-// elevation ladder and a gate that asked only one rung would miss a ring that
+// Every entry names a level, because a control's host is an elevation level
+// and a gate that asked only one would miss a ring that
 // moved on another. The point of the list is that the answer does not move: it
 // is the census the single-colour claim is asserted over.
 func drawn(c tokens.ColorTokens) []struct {
@@ -79,25 +79,25 @@ func drawn(c tokens.ColorTokens) []struct {
 		ring stdcolor.NRGBA
 	}
 	// A link's ring rides in the paragraph ground it is padded clear into.
-	// Prose carries no storey of its own, so a paragraph lies on the paper.
+	// Prose carries no level of its own, so a paragraph lies on the paper.
 	out := []entry{{"link", focus.Ring(c)}}
-	for _, level := range storeys {
-		at := storeyName(level)
+	for _, level := range levels {
+		at := levelName(level)
 		out = append(out,
 			// The clear-of-the-glyph family: the ring rides in the host
-			// storey's surface beside the glyph, in every checked or chosen
+			// level's surface beside the glyph, in every checked or chosen
 			// state.
 			entry{"checkbox " + at, focus.Ring(c)},
 			entry{"radio " + at, focus.Ring(c)},
 			// The promoted-border family: the ring is the control's own
-			// outermost band, with the host storey immediately outside it.
+			// outermost band, with the host level immediately outside it.
 			entry{"text field " + at, focus.Ring(c)},
 			entry{"dropdown trigger " + at, focus.Ring(c)},
 			// The toolbar trigger trades its rim for the ring, in every state its
 			// own fill walks to.
 			entry{"toolbar " + at, focus.Ring(c)},
 			// A ghost paints no ground at rest, so its ring lies on the host
-			// storey showing through it.
+			// level showing through it.
 			entry{"button ghost " + at, focus.RingOn(c, stdcolor.NRGBA{})},
 		)
 	}
@@ -106,11 +106,11 @@ func drawn(c tokens.ColorTokens) []struct {
 
 // TestEveryControlDrawsOneColour is the ruling this package exists to hold:
 // the ring's colour depends on the scheme and on nothing else. Every control
-// in [drawn], on every storey the ladder carries, over the whole seed sweep and
+// in [drawn], on every elevation level, over the whole seed sweep and
 // both derivations, draws the same pixel.
 //
-// Asserted per palette rather than per storey, because that is the shape of
-// the claim: a page carries controls standing on several storeys at once, and
+// Asserted per palette rather than per level, because that is the shape of
+// the claim: a page carries controls standing on several levels at once, and
 // what a keyboard user must not see is two of them ringing differently.
 func TestEveryControlDrawsOneColour(t *testing.T) {
 	for _, seed := range sweepSeeds() {
@@ -126,22 +126,22 @@ func TestEveryControlDrawsOneColour(t *testing.T) {
 	}
 }
 
-// TestRingClearsTheFloorOnEveryStorey holds the promise the single colour is
-// bought with: one rung that reaches [focus.Floor] against every surface the
-// elevation ladder carries, so a control keeps its ring wherever it is put.
+// TestRingClearsTheFloorOnEveryLevel holds the promise the single colour is
+// bought with: one rung that reaches [focus.Floor] against every surface
+// elevation carries, so a control keeps its ring wherever it is put.
 // This is the outer side of every band in the library — the side that is the
-// same for every control on a storey, and the side a ring is read against.
-func TestRingClearsTheFloorOnEveryStorey(t *testing.T) {
+// same for every control on a level, and the side a ring is read against.
+func TestRingClearsTheFloorOnEveryLevel(t *testing.T) {
 	worst := 99.0
 	for _, seed := range sweepSeeds() {
 		for _, c := range palettes(seed) {
 			ring := focus.Ring(c)
-			for _, level := range storeys {
+			for _, level := range levels {
 				ground := c.SurfaceAt(level)
 				got := color.ContrastRatio(ring, ground)
 				if got < focus.Floor {
-					t.Fatalf("seed %v: ring %v measures %.2f:1 against the storey %s %v, under the %.1f:1 floor",
-						seed, ring, got, storeyName(level), ground, focus.Floor)
+					t.Fatalf("seed %v: ring %v measures %.2f:1 against the level %s %v, under the %.1f:1 floor",
+						seed, ring, got, levelName(level), ground, focus.Floor)
 				}
 				if got < worst {
 					worst = got
@@ -149,7 +149,7 @@ func TestRingClearsTheFloorOnEveryStorey(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("worst storey of the scheme's ring over the sweep: %.2f:1", worst)
+	t.Logf("worst level of the scheme's ring over the sweep: %.2f:1", worst)
 }
 
 // TestRingClearsTheRestingFillsInsideIt measures the other side of the band —
@@ -157,18 +157,18 @@ func TestRingClearsTheFloorOnEveryStorey(t *testing.T) {
 // worst pairing the ring is asked to hold there.
 //
 // Two fills answer for every control that fills a box: the rung above the
-// storey, which the text field and the dropdown trigger fill with
-// (control.Fill), and the toolbar trigger's measured step over the storey, which is
-// neither a storey nor on the ramp. A pressed fill is left out on purpose: it
-// walks up to 20 L* off its storey, no one colour could clear both it and the
-// storey, and it is where the control's own state is spoken rather than where
+// level, which the text field and the dropdown trigger fill with
+// (control.Fill), and the toolbar trigger's measured step over the level, which is
+// neither a level nor on the ramp. A pressed fill is left out on purpose: it
+// walks up to 20 L* off its level, no one colour could clear both it and the
+// level, and it is where the control's own state is spoken rather than where
 // focus is.
 func TestRingClearsTheRestingFillsInsideIt(t *testing.T) {
 	worst := 99.0
 	for _, seed := range sweepSeeds() {
 		for _, c := range palettes(seed) {
 			ring := focus.Ring(c)
-			for _, level := range storeys {
+			for _, level := range levels {
 				for _, side := range []struct {
 					name string
 					fill stdcolor.NRGBA
@@ -179,7 +179,7 @@ func TestRingClearsTheRestingFillsInsideIt(t *testing.T) {
 					got := color.ContrastRatio(ring, side.fill)
 					if got < focus.Floor {
 						t.Fatalf("seed %v: %s: ring %v measures %.2f:1 against %s %v, under the %.1f:1 floor",
-							seed, storeyName(level), ring, got, side.name, side.fill, focus.Floor)
+							seed, levelName(level), ring, got, side.name, side.fill, focus.Floor)
 					}
 					if got < worst {
 						worst = got
@@ -225,7 +225,7 @@ func TestRingOnAnswersTheSchemesRingWhereverItReads(t *testing.T) {
 			if got := focus.RingOn(c, stdcolor.NRGBA{}); got != ring {
 				t.Fatalf("seed %v: a ghost's transparent rest fill drew %v, want the scheme's ring %v", seed, got, ring)
 			}
-			for _, level := range storeys {
+			for _, level := range levels {
 				for _, fill := range []stdcolor.NRGBA{
 					c.StateAt(level, tokens.StateHover),
 					c.StateAt(level, tokens.StatePressed),
