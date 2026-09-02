@@ -1,9 +1,11 @@
 package button
 
 import (
+	"fmt"
 	"image/color"
 	"testing"
 
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -221,4 +223,123 @@ func TestZeroEmphasisIsFilled(t *testing.T) {
 	if got, want := Tonal.String()+" "+Ghost.String(), "tonal ghost"; got != want {
 		t.Errorf("register names = %q, want %q", got, want)
 	}
+}
+
+// ghostLevels are the surfaces a ghost is placed on: the window furniture
+// below the paper, the paper itself, and the three raised levels — the
+// level-2 one being where patterns/modal stands its close mark.
+var ghostLevels = []struct {
+	name  string
+	level tokens.ElevationLevel
+}{
+	{"backdrop", tokens.LevelBackdrop},
+	{"paper", tokens.Level0},
+	{"raised", tokens.Level1},
+	{"floating", tokens.Level2},
+	{"top", tokens.Level3},
+}
+
+// ghostSweepSeeds is the spread a generated palette is judged over: a
+// palette is derived, and the defaults are one of its outputs.
+var ghostSweepSeeds = []color.NRGBA{
+	{R: 0x6c, G: 0x3a, B: 0xd4, A: 0xff},
+	{R: 0xff, G: 0x00, B: 0x00, A: 0xff},
+	{R: 0x00, G: 0xff, B: 0x00, A: 0xff},
+	{R: 0x00, G: 0x00, B: 0xff, A: 0xff},
+	{R: 0xff, G: 0xff, B: 0x00, A: 0xff},
+	{R: 0x00, G: 0xff, B: 0xff, A: 0xff},
+	{R: 0xff, G: 0x80, B: 0x00, A: 0xff},
+	{R: 0x80, G: 0x80, B: 0x80, A: 0xff}, // a seed with no chroma at all
+}
+
+func lstar(c color.NRGBA) float64 {
+	l, _, _ := vgcolor.LabFromNRGBA(c)
+	return l
+}
+
+// TestGhostWashClearsThePerceptibilityFloor gates every ghost affordance in
+// the system at once: the label button and the icon button resolve their
+// colours through the one buttonColors, and patterns/modal's close mark is
+// an icon ghost naming tokens.Level2, so the table below is the whole
+// family.
+//
+// Three things are pinned. The wash separates from the surface the ghost
+// stands on by at least tokens.StateFloor, on every level and in both
+// schemes of both derivations — the defect this replaced put the dark
+// paper's hover at 1.12:1, a signal nobody could see. Press lies beyond
+// hover, so the two states stay two. And the label the wash is read
+// against still clears the text floor, for as long as the wash is shallower
+// than the neutral ramp's mid-value step: past that step no neutral shade
+// reaches 4.5:1 over it from either side, which is a question about a
+// ceiling on the wash rather than about the floor under it, and the two
+// deep levels of the dark scheme sit there already — unmoved by the floor,
+// and recorded here rather than silently skipped.
+func TestGhostWashClearsThePerceptibilityFloor(t *testing.T) {
+	worstWash, worstWashAt := 99.0, ""
+	worstStep, worstStepAt := 99.0, ""
+	worstText, worstTextAt := 99.0, ""
+	pastMid := 0
+	for _, seed := range ghostSweepSeeds {
+		light, dark := tokens.FromSeed(seed)
+		hcLight, hcDark := tokens.FromSeedHighContrast(seed)
+		for _, sc := range []struct {
+			name string
+			c    tokens.ColorTokens
+		}{
+			{"light", light}, {"dark", dark},
+			{"hc light", hcLight}, {"hc dark", hcDark},
+		} {
+			c := sc.c
+			// Which way the scheme's scale runs: a walk always heads
+			// toward the ramp's 900 end, darker in light and lighter in
+			// dark, so one sign covers both.
+			toward := 1.0
+			if lstar(c.Ramps.Neutral.Step(900)) > lstar(c.Ramps.Neutral.Step(100)) {
+				toward = -1
+			}
+			midL := lstar(c.Ramps.Neutral.Step(500))
+			for _, lv := range ghostLevels {
+				surface := c.SurfaceAt(lv.level)
+				hoverBG, hoverFG := buttonColors(c, RenderState{
+					Emphasis: Ghost, Level: lv.level, Hovered: true})
+				pressBG, pressFG := buttonColors(c, RenderState{
+					Emphasis: Ghost, Level: lv.level, Pressed: true})
+
+				for _, w := range []struct {
+					name   string
+					bg, fg color.NRGBA
+				}{{"hover", hoverBG, hoverFG}, {"press", pressBG, pressFG}} {
+					where := fmt.Sprintf("seed %v %s %s %s", seed, sc.name, lv.name, w.name)
+					got := vgcolor.ContrastRatio(w.bg, surface)
+					if got < tokens.StateFloor {
+						t.Errorf("%s: wash %v on the surface %v measures %.3f:1, under the %.2f:1 floor",
+							where, w.bg, surface, got, tokens.StateFloor)
+					} else if got < worstWash {
+						worstWash, worstWashAt = got, where
+					}
+					text := vgcolor.ContrastRatio(w.fg, w.bg)
+					if toward*lstar(w.bg) > toward*midL {
+						if text < tokens.TextFloor {
+							t.Errorf("%s: label %v on the wash %v measures %.3f:1, under the %.1f:1 text floor",
+								where, w.fg, w.bg, text, tokens.TextFloor)
+						} else if text < worstText {
+							worstText, worstTextAt = text, where
+						}
+					} else {
+						pastMid++
+					}
+				}
+				if lstar(pressBG) == lstar(hoverBG) ||
+					toward*lstar(pressBG) > toward*lstar(hoverBG) {
+					t.Errorf("seed %v %s %s: press %v does not lie beyond hover %v",
+						seed, sc.name, lv.name, pressBG, hoverBG)
+				} else if step := vgcolor.ContrastRatio(pressBG, hoverBG); step < worstStep {
+					worstStep, worstStepAt = step, fmt.Sprintf("seed %v %s %s", seed, sc.name, lv.name)
+				}
+			}
+		}
+	}
+	t.Logf("over %d seeds, both derivations, both schemes, five levels: worst wash %.3f:1 (floor %.2f, %s), worst press-over-hover %.3f:1 (%s), worst label %.3f:1 (%s); %d washes lie at or past the ramp's mid step, where no neutral label reaches the text floor",
+		len(ghostSweepSeeds), worstWash, tokens.StateFloor, worstWashAt,
+		worstStep, worstStepAt, worstText, worstTextAt, pastMid)
 }

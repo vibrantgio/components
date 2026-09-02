@@ -59,9 +59,10 @@ const (
 	// Ghost is the least pronounced register: no fill at rest, the label or
 	// glyph in the neutral ramp's low-contrast text shade, and a neutral wash
 	// only while the pointer is on it. A ghost's wash is its host surface's
-	// own one-step walk — it derives from the surface the button stands on
+	// own walk — it derives from the surface the button stands on
 	// (RenderState.Level), not the window's own surface, so a ghost on a
-	// raised surface washes one step past that surface's own level. For
+	// raised surface washes past that surface's own level, deep enough to
+	// be seen there. For
 	// affordances that must be present without being the subject — a dialog's
 	// close X, a toolbar of icons, a tertiary "Learn more". A ghost is less
 	// pronounced, not small: it keeps the full pointer target and the full
@@ -103,8 +104,8 @@ type RenderState struct {
 	// no level of its own — and it is what the Ghost register's hover and
 	// press washes walk from, in the same vocabulary the host names its own
 	// fill (tokens.SurfaceAt). A ghost's wash is its host surface's own
-	// one-step walk: a dialog at tokens.Level2 passes Level2 and its ghost
-	// washes one step past that level's fill. The zero value is
+	// walk: a dialog at tokens.Level2 passes Level2 and its ghost
+	// washes past that level's fill. The zero value is
 	// tokens.Level0, the window's own surface, which resolves to exactly the
 	// walk the register always performed — so every state written before this
 	// field existed keeps its colours. Filled and Tonal ignore it: they carry
@@ -609,7 +610,11 @@ const (
 	ghostText = 700
 	// ghostTextOnWash is the label shade once a wash appears under it.
 	// The fill walks toward the 900 end, so the label walks with it and
-	// keeps its headroom instead of spending it.
+	// keeps its headroom instead of spending it. It reads at the text
+	// floor over every wash shallower than the neutral ramp's mid-value
+	// step; past that step no neutral shade reaches 4.5:1 over the wash
+	// from either side, which the dark scheme's two deep levels already
+	// sit at (TestGhostWashClearsThePerceptibilityFloor records it).
 	ghostTextOnWash = 900
 )
 
@@ -625,9 +630,9 @@ const (
 // the tinted-fill walk on the primary ramp, ghost the same walk on the
 // neutral ramp with the resting step painted as nothing at all. What a
 // ghost walks from is its host surface's own fill — a ghost's wash is that
-// surface's one-step walk, taken from whichever level s.Level names
-// (ghostWash), with the on-wash text riding at the ramp's 900 end, where
-// the walk itself clamps.
+// surface's own walk, taken from whichever level s.Level names
+// (ghostWash) and deep enough to be seen there, with the on-wash text
+// riding at the ramp's 900 end, where the walk itself clamps.
 //
 // Filled is also the one register that takes a pin from the caller. A
 // RenderState carrying both halves of a fill pair (RenderState.Fill and
@@ -705,13 +710,20 @@ func pinnedFill(s RenderState) bool {
 
 // ghostWash resolves the wash a ghost paints under the pointer: the state
 // walk taken from the fill of the surface the ghost stands on, so the wash is
-// that surface's own one-step walk and nothing else.
+// that surface's own walk and nothing else.
 //
 // [tokens.ColorTokens.StateAt] walks from the level's own colour on the
 // neutral ramp, so every level walks from what it is actually filled with —
 // including a level off the ramp by design, such as the window's own
-// Background pin — and the ghost's wash is always the surface it is sitting
-// on, one step along.
+// Background pin.
+//
+// It carries the perceptibility floor with it ([tokens.StateFloor]): a
+// ghost paints no fill at rest, so the wash is the only thing that says the
+// pointer is here, and one step of the neutral scale is not always enough
+// of one. The floor lives in the theme rather than here because every
+// surface wash in the system asks the same question — a sidebar row and a
+// ghost button standing on one surface would otherwise answer it two
+// different ways in the same window.
 func ghostWash(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) color.NRGBA {
 	return c.StateAt(level, state)
 }
