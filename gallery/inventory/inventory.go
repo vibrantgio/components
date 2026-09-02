@@ -595,20 +595,29 @@ var chipPurposes = []struct {
 
 // chipPlus is the sign the assist specimen leads with, drawn as a vector
 // rather than rasterised from a font or an SVG so the stored images hold
-// still. Its ink spans most of the box the chip reserves, which is what the
-// Glyph contract asks.
+// still. Its arms span the box the chip reserves edge to edge and it is
+// stroked at the label's own stem width, which is what the Glyph contract asks
+// now that the box is the label's cap band.
+//
+// The stem is taken in pixels WITHOUT rounding to a whole one, which is the
+// difference between this sign and the marks the chip draws itself. Rounded to
+// 2 px this sign lands on the pixel grid at full strength while the check and
+// the cross beside it, being diagonals, spread the same weight over three
+// columns — three marks in one row at three apparent weights. The measured
+// relation is one weight for all of them, so all of them take the number
+// unrounded.
 func chipPlus(gtx layout.Context, sizePx int, col color.NRGBA) {
 	w := float32(sizePx)
-	stroke := float32(gtx.Dp(unit.Dp(1.5)))
+	stroke := chip.MarkStrokeDp(tokens.DefaultTypography.LabelLarge) * gtx.Metric.PxPerDp
 	if stroke < 1 {
 		stroke = 1
 	}
 	var p clip.Path
 	p.Begin(gtx.Ops)
-	p.MoveTo(f32.Pt(w*0.5, w*0.16))
-	p.LineTo(f32.Pt(w*0.5, w*0.84))
-	p.MoveTo(f32.Pt(w*0.16, w*0.5))
-	p.LineTo(f32.Pt(w*0.84, w*0.5))
+	p.MoveTo(f32.Pt(w*0.5, 0))
+	p.LineTo(f32.Pt(w*0.5, w))
+	p.MoveTo(f32.Pt(0, w*0.5))
+	p.LineTo(f32.Pt(w, w*0.5))
 	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: stroke}.Op())
 }
 

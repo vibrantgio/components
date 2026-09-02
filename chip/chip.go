@@ -51,7 +51,7 @@ const (
 	// Input is a token the reader entered themselves — a recipient, a tag, a
 	// file they picked. It carries the trailing dismiss mark, and its leading
 	// slot is the avatar slot: whatever glyph it is given is drawn at
-	// [AvatarDp] behind a full-round corner rather than at [IconDp], because
+	// [AvatarDp] behind a full-round corner rather than in the cap band, because
 	// what leads a token the reader entered is a picture of the thing.
 	Input
 
@@ -71,15 +71,27 @@ func (i Intent) Selectable() bool { return i == Filter }
 // back.
 func (i Intent) Dismissible() bool { return i == Input }
 
-// IconDp is the square a chip's leading icon and its dismiss mark are drawn
-// in, in dp. It does not move with the density: an 18 dp mark is what reads as
-// an icon beside a label at every size this system sets a chip's label in, and
+// MarkDp is the square a chip's leading icon and its dismiss mark are drawn
+// in, in dp: the cap band of the label they stand beside — baseline to cap
+// height, measured off the face that label is set in.
+//
+// A mark inside a chip is read as part of the label's own line, so it rises no
+// higher than the capitals and hangs no lower than the baseline. The platform
+// draws its marks in exactly that band: measured offscreen against a
+// system-font label at three sizes, its plus, check and cross ink out at 1.11
+// to 1.21 times the label's cap height, the excess being the half-stroke a
+// line straddling the band leaves outside it. That excess is all the licence a
+// mark gets here too — the marks below stroke to the edge of this square and
+// nothing widens it.
+//
+// It does not move with the density: the band belongs to the label's size, and
 // the height the chip loses at Compact comes out of its air rather than out of
-// its marks.
-const IconDp = 18
+// its marks. It does move with the label's role, which is why it is a relation
+// and not a number.
+func MarkDp(style tokens.TextStyle) float32 { return style.FaceMetrics().CapHeight }
 
 // AvatarDp is the square an [Input] chip's leading glyph is drawn in, behind a
-// full-round corner. Larger than [IconDp] because it is a picture of a thing
+// full-round corner. Larger than [MarkDp] because it is a picture of a thing
 // rather than a sign for one, and round because that is what separates the two
 // at a glance.
 const AvatarDp = 24
@@ -98,17 +110,27 @@ const DismissHitDp = 24
 // token because no scale in the system carries line weights.
 const edgeDp = unit.Dp(1)
 
-// markStrokeDp is the line weight the checkmark and the dismiss mark are
-// stroked at. Both are diagonals, which are anti-aliased at any width, so the
-// number is the weight this library already draws its derived diagonals at
-// rather than a whole-pixel one.
-const markStrokeDp = 1.5
+// MarkStrokeDp is the line weight a chip's stroked marks are drawn at, in dp:
+// the width of the label's own upright stem.
+//
+// The marks and the words are one utterance, so they are made of ink of one
+// weight — which the platform bears out. Measured offscreen at three sizes,
+// its plus, check and cross carry a stroke band of 0.82 to 1.02 times their
+// label's stem, diagonals included: a diagonal's horizontal run is wider by
+// its angle and its band is not.
+func MarkStrokeDp(style tokens.TextStyle) float32 { return style.FaceMetrics().Stem }
 
 // Glyph is the painter a chip draws its leading mark with: it fills a
 // sizePx×sizePx box at the current origin in colour col. It is the same
 // signature components/button gives an icon-only button and the same one
 // components/icon's registry hands out, so a named glyph, a clip.Path drawn by
 // hand and a picture built for one screen are interchangeable here.
+//
+// That box is the label's cap band — see [MarkDp] — everywhere but an [Input]
+// chip's leading slot, which is the avatar slot at [AvatarDp]. A painter that
+// strokes to the edge of the box it is handed lands in the band the words
+// occupy, which is what a mark inside a chip is for; one that draws a small
+// figure in the middle of it reads as a chip with a hole at its leading end.
 //
 // A nil Glyph draws no leading mark; the chip loses the mark and the gap after
 // it and nothing else. A painter that draws its own picture may ignore col;
@@ -422,9 +444,9 @@ type Props struct {
 	// Intent is what this chip is for. The zero value is [Assist].
 	Intent Intent
 
-	// Icon is the mark drawn before the label, in the leading slot: [IconDp]
-	// square, or [AvatarDp] behind a full-round corner when the intent is
-	// [Input]. A nil Icon draws none.
+	// Icon is the mark drawn before the label, in the leading slot: the
+	// label's cap band ([MarkDp]) square, or [AvatarDp] behind a full-round
+	// corner when the intent is [Input]. A nil Icon draws none.
 	//
 	// A selected [Filter] chip draws the checkmark here instead — the mark
 	// that says it is selected takes the slot rather than standing beside a
@@ -714,10 +736,10 @@ func draw(
 	// The marks are capped at the body's INNER height — the chip's own height
 	// less the edge on both sides — so a mark never lies on the outline it
 	// stands inside. It binds at Compact, where the density's chip height and
-	// the avatar slot are the same number.
+	// the avatar slot are the same number; the cap band is well under both.
 	band := max(gtx.Dp(edgeDp), 1)
 	chipH := gtx.Dp(unit.Dp(tok.density.ChipHeight()))
-	iconPx := min(gtx.Dp(unit.Dp(IconDp)), chipH-2*band)
+	iconPx := min(gtx.Dp(unit.Dp(MarkDp(tok.label))), chipH-2*band)
 
 	// The leading slot: the checkmark on a selected filter, the avatar on an
 	// input chip that was given a glyph, the icon otherwise.
@@ -775,10 +797,23 @@ func draw(
 	// construction and its label's line box fits inside that height at both
 	// densities, so the only thing that can push it taller is a caller's own
 	// oversized style.
-	w := 2*padH + lead + leadGap + labelDims.Size.X + trailGap + trail
 	h := max(chipH, labelDims.Size.Y)
-	w = min(w, gtx.Constraints.Max.X)
 	h = min(h, gtx.Constraints.Max.Y)
+
+	// The leading padding is the text padding, EXCEPT in front of the avatar,
+	// where it is the clearance the avatar already has above and below itself.
+	// A round picture set in a square well is what an address field draws, and
+	// the text padding in front of it leaves four times that clearance on one
+	// side of the picture and none on the other three — a hole at the leading
+	// end. Stated as the relation rather than as a number so it holds at both
+	// densities and wherever the avatar is capped by the body's inner height.
+	leadPad := padH
+	if avatar {
+		leadPad = (h - lead) / 2
+	}
+
+	w := leadPad + lead + leadGap + labelDims.Size.X + trailGap + trail + padH
+	w = min(w, gtx.Constraints.Max.X)
 	size := image.Pt(w, h)
 	box := image.Rectangle{Max: size}
 
@@ -813,12 +848,35 @@ func draw(
 	// laid from the leading padding rather than centred in the box, because
 	// the anatomy is read from its leading edge and a chip clamped narrower
 	// than its content must lose its trailing end and not both.
-	x := padH
+
+	// Where the cap band sits in the chip's own coordinates: the label's
+	// baseline, less the band's height. typeset reports the baseline from the
+	// bottom of the box it laid the label out in, and that report is the only
+	// place this is knowable — the line box is taller than the ink and the
+	// leading it adds is not split evenly around the ink. Centring the mark in
+	// the chip instead lands it a pixel low, because the band the capitals
+	// occupy is not centred on the line box that holds them.
+	//
+	// A label-less chip has no band to sit on, so its mark keeps the chip's own
+	// middle.
+	markY := (h - iconPx) / 2
+	if label != "" {
+		baseline := (h-labelDims.Size.Y)/2 + labelDims.Size.Y - labelDims.Baseline
+		markY = baseline - iconPx
+	}
+
+	x := leadPad
 	if lead > 0 {
-		lo := op.Offset(image.Pt(x, (h-lead)/2)).Push(gtx.Ops)
+		// The avatar is a picture rather than a mark on the line: it is taller
+		// than the band the words occupy and it is centred on the chip.
+		leadY := markY
+		if avatar {
+			leadY = (h - lead) / 2
+		}
+		lo := op.Offset(image.Pt(x, leadY)).Push(gtx.Ops)
 		switch {
 		case selected:
-			drawCheck(gtx, lead, col.Mark)
+			drawCheck(gtx, lead, stroke(gtx, tok.label), col.Mark)
 		case avatar:
 			// The avatar slot is corner-full, and the clip is the chip's to
 			// apply: a painter handed a square box would otherwise put square
@@ -865,9 +923,9 @@ func draw(
 	pointer.CursorPointer.Add(gtx.Ops)
 
 	if trail > 0 {
-		origin := image.Pt(x+trailGap, (h-trail)/2)
+		origin := image.Pt(x+trailGap, markY)
 		mo := op.Offset(origin).Push(gtx.Ops)
-		drawCross(gtx, trail, col.Mark)
+		drawCross(gtx, trail, stroke(gtx, tok.label), col.Mark)
 		mo.Pop()
 		registerDismissTarget(gtx, desc, origin, trail, dismiss)
 	}
@@ -883,8 +941,8 @@ func rrect(ops *op.Ops, box image.Rectangle, r int) clip.Op {
 // stroke is the mark weight in pixels, never under one: a zero or unset metric
 // would erase a mark and a sub-pixel width would leave it a smear, and neither
 // is better than the thinnest stroke that draws.
-func stroke(gtx layout.Context) float32 {
-	if w := markStrokeDp * gtx.Metric.PxPerDp; w >= 1 {
+func stroke(gtx layout.Context, style tokens.TextStyle) float32 {
+	if w := MarkStrokeDp(style) * gtx.Metric.PxPerDp; w >= 1 {
 		return w
 	}
 	return 1
@@ -893,13 +951,14 @@ func stroke(gtx layout.Context) float32 {
 // drawCheck strokes the selection mark in a size×size box at the current
 // origin: a check whose foot sits below its own midline, so the shorter arm
 // reads as an arm and not as a serif.
-func drawCheck(gtx layout.Context, size int, c color.NRGBA) {
-	w := stroke(gtx)
-	// Inset by the stroke's half-width so the arms end inside the square
-	// rather than bleeding a half-stroke past it on the diagonal.
-	in := w / 2
-	x0, x1 := float32(0)+in, float32(size)-in
-	y0, y1 := float32(0)+in, float32(size)-in
+//
+// The path runs to the edges of the box and the stroke straddles them, so half
+// a stroke of ink lies outside the cap band on each side. That is the whole of
+// the optical licence the platform's own marks take — see [MarkDp] — and it is
+// spent by the shape rather than granted as a larger box.
+func drawCheck(gtx layout.Context, size int, w float32, c color.NRGBA) {
+	x0, x1 := float32(0), float32(size)
+	y0, y1 := float32(0), float32(size)
 	var p clip.Path
 	p.Begin(gtx.Ops)
 	p.MoveTo(f32.Pt(x0, (y0+y1)/2))
@@ -908,12 +967,11 @@ func drawCheck(gtx layout.Context, size int, c color.NRGBA) {
 	paint.FillShape(gtx.Ops, c, clip.Stroke{Path: p.End(), Width: w}.Op())
 }
 
-// drawCross strokes the dismiss mark in a size×size box at the current origin.
-func drawCross(gtx layout.Context, size int, c color.NRGBA) {
-	w := stroke(gtx)
-	in := w / 2
-	x0, y0 := float32(0)+in, float32(0)+in
-	x1, y1 := float32(size)-in, float32(size)-in
+// drawCross strokes the dismiss mark in a size×size box at the current origin,
+// to the same band and the same licence as [drawCheck].
+func drawCross(gtx layout.Context, size int, w float32, c color.NRGBA) {
+	x0, y0 := float32(0), float32(0)
+	x1, y1 := float32(size), float32(size)
 	var p clip.Path
 	p.Begin(gtx.Ops)
 	p.MoveTo(f32.Pt(x0, y0))

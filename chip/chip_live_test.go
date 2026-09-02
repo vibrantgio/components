@@ -3,6 +3,7 @@ package chip_test
 import (
 	"context"
 	"image"
+	"math"
 	"testing"
 
 	"gioui.org/f32"
@@ -370,7 +371,8 @@ func TestInputChipDismissesFromItsOwnTarget(t *testing.T) {
 
 	// The mark's centre: half an icon in from where the trailing padding
 	// starts, which is where the anatomy puts it.
-	markX := dims.Size.X - int(tokens.Comfortable.PaddingX) - chip.IconDp/2
+	markX := dims.Size.X - int(tokens.Comfortable.PaddingX) -
+		int(math.Round(float64(chip.MarkDp(tokens.DefaultTypography.LabelLarge))))/2
 	press(r, markX, dims.Size.Y/2)
 	drive()
 	if dismissed != 1 {

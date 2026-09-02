@@ -18,19 +18,28 @@
 //	[mark] label [dismiss]
 //
 // Both brackets are optional and both are decided by the intent rather than by
-// a flag. The leading slot holds the caller's [Props.Icon] at [IconDp]; on an
-// [Input] chip it is the avatar slot instead, [AvatarDp] behind a full-round
-// corner, because what leads a token the reader entered is a picture of the
-// thing rather than a sign for it. A selected [Filter] chip draws the
-// checkmark there — the mark that says it is selected takes the slot rather
-// than standing beside a second one. Only [Input] carries the trailing dismiss
-// mark, and it always carries it.
+// a flag. The leading slot holds the caller's [Props.Icon] in the label's cap
+// band ([MarkDp]); on an [Input] chip it is the avatar slot instead,
+// [AvatarDp] behind a full-round corner, because what leads a token the reader
+// entered is a picture of the thing rather than a sign for it. A selected
+// [Filter] chip draws the checkmark there — the mark that says it is selected
+// takes the slot rather than standing beside a second one. Only [Input]
+// carries the trailing dismiss mark, and it always carries it.
+//
+// The marks and the words are ONE LINE OF TEXT. A mark stands in the band the
+// label's capitals stand in — baseline to cap height, read off the face the
+// label is set in — and is stroked at the width of the label's own stem, so
+// nothing inside a chip is heavier or taller than the words it is beside. See
+// [MarkDp] and [MarkStrokeDp] for the measurement that fixes both.
 //
 // The parts are set an S2 stop apart, the spacing scale's own answer for two
 // things that belong to one utterance without being one word, and the row is
 // laid from the leading padding rather than centred: the anatomy is read from
 // its leading edge, so a chip clamped narrower than its content loses its
-// trailing end and not both ends at once.
+// trailing end and not both ends at once. The one exception to that padding is
+// the avatar, which is set in from the leading edge by the same clearance it
+// has above and below itself: a round picture sits in a square well, not at
+// the far end of a text inset.
 //
 // # What the chip is not
 //

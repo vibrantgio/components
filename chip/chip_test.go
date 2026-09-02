@@ -3,6 +3,7 @@ package chip_test
 import (
 	"image"
 	"image/color"
+	"math"
 	"testing"
 
 	"gioui.org/f32"
@@ -23,22 +24,26 @@ import (
 // vector rather than font or SVG rasterisation, it keeps the stored images
 // stable.
 //
-// Its ink is centred on the box and spans most of it, both deliberately. A
-// painter that draws a small figure in the middle of the box it was given
+// Its ink is centred on the box and spans it edge to edge, both deliberately.
+// A painter that draws a small figure in the middle of the box it was given
 // leaves slack the chip cannot see — the chip reserves the box, so a mark that
 // under-fills it reads as extra padding — and one whose ink is not centred on
-// the box drops below the label, because the box is what the chip centres.
+// the box drops below the label, because the box is what the chip centres. The
+// box is now the label's cap band, so spanning it is what puts the mark on the
+// label's own line.
 func chevron(gtx layout.Context, sizePx int, col color.NRGBA) {
 	w := float32(sizePx)
-	stroke := float32(gtx.Dp(unit.Dp(1.5)))
+	// Unrounded, like the marks the chip draws itself: a whole-pixel width on
+	// an axis-aligned arm reads heavier than the same width on a diagonal.
+	stroke := chip.MarkStrokeDp(tokens.DefaultTypography.LabelLarge) * gtx.Metric.PxPerDp
 	if stroke < 1 {
 		stroke = 1
 	}
 	var p clip.Path
 	p.Begin(gtx.Ops)
-	p.MoveTo(f32.Pt(w*0.12, w*0.34))
-	p.LineTo(f32.Pt(w*0.5, w*0.72))
-	p.LineTo(f32.Pt(w*0.88, w*0.34))
+	p.MoveTo(f32.Pt(0, w*0.28))
+	p.LineTo(f32.Pt(w*0.5, w*0.78))
+	p.LineTo(f32.Pt(w, w*0.28))
 	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: stroke}.Op())
 }
 
@@ -303,14 +308,25 @@ func TestChipIsSizedToItsContent(t *testing.T) {
 	}
 }
 
+// markPx is the square a mark is drawn in at one pixel per dp: the label's cap
+// band, which is what the chip reserves for every mark but the avatar.
+func markPx() int { return int(math.Round(float64(chip.MarkDp(tokens.DefaultTypography.LabelLarge)))) }
+
 // TestEachMarkCostsItsOwnSlot pins the anatomy in widths, which is the one
 // place a slot can be silently dropped or silently doubled: a leading icon
-// costs IconDp and the gap after it, an Input chip's avatar costs AvatarDp
-// instead because its leading slot is the avatar slot, and the dismiss mark
-// costs a second IconDp and a second gap.
+// costs the cap band and the gap after it, an Input chip's avatar costs
+// AvatarDp instead because its leading slot is the avatar slot, and the
+// dismiss mark costs a second cap band and a second gap.
+//
+// The avatar also trades the text inset in front of it for its own clearance,
+// so the input chip carrying one is narrower than the slot arithmetic alone
+// would make it by exactly what that trade saves.
 func TestEachMarkCostsItsOwnSlot(t *testing.T) {
 	shaper := defaultShaper(t)
 	gap := int(tokens.Spacing.S2)
+	mark := markPx()
+	avatarInset := (int(tokens.Comfortable.ChipHeight()) - chip.AvatarDp) / 2
+	textInset := int(tokens.Comfortable.PaddingX)
 	width := func(i chip.Intent, icon chip.Glyph, s chip.RenderState) int {
 		return measure(t, render(shaper, "Model", i, icon, tokens.DefaultLight, s)).X
 	}
@@ -320,11 +336,12 @@ func TestEachMarkCostsItsOwnSlot(t *testing.T) {
 		got  int
 		want int
 	}{
-		{"a leading icon", width(chip.Assist, chevron, chip.RenderState{}) - bare, chip.IconDp + gap},
-		{"a filter's checkmark", width(chip.Filter, nil, chip.RenderState{Selected: true}) - bare, chip.IconDp + gap},
-		{"an input chip's dismiss mark", width(chip.Input, nil, chip.RenderState{}) - bare, chip.IconDp + gap},
+		{"a leading icon", width(chip.Assist, chevron, chip.RenderState{}) - bare, mark + gap},
+		{"a filter's checkmark", width(chip.Filter, nil, chip.RenderState{Selected: true}) - bare, mark + gap},
+		{"an input chip's dismiss mark", width(chip.Input, nil, chip.RenderState{}) - bare, mark + gap},
 		{"an input chip's avatar and dismiss mark",
-			width(chip.Input, block, chip.RenderState{}) - bare, chip.AvatarDp + chip.IconDp + 2*gap},
+			width(chip.Input, block, chip.RenderState{}) - bare,
+			chip.AvatarDp + mark + 2*gap - (textInset - avatarInset)},
 	} {
 		if tc.got != tc.want {
 			t.Errorf("%s cost the chip %d dp, want %d", tc.name, tc.got, tc.want)
