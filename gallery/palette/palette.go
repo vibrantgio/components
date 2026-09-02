@@ -32,6 +32,11 @@
 // role's hue at a rung's tone with the chroma pulled to the container dial,
 // and white/black belong to no ramp.
 //
+// The reserved highlighter stands in a family of its own for the same reason
+// carried one step further: its hue is reserved outside the role table, so no
+// row of the grid runs at it, no step of one is its to claim, and no seed
+// rotates it.
+//
 // Deliberately out of scope: interaction-state colours (hover, pressed,
 // selected, dragged — a component's own transform of a colour it was given),
 // disabled colours (an alpha fraction, not a palette member), and the focus
@@ -227,16 +232,22 @@ const (
 
 // The families the cells are read in: page and surfaces (the ground
 // everything else stands on) and the inverse pair (also surfaces, borrowed
-// from the other side of the scheme) first, then the accents the seed
-// rotates, then the status roles it may only tint. Containers have no family
-// of their own — each stands under its role, inside Status. The tonal axis
-// ends come last: they are what the inks above turned out to be.
+// from the other side of the scheme) first, then the reserved highlighter,
+// then the accents the seed rotates, then the status roles it may only tint.
+// Containers have no family of their own — each stands under its role, inside
+// Status. The tonal axis ends come last: they are what the inks above turned
+// out to be.
+//
+// Reserved holds the one colour that is in no role: it stands where the CSS
+// export puts it, after the inverse pair and ahead of the accents, so a reader
+// meets the theme's colours in one order wherever they are listed.
 const (
-	PickPageGroup    = "Page and surfaces"
-	PickInverseGroup = "Inverse"
-	PickAccentGroup  = "Accents"
-	PickStatusGroup  = "Status"
-	PickAxisGroup    = "Ink ends"
+	PickPageGroup     = "Page and surfaces"
+	PickInverseGroup  = "Inverse"
+	PickReservedGroup = "Reserved"
+	PickAccentGroup   = "Accents"
+	PickStatusGroup   = "Status"
+	PickAxisGroup     = "Ink ends"
 )
 
 // The role names, said once. They are the ramp rows' labels and the cells'
@@ -307,6 +318,25 @@ const (
 	// PickMarkOff is a mark that is not a rung of its own ramp; no derivation
 	// shipping today produces this case.
 	PickMarkOff = "measured over the container"
+	// PickHighlightRule is the reserved highlighter: a hue no status may use,
+	// deepened off its fixed step until it clears the container floor over
+	// what it is marking. The separation is measured off this scheme's own
+	// status fills rather than asserted; the derivation holds at least 65.92°
+	// of it over the seed sweep, at one strength and at the same colour under
+	// every seed, which is why the line names no seed, no role and no step
+	// (theme/tokens/highlight.go).
+	//
+	// The floor is named against the page and not against "the surface":
+	// the cell shows the field, which is the wash resolved against the
+	// Background pin, and it clears the floor there and not over the deeper
+	// Surface token a reader could take that word for (1.37:1 and 1.30:1
+	// against the page, 1.21:1 and 1.17:1 against Surface, where a wash on
+	// Surface is a walked colour this cell does not carry).
+	//
+	// Two clauses and no longer, like every other rule here: the board cuts a
+	// long line at its first comma, so the reservation stands ahead of it and
+	// the whole line still fits the widest column the board is dealt.
+	PickHighlightRule = "a reserved hue %.0f° off every status, floored at %.2f over the page"
 	// The two ends of the tonal axis, on no ramp, each named for the end it is
 	// and whether the scheme on screen writes any ink in it — read off that
 	// scheme's own inks rather than asserted, so the answer turns over with the
@@ -334,6 +364,7 @@ const (
 	DividerPick          = "Divider"
 	InverseSurfacePick   = "InverseSurface"
 	OnInverseSurfacePick = "OnInverseSurface"
+	HighlightPick        = "Highlight"
 	ContainerPick        = "Container"
 	MarkPick             = "Mark"
 	WhitePick            = "White"
@@ -468,6 +499,13 @@ func Groups(c, other tokens.ColorTokens, dark bool) []Group {
 			Ink:  inversePart(OnInverseSurfacePick, c.OnInverseSurface, other.Text, PickTextRole, dark),
 			Fill: c.InverseSurface, On: c.OnInverseSurface,
 		}}},
+		// The reserved highlighter, resolved against the page the content it
+		// marks stands on. It carries no ink: the theme names none for it, and
+		// what a wash owes the surface it marks is a findable edge rather than
+		// a legibility.
+		{PickReservedGroup, []Cell{
+			alone(highlightPart(c), c.Highlight),
+		}},
 		{PickAccentGroup, []Cell{
 			pinnedCell(PrimaryName, c.Ramps.Primary, c.Primary, c.OnPrimary, PickSeedNear, PickSeed),
 			pinnedCell(SecondaryName, c.Ramps.Secondary, c.Secondary, c.OnSecondary, PickJustOff, PickPinned),
@@ -718,6 +756,46 @@ func inverseRule(col, counterpart stdcolor.NRGBA, role string, dark bool) string
 		return fmt.Sprintf(PickOtherLight, role)
 	}
 	return fmt.Sprintf(PickOtherDark, role)
+}
+
+// highlightPart is the reserved highlighter as a cell carries it. It claims no
+// step: the wash takes a neutral step's depth but sits at a hue no ramp on the
+// grid runs at, so there is no row for the grid to mark it on.
+func highlightPart(c tokens.ColorTokens) Part {
+	return Part{
+		Name: HighlightPick,
+		Rule: fmt.Sprintf(PickHighlightRule, math.Floor(statusHueGap(c)), tokens.ContainerFloor),
+	}
+}
+
+// statusHueGap is how far the highlighter stands from the nearest status
+// colour of this palette, in OKLCh degrees — the reservation as this scheme
+// realized it, read off the eight status fills the board draws below rather
+// than asserted. Both the pinned fill and the container are asked, since a
+// container keeps its role's hue and either could be the nearest.
+//
+// Reported unrounded and floored where it is printed, so the rule never
+// claims a degree the palette does not hold.
+func statusHueGap(c tokens.ColorTokens) float64 {
+	_, _, hue := vgcolor.OKLChFromNRGBA(c.Highlight)
+	gap := 180.0
+	for _, col := range [8]stdcolor.NRGBA{
+		c.Error, c.StatusContainer(tokens.RoleError),
+		c.Success, c.StatusContainer(tokens.RoleSuccess),
+		c.Warning, c.StatusContainer(tokens.RoleWarning),
+		c.Info, c.StatusContainer(tokens.RoleInfo),
+	} {
+		_, _, h := vgcolor.OKLChFromNRGBA(col)
+		gap = min(gap, hueApart(hue, h))
+	}
+	return gap
+}
+
+// hueApart is the shorter way round the hue circle between two angles in
+// degrees.
+func hueApart(a, b float64) float64 {
+	d := math.Abs(a - b)
+	return min(d, 360-d)
 }
 
 // Rows is the story as rows of a page's column: the ramps under their own
