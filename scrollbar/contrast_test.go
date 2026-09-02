@@ -32,17 +32,16 @@ var thumbSeeds = []color.NRGBA{
 }
 
 // thumbGrounds are the levels an overlay bar rides: the window's own page in
-// a document, and the chrome furniture floor the panes are filled with
-// everywhere else. Both are measured for both states, because the derivation
+// a document, and the chrome level the panes are filled at everywhere else. Both are measured for both states, because the derivation
 // answers whichever of the two asks more and the other has to come out no
-// worse. The furniture floor is the harder of the two in both schemes: the
-// thumb's ink is dark, and the floor is the darker ground.
+// worse. The chrome level is the harder of the two in both schemes: the
+// thumb's ink is dark, and chrome is the darker of the two surfaces.
 var thumbGrounds = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
 	{"level 0, the page", tokens.Level0},
-	{"the furniture floor, a pane", tokens.LevelBackdrop},
+	{"the chrome level, a pane", tokens.LevelChrome},
 }
 
 // TestTheThumbClearsItsFloorOnEveryGroundItRides asserts the floors where they

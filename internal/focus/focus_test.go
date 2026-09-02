@@ -45,18 +45,18 @@ func palettes(seed stdcolor.NRGBA) []tokens.ColorTokens {
 
 // levels is every elevation level a control in this library can be put
 // on, named as a host says it: a control that is told nothing stands on
-// tokens.Level0, and a control on a sidebar, a rail or a toolbar stands on the
-// furniture floor beneath it.
+// tokens.Level0, and a control on a sidebar, a rail or a toolbar stands at
+// the chrome level beneath it.
 var levels = []tokens.ElevationLevel{
-	tokens.LevelBackdrop, tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
+	tokens.LevelChrome, tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
 }
 
 // levelName spells a level the way this file's failure messages want to
 // read it, so a report names the level a developer would put a control on
-// rather than an integer that counts from the paper.
+// rather than an integer that counts from the content.
 func levelName(level tokens.ElevationLevel) string {
-	if level == tokens.LevelBackdrop {
-		return "on the furniture floor"
+	if level == tokens.LevelChrome {
+		return "at the chrome level"
 	}
 	return "on level " + string(rune('0'+int(level)))
 }

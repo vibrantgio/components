@@ -131,11 +131,12 @@ const BorderSeparation = 1.25
 const midStep = 4
 
 // levels is every elevation level a control in this library can be put on,
-// and so every surface a focus ring can lie on. A control that is told nothing
-// stands on tokens.Level0; one on a sidebar, a rail or a toolbar stands on the
-// furniture floor beneath it; a menu or a popover stands at the ceiling.
+// and so every surface a focus ring can lie on. A control that is told
+// nothing stands on tokens.Level0; one on a sidebar, a rail or a toolbar
+// stands at the chrome level beneath it; a menu or a popover stands at the
+// ceiling. The backdrop is not among them: nothing stands on it.
 var levels = [...]tokens.ElevationLevel{
-	tokens.LevelBackdrop, tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
+	tokens.LevelChrome, tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
 }
 
 // restingBorder is the neutral resting border a control standing on level

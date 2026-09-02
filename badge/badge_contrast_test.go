@@ -42,7 +42,7 @@ var badgeLevels = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
-	{"floor", tokens.LevelBackdrop},
+	{"chrome", tokens.LevelChrome},
 	{"level-0", tokens.Level0},
 	{"level-1", tokens.Level1},
 	{"level-2", tokens.Level2},

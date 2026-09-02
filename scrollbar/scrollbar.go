@@ -123,12 +123,12 @@ const inkStep = 700
 // scheme's resting thumb reaches 3:1 at 82% coverage in the low-contrast-text
 // rung and at 71% in the ramp's end rung, and the two land on the same grey.
 //
-// It is derived against both grounds an overlay bar rides — the window's own
-// page and the chrome furniture the panes are filled with — and answers
-// whichever asks more, so one bar reads on both. Chrome furniture is the floor
-// beneath the paper rather than a level above it, and it is the harder of the
-// two grounds in both schemes: the thumb's ink is dark, and a dark ink over
-// the darker ground has the less to spare. Over the whole seed sweep the two
+// It is derived against both surfaces an overlay bar rides — the window's
+// own content and the window's furniture the panes are filled with — and
+// answers whichever asks more, so one bar reads on both. The chrome level is
+// beneath the content rather than above it, and it is the harder of the two
+// in both schemes: the thumb's ink is dark, and a dark ink over the darker
+// surface has the less to spare. Over the whole seed sweep the two
 // grounds never disagree about the rung and differ only in coverage, because
 // an ink at the ramp's end is far from both of them.
 //
@@ -145,7 +145,7 @@ const inkStep = 700
 func thumbInk(c tokens.ColorTokens, floor float64, coverage uint8) color.NRGBA {
 	grounds := [...]color.NRGBA{
 		c.SurfaceAt(tokens.Level0),
-		c.SurfaceAt(tokens.LevelBackdrop),
+		c.SurfaceAt(tokens.LevelChrome),
 	}
 	clears := func(ink color.NRGBA) bool {
 		for _, ground := range grounds {

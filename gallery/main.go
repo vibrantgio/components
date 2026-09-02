@@ -374,10 +374,10 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints = layout.Exact(image.Pt(w, gtx.Constraints.Max.Y))
 	c := g.chrome()
 
-	// The gallery's own rail is chrome furniture, so it fills at the
-	// window's floor. This coincides with the Neutral 200 ramp alias in the
+	// The gallery's own rail is the window's furniture, so it fills at the
+	// chrome level. This coincides with the Neutral 200 ramp alias in the
 	// light scheme only.
-	paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelBackdrop), clip.Rect{Max: gtx.Constraints.Max}.Op())
+	paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelChrome), clip.Rect{Max: gtx.Constraints.Max}.Op())
 
 	cs := make([]layout.FlexChild, 0, 1+len(pageNames))
 	cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {

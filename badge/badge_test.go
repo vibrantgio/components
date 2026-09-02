@@ -87,14 +87,14 @@ func row(ws ...layout.Widget) layout.Widget {
 	}
 }
 
-// The three surfaces a badge is put on in practice: the content paper, the
-// chrome furniture a toolbar band is, and a dialog.
+// The three surfaces a badge is put on in practice: the content surface,
+// the chrome level a toolbar band stands at, and a dialog.
 var goldenLevels = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
 	{"paper", tokens.Level0},
-	{"floor", tokens.LevelBackdrop},
+	{"chrome", tokens.LevelChrome},
 	{"dialog", tokens.Level2},
 }
 

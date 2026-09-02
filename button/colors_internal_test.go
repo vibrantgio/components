@@ -107,15 +107,15 @@ func TestEmphasisResolvesTheDocumentedColours(t *testing.T) {
 			{"ghost/disabled", RenderState{Emphasis: Ghost, Disabled: true},
 				transparent, tokens.Disabled(c.Ramps.Neutral.Step(700))},
 
-			// Ghost on a host that is not the paper: the wash is that host
-			// surface's own one-step walk, on every level — the furniture
-			// floor below the paper included, which is where a rail's or a
+			// Ghost on a host that is not the content: the fill is that host
+			// surface's own one-step walk, on every level — the chrome level
+			// below the content included, which is where a rail's or a
 			// toolbar's ghost buttons actually stand. Rest stays transparent
 			// on every level; the fill is the host's to paint.
-			{"ghost/floor/normal", RenderState{Emphasis: Ghost, Level: tokens.LevelBackdrop},
+			{"ghost/chrome/normal", RenderState{Emphasis: Ghost, Level: tokens.LevelChrome},
 				transparent, c.Ramps.Neutral.Step(700)},
-			{"ghost/floor/hovered", RenderState{Emphasis: Ghost, Level: tokens.LevelBackdrop, Hovered: true},
-				c.StateAt(tokens.LevelBackdrop, tokens.StateHover), c.Ramps.Neutral.Step(900)},
+			{"ghost/chrome/hovered", RenderState{Emphasis: Ghost, Level: tokens.LevelChrome, Hovered: true},
+				c.StateAt(tokens.LevelChrome, tokens.StateHover), c.Ramps.Neutral.Step(900)},
 			{"ghost/level1/hovered", RenderState{Emphasis: Ghost, Level: tokens.Level1, Hovered: true},
 				c.StateAt(tokens.Level1, tokens.StateHover), c.Ramps.Neutral.Step(900)},
 			{"ghost/level2/normal", RenderState{Emphasis: Ghost, Level: tokens.Level2},
@@ -141,8 +141,8 @@ func TestEmphasisResolvesTheDocumentedColours(t *testing.T) {
 			{"tonal/level2/hovered", RenderState{Emphasis: Tonal, Level: tokens.Level2, Hovered: true},
 				c.PinnedStateColor(tonalRest(c, tokens.Level2), tokens.StateHover),
 				tonalInk(c, c.PinnedStateColor(tonalRest(c, tokens.Level2), tokens.StateHover))},
-			{"tonal/backdrop/normal", RenderState{Emphasis: Tonal, Level: tokens.LevelBackdrop},
-				tonalRest(c, tokens.LevelBackdrop), tonalInk(c, tonalRest(c, tokens.LevelBackdrop))},
+			{"tonal/chrome/normal", RenderState{Emphasis: Tonal, Level: tokens.LevelChrome},
+				tonalRest(c, tokens.LevelChrome), tonalInk(c, tonalRest(c, tokens.LevelChrome))},
 
 			// A pinned pair takes the place of the role's, and of nothing
 			// else: the same walk toward the 900 end, the same untouched pin
@@ -254,14 +254,14 @@ func TestZeroEmphasisIsFilled(t *testing.T) {
 	}
 }
 
-// ghostLevels are the surfaces a ghost is placed on: the window furniture
-// below the paper, the paper itself, and the three raised levels — the
+// ghostLevels are the surfaces a ghost is placed on: the window's furniture
+// below the content, the content itself, and the three raised levels — the
 // level-2 one being where patterns/modal stands its close mark.
 var ghostLevels = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
-	{"backdrop", tokens.LevelBackdrop},
+	{"chrome", tokens.LevelChrome},
 	{"paper", tokens.Level0},
 	{"raised", tokens.Level1},
 	{"floating", tokens.Level2},

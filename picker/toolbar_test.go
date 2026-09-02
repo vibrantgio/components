@@ -38,13 +38,13 @@ func onLevel(c tokens.ColorTokens, level tokens.ElevationLevel, w layout.Widget)
 }
 
 // The three surfaces a chrome-variant trigger actually rests on: the content
-// paper, the chrome furniture a toolbar band is, and a dialog.
+// surface, the chrome level a toolbar band stands at, and a dialog.
 var goldenGrounds = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
 	{"paper", tokens.Level0},
-	{"floor", tokens.LevelBackdrop},
+	{"chrome", tokens.LevelChrome},
 	{"dialog", tokens.Level2},
 }
 
