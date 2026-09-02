@@ -25,38 +25,40 @@ import (
 	"github.com/vibrantgio/theme/typeset"
 )
 
-// Emphasis is the visual weight register a button wears — how strongly it
+// Emphasis is the visual weight variant a button wears — how strongly it
 // competes for attention on the surface it sits on. It is a colour property
 // and nothing else: the drawn control keeps the density's size, the pointer
 // target keeps its 44 dp floor, and the focus ring keeps its shape, width and
-// place in every register — only its step moves, and only so far as the
+// place in every variant — only its step moves, and only so far as the
 // surface under it moved. Keyboard visibility is not an emphasis property.
 //
 // Every desktop system carries this axis under its own names — MD3 has
 // filled, tonal, outlined and text; Fluent primary, standard and subtle;
-// Apple prominent, regular and plain — and the three registers below are
+// Apple prominent, regular and plain — and the three variants below are
 // the set all of them agree on: the two ends plus the tinted middle.
-// Outlined is deliberately not a fourth register. A border is a property of
+// Outlined is deliberately not a fourth variant. A border is a property of
 // a surface rather than a step on a prominence scale, and components already
 // carries its two border weights as ramp steps 500 and 300.
 type Emphasis int
 
 const (
-	// Filled is the most pronounced register and the zero value: the role's
+	// Filled is the most pronounced variant and the zero value: the role's
 	// pinned solid fill carrying its on-colour. One per surface — the action
 	// the screen is about. Being the zero value is what makes this axis
 	// additive: every Props and RenderState written before it existed
 	// renders exactly as it did.
 	Filled Emphasis = iota
 
-	// Tonal is the middle register: a tinted fill off the role's own ramp
-	// with the ramp's text shade on top (the ramp's 100–300 tinted fills and
-	// 700–900 text over them). It reads as an action without claiming the
-	// surface's one most pronounced slot — the register for a secondary
+	// Tonal is the middle variant: the role's tint over the surface the
+	// button stands on, under the role's own colour at the text floor. It is
+	// the same recipe a status badge wears — one tint, told apart by
+	// behaviour and not by colour — so it derives against RenderState.Level
+	// rather than at a fixed depth. It reads as an action without claiming
+	// the surface's one most pronounced slot: the variant for a secondary
 	// action, and the one a row of equals wears.
 	Tonal
 
-	// Ghost is the least pronounced register: no fill at rest, the label or
+	// Ghost is the least pronounced variant: no fill at rest, the label or
 	// glyph in the neutral ramp's low-contrast text shade, and a neutral wash
 	// only while the pointer is on it. A ghost's wash is its host surface's
 	// own walk — it derives from the surface the button stands on
@@ -101,15 +103,14 @@ type RenderState struct {
 	Emphasis Emphasis
 
 	// Level is the level of the surface the button stands on — a button has
-	// no level of its own — and it is what the Ghost register's hover and
-	// press washes walk from, in the same vocabulary the host names its own
-	// fill (tokens.SurfaceAt). A ghost's wash is its host surface's own
-	// walk: a dialog at tokens.Level2 passes Level2 and its ghost
-	// washes past that level's fill. The zero value is
-	// tokens.Level0, the window's own surface, which resolves to exactly the
-	// walk the register always performed — so every state written before this
-	// field existed keeps its colours. Filled and Tonal ignore it: they carry
-	// their own fills.
+	// no level of its own — in the same vocabulary the host names its own
+	// fill (tokens.SurfaceAt). Two variants read it. A ghost's wash is its
+	// host surface's own walk: a dialog at tokens.Level2 passes Level2 and
+	// its ghost washes past that level's fill. A tonal button's tint is
+	// derived against that same surface, so it separates from the dialog
+	// rather than from the window. The zero value is tokens.Level0, the
+	// window's own surface. Filled ignores it: it carries its own solid
+	// fill.
 	Level tokens.ElevationLevel
 
 	// Fill and OnFill pin the Filled register's fill and the ink over it
@@ -163,11 +164,10 @@ type Props struct {
 
 	// Level is the level of the surface the button stands on — a button has
 	// no level of its own — copied straight into RenderState.Level on every
-	// frame: what a Ghost's hover and press washes walk from. A container
-	// that raises its surface (patterns/modal's level-2 dialog hosting its
-	// close X) passes its own level here; the zero value is the window's own
-	// surface and keeps exactly the colours the register has always had.
-	// See RenderState.Level.
+	// frame: what a Ghost's washes walk from and what a Tonal's tint is
+	// derived against. A container that raises its surface (patterns/modal's
+	// level-2 dialog hosting its close X) passes its own level here; the
+	// zero value is the window's own surface. See RenderState.Level.
 	Level tokens.ElevationLevel
 
 	// Fill and OnFill pin the Filled register's fill and its ink to a
@@ -582,29 +582,14 @@ func drawFocusRing(gtx layout.Context, size image.Point, rad int, ring color.NRG
 	}.Op())
 }
 
-// Ramp steps the less pronounced registers resolve against. Every one of them
-// is a step already named on the existing ramps, so a register is a choice of
-// steps on those ramps rather than a second colour model.
-//
-// Both fills are step 200, and the APCA gate is what fixes them there
-// rather than taste. A tinted fill presses two steps deeper, and 200 is
-// the only step of the 100–300 tinted band whose press still carries
-// the 900 text: measured on the default seed, primary 900 over primary 400
-// is Lc 62.8 light and −84.5 dark, and neutral 900 over neutral 400 is
-// Lc 63.4 and −84.6 — all above the ADR's Lc 60 floor. A fill of 300
-// would press onto 500 and take its label to Lc 47.5, unreadable, in
-// exchange for a slightly more pronounced button.
-const (
-	// tonalFill is the tinted fill (the 100–300 tinted band) a tonal
-	// button rests on, and what its hover and press walk from — one
-	// step to 300, two to 400, exactly as any tinted surface walks. It is
-	// the step a card sits on, which is the relationship a tonal button
-	// wants: a tinted card over the app background.
-	tonalFill = 200
-	// tonalText is the text shade over that tinted fill: step 900, the
-	// stop the APCA gate holds at Lc ≥ 90 over the 100 and 200 fills.
-	tonalText = 900
+// tonalRole is the colour role a Tonal button is tinted off: the accent,
+// which is the role every variant of this button resolves from.
+const tonalRole = tokens.RolePrimary
 
+// Ramp steps the Ghost variant resolves against. Both are steps already
+// named on the neutral ramp, so the variant is a choice of steps on that
+// ramp rather than a second colour model.
+const (
 	// ghostText is the resting label shade: neutral step 700, the
 	// low-contrast text floor (Lc ≥ 60).
 	ghostText = 700
@@ -619,51 +604,74 @@ const (
 )
 
 // buttonColors returns the background and foreground colours for the given
-// register and interaction state.
+// variant and interaction state.
 //
-// Filled — the zero register — is the treatment components has always drawn: the
-// Primary solid fill resolved through the state walk (hover and pressed step
-// the pin toward the 900 end of the primary ramp; focus keeps the fill and
-// draws the ring) under OnPrimary, faded to
-// DisabledOpacity when disabled. Tonal and Ghost resolve through the same
-// two entry points on the same ramps, only from different steps: tonal is
-// the tinted-fill walk on the primary ramp, ghost the same walk on the
-// neutral ramp with the resting step painted as nothing at all. What a
-// ghost walks from is its host surface's own fill — a ghost's wash is that
-// surface's own walk, taken from whichever level s.Level names
-// (ghostWash) and deep enough to be seen there, with the on-wash text
-// riding at the ramp's 900 end, where the walk itself clamps.
+// Filled — the zero variant — is the treatment components has always drawn:
+// the accent's solid fill resolved through the state walk (hover and pressed
+// step the pin toward the 900 end of the accent ramp; focus keeps the fill
+// and draws the ring) under OnPrimary, faded to DisabledOpacity when
+// disabled.
 //
-// Filled is also the one register that takes a pin from the caller. A
-// RenderState carrying both halves of a fill pair (RenderState.Fill and
-// OnFill) wears that pair in place of the primary one and keeps everything
-// else: the same walk toward the 900 end, now stepped on the scheme's own
-// lightness scale because a caller's colour belongs to no role
-// (tokens.PinnedStateColor), the same disabled opacity over both halves,
-// and the same ring, which is measured against the fill this function
-// returns and therefore against the pin. Half a pair is no pair; the
-// register resolves from the primary role, exactly as every state written
-// before the pair existed does.
+// Tonal is a tint, and the tint is not this package's to invent: a tinted
+// button and a status badge would differ by no practical visual difference,
+// so they speak ONE recipe and behaviour tells them apart. The recipe is the
+// floored, surface-aware container ([tokens.ColorTokens.StatusContainerOn])
+// over the surface s.Level names, under the role's own foreground at the
+// text floor ([tokens.ColorTokens.ForegroundOn]) — the same two calls the
+// badge makes. So a Tonal button IS level-aware: a fixed step walks through
+// the elevation ladder and lands on the level it is tinting, which measured
+// 1.13:1 light and 1.11:1 dark against the paper before this, a fill nobody
+// could see.
+//
+// Ghost is the neutral walk with the resting step painted as nothing at all.
+// What a ghost walks from is its host surface's own fill — a ghost's wash is
+// that surface's own walk, taken from whichever level s.Level names
+// (ghostWash) and deep enough to be seen there, with the on-wash text riding
+// at the ramp's 900 end, where the walk itself clamps.
+//
+// Filled is the one variant that takes a pin from the caller. A RenderState
+// carrying both halves of a fill pair (RenderState.Fill and OnFill) wears
+// that pair in place of the accent's and keeps everything else: the same
+// walk toward the 900 end, now stepped on the scheme's own lightness scale
+// because a caller's colour belongs to no role (tokens.PinnedStateColor),
+// the same disabled opacity over both halves, and the same ring, which is
+// measured against the fill this function returns and therefore against the
+// pin. Half a pair is no pair; the variant resolves from the accent role,
+// exactly as every state written before the pair existed does.
 //
 // Ghost's wash is neutral rather than role-tinted on purpose. A ghost claims
-// no role colour — that is what makes it the least pronounced register — and
+// no role colour — that is what makes it the least pronounced variant — and
 // tinting one under the pointer would hand the brand hue to the very
 // affordance that was chosen for not carrying it.
 //
-// The focus ring is not resolved here. Its shape, width and position are the
-// same in every register (see drawFocusRing); its colour is the primary step
-// measured against the background this function returned, which is the only
-// way one ring can read over a filled surface and an empty one alike.
+// Focus is a persistent state and not a treatment that replaces another: in
+// every variant it keeps the resting fill and adds the ring. The ring is not
+// resolved here — its shape, width and position are the same in every
+// variant (see drawFocusRing); its colour is the accent step measured
+// against the background this function returned, which is the only way one
+// ring can read over a filled surface and an empty one alike.
 func buttonColors(c tokens.ColorTokens, s RenderState) (bg, fg color.NRGBA) {
 	state := interactionState(s)
 
 	switch s.Emphasis {
 	case Tonal:
-		fg = c.Ramps.Primary.Step(tonalText)
+		// One tint recipe, shared with the status badge: the floored,
+		// surface-aware container over whatever the button stands on, under
+		// the role's own foreground at the text floor. Deriving the
+		// foreground against the fill that is ACTUALLY painted is half of
+		// it — a label held over a fill the pointer has walked two steps is
+		// derived against a surface no longer there.
+		rest := c.StatusContainerOn(tonalRole, c.SurfaceAt(s.Level))
 		if s.Disabled {
-			fg = tokens.Disabled(fg)
+			// The pair is derived opaque and then faded together: a
+			// foreground derived against a translucent fill would be
+			// measured against a colour nothing paints.
+			bg = tokens.Disabled(rest)
+			fg = tokens.Disabled(c.ForegroundOn(tonalRole, rest))
+			break
 		}
-		bg = c.StateColor(tokens.RolePrimary, tonalFill, state)
+		bg = c.PinnedStateColor(rest, state)
+		fg = c.ForegroundOn(tonalRole, bg)
 
 	case Ghost:
 		switch state {

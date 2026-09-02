@@ -17,12 +17,26 @@ var (
 	pinInk  = color.NRGBA{0xff, 0xff, 0xff, 0xff}
 )
 
-// The emphasis registers are a choice of steps on the design system's ramps,
-// and this is the table that says which steps. It is asserted in both schemes because
-// the light and dark ramps are paired scales — the same step keeps the same
-// job — so the register table must be written once and hold in both. If a
-// register ever needs a mode-specific rule, this test is where that shows up.
-func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
+// tonalRest and tonalInk are the badge's tint recipe written out for the
+// table below: the floored, surface-aware container over the level the
+// button stands on, and the role's own foreground at the text floor over
+// whatever the fill has walked to. components/badge draws with exactly these
+// two calls; TestTonalWearsTheBadgesTint holds the two spellings together.
+func tonalRest(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGBA {
+	return c.StatusContainerOn(tokens.RolePrimary, c.SurfaceAt(level))
+}
+
+func tonalInk(c tokens.ColorTokens, fill color.NRGBA) color.NRGBA {
+	return c.ForegroundOn(tokens.RolePrimary, fill)
+}
+
+// The emphasis variants are a choice of derivations off the design system's
+// ramps, and this is the table that says which. It is asserted in both
+// schemes because the light and dark ramps are paired scales — the same step
+// keeps the same job — so the table must be written once and hold in both. If
+// a variant ever needs a scheme-specific rule, this test is where that shows
+// up.
+func TestEmphasisResolvesTheDocumentedColours(t *testing.T) {
 	schemes := []struct {
 		name string
 		c    tokens.ColorTokens
@@ -54,18 +68,25 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 			{"filled/disabled", RenderState{Disabled: true},
 				c.SolidStateColor(tokens.RolePrimary, tokens.StateDisabled), tokens.Disabled(c.OnPrimary)},
 
-			// Tonal: the primary ramp's tinted 200 fill, walked one step
-			// on hover and two on press, under the ramp's 900 text shade.
+			// Tonal: the badge's tint recipe, spelled out here in the two
+			// token calls it is made of rather than taken from the badge —
+			// so this table is an independent statement of the recipe and
+			// not a copy of the code under test. The fill walks under the
+			// pointer and the foreground is re-derived against wherever the
+			// walk landed.
 			{"tonal/normal", RenderState{Emphasis: Tonal},
-				c.Ramps.Primary.Step(200), c.Ramps.Primary.Step(900)},
+				tonalRest(c, tokens.Level0), tonalInk(c, tonalRest(c, tokens.Level0))},
 			{"tonal/hovered", RenderState{Emphasis: Tonal, Hovered: true},
-				c.Ramps.Primary.Step(300), c.Ramps.Primary.Step(900)},
+				c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StateHover),
+				tonalInk(c, c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StateHover))},
 			{"tonal/pressed", RenderState{Emphasis: Tonal, Pressed: true},
-				c.Ramps.Primary.Step(400), c.Ramps.Primary.Step(900)},
+				c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StatePressed),
+				tonalInk(c, c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StatePressed))},
 			{"tonal/focused", RenderState{Emphasis: Tonal, Focused: true},
-				c.Ramps.Primary.Step(200), c.Ramps.Primary.Step(900)},
+				tonalRest(c, tokens.Level0), tonalInk(c, tonalRest(c, tokens.Level0))},
 			{"tonal/disabled", RenderState{Emphasis: Tonal, Disabled: true},
-				tokens.Disabled(c.Ramps.Primary.Step(200)), tokens.Disabled(c.Ramps.Primary.Step(900))},
+				tokens.Disabled(tonalRest(c, tokens.Level0)),
+				tokens.Disabled(tonalInk(c, tonalRest(c, tokens.Level0)))},
 
 			// Ghost: no fill at rest, focused or disabled; the host
 			// surface's own hover and press wash under the pointer, with the
@@ -108,13 +129,20 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 			{"ghost/level3/pressed", RenderState{Emphasis: Ghost, Level: tokens.Level3, Pressed: true},
 				c.StateAt(tokens.Level3, tokens.StatePressed), c.Ramps.Neutral.Step(900)},
 
-			// The other registers carry their own fills and ignore the
-			// host's: a filled or tonal button on a level-2 surface renders
-			// exactly as on the window's own surface.
+			// Filled carries its own solid fill and ignores the host's: a
+			// filled button on a level-2 surface renders exactly as on the
+			// window's own surface. Tonal does not — its tint is derived
+			// against whatever it stands on, which is what makes it the
+			// badge's recipe and not a fixed step.
 			{"filled/level2/hovered", RenderState{Level: tokens.Level2, Hovered: true},
 				c.SolidStateColor(tokens.RolePrimary, tokens.StateHover), c.OnPrimary},
+			{"tonal/level2/normal", RenderState{Emphasis: Tonal, Level: tokens.Level2},
+				tonalRest(c, tokens.Level2), tonalInk(c, tonalRest(c, tokens.Level2))},
 			{"tonal/level2/hovered", RenderState{Emphasis: Tonal, Level: tokens.Level2, Hovered: true},
-				c.Ramps.Primary.Step(300), c.Ramps.Primary.Step(900)},
+				c.PinnedStateColor(tonalRest(c, tokens.Level2), tokens.StateHover),
+				tonalInk(c, c.PinnedStateColor(tonalRest(c, tokens.Level2), tokens.StateHover))},
+			{"tonal/backdrop/normal", RenderState{Emphasis: Tonal, Level: tokens.LevelBackdrop},
+				tonalRest(c, tokens.LevelBackdrop), tonalInk(c, tonalRest(c, tokens.LevelBackdrop))},
 
 			// A pinned pair takes the place of the role's, and of nothing
 			// else: the same walk toward the 900 end, the same untouched pin
@@ -142,13 +170,14 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 			{"filled/fill-without-ink/hovered", RenderState{Fill: pinFill, Hovered: true},
 				c.SolidStateColor(tokens.RolePrimary, tokens.StateHover), c.OnPrimary},
 
-			// The less pronounced registers ignore the pair outright: a tint
+			// The less pronounced variants ignore the pair outright: a tint
 			// and an absent fill are not solid fills, so there is nothing in
 			// them to pin.
 			{"tonal/pinned/normal", RenderState{Emphasis: Tonal, Fill: pinFill, OnFill: pinInk},
-				c.Ramps.Primary.Step(200), c.Ramps.Primary.Step(900)},
+				tonalRest(c, tokens.Level0), tonalInk(c, tonalRest(c, tokens.Level0))},
 			{"tonal/pinned/hovered", RenderState{Emphasis: Tonal, Fill: pinFill, OnFill: pinInk, Hovered: true},
-				c.Ramps.Primary.Step(300), c.Ramps.Primary.Step(900)},
+				c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StateHover),
+				tonalInk(c, c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StateHover))},
 			{"ghost/pinned/normal", RenderState{Emphasis: Ghost, Fill: pinFill, OnFill: pinInk},
 				transparent, c.Ramps.Neutral.Step(700)},
 			{"ghost/pinned/hovered", RenderState{Emphasis: Ghost, Fill: pinFill, OnFill: pinInk, Hovered: true},
@@ -221,7 +250,7 @@ func TestZeroEmphasisIsFilled(t *testing.T) {
 		t.Errorf("Emphasis(0).String() = %q, want %q", got, want)
 	}
 	if got, want := Tonal.String()+" "+Ghost.String(), "tonal ghost"; got != want {
-		t.Errorf("register names = %q, want %q", got, want)
+		t.Errorf("variant names = %q, want %q", got, want)
 	}
 }
 

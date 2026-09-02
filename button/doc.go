@@ -19,15 +19,23 @@
 // A button also carries a visual weight — the [Filled] variant, the default,
 // [Tonal] and [Ghost] — set through Props.Emphasis or, on the pure path,
 // through RenderState.Emphasis. It is a colour axis and only a colour axis:
-// each variant resolves its fill and its foreground from the same ramps (the
-// pinned solid fill for filled, the primary ramp's tinted 200 fill under
-// its 900 text for tonal, no fill at all under the neutral ramp's 700 text
-// for ghost, with the tinted walk supplying hover and press in each). The
-// drawn size and the 44 dp pointer floor are identical in all three, and so
-// is the focus ring's shape, width and place — only its rung moves, and only
-// so far as the fill under it moved. The least pronounced variant is not the
-// smallest one and is no harder to see with a keyboard. The zero value is
-// Filled, so nothing written before the axis existed renders differently.
+// filled is the accent's pinned solid fill under its on-colour; tonal is the
+// accent's tint over the surface the button stands on, under the accent's
+// own colour at the text floor — never a neutral label, and the same recipe
+// a status badge wears, because two near-identical tints would be one recipe
+// spelled twice; ghost paints no fill at all under the neutral ramp's 700
+// text. The drawn size and the 44 dp pointer floor are identical in all
+// three, and so is the focus ring's shape, width and place — only its step
+// moves, and only so far as the fill under it moved. Focus is a persistent
+// state in every variant: the resting fill stays and the ring is added to
+// it. The least pronounced variant is not the smallest one and is no harder
+// to see with a keyboard. The zero value is Filled, so nothing written
+// before the axis existed renders differently.
+//
+// Tonal reads the level it is given (Props.Level, RenderState.Level), as a
+// ghost does and a filled button does not: its tint is derived against the
+// surface underneath, so a Tonal button in a dialog is tinted against the
+// dialog rather than against the window.
 //
 // Emphasis says how important an action is on the surface it sits on, and
 // nothing more. Marking a choice is never a button's job, whatever its

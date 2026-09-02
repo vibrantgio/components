@@ -124,11 +124,10 @@ func BareForeground(c tokens.ColorTokens, v Variant, level tokens.ElevationLevel
 	return ForegroundOver(c, v, c.SurfaceAt(level))
 }
 
-// ForegroundOver is the badge's one foreground derivation, over any surface
-// at all: the role's pinned base while that base clears [tokens.TextFloor]
-// against that surface, and otherwise the step of the role's own ramp nearest
-// the mid-value 500 that does. [BareForeground] is it over a level's fill and
-// [Foreground] over a container fill.
+// ForegroundOver is the badge's variant applied to the shared foreground
+// derivation ([tokens.ColorTokens.ForegroundOn]): the role's own hue at
+// reading strength over any surface at all. [BareForeground] is it over a
+// level's fill and [Foreground] over a container fill.
 //
 // It is exported for the third case, the one neither of those names: the
 // fill walked under a pointer. A close mark whose surface has just moved two
@@ -136,13 +135,7 @@ func BareForeground(c tokens.ColorTokens, v Variant, level tokens.ElevationLevel
 // no longer there, and 4.5:1 at rest becomes 2.3:1 pressed — measured, before
 // this was the rule.
 func ForegroundOver(c tokens.ColorTokens, v Variant, surface color.NRGBA) color.NRGBA {
-	role := v.role()
-	if role == tokens.RoleNeutral {
-		// InkOn refuses RoleNeutral, which has no pinned base; the walk is
-		// the whole derivation for it.
-		return c.MarkOn(role, surface, tokens.TextFloor)
-	}
-	return c.InkOn(role, surface, tokens.TextFloor)
+	return c.ForegroundOn(v.role(), surface)
 }
 
 // Fill returns the container fill a worded or counted badge wears: a pale,
@@ -153,7 +146,7 @@ func ForegroundOver(c tokens.ColorTokens, v Variant, surface color.NRGBA) color.
 //
 // Pale is the whole of it. The badge is a statement — the system's word about
 // a thing — and a statement is read, never operated; a saturated fill under a
-// knocked-out foreground is the register interaction speaks in, and a badge
+// knocked-out foreground is the variant interaction speaks in, and a badge
 // borrowing it would claim to be a control. So the container carries the role
 // at low prominence and the content carries the same hue at reading strength
 // ([Foreground]): one hue, two strengths, no inversion anywhere.
@@ -202,7 +195,7 @@ func Fill(c tokens.ColorTokens, v Variant, level tokens.ElevationLevel) color.NR
 // of against the surface underneath it.
 //
 // Same hue, floored for contrast; never an inverted on-colour. A white word on
-// a saturated field is the other register entirely.
+// a saturated field is the other variant entirely.
 //
 // It is not [tokens.ColorTokens.OnStatusContainer], which answers a
 // neighbouring question at [tokens.GraphicFloor] for a mark on a container. A

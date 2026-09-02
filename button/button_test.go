@@ -450,15 +450,32 @@ func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
 	}
 }
 
-// ringSurface is what a focused button's ring circles, per register: the
-// register's own resting background, and — for the ghost, which paints none —
+// ringSurface is what a focused button's ring circles, per variant: the
+// variant's own resting background, and — for the ghost, which paints none —
 // the host surface showing through it. It is the test's own copy of the rule
 // drawButton applies, kept here so the assertion below measures the ring
 // against a surface stated independently of the code that painted it.
+//
+// Focus keeps the resting fill in every variant, so the surface the ring
+// circles is the resting one and not a focus treatment of its own.
+// variantForeground is the colour the variant draws its label or glyph in at
+// rest, stated here for the same reason ringSurface is: so the assertion
+// below reads a value written independently of the code that painted it.
+func variantForeground(c tokens.ColorTokens, e button.Emphasis) color.NRGBA {
+	switch e {
+	case button.Tonal:
+		return c.ForegroundOn(tokens.RolePrimary, ringSurface(c, e))
+	case button.Ghost:
+		return c.Ramps.Neutral.Step(700)
+	default:
+		return c.OnPrimary
+	}
+}
+
 func ringSurface(c tokens.ColorTokens, e button.Emphasis) color.NRGBA {
 	switch e {
 	case button.Tonal:
-		return c.StateColor(tokens.RolePrimary, 200, tokens.StateFocus)
+		return c.StatusContainerOn(tokens.RolePrimary, c.SurfaceAt(tokens.Level0))
 	case button.Ghost:
 		return c.SurfaceAt(tokens.Level0) // a ghost paints none; the paper shows through
 	default:
@@ -534,17 +551,30 @@ func TestFocusRingIsTheSameRingInEveryRegister(t *testing.T) {
 				crossIcon, colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
 				button.RenderState{Emphasis: e, Focused: true},
 			)))
+			// Where the ring's step and the variant's own foreground land on
+			// the same colour — which the light scheme's ring and a tonal
+			// button's label now do, both being the accent step nearest the
+			// mid-value that clears its floor — a colour test cannot tell a
+			// ring pixel from a glyph pixel. The leak scan then excuses the
+			// button's interior and keeps the claim that matters, which is
+			// that nothing outside the footprint is drawn in the ring.
+			glyphIsRingColoured := nearlyEqual(
+				color.RGBA(variantForeground(colors, e)), ring)
 			missing, leaked := 0, 0
 			b := img.Bounds()
 			for y := b.Min.Y; y < b.Max.Y; y++ {
 				for x := b.Min.X; x < b.Max.X; x++ {
 					p := image.Pt(x, y)
 					band, corner := onBand(p)
+					inside := p.X >= 0 && p.Y >= 0 && p.X < side && p.Y < side
 					isRing := nearlyEqual(img.RGBAAt(x, y), ring)
 					switch {
 					case band && !corner && !isRing:
 						missing++
 					case !band && isRing:
+						if glyphIsRingColoured && inside {
+							continue
+						}
 						leaked++
 					}
 				}
