@@ -52,7 +52,7 @@ var levels = []tokens.ElevationLevel{
 }
 
 // levelName spells a level the way this file's failure messages want to
-// read it, so a report names the rung a developer would put a control on
+// read it, so a report names the level a developer would put a control on
 // rather than an integer that counts from the paper.
 func levelName(level tokens.ElevationLevel) string {
 	if level == tokens.LevelBackdrop {
@@ -78,7 +78,7 @@ func drawn(c tokens.ColorTokens) []struct {
 		name string
 		ring stdcolor.NRGBA
 	}
-	// A link's ring rides in the paragraph ground it is padded clear into.
+	// A link's ring rides in the paragraph surface it is padded clear into.
 	// Prose carries no level of its own, so a paragraph lies on the paper.
 	out := []entry{{"link", focus.Ring(c)}}
 	for _, level := range levels {
@@ -96,7 +96,7 @@ func drawn(c tokens.ColorTokens) []struct {
 			// The toolbar trigger trades its rim for the ring, in every state its
 			// own fill walks to.
 			entry{"toolbar " + at, focus.Ring(c)},
-			// A ghost paints no ground at rest, so its ring lies on the host
+			// A ghost paints no fill of its own at rest, so its ring lies on the host
 			// level showing through it.
 			entry{"button ghost " + at, focus.RingOn(c, stdcolor.NRGBA{})},
 		)
@@ -127,7 +127,7 @@ func TestEveryControlDrawsOneColour(t *testing.T) {
 }
 
 // TestRingClearsTheFloorOnEveryLevel holds the promise the single colour is
-// bought with: one rung that reaches [focus.Floor] against every surface
+// bought with: one step that reaches [focus.Floor] against every surface
 // elevation carries, so a control keeps its ring wherever it is put.
 // This is the outer side of every band in the library — the side that is the
 // same for every control on a level, and the side a ring is read against.
@@ -137,11 +137,11 @@ func TestRingClearsTheFloorOnEveryLevel(t *testing.T) {
 		for _, c := range palettes(seed) {
 			ring := focus.Ring(c)
 			for _, level := range levels {
-				ground := c.SurfaceAt(level)
-				got := color.ContrastRatio(ring, ground)
+				surface := c.SurfaceAt(level)
+				got := color.ContrastRatio(ring, surface)
 				if got < focus.Floor {
 					t.Fatalf("seed %v: ring %v measures %.2f:1 against the level %s %v, under the %.1f:1 floor",
-						seed, ring, got, levelName(level), ground, focus.Floor)
+						seed, ring, got, levelName(level), surface, focus.Floor)
 				}
 				if got < worst {
 					worst = got
@@ -152,11 +152,47 @@ func TestRingClearsTheFloorOnEveryLevel(t *testing.T) {
 	t.Logf("worst level of the scheme's ring over the sweep: %.2f:1", worst)
 }
 
+// TestRingSeparatesFromTheRestingBorder holds the ring's second channel: on
+// every level, the ring differs in luminance from the neutral resting border a
+// control on that level draws — the line a text field, a checkbox, a radio and
+// a picker's field trigger wear when they are not focused, and the line the
+// ring replaces or sits beside — by at least [focus.BorderSeparation].
+//
+// The pairing is asserted against components/internal/control.Border, the
+// derivation the controls actually call, rather than against the walk
+// focus.Ring measures: what a reader compares a focused control with is the
+// unfocused one beside it, and this is the colour that draws it.
+//
+// Contrast ratio is the whole of the assertion on purpose. It is a luminance
+// metric and nothing else, so it is what survives macOS Differentiate Without
+// Color, Windows forced-colors and a greyscale display — the environments in
+// which a ring that parts from its border in hue alone stops being a ring.
+func TestRingSeparatesFromTheRestingBorder(t *testing.T) {
+	worst := 99.0
+	for _, seed := range sweepSeeds() {
+		for _, c := range palettes(seed) {
+			ring := focus.Ring(c)
+			for _, level := range levels {
+				border := control.Border(c, level)
+				got := color.ContrastRatio(ring, border)
+				if got < focus.BorderSeparation {
+					t.Fatalf("seed %v: ring %v measures %.3f:1 against the resting border %s %v, under the %.2f:1 separation — focus would be spelled in hue alone",
+						seed, ring, got, levelName(level), border, focus.BorderSeparation)
+				}
+				if got < worst {
+					worst = got
+				}
+			}
+		}
+	}
+	t.Logf("worst ring-to-resting-border separation over the sweep: %.3f:1", worst)
+}
+
 // TestRingClearsTheRestingFillsInsideIt measures the other side of the band —
 // the control's own fill, where the control has one — at rest, which is the
 // worst pairing the ring is asked to hold there.
 //
-// Two fills answer for every control that fills a box: the rung above the
+// Two fills answer for every control that fills a box: the step above the
 // level, which the text field and the dropdown trigger fill with
 // (control.Fill), and the toolbar trigger's measured step over the level, which is
 // neither a level nor on the ramp. A pressed fill is left out on purpose: it
@@ -191,6 +227,22 @@ func TestRingClearsTheRestingFillsInsideIt(t *testing.T) {
 	t.Logf("worst resting fill inside the ring over the sweep: %.2f:1", worst)
 }
 
+// TestRingIsNeverTheAccentFill holds the third clause of the pick: the ring is
+// never the colour a control paints for a state that is not focus. c.Primary
+// is what a checked box, a chosen radio and a filled button paint at rest, and
+// a dark scheme realizes it exactly on a step of the ramp the ring is picked
+// from, so without the exclusion the two collide byte for byte and focus is
+// announced in the colour the control was already speaking.
+func TestRingIsNeverTheAccentFill(t *testing.T) {
+	for _, seed := range sweepSeeds() {
+		for _, c := range palettes(seed) {
+			if ring := focus.Ring(c); ring == c.Primary {
+				t.Fatalf("seed %v: the ring is the accent fill %v — focus and checked would be one colour", seed, ring)
+			}
+		}
+	}
+}
+
 // TestRingIsARungOfThePrimaryRamp holds the "primary-coloured" half of the rule
 // the floor cannot see. A ring that met its floor by reaching for a neutral, an
 // inverse surface or an invented colour would satisfy every contrast assertion
@@ -200,14 +252,14 @@ func TestRingIsARungOfThePrimaryRamp(t *testing.T) {
 		for _, c := range palettes(seed) {
 			ring := focus.Ring(c)
 			onRamp := false
-			for _, rung := range c.Ramps.Primary {
-				if rung == ring {
+			for _, step := range c.Ramps.Primary {
+				if step == ring {
 					onRamp = true
 					break
 				}
 			}
 			if !onRamp {
-				t.Fatalf("seed %v: ring %v is not a rung of the primary ramp", seed, ring)
+				t.Fatalf("seed %v: ring %v is not a step of the primary ramp", seed, ring)
 			}
 		}
 	}
@@ -244,7 +296,7 @@ func TestRingOnAnswersTheSchemesRingWhereverItReads(t *testing.T) {
 }
 
 // TestRingOnClearsTheFillItLiesOn holds the second clause. A solid primary fill
-// is a rung of the very ramp the ring is a rung of, so no scheme's ring can
+// is a step of the very ramp the ring is a step of, so no scheme's ring can
 // read on it — over the sweep the two land on the same colour, 1.00:1 — and a
 // ring nobody can see is not a ring. There the band is walked against the fill
 // it lies on, and this asserts the walk lands somewhere legible.
