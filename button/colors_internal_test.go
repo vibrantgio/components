@@ -15,8 +15,8 @@ var (
 	pinInk  = color.NRGBA{0xff, 0xff, 0xff, 0xff}
 )
 
-// The emphasis registers are a choice of rungs on the design system's ramps,
-// and this is the table that says which rungs. It is asserted in both schemes because
+// The emphasis registers are a choice of steps on the design system's ramps,
+// and this is the table that says which steps. It is asserted in both schemes because
 // the light and dark ramps are paired scales — the same step keeps the same
 // job — so the register table must be written once and hold in both. If a
 // register ever needs a mode-specific rule, this test is where that shows up.
@@ -52,7 +52,7 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 			{"filled/disabled", RenderState{Disabled: true},
 				c.SolidStateColor(tokens.RolePrimary, tokens.StateDisabled), tokens.Disabled(c.OnPrimary)},
 
-			// Tonal: the primary ramp's tinted 200 ground, walked one step
+			// Tonal: the primary ramp's tinted 200 fill, walked one step
 			// on hover and two on press, under the ramp's 900 text shade.
 			{"tonal/normal", RenderState{Emphasis: Tonal},
 				c.Ramps.Primary.Step(200), c.Ramps.Primary.Step(900)},
@@ -65,10 +65,10 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 			{"tonal/disabled", RenderState{Emphasis: Tonal, Disabled: true},
 				tokens.Disabled(c.Ramps.Primary.Step(200)), tokens.Disabled(c.Ramps.Primary.Step(900))},
 
-			// Ghost: no ground at rest, focused or disabled; the host
+			// Ghost: no fill at rest, focused or disabled; the host
 			// surface's own hover and press wash under the pointer, with the
 			// label walking from low-contrast text to high-contrast text as
-			// its ground deepens.
+			// that fill deepens.
 			//
 			// A ghost that is told nothing stands on the paper, so its wash
 			// is the paper's own walk — tokens.ColorTokens.StateAt at level
@@ -85,34 +85,33 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 				transparent, tokens.Disabled(c.Ramps.Neutral.Step(700))},
 
 			// Ghost on a host that is not the paper: the wash is that host
-			// surface's own one-rung walk, on every storey the ladder
-			// carries — the furniture floor below
-			// the paper included, which is where a rail's or a toolbar's
-			// ghost buttons actually stand. Rest stays transparent on every
-			// storey; the ground is the host's to paint.
-			{"ghost/floor/normal", RenderState{Emphasis: Ghost, Ground: tokens.LevelFloor},
+			// surface's own one-step walk, on every level — the furniture
+			// floor below the paper included, which is where a rail's or a
+			// toolbar's ghost buttons actually stand. Rest stays transparent
+			// on every level; the fill is the host's to paint.
+			{"ghost/floor/normal", RenderState{Emphasis: Ghost, Level: tokens.LevelFloor},
 				transparent, c.Ramps.Neutral.Step(700)},
-			{"ghost/floor/hovered", RenderState{Emphasis: Ghost, Ground: tokens.LevelFloor, Hovered: true},
+			{"ghost/floor/hovered", RenderState{Emphasis: Ghost, Level: tokens.LevelFloor, Hovered: true},
 				c.StateAt(tokens.LevelFloor, tokens.StateHover), c.Ramps.Neutral.Step(900)},
-			{"ghost/level1/hovered", RenderState{Emphasis: Ghost, Ground: tokens.Level1, Hovered: true},
+			{"ghost/level1/hovered", RenderState{Emphasis: Ghost, Level: tokens.Level1, Hovered: true},
 				c.StateAt(tokens.Level1, tokens.StateHover), c.Ramps.Neutral.Step(900)},
-			{"ghost/level2/normal", RenderState{Emphasis: Ghost, Ground: tokens.Level2},
+			{"ghost/level2/normal", RenderState{Emphasis: Ghost, Level: tokens.Level2},
 				transparent, c.Ramps.Neutral.Step(700)},
-			{"ghost/level2/hovered", RenderState{Emphasis: Ghost, Ground: tokens.Level2, Hovered: true},
+			{"ghost/level2/hovered", RenderState{Emphasis: Ghost, Level: tokens.Level2, Hovered: true},
 				c.StateAt(tokens.Level2, tokens.StateHover), c.Ramps.Neutral.Step(900)},
-			{"ghost/level2/pressed", RenderState{Emphasis: Ghost, Ground: tokens.Level2, Pressed: true},
+			{"ghost/level2/pressed", RenderState{Emphasis: Ghost, Level: tokens.Level2, Pressed: true},
 				c.StateAt(tokens.Level2, tokens.StatePressed), c.Ramps.Neutral.Step(900)},
-			{"ghost/level3/hovered", RenderState{Emphasis: Ghost, Ground: tokens.Level3, Hovered: true},
+			{"ghost/level3/hovered", RenderState{Emphasis: Ghost, Level: tokens.Level3, Hovered: true},
 				c.StateAt(tokens.Level3, tokens.StateHover), c.Ramps.Neutral.Step(900)},
-			{"ghost/level3/pressed", RenderState{Emphasis: Ghost, Ground: tokens.Level3, Pressed: true},
+			{"ghost/level3/pressed", RenderState{Emphasis: Ghost, Level: tokens.Level3, Pressed: true},
 				c.StateAt(tokens.Level3, tokens.StatePressed), c.Ramps.Neutral.Step(900)},
 
-			// The other registers carry their own grounds and ignore the
+			// The other registers carry their own fills and ignore the
 			// host's: a filled or tonal button on a level-2 surface renders
-			// exactly as on the window ground.
-			{"filled/level2/hovered", RenderState{Ground: tokens.Level2, Hovered: true},
+			// exactly as on the window's own surface.
+			{"filled/level2/hovered", RenderState{Level: tokens.Level2, Hovered: true},
 				c.SolidStateColor(tokens.RolePrimary, tokens.StateHover), c.OnPrimary},
-			{"tonal/level2/hovered", RenderState{Emphasis: Tonal, Ground: tokens.Level2, Hovered: true},
+			{"tonal/level2/hovered", RenderState{Emphasis: Tonal, Level: tokens.Level2, Hovered: true},
 				c.Ramps.Primary.Step(300), c.Ramps.Primary.Step(900)},
 
 			// A pinned pair takes the place of the role's, and of nothing
@@ -141,9 +140,9 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 			{"filled/fill-without-ink/hovered", RenderState{Fill: pinFill, Hovered: true},
 				c.SolidStateColor(tokens.RolePrimary, tokens.StateHover), c.OnPrimary},
 
-			// The quieter registers ignore the pair outright: a tint and an
-			// absent ground are not solid fills, so there is nothing in them
-			// to pin.
+			// The less pronounced registers ignore the pair outright: a tint
+			// and an absent fill are not solid fills, so there is nothing in
+			// them to pin.
 			{"tonal/pinned/normal", RenderState{Emphasis: Tonal, Fill: pinFill, OnFill: pinInk},
 				c.Ramps.Primary.Step(200), c.Ramps.Primary.Step(900)},
 			{"tonal/pinned/hovered", RenderState{Emphasis: Tonal, Fill: pinFill, OnFill: pinInk, Hovered: true},
@@ -168,10 +167,10 @@ func TestEmphasisResolvesTheDocumentedRampSteps(t *testing.T) {
 	}
 }
 
-// A transparent ground is the ghost register's whole mechanism: alpha zero
+// A transparent fill is the ghost register's whole mechanism: alpha zero
 // composites as a no-op, so the surface behind the button survives it. Any
 // non-zero alpha here would mean a ghost tints whatever it sits on.
-func TestGhostRestingGroundIsFullyTransparent(t *testing.T) {
+func TestGhostRestingFillIsFullyTransparent(t *testing.T) {
 	for _, s := range []RenderState{
 		{Emphasis: Ghost},
 		{Emphasis: Ghost, Focused: true},
@@ -205,7 +204,7 @@ func TestPinnedFillIsSchemeStableWhereTheRoleIsNot(t *testing.T) {
 	stockLight, _ := buttonColors(tokens.DefaultLight, RenderState{})
 	stockDark, _ := buttonColors(tokens.DefaultDark, RenderState{})
 	if stockLight == stockDark {
-		t.Fatal("the stock filled ground is the same in both schemes; this test proves nothing")
+		t.Fatal("the stock filled fill is the same in both schemes; this test proves nothing")
 	}
 }
 

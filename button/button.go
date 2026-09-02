@@ -25,26 +25,26 @@ import (
 	"github.com/vibrantgio/theme/typeset"
 )
 
-// Emphasis is the visual weight register a button wears — how loudly it
+// Emphasis is the visual weight register a button wears — how strongly it
 // competes for attention on the surface it sits on. It is a colour property
 // and nothing else: the drawn control keeps the density's size, the pointer
 // target keeps its 44 dp floor, and the focus ring keeps its shape, width and
-// place in every register — only its rung moves, and only so far as the
-// ground under it moved. Keyboard visibility is not an emphasis property.
+// place in every register — only its step moves, and only so far as the
+// surface under it moved. Keyboard visibility is not an emphasis property.
 //
 // Every desktop system carries this axis under its own names — MD3 has
 // filled, tonal, outlined and text; Fluent primary, standard and subtle;
 // Apple prominent, regular and plain — and the three registers below are
 // the set all of them agree on: the two ends plus the tinted middle.
 // Outlined is deliberately not a fourth register. A border is a property of
-// a surface rather than a rung on a loudness scale, and components already
+// a surface rather than a step on a prominence scale, and components already
 // carries its two border weights as ramp steps 500 and 300.
 type Emphasis int
 
 const (
-	// Filled is the loudest register and the zero value: the role's pinned
-	// solid fill carrying its on-colour. One per surface — the action the
-	// screen is about. Being the zero value is what makes this axis
+	// Filled is the most pronounced register and the zero value: the role's
+	// pinned solid fill carrying its on-colour. One per surface — the action
+	// the screen is about. Being the zero value is what makes this axis
 	// additive: every Props and RenderState written before it existed
 	// renders exactly as it did.
 	Filled Emphasis = iota
@@ -52,20 +52,20 @@ const (
 	// Tonal is the middle register: a tinted fill off the role's own ramp
 	// with the ramp's text shade on top (the ramp's 100–300 tinted fills and
 	// 700–900 text over them). It reads as an action without claiming the
-	// surface's one loud slot — the register for a secondary action, and
-	// the one a row of equals wears.
+	// surface's one most pronounced slot — the register for a secondary
+	// action, and the one a row of equals wears.
 	Tonal
 
-	// Ghost is the quietest register: no ground at rest, the label or glyph
-	// in the neutral ramp's low-contrast text shade, and a neutral wash
-	// only while the pointer is on it. A ghost's wash is its host
-	// surface's own one-rung walk — it derives from the local ground the
-	// button sits on (RenderState.Ground), not the window ground, so a
-	// ghost on a raised surface washes one rung past that surface's own
-	// storey. For affordances that must be present
-	// without being the subject — a dialog's close X, a toolbar of icons, a
-	// tertiary "Learn more". A ghost is quiet, not small: it keeps the full
-	// pointer target and the full focus ring.
+	// Ghost is the least pronounced register: no fill at rest, the label or
+	// glyph in the neutral ramp's low-contrast text shade, and a neutral wash
+	// only while the pointer is on it. A ghost's wash is its host surface's
+	// own one-step walk — it derives from the surface the button stands on
+	// (RenderState.Level), not the window's own surface, so a ghost on a
+	// raised surface washes one step past that surface's own level. For
+	// affordances that must be present without being the subject — a dialog's
+	// close X, a toolbar of icons, a tertiary "Learn more". A ghost is less
+	// pronounced, not small: it keeps the full pointer target and the full
+	// focus ring.
 	Ghost
 )
 
@@ -99,19 +99,19 @@ type RenderState struct {
 	// this is it. Zero is Filled.
 	Emphasis Emphasis
 
-	// Ground is the elevation storey of the surface hosting the button —
-	// the local ground the Ghost register's hover and press washes walk
-	// from, in the same vocabulary the host names its own fill
-	// (tokens.SurfaceAt). A ghost's wash is its host surface's own
-	// one-rung walk: a dialog at tokens.Level2 passes Level2 and its
-	// ghost washes one rung past the level's step, whichever storey that
-	// is. The zero value is tokens.Level0, the window ground, which
-	// resolves to exactly the walk the register always performed — so
-	// every state written before this field existed keeps its colours.
-	// Filled and Tonal ignore it: they carry their own grounds.
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the button stands on — a button has
+	// no level of its own — and it is what the Ghost register's hover and
+	// press washes walk from, in the same vocabulary the host names its own
+	// fill (tokens.SurfaceAt). A ghost's wash is its host surface's own
+	// one-step walk: a dialog at tokens.Level2 passes Level2 and its ghost
+	// washes one step past that level's fill. The zero value is
+	// tokens.Level0, the window's own surface, which resolves to exactly the
+	// walk the register always performed — so every state written before this
+	// field existed keeps its colours. Filled and Tonal ignore it: they carry
+	// their own fills.
+	Level tokens.ElevationLevel
 
-	// Fill and OnFill pin the Filled register's ground and the ink over it
+	// Fill and OnFill pin the Filled register's fill and the ink over it
 	// to a pair the scheme does not carry: a colour fixed from outside the
 	// palette, which a change of scheme must not move. The case they exist
 	// for is an action whose colour is not the theme's to choose — a
@@ -119,12 +119,12 @@ type RenderState struct {
 	// that meaning, in both schemes, where a status role would hand it the
 	// scheme's own idea of red instead.
 	//
-	// Nothing else about the register changes. The ground still walks
+	// Nothing else about the register changes. The fill still walks
 	// toward the 900 end under the pointer (tokens.PinnedStateColor: hover
-	// one rung, press two, at the pin's own hue and chroma), still keeps
+	// one step, press two, at the pin's own hue and chroma), still keeps
 	// the pin at rest and under focus, still fades to the disabled opacity
-	// with the ink; and the focus ring is still the rung that reads against
-	// whatever ground came back, so a pinned fill is measured against
+	// with the ink; and the focus ring is still the step that reads against
+	// whatever fill came back, so a pinned fill is measured against
 	// exactly as the primary one is.
 	//
 	// The two are one pin and are honoured together. Leave either half
@@ -133,7 +133,7 @@ type RenderState struct {
 	// always has: that is what makes the pair invisible to every state
 	// written before it existed, and it means a half-written pin renders
 	// the stock button rather than an invisible label. Tonal and Ghost
-	// ignore both. A register that paints a tint, or paints no ground at
+	// ignore both. A register that paints a tint, or paints nothing at
 	// all, has no solid fill to pin.
 	Fill   color.NRGBA
 	OnFill color.NRGBA
@@ -157,19 +157,19 @@ type Props struct {
 	// Ghost for an affordance that must be present without being the
 	// subject. It changes colour only — never the drawn size, never the
 	// pointer target, never the focus ring. Composes with Icon: a ghost
-	// icon button is a quiet glyph over a full 44 dp square.
+	// icon button is a less pronounced glyph over a full 44 dp square.
 	Emphasis Emphasis
 
-	// Ground is the elevation storey of the surface hosting the button,
-	// copied straight into RenderState.Ground on every frame: the local
-	// ground a Ghost's hover and press washes walk from. A container that
-	// raises its surface (patterns/modal's level-2 dialog hosting its
-	// close X) passes its own storey here; the zero value is the window
-	// ground and keeps exactly the colours the register has always had.
-	// See RenderState.Ground.
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the button stands on — a button has
+	// no level of its own — copied straight into RenderState.Level on every
+	// frame: what a Ghost's hover and press washes walk from. A container
+	// that raises its surface (patterns/modal's level-2 dialog hosting its
+	// close X) passes its own level here; the zero value is the window's own
+	// surface and keeps exactly the colours the register has always had.
+	// See RenderState.Level.
+	Level tokens.ElevationLevel
 
-	// Fill and OnFill pin the Filled register's ground and its ink to a
+	// Fill and OnFill pin the Filled register's fill and its ink to a
 	// pair the scheme does not carry, copied straight into RenderState on
 	// every frame — for the action whose colour is not the theme's to
 	// choose. They are one pin: set both or neither, and the zero value
@@ -329,7 +329,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 					semantic.EnabledOp(!dis).Add(gtx.Ops)
 					state := RenderState{
 						Emphasis: props.Emphasis,
-						Ground:   props.Ground,
+						Level:    props.Level,
 						Fill:     props.Fill,
 						OnFill:   props.OnFill,
 						Hovered:  hov,
@@ -390,9 +390,9 @@ func Render(
 // RenderIcon produces a layout.Widget for a compact icon-only button in an
 // explicit visual state, without event processing or rx machinery. The glyph
 // is drawn by icon into a square d.ControlHeight on a side, inset by
-// d.PaddingY, in the register s carries — a ghost icon button is the quiet
-// glyph patterns/modal's close affordance wants, over the same square and
-// the same pointer target as a filled one.
+// d.PaddingY, in the register s carries — a ghost icon button is the less
+// pronounced glyph patterns/modal's close affordance wants, over the same
+// square and the same pointer target as a filled one.
 // Pass tokens.Comfortable for the default desktop look. Intended
 // for golden-image testing and static demonstrations; production code should
 // use Button with Props.Icon (and, when a container drives focus,
@@ -470,11 +470,11 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 
 	// Focus ring: the button's outermost 2 dp, inset in its own background.
 	// Same shape, same width and same place in every emphasis register —
-	// keyboard visibility is not a loudness property, so a ghost button's ring
-	// is exactly a filled one's. focus.RingOn hands back the scheme's one focus
-	// colour wherever it reads on that background, and walks against the
-	// background only where it cannot: a solid primary fill is a rung of the
-	// same ramp the ring is a rung of.
+	// keyboard visibility is not a prominence property, so a ghost button's
+	// ring is exactly a filled one's. focus.RingOn hands back the scheme's one
+	// focus colour wherever it reads on that background, and walks against the
+	// background only where it cannot: a solid primary fill is a step of the
+	// same ramp the ring is a step of.
 	if s.Focused {
 		drawFocusRing(gtx, btnSize, rad, focus.RingOn(tok.color, bg))
 	}
@@ -505,7 +505,8 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 	// same content-box rule icon.Size documents (20 dp Comfortable, 16 dp
 	// Compact). The pointer target stays the 44 dp square via hit.Extend in
 	// the live path — in every register. Emphasis reaches the colours and
-	// stops there: the glyph quiets, the square does not shrink.
+	// stops there: the glyph grows less pronounced, the square does not
+	// shrink.
 	pad := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	side := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	rad := gtx.Dp(unit.Dp(tok.radius.Md)) // 6 dp corner radius
@@ -541,19 +542,19 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 
 // drawFocusRing paints the focus ring of a button of size size and corner
 // radius rad: a focus.Width stroke lying inside the button's own boundary,
-// its own width clear of it, so the whole ring falls on the ground it was
-// measured against with that ground on both sides of it.
+// its own width clear of it, so the whole ring falls on the fill it was
+// measured against with that fill on both sides of it.
 //
 // Inside, rather than centred on the boundary the way the grey ring was. A
 // stroke centred on the edge spends half its width on the surface behind the
-// button and half on the button's own fill, and those two grounds are never
+// button and half on the button's own fill, and those two are never
 // the same colour — so half the ring always dissolved into one of them and a
 // 2 dp ring was never wider than 1 dp anywhere.
 //
 // Clear of the edge rather than flush with it, for the same reason the
 // checkbox's ring is clear of its box: a band flush with a boundary is read
 // as that boundary — a bevel, a seam, a slightly different edge — and not as
-// a ring. It is a filled button that proves it. Its ring is the pale rung,
+// a ring. It is a filled button that proves it. Its ring is the pale step,
 // the only one that reads against the primary fill it lies on, and against
 // the page outside it measures 1.65:1: flush with the edge it merges with the
 // page on one side and looks like the button's own rim. Held clear, it has
@@ -580,34 +581,34 @@ func drawFocusRing(gtx layout.Context, size image.Point, rad int, ring color.NRG
 	}.Op())
 }
 
-// Ramp steps the quieter registers resolve against. Every one of them is a
-// step already named on the existing ramps, so a register is a choice of
-// rungs on those ramps rather than a second colour model.
+// Ramp steps the less pronounced registers resolve against. Every one of them
+// is a step already named on the existing ramps, so a register is a choice of
+// steps on those ramps rather than a second colour model.
 //
-// Both grounds are step 200, and the APCA gate is what fixes them there
-// rather than taste. A tinted ground presses two steps deeper, and 200 is
-// the only rung of the 100–300 tinted band whose press still carries
+// Both fills are step 200, and the APCA gate is what fixes them there
+// rather than taste. A tinted fill presses two steps deeper, and 200 is
+// the only step of the 100–300 tinted band whose press still carries
 // the 900 text: measured on the default seed, primary 900 over primary 400
 // is Lc 62.8 light and −84.5 dark, and neutral 900 over neutral 400 is
-// Lc 63.4 and −84.6 — all above the ADR's Lc 60 floor. A ground of 300
+// Lc 63.4 and −84.6 — all above the ADR's Lc 60 floor. A fill of 300
 // would press onto 500 and take its label to Lc 47.5, unreadable, in
-// exchange for a slightly louder button.
+// exchange for a slightly more pronounced button.
 const (
-	// tonalGround is the tinted fill (the 100–300 tinted band) a tonal
-	// button rests on, and the ground its hover and press walk from — one
+	// tonalFill is the tinted fill (the 100–300 tinted band) a tonal
+	// button rests on, and what its hover and press walk from — one
 	// step to 300, two to 400, exactly as any tinted surface walks. It is
 	// the step a card sits on, which is the relationship a tonal button
 	// wants: a tinted card over the app background.
-	tonalGround = 200
+	tonalFill = 200
 	// tonalText is the text shade over that tinted fill: step 900, the
-	// stop the APCA gate holds at Lc ≥ 90 over the 100 and 200 grounds.
+	// stop the APCA gate holds at Lc ≥ 90 over the 100 and 200 fills.
 	tonalText = 900
 
 	// ghostText is the resting label shade: neutral step 700, the
 	// low-contrast text floor (Lc ≥ 60).
 	ghostText = 700
 	// ghostTextOnWash is the label shade once a wash appears under it.
-	// The ground walks toward the 900 end, so the label walks with it and
+	// The fill walks toward the 900 end, so the label walks with it and
 	// keeps its headroom instead of spending it.
 	ghostTextOnWash = 900
 )
@@ -620,34 +621,34 @@ const (
 // the pin toward the 900 end of the primary ramp; focus keeps the fill and
 // draws the ring) under OnPrimary, faded to
 // DisabledOpacity when disabled. Tonal and Ghost resolve through the same
-// two entry points on the same ramps, only from different rungs: tonal is
-// the tinted-ground walk on the primary ramp, ghost the same walk on the
-// neutral ladder with the resting step painted as nothing at all. What a
+// two entry points on the same ramps, only from different steps: tonal is
+// the tinted-fill walk on the primary ramp, ghost the same walk on the
+// neutral ramp with the resting step painted as nothing at all. What a
 // ghost walks from is its host surface's own fill — a ghost's wash is that
-// surface's one-rung walk, taken from whichever storey s.Ground names
+// surface's one-step walk, taken from whichever level s.Level names
 // (ghostWash), with the on-wash text riding at the ramp's 900 end, where
 // the walk itself clamps.
 //
 // Filled is also the one register that takes a pin from the caller. A
 // RenderState carrying both halves of a fill pair (RenderState.Fill and
 // OnFill) wears that pair in place of the primary one and keeps everything
-// else: the same walk toward the 900 end, now laddered on the scheme's own
+// else: the same walk toward the 900 end, now stepped on the scheme's own
 // lightness scale because a caller's colour belongs to no role
 // (tokens.PinnedStateColor), the same disabled opacity over both halves,
-// and the same ring, which is measured against the ground this function
+// and the same ring, which is measured against the fill this function
 // returns and therefore against the pin. Half a pair is no pair; the
 // register resolves from the primary role, exactly as every state written
 // before the pair existed does.
 //
 // Ghost's wash is neutral rather than role-tinted on purpose. A ghost claims
-// no role colour — that is what makes it the quiet register — and tinting
-// one under the pointer would hand the brand hue to the very affordance that
-// was chosen for not carrying it.
+// no role colour — that is what makes it the least pronounced register — and
+// tinting one under the pointer would hand the brand hue to the very
+// affordance that was chosen for not carrying it.
 //
 // The focus ring is not resolved here. Its shape, width and position are the
-// same in every register (see drawFocusRing); its colour is the primary rung
+// same in every register (see drawFocusRing); its colour is the primary step
 // measured against the background this function returned, which is the only
-// way one ring can read over a filled ground and an empty one alike.
+// way one ring can read over a filled surface and an empty one alike.
 func buttonColors(c tokens.ColorTokens, s RenderState) (bg, fg color.NRGBA) {
 	state := interactionState(s)
 
@@ -657,17 +658,17 @@ func buttonColors(c tokens.ColorTokens, s RenderState) (bg, fg color.NRGBA) {
 		if s.Disabled {
 			fg = tokens.Disabled(fg)
 		}
-		bg = c.StateColor(tokens.RolePrimary, tonalGround, state)
+		bg = c.StateColor(tokens.RolePrimary, tonalFill, state)
 
 	case Ghost:
 		switch state {
 		case tokens.StateHover, tokens.StatePressed:
 			fg = c.Ramps.Neutral.Step(ghostTextOnWash)
-			bg = ghostWash(c, s.Ground, state)
+			bg = ghostWash(c, s.Level, state)
 		default:
-			// Rest, focus and disabled paint no ground: the surface behind
+			// Rest, focus and disabled paint no fill: the surface behind
 			// shows through untouched. A fully transparent fill is a no-op
-			// over any ground, which is the whole point of the register.
+			// over any surface, which is the whole point of the register.
 			fg = c.Ramps.Neutral.Step(ghostText)
 			if s.Disabled {
 				fg = tokens.Disabled(fg)
@@ -703,14 +704,14 @@ func pinnedFill(s RenderState) bool {
 }
 
 // ghostWash resolves the wash a ghost paints under the pointer: the state
-// walk taken from the fill of the storey the ghost stands on, so the wash is
-// its host surface's own one-rung walk and nothing else.
+// walk taken from the fill of the surface the ghost stands on, so the wash is
+// that surface's own one-step walk and nothing else.
 //
-// [tokens.ColorTokens.StateAt] walks from the storey's own colour on the
-// neutral ladder, so every storey the ladder carries walks from what it is
-// actually filled with — including a storey off the ramp by design, such as
-// the window ground's Background pin — and the ghost's wash is always the
-// surface it is sitting on, one rung along.
+// [tokens.ColorTokens.StateAt] walks from the level's own colour on the
+// neutral ramp, so every level walks from what it is actually filled with —
+// including a level off the ramp by design, such as the window's own
+// Background pin — and the ghost's wash is always the surface it is sitting
+// on, one step along.
 func ghostWash(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) color.NRGBA {
 	return c.StateAt(level, state)
 }

@@ -28,23 +28,23 @@ import (
 	"github.com/vibrantgio/components/internal/hit"
 )
 
-// Intent is what a chip is for, and it is the whole of what one chip differs
-// from another by: same anatomy, same silhouette, same height. The four are
+// Purpose is what a chip is for, and it is the whole of what one chip differs
+// from another by: same structure, same silhouette, same height. The four are
 // exhaustive — a small control that fits none of them is not a chip.
-type Intent uint8
+type Purpose uint8
 
 const (
 	// Assist offers a contextual action on the content beside it. It is
-	// clickable and never selected, and it is the one intent whose ink is the
+	// clickable and never selected, and it is the one purpose whose ink is the
 	// page's full-strength text colour: an assist chip proposes something to
 	// do and is read at the weight of what it is proposing.
 	//
-	// It is the zero value, so a [Props] naming no intent draws one.
-	Assist Intent = iota
+	// It is the zero value, so a [Props] naming no purpose draws one.
+	Assist Purpose = iota
 
-	// Filter narrows a set, and is the only intent that carries selection:
+	// Filter narrows a set, and is the only purpose that carries selection:
 	// clicking it toggles, and a selected filter fills and grows a leading
-	// checkmark. Marking a choice is this intent's job and no button's,
+	// checkmark. Marking a choice is this purpose's job and no button's,
 	// whatever a button's emphasis.
 	Filter
 
@@ -60,16 +60,17 @@ const (
 	Suggestion
 )
 
-// Selectable reports whether the intent carries selection. Only [Filter] does;
+// Selectable reports whether the purpose carries selection. Only [Filter]
+// does;
 // the others ignore [RenderState.Selected] and [Props.Selected] entirely, so a
 // caller cannot draw a selected assist chip by mistake.
-func (i Intent) Selectable() bool { return i == Filter }
+func (i Purpose) Selectable() bool { return i == Filter }
 
-// Dismissible reports whether the intent carries the trailing dismiss mark.
-// Only [Input] does, and it always does: the mark is the intent's anatomy and
+// Dismissible reports whether the purpose carries the trailing dismiss mark.
+// Only [Input] does, and it always does: the mark is the purpose's structure and
 // not an option on it — a token the reader entered is a token they can take
 // back.
-func (i Intent) Dismissible() bool { return i == Input }
+func (i Purpose) Dismissible() bool { return i == Input }
 
 // MarkDp is the square a chip's leading icon and its dismiss mark are drawn
 // in, in dp: the cap band of the label they stand beside — baseline to cap
@@ -139,21 +140,21 @@ func MarkStrokeDp(style tokens.TextStyle) float32 { return style.FaceMetrics().S
 type Glyph func(gtx layout.Context, sizePx int, col color.NRGBA)
 
 // RenderState holds the explicit visual state a static chip render draws in.
-// The zero value is a resting, unselected chip on the window ground, so
-// RenderState{} is the default chip.
+// The zero value is a resting, unselected chip on the window's own surface,
+// so RenderState{} is the default chip.
 //
 // Intended for golden-image testing and static rendering; production code
 // obtains the interaction half from the Gio event system.
 type RenderState struct {
-	// Ground is the elevation storey of the surface hosting the chip, in the
-	// same vocabulary the host names its own fill (tokens.SurfaceAt). An
-	// unselected chip carries no colour of its own, so the storey is what its
-	// body is painted in and what its ink is floored against. A dialog at
-	// tokens.Level2 passes Level2. The zero value is tokens.Level0, the
-	// window ground.
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the chip stands on — a chip has no
+	// level of its own — in the same vocabulary the host names its own fill
+	// (tokens.SurfaceAt). An unselected chip carries no colour of its own, so
+	// that surface is what its body is painted in and what its ink is floored
+	// against. A dialog at tokens.Level2 passes Level2. The zero value is
+	// tokens.Level0, the window's own surface.
+	Level tokens.ElevationLevel
 
-	// Selected is honoured only where [Intent.Selectable] is true. A selected
+	// Selected is honoured only where [Purpose.Selectable] is true. A selected
 	// chip drops its outline, fills, and leads with a checkmark.
 	Selected bool
 
@@ -183,9 +184,9 @@ func (s RenderState) state() tokens.State {
 // two answers appear.
 type Colors struct {
 	// Fill is what the chip's body is painted in. On an unselected chip at
-	// rest it is the storey the caller named, which is what leaves the outline
-	// carrying the whole appearance; under the pointer it is that storey
-	// walked, and on a selected chip the secondary container walked.
+	// rest it is the surface the caller named, which is what leaves the
+	// outline carrying the whole appearance; under the pointer it is that
+	// surface walked, and on a selected chip the secondary container walked.
 	Fill color.NRGBA
 
 	// Outline is the resting body's one hair of edge, and Outlined is whether
@@ -204,17 +205,17 @@ type Colors struct {
 	Mark color.NRGBA
 }
 
-// Resolve returns the colours a chip of intent i draws with in state s.
+// Resolve returns the colours a chip of purpose i draws with in state s.
 //
 // Selected and unselected are two derivations, not one with a switch in it:
 //
-//	unselected  body   the storey itself, walked by the pointer — no colour
+//	unselected  body   the surface itself, walked by the pointer — no colour
 //	                   of the chip's own
 //	            edge   OutlineVariant while it clears the graphic floor on
-//	                   both sides, the floored neutral rung otherwise
+//	                   both sides, the floored neutral step otherwise
 //	            ink    OnSurfaceVariant, or the Text pin for Assist, each held
 //	                   to its floor against the body actually drawn
-//	  selected  body   the secondary container against the storey, walked by
+//	  selected  body   the secondary container against the surface, walked by
 //	                   the pointer and stopped where it stops being a chip
 //	            edge   none
 //	            ink    InkOn(RoleSecondary, body, TextFloor) for the words,
@@ -236,15 +237,15 @@ type Colors struct {
 // The words take the text floor and the marks the graphic one, which is the
 // split those two floors are for: WCAG 1.4.3's 4.5:1 is what a run of words
 // owes, and 1.4.11's 3:1 is what a shape that must be resolved owes.
-func Resolve(c tokens.ColorTokens, i Intent, s RenderState) Colors {
+func Resolve(c tokens.ColorTokens, i Purpose, s RenderState) Colors {
 	st := s.state()
-	ground := c.SurfaceAt(s.Ground)
+	surface := c.SurfaceAt(s.Level)
 	if s.Selected && i.Selectable() {
-		fill := walk(c, c.ContainerOn(tokens.RoleSecondary, ground), st, func(fill color.NRGBA) bool {
+		fill := walk(c, c.ContainerOn(tokens.RoleSecondary, surface), st, func(fill color.NRGBA) bool {
 			// A selected chip carries no outline, so its fill is the whole of
-			// what separates it from the page as well as the ground its own
+			// what separates it from the page as well as the surface its own
 			// words are read on.
-			return vgcolor.ContrastRatio(fill, ground) >= tokens.ContainerFloor &&
+			return vgcolor.ContrastRatio(fill, surface) >= tokens.ContainerFloor &&
 				vgcolor.ContrastRatio(c.InkOn(tokens.RoleSecondary, fill, tokens.TextFloor), fill) >= tokens.TextFloor
 		})
 		return Colors{
@@ -253,14 +254,14 @@ func Resolve(c tokens.ColorTokens, i Intent, s RenderState) Colors {
 			Mark:  c.MarkOn(tokens.RoleSecondary, fill, tokens.GraphicFloor),
 		}
 	}
-	fill := walk(c, ground, st, func(fill color.NRGBA) bool { return writable(c, fill) })
+	fill := walk(c, surface, st, func(fill color.NRGBA) bool { return writable(c, fill) })
 	pin := c.OnSurfaceVariant()
 	if i == Assist {
 		pin = c.Text
 	}
 	return Colors{
 		Fill:     fill,
-		Outline:  outlineOver(c, ground, fill),
+		Outline:  outlineOver(c, surface, fill),
 		Outlined: true,
 		Label:    neutralInk(c, pin, fill, tokens.TextFloor),
 		Mark:     neutralInk(c, pin, fill, tokens.GraphicFloor),
@@ -271,12 +272,12 @@ func Resolve(c tokens.ColorTokens, i Intent, s RenderState) Colors {
 // from rest, held back to the last depth on the way that good still accepts.
 //
 // The stop is a condition on being a chip at all rather than a second thought
-// about the walk. The walk is depth on the neutral ladder and a ramp writes
-// with its ends, so between them lies a band of depths no rung reaches the text
+// about the walk. The walk is depth on the neutral ramp and a ramp writes
+// with its ends, so between them lies a band of depths no step reaches the text
 // floor against; a body nothing can be written on is not a state to walk to. A
 // selected chip adds the second condition, because it carries no outline and a
-// walk that took its fill through the ground's own depth would erase the chip
-// at the crossing.
+// walk that took its fill through the depth of the surface it stands on would
+// erase the chip at the crossing.
 //
 // The depth is found by measuring the realized tone rather than by solving for
 // the boundary, because a tone is realized in 8-bit sRGB and a depth solved
@@ -306,50 +307,50 @@ func walk(c tokens.ColorTokens, rest color.NRGBA, st tokens.State, good func(col
 }
 
 // writable reports whether a label can be set on fill at all, and it asks with
-// the MUTED pin rather than the full-strength one: the muted rung is a rung of
+// the MUTED pin rather than the full-strength one: the muted pin is a step of
 // the neutral ramp, so a depth it reaches is one the ramp reaches, and the
-// walk must stop at the same depth for all four intents. A body whose depth
-// depended on which intent stood on it would put two chips in one row at two
+// walk must stop at the same depth for all four purposes. A body whose depth
+// depended on which purpose stood on it would put two chips in one row at two
 // different depths under one pointer.
 func writable(c tokens.ColorTokens, fill color.NRGBA) bool {
 	return vgcolor.ContrastRatio(neutralInk(c, c.OnSurfaceVariant(), fill, tokens.TextFloor), fill) >= tokens.TextFloor
 }
 
 // outlineOver is the unselected chip's edge: the boundary token while it holds
-// the graphic floor on both sides of the edge, and a floored neutral rung
+// the graphic floor on both sides of the edge, and a floored neutral step
 // otherwise.
 //
 // [tokens.ColorTokens.OutlineVariant] is floored by construction against
 // Surface and Background, which is the pair a neutral boundary is drawn over
-// when nobody names a storey. A chip does name one, and the ladder reaches
+// when nobody names a level. A chip does name one, and the levels reach
 // past that pair: on the dark scheme's level-3 plane the token measures
 // 1.80:1. So it is a pin and not an answer — used while it reads, walked when
 // it stops, which is the idiom every other derived colour in this package
 // takes.
 //
 // An edge has two sides and one colour, and the inside of this one moves: the
-// body walks a rung and two under the pointer. Both sides are asked for, and
-// where no rung can clear both — the deep end of a press on a high storey, at
+// body walks a step and two under the pointer. Both sides are asked for, and
+// where no step can clear both — the deep end of a press on a high level, at
 // which point the two neighbours are further apart than twice the floor — the
 // OUTER side keeps the colour. What the outline separates the chip from is the
 // page; what is inside it is the chip's own transient state, already under the
 // reader's pointer when the two collide.
-func outlineOver(c tokens.ColorTokens, ground, fill color.NRGBA) color.NRGBA {
+func outlineOver(c tokens.ColorTokens, surface, fill color.NRGBA) color.NRGBA {
 	cands := [...]color.NRGBA{
 		c.OutlineVariant(),
-		c.MarkOn(tokens.RoleNeutral, ground, tokens.GraphicFloor),
+		c.MarkOn(tokens.RoleNeutral, surface, tokens.GraphicFloor),
 		c.MarkOn(tokens.RoleNeutral, fill, tokens.GraphicFloor),
 	}
 	clears := func(cand, over color.NRGBA) bool {
 		return vgcolor.ContrastRatio(cand, over) >= tokens.GraphicFloor
 	}
 	for _, cand := range cands {
-		if clears(cand, ground) && clears(cand, fill) {
+		if clears(cand, surface) && clears(cand, fill) {
 			return cand
 		}
 	}
 	for _, cand := range cands {
-		if clears(cand, ground) {
+		if clears(cand, surface) {
 			return cand
 		}
 	}
@@ -357,17 +358,17 @@ func outlineOver(c tokens.ColorTokens, ground, fill color.NRGBA) color.NRGBA {
 }
 
 // neutralInk is [tokens.ColorTokens.InkOn]'s rule for a pin no role owns: the
-// pin while it clears floor against ground, and otherwise the rung of the
-// neutral ramp nearest its mid-value step that does.
+// pin while it clears floor against that surface, and otherwise the step of
+// the neutral ramp nearest its mid-value that does.
 //
 // InkOn itself asks a role for its pinned base and RoleNeutral has none, so
 // the rule is spelled out here rather than reinvented: pin first, walk only
 // when the pin stops reading.
-func neutralInk(c tokens.ColorTokens, pin, ground color.NRGBA, floor float64) color.NRGBA {
-	if vgcolor.ContrastRatio(pin, ground) >= floor {
+func neutralInk(c tokens.ColorTokens, pin, surface color.NRGBA, floor float64) color.NRGBA {
+	if vgcolor.ContrastRatio(pin, surface) >= floor {
 		return pin
 	}
-	return c.MarkOn(tokens.RoleNeutral, ground, floor)
+	return c.MarkOn(tokens.RoleNeutral, surface, floor)
 }
 
 // Pin is the edge of the box a chip is offered that its body is pinned to.
@@ -430,10 +431,10 @@ func (p Pin) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	return layout.Dimensions{Size: box, Baseline: dims.Baseline}
 }
 
-// Props configures a [Chip] instance: what it says, which intent it says it
+// Props configures a [Chip] instance: what it says, which purpose it says it
 // in, what it stands on, and how an activation is delivered.
 //
-// There is no emphasis field and there will not be one. Intent is the only
+// There is no emphasis field and there will not be one. Purpose is the only
 // axis a chip varies on — see the package doc — and there is no Disabled field
 // either: a chip is clickable by construction, and something a reader can only
 // read is components/badge.
@@ -441,12 +442,12 @@ type Props struct {
 	// Label is the text the chip carries.
 	Label string
 
-	// Intent is what this chip is for. The zero value is [Assist].
-	Intent Intent
+	// Purpose is what this chip is for. The zero value is [Assist].
+	Purpose Purpose
 
 	// Icon is the mark drawn before the label, in the leading slot: the
 	// label's cap band ([MarkDp]) square, or [AvatarDp] behind a full-round
-	// corner when the intent is [Input]. A nil Icon draws none.
+	// corner when the purpose is [Input]. A nil Icon draws none.
 	//
 	// A selected [Filter] chip draws the checkmark here instead — the mark
 	// that says it is selected takes the slot rather than standing beside a
@@ -457,17 +458,17 @@ type Props struct {
 	// The live chip keeps its own selection from there — a later Selected does
 	// not move a running instance; rebuild the subscription to reseed one,
 	// which is the idiom components/picker states for the same reason. Every
-	// other intent ignores it.
+	// other purpose ignores it.
 	Selected bool
 
 	// Description is the screen-reader label. Falls back to Label when empty.
 	Description string
 
-	// Ground is the elevation storey of the surface hosting the chip, copied
-	// straight into [RenderState.Ground] on every frame. A dialog at
-	// tokens.Level2 passes Level2. The zero value is tokens.Level0, the window
-	// ground. See [RenderState.Ground].
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the chip stands on — a chip has no
+	// level of its own — copied straight into [RenderState.Level] on every
+	// frame. A dialog at tokens.Level2 passes Level2. The zero value is
+	// tokens.Level0, the window's own surface. See [RenderState.Level].
+	Level tokens.ElevationLevel
 
 	// Pin is the edge of the offered box the chip is drawn at. The zero value
 	// is [PinNone] and the chip reports itself alone, which is every chip laid
@@ -486,7 +487,7 @@ type Props struct {
 	Clickable *widget.Clickable
 
 	// OnClick is called when the chip's body is activated by click or
-	// Space/Enter, whatever the intent. On a [Filter] chip it fires with
+	// Space/Enter, whatever the purpose. On a [Filter] chip it fires with
 	// OnSelect, after the selection has already moved.
 	//
 	// The gtx argument is the layout.Context active on the frame the
@@ -495,7 +496,7 @@ type Props struct {
 	OnClick func(gtx layout.Context)
 
 	// OnSelect is called with the selection the [Filter] chip has just moved
-	// to. Other intents never call it.
+	// to. Other purposes never call it.
 	OnSelect func(gtx layout.Context, selected bool)
 
 	// Message, if non-nil, is emitted as mvu.MessageOp into gtx.Ops on
@@ -510,8 +511,8 @@ type Props struct {
 	// reports that the reader asked for this token to go away and nothing
 	// more: the chip does not remove itself on the next frame.
 	//
-	// Other intents never call it, and an Input chip draws its mark whether or
-	// not it is set — the mark is the intent's anatomy. What a nil OnDismiss
+	// Other purposes never call it, and an Input chip draws its mark whether or
+	// not it is set — the mark is the purpose's structure. What a nil OnDismiss
 	// costs is only the dispatch.
 	OnDismiss func(gtx layout.Context)
 
@@ -595,7 +596,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 		// filter's selection survive every theme emission. ownClick is used
 		// only when the caller supplies no clickable.
 		var ownClick, dismiss widget.Clickable
-		selected := props.Selected && props.Intent.Selectable()
+		selected := props.Selected && props.Purpose.Selectable()
 
 		return rx.Map(resolved, func(tok resolvedTokens) layout.Widget {
 			shaper := props.Shaper
@@ -618,7 +619,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 				// caller has already taken away — and both are drained to one
 				// event, because a double click on a mark is one dismissal.
 				dismissed := false
-				if props.Intent.Dismissible() {
+				if props.Purpose.Dismissible() {
 					for dismiss.Clicked(gtx) {
 						dismissed = true
 					}
@@ -644,7 +645,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 					// One poll, one dispatch: Clicked reports a pointer click
 					// and a Space or Enter alike, so both paths leave from
 					// here.
-					if props.Intent.Selectable() {
+					if props.Purpose.Selectable() {
 						selected = !selected
 						if props.OnSelect != nil {
 							props.OnSelect(gtx, selected)
@@ -659,7 +660,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 				}
 
 				s := RenderState{
-					Ground:   props.Ground,
+					Level:    props.Level,
 					Selected: selected,
 					// The dismiss mark's area lies over the body's and takes
 					// the pointer from it, so the body reads both: a chip
@@ -673,7 +674,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 				return props.Pin.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), click.Layout,
 						func(gtx layout.Context) layout.Dimensions {
-							return draw(gtx, shaper, props.Label, props.Intent, props.Icon,
+							return draw(gtx, shaper, props.Label, props.Purpose, props.Icon,
 								tok, s, desc, &dismiss)
 						})
 				})
@@ -684,7 +685,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 
 // Render produces a layout.Widget drawing the chip in an explicit visual
 // state, without event processing: the leading mark, the label and — for
-// [Input] — the dismiss mark on one row, inside the body the intent and the
+// [Input] — the dismiss mark on one row, inside the body the purpose and the
 // state resolve to.
 //
 // icon may be nil, in which case the chip leads with its label; a selected
@@ -699,7 +700,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 func Render(
 	shaper *text.Shaper,
 	label string,
-	i Intent,
+	i Purpose,
 	icon Glyph,
 	colors tokens.ColorTokens,
 	sp tokens.SpacingScale,
@@ -714,13 +715,13 @@ func Render(
 	}
 }
 
-// draw paints one chip: the body the intent resolves to, the leading mark, the
-// label, and the dismiss mark the [Input] intent carries.
+// draw paints one chip: the body the purpose resolves to, the leading mark,
+// the label, and the dismiss mark the [Input] purpose carries.
 func draw(
 	gtx layout.Context,
 	shaper *text.Shaper,
 	label string,
-	i Intent,
+	i Purpose,
 	icon Glyph,
 	tok resolvedTokens,
 	s RenderState,
@@ -792,8 +793,8 @@ func draw(
 	// content sprouted, and one that stretched would be a banner.
 	//
 	// The height is the density's chip height outright — not a floor under
-	// max(content, ControlHeight + padding), which is the rule for controls on
-	// the ladder the chip has just left. A chip is shorter than a button by
+	// max(content, ControlHeight + padding), which is the rule for the control
+	// family the chip has just left. A chip is shorter than a button by
 	// construction and its label's line box fits inside that height at both
 	// densities, so the only thing that can push it taller is a caller's own
 	// oversized style.
@@ -904,7 +905,7 @@ func draw(
 	// whatever area encloses it.
 	//
 	// A filter chip is a checkbox to a screen reader and says which way it is
-	// set; every other intent is a button, because that is what activating it
+	// set; every other purpose is a button, because that is what activating it
 	// does. The dismiss mark stays outside this area on purpose: a pointer
 	// area is clipped by the areas above it, and the mark's target is
 	// deliberately larger than the mark.

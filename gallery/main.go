@@ -101,7 +101,7 @@ type gallery struct {
 	rbBLive       layout.Widget
 	ddLive        layout.Widget
 
-	// Chip page: one live chip per storey, each on its own ground.
+	// Chip page: one live chip per level, each on its own surface.
 	chipLive   []layout.Widget
 	chipClicks []int
 
@@ -226,22 +226,22 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 		log.Printf("springbutton: %v", err)
 	}
 
-	// One live chip per storey. Each is a real component with its own
+	// One live chip per level. Each is a real component with its own
 	// clickable, so the page answers the pointer and the Tab key rather than
 	// showing a drawing of a chip that does.
-	g.chipLive = make([]layout.Widget, len(chipStoreys))
-	g.chipClicks = make([]int, len(chipStoreys))
-	for i, storey := range chipStoreys {
-		i, storey := i, storey
+	g.chipLive = make([]layout.Widget, len(chipLevels))
+	g.chipClicks = make([]int, len(chipLevels))
+	for i, lv := range chipLevels {
+		i, lv := i, lv
 		g.chipLive[i], err = chip.Chip(th, chip.Props{
-			Label:       storey.label,
+			Label:       lv.label,
 			Icon:        chip.Glyph(icons.Mark(icons.Disclosure)),
-			Description: storey.desc,
-			Ground:      storey.ground,
+			Description: lv.desc,
+			Level:       lv.level,
 			OnClick:     func(_ layout.Context) { g.chipClicks[i]++; w.Invalidate() },
 		}).First()
 		if err != nil {
-			log.Printf("chip %s: %v", storey.label, err)
+			log.Printf("chip %s: %v", lv.label, err)
 		}
 	}
 
@@ -399,7 +399,7 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 			return g.nav[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				sz := image.Pt(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(40)))
 				// Only the selected entry carries a fill of its own, so an
-				// unselected entry lets the rail's own ground show through.
+				// unselected entry lets the rail's own fill show through.
 				if active {
 					paint.FillShape(gtx.Ops, c.Primary, clip.Rect{Max: sz}.Op())
 				}
@@ -566,45 +566,45 @@ func (g *gallery) buttonVariantRows() []layout.FlexChild {
 
 // ── Chip page ─────────────────────────────────────────────────────────────────
 
-// chipStoreys are the grounds the chip page puts a live chip on: the paper, a
+// chipLevels are the surfaces the chip page puts a live chip on: the paper, a
 // card raised over it, and a dialog floating above that. The chip derives
-// every colour it draws from the storey it was handed — fill, rim, inks and
-// ring alike — so one specimen on one ground demonstrates nothing about the
+// every colour it draws from the surface it was handed — fill, rim, inks and
+// ring alike — so one specimen on one surface demonstrates nothing about the
 // component. Three do.
 // The label on each is a summary rather than a verb, which is the whole of
 // what separates a chip from a button: what a pane is showing, what a list is
 // filtered by, which model a conversation is on.
-var chipStoreys = []struct {
-	label  string
-	desc   string
-	ground tokens.ElevationLevel
-	title  string
+var chipLevels = []struct {
+	label string
+	desc  string
+	level tokens.ElevationLevel
+	title string
 }{
-	{"Claude Opus 5", "Choose a model", tokens.Level0, "Level 0 — the content ground"},
+	{"Claude Opus 5", "Choose a model", tokens.Level0, "Level 0 — the content surface"},
 	{"main", "Switch branch", tokens.Level1, "Level 1 — a raised inset"},
 	{"3 filters", "Edit filters", tokens.Level2, "Level 2 — floating"},
 }
 
 func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
-	if len(g.chipLive) != len(chipStoreys) {
+	if len(g.chipLive) != len(chipLevels) {
 		// The live widgets are built against a window; a gallery assembled
 		// without one draws nothing here rather than indexing past its state.
 		return layout.Dimensions{}
 	}
 	return g.scrollPage(gtx, g.scrollSt[pageChip], func(gtx layout.Context) layout.Dimensions {
 		c := tokens.DefaultLight
-		cs := []layout.FlexChild{g.sectionHeader("Chip — live, on each storey (click it, or Tab to it and press Space)")}
-		for i, storey := range chipStoreys {
-			i, storey := i, storey
+		cs := []layout.FlexChild{g.sectionHeader("Chip — live, on each level (click it, or Tab to it and press Space)")}
+		for i, lv := range chipLevels {
+			i, lv := i, lv
 			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return complayout.InsetXY(24, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Min.X = gtx.Dp(unit.Dp(180))
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(180))
-							return g.label(gtx, storey.title, c.Ramps.Neutral.Step(600), unit.Sp(12), font.Font{})
+							return g.label(gtx, lv.title, c.Ramps.Neutral.Step(600), unit.Sp(12), font.Font{})
 						}),
-						layout.Rigid(g.storeyPanel(c.SurfaceAt(storey.ground), func(gtx layout.Context) layout.Dimensions {
+						layout.Rigid(g.levelPanel(c.SurfaceAt(lv.level), func(gtx layout.Context) layout.Dimensions {
 							return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								if g.chipLive[i] == nil {
 									return layout.Dimensions{}
@@ -632,10 +632,10 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 	})
 }
 
-// storeyPanel draws content over a ground of its own, sized to what the
+// levelPanel draws content over a fill of its own, sized to what the
 // content measured — the fill goes down after the content is recorded,
 // because the panel's size is the content's and nothing knows it sooner.
-func (g *gallery) storeyPanel(fill color.NRGBA, content layout.Widget) layout.Widget {
+func (g *gallery) levelPanel(fill color.NRGBA, content layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		m := op.Record(gtx.Ops)
 		dims := content(gtx)

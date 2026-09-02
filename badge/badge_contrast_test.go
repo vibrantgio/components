@@ -1,14 +1,14 @@
 // The badge's pairings, measured rather than eyeballed. There are four, and
 // which of them apply depends on the utterance: a worded or counted badge
-// wears a container, so its fill against the storey and its foreground
+// wears a container, so its fill against the surface and its foreground
 // against that fill are both live, while a glyph badge stands bare and pairs
-// its foreground straight with the storey. The close mark's states walk the
+// its foreground straight with the surface. The close mark's states walk the
 // fill under it on the one and its own colour on the other. Every pairing is
 // a derivation rather than a field, so what is held is the ratio each lands
-// on and not the rung it picked.
+// on and not the step it picked.
 //
-// Every sweep runs the whole elevation ladder, five rungs being every
-// placement RenderState.Ground admits, and all five variants, because the four
+// Every sweep runs every level, five of them being every
+// placement RenderState.Level admits, and all five variants, because the four
 // hued ones read off pinned bases and the neutral one reads off a walk.
 package badge
 
@@ -37,8 +37,8 @@ var badgeSeeds = []color.NRGBA{
 	{A: 0xff},
 }
 
-// badgeStoreys is the whole ladder — every ground a badge can be handed.
-var badgeStoreys = []struct {
+// badgeLevels is every level — every surface a badge can be handed.
+var badgeLevels = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
@@ -89,25 +89,25 @@ func hex(c color.NRGBA) string {
 	})
 }
 
-// TestBareForegroundClearsItsFloorOnEveryStorey measures the glyph utterance,
+// TestBareForegroundClearsItsFloorOnEveryLevel measures the glyph utterance,
 // the one that stands without a container: there is nothing in between, so the
-// storey is the whole of the pairing. The floor is the text one even though
+// surface is the whole of the pairing. The floor is the text one even though
 // the content is a sign — a badge that says its word as a sign is the same
 // utterance at the same weight.
-func TestBareForegroundClearsItsFloorOnEveryStorey(t *testing.T) {
+func TestBareForegroundClearsItsFloorOnEveryLevel(t *testing.T) {
 	for _, sc := range badgeSchemes {
 		t.Run(sc.name, func(t *testing.T) {
 			c := sc.colors
-			for _, storey := range badgeStoreys {
-				below := c.SurfaceAt(storey.level)
+			for _, lv := range badgeLevels {
+				below := c.SurfaceAt(lv.level)
 				for _, va := range badgeVariants {
-					fg := BareForeground(c, va.v, storey.level)
+					fg := BareForeground(c, va.v, lv.level)
 					got := vgcolor.ContrastRatio(fg, below)
 					t.Logf("%s %s bare foreground %s on %s: %.2f:1",
-						storey.name, va.name, hex(fg), hex(below), got)
+						lv.name, va.name, hex(fg), hex(below), got)
 					if got < tokens.TextFloor {
-						t.Errorf("%s %s bare foreground %s on the storey %s = %.2f:1, want at least %.1f:1",
-							storey.name, va.name, hex(fg), hex(below), got, tokens.TextFloor)
+						t.Errorf("%s %s bare foreground %s on the surface %s = %.2f:1, want at least %.1f:1",
+							lv.name, va.name, hex(fg), hex(below), got, tokens.TextFloor)
 					}
 				}
 			}
@@ -115,7 +115,7 @@ func TestBareForegroundClearsItsFloorOnEveryStorey(t *testing.T) {
 	}
 }
 
-// TestTheFillSeparatesFromEveryStorey is the seam: the container's own edge
+// TestTheFillSeparatesFromEveryLevel is the seam: the container's own edge
 // against the surface it is placed on. A fill a reader cannot see is not a
 // quiet second channel, it is no second channel — which is the whole reason
 // the badge wears one.
@@ -124,20 +124,20 @@ func TestBareForegroundClearsItsFloorOnEveryStorey(t *testing.T) {
 // WCAG has none for a field. 1.4.11's 3:1 governs a mark that must be resolved
 // as a shape; a container carries no shape, and gating it at 3:1 would make
 // five badges read as five filled controls.
-func TestTheFillSeparatesFromEveryStorey(t *testing.T) {
+func TestTheFillSeparatesFromEveryLevel(t *testing.T) {
 	for _, sc := range badgeSchemes {
 		t.Run(sc.name, func(t *testing.T) {
 			c := sc.colors
-			for _, storey := range badgeStoreys {
-				below := c.SurfaceAt(storey.level)
+			for _, lv := range badgeLevels {
+				below := c.SurfaceAt(lv.level)
 				for _, va := range badgeVariants {
-					fill := Fill(c, va.v, storey.level)
+					fill := Fill(c, va.v, lv.level)
 					got := vgcolor.ContrastRatio(fill, below)
 					t.Logf("%s %s fill %s on %s: %.3f:1",
-						storey.name, va.name, hex(fill), hex(below), got)
+						lv.name, va.name, hex(fill), hex(below), got)
 					if got < tokens.ContainerFloor {
-						t.Errorf("%s %s fill %s on the storey %s = %.3f:1, want at least %.2f:1",
-							storey.name, va.name, hex(fill), hex(below), got, tokens.ContainerFloor)
+						t.Errorf("%s %s fill %s on the surface %s = %.3f:1, want at least %.2f:1",
+							lv.name, va.name, hex(fill), hex(below), got, tokens.ContainerFloor)
 					}
 				}
 			}
@@ -154,16 +154,16 @@ func TestForegroundClearsItsFloorOnTheFill(t *testing.T) {
 	for _, sc := range badgeSchemes {
 		t.Run(sc.name, func(t *testing.T) {
 			c := sc.colors
-			for _, storey := range badgeStoreys {
+			for _, lv := range badgeLevels {
 				for _, va := range badgeVariants {
-					fill := Fill(c, va.v, storey.level)
-					fg := Foreground(c, va.v, storey.level)
+					fill := Fill(c, va.v, lv.level)
+					fg := Foreground(c, va.v, lv.level)
 					got := vgcolor.ContrastRatio(fg, fill)
 					t.Logf("%s %s foreground %s on the fill %s: %.2f:1",
-						storey.name, va.name, hex(fg), hex(fill), got)
+						lv.name, va.name, hex(fg), hex(fill), got)
 					if got < tokens.TextFloor {
 						t.Errorf("%s %s foreground %s on the fill %s = %.2f:1, want at least %.1f:1",
-							storey.name, va.name, hex(fg), hex(fill), got, tokens.TextFloor)
+							lv.name, va.name, hex(fg), hex(fill), got, tokens.TextFloor)
 					}
 				}
 			}
@@ -173,38 +173,38 @@ func TestForegroundClearsItsFloorOnTheFill(t *testing.T) {
 
 // TestTheCloseMarkNeverFallsBelowItsFloor measures the mark against whatever
 // is actually behind it in every state it walks through. On a badge wearing a
-// container that is the fill walked one rung and two, with the mark
-// re-derived against it; on a bare one it is the storey, with the mark's own
+// container that is the fill walked one step and two, with the mark
+// re-derived against it; on a bare one it is the surface, with the mark's own
 // colour walking instead. Both owe GraphicFloor: an affordance cannot be
 // harder to see than the utterance beside it.
 //
 // The re-derivation is what this test is for. Holding the resting colour over
-// a walked fill measured 2.3:1 pressed on every storey and both schemes — a
+// a walked fill measured 2.3:1 pressed on every surface and both schemes — a
 // state that made the affordance harder to see the more the reader committed
 // to it.
 func TestTheCloseMarkNeverFallsBelowItsFloor(t *testing.T) {
 	for _, sc := range badgeSchemes {
 		t.Run(sc.name, func(t *testing.T) {
 			c := sc.colors
-			for _, storey := range badgeStoreys {
-				below := c.SurfaceAt(storey.level)
+			for _, lv := range badgeLevels {
+				below := c.SurfaceAt(lv.level)
 				for _, va := range badgeVariants {
-					fill := Fill(c, va.v, storey.level)
-					bare := BareForeground(c, va.v, storey.level)
+					fill := Fill(c, va.v, lv.level)
+					bare := BareForeground(c, va.v, lv.level)
 					for _, st := range badgeStates {
 						zone := c.PinnedStateColor(fill, st.s)
 						onFill := ForegroundOver(c, va.v, zone)
 						if got := vgcolor.ContrastRatio(onFill, zone); got < tokens.GraphicFloor {
 							t.Errorf("%s %s close mark %s %s on the walked fill %s = %.2f:1, want at least %.1f:1",
-								storey.name, va.name, st.name, hex(onFill), hex(zone), got, tokens.GraphicFloor)
+								lv.name, va.name, st.name, hex(onFill), hex(zone), got, tokens.GraphicFloor)
 						} else {
 							t.Logf("%s %s close mark %s %s on the walked fill %s: %.2f:1",
-								storey.name, va.name, st.name, hex(onFill), hex(zone), got)
+								lv.name, va.name, st.name, hex(onFill), hex(zone), got)
 						}
 						mark := c.PinnedStateColor(bare, st.s)
 						if got := vgcolor.ContrastRatio(mark, below); got < tokens.GraphicFloor {
-							t.Errorf("%s %s bare close mark %s %s on the storey %s = %.2f:1, want at least %.1f:1",
-								storey.name, va.name, st.name, hex(mark), hex(below), got, tokens.GraphicFloor)
+							t.Errorf("%s %s bare close mark %s %s on the surface %s = %.2f:1, want at least %.1f:1",
+								lv.name, va.name, st.name, hex(mark), hex(below), got, tokens.GraphicFloor)
 						}
 					}
 				}
@@ -263,31 +263,31 @@ func TestBadgePairingsHoldForEverySeed(t *testing.T) {
 			{"dark high-contrast", darkHC},
 		} {
 			c := sc.colors
-			for _, storey := range badgeStoreys {
-				below := c.SurfaceAt(storey.level)
+			for _, lv := range badgeLevels {
+				below := c.SurfaceAt(lv.level)
 				for _, va := range badgeVariants {
-					bare := BareForeground(c, va.v, storey.level)
+					bare := BareForeground(c, va.v, lv.level)
 					if got := vgcolor.ContrastRatio(bare, below); got < worstBare {
 						worstBare = got
 						if got < tokens.TextFloor {
 							t.Errorf("seed %s %s: %s %s bare foreground %s on %s = %.2f:1, want at least %.1f:1",
-								hex(seed), sc.name, storey.name, va.name, hex(bare), hex(below), got, tokens.TextFloor)
+								hex(seed), sc.name, lv.name, va.name, hex(bare), hex(below), got, tokens.TextFloor)
 						}
 					}
-					fill := Fill(c, va.v, storey.level)
+					fill := Fill(c, va.v, lv.level)
 					if got := vgcolor.ContrastRatio(fill, below); got < worstSeam {
 						worstSeam = got
 						if got < tokens.ContainerFloor {
 							t.Errorf("seed %s %s: %s %s fill %s on %s = %.3f:1, want at least %.2f:1",
-								hex(seed), sc.name, storey.name, va.name, hex(fill), hex(below), got, tokens.ContainerFloor)
+								hex(seed), sc.name, lv.name, va.name, hex(fill), hex(below), got, tokens.ContainerFloor)
 						}
 					}
-					word := Foreground(c, va.v, storey.level)
+					word := Foreground(c, va.v, lv.level)
 					if got := vgcolor.ContrastRatio(word, fill); got < worstFg {
 						worstFg = got
 						if got < tokens.TextFloor {
 							t.Errorf("seed %s %s: %s %s foreground %s on the fill %s = %.2f:1, want at least %.1f:1",
-								hex(seed), sc.name, storey.name, va.name, hex(word), hex(fill), got, tokens.TextFloor)
+								hex(seed), sc.name, lv.name, va.name, hex(word), hex(fill), got, tokens.TextFloor)
 						}
 					}
 					for _, st := range badgeStates {
@@ -297,13 +297,13 @@ func TestBadgePairingsHoldForEverySeed(t *testing.T) {
 							worstMark = got
 							if got < tokens.GraphicFloor {
 								t.Errorf("seed %s %s: %s %s close mark %s on the walked fill %s = %.2f:1, want at least %.1f:1",
-									hex(seed), sc.name, storey.name, va.name, hex(cappedMark), hex(zone), got, tokens.GraphicFloor)
+									hex(seed), sc.name, lv.name, va.name, hex(cappedMark), hex(zone), got, tokens.GraphicFloor)
 							}
 						}
 						bareMark := c.PinnedStateColor(bare, st.s)
 						if got := vgcolor.ContrastRatio(bareMark, below); got < tokens.GraphicFloor {
 							t.Errorf("seed %s %s: %s %s bare close mark %s on %s = %.2f:1, want at least %.1f:1",
-								hex(seed), sc.name, storey.name, va.name, hex(bareMark), hex(below), got, tokens.GraphicFloor)
+								hex(seed), sc.name, lv.name, va.name, hex(bareMark), hex(below), got, tokens.GraphicFloor)
 						}
 					}
 				}
@@ -315,27 +315,27 @@ func TestBadgePairingsHoldForEverySeed(t *testing.T) {
 }
 
 // TestTheFiveVariantsAreFiveBadges is what makes a set of badges a set: no two
-// variants land on one fill and no two on one foreground, on every storey and
+// variants land on one fill and no two on one foreground, on every surface and
 // in both schemes. Both halves are asserted because either collapse loses a
 // variant — two roles sharing a fill leaves a reader two words in one field,
 // and two sharing a foreground leaves them two fields in one word.
 func TestTheFiveVariantsAreFiveBadges(t *testing.T) {
 	for _, sc := range badgeSchemes {
 		c := sc.colors
-		for _, storey := range badgeStoreys {
+		for _, lv := range badgeLevels {
 			fgs, fills := map[color.NRGBA]string{}, map[color.NRGBA]string{}
 			for _, va := range badgeVariants {
-				fg := Foreground(c, va.v, storey.level)
+				fg := Foreground(c, va.v, lv.level)
 				if prev, ok := fgs[fg]; ok {
 					t.Errorf("%s %s: %s and %s both read in %s",
-						sc.name, storey.name, prev, va.name, hex(fg))
+						sc.name, lv.name, prev, va.name, hex(fg))
 				}
 				fgs[fg] = va.name
 
-				fill := Fill(c, va.v, storey.level)
+				fill := Fill(c, va.v, lv.level)
 				if prev, ok := fills[fill]; ok {
 					t.Errorf("%s %s: %s and %s both sit on %s",
-						sc.name, storey.name, prev, va.name, hex(fill))
+						sc.name, lv.name, prev, va.name, hex(fill))
 				}
 				fills[fill] = va.name
 			}

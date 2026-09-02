@@ -34,15 +34,16 @@ type RenderState struct {
 	Focused  bool
 	Disabled bool
 
-	// Ground is the elevation storey of the surface hosting the field — the
-	// local ground its resting border is derived against, in the same
-	// vocabulary the host names its own fill (tokens.SurfaceAt). A dialog at
-	// tokens.Level2 passes Level2 and the border takes whichever neutral
-	// rung clears the floor over that storey. The zero value is
-	// tokens.Level0, the window ground. A focused field ignores it: its
+	// Level is the level of the surface the field stands on — the field has
+	// no level of its own — and its resting border is derived against that
+	// surface, in the same vocabulary the host names its own fill
+	// (tokens.SurfaceAt). A dialog at tokens.Level2 passes Level2 and the
+	// border takes whichever neutral step clears the floor over that surface.
+	// The zero value is tokens.Level0, the window's own surface. A focused
+	// field ignores it: its
 	// border is promoted to the focus ring, which derives against the fill
 	// inside the border instead.
-	Ground tokens.ElevationLevel
+	Level tokens.ElevationLevel
 	// Text, when non-empty, is rendered in place of the placeholder using the
 	// text colour. It models a field that holds user input for the static
 	// render path; it has no effect on the live TextField, whose text is held
@@ -58,12 +59,13 @@ type TextFieldProps struct {
 	// Description is the screen-reader label. Falls back to Placeholder when empty.
 	Description string
 
-	// Ground is the elevation storey of the surface hosting the field,
-	// copied straight into RenderState.Ground on every frame: the local
-	// ground the resting border is derived against. A container that raises
-	// its surface (a level-2 dialog carrying a form) passes its own storey
-	// here; the zero value is the window ground. See RenderState.Ground.
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the field stands on — the field has
+	// no level of its own — copied straight into RenderState.Level on every
+	// frame: what the resting border is derived against. A container that
+	// raises its surface (a level-2 dialog carrying a form) passes its own
+	// level here; the zero value is the window's own surface. See
+	// RenderState.Level.
+	Level tokens.ElevationLevel
 
 	// Seed, when non-empty, pre-fills the editor when the field instance is
 	// created, so an existing value can be edited rather than retyped. The
@@ -265,7 +267,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 				return drawTextFieldLive(gtx, shaper, editor, hitTag, props.Placeholder, desc, tok, RenderState{
 					Focused:  foc,
 					Disabled: dis,
-					Ground:   props.Ground,
+					Level:    props.Level,
 				}, showPh)
 			}
 		})
@@ -555,29 +557,30 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 
 // textFieldColors returns (bg, text, border, placeholder) colors for the
 // given state: the field's own raised fill (controlFill), body text, the
-// resting border the neutral ramp measures against the storey the field
+// resting border the neutral ramp measures against the surface the field
 // stands on (controlBorder) and the control register's own prompt ink
-// (control.Placeholder) — the same rung components/picker's field trigger
+// (control.Placeholder) — the same step components/picker's field trigger
 // draws its prompt in, named once so the two cannot drift. Disabled fades
 // each to DisabledOpacity; focus promotes the border to the focus ring.
 //
-// The fill is walked from the ground the field was handed (controlFill)
+// The fill is walked from the surface the field was handed (controlFill)
 // rather than a named surface colour, so the field stays lighter than
 // whatever it lies on in both colour schemes and stays lighter as the host
 // rises.
 //
-// The border is derived from the neutral ramp against the field's ground
-// (controlBorder) rather than a named ramp step, so the field wears the same
-// edge the checkbox and the radio do, on whatever storey it is put.
+// The border is derived from the neutral ramp against the surface the field
+// stands on (controlBorder) rather than a named ramp step, so the field wears
+// the same edge the checkbox and the radio do, on whatever level it is put.
 //
 // The focused border's colour is focus.Ring — the scheme's one focus colour,
-// the same on every storey and on every control, so promoting the edge changes
-// its hue and not what it has to answer to. The storey lies immediately outside
+// the same on every level and on every control, so promoting the edge changes
+// its hue and not what it has to answer to. That surface lies immediately
+// outside
 // the promoted band and that is the side the ring's floor is measured to.
 func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, placeholder color.NRGBA) {
-	bg = controlFill(c, s.Ground)
+	bg = controlFill(c, s.Level)
 	text = c.Text
-	border = controlBorder(c, s.Ground)
+	border = controlBorder(c, s.Level)
 	placeholder = control.Placeholder(c)
 	switch {
 	case s.Disabled:

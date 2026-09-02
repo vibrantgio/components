@@ -69,8 +69,8 @@ const (
 )
 
 // FieldState holds the explicit visual state a static field render draws in.
-// All fields default to their zero values (normal, closed, idle, on the window
-// ground).
+// All fields default to their zero values (normal, closed, idle, on the
+// window's own surface).
 //
 // Intended for golden-image testing; production code obtains state from the
 // Gio event system via [Field].
@@ -85,15 +85,15 @@ type FieldState struct {
 	// beneath the trigger. See [Drop].
 	Drop Drop
 
-	// Ground is the elevation storey of the surface hosting the trigger —
-	// the local ground its resting border is derived against, in the same
-	// vocabulary the host names its own fill (tokens.SurfaceAt). A dialog at
-	// tokens.Level2 passes Level2 and the border takes whichever neutral
-	// rung clears the floor over that storey. The zero value is
-	// tokens.Level0, the window ground. It governs the trigger only: the
-	// open menu is its own plane, a level-3 overlay carrying the edge that
-	// storey draws (see planeEdge).
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the trigger stands on — the trigger
+	// has no level of its own — and its resting border is derived against
+	// that surface, in the same vocabulary the host names its own fill
+	// (tokens.SurfaceAt). A dialog at tokens.Level2 passes Level2 and the
+	// border takes whichever neutral step clears the floor over that surface.
+	// The zero value is tokens.Level0, the window's own surface. It governs
+	// the trigger only: the open menu is its own plane, a level-3 overlay
+	// carrying the edge that level draws (see planeEdge).
+	Level tokens.ElevationLevel
 
 	// MaxHeight caps the open menu's plane; above it the rows scroll inside
 	// the cap. The zero value is no cap. See [MenuProps.MaxHeight].
@@ -126,12 +126,12 @@ type FieldProps struct {
 	// widget by its bottom edge. See [Drop].
 	Drop Drop
 
-	// Ground is the elevation storey of the surface hosting the field, copied
-	// straight into [FieldState.Ground] on every frame: the local ground the
-	// trigger's resting border is derived against. A container that raises its
-	// surface passes its own storey here; the zero value is the window ground.
-	// See [FieldState.Ground].
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the field stands on — the field has no
+	// level of its own — copied straight into [FieldState.Level] on every
+	// frame: what the trigger's resting border is derived against. A container
+	// that raises its surface passes its own level here; the zero value is the
+	// window's own surface. See [FieldState.Level].
+	Level tokens.ElevationLevel
 
 	// MaxHeight caps the open menu's plane; above it the rows scroll inside
 	// the cap and the selected row is kept in view. The zero value is no cap
@@ -305,7 +305,7 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 					Selected:    selected,
 					Options:     props.Options,
 					Drop:        props.Drop,
-					Ground:      props.Ground,
+					Level:       props.Level,
 					MaxHeight:   props.MaxHeight,
 					Placeholder: props.Placeholder,
 					NoOptions:   props.NoOptions,
@@ -467,11 +467,11 @@ func stackOpen(gtx layout.Context, d Drop, tok resolvedTokens, trigger op.CallOp
 // reads as corruption rather than as two surfaces.
 //
 // The ink and the geometry are patterns/popover's, because they are the same
-// surface: the neutral rung that reaches the graphic floor against the plane
+// surface: the neutral step that reaches the graphic floor against the plane
 // the line circles — here the menu's own level-3 fill, which is the harder of
-// the line's two sides — laid one dp wide. The rung is what a named step
+// the line's two sides — laid one dp wide. A measured step is what a named one
 // cannot be, since the paired ramps put a fixed step at the same perceptual
-// depth in both schemes while the ground under it moves the whole way.
+// depth in both schemes while the surface under it moves the whole way.
 //
 // It is drawn INSIDE the box the menu reported, on all four sides, so the edge
 // costs the stack no height and the two drop directions are one drawing.
@@ -580,11 +580,11 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	}
 	triggerSize := image.Pt(fieldW, triggerH)
 
-	// The trigger's own fill is the storey it is raised to over the ground it
+	// The trigger's own fill is the step it is raised to over the surface it
 	// stands on (control.Fill), the same walk the field, the box and the radio
 	// take. Disabled fades that fill rather than naming a second one, so the
-	// state follows the storey wherever the trigger was put.
-	bg := control.Fill(tok.color, s.Ground)
+	// state follows the surface wherever the trigger was put.
+	bg := control.Fill(tok.color, s.Level)
 	if s.Disabled {
 		bg = tokens.Disabled(bg)
 	}
@@ -593,15 +593,15 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	// focus colour, so promoting the edge changes its hue and not what it has
 	// to answer to, and a focused trigger in a dialog draws the same pixel as
 	// a focused control on the paper behind it.
-	// At rest the trigger's border is the neutral rung the ramp measures as
+	// At rest the trigger's border is the neutral step the ramp measures as
 	// clearing the graphic floor against both sides of the edge, the same edge
 	// the field and the radio wear (control.Border).
-	borderCol := control.Border(tok.color, s.Ground)
+	borderCol := control.Border(tok.color, s.Level)
 	if s.Focused {
 		borderCol = focus.Ring(tok.color)
 	}
 	if s.Disabled {
-		borderCol = tokens.Disabled(control.Border(tok.color, s.Ground))
+		borderCol = tokens.Disabled(control.Border(tok.color, s.Level))
 	}
 	borderPx := gtx.Dp(1)
 	if s.Focused {

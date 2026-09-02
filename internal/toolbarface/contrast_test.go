@@ -1,11 +1,11 @@
 // The three pairings this geometry answers, measured rather than eyeballed:
-// the rim against the ground the control stands on and against the control's
+// the rim against the surface the control stands on and against the control's
 // own fill, the label against that fill, and the mark against it. All four
 // colours come out of derivations rather than fields, so what is held is the
-// ratio each lands on and not the rung it picked.
+// ratio each lands on and not the step it picked.
 //
-// Every sweep here runs the whole elevation ladder — five rungs is every
-// placement State.Ground admits — and every interaction state, because the
+// Every sweep here runs every level — five of them is every
+// placement State.Level admits — and every interaction state, because the
 // fill walks under the pointer and the inks are resolved against the fill
 // actually drawn.
 package toolbarface
@@ -42,8 +42,8 @@ var seeds = []color.NRGBA{
 	{A: 0xff},
 }
 
-// storeys is the whole ladder — every ground the control can be handed.
-var storeys = []struct {
+// levels is every level — every surface the control can be handed.
+var levels = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
@@ -75,10 +75,10 @@ func hex(c color.NRGBA) string {
 }
 
 // edgeHolds is the whole claim this edge makes, in one function: on every
-// storey, in every state, the control's boundary is legible — either the
-// rim clears the graphic floor against both the ground outside it and the fill
+// surface, in every state, the control's boundary is legible — either the
+// rim clears the graphic floor against both the surface outside it and the fill
 // inside it, or there is no rim and the fill itself clears the floor against
-// the ground.
+// the surface.
 //
 // The two halves must be asserted together: asserting only the drawn rim would
 // be satisfied by a derivation that dropped the rim whenever it got hard, and
@@ -92,14 +92,14 @@ func edgeHolds(t *testing.T, label string, c tokens.ColorTokens, level tokens.El
 	if !rimmed {
 		got := vgcolor.ContrastRatio(fill, below)
 		if got < tokens.GraphicFloor {
-			t.Errorf("%s: no rim and the fill %s only reaches %.2f:1 against the ground %s, want at least %.1f:1",
+			t.Errorf("%s: no rim and the fill %s only reaches %.2f:1 against the surface %s, want at least %.1f:1",
 				label, hex(fill), got, hex(below), tokens.GraphicFloor)
 		}
 		return got
 	}
 	worst := vgcolor.ContrastRatio(rim, below)
 	if worst < tokens.GraphicFloor {
-		t.Errorf("%s: rim %s against the ground %s = %.2f:1, want at least %.1f:1",
+		t.Errorf("%s: rim %s against the surface %s = %.2f:1, want at least %.1f:1",
 			label, hex(rim), hex(below), worst, tokens.GraphicFloor)
 	}
 	if got := vgcolor.ContrastRatio(rim, fill); got < tokens.GraphicFloor {
@@ -111,9 +111,9 @@ func edgeHolds(t *testing.T, label string, c tokens.ColorTokens, level tokens.El
 	return worst
 }
 
-// TestEdgeHoldsOnEveryStoreyAndState measures the edge on both of its sides,
-// on every storey and in every state the fill walks through.
-func TestEdgeHoldsOnEveryStoreyAndState(t *testing.T) {
+// TestEdgeHoldsOnEveryLevelAndState measures the edge on both of its sides,
+// on every surface and in every state the fill walks through.
+func TestEdgeHoldsOnEveryLevelAndState(t *testing.T) {
 	for _, sc := range []struct {
 		name   string
 		colors tokens.ColorTokens
@@ -123,16 +123,16 @@ func TestEdgeHoldsOnEveryStoreyAndState(t *testing.T) {
 	} {
 		t.Run(sc.name, func(t *testing.T) {
 			c := sc.colors
-			for _, storey := range storeys {
+			for _, lv := range levels {
 				for _, st := range states {
-					name := storey.name + " " + st.name
-					got := edgeHolds(t, name, c, storey.level, st.state)
-					if rim, rimmed := Rim(c, storey.level, st.state); rimmed {
+					name := lv.name + " " + st.name
+					got := edgeHolds(t, name, c, lv.level, st.state)
+					if rim, rimmed := Rim(c, lv.level, st.state); rimmed {
 						t.Logf("%s: rim %s on %s over %s, worst side %.2f:1", name, hex(rim),
-							hex(Fill(c, storey.level, st.state)), hex(c.SurfaceAt(storey.level)), got)
+							hex(Fill(c, lv.level, st.state)), hex(c.SurfaceAt(lv.level)), got)
 					} else {
 						t.Logf("%s: no rim — the fill %s carries its own edge over %s at %.2f:1", name,
-							hex(Fill(c, storey.level, st.state)), hex(c.SurfaceAt(storey.level)), got)
+							hex(Fill(c, lv.level, st.state)), hex(c.SurfaceAt(lv.level)), got)
 					}
 				}
 			}
@@ -141,7 +141,7 @@ func TestEdgeHoldsOnEveryStoreyAndState(t *testing.T) {
 }
 
 // TestInksClearTheirFloors measures the label and the mark against the fill
-// they are drawn on, in every state and on every storey. The label owes WCAG
+// they are drawn on, in every state and on every surface. The label owes WCAG
 // 1.4.3's 4.5:1 because it is words; the mark owes 1.4.11's 3:1 because it is
 // a mark. What this gates is that [Ink] does not hand back the Text pin once
 // that pin has stopped reading.
@@ -155,9 +155,9 @@ func TestInksClearTheirFloors(t *testing.T) {
 	} {
 		t.Run(sc.name, func(t *testing.T) {
 			c := sc.colors
-			for _, storey := range storeys {
+			for _, lv := range levels {
 				for _, st := range states {
-					fill := Fill(c, storey.level, st.state)
+					fill := Fill(c, lv.level, st.state)
 					for _, ink := range []struct {
 						name  string
 						col   color.NRGBA
@@ -168,10 +168,10 @@ func TestInksClearTheirFloors(t *testing.T) {
 					} {
 						got := vgcolor.ContrastRatio(ink.col, fill)
 						t.Logf("%s %s %s %s on the fill %s: %.2f:1",
-							storey.name, st.name, ink.name, hex(ink.col), hex(fill), got)
+							lv.name, st.name, ink.name, hex(ink.col), hex(fill), got)
 						if got < ink.floor {
 							t.Errorf("%s %s %s %s on the fill %s = %.2f:1, want at least %.1f:1",
-								storey.name, st.name, ink.name, hex(ink.col), hex(fill), got, ink.floor)
+								lv.name, st.name, ink.name, hex(ink.col), hex(fill), got, ink.floor)
 						}
 					}
 				}
@@ -198,11 +198,11 @@ func TestPairingsHoldForEverySeed(t *testing.T) {
 			{"dark high-contrast", darkHC},
 		} {
 			c := sc.colors
-			for _, storey := range storeys {
+			for _, lv := range levels {
 				for _, st := range states {
-					fill := Fill(c, storey.level, st.state)
-					if got := edgeHolds(t, "seed "+hex(seed)+" "+sc.name+" "+storey.name+" "+st.name,
-						c, storey.level, st.state); got < worstRim {
+					fill := Fill(c, lv.level, st.state)
+					if got := edgeHolds(t, "seed "+hex(seed)+" "+sc.name+" "+lv.name+" "+st.name,
+						c, lv.level, st.state); got < worstRim {
 						worstRim = got
 					}
 					labelInk := Ink(c, fill, tokens.TextFloor)
@@ -210,7 +210,7 @@ func TestPairingsHoldForEverySeed(t *testing.T) {
 						worstLabel = got
 						if got < tokens.TextFloor {
 							t.Errorf("seed %s %s: %s %s label %s on its fill = %.2f:1, want at least %.1f:1",
-								hex(seed), sc.name, storey.name, st.name, hex(labelInk), got, tokens.TextFloor)
+								hex(seed), sc.name, lv.name, st.name, hex(labelInk), got, tokens.TextFloor)
 						}
 					}
 					glyphInk := Ink(c, fill, tokens.GraphicFloor)
@@ -218,7 +218,7 @@ func TestPairingsHoldForEverySeed(t *testing.T) {
 						worstGlyph = got
 						if got < tokens.GraphicFloor {
 							t.Errorf("seed %s %s: %s %s glyph %s on its fill = %.2f:1, want at least %.1f:1",
-								hex(seed), sc.name, storey.name, st.name, hex(glyphInk), got, tokens.GraphicFloor)
+								hex(seed), sc.name, lv.name, st.name, hex(glyphInk), got, tokens.GraphicFloor)
 						}
 					}
 				}
@@ -230,12 +230,12 @@ func TestPairingsHoldForEverySeed(t *testing.T) {
 
 // TestFocusRingClearsItsFloor measures the ring against the side of the band
 // that owes it a floor. A focused control's ring takes the rim's place, so the
-// storey it stands on lies immediately outside it and its own fill
-// immediately inside; the storey is the side that is the same for every control
-// on that storey and the side the ring is read against.
+// surface it stands on lies immediately outside it and its own fill
+// immediately inside; the surface is the side that is the same for every control
+// on that surface and the side the ring is read against.
 //
 // The fill inside is not measured, and the pressed control is why: it walks up
-// to 20 L* off its storey, so no one colour could clear both it and the ground
+// to 20 L* off its surface, so no one colour could clear both it and the surface
 // it lies on. Derived against that fill instead — as this geometry once did —
 // the walk answered the fill rather than the scheme, and a control resting on
 // a card came out 19 L* from the button beside it.
@@ -246,13 +246,13 @@ func TestFocusRingClearsItsFloor(t *testing.T) {
 		lightHC, darkHC := tokens.FromSeedHighContrast(seed)
 		for _, c := range []tokens.ColorTokens{light, dark, lightHC, darkHC} {
 			ring := focus.Ring(c)
-			for _, storey := range storeys {
-				ground := c.SurfaceAt(storey.level)
-				if got := vgcolor.ContrastRatio(ring, ground); got < worst {
+			for _, lv := range levels {
+				surface := c.SurfaceAt(lv.level)
+				if got := vgcolor.ContrastRatio(ring, surface); got < worst {
 					worst = got
 					if got < focusFloor {
-						t.Errorf("seed %s: %s focus ring %s on the storey %s = %.2f:1, want at least %.1f:1",
-							hex(seed), storey.name, hex(ring), hex(ground), got, focusFloor)
+						t.Errorf("seed %s: %s focus ring %s on the surface %s = %.2f:1, want at least %.1f:1",
+							hex(seed), lv.name, hex(ring), hex(surface), got, focusFloor)
 					}
 				}
 			}

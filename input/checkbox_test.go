@@ -231,7 +231,7 @@ func TestCheckboxFocusRingIsVisuallyDistinct(t *testing.T) {
 // state, across every state each control has and in both colour schemes.
 // A colour-only signal is not enough on its own: the chosen radio's edge is
 // already primary, so promoting that same edge on focus would move primary
-// to a neighbouring rung of primary rather than adding a distinguishable
+// to a neighbouring step of primary rather than adding a distinguishable
 // mark. The assertion instead counts the ring's own colour at the pixel
 // level, in both the resting and focused renders.
 func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
@@ -309,17 +309,17 @@ func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 	}
 }
 
-// TestFocusRingIsOneColourOnEveryStoreyAndControl asserts in pixels what
+// TestFocusRingIsOneColourOnEveryLevelAndControl asserts in pixels what
 // focus states as a rule: the ring a control paints is the scheme's one focus
-// colour, whatever storey the control was told it stands on and whichever of
+// colour, whatever level the control was told it stands on and whichever of
 // the two placements it takes. The assertion is over painted pixels rather
 // than over the derivation, because what the rule forbids is a caller handing
-// the walk a ground of its own and painting the answer.
+// the walk a surface of its own and painting the answer.
 //
 // Both placements are checked, since the two have different neighbours: a ring
-// that rides in slack has the storey on both sides of it, and a promoted border
-// has the control's own fill inside it and the storey outside.
-func TestFocusRingIsOneColourOnEveryStoreyAndControl(t *testing.T) {
+// that rides in slack has that surface on both sides of it, and a promoted
+// border has the control's own fill inside it and that surface outside.
+func TestFocusRingIsOneColourOnEveryLevelAndControl(t *testing.T) {
 	shaper := defaultShaper(t)
 
 	for _, scheme := range []struct {
@@ -352,7 +352,7 @@ func TestFocusRingIsOneColourOnEveryStoreyAndControl(t *testing.T) {
 		} {
 			ring := focus.Ring(c)
 			if got := tcolor.ContrastRatio(ring, c.SurfaceAt(level)); got < focus.Floor {
-				t.Errorf("%s level %d: ring %v measures %.2f:1 against the storey it stands on %v",
+				t.Errorf("%s level %d: ring %v measures %.2f:1 against the surface it stands on %v",
 					scheme.name, level, ring, got, c.SurfaceAt(level))
 			}
 			for _, ctl := range []struct {
@@ -363,18 +363,18 @@ func TestFocusRingIsOneColourOnEveryStoreyAndControl(t *testing.T) {
 			}{
 				{"checkbox", image.Pt(44, 44),
 					input.RenderCheckbox(c, tokens.Spacing, tokens.Radius,
-						input.CheckboxRenderState{Focused: true, Ground: level}), ring},
+						input.CheckboxRenderState{Focused: true, Level: level}), ring},
 				{"radio", image.Pt(44, 44),
 					input.RenderRadio(c, tokens.Spacing, tokens.Radius,
-						input.RadioRenderState{Focused: true, Ground: level}), ring},
+						input.RadioRenderState{Focused: true, Level: level}), ring},
 				{"text field", image.Pt(300, 60),
 					input.Render(shaper, "you@example.com", c, tokens.Spacing, tokens.Radius,
 						tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
-						input.RenderState{Focused: true, Ground: level}), ring},
+						input.RenderState{Focused: true, Level: level}), ring},
 				{"dropdown trigger", image.Pt(200, 44),
 					input.RenderDropdown(shaper, c, tokens.Spacing, tokens.Radius,
 						tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
-						input.DropdownRenderState{Focused: true, Ground: level, Options: []string{"One", "Two"}}), ring},
+						input.DropdownRenderState{Focused: true, Level: level, Options: []string{"One", "Two"}}), ring},
 			} {
 				n := count(ctl.size, ctl.w, ctl.ring)
 				if n == 0 {
@@ -388,7 +388,7 @@ func TestFocusRingIsOneColourOnEveryStoreyAndControl(t *testing.T) {
 
 // nearlyEqual reports whether a captured pixel is the given token colour, to
 // within the three units per channel the GPU's own rounding moves a flat fill
-// by. The colours compared against here — the ring's rung and the neutral
+// by. The colours compared against here — the ring's step and the neutral
 // border it replaces — are nowhere near each other, so the slack costs
 // nothing.
 func nearlyEqual(got stdcolor.RGBA, want stdcolor.NRGBA) bool {
@@ -404,7 +404,7 @@ func nearlyEqual(got stdcolor.RGBA, want stdcolor.NRGBA) bool {
 
 // nearerTo reports whether a captured pixel lies closer to ink than to fill.
 // An anti-aliased figure a couple of pixels wide has an interior of exactly
-// its ink and edges of everything between ink and ground, so counting exact
+// its ink and edges of everything between ink and fill, so counting exact
 // matches counts the interior only — one pixel, on a dark scheme's mark. The
 // question worth asking of a stroked mark is how much of the box reads as
 // mark rather than as fill, and that is this: squared distance in RGB, the

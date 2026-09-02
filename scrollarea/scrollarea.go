@@ -119,23 +119,24 @@ type Style struct {
 }
 
 // FromTokens derives the default scroll-area look from colour tokens: the
-// content dissolves into the window ground over an S4 run at each cut edge.
+// content dissolves into the window's own surface over an S4 run at each cut
+// edge.
 //
-// # The fade takes no storey
+// # The fade takes no level
 //
-// A fade is an overlay, not a surface: it does not climb the elevation ladder
+// A fade is an overlay, not a surface: it does not rise through the levels
 // when the thing under it rises. It is painted over the content, inside the
-// area's clip, as the area's own ground run out to zero alpha, and its whole
+// area's clip, as the area's own fill run out to zero alpha, and its whole
 // job is to be indistinguishable from what lies behind the content so the
-// hidden end reads as passing under the edge. A fill that rose a rung here
+// hidden end reads as passing under the edge. A fill that rose a step here
 // would paint a lighter band across the content, which is exactly what
 // [Style.FadeColor] forbids.
 //
-// The default names the window ground, SurfaceAt(Level0) — the convention
-// every Ground field in this library gives its zero value. It may not name a
-// ramp step instead: the paired ramps realize a given step at the same
-// perceptual depth from opposite ends, so one step is a storey in one scheme
-// and no storey at all in the other, and a fade that dissolved a light page's
+// The default names the window's own surface, SurfaceAt(Level0) — the
+// convention every Level field in this library gives its zero value. It may
+// not name a ramp step instead: the paired ramps realize a given step at the
+// same perceptual depth from opposite ends, so one step is a level in one
+// scheme and no level at all in the other, and a fade that dissolved a light page's
 // content into #E8E8E8 while the page was #F6F6F6 is a grey smear.
 //
 // The fade is the affordance, and it is deliberately not a scrollbar. A
@@ -148,8 +149,9 @@ type Style struct {
 // layout and no chrome, and stacks with a bar rather than replacing it — see
 // [Style.LayoutScrollbar].
 //
-// Override FadeColor whenever the area sits on something other than the window
-// ground — c.SurfaceAt(the host's own storey), never a rung walked from it. The
+// Override FadeColor whenever the area sits on something other than the
+// window's own surface — c.SurfaceAt(the host's own level), never a step
+// walked from it. The
 // fade must match what is behind the content or it reads as a smear.
 func FromTokens(c tokens.ColorTokens) Style {
 	return Style{

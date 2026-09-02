@@ -1,13 +1,13 @@
 // The control row's two pairings, measured rather than eyeballed: the edge a
-// resting control draws against the ground it stands on, and the check mark
+// resting control draws against the surface it stands on, and the check mark
 // against the fill it is drawn on. Both are internal because both are
 // derivations rather than fields — controlBorder walks the neutral ramp, and
-// what is worth holding is the ratio it lands on, not the rung.
+// what is worth holding is the ratio it lands on, not the step.
 //
 // One border sweep covers four controls. The unchecked box, the unselected
 // radio, the text field and the dropdown trigger all take their resting edge
-// from controlBorder against a Ground in the same four-rung vocabulary, so
-// measuring the walk over every storey measures every placement any of them
+// from controlBorder against a Level in the same four-level vocabulary, so
+// measuring the walk over every level measures every placement any of them
 // admits; nothing is left for a per-component copy of this test to find.
 package input
 
@@ -42,16 +42,16 @@ var checkboxSeeds = []color.NRGBA{
 }
 
 // TestControlBorderClearsTheGraphicFloor asserts controlBorder clears WCAG
-// 1.4.11 against every storey a control can be handed, not merely the window
-// ground: a border derivation that only clears the floor against level 0 can
-// still fail against a level-2 or level-3 host, so the sweep runs the whole
-// elevation ladder and derives the border against each rung in turn.
+// 1.4.11 against every level a control can be handed, not merely the window's
+// own surface: a border derivation that only clears the floor against level 0
+// can still fail against a level-2 or level-3 host, so the sweep runs every
+// level and derives the border against each in turn.
 //
-// Two grounds are measured per storey, because the border has two sides.
-// Outside it is the storey the control stands on; inside it is the control's
-// own interior (controlFill, one rung above the same ground), which the
-// component paints itself and which no ground the control is handed can
-// excuse it from clearing. Both sides move together as the ground changes,
+// Two surfaces are measured per level, because the border has two sides.
+// Outside it is the surface the control stands on; inside it is the control's
+// own interior (controlFill, one step above that same surface), which the
+// component paints itself and which no surface the control is handed can
+// excuse it from clearing. Both sides move together as the surface changes,
 // so both are asked rather than one being assumed to stand still.
 func TestControlBorderClearsTheGraphicFloor(t *testing.T) {
 	for _, sc := range []struct {
@@ -63,20 +63,20 @@ func TestControlBorderClearsTheGraphicFloor(t *testing.T) {
 	} {
 		t.Run(sc.name, func(t *testing.T) {
 			c := sc.colors
-			for _, level := range controlStoreys {
+			for _, level := range controlLevels {
 				border := controlBorder(c, level.level)
 				for _, g := range []struct {
-					name   string
-					ground color.NRGBA
+					name    string
+					surface color.NRGBA
 				}{
-					{"the " + level.name + " ground it stands on", c.SurfaceAt(level.level)},
+					{"the " + level.name + " surface it stands on", c.SurfaceAt(level.level)},
 					{"its own raised interior", controlFill(c, level.level)},
 				} {
-					got := themecolor.ContrastRatio(border, g.ground)
-					t.Logf("%s border %s against %s %s: %.2f:1", level.name, hex(border), g.name, hex(g.ground), got)
+					got := themecolor.ContrastRatio(border, g.surface)
+					t.Logf("%s border %s against %s %s: %.2f:1", level.name, hex(border), g.name, hex(g.surface), got)
 					if got < graphicFloor {
 						t.Errorf("%s border %s against %s %s = %.2f:1, want at least %.1f:1",
-							level.name, hex(border), g.name, hex(g.ground), got, graphicFloor)
+							level.name, hex(border), g.name, hex(g.surface), got, graphicFloor)
 					}
 				}
 			}
@@ -84,13 +84,12 @@ func TestControlBorderClearsTheGraphicFloor(t *testing.T) {
 	}
 }
 
-// controlStoreys is the whole elevation ladder, which is the whole set of
-// grounds a control can be handed: every Ground field in this package —
-// CheckboxRenderState's, RadioRenderState's, RenderState's,
-// DropdownRenderState's — names a tokens.ElevationLevel and the ladder has
-// exactly four rungs, so a sweep over these four is a sweep over every
-// placement those fields admit.
-var controlStoreys = []struct {
+// controlLevels is every level, which is the whole set of surfaces a control
+// can be handed: every Level field in this package — CheckboxRenderState's,
+// RadioRenderState's, RenderState's, DropdownRenderState's — names a
+// tokens.ElevationLevel and there are exactly four, so a sweep over these four
+// is a sweep over every placement those fields admit.
+var controlLevels = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
@@ -101,7 +100,7 @@ var controlStoreys = []struct {
 }
 
 // TestControlBorderClearsTheFloorForEverySeed walks the same pairings, on
-// every storey, over a spread of seeds and both contrast variants. The
+// every level, over a spread of seeds and both contrast variants. The
 // neutral ramps carry the seed's tint, so the measurements move a little from
 // seed to seed; what may not move is the verdict.
 func TestControlBorderClearsTheFloorForEverySeed(t *testing.T) {
@@ -119,22 +118,22 @@ func TestControlBorderClearsTheFloorForEverySeed(t *testing.T) {
 			{"dark high-contrast", darkHC},
 		} {
 			c := sc.colors
-			for _, level := range controlStoreys {
+			for _, level := range controlLevels {
 				border := controlBorder(c, level.level)
 				for _, g := range []struct {
-					name   string
-					ground color.NRGBA
+					name    string
+					surface color.NRGBA
 				}{
-					{level.name + " ground", c.SurfaceAt(level.level)},
+					{level.name + " surface", c.SurfaceAt(level.level)},
 					{"raised interior", controlFill(c, level.level)},
 				} {
-					got := themecolor.ContrastRatio(border, g.ground)
+					got := themecolor.ContrastRatio(border, g.surface)
 					if got < worst {
 						worst = got
 					}
 					if got < graphicFloor {
 						t.Errorf("seed %s %s: %s border %s against the %s %s = %.2f:1, want at least %.1f:1",
-							hex(seed), sc.name, level.name, hex(border), g.name, hex(g.ground), got, graphicFloor)
+							hex(seed), sc.name, level.name, hex(border), g.name, hex(g.surface), got, graphicFloor)
 					}
 				}
 			}

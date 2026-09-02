@@ -17,20 +17,20 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// onStorey paints the whole canvas in the fill of the storey the trigger is
+// onLevel paints the whole canvas in the fill of the surface the trigger is
 // standing on and draws w inset inside it, and it has to do both.
 //
 // The host surface, because the trigger's whole subject is how it separates
 // from it: against the headless window's own clear colour, a correct trigger and one that
-// resolved its fill from the wrong storey look identical. The inset, because a
+// resolved its fill from the wrong level look identical. The inset, because a
 // control drawn at the canvas origin has the host on two sides and the image
 // edge on the other two, and an image framed that way cannot show whether
 // anything — a ring, a shadow, a stray half-pixel of rim — spills outside the
-// box the control reported. Every stored image here has ground on all four
-// sides.
+// box the control reported. Every stored image here has that surface on all
+// four sides.
 const goldenInset = 12
 
-func onStorey(c tokens.ColorTokens, level tokens.ElevationLevel, w layout.Widget) layout.Widget {
+func onLevel(c tokens.ColorTokens, level tokens.ElevationLevel, w layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, c.SurfaceAt(level), clip.Rect{Max: gtx.Constraints.Max}.Op())
 		return layout.UniformInset(unit.Dp(goldenInset)).Layout(gtx, w)
@@ -57,7 +57,7 @@ var goldenSchemes = []struct {
 }
 
 // goldenSize is a canvas comfortably larger than the trigger, so the stored
-// image carries the host storey around the control as well as the control:
+// image carries the host surface around the control as well as the control:
 // the separation is the thing under test and it cannot be seen in a crop of
 // the fill.
 var goldenSize = image.Pt(220, 60)
@@ -76,17 +76,17 @@ func toolbar(t *testing.T, c tokens.ColorTokens, s picker.ToolbarState) layout.W
 		tokens.Comfortable, s)
 }
 
-// TestToolbarGoldenOnEveryGround records or diffs the resting trigger in both
-// schemes on each of the three grounds. Six images, and between them they are
+// TestToolbarGoldenOnEveryLevel records or diffs the resting trigger in both
+// schemes on each of the three surfaces. Six images, and between them they are
 // the claim this geometry makes about the light scheme: the
 // control is visible there because of its rim, not because of its fill.
-func TestToolbarGoldenOnEveryGround(t *testing.T) {
+func TestToolbarGoldenOnEveryLevel(t *testing.T) {
 	for _, sc := range goldenSchemes {
 		for _, g := range goldenGrounds {
 			name := "toolbar-" + sc.name + "-" + g.name
 			t.Run(name, func(t *testing.T) {
-				w := toolbar(t, sc.colors, picker.ToolbarState{Ground: g.level})
-				golden.Render(t, name, goldenSize, onStorey(sc.colors, g.level, w))
+				w := toolbar(t, sc.colors, picker.ToolbarState{Level: g.level})
+				golden.Render(t, name, goldenSize, onLevel(sc.colors, g.level, w))
 			})
 		}
 	}
@@ -111,7 +111,7 @@ func TestToolbarStateGolden(t *testing.T) {
 			name := "toolbar-" + sc.name + "-" + st.name
 			t.Run(name, func(t *testing.T) {
 				w := toolbar(t, sc.colors, st.s)
-				golden.Render(t, name, goldenSize, onStorey(sc.colors, tokens.Level0, w))
+				golden.Render(t, name, goldenSize, onLevel(sc.colors, tokens.Level0, w))
 			})
 		}
 	}
@@ -149,7 +149,7 @@ func TestToolbarDrawsAtTheDensityTable(t *testing.T) {
 }
 
 // TestToolbarMarkIsSteadyAcrossTheWalk is the platform ruling written down
-// where a future change cannot quietly undo it: a pull-down trigger's chevron
+// where a future change cannot silently undo it: a pull-down trigger's chevron
 // says "a menu opens below this" and never "this is open", so nothing about
 // the pointer's state may move it. The face offers no open flag to flip — that
 // is the structural half — and this is the drawn half: the box the trigger
@@ -179,7 +179,7 @@ func TestToolbarMarkIsSteadyAcrossTheWalk(t *testing.T) {
 // TestToolbarChevronReachesTheGraphicFloor is the contrast sweep's extension to
 // the toolbar trigger, and it is a PIXEL measurement rather than another pass over the
 // derivations. The geometry's own sweep
-// (components/internal/toolbarface) already walks the colours on every storey and
+// (components/internal/toolbarface) already walks the colours on every level and
 // in every state, so the derivations are covered where they live.
 //
 // What it cannot cover is the mark. The chevron is a 1.5 dp DIAGONAL stroke,
@@ -207,9 +207,9 @@ func TestToolbarChevronReachesTheGraphicFloor(t *testing.T) {
 				name := sc.name + " " + g.name + " " + st.name
 				t.Run(name, func(t *testing.T) {
 					s := st.s
-					s.Ground = g.level
+					s.Level = g.level
 					w := toolbar(t, sc.colors, s)
-					img := golden.Capture(t, goldenSize, onStorey(sc.colors, g.level, w))
+					img := golden.Capture(t, goldenSize, onLevel(sc.colors, g.level, w))
 					fill := picker.ToolbarFill(sc.colors, g.level, stateOf(s))
 
 					// The mark's own column: the trailing padding's width in

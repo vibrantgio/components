@@ -288,7 +288,7 @@ func press(r *gioinput.Router, x, y int) {
 	)
 }
 
-// TestFilterChipTogglesAndReports is the one intent that holds state: the live
+// TestFilterChipTogglesAndReports is the one purpose that holds state: the live
 // chip keeps its own selection, seeded by Props, and reports every move through
 // OnSelect while OnClick still fires for the activation itself.
 func TestFilterChipTogglesAndReports(t *testing.T) {
@@ -296,7 +296,7 @@ func TestFilterChipTogglesAndReports(t *testing.T) {
 	var clicked int
 	w := live(t, chip.Props{
 		Label:    "Unread",
-		Intent:   chip.Filter,
+		Purpose:  chip.Filter,
 		OnSelect: func(_ layout.Context, selected bool) { moves = append(moves, selected) },
 		OnClick:  func(_ layout.Context) { clicked++ },
 	})
@@ -321,12 +321,12 @@ func TestFilterChipTogglesAndReports(t *testing.T) {
 }
 
 // TestOnlyAFilterReportsSelection is the anatomy rule on the live path: the
-// other three intents have no selection to move, so nothing they are clicked
+// other three purposes have no selection to move, so nothing they are clicked
 // with may reach OnSelect.
 func TestOnlyAFilterReportsSelection(t *testing.T) {
 	for _, in := range []struct {
 		name string
-		i    chip.Intent
+		i    chip.Purpose
 	}{
 		{"assist", chip.Assist},
 		{"input", chip.Input},
@@ -336,8 +336,8 @@ func TestOnlyAFilterReportsSelection(t *testing.T) {
 			moved := 0
 			w := live(t, chip.Props{
 				Label:    "Token",
-				Intent:   in.i,
-				Selected: true, // ignored: this intent carries no selection
+				Purpose:  in.i,
+				Selected: true, // ignored: this purpose carries no selection
 				OnSelect: func(_ layout.Context, _ bool) { moved++ },
 			})
 			r := new(gioinput.Router)
@@ -360,7 +360,7 @@ func TestInputChipDismissesFromItsOwnTarget(t *testing.T) {
 	var dismissed, clicked int
 	w := live(t, chip.Props{
 		Label:     "recipient@example.com",
-		Intent:    chip.Input,
+		Purpose:   chip.Input,
 		OnDismiss: func(_ layout.Context) { dismissed++ },
 		OnClick:   func(_ layout.Context) { clicked++ },
 	})
@@ -382,7 +382,7 @@ func TestInputChipDismissesFromItsOwnTarget(t *testing.T) {
 		t.Errorf("a click on the dismiss mark also activated the chip %d times: the mark's target is on top", clicked)
 	}
 
-	// The label's own ground still activates the chip.
+	// The label's own surface still activates the chip.
 	press(r, int(tokens.Comfortable.PaddingX), dims.Size.Y/2)
 	drive()
 	if clicked != 1 {

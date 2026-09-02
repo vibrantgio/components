@@ -55,14 +55,14 @@ const (
 // Intended for golden-image testing and static rendering; production code
 // obtains the interaction half from the Gio event system via [Toolbar].
 type ToolbarState struct {
-	// Ground is the elevation storey of the surface hosting the trigger, in
-	// the same vocabulary the host names its own fill (tokens.SurfaceAt). It
-	// is the input to every colour the trigger resolves: the fill is the
-	// measured step over this storey, and the rim is the neutral rung that
-	// clears the graphic floor against both sides of the edge. A dialog at
-	// tokens.Level2 passes Level2. The zero value is tokens.Level0, the
-	// window ground.
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the trigger stands on — the trigger
+	// has no level of its own — in the same vocabulary the host names its own
+	// fill (tokens.SurfaceAt). It is the input to every colour the trigger
+	// resolves: the fill is the measured step over that surface, and the rim
+	// is the neutral step that clears the graphic floor against both sides of
+	// the edge. A dialog at tokens.Level2 passes Level2. The zero value is
+	// tokens.Level0, the window's own surface.
+	Level tokens.ElevationLevel
 
 	Hovered bool
 	Pressed bool
@@ -78,11 +78,11 @@ type ToolbarProps struct {
 	// Description is the screen-reader label. Falls back to Value when empty.
 	Description string
 
-	// Ground is the elevation storey of the surface hosting the trigger,
-	// copied straight into [ToolbarState.Ground] on every frame. A dialog at
-	// tokens.Level2 passes Level2. The zero value is tokens.Level0, the
-	// window ground. See [ToolbarState.Ground].
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the trigger stands on — the trigger
+	// has no level of its own — copied straight into [ToolbarState.Level] on
+	// every frame. A dialog at tokens.Level2 passes Level2. The zero value is
+	// tokens.Level0, the window's own surface. See [ToolbarState.Level].
+	Level tokens.ElevationLevel
 
 	// Pin is the edge of the offered box the control is drawn at. The zero
 	// value is [PinNone] and the trigger reports the control alone. See [Pin].
@@ -204,7 +204,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 				}
 
 				s := toolbarface.State{
-					Ground:  props.Ground,
+					Level:   props.Level,
 					Hovered: click.Hovered(),
 					Pressed: click.Pressed(),
 					Focused: gtx.Focused(click),
@@ -228,7 +228,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 
 // RenderToolbar produces a layout.Widget drawing the chrome variant's trigger
 // in an explicit visual state, without event processing: the control filled
-// the measured step over s.Ground and walked by the pointer, its one-dp rim,
+// the measured step over s.Level and walked by the pointer, its one-dp rim,
 // the value in the ink that clears the text floor on that fill, and the down
 // chevron in the ink that clears the graphic floor. When s.Focused, the focus
 // ring — measured against that fill — takes the rim's place at the control's
@@ -262,12 +262,12 @@ func RenderToolbar(
 }
 
 // ToolbarFill is the fill the chrome variant's trigger draws at on the surface
-// named by ground, under the given interaction state: the platform's measured
+// named by level, under the given interaction state: the platform's measured
 // step over that surface, walked by the pointer.
 //
 // It is exported because a window deciding what its own chrome must clear, or
-// a test measuring that ladder, needs the answer the trigger drew with, and
+// a test measuring those levels, needs the answer the trigger drew with, and
 // re-deriving it at the call site is how two answers appear.
-func ToolbarFill(c tokens.ColorTokens, ground tokens.ElevationLevel, state tokens.State) color.NRGBA {
-	return toolbarface.Fill(c, ground, state)
+func ToolbarFill(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) color.NRGBA {
+	return toolbarface.Fill(c, level, state)
 }

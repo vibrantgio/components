@@ -152,7 +152,7 @@ const specimenName = "Show the sidebar"
 //
 // Drawn hovered. That is the state each cell is frozen in — a tooltip stands
 // only while the pointer rests on its trigger — and it is what gives the
-// popover's beak a ground to seat on: the Ghost register draws none at rest,
+// popover's beak a fill to seat on: the Ghost register draws none at rest,
 // and an apex aimed at an unwashed square points at empty air.
 //
 // The name is emitted as a semantic description because the label is empty by
@@ -202,7 +202,7 @@ func (inv *Inventory) alerts(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-// toasts draws the whole level ladder at once. A toast with a zero At does no
+// toasts draws every level at once. A toast with a zero At does no
 // fading, so the stack stands still without a timer driving it — which is how
 // the pattern's own stored images are made.
 func (inv *Inventory) toasts(c tokens.ColorTokens) layout.Widget {
@@ -248,11 +248,11 @@ func (inv *Inventory) cards(c tokens.ColorTokens) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		one := func(title string, elevated bool) layout.Widget {
 			// The footer badge's fill is derived against the card's own
-			// storey rather than the page's: a flat card is a level-1
+			// level rather than the page's: a flat card is a level-1
 			// surface and an elevated one a level-2.
-			ground := tokens.Level1
+			level := tokens.Level1
 			if elevated {
-				ground = tokens.Level2
+				level = tokens.Level2
 			}
 			return func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(260))
@@ -261,7 +261,7 @@ func (inv *Inventory) cards(c tokens.ColorTokens) layout.Widget {
 					Header: header(title),
 					Body:   body,
 					Footer: badge.Render(inv.shaper, "Footer", nil, badge.Neutral, c, tokens.Spacing,
-						tokens.Radius, inv.badgeStyle(), badge.RenderState{Ground: ground}),
+						tokens.Radius, inv.badgeStyle(), badge.RenderState{Level: level}),
 					Elevated: elevated,
 				}, c, tokens.Spacing, tokens.Radius)(gtx)
 			}
@@ -340,10 +340,10 @@ func (inv *Inventory) navbarProps(c tokens.ColorTokens) navbar.Props {
 			{Label: "Patterns"},
 		},
 		Actions: []layout.Widget{
-			// The bar fills the floor storey, and a badge with no fill of its
+			// The bar fills the floor level, and a badge with no fill of its
 			// own is derived against whatever it stands on.
 			badge.Render(inv.shaper, "v1", nil, badge.Neutral, c, tokens.Spacing,
-				tokens.Radius, inv.badgeStyle(), badge.RenderState{Ground: tokens.LevelFloor}),
+				tokens.Radius, inv.badgeStyle(), badge.RenderState{Level: tokens.LevelFloor}),
 		},
 		Shaper: inv.shaper,
 	}
@@ -392,10 +392,10 @@ func (inv *Inventory) sidebar(c tokens.ColorTokens) layout.Widget {
 //
 // The pane is furniture inside a window, not a widget on a page: the inset,
 // the corner radius and the internal hairline only say what they say when the
-// window's own ground shows around them. So the specimen draws a window of
+// window's own surface shows around them. So the specimen draws a window of
 // its own inside the slot, and the pane floats in that.
 //
-// The window is outlined with a hairline because the ground it paints is the
+// The window is outlined with a hairline because the fill it paints is the
 // scheme's Background — which is exactly what the section row itself is
 // painted in, so without the outline the window has no edge and the pane
 // reads as floating on the page rather than inside anything. The outline is
@@ -414,7 +414,7 @@ const (
 )
 
 // pane draws the floating pane beside the content it floats over: the window
-// ground visible on every side of it, the rounded corners and the hairline
+// surface visible on every side of it, the rounded corners and the hairline
 // just inside its own edge, and a document column starting where the pane
 // stops.
 //
@@ -505,7 +505,7 @@ func (inv *Inventory) table(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-// modalGap is the run of page ground between the two dialogs. It is wide
+// modalGap is the run of page surface between the two dialogs. It is wide
 // enough that the two scrims read as two windows rather than as one scrim
 // with two dialogs standing on it, and no wider: the pair is one specimen.
 const modalGap = 24
@@ -711,7 +711,7 @@ func (inv *Inventory) shell(c tokens.ColorTokens) layout.Widget {
 		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
 	asideW := func(gtx layout.Context) layout.Dimensions {
 		// An aside is an inspector, which counts as furniture: it fills at
-		// the window's floor, the same storey the frame around it paints,
+		// the window's floor, the same level the frame around it paints,
 		// rather than at the c.Surface ramp alias.
 		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelFloor), clip.Rect{Max: gtx.Constraints.Max}.Op())
 		return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {

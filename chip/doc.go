@@ -1,23 +1,23 @@
 // Package chip provides the Vibrant Gio chip: the small control that content
 // sprouts — an outline at rest, coloured only when meaning arrives.
 //
-// A chip is defined by its intent and by nothing else. [Assist] offers a
+// A chip is defined by its purpose and by nothing else. [Assist] offers a
 // contextual action, [Filter] narrows a set and is the one that toggles,
 // [Input] is a token the reader entered and carries a dismiss mark, and
 // [Suggestion] is a generated prompt. The four are the whole variation: one
-// anatomy, one silhouette, one height, four purposes.
+// structure, one silhouette, one height, four purposes.
 //
 // [Render] is the pure path: resolved tokens plus a [RenderState] carrying the
-// storey, the selection and the pointer, one frame out, no event handling.
+// level, the selection and the pointer, one frame out, no event handling.
 // [Chip] is the live one — a theme observable and [Props] in, a widget out on
 // every theme emission, with the pointer areas, the keyboard, the filter's own
 // selection and the activation dispatch the pure path cannot carry.
 //
-// # The anatomy
+// # The structure
 //
 //	[mark] label [dismiss]
 //
-// Both brackets are optional and both are decided by the intent rather than by
+// Both brackets are optional and both are decided by the purpose rather than by
 // a flag. The leading slot holds the caller's [Props.Icon] in the label's cap
 // band ([MarkDp]); on an [Input] chip it is the avatar slot instead,
 // [AvatarDp] behind a full-round corner, because what leads a token the reader
@@ -34,7 +34,7 @@
 //
 // The parts are set an S2 stop apart, the spacing scale's own answer for two
 // things that belong to one utterance without being one word, and the row is
-// laid from the leading padding rather than centred: the anatomy is read from
+// laid from the leading padding rather than centred: the structure is read from
 // its leading edge, so a chip clamped narrower than its content loses its
 // trailing end and not both ends at once. The one exception to that padding is
 // the avatar, which is set in from the leading edge by the same clearance it
@@ -43,13 +43,13 @@
 //
 // # What the chip is not
 //
-// Not a quiet button. A button is a fixture — placed by the author, always
+// Not a less pronounced button. A button is a fixture — placed by the author, always
 // there, always offering the same action; a chip appears out of content and
 // context. Marking a choice is the [Filter] chip's job and no button's,
 // whatever the button's emphasis.
 //
 // Not components/badge. A badge is the system's word ABOUT a thing and is read
-// rather than used; it is off the control ladder, sized to its type, and does
+// rather than used; it is off the control family, sized to its type, and does
 // not move under the pointer. The line between the two families is read/use.
 //
 // Not the picker's toolbar trigger. A control that names a choice and stands
@@ -61,14 +61,14 @@
 // Everything is derived and nothing is a literal. [Resolve] carries the whole
 // table and states each derivation; what follows is why it is that shape.
 //
-// The resting chip has NO fill. Its body is painted in the storey the caller
+// The resting chip has NO fill. Its body is painted in the surface the caller
 // named, so what a reader sees is the outline and the ink inside it — a
 // control that is present without claiming to be a filled thing. That outline
-// is [tokens.ColorTokens.OutlineVariant], the neutral rung floored by
+// is [tokens.ColorTokens.OutlineVariant], the neutral step floored by
 // construction against Surface and Background; the chip takes it as a pin
-// rather than as an answer, because the elevation ladder reaches past that
+// rather than as an answer, because the elevation levels reach past that
 // pair and the token measures 1.80:1 on the dark scheme's level-3 plane. The
-// ink is [tokens.ColorTokens.OnSurfaceVariant], the muted rung that is still a
+// ink is [tokens.ColorTokens.OnSurfaceVariant], the muted step that is still a
 // colour text may legally be set in — except on [Assist], which reads in the
 // page's full-strength Text pin, because an assist chip proposes something to
 // do and is read at the weight of what it proposes.
@@ -83,14 +83,15 @@
 // The container is a derivation and not a copied tone: it asks the role's ramp
 // and holds the hue exactly, so a brandless palette yields a brandless chip
 // rather than inventing a hue the theme does not have. It is realized against
-// the storey the chip stands on rather than at the family's fixed step, for
-// the reason everything else here is ground-relative — the ladder walks
-// through that fixed step, and in the dark scheme a level-2 surface and the
+// the surface the chip stands on rather than at the family's fixed step, for
+// the reason everything else here is measured against that surface — the
+// levels walk through that fixed step, and in the dark scheme a level-2
+// surface and the
 // fixed secondary container measure 1.00:1 against each other.
 //
 // Hover and press are the same state walk every other control in this system
 // takes ([tokens.ColorTokens.PinnedStateColor]), started from whichever rest
-// the chip is in: an unselected chip walks from the storey it stands on, so a
+// the chip is in: an unselected chip walks from the surface it stands on, so a
 // body appears under the pointer where there was none, and a selected one
 // walks from its container. Only the resting targets differ; the feedback
 // grammar is one grammar.
@@ -98,14 +99,15 @@
 // Both inks are resolved against the body ACTUALLY drawn, state included, so a
 // chip whose body has walked re-derives rather than keeping a colour that no
 // longer reads. The walk also STOPS. A ramp writes with its ends, so between
-// them lies a band of depths no rung reaches the text floor against, and a body
+// them lies a band of depths no step reaches the text floor against, and a body
 // nothing can be written on is not a state to walk to; the selected walk adds a
 // second stop, because a filled chip carries no outline and a walk that took
-// its fill through the ground's own depth would erase the chip at the crossing.
+// its fill through the depth of that surface would erase the chip at the
+// crossing.
 // Either walk halts at the last depth that still holds. [Resolve] carries the
 // rule.
 //
-// The focus ring is components/internal/focus's, and it asks for no ground at
+// The focus ring is components/internal/focus's, and it asks for no surface at
 // all: one colour per scheme, the same on the paper, on a card and in a
 // dialog. A focused chip's edge IS the ring — it takes the outline's place,
 // two dp where the outline was one, rather than being drawn inside it. Drawn
@@ -119,7 +121,7 @@
 // The height is [tokens.Density.ChipHeight] — the density's control height
 // less the system's chip drop, 32 dp Comfortable and 24 dp Compact. It is a
 // height and not a floor over the padding rule, which is the rule for controls
-// on the ladder the chip has just left: a chip is smaller than a button by
+// in the control family the chip has just left: a chip is smaller than a button by
 // construction, and the label's line box fits inside that height at both
 // densities. What the height still yields to is a caller's own oversized
 // style, because a box shorter than the words in it is not a chip either.

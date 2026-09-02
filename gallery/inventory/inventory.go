@@ -101,7 +101,7 @@ type Inventory struct {
 	marks *icons.Set
 	reg   *icon.Registry
 	// ivg caches the rendered vector icon per ink colour. The icon carries
-	// its own palette, which on a dark ground would be a black disc on
+	// its own palette, which on a dark surface would be a black disc on
 	// black, so each ink gets it recoloured — and rasterising is not
 	// something to redo every frame. Keying on the ink rather than clearing
 	// the cache is what lets a palette change cost one raster instead of one
@@ -215,7 +215,7 @@ func (inv *Inventory) Groups(c tokens.ColorTokens) []Group {
 // ── Foundations ───────────────────────────────────────────────────────────────
 
 // Foundations returns the sections a theme is made of: the semantic roles,
-// the functional ramps and the whole type ladder.
+// the functional ramps and the whole type scale.
 func (inv *Inventory) Foundations(c tokens.ColorTokens) []Section {
 	return []Section{
 		{
@@ -319,7 +319,7 @@ func (inv *Inventory) rampSwatches(c tokens.ColorTokens) layout.Widget {
 							// or two sit within a shade of the page itself,
 							// and unbordered they read as a ramp that starts
 							// short rather than as steps that are nearly the
-							// ground.
+							// page itself.
 							swatchBorder(gtx, c.Ramps.Neutral.Step(400), image.Pt(w, h), 1)
 							off.Pop()
 						}
@@ -334,7 +334,7 @@ func (inv *Inventory) rampSwatches(c tokens.ColorTokens) layout.Widget {
 
 func (inv *Inventory) typeScale(c tokens.ColorTokens) layout.Widget {
 	typo := inv.typography()
-	// The whole ladder, not a sample of it: a role that is not on the page
+	// The whole scale, not a sample of it: a role that is not on the page
 	// is a role nobody judges the theme on.
 	roles := []struct {
 		name  string
@@ -460,9 +460,10 @@ func (inv *Inventory) buttonRow(c tokens.ColorTokens) layout.Widget {
 // icon-only face after them.
 //
 // The registers are shown at rest and at rest only. Emphasis is a question of
-// how loudly a button sits on the page when nobody is touching it — the
-// loudest one a surface is about, the middle one beside it, the quiet one
-// that must be present without competing — and that is a judgement made on
+// prominence: how strongly a button sits on the page when nobody is touching
+// it — the most pronounced one a surface is about, the middle one beside it,
+// the least pronounced one that must be present without competing — and that
+// is a judgement made on
 // three still buttons next to each other. The state walk is the row above,
 // which the filled register already carries for all three.
 //
@@ -475,7 +476,7 @@ func (inv *Inventory) buttonRow(c tokens.ColorTokens) layout.Widget {
 // register, same corner, same target — and the one thing worth seeing about
 // it is how its square sits beside the rectangles it is cut from. It is drawn
 // in the filled register so the square itself is visible; the ghost cell to
-// its left already shows what a register with no ground at rest looks like.
+// its left already shows what a register with no fill at rest looks like.
 func (inv *Inventory) emphasisButtonRow(c tokens.ColorTokens) layout.Widget {
 	return inv.buttonCells(c, []buttonCell{
 		{label: "Filled", st: button.RenderState{Emphasis: button.Filled}},
@@ -558,8 +559,8 @@ var (
 	chipBlockH = 3*chipPanelH + 2*chipH + 4*chipRowGap
 )
 
-// chipLevels are the surfaces the section shows the chip on, in the order the
-// ladder stacks them: the paper a page is written on, a card raised over it,
+// chipLevels are the surfaces the section shows the chip on, in the order they
+// stack: the paper a page is written on, a card raised over it,
 // and a dialog floating above that. Three rather than one because the chip's
 // whole colour model is relative — every colour it draws is derived against
 // the surface it was handed — so a specimen on one level says nothing about
@@ -582,7 +583,7 @@ var chipLevels = []struct {
 // four to reach for.
 var chipPurposes = []struct {
 	label    string
-	purpose  chip.Intent
+	purpose  chip.Purpose
 	icon     chip.Glyph
 	selected bool
 }{
@@ -661,7 +662,7 @@ func chipAvatar(gtx layout.Context, sizePx int, col color.NRGBA) {
 // different places: an unselected chip walks from the surface it stands on, a
 // selected one from the container it wears.
 func (inv *Inventory) chipBlock(c tokens.ColorTokens) layout.Widget {
-	specimen := func(label string, purpose chip.Intent, icon chip.Glyph, st chip.RenderState) layout.Widget {
+	specimen := func(label string, purpose chip.Purpose, icon chip.Glyph, st chip.RenderState) layout.Widget {
 		return chip.Render(inv.shaper, label, purpose, icon, c,
 			tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
 			tokens.Comfortable, st)
@@ -703,13 +704,13 @@ func (inv *Inventory) chipBlock(c tokens.ColorTokens) layout.Widget {
 		cells := make([]layout.Widget, 0, len(chipPurposes))
 		for _, p := range chipPurposes {
 			cells = append(cells, specimen(p.label, p.purpose, p.icon,
-				chip.RenderState{Ground: lv.level, Selected: p.selected}))
+				chip.RenderState{Level: lv.level, Selected: p.selected}))
 		}
 		band := func(gtx layout.Context) layout.Dimensions {
 			return complayout.InsetXY(float32(chipPanelPadX), float32(chipPanelPadY)).Layout(gtx,
 				chipLine(inv, c, lv.name, cells))
 		}
-		return storeyPanel(c.SurfaceAt(lv.level), band)
+		return levelPanel(c.SurfaceAt(lv.level), band)
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*(len(chipLevels)+len(rows)))
@@ -753,11 +754,11 @@ func chipLine(inv *Inventory, c tokens.ColorTokens, caption string, cells []layo
 	}
 }
 
-// storeyPanel draws content over a ground of its own, sized to what the
+// levelPanel draws content over a fill of its own, sized to what the
 // content measured. The fill is painted after the content is recorded and
 // replayed over it, because the panel's size is the content's and there is no
 // way to know it before laying the content out.
-func storeyPanel(fill color.NRGBA, content layout.Widget) layout.Widget {
+func levelPanel(fill color.NRGBA, content layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		m := op.Record(gtx.Ops)
 		dims := content(gtx)
@@ -771,7 +772,7 @@ func storeyPanel(fill color.NRGBA, content layout.Widget) layout.Widget {
 // The badge section's measurements. A badge pads its own content but nothing
 // outside itself, so every number here belongs to the section rather than to
 // the component: what separates two badges, what separates the rows, how much
-// room the row's caption is given, and how much air a storey panel holds
+// room the row's caption is given, and how much air a level panel holds
 // around the badges standing on it.
 const (
 	badgeRowGap    unit.Dp = 14
@@ -790,15 +791,15 @@ var (
 	badgeBlockH  = 3*badgePanelH + 2*badgeLineBox + 4*badgeRowGap
 )
 
-// badgeStoreys are the grounds the section shows the vocabulary on, in the
-// order the ladder stacks them. Three rather than one because a badge's fill
-// is derived against the storey it is put on and not against a fixed depth:
-// the ladder walks through the depth a fixed fill would sit at, so a specimen
-// on one ground cannot say whether the fill on another is a field or a
+// badgeLevels are the surfaces the section shows the vocabulary on, in the
+// order they stack. Three rather than one because a badge's fill is derived
+// against the surface it is put on and not against a fixed depth: the levels
+// walk through the depth a fixed fill would sit at, so a specimen on one
+// surface cannot say whether the fill on another is a field or a
 // coincidence.
-var badgeStoreys = []struct {
-	name   string
-	ground tokens.ElevationLevel
+var badgeLevels = []struct {
+	name  string
+	level tokens.ElevationLevel
 }{
 	{"On the paper", tokens.Level0},
 	{"On a card", tokens.Level1},
@@ -831,16 +832,16 @@ func (inv *Inventory) badgeStyle() tokens.TextStyle {
 	return badge.Style(inv.typography(), tokens.Comfortable)
 }
 
-// badgeBlock shows the vocabulary in one column and the anatomy under it: the
+// badgeBlock shows the vocabulary in one column and the structure under it: the
 // five variants as the words they name, then the three utterances a badge can
 // make, then the close mark through the states the pointer puts it in.
 //
-// The vocabulary is drawn once per storey, exactly as the chip's is, because
-// a badge's fill is derived against the ground it is put on and a specimen on
-// one ground says nothing about the others. The anatomy rows below stand on
+// The vocabulary is drawn once per level, exactly as the chip's is, because
+// a badge's fill is derived against the surface it is put on and a specimen on
+// one surface says nothing about the others. The structure rows below stand on
 // the page: what they ask a reader to judge — whether a word, a count and a
 // sign read at one weight, and whether the close mark answers the pointer —
-// is the same question on every ground, and asking it three times would bury
+// is the same question on every surface, and asking it three times would bury
 // the one question that is not.
 func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 	style := inv.badgeStyle()
@@ -893,32 +894,32 @@ func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 				badge.RenderState{DismissPressed: true}),
 		}},
 	}
-	// One panel per storey, the caption standing inside the band rather than
-	// beside it: a label naming a ground while sitting on a different one is a
+	// One panel per level, the caption standing inside the band rather than
+	// beside it: a label naming a surface while sitting on a different one is a
 	// label about the row and not about the surface.
-	storey := func(st struct {
-		name   string
-		ground tokens.ElevationLevel
+	panel := func(st struct {
+		name  string
+		level tokens.ElevationLevel
 	}) layout.Widget {
 		cells := make([]layout.Widget, 0, len(variants))
 		for _, va := range variants {
 			cells = append(cells, badge.Render(inv.shaper, va.label, nil, va.v, c,
-				tokens.Spacing, tokens.Radius, style, badge.RenderState{Ground: st.ground}))
+				tokens.Spacing, tokens.Radius, style, badge.RenderState{Level: st.level}))
 		}
 		band := func(gtx layout.Context) layout.Dimensions {
 			return complayout.InsetXY(float32(badgePanelPadX), float32(badgePanelPadY)).Layout(gtx,
 				badgeLine(inv, c, st.name, cells))
 		}
-		return storeyPanel(c.SurfaceAt(st.ground), band)
+		return levelPanel(c.SurfaceAt(st.level), band)
 	}
 
 	return func(gtx layout.Context) layout.Dimensions {
-		cs := make([]layout.FlexChild, 0, 2*(len(badgeStoreys)+len(rows)))
-		for _, st := range badgeStoreys {
+		cs := make([]layout.FlexChild, 0, 2*(len(badgeLevels)+len(rows)))
+		for _, st := range badgeLevels {
 			if len(cs) > 0 {
 				cs = append(cs, layout.Rigid(complayout.VSpacer(float32(badgeRowGap))))
 			}
-			cs = append(cs, layout.Rigid(storey(st)))
+			cs = append(cs, layout.Rigid(panel(st)))
 		}
 		for _, r := range rows {
 			line := badgeLine(inv, c, r.caption, r.cells)

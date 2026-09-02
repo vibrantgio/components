@@ -34,15 +34,16 @@ type RadioRenderState struct {
 	Focused  bool
 	Disabled bool
 
-	// Ground is the elevation storey of the surface hosting the radio — the
-	// local ground the ring is derived against, in the same vocabulary the
-	// host names its own fill (tokens.SurfaceAt). A dialog at tokens.Level2
-	// passes Level2 and the unselected ring takes whichever neutral rung
-	// clears the floor over that storey. The zero value is tokens.Level0,
-	// the window ground. A selected radio's ring is the primary ink measured
-	// against this same ground ([tokens.ColorTokens.InkOn]) rather than the
-	// bare accent pin, so it too answers to the host it stands on.
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the radio stands on — the radio has
+	// no level of its own — and the ring is derived against that surface, in
+	// the same vocabulary the host names its own fill (tokens.SurfaceAt). A
+	// dialog at tokens.Level2 passes Level2 and the unselected ring takes
+	// whichever neutral step clears the floor over that surface. The zero
+	// value is tokens.Level0, the window's own surface. A selected radio's
+	// ring is the primary ink measured against that same surface
+	// ([tokens.ColorTokens.InkOn]) rather than the bare accent pin, so it too
+	// answers to the host it stands on.
+	Level tokens.ElevationLevel
 }
 
 // RadioProps configures a Radio instance.
@@ -53,12 +54,12 @@ type RadioProps struct {
 	// Selected is the initial selected state established on subscribe.
 	Selected bool
 
-	// Ground is the elevation storey of the surface hosting the radio,
-	// copied straight into RadioRenderState.Ground on every frame: the local
-	// ground the unselected ring is derived against. A container that raises
-	// its surface passes its own storey here; the zero value is the window
-	// ground. See RadioRenderState.Ground.
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the radio stands on — the radio has
+	// no level of its own — copied straight into RadioRenderState.Level on
+	// every frame: what the unselected ring is derived against. A container
+	// that raises its surface passes its own level here; the zero value is
+	// the window's own surface. See RadioRenderState.Level.
+	Level tokens.ElevationLevel
 
 	// Disabled, if non-nil, disables the radio when it emits true.
 	Disabled rx.Observable[bool]
@@ -137,7 +138,7 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 						Selected: b.Value,
 						Focused:  foc,
 						Disabled: dis,
-						Ground:   props.Ground,
+						Level:    props.Level,
 					})
 				})
 			}
@@ -163,13 +164,14 @@ func RenderRadio(
 }
 
 // selectedRadioEdge is the colour a selected radio's edge is drawn in: the
-// primary pin while it clears the graphic floor against ground — the same
-// storey controlBorder measures the resting edge against — and otherwise
-// the rung of the primary ramp that does ([tokens.ColorTokens.InkOn]). The
-// bare Primary pin is not used directly because a pastel seed's primary can
-// fall under the graphic floor against some host grounds.
-func selectedRadioEdge(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
-	return c.InkOn(tokens.RolePrimary, c.SurfaceAt(ground), tokens.GraphicFloor)
+// primary pin while it clears the graphic floor against the surface at level
+// — the same surface controlBorder measures the resting edge against — and
+// otherwise the step of the primary ramp that does
+// ([tokens.ColorTokens.InkOn]). The bare Primary pin is not used directly
+// because a pastel seed's primary can fall under the graphic floor against
+// some host surfaces.
+func selectedRadioEdge(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGBA {
+	return c.InkOn(tokens.RolePrimary, c.SurfaceAt(level), tokens.GraphicFloor)
 }
 
 // drawRadio renders the radio button into gtx. All visual state comes from s;
@@ -203,24 +205,24 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	// Outer ellipse in the edge colour, the gap, and — when selected — the
 	// dot. Nested fills avoid clip.Stroke anti-aliasing variance in tests.
 	// The unselected ring is the radio's whole statement, so it is derived
-	// rather than named: the neutral rung that clears the graphic floor
-	// against the storey the radio stands on (controlBorder). The gap inside
-	// it is the glyph's own interior, so it takes the storey the glyph is
+	// rather than named: the neutral step that clears the graphic floor
+	// against the surface the radio stands on (controlBorder). The gap inside
+	// it is the glyph's own interior, so it takes the fill the glyph is
 	// raised to (controlFill) — the same fill the box, the field and the
 	// trigger carry, in the chosen state as much as the resting one: the dot
 	// is drawn on the radio's surface, not on the host's.
 	//
 	// The selected edge is [selectedRadioEdge], measured against that same
-	// ground.
-	edge := controlBorder(tok.color, s.Ground)
+	// surface.
+	edge := controlBorder(tok.color, s.Level)
 	if s.Selected {
-		edge = selectedRadioEdge(tok.color, s.Ground)
+		edge = selectedRadioEdge(tok.color, s.Level)
 	}
 	if s.Disabled {
 		edge = tokens.Disabled(edge)
 	}
 	paint.FillShape(gtx.Ops, edge, clip.Ellipse(outerRect).Op(gtx.Ops))
-	paint.FillShape(gtx.Ops, controlFill(tok.color, s.Ground), clip.Ellipse(innerRect).Op(gtx.Ops))
+	paint.FillShape(gtx.Ops, controlFill(tok.color, s.Level), clip.Ellipse(innerRect).Op(gtx.Ops))
 	if s.Selected {
 		fill := tok.color.Primary
 		if s.Disabled {
@@ -241,7 +243,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	//
 	// A selected radio is why the ring cannot be the circle's own edge. That
 	// edge is already primary — it is what says the radio is chosen — so
-	// recolouring it on focus moves primary to a neighbouring rung of primary
+	// recolouring it on focus moves primary to a neighbouring step of primary
 	// — 1.48:1 apart on the default palette — and a focused chosen radio comes
 	// out indistinguishable from an unfocused one. Clear of the glyph, the
 	// ring is a mark the glyph does not already carry, in any state.

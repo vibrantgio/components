@@ -25,15 +25,15 @@ import (
 )
 
 // Variant is the role a badge speaks in. The five differ in hue and in
-// nothing else: same type, same box, same anatomy. There is no emphasis axis
+// nothing else: same type, same box, same structure. There is no emphasis axis
 // — see the package doc.
 type Variant uint8
 
 const (
 	// Neutral is the plain category label, and the zero value: a badge that
 	// names a kind rather than reporting a status. It is the only variant
-	// with no pinned base behind it, so its foreground is always a measured rung
-	// of the neutral ramp.
+	// with no pinned base behind it, so its foreground is always a measured
+	// step of the neutral ramp.
 	Neutral Variant = iota
 	// Success, Warning, Error and Info are the four statuses, each in its own
 	// role's hue.
@@ -85,11 +85,12 @@ const closeStrokeDp = 1.25
 type Glyph func(gtx layout.Context, sizePx int, col color.NRGBA)
 
 // Style returns the type role a badge speaks at density d: LabelMedium at
-// Comfortable, LabelSmall at Compact — one rung quieter than the chip's, which
-// is what makes a badge visibly lighter than the controls it stands among.
+// Comfortable, LabelSmall at Compact — one step less pronounced than the
+// chip's, which is what makes a badge visibly lighter than the controls it
+// stands among.
 //
 // The density is identified by its control height and the badge takes nothing
-// else from it: a badge is off the control ladder, and the returned style's
+// else from it: a badge is off the control family, and the returned style's
 // line box is the whole of its height.
 func Style(t tokens.Typography, d tokens.Density) tokens.TextStyle {
 	if d.ControlHeight <= tokens.CompactControlHeight {
@@ -99,13 +100,13 @@ func Style(t tokens.Typography, d tokens.Density) tokens.TextStyle {
 }
 
 // BareForeground returns the one colour a BARE variant's badge reads in when
-// it stands on ground: the role's pinned base while that base clears
-// [tokens.TextFloor] against the storey, and otherwise the rung of the role's
-// own ramp nearest the mid-value 500 that does.
+// it stands on a surface: the role's pinned base while that base clears
+// [tokens.TextFloor] against that surface, and otherwise the step of the
+// role's own ramp nearest the mid-value 500 that does.
 //
 // A bare badge is the glyph utterance — see [Fill] for why only that one
 // stands without a container. A worded or counted badge reads in [Foreground]
-// instead, against its fill rather than against the storey.
+// instead, against its fill rather than against the surface beneath.
 //
 // One colour and one floor for the whole badge, whichever of the three
 // utterances it is making. WCAG 1.4.3's 4.5:1 is what words owe, and a badge
@@ -113,39 +114,40 @@ func Style(t tokens.Typography, d tokens.Density) tokens.TextStyle {
 // weight; 1.4.11's 3:1 governs a boundary, and a badge's container draws none
 // — the fill is a region and not an edge. Deriving a glyph badge at the lower
 // floor would make the three utterances read at three weights, which is the
-// one thing a single anatomy is for.
+// one thing a single structure is for.
 //
 // It is exported because anything drawn beside a badge — a host deciding what
 // its own rule should clear, a test measuring the pairing — needs the answer
 // the badge drew with, and re-deriving it at the call site is how two answers
 // appear.
-func BareForeground(c tokens.ColorTokens, v Variant, ground tokens.ElevationLevel) color.NRGBA {
-	return ForegroundOver(c, v, c.SurfaceAt(ground))
+func BareForeground(c tokens.ColorTokens, v Variant, level tokens.ElevationLevel) color.NRGBA {
+	return ForegroundOver(c, v, c.SurfaceAt(level))
 }
 
-// ForegroundOver is the badge's one foreground derivation, over any ground at
-// all: the role's pinned base while that base clears [tokens.TextFloor]
-// against ground, and otherwise the rung of the role's own ramp nearest the
-// mid-value 500 that does. [BareForeground] is it over a storey and
+// ForegroundOver is the badge's one foreground derivation, over any surface
+// at all: the role's pinned base while that base clears [tokens.TextFloor]
+// against that surface, and otherwise the step of the role's own ramp nearest
+// the mid-value 500 that does. [BareForeground] is it over a level's fill and
 // [Foreground] over a container fill.
 //
-// It is exported for the third ground, the one neither of those names: the
-// fill walked under a pointer. A close mark whose ground has just moved two
-// rungs and whose colour has not is a mark derived against a surface that is
+// It is exported for the third case, the one neither of those names: the
+// fill walked under a pointer. A close mark whose surface has just moved two
+// steps and whose colour has not is a mark derived against a surface that is
 // no longer there, and 4.5:1 at rest becomes 2.3:1 pressed — measured, before
 // this was the rule.
-func ForegroundOver(c tokens.ColorTokens, v Variant, ground color.NRGBA) color.NRGBA {
+func ForegroundOver(c tokens.ColorTokens, v Variant, surface color.NRGBA) color.NRGBA {
 	role := v.role()
 	if role == tokens.RoleNeutral {
 		// InkOn refuses RoleNeutral, which has no pinned base; the walk is
 		// the whole derivation for it.
-		return c.MarkOn(role, ground, tokens.TextFloor)
+		return c.MarkOn(role, surface, tokens.TextFloor)
 	}
-	return c.InkOn(role, ground, tokens.TextFloor)
+	return c.InkOn(role, surface, tokens.TextFloor)
 }
 
 // Fill returns the container fill a worded or counted badge wears: a pale,
-// ground-relative tint of the role's own hue, at the one chroma every tonal
+// tint of the role's own hue relative to the surface beneath, at the one
+// chroma every tonal
 // container in this system is realized at
 // ([tokens.ColorTokens.StatusContainerOn]).
 //
@@ -153,21 +155,22 @@ func ForegroundOver(c tokens.ColorTokens, v Variant, ground color.NRGBA) color.N
 // a thing — and a statement is read, never operated; a saturated fill under a
 // knocked-out foreground is the register interaction speaks in, and a badge
 // borrowing it would claim to be a control. So the container carries the role
-// quietly and the content carries the same hue at reading strength
+// at low prominence and the content carries the same hue at reading strength
 // ([Foreground]): one hue, two strengths, no inversion anywhere.
 //
 // The fill is the badge's second channel, and the reason it exists is that hue
 // cannot be the only one. A reader who does not separate the four status hues
 // — and a red/green pair is the commonest deficiency there is — has, on a bare
-// badge, nothing else to read: the five variants are one anatomy in five
+// badge, nothing else to read: the five variants are one structure in five
 // colours, so the whole distinction between "Passing" and "Failing" would sit
 // in a channel some readers do not receive. A field of the same role puts the
 // difference in a second place, in a region big enough to be seen without
 // being looked at.
 //
-// Against the storey rather than at a fixed depth, because a badge is small
-// and goes wherever it is put. The elevation ladder walks through the depth a
-// fixed container is realized at, and a fill that lands on the storey it is
+// Against the surface beneath rather than at a fixed depth, because a badge is
+// small and goes wherever it is put. The elevation levels walk through the
+// depth a fixed container is realized at, and a fill that lands on the level it
+// is
 // tinting is not subtle, it is absent — a dark scheme's level-2 surface and
 // its own step-300 container measure 1.00:1.
 //
@@ -175,7 +178,8 @@ func ForegroundOver(c tokens.ColorTokens, v Variant, ground color.NRGBA) color.N
 // asks the ramp rather than a table, and the neutral ramp carries no chroma,
 // so a neutral fill comes back as depth alone. That is what separates a
 // Neutral badge from the prose around it — a plain category label in the
-// text colour on the page's own ground is prose, whatever the type role says.
+// text colour on the page's own surface is prose, whatever the type role
+// says.
 //
 // The GLYPH utterance stands bare, and it is the one exception: the invariant
 // is that hue is never the badge's only channel, not that every badge wears a
@@ -188,14 +192,14 @@ func ForegroundOver(c tokens.ColorTokens, v Variant, ground color.NRGBA) color.N
 // the exact channel collapse the fill exists to prevent, reintroduced above
 // the component. A set of glyph badges owes distinct shapes; a set that
 // cannot have them owes words instead.
-func Fill(c tokens.ColorTokens, v Variant, ground tokens.ElevationLevel) color.NRGBA {
-	return c.StatusContainerOn(v.role(), c.SurfaceAt(ground))
+func Fill(c tokens.ColorTokens, v Variant, level tokens.ElevationLevel) color.NRGBA {
+	return c.StatusContainerOn(v.role(), c.SurfaceAt(level))
 }
 
 // Foreground returns the colour a worded or counted badge's content reads in:
 // the role's own hue at reading strength over the container — that is,
 // [BareForeground]'s derivation run against the [Fill] the badge wears instead
-// of against the storey underneath it.
+// of against the surface underneath it.
 //
 // Same hue, floored for contrast; never an inverted on-colour. A white word on
 // a saturated field is the other register entirely.
@@ -204,27 +208,28 @@ func Fill(c tokens.ColorTokens, v Variant, ground tokens.ElevationLevel) color.N
 // neighbouring question at [tokens.GraphicFloor] for a mark on a container. A
 // badge's content is text — or a sign standing in for text — so it owes the
 // text floor wherever it is drawn, and running the badge's own derivation
-// against the new ground is what keeps the three utterances at one weight
+// against the new fill is what keeps the three utterances at one weight
 // after the container arrives.
-func Foreground(c tokens.ColorTokens, v Variant, ground tokens.ElevationLevel) color.NRGBA {
-	return ForegroundOver(c, v, Fill(c, v, ground))
+func Foreground(c tokens.ColorTokens, v Variant, level tokens.ElevationLevel) color.NRGBA {
+	return ForegroundOver(c, v, Fill(c, v, level))
 }
 
 // RenderState holds the explicit visual state a static badge render draws in.
-// The zero value is a badge on the window ground with nothing under the
+// The zero value is a badge on the window's own surface with nothing under the
 // pointer, so RenderState{} is the default badge.
 //
 // Intended for golden-image testing and static rendering; production code
 // obtains the two pointer flags from the Gio event system.
 type RenderState struct {
-	// Ground is the elevation storey of the surface hosting the badge, in the
-	// same vocabulary the host names its own fill (tokens.SurfaceAt). It is
-	// the input to the one colour the badge resolves, because a badge has no
-	// fill of its own to derive against. A dialog at tokens.Level2 passes
-	// Level2. The zero value is tokens.Level0, the window ground.
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the badge stands on — a badge has no
+	// level of its own — in the same vocabulary the host names its own fill
+	// (tokens.SurfaceAt). It is the input to the one colour the badge
+	// resolves, because a badge has no fill of its own to derive against. A
+	// dialog at tokens.Level2 passes Level2. The zero value is tokens.Level0,
+	// the window's own surface.
+	Level tokens.ElevationLevel
 
-	// DismissHovered and DismissPressed walk the close mark's region one rung
+	// DismissHovered and DismissPressed walk the close mark's region one step
 	// and two toward the ramp's 900 end — the container's fill under the
 	// mark on a badge that wears one, the mark's own colour on a bare one. They
 	// describe the mark alone: a badge's body takes no pointer state, because
@@ -258,11 +263,12 @@ type Props struct {
 	// Variant is the role the badge speaks in. The zero value is [Neutral].
 	Variant Variant
 
-	// Ground is the elevation storey of the surface hosting the badge, copied
-	// straight into [RenderState.Ground] on every frame: the badge's colours
-	// are derived against it. A dialog at tokens.Level2 passes Level2. The zero
-	// value is tokens.Level0, the window ground.
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the badge stands on — a badge has no
+	// level of its own — copied straight into [RenderState.Level] on every
+	// frame: the badge's colours are derived against it. A dialog at
+	// tokens.Level2 passes Level2. The zero value is tokens.Level0, the
+	// window's own surface.
+	Level tokens.ElevationLevel
 
 	// Description is the screen-reader label. Falls back to Label when empty,
 	// which is what a glyph badge needs — a sign with no words has nothing
@@ -381,7 +387,7 @@ func Badge(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 			}
 
 			return func(gtx layout.Context) layout.Dimensions {
-				s := RenderState{Ground: props.Ground}
+				s := RenderState{Level: props.Level}
 				if props.OnDismiss == nil {
 					return draw(gtx, shaper, props.Label, props.Glyph, props.Variant,
 						tok, s, desc, false, nil)
@@ -417,9 +423,10 @@ func Badge(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 //
 // glyph may be nil, in which case the badge is its label alone; label may be
 // empty, in which case it is its glyph alone. That choice is also the choice
-// of anatomy: a badge with a label wears its role's [Fill] and reads in
-// [Foreground], and a glyph-only badge stands bare and reads in [BareForeground] against
-// s.Ground. style is the whole text style the badge is set in — pass [Style]
+// of structure: a badge with a label wears its role's [Fill] and reads in
+// [Foreground], and a glyph-only badge stands bare and reads in
+// [BareForeground] against s.Level. style is the whole text style the badge is
+// set in — pass [Style]
 // of the density in play, which is tokens.DefaultTypography.LabelMedium at
 // tokens.Comfortable.
 //
@@ -488,14 +495,14 @@ func draw(
 	dismissible bool,
 	dismiss *widget.Clickable,
 ) layout.Dimensions {
-	// The utterance picks the anatomy: anything with words in it wears the
+	// The utterance picks the structure: anything with words in it wears the
 	// container, a sign on its own stands bare. See [Fill].
 	contained := label != ""
 	var fill, fg color.NRGBA
 	if contained {
-		fill, fg = Fill(tok.color, v, s.Ground), Foreground(tok.color, v, s.Ground)
+		fill, fg = Fill(tok.color, v, s.Level), Foreground(tok.color, v, s.Level)
 	} else {
-		fg = BareForeground(tok.color, v, s.Ground)
+		fg = BareForeground(tok.color, v, s.Level)
 	}
 
 	// The line box is the whole height: no vertical padding, no floor, no
@@ -629,7 +636,7 @@ func draw(
 		// badge grows a visibly deeper end.
 		//
 		// The mark then re-derives against what is actually behind it. A mark
-		// that held its resting colour over a ground walked two rungs would be
+		// that held its resting colour over a fill walked two steps would be
 		// derived against a surface no longer there: measured, 4.5:1 at rest
 		// and 2.3:1 pressed, the state making the affordance harder to see the
 		// more the reader commits to it.
@@ -645,7 +652,7 @@ func draw(
 	} else {
 		// Bare, there is no fill to walk, so the mark's own colour does it —
 		// toward the ramp's 900 end at that colour's hue and chroma, which is
-		// away from a light ground and away from a dark one alike.
+		// away from a light surface and away from a dark one alike.
 		markFg = tok.color.PinnedStateColor(fg, s.state())
 	}
 	drawClose(gtx, origin, mark, markFg)

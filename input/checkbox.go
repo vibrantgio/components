@@ -64,25 +64,26 @@ var checkLine = [3]f32.Point{
 }
 
 // controlBorder is the ink of a control's resting edge — the unchecked box,
-// the unselected radio, the text field: the neutral rung that clears
-// graphicFloor against the ground the control stands on. The derivation and
+// the unselected radio, the text field: the neutral step that clears
+// graphicFloor against the surface the control stands on. The derivation and
 // the numbers it was held to live in components/internal/control, because
 // components/picker's field trigger is the same edge.
-func controlBorder(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
-	return control.Border(c, ground)
+func controlBorder(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGBA {
+	return control.Border(c, level)
 }
 
 // controlFill is the interior of a control that paints a box of its own — the
 // unchecked box, the unselected radio's gap ring, the text field: the fill of
-// the storey one rung nearer the viewer than the ground the control stands on.
-// See components/internal/control for why it is a walk from the ground rather
-// than the Surface alias.
-func controlFill(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
-	return control.Fill(c, ground)
+// the level one step nearer the viewer than the surface the control stands on.
+// See components/internal/control for why it is a walk from that surface
+// rather than the Surface alias.
+func controlFill(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGBA {
+	return control.Fill(c, level)
 }
 
 // CheckboxRenderState holds explicit visual state for static rendering.
-// The zero value is an unchecked, idle, enabled box on the window ground —
+// The zero value is an unchecked, idle, enabled box on the window's own
+// surface —
 // so CheckboxRenderState{} is exactly today's default checkbox.
 // Intended for golden-image testing; production code obtains state from the
 // Gio event system via Checkbox.
@@ -91,14 +92,14 @@ type CheckboxRenderState struct {
 	Focused  bool
 	Disabled bool
 
-	// Ground is the elevation storey of the surface hosting the checkbox —
-	// the local ground its unchecked edge is derived against, in the same
-	// vocabulary the host names its own fill (tokens.SurfaceAt). A dialog
-	// at tokens.Level2 passes Level2 and the edge takes whichever neutral
-	// rung clears the floor over that storey. The zero value is
-	// tokens.Level0, the window ground. A checked box ignores it: it
-	// carries the accent fill, which is its own ground.
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the checkbox stands on — the checkbox
+	// has no level of its own — and its unchecked edge is derived against
+	// that surface, in the same vocabulary the host names its own fill
+	// (tokens.SurfaceAt). A dialog at tokens.Level2 passes Level2 and the
+	// edge takes whichever neutral step clears the floor over that surface.
+	// The zero value is tokens.Level0, the window's own surface. A checked
+	// box ignores it: it carries the accent fill, which is its own.
+	Level tokens.ElevationLevel
 }
 
 // CheckboxProps configures a Checkbox instance.
@@ -109,13 +110,13 @@ type CheckboxProps struct {
 	// Checked is the initial checked state established on subscribe.
 	Checked bool
 
-	// Ground is the elevation storey of the surface hosting the checkbox,
-	// copied straight into CheckboxRenderState.Ground on every frame: the
-	// local ground the unchecked box's edge is derived against. A
-	// container that raises its surface (a level-2 dialog hosting a
-	// "remember this" toggle) passes its own storey here; the zero value
-	// is the window ground. See CheckboxRenderState.Ground.
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the checkbox stands on — the checkbox
+	// has no level of its own — copied straight into
+	// CheckboxRenderState.Level on every frame: what the unchecked box's edge
+	// is derived against. A container that raises its surface (a level-2
+	// dialog hosting a "remember this" toggle) passes its own level here; the
+	// zero value is the window's own surface. See CheckboxRenderState.Level.
+	Level tokens.ElevationLevel
 
 	// Disabled, if non-nil, disables the checkbox when it emits true.
 	Disabled rx.Observable[bool]
@@ -198,7 +199,7 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 						Checked:  b.Value,
 						Focused:  foc,
 						Disabled: dis,
-						Ground:   props.Ground,
+						Level:    props.Level,
 					})
 				})
 			}
@@ -247,7 +248,7 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	boxRad := gtx.Dp(unit.Dp(tok.radius.Sm))
 
 	// Border as nested fills: outer rect in border colour, inner rect in the
-	// box's own raised fill (controlFill — the storey above the ground the box
+	// box's own raised fill (controlFill — one step above the surface the box
 	// stands on). Avoids clip.Stroke anti-aliasing variance in tests.
 	borderPx := gtx.Dp(2)
 	innerRad := boxRad - borderPx
@@ -292,22 +293,22 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 			Width: checkBandUnits * scale,
 		}.Op())
 	} else {
-		border := controlBorder(tok.color, s.Ground)
+		border := controlBorder(tok.color, s.Level)
 		if s.Disabled {
 			border = tokens.Disabled(border)
 		}
 		paint.FillShape(gtx.Ops, border, rrectOuter.Op(gtx.Ops))
-		paint.FillShape(gtx.Ops, controlFill(tok.color, s.Ground), rrectInner.Op(gtx.Ops))
+		paint.FillShape(gtx.Ops, controlFill(tok.color, s.Level), rrectInner.Op(gtx.Ops))
 	}
 
 	// The focus ring: focus.Width around the box, clear of it, in the one
 	// colour focus.Ring answers for the scheme — the same pixel the button,
-	// the chip and the field beside it draw, on whatever storey any of them
+	// the chip and the field beside it draw, on whatever level any of them
 	// stands. It rides in the slack between the 20 dp glyph and the density's
 	// footprint, so taking focus moves nothing and the ring is the same ring
 	// whatever the box is doing.
 	//
-	// The ring must sit outside the glyph with clear ground on both sides: a
+	// The ring must sit outside the glyph with clear space on both sides: a
 	// ring that touches the edge it marks cannot be read separately from it,
 	// and a checked box has no free edge to promote at all — its border is
 	// the primary fill that says it is checked.

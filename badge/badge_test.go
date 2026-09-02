@@ -56,12 +56,12 @@ func defaultShaper(t *testing.T) *text.Shaper {
 // ink it drew.
 const goldenInset = 12
 
-// onStorey paints the whole canvas in the fill of the storey the badge stands
-// on and draws w inset inside it. The ground is not decoration here: every
-// colour a badge resolves is derived against that storey and against nothing
+// onLevel paints the whole canvas in the fill of the surface the badge stands
+// on and draws w inset inside it. That surface is not decoration here: every
+// colour a badge resolves is derived against it and against nothing
 // else, so a badge captured over the headless window's own clear colour is a
 // badge whose derivation cannot be judged.
-func onStorey(c tokens.ColorTokens, level tokens.ElevationLevel, w layout.Widget) layout.Widget {
+func onLevel(c tokens.ColorTokens, level tokens.ElevationLevel, w layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, c.SurfaceAt(level), clip.Rect{Max: gtx.Constraints.Max}.Op())
 		return layout.UniformInset(unit.Dp(goldenInset)).Layout(gtx, w)
@@ -87,9 +87,9 @@ func row(ws ...layout.Widget) layout.Widget {
 	}
 }
 
-// The three grounds a badge is put on in practice: the content paper, the
+// The three surfaces a badge is put on in practice: the content paper, the
 // chrome furniture a toolbar band is, and a dialog.
-var goldenGrounds = []struct {
+var goldenLevels = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
@@ -120,7 +120,7 @@ var goldenVariants = []struct {
 }
 
 // goldenSize is a canvas comfortably larger than a row of badges, so the
-// stored image carries the storey around the words as well as the words.
+// stored image carries the surface around the words as well as the words.
 var goldenSize = image.Pt(420, 44)
 
 // badgeStyle is the role a Comfortable badge speaks in, asked of the component
@@ -129,23 +129,23 @@ func badgeStyle() tokens.TextStyle {
 	return badge.Style(tokens.DefaultTypography, tokens.Comfortable)
 }
 
-// TestBadgeGoldenOnEveryGround records the five variants side by side, in both
-// schemes, on each of the three grounds. Six images, and between them they are
-// the claim the package doc makes: every colour is derived against the storey,
-// so the same five words wear five different containers on three grounds.
-func TestBadgeGoldenOnEveryGround(t *testing.T) {
+// TestBadgeGoldenOnEveryLevel records the five variants side by side, in both
+// schemes, on each of the three surfaces. Six images, and between them they
+// are the claim the package doc makes: every colour is derived against the
+// surface, so the same five words wear five different containers on three.
+func TestBadgeGoldenOnEveryLevel(t *testing.T) {
 	shaper := defaultShaper(t)
 	for _, sc := range goldenSchemes {
-		for _, g := range goldenGrounds {
+		for _, g := range goldenLevels {
 			name := "badge-" + sc.name + "-" + g.name
 			t.Run(name, func(t *testing.T) {
 				ws := make([]layout.Widget, 0, len(goldenVariants))
 				for _, va := range goldenVariants {
 					ws = append(ws, badge.Render(shaper, va.label, nil, va.v,
 						sc.colors, tokens.Spacing, tokens.Radius, badgeStyle(),
-						badge.RenderState{Ground: g.level}))
+						badge.RenderState{Level: g.level}))
 				}
-				golden.Render(t, name, goldenSize, onStorey(sc.colors, g.level, row(ws...)))
+				golden.Render(t, name, goldenSize, onLevel(sc.colors, g.level, row(ws...)))
 			})
 		}
 	}
@@ -169,7 +169,7 @@ func TestUtterancesGolden(t *testing.T) {
 				badge.Render(shaper, "Verified", check, badge.Info,
 					sc.colors, tokens.Spacing, tokens.Radius, badgeStyle(), badge.RenderState{}),
 			}
-			golden.Render(t, name, goldenSize, onStorey(sc.colors, tokens.Level0, row(ws...)))
+			golden.Render(t, name, goldenSize, onLevel(sc.colors, tokens.Level0, row(ws...)))
 		})
 	}
 }
@@ -196,14 +196,14 @@ func TestDismissGolden(t *testing.T) {
 				ws = append(ws, badge.RenderDismissible(shaper, st.label, nil, badge.Neutral,
 					nil, sc.colors, tokens.Spacing, tokens.Radius, badgeStyle(), st.s))
 			}
-			golden.Render(t, name, goldenSize, onStorey(sc.colors, tokens.Level0, row(ws...)))
+			golden.Render(t, name, goldenSize, onLevel(sc.colors, tokens.Level0, row(ws...)))
 		})
 	}
 }
 
 // TestCompactGolden records the dense badge beside nothing else, because the
 // only thing that changes at Compact is the type: LabelSmall rather than
-// LabelMedium, at the same line box, which is what "off the control ladder"
+// LabelMedium, at the same line box, which is what "off the control family"
 // costs a density switch.
 func TestCompactGolden(t *testing.T) {
 	shaper := defaultShaper(t)
@@ -214,7 +214,7 @@ func TestCompactGolden(t *testing.T) {
 			tokens.DefaultLight, tokens.Spacing, tokens.Radius, style, badge.RenderState{}))
 	}
 	golden.Render(t, "badge-light-compact", goldenSize,
-		onStorey(tokens.DefaultLight, tokens.Level0, row(ws...)))
+		onLevel(tokens.DefaultLight, tokens.Level0, row(ws...)))
 }
 
 // measure lays a widget out at one pixel per dp in a generous box and reports
@@ -267,7 +267,7 @@ func TestHeightIsTheLineBoxAndNothingElse(t *testing.T) {
 }
 
 // TestABadgeIsLighterThanAnyControl is the other half of the same ruling,
-// measured against the ladder it is off: whatever it says and at whichever
+// measured against the family it is off: whatever it says and at whichever
 // density, a badge draws well under the control height of the densest mode
 // this system has.
 func TestABadgeIsLighterThanAnyControl(t *testing.T) {
@@ -277,7 +277,7 @@ func TestABadgeIsLighterThanAnyControl(t *testing.T) {
 		got := measure(t, badge.Render(shaper, "Deprecated", check, badge.Warning,
 			tokens.DefaultLight, tokens.Spacing, tokens.Radius, style, badge.RenderState{}))
 		if float32(got.Y) >= tokens.CompactControlHeight {
-			t.Errorf("a badge measured %d dp tall against the densest control height %g: a badge is not on the ladder",
+			t.Errorf("a badge measured %d dp tall against the densest control height %g: a badge is not in the control family",
 				got.Y, tokens.CompactControlHeight)
 		}
 	}
@@ -286,7 +286,7 @@ func TestABadgeIsLighterThanAnyControl(t *testing.T) {
 // TestTheDensityPicksTheTypeRole pins the table the package doc states. The
 // two roles share a line box, so what a density switch moves is the type's
 // size and not the badge's height — which is what a component off the control
-// ladder is.
+// family is.
 func TestTheDensityPicksTheTypeRole(t *testing.T) {
 	typo := tokens.DefaultTypography
 	if got := badge.Style(typo, tokens.Comfortable); got != typo.LabelMedium {
@@ -377,7 +377,7 @@ func TestThePointerIsVisibleOnTheCloseMark(t *testing.T) {
 		frame := func(s badge.RenderState) *image.RGBA {
 			w := badge.RenderDismissible(shaper, "Filtered", nil, badge.Neutral,
 				nil, sc.colors, tokens.Spacing, tokens.Radius, badgeStyle(), s)
-			return golden.Capture(t, goldenSize, onStorey(sc.colors, tokens.Level0, w))
+			return golden.Capture(t, goldenSize, onLevel(sc.colors, tokens.Level0, w))
 		}
 		rest := frame(badge.RenderState{})
 		for _, tc := range []struct {
@@ -403,7 +403,7 @@ func TestTheBodyTakesNoPointerState(t *testing.T) {
 	plain := func(s badge.RenderState) *image.RGBA {
 		w := badge.Render(shaper, "Filtered", check, badge.Error,
 			tokens.DefaultLight, tokens.Spacing, tokens.Radius, style, s)
-		return golden.Capture(t, goldenSize, onStorey(tokens.DefaultLight, tokens.Level0, w))
+		return golden.Capture(t, goldenSize, onLevel(tokens.DefaultLight, tokens.Level0, w))
 	}
 	rest := plain(badge.RenderState{})
 	for _, tc := range []struct {
@@ -481,7 +481,7 @@ func typesetBaseline(t *testing.T, shaper *text.Shaper, style tokens.TextStyle, 
 		unit.Sp(style.Size), label, op.CallOp{}).Baseline
 }
 
-// badgePixel samples one pixel of a badge captured over a storey, addressed
+// badgePixel samples one pixel of a badge captured over a surface, addressed
 // from the badge's own top-left corner rather than the image's.
 func badgePixel(t *testing.T, img *image.RGBA, dx, dy int) color.NRGBA {
 	t.Helper()
@@ -505,9 +505,9 @@ func TestAWordedBadgeWearsItsContainer(t *testing.T) {
 			w := badge.Render(shaper, va.label, nil, va.v,
 				sc.colors, tokens.Spacing, tokens.Radius, style, badge.RenderState{})
 			size := measure(t, w)
-			img := golden.Capture(t, goldenSize, onStorey(sc.colors, tokens.Level0, w))
+			img := golden.Capture(t, goldenSize, onLevel(sc.colors, tokens.Level0, w))
 			fill := badge.Fill(sc.colors, va.v, tokens.Level0)
-			ground := sc.colors.SurfaceAt(tokens.Level0)
+			surface := sc.colors.SurfaceAt(tokens.Level0)
 			mid := size.Y / 2
 
 			// Inside the left padding, where only the fill can be.
@@ -517,14 +517,14 @@ func TestAWordedBadgeWearsItsContainer(t *testing.T) {
 						sc.name, va.label, dx, got, fill)
 				}
 			}
-			// Outside it, on both sides, where only the storey can be.
-			if got := badgePixel(t, img, -1, mid); got != ground {
-				t.Errorf("%s %s: the pixel before the badge's left edge is %v, want the storey %v — the fill overruns the box the badge reported",
-					sc.name, va.label, got, ground)
+			// Outside it, on both sides, where only that surface can be.
+			if got := badgePixel(t, img, -1, mid); got != surface {
+				t.Errorf("%s %s: the pixel before the badge's left edge is %v, want the surface %v — the fill overruns the box the badge reported",
+					sc.name, va.label, got, surface)
 			}
-			if got := badgePixel(t, img, size.X, mid); got != ground {
-				t.Errorf("%s %s: the pixel after the badge's right edge is %v, want the storey %v — the fill overruns the box the badge reported",
-					sc.name, va.label, got, ground)
+			if got := badgePixel(t, img, size.X, mid); got != surface {
+				t.Errorf("%s %s: the pixel after the badge's right edge is %v, want the surface %v — the fill overruns the box the badge reported",
+					sc.name, va.label, got, surface)
 			}
 			// The corner is cut, which is the silhouette half of telling a
 			// badge from a chip: a square fill here would be the other one.
@@ -539,7 +539,7 @@ func TestAWordedBadgeWearsItsContainer(t *testing.T) {
 // TestAGlyphBadgeStandsBare is the exception the ruling carved out: the
 // invariant is that hue is never the badge's only channel, and a sign already
 // carries its meaning in its shape, so a glyph badge wears no container and no
-// padding. Its whole box is the storey it stands on, plus the sign.
+// padding. Its whole box is the surface it stands on, plus the sign.
 func TestAGlyphBadgeStandsBare(t *testing.T) {
 	shaper := defaultShaper(t)
 	style := badgeStyle()
@@ -551,12 +551,12 @@ func TestAGlyphBadgeStandsBare(t *testing.T) {
 			t.Errorf("%s: a glyph badge measured %v, want the %d dp line box square — a fill or a padding term has crept in",
 				sc.name, size, want)
 		}
-		img := golden.Capture(t, goldenSize, onStorey(sc.colors, tokens.Level0, w))
-		ground := sc.colors.SurfaceAt(tokens.Level0)
+		img := golden.Capture(t, goldenSize, onLevel(sc.colors, tokens.Level0, w))
+		surface := sc.colors.SurfaceAt(tokens.Level0)
 		for _, p := range []image.Point{{X: 0, Y: 0}, {X: size.X - 1, Y: 0}, {X: 0, Y: size.Y - 1}} {
-			if got := badgePixel(t, img, p.X, p.Y); got != ground {
-				t.Errorf("%s: the glyph badge's corner pixel %v is %v, want the storey %v — a bare badge has grown a fill",
-					sc.name, p, got, ground)
+			if got := badgePixel(t, img, p.X, p.Y); got != surface {
+				t.Errorf("%s: the glyph badge's corner pixel %v is %v, want the surface %v — a bare badge has grown a fill",
+					sc.name, p, got, surface)
 			}
 		}
 	}

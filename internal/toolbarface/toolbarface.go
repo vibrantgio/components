@@ -97,16 +97,16 @@ func chevron(gtx layout.Context, box image.Rectangle, col color.NRGBA) {
 }
 
 // State is the explicit visual state a static render draws in. The zero value
-// is a resting widget on the window ground.
+// is a resting widget on the window's own surface.
 type State struct {
-	// Ground is the elevation storey of the surface hosting the widget, in
-	// the same vocabulary the host names its own fill (tokens.SurfaceAt). It
-	// is the input to every colour resolved here: the fill is the measured
-	// step over this storey, and the rim is the neutral rung that clears the
-	// graphic floor against both sides of the edge. A dialog at
-	// tokens.Level2 passes Level2. The zero value is tokens.Level0, the
-	// window ground.
-	Ground tokens.ElevationLevel
+	// Level is the level of the surface the widget stands on — the widget has
+	// no level of its own — in the same vocabulary the host names its own fill
+	// (tokens.SurfaceAt). It is the input to every colour resolved here: the
+	// fill is the measured step over that surface, and the rim is the neutral
+	// step that clears the graphic floor against both sides of the edge. A
+	// dialog at tokens.Level2 passes Level2. The zero value is tokens.Level0,
+	// the window's own surface.
+	Level tokens.ElevationLevel
 
 	Hovered bool
 	Pressed bool
@@ -143,15 +143,16 @@ const darkFillStep = 1.28
 // lightFillStep is the same step where the pin is the lightest surface the
 // ramp carries, in CIELAB L\*. It is a DERIVATION and not a measurement: the
 // stored macOS reference holds no light-appearance capture, so this half takes
-// the ladder's own first storey over the paper — the 0.70 L\* the light scheme
-// already spends on Level1 over Level0 — spent identically over every ground
-// rather than growing with the ground's position on the ladder. The light
+// the first level over the paper — the 0.70 L\* the light scheme
+// already spends on Level1 over Level0 — spent identically over every surface
+// rather than growing with that surface's own level. The light
 // scheme has 3.12 L\* in total between its paper and the tonal axis and spends
-// all three storeys inside it, so the platform's 1.28 would put one control
+// all three levels inside it, so the platform's 1.28 would put one control
 // above where a dialog sits.
 const lightFillStep = 0.70
 
-// fillStep is how far above its ground a resting fill stands, in CIELAB L\*.
+// fillStep is how far above the surface beneath a resting fill stands, in
+// CIELAB L\*.
 // One number per scheme, and the scheme is never named: which half applies is
 // read off the neutral surface band's direction, exactly as theme/tokens reads
 // it for the floor's own two measurements.
@@ -177,49 +178,49 @@ func fillStep(c tokens.ColorTokens) float64 {
 }
 
 // restFill is the fill at rest: the surface the widget stands on, lifted by
-// the measured step for its scheme, realized at the ground's own hue and
-// chroma so the shape carries whatever tint the ladder carries and none of
+// the measured step for its scheme, realized at that surface's own hue and
+// chroma so the shape carries whatever tint the levels carry and none of
 // its own. Nothing is mixed and no colour is named — the step is a depth in
-// L\* and the palette renders it, the way theme/tokens realizes a storey.
+// L\* and the palette renders it, the way theme/tokens realizes a level.
 //
-// It is a step over the LOCAL GROUND rather than a walk to the next storey.
-// The storey above is correct as depth and wrong as loudness: in the dark
+// It is a step over the surface it stands on rather than a walk to the next
+// level. The level above is correct as depth and too pronounced: in the dark
 // scheme it stands 10.0 luminance over the window's paper where the platform's
 // own toolbar capsules stand 2.65 over their band — a filled block at four
 // times the platform's step, in the one role the platform draws as a
-// near-hairline outline. The rim carries the edge; the fill does not shout
-// under it.
-func restFill(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
-	base := c.SurfaceAt(ground)
+// near-hairline outline. The rim carries the edge; the fill does not claim
+// attention under it.
+func restFill(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGBA {
+	base := c.SurfaceAt(level)
 	l, _, _ := vgcolor.LabFromNRGBA(base)
 	target := min(l+fillStep(c), 100)
 	_, chroma, hue := vgcolor.OKLChFromNRGBA(base)
 	return vgcolor.NRGBAFromToneChromaHue(target, chroma, hue)
 }
 
-// Fill is the control's ground: the measured step over the surface it stands
+// Fill is the control's own fill: the measured step over the surface it stands
 // on, walked by the interaction state and stopped short of any depth its own
 // label could not be read on.
 //
 // The walk is [tokens.ColorTokens.PinnedStateColor] — the same walk
-// [tokens.ColorTokens.StateAt] takes from a storey, taken from the resting
-// fill instead, because that fill is not a storey. Hover and press therefore
+// [tokens.ColorTokens.StateAt] takes from a level, taken from the resting
+// fill instead, because that fill is not a level. Hover and press therefore
 // follow the rest automatically and their stride is untouched.
 //
 // The stopping is the label's, and it binds where the ramp's own two ends are
 // too close together to write on its middle. A ramp writes with its ends, so
-// between them lies a band of depths no rung of it reaches tokens.TextFloor
+// between them lies a band of depths no step of it reaches tokens.TextFloor
 // against — for the dark ramp, L\* 46.0 to 53.8 — and a widget standing high
-// on the elevation ladder walks into it: pressed on a level-2 plane the walk
+// among the levels walks into it: pressed on a level-2 plane the walk
 // lands at 48.1 and hovered on a level-3 one at 47.6, where the best ink the
 // palette carries measures 4.09:1 and 4.21:1. A fill nothing can be written on
 // is not a state to walk to, so the walk stops at the last depth on its way
 // that the palette can still write on. Both fills come to rest at 45.7 with
-// their label at 4.51:1, and nothing else on either scheme's ladder moves: the
+// their label at 4.51:1, and nothing else on either scheme's levels moves: the
 // light ramp's ends are a near-black and a near-white, its band lies at L\* 47
 // to 52, and the deepest fill this family walks to in that scheme is 75.5.
-func Fill(c tokens.ColorTokens, ground tokens.ElevationLevel, state tokens.State) color.NRGBA {
-	rest := restFill(c, ground)
+func Fill(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) color.NRGBA {
+	rest := restFill(c, level)
 	return legible(c, rest, c.PinnedStateColor(rest, state))
 }
 
@@ -255,22 +256,23 @@ func legible(c tokens.ColorTokens, rest, walked color.NRGBA) color.NRGBA {
 
 // writable reports whether the ink this family would write a label in reaches
 // its floor on fill — [Ink]'s own answer, measured, since Ink hands back the
-// best-reading rung when no rung reaches the floor at all.
+// best-reading step when no step reaches the floor at all.
 func writable(c tokens.ColorTokens, fill color.NRGBA) bool {
 	return vgcolor.ContrastRatio(Ink(c, fill, tokens.TextFloor), fill) >= tokens.TextFloor
 }
 
-// Rim is the edge, and whether there is one: the rung of the neutral ramp
+// Rim is the edge, and whether there is one: the step of the neutral ramp
 // that reaches the graphic floor against BOTH of the edge's neighbours — the
-// ground outside it and the fill inside it — or no rim at all when no rung can
-// reach both.
+// surface outside it and the fill inside it — or no rim at all when no step
+// can reach both.
 //
 // An edge has two sides and one colour, so a walk aimed at one side is a
 // promise about the other, and this family's inner side moves besides — one
-// and two rungs under the pointer, and in the dark scheme those rungs are
-// long. Aimed at the ground alone, the rim lands ON the pressed fill at level
+// and two steps under the pointer, and in the dark scheme those steps are
+// long. Aimed at the surface alone, the rim lands ON the pressed fill at level
 // 1 — 1.00:1, the same colour twice — and aimed at the fill alone it vanishes
-// into the ground at rest in the light scheme, where the storey step is 1.02:1
+// into that surface at rest in the light scheme, where the level step is
+// 1.02:1
 // and the rim is the only thing there is. So both candidates are derived and
 // the one that clears both sides is kept, which is the rule every two-sided
 // edge in this library takes (components/internal/control's border, the focus
@@ -279,13 +281,13 @@ func writable(c tokens.ColorTokens, fill color.NRGBA) bool {
 // When neither clears both, the two neighbours are further apart than twice
 // the floor and no colour on any ramp could sit between them — which is
 // exactly the case where no rim is needed, because a fill that far off its
-// ground is carrying its own edge. That is this library's outline ruling in
-// the elevation ladder's vocabulary: a fill that separates on its own needs no
+// surface is carrying its own edge. That is this library's outline ruling in
+// the elevation levels' vocabulary: a fill that separates on its own needs no
 // outline, and a fill that cannot never will. So the second return is false
 // there and the caller draws the shape without one.
-func Rim(c tokens.ColorTokens, ground tokens.ElevationLevel, state tokens.State) (color.NRGBA, bool) {
-	below := c.SurfaceAt(ground)
-	above := Fill(c, ground, state)
+func Rim(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) (color.NRGBA, bool) {
+	below := c.SurfaceAt(level)
+	above := Fill(c, level, state)
 	for _, cand := range [...]color.NRGBA{
 		c.MarkOn(tokens.RoleNeutral, below, tokens.GraphicFloor),
 		c.MarkOn(tokens.RoleNeutral, above, tokens.GraphicFloor),
@@ -300,7 +302,7 @@ func Rim(c tokens.ColorTokens, ground tokens.ElevationLevel, state tokens.State)
 
 // Ink is the colour something reads in when it is drawn on one of these
 // fills: the Text pin while that pin clears floor against the fill, and
-// otherwise the rung of the neutral ramp nearest its mid-value step that does.
+// otherwise the step of the neutral ramp nearest its mid-value that does.
 //
 // That is tokens.ColorTokens.InkOn's own rule, applied to the one role InkOn
 // refuses. InkOn asks a role for its pinned base and RoleNeutral has none —
@@ -392,8 +394,8 @@ func Draw(
 	s State,
 ) layout.Dimensions {
 	st := s.state()
-	fill := Fill(c, s.Ground, st)
-	rim, rimmed := Rim(c, s.Ground, st)
+	fill := Fill(c, s.Level, st)
+	rim, rimmed := Rim(c, s.Level, st)
 	labelInk := Ink(c, fill, tokens.TextFloor)
 	glyphInk := Ink(c, fill, tokens.GraphicFloor)
 
