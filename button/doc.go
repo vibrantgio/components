@@ -16,27 +16,33 @@
 //
 // # Emphasis
 //
-// A button also carries a visual weight register — [Filled], the default,
+// A button also carries a visual weight — the [Filled] variant, the default,
 // [Tonal] and [Ghost] — set through Props.Emphasis or, on the pure path,
 // through RenderState.Emphasis. It is a colour axis and only a colour axis:
-// each register resolves its ground and its label from the same ramps (the
-// pinned solid fill for filled, the primary ramp's tinted 200 ground under
-// its 900 text for tonal, no ground at all under the neutral ramp's 700 text
+// each variant resolves its fill and its foreground from the same ramps (the
+// pinned solid fill for filled, the primary ramp's tinted 200 fill under
+// its 900 text for tonal, no fill at all under the neutral ramp's 700 text
 // for ghost, with the tinted walk supplying hover and press in each). The
 // drawn size and the 44 dp pointer floor are identical in all three, and so
 // is the focus ring's shape, width and place — only its rung moves, and only
-// so far as the ground under it moved. A quiet button is quiet, not small,
-// and not harder to see with a keyboard. The zero value is Filled, so nothing written before the axis
-// existed renders differently.
+// so far as the fill under it moved. The least pronounced variant is not the
+// smallest one and is no harder to see with a keyboard. The zero value is
+// Filled, so nothing written before the axis existed renders differently.
+//
+// Emphasis says how important an action is on the surface it sits on, and
+// nothing more. Marking a choice is never a button's job, whatever its
+// emphasis: a persistent selection is the Filter chip's purpose
+// (components/chip). No variant here records a picked state and none is
+// asked to stand for one.
 //
 // # A pinned fill
 //
-// The filled register alone will take a fill from its caller. Set both halves
+// The filled variant alone will take a fill from its caller. Set both halves
 // of Props.Fill and Props.OnFill — RenderState.Fill and OnFill on the pure
-// path — and the button wears that ground under that ink in place of the
-// primary pair, keeping every treatment the register has: the walk toward the
+// path — and the button wears that fill under that ink in place of the
+// primary pair, keeping every treatment the variant has: the walk toward the
 // 900 end under the pointer, the disabled opacity over both halves, and a
-// focus ring measured against the ground that came back. It is for the action
+// focus ring measured against the fill that came back. It is for the action
 // whose colour is not the theme's to choose — a meaning that fixes its own
 // shade, which a paired status ramp would restate one way in light and
 // another in dark. The two are one pin, honoured only together, and their

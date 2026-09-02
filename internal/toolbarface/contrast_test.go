@@ -8,7 +8,7 @@
 // placement State.Ground admits — and every interaction state, because the
 // fill walks under the pointer and the inks are resolved against the fill
 // actually drawn.
-package chipface
+package toolbarface
 
 import (
 	"image/color"

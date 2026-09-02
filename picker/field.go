@@ -28,9 +28,9 @@ import (
 )
 
 // fieldChevron is the box the field trigger's mark is drawn in: a solid
-// triangle, the form register's own mark rather than the chrome register's
+// triangle, the form variant's own mark rather than the chrome variant's
 // stroked chevron. It is a fixed size because the trigger's other numbers come
-// from the density and the mark is what tells the two registers apart at a
+// from the density and the mark is what tells the two variants apart at a
 // glance.
 const fieldChevron = unit.Dp(16)
 
@@ -187,14 +187,14 @@ type FieldProps struct {
 }
 
 // Field returns an rx.Observable[layout.Widget] that emits a new widget
-// whenever the theme or disabled state changes: the form register's picker —
+// whenever the theme or disabled state changes: the form variant's picker —
 // the flat trigger bar and, while it is open, the [Menu] it stacks against
 // itself, beneath by default and above under [DropUp]. Widget state
 // (open/closed, selected index, focus) lives in the rx.Defer scope and
 // persists across emissions.
 //
 // A trigger that must stand under a floating menu instead — one placed against
-// the window by patterns/popover — is [Anchor]; see the package doc.
+// the window by patterns/popover — is [Toolbar]; see the package doc.
 //
 // Both integration paths are supported:
 //   - FRP: set FieldProps.OnSelect.
@@ -364,7 +364,7 @@ func dismissed(gtx layout.Context, outside *int, keys ...event.Tag) bool {
 	return leave
 }
 
-// RenderField produces a layout.Widget for the form register's picker in an
+// RenderField produces a layout.Widget for the form variant's picker in an
 // explicit visual state, without any event processing or rx machinery.
 // Intended for golden-image testing and static demonstrations; production code
 // should use [Field], which reads both of the parameters below off the theme.

@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/vibrantgio/components/internal/chipface"
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
+	"github.com/vibrantgio/components/internal/toolbarface"
 	"github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -93,9 +93,9 @@ func drawn(c tokens.ColorTokens) []struct {
 			// outermost band, with the host storey immediately outside it.
 			entry{"text field " + at, focus.Ring(c)},
 			entry{"dropdown trigger " + at, focus.Ring(c)},
-			// The chip family trades its rim for the ring, in every state its
+			// The toolbar trigger trades its rim for the ring, in every state its
 			// own fill walks to.
-			entry{"chip " + at, focus.Ring(c)},
+			entry{"toolbar " + at, focus.Ring(c)},
 			// A ghost paints no ground at rest, so its ring lies on the host
 			// storey showing through it.
 			entry{"button ghost " + at, focus.RingOn(c, stdcolor.NRGBA{})},
@@ -158,7 +158,7 @@ func TestRingClearsTheFloorOnEveryStorey(t *testing.T) {
 //
 // Two fills answer for every control that fills a box: the rung above the
 // storey, which the text field and the dropdown trigger fill with
-// (control.Fill), and the chip family's measured step over the storey, which is
+// (control.Fill), and the toolbar trigger's measured step over the storey, which is
 // neither a storey nor on the ramp. A pressed fill is left out on purpose: it
 // walks up to 20 L* off its storey, no one colour could clear both it and the
 // storey, and it is where the control's own state is spoken rather than where
@@ -174,7 +174,7 @@ func TestRingClearsTheRestingFillsInsideIt(t *testing.T) {
 					fill stdcolor.NRGBA
 				}{
 					{"a field's own fill", control.Fill(c, level)},
-					{"a chip's resting fill", chipface.Fill(c, level, tokens.StateFocus)},
+					{"a toolbar trigger's resting fill", toolbarface.Fill(c, level, tokens.StateFocus)},
 				} {
 					got := color.ContrastRatio(ring, side.fill)
 					if got < focus.Floor {

@@ -13,14 +13,14 @@ import (
 // resolvedTokens is the concrete per-emission snapshot the widget closures
 // draw from: the whole theme flattened to the values one frame needs.
 //
-// Two text roles, because the two triggers are drawn for two registers. The
+// Two text roles, because the two triggers are drawn for two variants. The
 // field and the menu rows are BodyLarge, the role the form controls beside
-// them are set in; the anchor is LabelLarge, the role a control that names a
+// them are set in; the toolbar trigger is LabelLarge, the role a control that names a
 // value rather than accepting one is set in.
 type resolvedTokens struct {
 	color   tokens.ColorTokens
 	body    tokens.TextStyle // the BodyLarge role: the field and the menu rows
-	label   tokens.TextStyle // the LabelLarge role: the anchor
+	label   tokens.TextStyle // the LabelLarge role: the toolbar trigger
 	spacing tokens.SpacingScale
 	radius  tokens.RadiusScale
 	density tokens.Density // control height and inner padding

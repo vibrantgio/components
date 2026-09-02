@@ -17,11 +17,11 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// onStorey paints the whole canvas in the fill of the storey the anchor is
+// onStorey paints the whole canvas in the fill of the storey the trigger is
 // standing on and draws w inset inside it, and it has to do both.
 //
-// The ground, because the anchor's whole subject is how it separates from it:
-// against the headless window's own clear colour, a correct anchor and one that
+// The host surface, because the trigger's whole subject is how it separates
+// from it: against the headless window's own clear colour, a correct trigger and one that
 // resolved its fill from the wrong storey look identical. The inset, because a
 // control drawn at the canvas origin has the host on two sides and the image
 // edge on the other two, and an image framed that way cannot show whether
@@ -37,7 +37,7 @@ func onStorey(c tokens.ColorTokens, level tokens.ElevationLevel, w layout.Widget
 	}
 }
 
-// The three grounds a chrome-register trigger actually rests on: the content
+// The three surfaces a chrome-variant trigger actually rests on: the content
 // paper, the chrome furniture a toolbar band is, and a dialog.
 var goldenGrounds = []struct {
 	name  string
@@ -56,73 +56,73 @@ var goldenSchemes = []struct {
 	{"dark", tokens.DefaultDark},
 }
 
-// goldenSize is a canvas comfortably larger than the anchor, so the stored
+// goldenSize is a canvas comfortably larger than the trigger, so the stored
 // image carries the host storey around the control as well as the control:
 // the separation is the thing under test and it cannot be seen in a crop of
 // the fill.
 var goldenSize = image.Pt(220, 60)
 
-// anchorValue is what every stored anchor image says. It is a two-part model
-// name because that is the value the chrome register's trigger carries in
+// toolbarValue is what every stored toolbar image says. It is a two-part model
+// name because that is the value the chrome variant's trigger carries in
 // practice, and its width is what the images were recorded at.
-const anchorValue = "OpenAI · gpt-5.5"
+const toolbarValue = "OpenAI · gpt-5.5"
 
-// anchor is RenderAnchor at the default spacing, radius and comfortable
+// toolbar is RenderToolbar at the default spacing, radius and comfortable
 // density — the resolved tokens every measurement and image below draws with.
-func anchor(t *testing.T, c tokens.ColorTokens, s picker.AnchorState) layout.Widget {
+func toolbar(t *testing.T, c tokens.ColorTokens, s picker.ToolbarState) layout.Widget {
 	t.Helper()
-	return picker.RenderAnchor(defaultShaper(t), anchorValue, c,
+	return picker.RenderToolbar(defaultShaper(t), toolbarValue, c,
 		tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
 		tokens.Comfortable, s)
 }
 
-// TestAnchorGoldenOnEveryGround records or diffs the resting anchor in both
+// TestToolbarGoldenOnEveryGround records or diffs the resting trigger in both
 // schemes on each of the three grounds. Six images, and between them they are
-// the claim the chip family's geometry makes about the light scheme: the
+// the claim this geometry makes about the light scheme: the
 // control is visible there because of its rim, not because of its fill.
-func TestAnchorGoldenOnEveryGround(t *testing.T) {
+func TestToolbarGoldenOnEveryGround(t *testing.T) {
 	for _, sc := range goldenSchemes {
 		for _, g := range goldenGrounds {
-			name := "anchor-" + sc.name + "-" + g.name
+			name := "toolbar-" + sc.name + "-" + g.name
 			t.Run(name, func(t *testing.T) {
-				w := anchor(t, sc.colors, picker.AnchorState{Ground: g.level})
+				w := toolbar(t, sc.colors, picker.ToolbarState{Ground: g.level})
 				golden.Render(t, name, goldenSize, onStorey(sc.colors, g.level, w))
 			})
 		}
 	}
 }
 
-// TestAnchorStateGolden records the anchor's walk on the paper in both
+// TestToolbarStateGolden records the trigger's walk on the paper in both
 // schemes. The focused image is the one worth storing twice over: the ring
-// replaces the rim at the anchor's corner too, so a ring drawn at the pill's
+// replaces the rim at the trigger's corner too, so a ring drawn at the pill's
 // Full radius over a rounded-rect fill would show here as a halo that misses
 // its corners.
-func TestAnchorStateGolden(t *testing.T) {
+func TestToolbarStateGolden(t *testing.T) {
 	states := []struct {
 		name string
-		s    picker.AnchorState
+		s    picker.ToolbarState
 	}{
-		{"hovered", picker.AnchorState{Hovered: true}},
-		{"pressed", picker.AnchorState{Pressed: true}},
-		{"focused", picker.AnchorState{Focused: true}},
+		{"hovered", picker.ToolbarState{Hovered: true}},
+		{"pressed", picker.ToolbarState{Pressed: true}},
+		{"focused", picker.ToolbarState{Focused: true}},
 	}
 	for _, sc := range goldenSchemes {
 		for _, st := range states {
-			name := "anchor-" + sc.name + "-" + st.name
+			name := "toolbar-" + sc.name + "-" + st.name
 			t.Run(name, func(t *testing.T) {
-				w := anchor(t, sc.colors, st.s)
+				w := toolbar(t, sc.colors, st.s)
 				golden.Render(t, name, goldenSize, onStorey(sc.colors, tokens.Level0, w))
 			})
 		}
 	}
 }
 
-// TestAnchorDrawsAtTheDensityTable holds the geometry the anchor takes off the
+// TestToolbarDrawsAtTheDensityTable holds the geometry the trigger takes off the
 // tokens rather than off numbers of its own: the height is the density's own
 // rule for a control — max(ControlHeight, line box + 2×PaddingY) — so a face
 // that reached for its own padding or its own line box would draw a different
 // box.
-func TestAnchorDrawsAtTheDensityTable(t *testing.T) {
+func TestToolbarDrawsAtTheDensityTable(t *testing.T) {
 	shaper := defaultShaper(t)
 	box := image.Pt(1000, 1000)
 	for _, d := range []struct {
@@ -135,51 +135,51 @@ func TestAnchorDrawsAtTheDensityTable(t *testing.T) {
 		{"compact", tokens.Compact, tokens.DefaultTypography.LabelMedium, 28},
 	} {
 		t.Run(d.name, func(t *testing.T) {
-			trigger := measure(t, box, picker.RenderAnchor(shaper, "Model", tokens.DefaultLight,
-				tokens.Spacing, tokens.Radius, d.ts, d.d, picker.AnchorState{})).Size
+			trigger := measure(t, box, picker.RenderToolbar(shaper, "Model", tokens.DefaultLight,
+				tokens.Spacing, tokens.Radius, d.ts, d.d, picker.ToolbarState{})).Size
 			if trigger.Y != d.want {
-				t.Errorf("anchor height %d, want %d — max(ControlHeight %g, %g + 2×%g)",
+				t.Errorf("toolbar height %d, want %d — max(ControlHeight %g, %g + 2×%g)",
 					trigger.Y, d.want, d.d.ControlHeight, d.ts.LineHeight, d.d.PaddingY)
 			}
 			if trigger.X >= box.X {
-				t.Errorf("anchor measured %d dp wide in a %d dp box: it is sized to its value", trigger.X, box.X)
+				t.Errorf("toolbar measured %d dp wide in a %d dp box: it is sized to its value", trigger.X, box.X)
 			}
 		})
 	}
 }
 
-// TestAnchorMarkIsSteadyAcrossTheWalk is the platform ruling written down
-// where a future change cannot quietly undo it: a pull-down anchor's chevron
+// TestToolbarMarkIsSteadyAcrossTheWalk is the platform ruling written down
+// where a future change cannot quietly undo it: a pull-down trigger's chevron
 // says "a menu opens below this" and never "this is open", so nothing about
 // the pointer's state may move it. The face offers no open flag to flip — that
-// is the structural half — and this is the drawn half: the box the anchor
+// is the structural half — and this is the drawn half: the box the trigger
 // reports is the same box in all four states, so the mark neither grows nor
 // shifts under the pointer while the fill walks beneath it.
-func TestAnchorMarkIsSteadyAcrossTheWalk(t *testing.T) {
+func TestToolbarMarkIsSteadyAcrossTheWalk(t *testing.T) {
 	box := image.Pt(1000, 1000)
-	size := func(s picker.AnchorState) image.Point {
-		return measure(t, box, anchor(t, tokens.DefaultDark, s)).Size
+	size := func(s picker.ToolbarState) image.Point {
+		return measure(t, box, toolbar(t, tokens.DefaultDark, s)).Size
 	}
-	rest := size(picker.AnchorState{})
+	rest := size(picker.ToolbarState{})
 	for _, tc := range []struct {
 		name string
-		s    picker.AnchorState
+		s    picker.ToolbarState
 	}{
-		{"hovered", picker.AnchorState{Hovered: true}},
-		{"pressed", picker.AnchorState{Pressed: true}},
-		{"focused", picker.AnchorState{Focused: true}},
+		{"hovered", picker.ToolbarState{Hovered: true}},
+		{"pressed", picker.ToolbarState{Pressed: true}},
+		{"focused", picker.ToolbarState{Focused: true}},
 	} {
 		if got := size(tc.s); got != rest {
-			t.Errorf("%s anchor measures %v, resting %v: the anchor's mark is fixed and its box must not move",
+			t.Errorf("%s toolbar measures %v, resting %v: the trigger's mark is fixed and its box must not move",
 				tc.name, got, rest)
 		}
 	}
 }
 
-// TestAnchorChevronReachesTheGraphicFloor is the contrast sweep's extension to
-// the anchor, and it is a PIXEL measurement rather than another pass over the
+// TestToolbarChevronReachesTheGraphicFloor is the contrast sweep's extension to
+// the toolbar trigger, and it is a PIXEL measurement rather than another pass over the
 // derivations. The geometry's own sweep
-// (components/internal/chipface) already walks the colours on every storey and
+// (components/internal/toolbarface) already walks the colours on every storey and
 // in every state, so the derivations are covered where they live.
 //
 // What it cannot cover is the mark. The chevron is a 1.5 dp DIAGONAL stroke,
@@ -191,15 +191,15 @@ func TestAnchorMarkIsSteadyAcrossTheWalk(t *testing.T) {
 // in encoded sRGB, which costs a hairline more ink still. So the claim worth
 // holding is about the drawn pixels: somewhere in the mark, in every scheme and
 // every state, the chevron reaches the floor it owes.
-func TestAnchorChevronReachesTheGraphicFloor(t *testing.T) {
+func TestToolbarChevronReachesTheGraphicFloor(t *testing.T) {
 	states := []struct {
 		name string
-		s    picker.AnchorState
+		s    picker.ToolbarState
 	}{
-		{"at rest", picker.AnchorState{}},
-		{"hovered", picker.AnchorState{Hovered: true}},
-		{"pressed", picker.AnchorState{Pressed: true}},
-		{"focused", picker.AnchorState{Focused: true}},
+		{"at rest", picker.ToolbarState{}},
+		{"hovered", picker.ToolbarState{Hovered: true}},
+		{"pressed", picker.ToolbarState{Pressed: true}},
+		{"focused", picker.ToolbarState{Focused: true}},
 	}
 	for _, sc := range goldenSchemes {
 		for _, g := range goldenGrounds {
@@ -208,9 +208,9 @@ func TestAnchorChevronReachesTheGraphicFloor(t *testing.T) {
 				t.Run(name, func(t *testing.T) {
 					s := st.s
 					s.Ground = g.level
-					w := anchor(t, sc.colors, s)
+					w := toolbar(t, sc.colors, s)
 					img := golden.Capture(t, goldenSize, onStorey(sc.colors, g.level, w))
-					fill := picker.AnchorFill(sc.colors, g.level, stateOf(s))
+					fill := picker.ToolbarFill(sc.colors, g.level, stateOf(s))
 
 					// The mark's own column: the trailing padding's width in
 					// from the control's trailing edge, which is where Draw
@@ -240,9 +240,9 @@ func TestAnchorChevronReachesTheGraphicFloor(t *testing.T) {
 	}
 }
 
-// stateOf is AnchorState's own walk from outside the package, so the assertion
+// stateOf is ToolbarState's own walk from outside the package, so the assertion
 // above measures against the fill actually painted rather than the resting one.
-func stateOf(s picker.AnchorState) tokens.State {
+func stateOf(s picker.ToolbarState) tokens.State {
 	switch {
 	case s.Pressed:
 		return tokens.StatePressed
@@ -252,13 +252,13 @@ func stateOf(s picker.AnchorState) tokens.State {
 	return tokens.StateNormal
 }
 
-// chevron is the deterministic mark the chip is measured against here: a
+// chevron is the deterministic mark the trigger is measured against here: a
 // downward chevron built from two clip.Stroke lines filling a sizePx×sizePx
-// box. Being vector rather than font or SVG rasterisation, it costs the chip
+// box. Being vector rather than font or SVG rasterisation, it costs the trigger
 // exactly its own line box and nothing that varies by machine.
 //
 // Its ink is centred on the box and spans most of it, both deliberately: the
-// chip reserves the box, so a mark that under-fills it reads as extra trailing
+// trigger reserves the box, so a mark that under-fills it reads as extra trailing
 // padding, and one whose ink is not centred on the box drops below the label.
 func chevron(gtx layout.Context, sizePx int, col color.NRGBA) {
 	w := float32(sizePx)

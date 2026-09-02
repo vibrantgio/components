@@ -75,7 +75,7 @@ func liveTheme() theme.Theme {
 	return th
 }
 
-// TestFieldOpensItsMenuAndSelectsFromIt walks the form register end to end:
+// TestFieldOpensItsMenuAndSelectsFromIt walks the form variant end to end:
 // the trigger toggles the menu, a row picks a value, and picking closes the
 // menu again — the whole of what a select does, driven through the Gio event
 // system rather than asserted off a render state.
@@ -154,7 +154,7 @@ func TestUpwardFieldSelectsFromTheMenuAboveItsTrigger(t *testing.T) {
 }
 
 // TestFieldTriggerHitsTheFloorBelowItsBar is the pointer-target contract for
-// the form register: the widget measures the bar it drew, while what the
+// the form variant: the widget measures the bar it drew, while what the
 // pointer may land on is the density's 44 dp floor centred on it. The click
 // below is outside the drawn bar and inside the slop, which is the only place
 // the two can be told apart.
@@ -177,7 +177,7 @@ func TestFieldTriggerHitsTheFloorBelowItsBar(t *testing.T) {
 }
 
 // TestMenuSelectsWithoutATriggerOfItsOwn: the open surface is a component in
-// its own right, which is what lets an anchor's caller hand it to a popover.
+// its own right, which is what lets a toolbar trigger's caller hand it to a popover.
 // It reports the rows it drew and dispatches the index that was clicked.
 func TestMenuSelectsWithoutATriggerOfItsOwn(t *testing.T) {
 	var picked []int
@@ -200,14 +200,14 @@ func TestMenuSelectsWithoutATriggerOfItsOwn(t *testing.T) {
 	}
 }
 
-// TestAnchorActivatesAndKeepsItsPointerFloor: the chrome register's trigger
+// TestToolbarActivatesAndKeepsItsPointerFloor: the chrome variant's trigger
 // reports the control it drew — it is sized to its value, and a row of chrome
 // laid out at 44 dp apiece would be a row of gaps — while the pointer floor is
-// centred on it, exactly as components/button and the chip family extend
+// centred on it, exactly as components/button and the chip extend
 // theirs.
-func TestAnchorActivatesAndKeepsItsPointerFloor(t *testing.T) {
+func TestToolbarActivatesAndKeepsItsPointerFloor(t *testing.T) {
 	var clicks int
-	w := materialize(t, picker.Anchor(rx.Of(liveTheme()), picker.AnchorProps{
+	w := materialize(t, picker.Toolbar(rx.Of(liveTheme()), picker.ToolbarProps{
 		Value:   "Anthropic · Opus 5",
 		Shaper:  defaultShaper(t),
 		OnClick: func(_ layout.Context) { clicks++ },
@@ -217,30 +217,30 @@ func TestAnchorActivatesAndKeepsItsPointerFloor(t *testing.T) {
 	drive := driver(w, r, image.Pt(400, 120))
 	dims := drive()
 	if want := int(tokens.Comfortable.ControlHeight); dims.Size.Y != want {
-		t.Fatalf("anchor measured %d px tall, want the density's control height %d px", dims.Size.Y, want)
+		t.Fatalf("toolbar measured %d px tall, want the density's control height %d px", dims.Size.Y, want)
 	}
 	if dims.Size.X >= 400 {
-		t.Fatalf("anchor measured %d px wide at a 400 px constraint: it is sized to its value", dims.Size.X)
+		t.Fatalf("toolbar measured %d px wide at a 400 px constraint: it is sized to its value", dims.Size.X)
 	}
 
 	// The hit rect is 44 px centred on the 36 px control: −4..40 on the y axis.
 	click(r, drive, f32.Pt(float32(dims.Size.X)/2, 38))
 	if clicks != 1 {
-		t.Errorf("click in the slop below the anchor: OnClick fired %d times, want 1", clicks)
+		t.Errorf("click in the slop below the toolbar: OnClick fired %d times, want 1", clicks)
 	}
 }
 
-// TestAnchorPinTrailingReportsTheBoxItWasOffered is the placement seam: pinned,
-// the anchor draws the same control at the same width and reports the cap it
+// TestToolbarPinTrailingReportsTheBoxItWasOffered is the placement seam: pinned,
+// the trigger draws the same control at the same width and reports the cap it
 // was handed, so a caller upstream of a pattern finds the trailing edge where
 // it asked for it.
-func TestAnchorPinTrailingReportsTheBoxItWasOffered(t *testing.T) {
+func TestToolbarPinTrailingReportsTheBoxItWasOffered(t *testing.T) {
 	box := image.Pt(400, 120)
-	free := materialize(t, picker.Anchor(rx.Of(liveTheme()), picker.AnchorProps{
+	free := materialize(t, picker.Toolbar(rx.Of(liveTheme()), picker.ToolbarProps{
 		Value:  "Anthropic · Opus 5",
 		Shaper: defaultShaper(t),
 	}))
-	pinned := materialize(t, picker.Anchor(rx.Of(liveTheme()), picker.AnchorProps{
+	pinned := materialize(t, picker.Toolbar(rx.Of(liveTheme()), picker.ToolbarProps{
 		Value:  "Anthropic · Opus 5",
 		Pin:    picker.PinTrailing,
 		Shaper: defaultShaper(t),
@@ -249,13 +249,13 @@ func TestAnchorPinTrailingReportsTheBoxItWasOffered(t *testing.T) {
 	freeDims := driver(free, new(gioinput.Router), box)()
 	pinnedDims := driver(pinned, new(gioinput.Router), box)()
 	if freeDims.Size.X >= box.X {
-		t.Fatalf("unpinned anchor measured %d px wide, want less than the %d px box", freeDims.Size.X, box.X)
+		t.Fatalf("unpinned toolbar measured %d px wide, want less than the %d px box", freeDims.Size.X, box.X)
 	}
 	if pinnedDims.Size.X != box.X {
-		t.Errorf("pinned anchor measured %d px wide, want the whole %d px box", pinnedDims.Size.X, box.X)
+		t.Errorf("pinned toolbar measured %d px wide, want the whole %d px box", pinnedDims.Size.X, box.X)
 	}
 	if pinnedDims.Size.Y != freeDims.Size.Y {
-		t.Errorf("pinning changed the anchor's height, %d px against %d px: a pin is a placement, not a stretch", pinnedDims.Size.Y, freeDims.Size.Y)
+		t.Errorf("pinning changed the toolbar's height, %d px against %d px: a pin is a placement, not a stretch", pinnedDims.Size.Y, freeDims.Size.Y)
 	}
 }
 

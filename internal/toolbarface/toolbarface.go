@@ -1,13 +1,13 @@
-// Package chipface holds the geometry components/picker's pull-down anchor is
-// drawn from: the measured fill, the state walk, the two-sided rim, the walked
-// inks, the focus ring that replaces that rim, the density's height and
-// padding, the pointer target's placement, and the chevron that says a menu
-// opens below.
+// Package toolbarface holds the geometry components/picker's chrome-variant
+// trigger is drawn from: the measured fill, the state walk, the two-sided rim,
+// the walked inks, the focus ring that replaces that rim, the density's height
+// and padding, the pointer target's placement, and the chevron that says a
+// menu opens below.
 //
 // It is internal because it is a seam and not a component: a caller reaches
-// for picker.Anchor or picker.RenderAnchor, and those document the control
+// for picker.Toolbar or picker.RenderToolbar, and those document the control
 // this draws.
-package chipface
+package toolbarface
 
 import (
 	"image"
@@ -63,7 +63,7 @@ const (
 // measurement at the nearest weight this system draws.
 const chevronStroke = unit.Dp(1.5)
 
-// chevronWidth is the mark's column for [FaceAnchor] at density d, in pixels:
+// chevronWidth is the mark's column at density d, in pixels:
 // the platform's ratio of the CONTROL's height, so the mark keeps the
 // platform's proportion at every density rather than taking a line box the way
 // an inline glyph does.
@@ -76,7 +76,7 @@ func chevronWidth(gtx layout.Context, d tokens.Density) int {
 //
 // It is STATIC. On the platform a pull-down button's chevron says "a menu opens
 // below this" and never "this is open": the glyph does not flip when the menu
-// stands, and an anchor that flipped one would be describing its own menu in a
+// stands, and a trigger that flipped one would be describing its own menu in a
 // vocabulary the platform reserves for a disclosure triangle.
 func chevron(gtx layout.Context, box image.Rectangle, col color.NRGBA) {
 	w := float32(box.Dx())
@@ -126,8 +126,9 @@ func (s State) state() tokens.State {
 	return tokens.StateNormal
 }
 
-// darkFillStep is how far over its ground a resting anchor stands where the
-// Background pin is the darkest surface the neutral ramp carries, in CIELAB
+// darkFillStep is how far over the surface it stands on a resting trigger
+// sits where the Background pin is the darkest surface the neutral ramp
+// carries, in CIELAB
 // L\*. It is a MEASUREMENT of the platform, not a derivation: the step macOS
 // takes between a unified toolbar's band and the pop-up capsules drawn on it,
 // which is this control's exact role. From the stored macOS reference
@@ -376,7 +377,7 @@ func (p Pin) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	return layout.Dimensions{Size: box, Baseline: dims.Baseline}
 }
 
-// Draw paints the pull-down anchor: the walked fill, the two-sided rim or the
+// Draw paints the pull-down trigger: the walked fill, the two-sided rim or the
 // focus ring that replaces it, the label, and the chevron that says a menu
 // opens below.
 func Draw(
@@ -450,7 +451,7 @@ func Draw(
 	// as at rest, and the label does not shift.
 	//
 	// The corner is the scale's Md stop, the SAME one components/button reads
-	// for every register it draws: the platform draws its pop-up control as a
+	// for every variant it draws: the platform draws its pop-up control as a
 	// rounded rectangle, and the rounded rectangle this system already owns is
 	// the button's. Reading the stop rather than naming a number is what keeps
 	// the two in step if the scale ever moves.

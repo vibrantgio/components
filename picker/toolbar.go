@@ -10,34 +10,34 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/components/internal/chipface"
 	"github.com/vibrantgio/components/internal/hit"
+	"github.com/vibrantgio/components/internal/toolbarface"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// Pin is the edge of the box an anchor is offered that its control is pinned
-// to.
+// Pin is the edge of the box a toolbar trigger is offered that its control is
+// pinned to.
 //
-// It is a placement, not a stretch: the anchor stays sized to its value and
+// It is a placement, not a stretch: the trigger stays sized to its value and
 // what changes is where in the offered box it is drawn and how much of that
 // box the widget reports having used. Only the horizontal axis is pinned,
-// because the vertical one is already settled by whatever row the anchor
+// because the vertical one is already settled by whatever row the trigger
 // stands in.
 //
 // Say it only where the box is a cap the caller sized and what stands between
-// the caller and the anchor centres whatever it is given: the reserved cap and
-// the drawn control then part company by half the slack, and the only place
-// both widths are known is inside the anchor.
+// the caller and the trigger centres whatever it is given: the reserved cap
+// and the drawn control then part company by half the slack, and the only
+// place both widths are known is inside the trigger.
 //
-// A pinned anchor reports the cap, not the control, so anything upstream that
-// needs the DRAWN rect — a surface aiming a tail at this control — loses it.
-// An anchor its container lays out or aligns needs nothing here.
+// A pinned trigger reports the cap, not the control, so anything upstream
+// that needs the DRAWN rect — a surface aiming a tail at this control — loses
+// it. A trigger its container lays out or aligns needs nothing here.
 type Pin uint8
 
 const (
-	// PinNone is the zero value and the anchor's own habit: the widget
+	// PinNone is the zero value and the trigger's own habit: the widget
 	// reports the control it drew and no more, so the box around it is the
 	// container's business.
 	PinNone Pin = iota
@@ -49,15 +49,15 @@ const (
 	PinTrailing
 )
 
-// AnchorState holds the explicit visual state a static anchor render draws in.
-// The zero value is a resting anchor on the window ground.
+// ToolbarState holds the explicit visual state a static toolbar render draws
+// in. The zero value is a resting trigger on the window's own surface.
 //
 // Intended for golden-image testing and static rendering; production code
-// obtains the interaction half from the Gio event system via [Anchor].
-type AnchorState struct {
-	// Ground is the elevation storey of the surface hosting the anchor, in
+// obtains the interaction half from the Gio event system via [Toolbar].
+type ToolbarState struct {
+	// Ground is the elevation storey of the surface hosting the trigger, in
 	// the same vocabulary the host names its own fill (tokens.SurfaceAt). It
-	// is the input to every colour the anchor resolves: the fill is the
+	// is the input to every colour the trigger resolves: the fill is the
 	// measured step over this storey, and the rim is the neutral rung that
 	// clears the graphic floor against both sides of the edge. A dialog at
 	// tokens.Level2 passes Level2. The zero value is tokens.Level0, the
@@ -69,8 +69,8 @@ type AnchorState struct {
 	Focused bool
 }
 
-// AnchorProps configures an [Anchor] instance.
-type AnchorProps struct {
+// ToolbarProps configures a [Toolbar] instance.
+type ToolbarProps struct {
 	// Value is the text the control carries: the choice the picker currently
 	// holds, because a picker's trigger shows its value.
 	Value string
@@ -78,26 +78,26 @@ type AnchorProps struct {
 	// Description is the screen-reader label. Falls back to Value when empty.
 	Description string
 
-	// Ground is the elevation storey of the surface hosting the anchor,
-	// copied straight into [AnchorState.Ground] on every frame. A dialog at
+	// Ground is the elevation storey of the surface hosting the trigger,
+	// copied straight into [ToolbarState.Ground] on every frame. A dialog at
 	// tokens.Level2 passes Level2. The zero value is tokens.Level0, the
-	// window ground. See [AnchorState.Ground].
+	// window ground. See [ToolbarState.Ground].
 	Ground tokens.ElevationLevel
 
 	// Pin is the edge of the offered box the control is drawn at. The zero
-	// value is [PinNone] and the anchor reports the control alone. See [Pin].
+	// value is [PinNone] and the trigger reports the control alone. See [Pin].
 	Pin Pin
 
 	// Clickable, if non-nil, is used instead of an internally-allocated one.
-	// The caller then owns &Clickable as the anchor's focus tag — usable with
+	// The caller then owns &Clickable as the trigger's focus tag — usable with
 	// key.FocusCmd, key.Filter{Focus: …} and an external Tab cycle — and may
 	// detect activation via Clickable.Clicked(gtx). This is what lets a
 	// container that drives focus itself — a popover anchored on this control
-	// — avoid a doubled focus ring. When nil the anchor allocates and owns its
+	// — avoid a doubled focus ring. When nil the trigger allocates and owns its
 	// own clickable, which survives every theme emission.
 	Clickable *widget.Clickable
 
-	// OnClick is called when the anchor is activated by click or Space/Enter.
+	// OnClick is called when the trigger is activated by click or Space/Enter.
 	// The gtx argument is the layout.Context active on the frame the
 	// activation is processed in, so a consumer may emit
 	// mvu.MessageOp{Message: …}.Add(gtx.Ops) from inside it.
@@ -106,24 +106,24 @@ type AnchorProps struct {
 	// Message, if non-nil, is emitted as mvu.MessageOp into the frame's ops on
 	// activation — the MVU path, where OnClick is the FRP one. Both fire when
 	// both are set, and they fire from the one place the activation is
-	// noticed: the anchor polls its clickable once per frame, so a click and a
+	// noticed: the trigger polls its clickable once per frame, so a click and a
 	// Space both arrive through the same branch and neither can dispatch
 	// twice.
 	Message any
 
 	// Shaper is an explicit per-instance override of the text shaper. Leave
-	// it nil in normal use: the anchor then shapes with the theme's shaper
+	// it nil in normal use: the trigger then shapes with the theme's shaper
 	// (tokens.Typography.Shaper()), built once for the process and shared by
-	// every component reading that typography. Set it only when this anchor
+	// every component reading that typography. Set it only when this trigger
 	// must shape with a different one — a golden test pinning its faces.
 	Shaper *text.Shaper
 }
 
-// Anchor returns an rx.Observable[layout.Widget] emitting the chrome
-// register's trigger: the platform's pull-down control, at the button's
+// Toolbar returns an rx.Observable[layout.Widget] emitting the chrome
+// variant's trigger: the platform's pull-down control, at the button's
 // rounded-rect corner with the single down chevron drawn by the component.
 //
-// It has no menu of its own — a chrome-register menu floats against the window
+// It has no menu of its own — a chrome-variant menu floats against the window
 // and patterns/popover places it, so the caller hands this widget to the
 // popover as its anchor and a [Menu] as its content. [Field] is the trigger
 // that drops its own menu.
@@ -134,23 +134,23 @@ type AnchorProps struct {
 //
 // The pointer target is extended to the density's tokens.Density.MinHitTarget
 // (44 dp, WCAG 2.5.5) on both axes, centred on the drawn control, exactly as
-// components/button extends its own: the anchor draws at the density's control
+// components/button extends its own: the trigger draws at the density's control
 // height and what the pointer may land on does not shrink with it. The widget
-// still reports the control's size — unless [AnchorProps.Pin] asks for the box
+// still reports the control's size — unless [ToolbarProps.Pin] asks for the box
 // instead, in which case the slop travels with the control it was centred on.
 //
-// Keyboard activation is gioui.org/widget.Clickable's: the anchor is
+// Keyboard activation is gioui.org/widget.Clickable's: the trigger is
 // focusable, Space and Enter activate it, and gtx.Focused drives
-// [AnchorState.Focused]. Both integration paths are supported and both are
+// [ToolbarState.Focused]. Both integration paths are supported and both are
 // read off the one poll of the clickable:
-//   - FRP: set AnchorProps.OnClick.
-//   - MVU: set AnchorProps.Message; the anchor emits mvu.MessageOp on
+//   - FRP: set ToolbarProps.OnClick.
+//   - MVU: set ToolbarProps.Message; the trigger emits mvu.MessageOp on
 //     activation.
 //
 // Widget state — hover, press, focus — lives in the rx.Defer scope and
 // survives every theme emission for the life of the subscription.
-func Anchor(th rx.Observable[theme.Theme], props AnchorProps) rx.Observable[layout.Widget] {
-	// The typography emission carries both the LabelLarge role the anchor is
+func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[layout.Widget] {
+	// The typography emission carries both the LabelLarge role the trigger is
 	// set in — the role a control that names a value is set in, not the
 	// BodyLarge the form triggers take — and the theme's cached shaper (the
 	// theme owns the typeface).
@@ -203,21 +203,21 @@ func Anchor(th rx.Observable[theme.Theme], props AnchorProps) rx.Observable[layo
 					}
 				}
 
-				s := chipface.State{
+				s := toolbarface.State{
 					Ground:  props.Ground,
 					Hovered: click.Hovered(),
 					Pressed: click.Pressed(),
 					Focused: gtx.Focused(click),
 				}
 
-				return chipface.Pin(props.Pin).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return toolbarface.Pin(props.Pin).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), click.Layout,
 						func(gtx layout.Context) layout.Dimensions {
 							semantic.ClassOp(semantic.Button).Add(gtx.Ops)
 							semantic.LabelOp(props.Value).Add(gtx.Ops)
 							semantic.DescriptionOp(desc).Add(gtx.Ops)
 							semantic.EnabledOp(true).Add(gtx.Ops)
-							return chipface.Draw(gtx, shaper, props.Value, tok.color,
+							return toolbarface.Draw(gtx, shaper, props.Value, tok.color,
 								tok.spacing, tok.radius, tok.label, tok.density, s)
 						})
 				})
@@ -226,7 +226,7 @@ func Anchor(th rx.Observable[theme.Theme], props AnchorProps) rx.Observable[layo
 	})
 }
 
-// RenderAnchor produces a layout.Widget drawing the chrome register's trigger
+// RenderToolbar produces a layout.Widget drawing the chrome variant's trigger
 // in an explicit visual state, without event processing: the control filled
 // the measured step over s.Ground and walked by the pointer, its one-dp rim,
 // the value in the ink that clears the text floor on that fill, and the down
@@ -235,17 +235,17 @@ func Anchor(th rx.Observable[theme.Theme], props AnchorProps) rx.Observable[layo
 // edge, two dp instead of one.
 //
 // It takes no glyph, and that is the point rather than an omission: the mark
-// on a pull-down anchor is not the caller's to choose, and it does not change
-// when the menu opens. The platform's anchor says "a menu opens below this" and
-// never "this is open"; a caller that flipped the chevron would be saying the
+// on a pull-down trigger is not the caller's to choose, and it does not change
+// when the menu opens. The platform's control says "a menu opens below this"
+// and never "this is open"; a caller that flipped the chevron would be saying the
 // second thing in a vocabulary the platform reserves for a disclosure triangle.
 //
 // labelStyle is the whole text style the value is set in; pass
 // tokens.DefaultTypography.LabelLarge with tokens.Comfortable for the default
-// desktop control. The anchor is sized to its content, clamped to the
+// desktop control. The trigger is sized to its content, clamped to the
 // constraints it is handed, and asks for the pointer cursor. Extending its
-// pointer area to tokens.MinHitTarget is the live path's job — see [Anchor].
-func RenderAnchor(
+// pointer area to tokens.MinHitTarget is the live path's job — see [Toolbar].
+func RenderToolbar(
 	shaper *text.Shaper,
 	value string,
 	colors tokens.ColorTokens,
@@ -253,21 +253,21 @@ func RenderAnchor(
 	rad tokens.RadiusScale,
 	labelStyle tokens.TextStyle,
 	d tokens.Density,
-	s AnchorState,
+	s ToolbarState,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return chipface.Draw(gtx, shaper, value, colors, sp, rad, labelStyle, d,
-			chipface.State(s))
+		return toolbarface.Draw(gtx, shaper, value, colors, sp, rad, labelStyle, d,
+			toolbarface.State(s))
 	}
 }
 
-// AnchorFill is the fill the chrome register's trigger draws at on ground,
-// under the given interaction state: the platform's measured step over the
-// surface it stands on, walked by the pointer.
+// ToolbarFill is the fill the chrome variant's trigger draws at on the surface
+// named by ground, under the given interaction state: the platform's measured
+// step over that surface, walked by the pointer.
 //
 // It is exported because a window deciding what its own chrome must clear, or
-// a test measuring that ladder, needs the answer the anchor drew with, and
+// a test measuring that ladder, needs the answer the trigger drew with, and
 // re-deriving it at the call site is how two answers appear.
-func AnchorFill(c tokens.ColorTokens, ground tokens.ElevationLevel, state tokens.State) color.NRGBA {
-	return chipface.Fill(c, ground, state)
+func ToolbarFill(c tokens.ColorTokens, ground tokens.ElevationLevel, state tokens.State) color.NRGBA {
+	return toolbarface.Fill(c, ground, state)
 }

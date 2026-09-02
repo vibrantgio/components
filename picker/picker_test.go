@@ -396,20 +396,20 @@ func TestMenuSelectedRowIsDrawnApartFromTheRest(t *testing.T) {
 	}
 }
 
-// TestAnchorIsSizedToItsValue: the chrome register's trigger is a control
+// TestToolbarIsSizedToItsValue: the chrome variant's trigger is a control
 // around its value, not a bar across its container — it clamps to what it is
 // offered and otherwise reports its own width, at the density's control
 // height.
-func TestAnchorIsSizedToItsValue(t *testing.T) {
-	w := picker.RenderAnchor(defaultShaper(t), "Anthropic · Opus 5", tokens.DefaultLight,
+func TestToolbarIsSizedToItsValue(t *testing.T) {
+	w := picker.RenderToolbar(defaultShaper(t), "Anthropic · Opus 5", tokens.DefaultLight,
 		tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
-		tokens.Comfortable, picker.AnchorState{})
+		tokens.Comfortable, picker.ToolbarState{})
 	dims := measure(t, image.Pt(400, 200), w)
 	if dims.Size.X >= 400 {
-		t.Errorf("anchor measured %d px wide at a 400 px constraint: a picker's trigger is sized to its value", dims.Size.X)
+		t.Errorf("toolbar measured %d px wide at a 400 px constraint: a picker's trigger is sized to its value", dims.Size.X)
 	}
 	if want := int(tokens.Comfortable.ControlHeight); dims.Size.Y != want {
-		t.Errorf("anchor height = %d px, want the density's control height %d px", dims.Size.Y, want)
+		t.Errorf("toolbar height = %d px, want the density's control height %d px", dims.Size.Y, want)
 	}
 }
 

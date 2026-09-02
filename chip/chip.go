@@ -45,7 +45,7 @@ const (
 	// Filter narrows a set, and is the only intent that carries selection:
 	// clicking it toggles, and a selected filter fills and grows a leading
 	// checkmark. Marking a choice is this intent's job and no button's,
-	// whatever a button's emphasis register.
+	// whatever a button's emphasis.
 	Filter
 
 	// Input is a token the reader entered themselves — a recipient, a tag, a

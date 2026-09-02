@@ -37,15 +37,15 @@
 // Not a quiet button. A button is a fixture — placed by the author, always
 // there, always offering the same action; a chip appears out of content and
 // context. Marking a choice is the [Filter] chip's job and no button's,
-// whatever the button's emphasis register.
+// whatever the button's emphasis.
 //
 // Not components/badge. A badge is the system's word ABOUT a thing and is read
 // rather than used; it is off the control ladder, sized to its type, and does
 // not move under the pointer. The line between the two families is read/use.
 //
-// Not the pull-down anchor. A control that names a choice and stands over a
-// list of the alternatives is components/picker's, which draws the platform's
-// own measured pop-up capsule.
+// Not the picker's toolbar trigger. A control that names a choice and stands
+// over a list of the alternatives is components/picker's, which draws the
+// platform's own measured pop-up capsule.
 //
 // # Colour: an outline at rest, a container when selected
 //

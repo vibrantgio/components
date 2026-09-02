@@ -407,7 +407,7 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.textFieldRow(c)},
 		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 56,
 			Body: inv.toggleRow(c)},
-		{Name: "components-picker", Title: "Picker — the field closed, focused, open under its menu and disabled, then the chrome anchor", Height: 180,
+		{Name: "components-picker", Title: "Picker — the field closed, focused, open under its menu and disabled, then the chrome toolbar", Height: 180,
 			Body: inv.pickerRow(c)},
 		{Name: "components-list", Title: "List — a virtual list with its scrollbar in the gutter", Height: 180,
 			Body: inv.listBlock(c)},
@@ -1027,17 +1027,17 @@ const (
 	pickerCaptionGap = 6
 )
 
-// pickerRow shows the picker's two triggers side by side: the form-register
-// field in each of its states, then the chrome-register anchor at rest.
+// pickerRow shows the picker's two triggers side by side: the form-variant
+// field in each of its states, then the chrome-variant toolbar at rest.
 //
 // Both stand in one section because they are one component — the same
 // pick-one-from-many drawn for a form and for window furniture — and telling
-// the two registers apart is what a reader comes to this row for. The open
+// the two variants apart is what a reader comes to this row for. The open
 // field carries the third piece with it: the menu it stacks beneath itself is
 // the shared surface, so the section shows that surface without spending a
 // cell on it.
 //
-// The anchor is sized by its value rather than pinned to the field's cell
+// The toolbar trigger is sized by its value rather than pinned to the field's cell
 // width. It is the platform's pop-up control, which is as wide as what it
 // says; stretched to a form field's width it would be reporting a geometry
 // the component does not have.
@@ -1079,9 +1079,9 @@ func (inv *Inventory) pickerRow(c tokens.ColorTokens) layout.Widget {
 		}
 		return layout.Flex{}.Layout(gtx, append(cs,
 			layout.Rigid(complayout.HSpacer(pickerCellGap)),
-			layout.Rigid(cell("Anchor", picker.RenderAnchor(inv.shaper, opts[0], c,
+			layout.Rigid(cell("Toolbar", picker.RenderToolbar(inv.shaper, opts[0], c,
 				tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
-				tokens.Comfortable, picker.AnchorState{}))))...)
+				tokens.Comfortable, picker.ToolbarState{}))))...)
 	}
 }
 
