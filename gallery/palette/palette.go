@@ -308,10 +308,12 @@ const (
 	// pair resolves from.
 	PickSurfaceRole = "Surface"
 	PickTextRole    = "Text"
-	// PickContainerRule is a status container: its role's own rung, kept at
-	// that rung's tone and hue with the chroma pulled down to the containers'
-	// shared chroma. Naming the rung is what makes it findable on the grid.
-	PickContainerRule = "%s %d, held at the container chroma"
+	// PickContainerRule is a status container: its role's own rung's depth,
+	// at the role's anchor hue and the containers' shared chroma. Naming the
+	// rung is what makes the depth findable on the grid; the hue is not that
+	// rung's, because a wash carries its role's hue at every depth it is
+	// drawn at (theme's containers.go).
+	PickContainerRule = "%s %d's depth, at the container chroma"
 	// PickMarkRule is the mark read on a container: a rung of the role's own
 	// ramp, chosen against the container rather than against a page.
 	PickMarkRule = "%s %d, measured over the container"
@@ -577,8 +579,9 @@ func containerCell(role string, c tokens.ColorTokens, id tokens.Role, r tokens.R
 // at, and what was done to that rung to get it.
 //
 // The rung is found by tone (lightness) rather than by colour: a container
-// keeps its rung's lightness and hue but gives up chroma, so comparing bytes
-// finds nothing and lightness is the one dimension that survives intact.
+// keeps its rung's lightness, takes its hue from the ramp's pale tint depth
+// and gives up chroma, so comparing bytes finds nothing and lightness is the
+// one dimension that survives intact.
 //
 // It claims that rung unconditionally, even where the container is not close
 // enough to be mistaken for it — the dot on the grid always marks the step a
