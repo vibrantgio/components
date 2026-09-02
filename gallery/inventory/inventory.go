@@ -399,7 +399,7 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.emphasisButtonRow(c)},
 		{Name: "components-button-pinned", Title: "Button — the register's own fill, and one pinned from outside the palette", Height: 36,
 			Body: inv.pinnedButtonRow(c)},
-		{Name: "components-chip", Title: "Chip — rest, hover, press and focus, on three storeys", Height: chipBlockH,
+		{Name: "components-chip", Title: "Chip — the four purposes on three levels, then rest, hover, press and focus", Height: chipBlockH,
 			Body: inv.chipBlock(c)},
 		{Name: "components-badge", Title: "Badge — the five variants on three storeys, the three utterances, and the close mark", Height: badgeBlockH,
 			Body: inv.badgeBlock(c)},
@@ -535,12 +535,12 @@ func (inv *Inventory) pinnedButtonRow(c tokens.ColorTokens) layout.Widget {
 	})
 }
 
-// The chip section's measurements. The pill is the density's control height,
-// and the storey it stands on has to show all round it — a chip captured flush
-// with the edge of its ground is a chip nobody can judge the rim of, which is
-// the one thing the light scheme has to carry the pill with. So each storey is
-// drawn as a panel with the chips inset inside it, and the section is exactly
-// three of those plus the air between them.
+// The chip section's measurements. A resting chip is an outline and no fill,
+// and the surface it stands on has to show all round it — a chip captured
+// flush with the edge of that surface is a chip nobody can judge the rim of,
+// which is the whole of what the light scheme has to carry it with. So each
+// level is drawn as a panel with the chips inset inside it, and the state rows
+// stand on the page below them.
 const (
 	chipPanelPadX unit.Dp = 16
 	chipPanelPadY unit.Dp = 12
@@ -549,33 +549,116 @@ const (
 	chipCaptionW  unit.Dp = 108
 )
 
-// The section's own height, derived from the pill rather than chosen: the
-// density says how tall a control is, and a slot written as a number would
-// have to be re-guessed the day that changed.
+// The section's own height, derived from the chip rather than chosen: the
+// density says how tall a chip is, and a slot written as a number would have
+// to be re-guessed the day that changed.
 var (
-	chipPanelH = unit.Dp(tokens.Comfortable.ControlHeight) + 2*chipPanelPadY
-	chipBlockH = 3*chipPanelH + 2*chipRowGap
+	chipH      = unit.Dp(tokens.Comfortable.ChipHeight())
+	chipPanelH = chipH + 2*chipPanelPadY
+	chipBlockH = 3*chipPanelH + 2*chipH + 4*chipRowGap
 )
 
-// chipStoreys are the grounds the section shows the chip on, in the order the
+// chipLevels are the surfaces the section shows the chip on, in the order the
 // ladder stacks them: the paper a page is written on, a card raised over it,
 // and a dialog floating above that. Three rather than one because the chip's
-// whole colour model is relative — every colour it draws is derived from the
-// storey it was handed — so a specimen on one ground says nothing about what
-// the component does on another.
-var chipStoreys = []struct {
-	name   string
-	ground tokens.ElevationLevel
+// whole colour model is relative — every colour it draws is derived against
+// the surface it was handed — so a specimen on one level says nothing about
+// what the component does on another.
+var chipLevels = []struct {
+	name  string
+	level tokens.ElevationLevel
 }{
 	{"On the paper", tokens.Level0},
 	{"On a card", tokens.Level1},
 	{"In a dialog", tokens.Level2},
 }
 
-// chipBlock draws the chip in the states the pointer and the keyboard put it
-// in, one row per storey in [chipStoreys].
+// chipPurposes are the four purposes a chip can be given, each drawn doing its
+// own job and labelled as a caller would really label it: the assist chip
+// offering an action behind a sign for it, the filter chip twice because
+// selection is the one state only it has, the input chip with the avatar slot
+// and the dismiss mark it always carries, and the suggestion chip as words
+// alone. Placeholder labels would leave a reader unable to tell which of the
+// four to reach for.
+var chipPurposes = []struct {
+	label    string
+	purpose  chip.Intent
+	icon     chip.Glyph
+	selected bool
+}{
+	{"Set reminder", chip.Assist, chipPlus, false},
+	{"Unread", chip.Filter, nil, false},
+	{"Starred", chip.Filter, nil, true},
+	{"Olivia Barnes", chip.Input, chipAvatar, false},
+	{"What's due today?", chip.Suggestion, nil, false},
+}
+
+// chipPlus is the sign the assist specimen leads with, drawn as a vector
+// rather than rasterised from a font or an SVG so the stored images hold
+// still. Its ink spans most of the box the chip reserves, which is what the
+// Glyph contract asks.
+func chipPlus(gtx layout.Context, sizePx int, col color.NRGBA) {
+	w := float32(sizePx)
+	stroke := float32(gtx.Dp(unit.Dp(1.5)))
+	if stroke < 1 {
+		stroke = 1
+	}
+	var p clip.Path
+	p.Begin(gtx.Ops)
+	p.MoveTo(f32.Pt(w*0.5, w*0.16))
+	p.LineTo(f32.Pt(w*0.5, w*0.84))
+	p.MoveTo(f32.Pt(w*0.16, w*0.5))
+	p.LineTo(f32.Pt(w*0.84, w*0.5))
+	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: stroke}.Op())
+}
+
+// chipAvatar is the picture the input specimen carries in its leading slot: a
+// ring with a figure inside it, the stand-in every address field draws where a
+// photograph has not loaded. The chip clips this box round, so the ring is
+// drawn half a stroke inside the box and the figure is kept clear of the
+// boundary the clip will cut.
+func chipAvatar(gtx layout.Context, sizePx int, col color.NRGBA) {
+	w := float32(sizePx)
+	stroke := float32(gtx.Dp(unit.Dp(1.5)))
+	if stroke < 1 {
+		stroke = 1
+	}
+	inset := int(stroke/2 + 0.5)
+	ring := clip.Ellipse{Min: image.Pt(inset, inset), Max: image.Pt(sizePx-inset, sizePx-inset)}
+	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: ring.Path(gtx.Ops), Width: stroke}.Op())
+	head := clip.Ellipse{
+		Min: image.Pt(int(w*0.36), int(w*0.22)),
+		Max: image.Pt(int(w*0.64), int(w*0.50)),
+	}
+	paint.FillShape(gtx.Ops, col, head.Op(gtx.Ops))
+	shoulders := clip.Ellipse{
+		Min: image.Pt(int(w*0.24), int(w*0.60)),
+		Max: image.Pt(int(w*0.76), int(w*0.96)),
+	}
+	paint.FillShape(gtx.Ops, col, shoulders.Op(gtx.Ops))
+}
+
+// chipBlock shows the four purposes in one row and the states under them: the
+// purposes once per level, then the same chip through what the pointer and the
+// keyboard put it in, unselected and selected.
+//
+// The purposes are drawn once per level, because every colour a chip draws is
+// derived against the surface it stands on and a specimen on one level says
+// nothing about the others. The state rows below stand on the page: what they
+// ask a reader to judge — whether the body that arrives under the pointer
+// still holds its label, and whether the focus ring reads as the edge — is the
+// same question on every level, and asking it three times would bury the two
+// rows that are not the same. Both rests are there because the two walk from
+// different places: an unselected chip walks from the surface it stands on, a
+// selected one from the container it wears.
 func (inv *Inventory) chipBlock(c tokens.ColorTokens) layout.Widget {
-	mark := chip.Glyph(inv.marks.Mark(icons.Disclosure))
+	specimen := func(label string, purpose chip.Intent, icon chip.Glyph, st chip.RenderState) layout.Widget {
+		return chip.Render(inv.shaper, label, purpose, icon, c,
+			tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
+			tokens.Comfortable, st)
+	}
+	// The state rows label each chip with the state it is in, so the row reads
+	// without a caption under every cell.
 	states := []struct {
 		label string
 		st    chip.RenderState
@@ -585,48 +668,79 @@ func (inv *Inventory) chipBlock(c tokens.ColorTokens) layout.Widget {
 		{"Press", chip.RenderState{Pressed: true}},
 		{"Focus", chip.RenderState{Focused: true}},
 	}
-	row := func(storey struct {
-		name   string
-		ground tokens.ElevationLevel
-	}) layout.Widget {
-		cs := make([]layout.FlexChild, 0, 2*len(states))
+	stateRow := func(selected bool) []layout.Widget {
+		cells := make([]layout.Widget, 0, len(states))
 		for _, s := range states {
-			if len(cs) > 0 {
-				cs = append(cs, layout.Rigid(complayout.HSpacer(float32(chipChipGap))))
-			}
 			st := s.st
-			st.Ground = storey.ground
-			cs = append(cs, layout.Rigid(chip.Render(inv.shaper, s.label, chip.Assist, mark, c,
-				tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
-				tokens.Comfortable, st)))
+			st.Selected = selected
+			cells = append(cells, specimen(s.label, chip.Filter, nil, st))
 		}
-		// The caption stands inside the band rather than beside it. A label
-		// naming a ground while sitting on a different one is a label about
-		// the row and not about the surface.
+		return cells
+	}
+	rows := []struct {
+		caption string
+		cells   []layout.Widget
+	}{
+		{"Unselected", stateRow(false)},
+		{"Selected", stateRow(true)},
+	}
+	// The caption stands inside the band rather than beside it. A label naming
+	// a surface while sitting on a different one is a label about the row and
+	// not about the surface.
+	panel := func(lv struct {
+		name  string
+		level tokens.ElevationLevel
+	}) layout.Widget {
+		cells := make([]layout.Widget, 0, len(chipPurposes))
+		for _, p := range chipPurposes {
+			cells = append(cells, specimen(p.label, p.purpose, p.icon,
+				chip.RenderState{Ground: lv.level, Selected: p.selected}))
+		}
 		band := func(gtx layout.Context) layout.Dimensions {
 			return complayout.InsetXY(float32(chipPanelPadX), float32(chipPanelPadY)).Layout(gtx,
-				func(gtx layout.Context) layout.Dimensions {
-					row := append([]layout.FlexChild{
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							gtx.Constraints.Min.X = gtx.Dp(chipCaptionW)
-							gtx.Constraints.Max.X = gtx.Dp(chipCaptionW)
-							return LabelAt(gtx, inv.shaper, storey.name, c.Ramps.Neutral.Step(600), 11, font.Font{})
-						}),
-					}, cs...)
-					return layout.Flex{Alignment: layout.Middle}.Layout(gtx, row...)
-				})
+				chipLine(inv, c, lv.name, cells))
 		}
-		return storeyPanel(c.SurfaceAt(storey.ground), band)
+		return storeyPanel(c.SurfaceAt(lv.level), band)
 	}
 	return func(gtx layout.Context) layout.Dimensions {
-		cs := make([]layout.FlexChild, 0, 2*len(chipStoreys))
-		for i, storey := range chipStoreys {
-			if i > 0 {
+		cs := make([]layout.FlexChild, 0, 2*(len(chipLevels)+len(rows)))
+		for _, lv := range chipLevels {
+			if len(cs) > 0 {
 				cs = append(cs, layout.Rigid(complayout.VSpacer(float32(chipRowGap))))
 			}
-			cs = append(cs, layout.Rigid(row(storey)))
+			cs = append(cs, layout.Rigid(panel(lv)))
+		}
+		for _, r := range rows {
+			line := chipLine(inv, c, r.caption, r.cells)
+			cs = append(cs, layout.Rigid(complayout.VSpacer(float32(chipRowGap))))
+			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				// Indented by the panel's own padding so every caption in the
+				// section starts at one x, panel or page.
+				return complayout.InsetXY(float32(chipPanelPadX), 0).Layout(gtx, line)
+			}))
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
+	}
+}
+
+// chipLine lays a captioned row of chips out: the caption in a fixed column so
+// every row in the section starts at one x, then the cells across the
+// section's own gap.
+func chipLine(inv *Inventory, c tokens.ColorTokens, caption string, cells []layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		cs := make([]layout.FlexChild, 0, 2*len(cells)+1)
+		cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min.X = gtx.Dp(chipCaptionW)
+			gtx.Constraints.Max.X = gtx.Dp(chipCaptionW)
+			return LabelAt(gtx, inv.shaper, caption, c.Ramps.Neutral.Step(600), 11, font.Font{})
+		}))
+		for i, cell := range cells {
+			if i > 0 {
+				cs = append(cs, layout.Rigid(complayout.HSpacer(float32(chipChipGap))))
+			}
+			cs = append(cs, layout.Rigid(cell))
+		}
+		return layout.Flex{Alignment: layout.Middle}.Layout(gtx, cs...)
 	}
 }
 
