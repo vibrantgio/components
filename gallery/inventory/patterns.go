@@ -58,7 +58,7 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 		// of the section below.
 		{Name: "patterns-toast", Title: "Toast — the transient message at every level", Height: 177,
 			Body: inv.toasts(c)},
-		{Name: "patterns-card", Title: "Card — flat and elevated, header, body and footer", Height: 150,
+		{Name: "patterns-card", Title: "Card — outlined and filled, header, body and footer", Height: 150,
 			Body: inv.cards(c)},
 		{Name: "patterns-accordion", Title: "Accordion — one section open, the rest closed", Height: 240,
 			Body: inv.accordion(c)},
@@ -246,30 +246,26 @@ func (inv *Inventory) cards(c tokens.ColorTokens) layout.Widget {
 		"surface of its own.",
 	)
 	return func(gtx layout.Context) layout.Dimensions {
-		one := func(title string, elevated bool) layout.Widget {
-			// The footer badge's fill is derived against the card's own
-			// level rather than the page's: a flat card is a level-1
-			// surface and an elevated one a level-2.
-			level := tokens.Level1
-			if elevated {
-				level = tokens.Level2
-			}
+		one := func(title string, filled bool) layout.Widget {
 			return func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(260))
 				gtx.Constraints.Min = gtx.Constraints.Max
 				return card.Render(card.Props{
 					Header: header(title),
 					Body:   body,
+					// The footer badge's fill is derived against the card's
+					// own level rather than the page's, and both looks stand
+					// at level 1.
 					Footer: badge.Render(inv.shaper, "Footer", nil, badge.Neutral, c, tokens.Spacing,
-						tokens.Radius, inv.badgeStyle(), badge.RenderState{Level: level}),
-					Elevated: elevated,
+						tokens.Radius, inv.badgeStyle(), badge.RenderState{Level: tokens.Level1}),
+					Filled: filled,
 				}, c, tokens.Spacing, tokens.Radius)(gtx)
 			}
 		}
 		return layout.Flex{}.Layout(gtx,
-			layout.Rigid(one("Flat", false)),
+			layout.Rigid(one("Outlined", false)),
 			layout.Rigid(complayout.HSpacer(20)),
-			layout.Rigid(one("Elevated", true)),
+			layout.Rigid(one("Filled", true)),
 		)
 	}
 }
