@@ -72,7 +72,7 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 			Body: inv.navbar(c)},
 		{Name: "patterns-sidebar", Title: "Sidebar — expanded beside its collapsed rail", Height: 210,
 			Body: inv.sidebar(c)},
-		{Name: "patterns-pane", Title: "Floating pane — chrome that floats inside the window's edges, with ground on every side of it", Height: paneSpecimenH,
+		{Name: "patterns-pane", Title: "Pane — chrome set in from the window's edges, with the backdrop on every side of it", Height: paneSpecimenH,
 			Body: inv.pane(c)},
 		{Name: "patterns-table", Title: "Table — sortable columns, sorted ascending on the first", Height: 176,
 			Body: inv.table(c)},
@@ -384,19 +384,16 @@ func (inv *Inventory) sidebar(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-// The floating pane specimen's measurements.
+// The pane specimen's measurements.
 //
-// The pane is furniture inside a window, not a widget on a page: the inset,
+// The pane is chrome inside a window, not a component on a page: the inset,
 // the corner radius and the internal hairline only say what they say when the
-// window's own surface shows around them. So the specimen draws a window of
-// its own inside the slot, and the pane floats in that.
+// backdrop shows around them. So the specimen draws a window of its own
+// inside the slot, and the pane stands in that.
 //
-// The window is outlined with a hairline because the fill it paints is the
-// scheme's Background — which is exactly what the section row itself is
-// painted in, so without the outline the window has no edge and the pane
-// reads as floating on the page rather than inside anything. The outline is
-// the specimen's frame and not the pattern's: nothing in the pane package
-// draws it.
+// The window needs no outline of its own: it paints the backdrop, which is a
+// tint darker than everything the section row around it is painted in, so the
+// darker rectangle is the window's edge.
 const (
 	paneSpecimenW unit.Dp = 560
 	paneSpecimenH unit.Dp = 200
@@ -409,15 +406,14 @@ const (
 	paneGutter unit.Dp = 16
 )
 
-// pane draws the floating pane beside the content it floats over: the window
-// surface visible on every side of it, the rounded corners and the hairline
-// just inside its own edge, and a document column starting where the pane
-// stops.
+// pane draws the pane beside the content it stands over: the backdrop
+// visible on every side of it, the rounded corners and the hairline just
+// inside its own edge, and a document column starting where the pane stops.
 //
 // The content beside it is what makes the specimen a specimen. A pane alone
 // in a box shows a rounded rectangle; a pane with a document reflowed against
 // it shows the one thing the pattern is for — that the pane is an object
-// standing on the window rather than an edge of it.
+// standing on the window's own plane rather than an edge of it.
 func (inv *Inventory) pane(c tokens.ColorTokens) layout.Widget {
 	contents := func(gtx layout.Context) layout.Dimensions {
 		// The strip at the top of the pane is the window buttons' band. This
@@ -441,7 +437,9 @@ func (inv *Inventory) pane(c tokens.ColorTokens) layout.Widget {
 		// narrower than that, the way every other bounded specimen here is.
 		size := image.Pt(min(gtx.Constraints.Max.X, gtx.Dp(paneSpecimenW)), gtx.Dp(paneSpecimenH))
 		gtx.Constraints = layout.Exact(size)
-		paint.FillShape(gtx.Ops, c.Background, clip.Rect{Max: size}.Op())
+		// The window's plane, which is what an inset pane stands on: nothing
+		// is drawn at the backdrop and it shows wherever nothing stands.
+		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelBackdrop), clip.Rect{Max: size}.Op())
 
 		b := pane.Bounds(gtx, size, paneColumnW, false)
 		pane.Layout(gtx, c, b, contents)
@@ -456,17 +454,16 @@ func (inv *Inventory) pane(c tokens.ColorTokens) layout.Widget {
 		inv.prose(c,
 			"The document beside it",
 			"",
-			"A pane floats one margin inside the",
+			"A pane stands one margin inside the",
 			"window's leading, top and bottom edges,",
-			"with ground showing all the way round it.",
+			"with the backdrop showing round it.",
 			"",
-			"Its storey is the floor, a step darker",
+			"It is at the chrome level, a step darker",
 			"than the paper: a pane is read through",
-			"its edge and not through its lightness.",
+			"its edges and not through its lightness.",
 		)(doc)
 		off.Pop()
 
-		swatchBorder(gtx, c.Divider, size, 1)
 		return layout.Dimensions{Size: size}
 	}
 }
