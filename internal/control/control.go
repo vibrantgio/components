@@ -67,30 +67,30 @@ func Border(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
 
 // Fill is the interior of a control that paints a box of its own — the
 // unchecked box, the unselected radio's gap ring, the text field, the picker's
-// field trigger: the fill of the storey one rung nearer the viewer than the
-// ground the control stands on.
+// field trigger: the raise walked from the surface the control stands on.
 //
-// It is a rung walked from the ground the control was handed, never an
-// absolute step: a field on the paper fills at level 1, the same field inside
-// a level-2 dialog fills at level 3, and one on a sidebar fills at the paper's
-// storey. Level 3 is the ceiling and a control already there stays there.
+// It is walked from the level the control was handed, never an absolute step
+// ([tokens.ColorTokens.RaisedOn]): a field on the content fills one step
+// above the content, the same field inside a dialog fills one step above the
+// dialog, and one on a sidebar fills at the content's own depth. Where the
+// scheme has no step left the walk clamps and the raise is flush with its
+// host.
 //
 // The Surface alias cannot serve here, and that is a pairing rather than a
 // colour in exactly the way the named border step was. Surface is the neutral
 // ramp's step 200, and the paired ramps realize step 200 at the same
 // perceptual depth from opposite ends: in the dark scheme that lands on the
-// raised storey by coincidence — #222222 is both — and in the light scheme it
-// lands on nothing the ladder carries. A field filled #E8E8E8 on its #F6F6F6
-// page is painted below the paper it lies on, and the paper is the darkest
-// thing in the window. A surface nearer the viewer is lighter in both
-// schemes, and a control that fills a box on its host is raised on it.
+// raised level by coincidence — #222222 is both — and in the light scheme on
+// nothing the elevation carries. A surface nearer the viewer is never darker
+// in either scheme, and a control that fills a box on its host is raised on
+// it.
 //
-// In the light scheme the rungs above the pin are whispers — #F8F8F8 over
-// #F6F6F6 — so what says where the control is, is the [Border] hairline and
-// the corner radius; that trade is the ladder's, stated in full in the tokens
-// package's elevation header.
+// A raise that the scheme cannot tell by its fill owes a seam
+// ([tokens.Raise.Seamed]); this one never draws a second hairline for it,
+// because [Border] is already a 3:1 mark around exactly that pairing and two
+// lines saying one thing is worse than one.
 func Fill(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
-	return c.SurfaceAt(ground.Raised())
+	return c.RaisedOn(c.SurfaceAt(ground)).Fill
 }
 
 // Placeholder is the ink of a control's prompt: the wording a text field or a

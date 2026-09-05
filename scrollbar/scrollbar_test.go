@@ -59,7 +59,7 @@ func TestFromTokens(t *testing.T) {
 		thumbStep, thumbAlpha int
 		hoverStep, hoverAlpha int
 	}{
-		{"DefaultLight", tokens.DefaultLight, 900, 182, 900, 213},
+		{"DefaultLight", tokens.DefaultLight, 900, 184, 900, 214},
 		{"DefaultDark", tokens.DefaultDark, 700, 100, 700, 170},
 	}
 	for _, tc := range cases {

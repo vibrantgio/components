@@ -270,10 +270,9 @@ func writable(c tokens.ColorTokens, fill color.NRGBA) bool {
 // promise about the other, and this family's inner side moves besides — one
 // and two steps under the pointer, and in the dark scheme those steps are
 // long. Aimed at the surface alone, the rim lands ON the pressed fill at level
-// 1 — 1.00:1, the same colour twice — and aimed at the fill alone it vanishes
-// into that surface at rest in the light scheme, where the level step is
-// 1.02:1
-// and the rim is the only thing there is. So both candidates are derived and
+// 1 — 1.00:1, the same colour twice — and aimed at the fill alone it comes
+// too close to that surface at rest in the light scheme, where the raise off
+// the content measures 1.13:1 and the rim is the only thing there is. So both candidates are derived and
 // the one that clears both sides is kept, which is the rule every two-sided
 // edge in this library takes (components/internal/control's border, the focus
 // ring that replaces this rim).

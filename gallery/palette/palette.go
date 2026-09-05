@@ -297,6 +297,12 @@ const (
 	// PickOffRamp is a neutral resolution off the neutral ramp; no derivation
 	// shipping today produces this case.
 	PickOffRamp = "off the neutral ramp"
+	// PickContentPin is the content plane's rule where the neutral band
+	// offers nothing above its own 100 stop: the pin stands one band step
+	// under the tonal axis so that the first raise on it has a whole step to
+	// take. Where the band climbs away from its 100 stop the pin IS that
+	// stop and is named as one.
+	PickContentPin = "one band step under white"
 	// The side of the scheme the caller is not showing, filled in with that
 	// side's own role name: a light window's inverse surface is the dark
 	// scheme's Surface exactly, so it is named as that role rather than as a
@@ -489,7 +495,7 @@ func Groups(c, other tokens.ColorTokens, dark bool) []Group {
 			// The page and the ink it is read in: the one pair in the theme
 			// that is two pins rather than a pin and a measurement.
 			{
-				Base: neutralPart(BackgroundPick, n, c.Background),
+				Base: backgroundPart(n, c.Background),
 				Ink:  neutralPart(TextPick, n, c.Text),
 				Fill: c.Background, On: c.Text,
 			},
@@ -715,6 +721,17 @@ func neutralPart(name string, n tokens.Ramp, col stdcolor.NRGBA) Part {
 	part := BasePart(NeutralName, n, col, PickJustOff, PickOffRamp)
 	part.Name = name
 	return part
+}
+
+// backgroundPart names where the content plane's pin came from: the neutral
+// step it landed on, or — where the band has nothing above its 100 stop and
+// the pin stepped down off the axis to keep headroom for its first raise —
+// that rule, and no step, since the pin is on no ramp step.
+func backgroundPart(n tokens.Ramp, col stdcolor.NRGBA) Part {
+	if StepIn(n, col) != 0 {
+		return neutralPart(BackgroundPick, n, col)
+	}
+	return Part{Name: BackgroundPick, Role: NeutralName, Rule: PickContentPin}
 }
 
 // inkPart names what the derivation put over the base and kept: one of the
