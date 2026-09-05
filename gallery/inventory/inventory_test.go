@@ -39,7 +39,7 @@ func testInventory(t *testing.T) *Inventory {
 }
 
 // shot captures one section's slot exactly as the column lays it out: the
-// scheme's ground, the section's own height, and nothing else on it.
+// scheme's content plane, the section's own height, and nothing else on it.
 func shot(t *testing.T, c tokens.ColorTokens, s Section) *image.RGBA {
 	t.Helper()
 	return golden.Capture(t, image.Pt(sampleWidth, int(s.Height)+40), sectionBody(c, s))
@@ -87,7 +87,7 @@ func TestNoSectionIsPinnedToAScheme(t *testing.T) {
 // specimen whose subject is a fill the palette does not choose has to hold
 // still while the scheme flips, or it is not showing what it says it shows.
 // The carve-out is by name and cannot widen quietly — the section it names
-// carries the register's own fill in the same row, and the assertion below
+// carries the theme's own fill in the same row, and the assertion below
 // requires that half to keep moving, so a section that stopped following its
 // tokens by accident could not hide in here.
 var schemeFixedSections = map[string]bool{"components-button-pinned": true}
@@ -106,11 +106,11 @@ func sectionNamed(t *testing.T, inv *Inventory, c tokens.ColorTokens, name strin
 }
 
 // TestThePinnedFillHoldsWhileTheSchemeFlips is the scheme hunt inverted, on
-// the one row that must fail it. Both cells are captured in both schemes:
-// the register's own fill has to move, because it is the palette's; the
-// pinned one has to come back the exact colour it was handed, because it is
-// the caller's. Either half alone would pass for the wrong reason — a row
-// that stopped drawing at all holds still too.
+// the one row that must fail it. Both cells are captured in both schemes: the
+// theme's own fill has to move, because it is the palette's; the pinned one
+// has to come back the exact colour it was handed, because it is the caller's.
+// Either half alone would pass for the wrong reason — a row that stopped
+// drawing at all holds still too.
 func TestThePinnedFillHoldsWhileTheSchemeFlips(t *testing.T) {
 	inv := testInventory(t)
 	light, dark := tokens.FromSeed(seedA)
@@ -128,7 +128,7 @@ func TestThePinnedFillHoldsWhileTheSchemeFlips(t *testing.T) {
 	pinnedX := int(SectionPadX+ButtonCellW+ButtonCellGap) + 10
 
 	if got, want := lit.RGBAAt(stockX, y), drk.RGBAAt(stockX, y); got == want {
-		t.Errorf("the register's own fill is %v in both schemes; the control half of this row has stopped following its tokens", got)
+		t.Errorf("the theme's own fill is %v in both schemes; the control half of this row has stopped following its tokens", got)
 	}
 	want := color.RGBA{R: PinnedFill.R, G: PinnedFill.G, B: PinnedFill.B, A: PinnedFill.A}
 	for _, c := range []struct {
@@ -143,13 +143,13 @@ func TestThePinnedFillHoldsWhileTheSchemeFlips(t *testing.T) {
 }
 
 // schemeFloor is the share of a section's slot that must move when the scheme
-// flips. Every section measures over 99.98% today — the ground itself
-// inverts, so all a section leaves standing is the odd antialiased pixel
-// where two edges happen to blend to the same byte — and the floor is set
-// just under the whole slot rather than at some cautious fraction. A fraction
-// is what lets a pinned surface hide: a popup drawn light on a dark page,
-// with its panel a fifth of the slot it sits in, would pass any floor below
-// about 80% as well themed.
+// flips. Every section measures over 99.98% today — the content plane itself
+// inverts, so all a section leaves standing is the odd antialiased pixel where
+// two edges happen to blend to the same byte — and the floor is set just under
+// the whole slot rather than at some cautious fraction. A fraction is what
+// lets a pinned surface hide: a popup drawn light on a dark page, with its
+// panel a fifth of the slot it sits in, would pass any floor below about 80%
+// as well themed.
 const schemeFloor = 99.5
 
 // TestTheSeedReachesEveryGroup: a brand colour is meant to reach all four
@@ -205,9 +205,9 @@ func TestTheCodeSpecimenIsLast(t *testing.T) {
 	}
 }
 
-// TestTheSchemeControlIsAControl measures the light/dark control on both
-// sides of the scheme: the target each half offers a pointer, and how far each
-// glyph stands off the ground it is drawn on.
+// TestTheSchemeControlIsAControl measures the light/dark control on both sides
+// of the scheme: the target each half offers a pointer, and how far each glyph
+// stands off the surface it is drawn on.
 //
 // Both halves are measured, not only the current one. A segment control says
 // what it does by showing the choice that is not in force beside the one that
@@ -240,7 +240,7 @@ func TestTheSchemeControlIsAControl(t *testing.T) {
 				}
 				ink, ground := schemeSegmentInks(sc.c, selected)
 				ratio := themecolor.ContrastRatio(ink, ground)
-				t.Logf("%s scheme, %s segment, selected=%v: glyph %.2f:1 on its ground",
+				t.Logf("%s scheme, %s segment, selected=%v: glyph %.2f:1 on the fill behind it",
 					sc.name, map[bool]string{false: "sun", true: "moon"}[dark], selected, ratio)
 				if ratio < schemeGlyphFloor {
 					t.Errorf("%s: a glyph on a segment with selected=%v measures %.2f:1, want at least %.1f:1",
@@ -375,7 +375,8 @@ const (
 	schemeGlyphFloor = 3.0
 	// schemeTrackFloor is how far the control as a whole has to stand off the
 	// page. It is a shape rather than a mark, so the floor is set where a flat
-	// fill stops being mistakable for the ground and not at the mark's.
+	// fill stops being mistakable for the surface it stands on and not at the
+	// mark's.
 	schemeTrackFloor = 1.3
 )
 

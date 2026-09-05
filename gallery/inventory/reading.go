@@ -1,10 +1,10 @@
 // The reading sample: the prose surface, rendered by the real markdown
 // renderer rather than mocked up out of labels.
 //
-// A theme is judged on running text as much as on controls — heading ladder,
-// link colour, code chip against the body, table rules, checkbox marks — and
-// none of that shows on a page of widgets. The sample below is chosen to put
-// every one of those on screen at once.
+// A theme is judged on running text as much as on controls — the heading
+// steps, link colour, code chip against the body, table rules, checkbox marks
+// — and none of that shows on a page of components. The sample below is chosen
+// to put every one of those on screen at once.
 //
 // Code gets a sample of its own, for the same reason and one more: a syntax
 // palette is a dozen decisions — keyword against string against number
@@ -22,7 +22,7 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// readingSample exercises, in order: the heading ladder, a paragraph carrying
+// readingSample exercises, in order: the heading steps, a paragraph carrying
 // links and inline code chips, a bullet list, an ordered list, a task list
 // with both states, a table, a blockquote, a rule, and a fenced code block
 // whose longest line overflows so the horizontal scroll shows.
@@ -37,7 +37,7 @@ const readingSample = "" +
 	"and some **bold** and *italic* and ~~struck~~ runs to set the weight\n" +
 	"against the body.\n" +
 	"\n" +
-	"### Heading three, where the ladder starts to flatten\n" +
+	"### Heading three, where the steps start to flatten\n" +
 	"\n" +
 	"- A bullet list item\n" +
 	"- A second one, with `code` inside it\n" +
@@ -59,7 +59,7 @@ const readingSample = "" +
 	"| Markdown | Document  |        1 |\n" +
 	"\n" +
 	"> A blockquote stands off the page on its own bar, and is where a\n" +
-	"> surface's quiet text colour gets tested.\n" +
+	"> surface's muted text colour gets tested.\n" +
 	"\n" +
 	"---\n" +
 	"\n" +
@@ -86,11 +86,11 @@ const readingSample = "" +
 // specimen arranged for the palette's convenience would flatter it.
 //
 // The comments are kept short and few, which is the one way this excerpt is
-// unlike the code it stands for. A comment is the widest run on any line it
-// is on, and a specimen written with the doc comments real code deserves puts
-// the comment colour over most of the plate — leaving the reader judging a
-// palette by the one ink it spends least effort on, with the keywords and
-// strings the choice actually turns on crowded into the margins.
+// unlike the code it stands for. A comment is the widest run on any line it is
+// on, and a specimen written with the doc comments real code deserves puts the
+// comment colour over most of the plate — leaving the reader judging a palette
+// by the one colour it spends least effort on, with the keywords and strings
+// the choice actually turns on crowded into the margins.
 const codeSample = "" +
 	"```go\n" +
 	"// Package berth assigns vessels to the quay they fit on.\n" +
@@ -195,10 +195,10 @@ func (inv *Inventory) SetCodeBase(name string) {
 // default for that appearance, as does one it does not recognise.
 func (inv *Inventory) SetCodeBases(p highlight.BasePair) { inv.codeBases = p }
 
-// wear puts the chosen palette on st's fenced code: the appearance c
-// describes picks the member, and that member's own ground, inks and body
-// colour are what a block is drawn with. A name that no longer resolves falls
-// back to the default for its appearance rather than failing the page.
+// wear puts the chosen palette on st's fenced code: the appearance c describes
+// picks the member, and that member's own fill, its syntax colours and its
+// body colour are what a block is drawn with. A name that no longer resolves
+// falls back to the default for its appearance rather than failing the page.
 func (inv *Inventory) wear(st *markdown.Style, c tokens.ColorTokens) {
 	highlight.WearPair(st, highlight.BasePair{
 		Light: highlight.BaseOrDefault(inv.codeBases.Light),
@@ -208,10 +208,11 @@ func (inv *Inventory) wear(st *markdown.Style, c tokens.ColorTokens) {
 
 func (inv *Inventory) readingBody(c tokens.ColorTokens) layout.Widget {
 	style := markdown.FromTokens(c, inv.typography())
-	// The chosen base, worn whole: the fence takes the ground its author drew
-	// their inks on, and the inks as they were drawn. Everything around it —
-	// the page, the prose, the chip an inline span sits on — stays the theme's,
-	// which is what makes the two judgeable side by side on one screen.
+	// The chosen base, worn whole: the fence takes the fill its author drew
+	// their colours on, and those colours as they were drawn. Everything
+	// around it — the page, the prose, the chip an inline span sits on — stays
+	// the theme's, which is what makes the two judgeable side by side on one
+	// screen.
 	inv.wear(&style, c)
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(560))

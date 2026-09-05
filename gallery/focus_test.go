@@ -54,10 +54,10 @@ var focusLevels = []struct {
 // levels. It is the image the single-colour rule is reviewed against: fifteen
 // cells whose rings either agree or visibly do not.
 //
-// The button is the one cell that may disagree, and only in the filled
-// register: its band lies inside a solid primary fill, where no step of the
-// primary ramp reads, so it is walked against that fill instead
-// (components/internal/focus, RingOn). Every other cell draws the scheme's ring.
+// The button is the one cell that may disagree, and only at Filled emphasis:
+// its band lies inside a solid primary fill, where no step of the primary ramp
+// reads, so it is walked against that fill instead (components/internal/focus,
+// RingOn). Every other cell draws the scheme's ring.
 //
 // One image per scheme rather than one per level, because the claim is about
 // what the rows share; a per-level image would show each row agreeing with

@@ -44,9 +44,9 @@ import (
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
 )
 
-// pageNames is the sidebar, in order. Everything comes first because it is
-// the page the whole surface is judged on; the per-family pages that follow
-// are for close-up work on one widget at a time.
+// pageNames is the sidebar, in order. Everything comes first because it is the
+// page the whole surface is judged on; the per-family pages that follow are
+// for close-up work on one component at a time.
 var pageNames = []string{
 	"Everything",
 	"Button", "Chip", "Inputs", "List", "Richtext", "Icon", "Layout", "A11y", "Initial", "Stream",
@@ -91,7 +91,7 @@ type gallery struct {
 	// the scheme under it.
 	schemeBtn [2]widget.Clickable
 
-	// Interactive widgets obtained via rx.First()
+	// Interactive components obtained via rx.First()
 	btnLive       layout.Widget
 	btnCompare    layout.Widget
 	springBtnLive layout.Widget
@@ -309,7 +309,8 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 		w.Invalidate()
 	}
 
-	// Icon registry — register the IVG icon and obtain a render widget from it.
+	// Icon registry — register the IVG icon and obtain a render layout.Widget
+	// from it.
 	g.iconReg = icon.New()
 	g.iconReg.Register("info", icon.FromIVG(inventory.ActionInfoIVG))
 	if ic, ok := g.iconReg.Icon("info"); ok {
@@ -568,12 +569,11 @@ func (g *gallery) buttonVariantRows() []layout.FlexChild {
 
 // chipLevels are the surfaces the chip page puts a live chip on: the paper, a
 // card raised over it, and a dialog floating above that. The chip derives
-// every colour it draws from the surface it was handed — fill, rim, inks and
-// ring alike — so one specimen on one surface demonstrates nothing about the
-// component. Three do.
-// The label on each is a summary rather than a verb, which is the whole of
-// what separates a chip from a button: what a pane is showing, what a list is
-// filtered by, which model a conversation is on.
+// every colour it draws from the surface it was handed — fill, rim, foreground
+// and ring alike — so one specimen on one surface demonstrates nothing about
+// the component. Three do. The label on each is a summary rather than a verb,
+// which is the whole of what separates a chip from a button: what a pane is
+// showing, what a list is filtered by, which model a conversation is on.
 var chipLevels = []struct {
 	label string
 	desc  string
@@ -587,7 +587,7 @@ var chipLevels = []struct {
 
 func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 	if len(g.chipLive) != len(chipLevels) {
-		// The live widgets are built against a window; a gallery assembled
+		// The live components are built against a window; a gallery assembled
 		// without one draws nothing here rather than indexing past its state.
 		return layout.Dimensions{}
 	}
@@ -1048,7 +1048,7 @@ func (g *gallery) pageIcon(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(complayout.HSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "icon.FromIVG(data) + ivgraster.Widget", tokens.DefaultLight.Text, unit.Sp(13), font.Font{})
+							return g.label(gtx, "icon.FromIVG(data) + ivg/raster/gio", tokens.DefaultLight.Text, unit.Sp(13), font.Font{})
 						}),
 					)
 				})

@@ -51,8 +51,8 @@ import (
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
 )
 
-// Section is one labelled block of the inventory: a heading and the widget
-// that shows the family under it.
+// Section is one labelled block of the inventory: a heading and the
+// layout.Widget that shows the family under it.
 type Section struct {
 	// Name identifies the section, uniquely across the whole inventory. It
 	// is what a stored image of the section is filed under.
@@ -100,10 +100,10 @@ type Inventory struct {
 
 	marks *icons.Set
 	reg   *icon.Registry
-	// ivg caches the rendered vector icon per ink colour. The icon carries
-	// its own palette, which on a dark surface would be a black disc on
-	// black, so each ink gets it recoloured — and rasterising is not
-	// something to redo every frame. Keying on the ink rather than clearing
+	// ivg caches the rendered vector icon per foreground colour. The icon
+	// carries its own palette, which on a dark surface would be a black disc
+	// on black, so each colour gets it recoloured — and rasterising is not
+	// something to redo every frame. Keying on the colour rather than clearing
 	// the cache is what lets a palette change cost one raster instead of one
 	// per frame afterwards.
 	ivg map[color.NRGBA]layout.Widget
@@ -182,7 +182,7 @@ func NewForOS(shaper *text.Shaper, goos string) *Inventory {
 	return inv
 }
 
-// vectorIcon returns the registered vector icon drawn in ink.
+// vectorIcon returns the registered vector icon drawn in `ink`.
 func (inv *Inventory) vectorIcon(ink color.NRGBA) layout.Widget {
 	if w, ok := inv.ivg[ink]; ok {
 		return w
@@ -201,7 +201,7 @@ func (inv *Inventory) vectorIcon(ink color.NRGBA) layout.Widget {
 }
 
 // Groups returns the whole inventory in the given scheme, in the order the
-// column shows it: what a theme is made of first, then the widgets built on
+// column shows it: what a theme is made of first, then the components built on
 // it, then the compositions, then prose.
 func (inv *Inventory) Groups(c tokens.ColorTokens) []Group {
 	return []Group{
@@ -395,13 +395,13 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 	return []Section{
 		{Name: "components-button", Title: "Button — rest, hover, focus, press, disabled", Height: 36,
 			Body: inv.buttonRow(c)},
-		{Name: "components-button-emphasis", Title: "Button — the three emphasis registers at rest, and the icon-only face", Height: 36,
+		{Name: "components-button-emphasis", Title: "Button — the three emphases at rest, and the icon-only face", Height: 36,
 			Body: inv.emphasisButtonRow(c)},
-		{Name: "components-button-pinned", Title: "Button — the register's own fill, and one pinned from outside the palette", Height: 36,
+		{Name: "components-button-pinned", Title: "Button — the theme's own fill, and one pinned from outside the palette", Height: 36,
 			Body: inv.pinnedButtonRow(c)},
 		{Name: "components-chip", Title: "Chip — the four purposes on three levels, then rest, hover, press and focus", Height: chipBlockH,
 			Body: inv.chipBlock(c)},
-		{Name: "components-badge", Title: "Badge — the five variants on three storeys, the three utterances, and the close mark", Height: badgeBlockH,
+		{Name: "components-badge", Title: "Badge — the five variants on three levels, the three utterances, and the close mark", Height: badgeBlockH,
 			Body: inv.badgeBlock(c)},
 		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 60,
 			Body: inv.textFieldRow(c)},
@@ -456,27 +456,26 @@ func (inv *Inventory) buttonRow(c tokens.ColorTokens) layout.Widget {
 	})
 }
 
-// emphasisButtonRow puts the three registers side by side at rest, and the
+// emphasisButtonRow puts the three emphases side by side at rest, and the
 // icon-only face after them.
 //
-// The registers are shown at rest and at rest only. Emphasis is a question of
+// The three are shown at rest and at rest only. Emphasis is a question of
 // prominence: how strongly a button sits on the page when nobody is touching
 // it — the most pronounced one a surface is about, the middle one beside it,
 // the least pronounced one that must be present without competing — and that
-// is a judgement made on
-// three still buttons next to each other. The state walk is the row above,
-// which the filled register already carries for all three.
+// is a judgement made on three still buttons next to each other. The state
+// walk is the row above, which Filled already carries for all three.
 //
-// Each register's own name is the button's label, the way the state row's
-// labels are its states: a caption under a button that already says "Tonal"
-// is the same word twice.
+// The name of each is the button's label, the way the state row's labels are
+// its states: a caption under a button that already says "Tonal" is the same
+// word twice.
 //
 // The icon face closes the row rather than standing in a section of its own,
 // because it is the same button with a glyph where the label was — same
-// register, same corner, same target — and the one thing worth seeing about
-// it is how its square sits beside the rectangles it is cut from. It is drawn
-// in the filled register so the square itself is visible; the ghost cell to
-// its left already shows what a register with no fill at rest looks like.
+// emphasis, same corner, same target — and the one thing worth seeing about it
+// is how its square sits beside the rectangles it is cut from. It is drawn at
+// Filled emphasis so the square itself is visible; the ghost cell to its left
+// already shows what a button with no fill at rest looks like.
 func (inv *Inventory) emphasisButtonRow(c tokens.ColorTokens) layout.Widget {
 	return inv.buttonCells(c, []buttonCell{
 		{label: "Filled", st: button.RenderState{Emphasis: button.Filled}},
@@ -512,10 +511,10 @@ func (inv *Inventory) buttonCells(c tokens.ColorTokens, cells []buttonCell) layo
 }
 
 // PinnedFill and PinnedInk are the pair the pinned specimen wears: a fixed
-// red, and the ink that reads over it. They are ordinary colour values and
-// not tokens, which is the whole of what this row has to say — an action
+// red, and the foreground that reads over it. They are ordinary colour values
+// and not tokens, which is the whole of what this row has to say — an action
 // whose colour is chosen by its meaning rather than by the palette hands the
-// button its fill, and the button wears it in both schemes while everything
+// button its fill, and it wears that colour in both schemes while everything
 // around it inverts. They are exported so the assertion that this row holds
 // still can name the very colour it is looking for.
 var (
@@ -523,11 +522,11 @@ var (
 	PinnedInk  = color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 )
 
-// pinnedButtonRow puts the filled register's own pair beside a pinned one, at
+// pinnedButtonRow puts the theme's own Filled pair beside a pinned one, at
 // rest, so the two can be read against each other in one glance and in both
 // schemes: the left cell is the palette's answer and moves with it, the right
 // cell is the caller's and does not. Only the colours differ — the pinned
-// button keeps the register's hover, press, focus and disabled treatments,
+// button keeps Filled emphasis' hover, press, focus and disabled treatments,
 // which the button package's own goldens carry state by state.
 func (inv *Inventory) pinnedButtonRow(c tokens.ColorTokens) layout.Widget {
 	return inv.buttonCells(c, []buttonCell{
@@ -807,7 +806,7 @@ var badgeLevels = []struct {
 }
 
 // badgeCheck is the verdict sign the badge specimens draw, as a vector rather
-// than a font or SVG rasterisation so the stored images hold still. Its ink
+// than a font or SVG rasterisation so the stored images hold still. Its stroke
 // spans most of the box it is handed and is centred on it, which is what the
 // Glyph contract asks: the badge reserves the box, and a sign that under-fills
 // it reads as a gap in the line.

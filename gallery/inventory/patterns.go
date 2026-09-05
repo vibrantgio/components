@@ -2,10 +2,10 @@
 // components, each drawn from static state in a bounded slot.
 //
 // Every pattern here has a live twin that takes an observable theme and
-// returns an observable widget. The gallery deliberately uses the static
-// twin instead: it performs no input handling and schedules no invalidation,
-// so a page can show all nineteen at once without nineteen event loops, and a
-// golden test can capture one without a window.
+// returns an observable layout.Widget. The gallery deliberately uses the
+// static twin instead: it performs no input handling and schedules no
+// invalidation, so a page can show all nineteen at once without nineteen event
+// loops, and a golden test can capture one without a window.
 package inventory
 
 import (
@@ -104,8 +104,9 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 
 // ── The furniture the patterns are filled with ────────────────────────────────
 
-// prose returns a widget that draws a few lines of body text, so a pattern's
-// content slot holds something with a shape rather than a placeholder block.
+// prose returns a layout.Widget that draws a few lines of body text, so a
+// pattern's content slot holds something with a shape rather than a
+// placeholder block.
 func (inv *Inventory) prose(c tokens.ColorTokens, lines ...string) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(lines))
@@ -122,7 +123,7 @@ func (inv *Inventory) prose(c tokens.ColorTokens, lines ...string) layout.Widget
 	}
 }
 
-// sized pins a widget to a width, which is what a pattern's action slot
+// sized pins a layout.Widget to a width, which is what a pattern's action slot
 // needs from a caller handing it a bare button.
 func sized(w unit.Dp, child layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
@@ -155,8 +156,8 @@ const specimenName = "Show the sidebar"
 //
 // Drawn hovered. That is the state each cell is frozen in — a tooltip stands
 // only while the pointer rests on its trigger — and it is what gives the
-// popover's beak a fill to seat on: the Ghost register draws none at rest,
-// and an apex aimed at an unwashed square points at empty air.
+// popover's beak a fill to seat on: Ghost emphasis draws none at rest, and an
+// apex aimed at a square with no fill points at empty air.
 //
 // The name is emitted as a semantic description because the label is empty by
 // construction, and an icon-only button has no label to fall back on.
@@ -216,13 +217,13 @@ func (inv *Inventory) toasts(c tokens.ColorTokens) layout.Widget {
 		{ID: 4, Level: toast.Error, Text: "Error — that image could not be read."},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
-		// The stack gathers in a corner of the canvas it is handed, one edge
-		// margin in from it. A section's slot is not a canvas: its own margin
-		// already holds the specimen that distance off the page, so a canvas
-		// the size of the slot would indent the chips by two margins and drop
-		// them the same distance below the heading.
+		// The stack gathers in a corner of the frame it is handed, one edge
+		// margin in from it. A section's slot is not that frame: its own
+		// margin already holds the specimen that distance off the page, so a
+		// frame the size of the slot would indent the chips by two margins and
+		// drop them the same distance below the heading.
 		//
-		// So the canvas is handed out one edge margin past the slot on the
+		// So the frame is handed out one edge margin past the slot on the
 		// leading and top sides, and the stack drawn back into it. The corner
 		// the chips gather in is then the slot's own corner, and the specimen
 		// lines up with the ones above and below it.
@@ -313,9 +314,9 @@ func (inv *Inventory) tabs(c tokens.ColorTokens) layout.Widget {
 		Shaper: inv.shaper,
 		// A specimen lifted off the page, like the table beside it: the
 		// section body under it is the Background pin, so a panel taking the
-		// pattern's default ground would dissolve into the page and leave a
+		// pattern's default level would dissolve into the page and leave a
 		// strip floating on nothing. On Level1 the panel keeps the Surface it
-		// has always drawn and the strip stands one rung over it.
+		// has always drawn and the strip stands one step over it.
 		Ground: tokens.Level1,
 	}
 	return func(gtx layout.Context) layout.Dimensions {
@@ -539,9 +540,9 @@ func (inv *Inventory) modal(c tokens.ColorTokens) layout.Widget {
 			"Discarding restores the default theme.",
 		),
 		Decision: &modal.Decision{Destructive: true},
-		// The footer buttons are the caller's own widgets on both the live
-		// and the static path, so a static dialog hands them over already
-		// rendered rather than expecting the pattern to invent them.
+		// The footer buttons are the caller's own layout.Widget values on both
+		// the live and the static path, so a static dialog hands them over
+		// already rendered rather than expecting the pattern to invent them.
 		Actions: []layout.Widget{
 			sized(96, button.Render(inv.shaper, "Cancel", c, tokens.Spacing, tokens.Radius,
 				tokens.DefaultTypography.LabelLarge, tokens.Comfortable,

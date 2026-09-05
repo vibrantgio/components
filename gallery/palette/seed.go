@@ -244,8 +244,8 @@ func drawSeedCell(gtx layout.Context, p Chrome, c tokens.ColorTokens, ty Type, c
 		radius := gtx.Dp(innerR) / 2
 		fillRRect(gtx, box, radius, cell.Col)
 		// The same frame every swatch in this story wears — see [EdgeIn] — and
-		// here for the reason it is there: a colour near the tone of the ground
-		// it stands on has no boundary of its own.
+		// here for the reason it is there: a colour near the tone of the
+		// surface it stands on has no boundary of its own.
 		strokeRRect(gtx, box, radius, gtx.Dp(hairline), EdgeIn(c))
 		lines = slot.Max.X + gtx.Dp(PickGap)
 		body = []string{SeedHex(cell.Col), cell.Rule}

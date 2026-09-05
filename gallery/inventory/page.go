@@ -1,10 +1,10 @@
 // The column: how the sections are stacked, banded and closed off, and the
 // control that redraws the whole of it in the other scheme.
 //
-// A section on its own is a widget. What makes the inventory readable is the
-// furniture around it — the group banner that says which module the next run
-// of families comes from, the header that names each one, and the bounded
-// slot each body is laid out in.
+// A section on its own is a bare layout.Widget. What makes the inventory
+// readable is the furniture around it — the group banner that says which
+// module the next run of families comes from, the header that names each one,
+// and the bounded slot each body is laid out in.
 package inventory
 
 import (
@@ -28,8 +28,8 @@ import (
 
 // Items returns the whole inventory as the rows of one column, in the given
 // scheme: every group banded and labelled, and a closing line under the last
-// of them. The rows are ordinary widgets, so a caller can put them in a
-// scrolling list, print them into one tall column, or take a slice.
+// of them. The rows are ordinary layout.Widget values, so a caller can put
+// them in a scrolling list, print them into one tall column, or take a slice.
 //
 // The rows are a function of the palette alone, so re-theming is calling this
 // again with other tokens. Nothing that survives across frames is rebuilt by
@@ -354,21 +354,21 @@ func SchemeTarget(gtx layout.Context, lay func(layout.Context, layout.Widget) la
 	return drawn
 }
 
-// schemeTrack is the ground both segments sit on: three steps up the neutral
+// schemeTrack is the fill both segments sit on: three steps up the neutral
 // ramp from the page, which is enough to read as a control against a page that
 // is otherwise flat, and not so much that a control changed twice an hour
 // competes with what it changes.
 func schemeTrack(c tokens.ColorTokens) color.NRGBA { return c.Ramps.Neutral.Step(300) }
 
-// schemeSegmentInks returns the glyph's colour and the ground it is read
+// schemeSegmentInks returns the glyph's colour and the fill it is read
 // against, for a segment that is or is not the current one. Both come out of
 // here rather than being written at the point they are painted, so what a
 // contrast measurement reads is what the control draws.
 //
 // The current segment carries the theme's own primary pair, which is the one
-// pairing in a palette guaranteed legible; the other is a quiet neutral on the
-// track, dark enough to be read as a glyph and light enough not to be mistaken
-// for the choice that is in force.
+// pairing in a palette guaranteed legible; the other is a less pronounced
+// neutral on the track, dark enough to be read as a glyph and light enough not
+// to be mistaken for the choice that is in force.
 func schemeSegmentInks(c tokens.ColorTokens, selected bool) (ink, ground color.NRGBA) {
 	if selected {
 		return c.OnPrimary, c.Primary
@@ -376,9 +376,9 @@ func schemeSegmentInks(c tokens.ColorTokens, selected bool) (ink, ground color.N
 	return c.Ramps.Neutral.Step(700), schemeTrack(c)
 }
 
-// schemeGlyph returns the sun or the moon drawn in ink, from the Material set.
-// The vector carries its own colours, which on the wrong ground would be a
-// dark disc on a dark segment, so the ink is substituted on the way in.
+// schemeGlyph returns the sun or the moon drawn in `ink`, from the Material
+// set. The vector carries its own colours, which on the wrong fill would be a
+// dark disc on a dark segment, so the colour is substituted on the way in.
 //
 // It is built where it is drawn rather than kept. Deciding a glyph this small
 // costs a few microseconds against a frame budget of several thousand, and a
@@ -402,7 +402,7 @@ func schemeGlyph(dark bool, ink color.NRGBA) layout.Widget {
 }
 
 // swatchBorder is the hairline a flat swatch needs to be visible against a
-// ground of nearly its own colour.
+// surface of nearly its own colour.
 func swatchBorder(gtx layout.Context, col color.NRGBA, size image.Point, width unit.Dp) {
 	w := gtx.Dp(width)
 	paint.FillShape(gtx.Ops, col, clip.Rect(image.Rect(0, 0, size.X, w)).Op())

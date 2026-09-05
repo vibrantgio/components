@@ -49,9 +49,9 @@ func testInventory(t *testing.T) *inventory.Inventory {
 	return inventory.NewForOS(tokens.DefaultTypography.DeterministicShaper(), "darwin")
 }
 
-// testGallery builds the window's state without a window behind it: enough
-// for the inventory pages and the sidebar, and nothing for the per-family
-// pages, whose live widgets newGallery builds against a real one.
+// testGallery builds the window's state without a window behind it: enough for
+// the inventory pages and the sidebar, and nothing for the per-family pages,
+// whose live components newGallery builds against a real one.
 func testGallery(t *testing.T) *gallery {
 	t.Helper()
 	g := &gallery{shaper: tokens.DefaultTypography.DeterministicShaper()}
@@ -146,7 +146,7 @@ func TestEverythingRenders(t *testing.T) {
 // and not a crash on someone's first click.
 //
 // The per-family pages are left out because their state belongs to the live
-// widgets newGallery builds against a window, which a test has none of.
+// components newGallery builds against a window, which a test has none of.
 func TestFrameDraws(t *testing.T) {
 	g := testGallery(t)
 
@@ -230,7 +230,7 @@ func TestEverythingDump(t *testing.T) {
 
 // ── Test-side layout helpers ──────────────────────────────────────────────────
 
-// ground paints the scheme's background under w, so a captured image shows
+// `ground` paints the scheme's background under w, so a captured image shows
 // what the page shows rather than whatever the framebuffer held.
 func ground(c tokens.ColorTokens, w layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {

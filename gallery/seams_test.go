@@ -13,10 +13,11 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// The seam is the run of page ground between what one section draws and the
-// heading of the next. It is the section's own margin at both ends — the same
-// number above the family and below it — so a column of three dozen families
-// reads as one column rather than as three dozen boxes of assorted padding.
+// The seam is the run of the page's own fill between what one section draws
+// and the heading of the next. It is the section's own margin at both ends —
+// the same number above the family and below it — so a column of three dozen
+// families reads as one column rather than as three dozen boxes of assorted
+// padding.
 //
 // A shadow or an antialiased edge lands a few pixels into that run, which is
 // what a shadow is for; seamBleed is how much of it may go that way before the
@@ -26,13 +27,14 @@ const (
 	seamBleed = 3
 )
 
-// seamProbe is the run of page ground laid out under a section so that
+// seamProbe is the run of the page's own fill laid out under a section so that
 // anything the body draws past its own slot has somewhere to land and be
 // counted.
 const seamProbe = 96
 
-// seamInk is how far a pixel has to sit from the page ground before it counts
-// as something drawn. One level is dithering and rounding; three is a mark.
+// seamInk is how far a pixel has to sit from the page's own fill before it
+// counts as something drawn. One level is dithering and rounding; three is a
+// mark.
 const seamInk = 3
 
 // seamMeasure is one section's seams, in pixels of the captured page.
@@ -46,7 +48,7 @@ type seamMeasure struct {
 	// left is the first column the body draws in, measured from the page's
 	// own edge.
 	left int
-	// ink is how tall what the body draws measures, and slot is the run the
+	// `ink` is how tall what the body draws measures, and slot is the run the
 	// section asked for.
 	ink, slot int
 }
@@ -64,7 +66,7 @@ func TestSectionSeams(t *testing.T) {
 		for _, grp := range inv.Groups(sc.colors) {
 			for _, s := range grp.Sections {
 				m := measureSeam(t, inv, sc.colors, s)
-				t.Logf("%-6s %-24s slot %3d  ink %3d  top %3d  bottom %3d  left %3d",
+				t.Logf("%-6s %-24s slot %3d  drawn %3d  top %3d  bottom %3d  left %3d",
 					sc.name, m.name, m.slot, m.ink, m.top, m.bottom, m.left)
 				if m.top < seamGap-seamBleed {
 					t.Errorf("%s %s: %d px under its heading, want the %d px section margin",
@@ -87,12 +89,12 @@ func TestSectionSeams(t *testing.T) {
 }
 
 // measureSeam captures one section on its own — the group banner the column
-// puts above it, its heading, its slot, and a run of bare ground under it —
+// puts above it, its heading, its slot, and a run of the bare page under it —
 // and reads the seams off the pixels rather than off what the layout claimed.
 func measureSeam(t *testing.T, inv *inventory.Inventory, c tokens.ColorTokens, s inventory.Section) seamMeasure {
 	t.Helper()
 	items := inv.GroupItems(c, inventory.Group{Name: "Probe", Sections: []inventory.Section{s}})
-	// The probe occupies its run without painting it: the page ground is
+	// The probe occupies its run without painting it: the page's own fill is
 	// already under it, and a fill here would cover the very overflow the
 	// probe exists to catch.
 	items = append(items, func(gtx layout.Context) layout.Dimensions {
@@ -114,7 +116,7 @@ func measureSeam(t *testing.T, inv *inventory.Inventory, c tokens.ColorTokens, s
 	for y := bodyTop; y < total.Y; y++ {
 		// Walked from the left and stopped at the first mark: the row's
 		// leftmost is all the left margin needs, and the rows themselves say
-		// where the section's ink starts and ends.
+		// where what the section draws starts and ends.
 		for x := 0; x < pageWidth; x++ {
 			p := img.RGBAAt(x, y)
 			if absDiff(p.R, bg.R) < seamInk && absDiff(p.G, bg.G) < seamInk && absDiff(p.B, bg.B) < seamInk {

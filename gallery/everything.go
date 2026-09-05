@@ -1,15 +1,15 @@
 // The everything page: the whole inventory in one scrollable column.
 //
-// The per-family pages beside it are for close-up work on one widget at a
+// The per-family pages beside it are for close-up work on one component at a
 // time — they carry the live interactions, the variant grids and the running
-// commentary. This page carries none of that. It exists to be looked at
-// whole, because that is the only way a theme can be judged: a seed that
-// flatters a button in isolation can still leave the tag row muddy against
-// the card it sits on, and nothing but the two side by side will say so.
+// commentary. This page carries none of that. It exists to be looked at whole,
+// because that is the only way a theme can be judged: a seed that flatters a
+// button in isolation can still leave the tag row muddy against the card it
+// sits on, and nothing but the two side by side will say so.
 //
-// The sections themselves live in the inventory package, which draws them
-// from the colour tokens it is handed and nothing else. What is here is the
-// page around them: the ground, the viewport, and the banner with the
+// The sections themselves live in the inventory package, which draws them from
+// the colour tokens it is handed and nothing else. What is here is the page
+// around them: the content plane, the viewport, and the banner with the
 // control that redraws the lot in the other scheme.
 package main
 
@@ -27,7 +27,7 @@ import (
 
 // colors returns the scheme the everything page and the two inventory pages
 // are drawn in. The per-family pages predate the control and stay on the light
-// scheme; theirs is close-up work on one widget, and the whole-surface
+// scheme; theirs is close-up work on one component, and the whole-surface
 // judgment this control serves is what the everything page is for.
 func (g *gallery) colors() tokens.ColorTokens {
 	if g.dark {
@@ -36,11 +36,11 @@ func (g *gallery) colors() tokens.ColorTokens {
 	return tokens.DefaultLight
 }
 
-// chrome returns the tokens the window's own furniture — the ground under a
+// chrome returns the tokens the window's own furniture — the surface under a
 // page and the sidebar beside it — is drawn in. It follows the page: an
 // inventory page takes the scheme its control is set to, and a per-family
-// page, which draws light-scheme widgets whatever the control says, keeps the
-// chrome on the light scheme with them.
+// page, which draws light-scheme components whatever the control says, keeps
+// the chrome on the light scheme with them.
 func (g *gallery) chrome() tokens.ColorTokens {
 	switch g.page {
 	case pageEverything, pagePatterns, pageMarkdown:
@@ -78,9 +78,9 @@ func (g *gallery) pageMarkdown(gtx layout.Context) layout.Dimensions {
 	return g.scrollItems(gtx, g.scrollSt[pageMarkdown], c, items)
 }
 
-// scrollItems shows items in one scrolling column on the scheme's ground.
-// Only the rows that show are laid out, which is what keeps a page of three
-// dozen sections cheap.
+// scrollItems shows items in one scrolling column on the scheme's content
+// plane. Only the rows that show are laid out, which is what keeps a page of
+// three dozen sections cheap.
 func (g *gallery) scrollItems(gtx layout.Context, st *list.State, c tokens.ColorTokens, items []layout.Widget) layout.Dimensions {
 	paint.FillShape(gtx.Ops, c.Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
 	return list.Layout(gtx, st, items, func(gtx layout.Context, w layout.Widget) layout.Dimensions {
