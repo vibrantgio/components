@@ -253,7 +253,7 @@ func TestGhostWashDiffersFromItsRaisedSurface(t *testing.T) {
 	}
 }
 
-// TestEmphasisRegistersAreVisuallyDistinct confirms the three registers are
+// TestEmphasisRegistersAreVisuallyDistinct confirms the three emphases are
 // three different pictures. Without it the matrix above could record the same
 // filled button thirty times and still pass on every future run.
 func TestEmphasisRegistersAreVisuallyDistinct(t *testing.T) {
@@ -411,7 +411,7 @@ func TestUnpinnedFillDrawsTheStockButton(t *testing.T) {
 	}
 }
 
-// TestPinnedFillCarriesARingThatReadsOnIt holds the half of the register a
+// TestPinnedFillCarriesARingThatReadsOnIt holds the half of the emphasis a
 // pinned fill could silently break. The focus ring is not a fixed colour: it
 // is the primary step that clears the non-text floor against the fill it
 // circles, and the fill it circles is now the caller's. So the ring must
