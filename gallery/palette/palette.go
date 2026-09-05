@@ -329,17 +329,17 @@ const (
 	// PickHighlightRule is the reserved highlighter: a hue no status may use,
 	// deepened off its fixed step until it clears the container floor over
 	// what it is marking. The separation is measured off this scheme's own
-	// status fills rather than asserted; the derivation holds at least 37.64°
+	// status fills rather than asserted; the derivation holds at least 37.60°
 	// of it over the seed sweep, at one strength and at the same colour under
 	// every seed, which is why the line names no seed, no role and no step
 	// (theme/tokens/highlight.go).
 	//
 	// The floor is named against the page and not against "the surface":
 	// the cell shows the field, which is the fill resolved against the
-	// Background pin, and it clears the floor there and not over the deeper
-	// Surface token a reader could take that word for (1.37:1 and 1.31:1
-	// against the page, 1.21:1 and 1.17:1 against Surface, where a fill on
-	// Surface is a walked colour this cell does not carry).
+	// Background pin, and it clears the floor there and not everywhere the
+	// word "surface" would cover — 1.32:1 and 1.90:1 against the page, but
+	// 1.21:1 over the light scheme's deeper Surface token, where a fill is a
+	// walked colour this cell does not carry.
 	//
 	// Two clauses and no longer, like every other rule here: the board cuts a
 	// long line at its first comma, so the reservation stands ahead of it and
