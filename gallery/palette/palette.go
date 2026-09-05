@@ -323,16 +323,16 @@ const (
 	// PickHighlightRule is the reserved highlighter: a hue no status may use,
 	// deepened off its fixed step until it clears the container floor over
 	// what it is marking. The separation is measured off this scheme's own
-	// status fills rather than asserted; the derivation holds at least 65.92°
+	// status fills rather than asserted; the derivation holds at least 37.64°
 	// of it over the seed sweep, at one strength and at the same colour under
 	// every seed, which is why the line names no seed, no role and no step
 	// (theme/tokens/highlight.go).
 	//
 	// The floor is named against the page and not against "the surface":
-	// the cell shows the field, which is the wash resolved against the
+	// the cell shows the field, which is the fill resolved against the
 	// Background pin, and it clears the floor there and not over the deeper
-	// Surface token a reader could take that word for (1.37:1 and 1.30:1
-	// against the page, 1.21:1 and 1.17:1 against Surface, where a wash on
+	// Surface token a reader could take that word for (1.37:1 and 1.31:1
+	// against the page, 1.21:1 and 1.17:1 against Surface, where a fill on
 	// Surface is a walked colour this cell does not carry).
 	//
 	// Two clauses and no longer, like every other rule here: the board cuts a
@@ -762,7 +762,7 @@ func inverseRule(col, counterpart stdcolor.NRGBA, role string, dark bool) string
 }
 
 // highlightPart is the reserved highlighter as a cell carries it. It claims no
-// step: the wash takes a neutral step's depth but sits at a hue no ramp on the
+// step: the fill takes a neutral step's depth but sits at a hue no ramp on the
 // grid runs at, so there is no row for the grid to mark it on.
 func highlightPart(c tokens.ColorTokens) Part {
 	return Part{
