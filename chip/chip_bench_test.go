@@ -40,7 +40,7 @@ func BenchmarkChipRender(b *testing.B) {
 }
 
 // BenchmarkChipRenderSelected is the other rest: the container derived against
-// the storey, the walk's stop, and the checkmark the component strokes itself.
+// the level, the walk's stop, and the checkmark the component strokes itself.
 func BenchmarkChipRenderSelected(b *testing.B) {
 	benchFrame(b, chip.Render(
 		tokens.DefaultTypography.DeterministicShaper(), "Claude · Opus 5", chip.Filter, nil,

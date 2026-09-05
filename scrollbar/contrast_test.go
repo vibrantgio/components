@@ -1,9 +1,9 @@
 // The thumb's one pairing, measured over the composite rather than off the
 // ramp. An overlay thumb is translucent, so it has no colour until it is
-// drawn: what a reader sees is the ink mixed with the ground in linear light,
-// and that mix is the only thing a contrast floor can be applied to. The ink's
-// own ratio says nothing — the low-contrast-text step at 39% coverage measures
-// 6.19:1 as an ink and 1.49:1 composited over the light page.
+// drawn: what a reader sees is the thumb's colour mixed with the surface in
+// linear light, and that mix is the only thing a contrast floor can be applied
+// to. Its own ratio says nothing — the low-contrast-text step at 39% coverage
+// measures 6.19:1 on its own and 1.49:1 composited over the light page.
 package scrollbar
 
 import (
@@ -35,7 +35,7 @@ var thumbSeeds = []color.NRGBA{
 // a document, and the chrome level the panes are filled at everywhere else. Both are measured for both states, because the derivation
 // answers whichever of the two asks more and the other has to come out no
 // worse. The chrome level is the harder of the two in both schemes: the
-// thumb's ink is dark, and chrome is the darker of the two surfaces.
+// thumb is dark, and chrome is the darker of the two surfaces.
 var thumbGrounds = []struct {
 	name  string
 	level tokens.ElevationLevel
@@ -45,7 +45,7 @@ var thumbGrounds = []struct {
 }
 
 // TestTheThumbClearsItsFloorOnEveryGroundItRides asserts the floors where they
-// apply — on the composite, in both states and on both grounds. The rest state
+// apply — on the composite, in both states and on both surfaces. The rest state
 // owes WCAG 1.4.11's 3:1 as a graphic that carries meaning without being text;
 // the hover and drag state owes 4.5:1, because a thumb the pointer is on is a
 // target being aimed at.
@@ -125,8 +125,8 @@ func TestTheThumbClearsItsFloorForEverySeed(t *testing.T) {
 // derivation: the point of an overlay bar is that content shows through it, so
 // the thumb owes its floor and owes the reader everything past it. The gate is
 // minimality in the two dials, in the order the derivation spends them — one
-// step less coverage must fail, and at the coverage it settled on, the rung
-// one step shallower must fail too.
+// step less coverage must fail, and at the coverage it settled on, the ramp
+// step one shallower must fail too.
 func TestTheThumbIsAsTranslucentAsItsFloorAllows(t *testing.T) {
 	clears := func(c tokens.ColorTokens, ink color.NRGBA, floor float64) bool {
 		for _, g := range thumbGrounds {
@@ -151,7 +151,7 @@ func TestTheThumbIsAsTranslucentAsItsFloorAllows(t *testing.T) {
 			{"rest", s.ThumbColor, restFloor, restCoverage},
 			{"hover/drag", s.ThumbHoverColor, activeFloor, activeCoverage},
 		} {
-			// Coverage never rises above the overlay's intent without
+			// Coverage never rises above what the overlay intends without
 			// cause: either it is still the intended coverage, or one
 			// step less of it fails the floor.
 			if st.ink.A > st.coverage {
@@ -162,7 +162,7 @@ func TestTheThumbIsAsTranslucentAsItsFloorAllows(t *testing.T) {
 						scheme.name, st.name, thinner.A, st.ink.A)
 				}
 			}
-			// The ink is never deeper than it had to be at that coverage.
+			// The colour is never deeper than it had to be at that coverage.
 			step := rungOf(t, scheme.c, st.ink)
 			if step > inkStep {
 				shallower := scheme.c.Ramps.Neutral.Step(step - 100)
@@ -179,7 +179,7 @@ func TestTheThumbIsAsTranslucentAsItsFloorAllows(t *testing.T) {
 // TestTheTwoStatesComeFromOneRecipe: hover and drag are the same walk as rest
 // against a higher floor, not a second colour picked to look right beside the
 // first. So the active thumb is never weaker than the resting one on any
-// ground it rides.
+// surface it rides.
 func TestTheTwoStatesComeFromOneRecipe(t *testing.T) {
 	for _, scheme := range []struct {
 		name string
@@ -191,7 +191,7 @@ func TestTheTwoStatesComeFromOneRecipe(t *testing.T) {
 				scheme.name, s.ThumbHoverColor.A, s.ThumbColor.A)
 		}
 		if rungOf(t, scheme.c, s.ThumbHoverColor) < rungOf(t, scheme.c, s.ThumbColor) {
-			t.Errorf("%s: the hovered thumb's ink is shallower than the resting thumb's", scheme.name)
+			t.Errorf("%s: the hovered thumb's colour is shallower than the resting thumb's", scheme.name)
 		}
 		for _, g := range thumbGrounds {
 			ground := scheme.c.SurfaceAt(g.level)
@@ -205,7 +205,7 @@ func TestTheTwoStatesComeFromOneRecipe(t *testing.T) {
 	}
 }
 
-// rungOf returns the neutral-ramp step ink was taken from, failing the test
+// rungOf returns the neutral-ramp step `ink` was taken from, failing the test
 // if it was taken from anywhere else: the thumb is a ramp colour at some
 // coverage, and a hand-mixed one would slip past every ratio above.
 func rungOf(t *testing.T, c tokens.ColorTokens, ink color.NRGBA) int {
@@ -215,6 +215,6 @@ func rungOf(t *testing.T, c tokens.ColorTokens, ink color.NRGBA) int {
 			return step
 		}
 	}
-	t.Fatalf("thumb ink %v is not a step of the neutral ramp", ink)
+	t.Fatalf("thumb colour %v is not a step of the neutral ramp", ink)
 	return 0
 }

@@ -44,7 +44,7 @@ func BenchmarkTextFieldRender(b *testing.B) {
 //
 // Focus is established before the timed loop with the proven click-to-focus
 // dance from TestTextFieldSubmitFiresCallbacksAndClears, then a key.EditEvent
-// types text. The OnChange guard fails the benchmark loudly if focus or input
+// types text. The OnChange guard fails the benchmark outright if focus or input
 // silently did not take — otherwise we would benchmark the unfocused
 // placeholder frame under a "caret-blink" label.
 func BenchmarkTextFieldCaretBlink(b *testing.B) {
@@ -65,7 +65,7 @@ func BenchmarkTextFieldCaretBlink(b *testing.B) {
 		b.Fatalf("TextField subscribe: %v", err)
 	}
 	if w == nil {
-		b.Fatal("TextField did not emit a widget")
+		b.Fatal("TextField did not emit a layout.Widget")
 	}
 
 	r := new(gioinput.Router)

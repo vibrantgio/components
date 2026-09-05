@@ -98,15 +98,15 @@ type MenuProps struct {
 	// every component reading that typography. Set it only when this menu must
 	// shape with a different one.
 	//
-	// A shaper is not safe to use from two goroutines; Gio lays the widget
-	// forest out on the one goroutine that runs the event loop, which is what
+	// A shaper is not safe to use from two goroutines; Gio lays the layout
+	// tree out on the one goroutine that runs the event loop, which is what
 	// makes sharing it correct. See theme/tokens.Typography.Shaper.
 	Shaper *text.Shaper
 }
 
 // Menu returns an rx.Observable[layout.Widget] emitting the open surface both
 // triggers stand under: the option rows, stacked from the top of the box it is
-// handed and sized to the width of that box. The widget it emits reports the
+// handed and sized to the width of that box. The layout.Widget it emits reports the
 // rows' own height, so a caller may put it in a popover, under a field or in a
 // golden test without the menu assuming where it is.
 //
@@ -125,7 +125,7 @@ type MenuProps struct {
 // That guarantee is bounded by the option count, and [MenuProps.MaxHeight] is
 // where the bound is answered: an uncapped menu draws its full height and runs
 // off the window long before it runs out of focus tags, so a catalogue that
-// long is drawn where nothing can reach it either. A capped menu is a
+// long is drawn where nothing can operate it either. A capped menu is a
 // components/list viewport, which reaches rows a different way — one focus tag
 // for the whole list, arrow keys and Home/End moving the selection over every
 // option including the ones no frame laid out, and the viewport following the
@@ -348,39 +348,40 @@ func stackRows(gtx layout.Context, rows *list.State, n int, maxH unit.Dp, tok re
 	})
 }
 
-// optionRowColors returns an option row's fill and the ink that reads on it,
-// chosen together. A ground decides what can be read on it, so a row's two
+// optionRowColors returns an option row's fill and the foreground that reads
+// on it, chosen together. A surface decides what can be read on it, so a row's two
 // colours are never picked apart: they are returned as a pair and measured as
 // a pair (TestMenuOptionRowContrast).
 //
 // THE MENU'S OWN PLANE. A resting row is it. The open menu is a floating
 // transient overlay — an unscrimmed, shadowless plane like patterns/popover —
-// so its rows fill at level 3 on the elevation ladder, the top of the ladder,
+// so its rows fill at level 3, the top of the elevation,
 // asked of the palette rather than of a ramp index. The scheme's body text
 // reads on that fill at 18.58:1 light and 8.01:1 dark.
 //
 // THE SELECTED ROW is the accent, which is the one thing on the menu that is
 // not neutral and the one row that is not a choice but the answer. The fill is
-// the rung of the accent ramp nearest its mid-value step that reaches WCAG
-// 1.4.3's 4.5:1 against the menu's own plane, and the ink is the neutral rung
-// that reaches the same floor against that fill — each side asked of the ramp
-// against the ground it actually meets, neither named. Aiming the fill at the
-// 3:1 non-text floor instead is not enough by half: it answers a mid-tone the
+// the step of the accent ramp nearest its mid-value step that reaches WCAG
+// 1.4.3's 4.5:1 against the menu's own plane, and the foreground is the
+// neutral step that reaches the same floor against that fill — each side asked
+// of the ramp against the surface it actually meets, neither named. Aiming the
+// fill at the 3:1 non-text floor instead is not enough by half: it answers a mid-tone the
 // neutral ramp cannot carry text on at all, 4.27:1 at its best, which is the
 // same wall a mid-grey highlight runs into. Held at the text floor the pairing
-// measures 6.72:1 selected-against-menu and 4.53:1 ink-on-selected in the
+// measures 6.72:1 selected-against-menu and 4.53:1 foreground-on-selected in the
 // light scheme, 4.58 and 4.58 in the dark, and over a ten-seed sweep of both
 // schemes and both contrast variants no pairing falls under 4.56 and 4.50.
 //
-// A neutral state walk on the menu's own ground cannot serve for either
-// coloured row, and this is where that is settled once. A mid-grey ground is
-// precisely where no neutral ink reaches the text floor, and a walk whose
-// ground flips with the scheme while its ink does not measures 1.75:1 in the
+// A neutral state walk on the menu's own surface cannot serve for either
+// coloured row, and this is where that is settled once. A mid-grey surface is
+// precisely where no neutral foreground reaches the text floor, and a walk
+// whose surface flips with the scheme while its foreground does not measures
+// 1.75:1 in the
 // dark scheme: light text on a light-grey highlight. The neutral ramp's 900
 // end is the DARK end in one scheme and the light end in the other, so "one
 // step further along the ramp" is not one direction.
 //
-// THE HOVERED ROW is the accent again, a storey quieter: the role's tonal
+// THE HOVERED ROW is the accent again, a step less pronounced: the role's tonal
 // container, its hue held at one measured chroma and one measured depth. It
 // is the same colour family as the selection and nowhere near its weight, so
 // the pointer says "here" without ever being mistaken for the answer — the
@@ -392,7 +393,7 @@ func stackRows(gtx layout.Context, rows *list.State, n int, maxH unit.Dp, tok re
 //
 // Selection wins over hover, the way a press wins over a hover elsewhere in
 // this library: the selected row is already the row the menu is pointing at,
-// and a transient wash has nothing to add to a standing answer.
+// and a transient state fill has nothing to add to a standing answer.
 func optionRowColors(c tokens.ColorTokens, selected, hovered bool) (fill, ink color.NRGBA) {
 	plane := c.SurfaceAt(tokens.Level3)
 	switch {

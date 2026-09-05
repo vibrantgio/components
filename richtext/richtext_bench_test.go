@@ -13,7 +13,7 @@ import (
 // representative document paragraph rather than the 300×60 default.
 var benchSize = image.Pt(400, 120)
 
-// BenchmarkRichtextRender exercises widget(gtx) for b.N synthetic frames via
+// BenchmarkRichtextRender exercises `widget(gtx)` for b.N synthetic frames via
 // the shared bench.BenchFrame harness.
 // This is the idle render of the canonical mixed paragraph (regular, bold,
 // italic, mono, one link): span resolution, per-span shaping (served from the

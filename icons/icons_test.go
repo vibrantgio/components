@@ -177,12 +177,12 @@ func TestMarkRendersAtEverySizeItIsDrawnAt(t *testing.T) {
 // pixels whole. A 45 degree band does not: it crosses a pixel corner to corner
 // and covers a whole one only from √2 px across, and the backend composites in
 // linear light, so a band covering 91% of a pixel's area arrives at 67% of the
-// ink and reads grey beside a mark that covers whole ones. That is what the
+// colour and reads grey beside a mark that covers whole ones. That is what the
 // diagonal marks carry a heavier measure for, and this is the check that
 // notices if one of them stops carrying it.
 func TestEveryMarkComesOutAtFullInk(t *testing.T) {
 	// A shade this near the colour asked for is that colour: 0x14 of 0xff is
-	// under a hundredth of the light a white ground gives back.
+	// under a hundredth of the light a white surface gives back.
 	const solid = 0x14
 
 	set := icons.New("darwin")

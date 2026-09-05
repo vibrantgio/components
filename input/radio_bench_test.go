@@ -12,7 +12,7 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// BenchmarkRadioRender exercises widget(gtx) for b.N synthetic frames.
+// BenchmarkRadioRender exercises `widget(gtx)` for b.N synthetic frames.
 // b.ReportAllocs is enabled so CI can gate on per-frame allocation
 // regressions (>5% threshold).
 func BenchmarkRadioRender(b *testing.B) {

@@ -11,7 +11,7 @@
 //	           button's rounded-rect corner with a single down chevron, for a
 //	           toolbar, a header row or any other furniture
 //	[Menu]     the surface both of them stand under: the level-3 rows, the
-//	           accent selection and the accent's less pronounced wash under
+//	           accent selection and the accent's less pronounced state fill under
 //	           the pointer
 //
 // Each has a live path and a pure one, the contract every component in this
@@ -33,7 +33,7 @@
 // [Field] stacks its menu against its own trigger, which is what a form's
 // select does and what its [FieldState.Open] draws — beneath by default, and
 // above it when the caller says [DropUp] because the room below is somebody
-// else's. Either way the open field is one widget reporting one box, and an
+// else's. Either way the open field is one component reporting one box, and an
 // upward field is placed by that box's bottom edge, with its trigger's triangle
 // pointing the way its menu goes. [Toolbar] does not:
 // a chrome-variant menu is a floating surface placed against the window, and
@@ -42,9 +42,10 @@
 // the anchor slot and a [Menu] as the content slot, and the two meet there.
 //
 // Either way the surface is the same one: a floating, unscrimmed, shadowless
-// transient plane whose rows fill at level 3 on the elevation ladder and whose
-// coloured rows are the accent — the selection at the weight text is held to
-// against the plane, the pointer's wash at the accent's own container depth.
+// transient plane whose rows fill at level 3, the top of the elevation, and
+// whose coloured rows are the accent — the selection at the weight text is held
+// to against the plane, the pointer's state fill at the accent's own container
+// depth.
 // [Menu]'s optionRowColors carries the measurements.
 //
 // Who draws the plane's EDGE depends on who placed the plane. [Field] draws it
@@ -58,7 +59,7 @@
 // [Toolbar] is the platform's pull-down control, drawn from the measured
 // geometry components/internal/toolbarface holds: the fill a measured step over
 // the surface it stands on and walked by the pointer, the rim derived against
-// both of its sides, the inks resolved against the fill actually drawn, the
+// both of its sides, the foregrounds resolved against the fill actually drawn, the
 // focus ring that replaces that rim, the density's height and padding, the
 // 44 dp pointer target, the pin. [ToolbarFill] is that fill, for a caller that
 // must clear it. Two things are the toolbar trigger's own.
@@ -81,7 +82,7 @@
 // arrangement this component has — must place it below the trigger, because a
 // mark that announces a direction the menu does not take is a defect and not a
 // style. It is also why the two triggers do not share one state: the field's
-// mark and its menu are one widget, and the toolbar's menu is somewhere else on
+// mark and its menu are one component, and the toolbar's menu is somewhere else on
 // the window.
 //
 // THE PAIRED CHEVRONS, and what they would take. The platform's OTHER

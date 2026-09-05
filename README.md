@@ -66,16 +66,16 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 
 | Package | |
 | --- | --- |
-| `badge` | The inline annotation: the system's own word about a thing, set at the size of its own type and off the control ladder entirely. It speaks as a word, a count or a glyph, in one derived ink and with no fill, no corner and no boundary — five variants differing in hue alone (`Neutral` for a plain category label, `Success`/`Warning`/`Error`/`Info` for the four statuses) and no emphasis axis, because a badge is read rather than used. `Props.OnDismiss` grows the close mark, whose invisible target is 24 dp on an 8 dp drawing; what it removes is the label and never the behaviour. |
+| `badge` | The inline annotation: the system's own word about a thing, set at the size of its own type and off the control-height scale entirely. It speaks as a word, a count or a glyph, in one derived foreground and with no fill, no corner and no boundary — five variants differing in hue alone (`Neutral` for a plain category label, `Success`/`Warning`/`Error`/`Info` for the four statuses) and no emphasis axis, because a badge is read rather than used. `Props.OnDismiss` grows the close mark, whose invisible target is 24 dp on an 8 dp drawing; what it removes is the label and never the behaviour. |
 | `bench` | `BenchFrame`, the shared per-frame benchmark harness every component's benchmarks run through. |
-| `button` | The button: text or icon-only, in three emphasis registers (filled, tonal, ghost — the filled one able to wear a fill and ink pinned by its caller), hover/focus/press/disabled, keyboard activation, density-sized with a 44 dp pointer target; clicks arrive as a callback or as an MVU message. |
-| `cache` | `FrameCache`, an op-recording cache that replays a widget's recorded draw commands on frames where its inputs have not changed. |
-| `coordination` | **Deprecated** — use [`mvu/stream`](https://github.com/vibrantgio/mvu)`.Value`. `Subject`, the typed broadcast channel for cross-widget signals. ADR-008 retired the concerns it was built for: drag, modal and tooltip arbitration are frame state now, toasts are messages, and the one genuine stream left (`theme/preferences`) is a tier below and could never import it. It has no users left in the organization; it is removed at **v1.0.0**, with ADR-001's and ADR-003's alias shims, so that every removal lands on one version boundary. |
+| `button` | The button: text or icon-only, in three emphases (filled, tonal, ghost — the filled one able to wear a fill and foreground pinned by its caller), hover/focus/press/disabled, keyboard activation, density-sized with a 44 dp pointer target; clicks arrive as a callback or as an MVU message. |
+| `cache` | `FrameCache`, an op-recording cache that replays a component's recorded draw commands on frames where its inputs have not changed. |
+| `coordination` | **Deprecated** — use [`mvu/stream`](https://github.com/vibrantgio/mvu)`.Value`. `Subject`, the typed broadcast channel for cross-component signals. ADR-008 retired the concerns it was built for: drag, modal and tooltip arbitration are frame state now, toasts are messages, and the one genuine stream left (`theme/preferences`) is a tier below and could never import it. It has no users left in the organization; it is removed at **v1.0.0**, with ADR-001's and ADR-003's alias shims, so that every removal lands on one version boundary. |
 | `golden` | The organization's headless-Gio golden-image harness: `Capture`, `Render` and `PixelDiff`. Exported so callers outside components drive one capture path instead of inlining their own. |
 | `icon` | A name→icon registry holding icons in either SVG (`vibrantgio/svg`) or IVG (`vibrantgio/ivg`) form. |
 | `initial` | `Value[T]`, a typed "not set yet" cell for state that cannot be computed until the first frame has laid out — instead of a magic sentinel. |
 | `input` | Text field, checkbox, radio and dropdown, on the same state and props contract as `button`. |
-| `keyed` | `Deferred`, a key→state registry that keeps per-row widget state attached to its item across list reorders, inserts and deletes. |
+| `keyed` | `Deferred`, a key→state registry that keeps per-row state attached to its item across list reorders, inserts and deletes. |
 | `layout` | Spacing, inset and spacer helpers, row/column wrappers, a pill clip, and `FocusGroup` for keyboard focus across a fixed set of items. |
 | `list` | Virtual-scrolling list — only the visible rows lay out. `Layout` for the bare list, `LayoutScrollbar` to draw a bar in a reserved gutter or overlaid. |
 | `richtext` | The inline styled-text primitive: styled spans, wrapped paragraphs, spans set on a rounded chip, and hyperlink spans with hover, focus ring and Tab traversal. Built directly on Gio's shaper. |
@@ -177,7 +177,7 @@ Honest about what does not work yet:
 - **`icon.Registry` ships empty.** Nothing populates it yet. For Material
   icons today, render `golang.org/x/exp/shiny/materialdesign/icons` data
   through `ivg/raster/gio`; `button.Props.Icon` wants a `clip.Path` painter,
-  not a widget.
+  not a `layout.Widget`.
 
 ## License
 

@@ -69,7 +69,7 @@ Most prism components are reactive: `Button(th rx.Observable[theme.Theme],
 props) rx.Observable[layout.Widget]` with a `resolvedTokens` snapshot and
 Defer-scoped state. `prism/list` is the exception: a plain immediate API
 (`list.Layout(gtx, state, items, rowFn)` + `*list.State`) because it composes
-inside other widgets' frame callbacks.
+inside other components' frame callbacks.
 
 The scrollbar must compose inside `list.Layout` — an immediate call — so it
 gets the immediate shape too:
@@ -179,7 +179,7 @@ Defined in `gioui.org@v0.9.0/widget/list.go` (open it before use):
 - `Update(gtx, axis, viewportStart, viewportEnd)` — call once per frame
   BEFORE reading hover/drag state; processes pointer events against the
   areas added last frame.
-- `AddTrack(ops)` / `AddIndicator(ops)` / `AddDrag(ops)` — register hit
+- `AddTrack(ops)` / `AddIndicator(ops)` / `AddDrag(ops)` — register the hit
   areas inside clip areas the caller pushes.
 - `IndicatorHovered() bool`, `TrackHovered() bool`, `Dragging() bool`.
 - `ScrollDistance() float32` — fraction of content scrolled by

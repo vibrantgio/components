@@ -24,7 +24,7 @@ type exception struct {
 var exceptions = []exception{
 	{
 		path: "gallery",
-		// Demo application, not library API: its canvas background and
+		// Demo application, not library API: its window background and
 		// sample swatch palette are the demo's subject matter, and its
 		// hand-built light theme predates a tokens-based constructor.
 		reason: "demo app; illustrative backgrounds and sample palettes",

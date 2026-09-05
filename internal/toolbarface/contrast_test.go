@@ -6,7 +6,7 @@
 //
 // Every sweep here runs every level — five of them is every
 // placement State.Level admits — and every interaction state, because the
-// fill walks under the pointer and the inks are resolved against the fill
+// fill walks under the pointer and the foregrounds are resolved against the fill
 // actually drawn.
 package toolbarface
 
@@ -143,7 +143,7 @@ func TestEdgeHoldsOnEveryLevelAndState(t *testing.T) {
 // TestInksClearTheirFloors measures the label and the mark against the fill
 // they are drawn on, in every state and on every surface. The label owes WCAG
 // 1.4.3's 4.5:1 because it is words; the mark owes 1.4.11's 3:1 because it is
-// a mark. What this gates is that [Ink] does not hand back the Text pin once
+// a mark. What this gates is that `Ink` does not hand back the Text pin once
 // that pin has stopped reading.
 func TestInksClearTheirFloors(t *testing.T) {
 	for _, sc := range []struct {

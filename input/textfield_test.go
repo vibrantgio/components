@@ -172,10 +172,10 @@ func TestTextFieldCompactGolden(t *testing.T) {
 // raw widget.Editor whose first line Gio baselines at its own ascent. Unless
 // the editor is offset down by that same half-deficit, the visible text rises
 // the moment the editor takes over. Goldens cannot see the transition — they
-// render one state at a time — so this test measures the ink directly: the
+// render one state at a time — so this test measures the glyphs directly: the
 // topmost pixel row of the placeholder's glyphs and of the editor's glyphs,
 // for the same string at the same size, must be the same row. Both captures
-// are unfocused so the border is identical and the text ink is the only
+// are unfocused so the border is identical and the text is the only
 // difference against a blank field; the editor draws its content whenever it
 // is non-empty, so seeding it exercises the exact draw path a focused field
 // uses.
@@ -199,9 +199,9 @@ func TestTextFieldEditorInkRestsOnPlaceholderLine(t *testing.T) {
 			// Blank baseline: same field, no placeholder, empty editor —
 			// border and background only.
 			imgBlank := golden.Capture(t, size, field(input.TextFieldProps{}))
-			// Placeholder ink: empty, unfocused field showing txt.
+			// The placeholder: empty, unfocused field showing txt.
 			imgPh := golden.Capture(t, size, field(input.TextFieldProps{Placeholder: txt}))
-			// Editor ink: the seed makes the editor non-empty, which hides
+			// The editor: the seed makes the editor non-empty, which hides
 			// the placeholder and draws txt through widget.Editor.
 			imgEd := golden.Capture(t, size, field(input.TextFieldProps{Placeholder: txt, Seed: txt}))
 			if imgBlank == nil || imgPh == nil || imgEd == nil {
@@ -211,13 +211,13 @@ func TestTextFieldEditorInkRestsOnPlaceholderLine(t *testing.T) {
 			phTop := topDiffRow(imgPh, imgBlank)
 			edTop := topDiffRow(imgEd, imgBlank)
 			if phTop < 0 {
-				t.Fatal("placeholder rendered no ink; the measurement is broken")
+				t.Fatal("placeholder rendered nothing; the measurement is broken")
 			}
 			if edTop < 0 {
-				t.Fatal("seeded editor rendered no ink; the measurement is broken")
+				t.Fatal("seeded editor rendered nothing; the measurement is broken")
 			}
 			if phTop != edTop {
-				t.Errorf("ink moves when the editor takes over: placeholder ink starts at row %d, editor ink at row %d", phTop, edTop)
+				t.Errorf("the text moves when the editor takes over: the placeholder starts at row %d, the editor at row %d", phTop, edTop)
 			}
 		})
 	}
@@ -291,7 +291,7 @@ func TestTextFieldFocusRingIsVisuallyDistinct(t *testing.T) {
 
 // liveTextField subscribes to the TextField observable, drains the trampoline
 // scheduler with Wait(), and returns the first emitted layout.Widget. The
-// editor referenced by the widget closure remains valid for the remainder of
+// editor referenced by the layout.Widget closure remains valid for the remainder of
 // the test because it is captured by the rx.Defer scope.
 func liveTextField(t *testing.T, props input.TextFieldProps) layout.Widget {
 	t.Helper()
@@ -308,12 +308,12 @@ func liveTextField(t *testing.T, props input.TextFieldProps) layout.Widget {
 		t.Fatalf("TextField subscribe: %v", err)
 	}
 	if w == nil {
-		t.Fatal("TextField did not emit an initial widget")
+		t.Fatal("TextField did not emit an initial layout.Widget")
 	}
 	return w
 }
 
-// driveTextFieldFrame lays out the widget against a fresh op.Ops + router and
+// driveTextFieldFrame lays out the layout.Widget against a fresh op.Ops + router and
 // returns the rendered dimensions. ops is reset before layout.
 func driveTextFieldFrame(w layout.Widget, ops *op.Ops, r *gioinput.Router, size image.Point) layout.Dimensions {
 	ops.Reset()
@@ -477,7 +477,7 @@ func TestTextFieldSeedPrefillsEditor(t *testing.T) {
 	ops := new(op.Ops)
 	size := image.Pt(300, 60)
 
-	// Frame 1 — register regions; frame 2 — click focuses the editor.
+	// Frame 1 registers the event regions; frame 2 — click focuses the editor.
 	dims := driveTextFieldFrame(w, ops, r, size)
 	centre := f32.Pt(float32(dims.Size.X)/2, float32(dims.Size.Y)/2)
 	r.Queue(

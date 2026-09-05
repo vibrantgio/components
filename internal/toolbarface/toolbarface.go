@@ -1,7 +1,7 @@
 // Package toolbarface holds the geometry components/picker's chrome-variant
 // trigger is drawn from: the measured fill, the state walk, the two-sided rim,
-// the walked inks, the focus ring that replaces that rim, the density's height
-// and padding, the pointer target's placement, and the chevron that says a
+// the walked foregrounds, the focus ring that replaces that rim, the density's
+// height and padding, the pointer target's placement, and the chevron that says a
 // menu opens below.
 //
 // It is internal because it is a seam and not a component: a caller reaches
@@ -42,14 +42,14 @@ const edgeDp = unit.Dp(1)
 // (reference/macos/mail-window.png in the org's .github repository;
 // window-bounded capture, macOS 26.5.2, dark appearance, one pixel per dp on
 // that display). Both pull-down controls in Mail's toolbar — the folder one and
-// the flag one — draw a chevron whose ink measures 9 × 5 px inside a control
+// the flag one — draw a chevron measuring 9 × 5 px inside a control
 // 29 px tall, identical to the pixel, and the folder control's chevron ends
 // 9 px inside the control's own trailing edge.
 //
 // So the chevron is a RATIO of the control's height, not a fixed size:
 //
-//	chevronWidthRatio  the ink's width, 9 of the control's 29
-//	chevronAspect      the ink's height, 5 of its own 9
+//	chevronWidthRatio  the mark's width, 9 of the control's 29
+//	chevronAspect      the mark's height, 5 of its own 9
 //
 // which at this system's 36 dp comfortable control comes out at 11.2 × 6.2 dp.
 const (
@@ -97,10 +97,10 @@ func chevron(gtx layout.Context, box image.Rectangle, col color.NRGBA) {
 }
 
 // State is the explicit visual state a static render draws in. The zero value
-// is a resting widget on the window's own surface.
+// is a resting control on the window's own surface.
 type State struct {
-	// Level is the level of the surface the widget stands on — the widget has
-	// no level of its own — in the same vocabulary the host names its own fill
+	// Level is the level of the surface the control stands on — the control
+	// has no level of its own — in the same vocabulary the host names its own fill
 	// (tokens.SurfaceAt). It is the input to every colour resolved here: the
 	// fill is the measured step over that surface, and the rim is the neutral
 	// step that clears the graphic floor against both sides of the edge. A
@@ -113,7 +113,7 @@ type State struct {
 	Focused bool
 }
 
-// state is the token vocabulary's name for the interaction the widget is in.
+// state is the token vocabulary's name for the interaction the control is in.
 // Press wins over hover, because a pressed control is under the pointer by
 // definition and the deeper walk is the one that has something to say.
 func (s State) state() tokens.State {
@@ -177,7 +177,7 @@ func fillStep(c tokens.ColorTokens) float64 {
 	return lightFillStep
 }
 
-// restFill is the fill at rest: the surface the widget stands on, lifted by
+// restFill is the fill at rest: the surface the control stands on, lifted by
 // the measured step for its scheme, realized at that surface's own hue and
 // chroma so the shape carries whatever tint the levels carry and none of
 // its own. Nothing is mixed and no colour is named — the step is a depth in
@@ -210,11 +210,11 @@ func restFill(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGBA {
 // The stopping is the label's, and it binds where the ramp's own two ends are
 // too close together to write on its middle. A ramp writes with its ends, so
 // between them lies a band of depths no step of it reaches tokens.TextFloor
-// against — for the dark ramp, L\* 46.0 to 53.8 — and a widget standing high
+// against — for the dark ramp, L\* 46.0 to 53.8 — and a control standing high
 // among the levels walks into it: pressed on a level-2 plane the walk
-// lands at 48.1 and hovered on a level-3 one at 47.6, where the best ink the
-// palette carries measures 4.09:1 and 4.21:1. A fill nothing can be written on
-// is not a state to walk to, so the walk stops at the last depth on its way
+// lands at 48.1 and hovered on a level-3 one at 47.6, where the best
+// foreground the palette carries measures 4.09:1 and 4.21:1. A fill nothing
+// can be written on is not a state to walk to, so the walk stops at the last depth on its way
 // that the palette can still write on. Both fills come to rest at 45.7 with
 // their label at 4.51:1, and nothing else on either scheme's levels moves: the
 // light ramp's ends are a near-black and a near-white, its band lies at L\* 47
@@ -254,9 +254,9 @@ func legible(c tokens.ColorTokens, rest, walked color.NRGBA) color.NRGBA {
 	return vgcolor.NRGBAFromToneChromaHue(lo, chroma, hue)
 }
 
-// writable reports whether the ink this family would write a label in reaches
-// its floor on fill — [Ink]'s own answer, measured, since Ink hands back the
-// best-reading step when no step reaches the floor at all.
+// writable reports whether the foreground this family would write a label in
+// reaches its floor on fill — `Ink`'s own answer, measured, since `Ink` hands
+// back the best-reading step when no step reaches the floor at all.
 func writable(c tokens.ColorTokens, fill color.NRGBA) bool {
 	return vgcolor.ContrastRatio(Ink(c, fill, tokens.TextFloor), fill) >= tokens.TextFloor
 }
@@ -299,13 +299,13 @@ func Rim(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) 
 	return color.NRGBA{}, false
 }
 
-// Ink is the colour something reads in when it is drawn on one of these
+// `Ink` is the colour something reads in when it is drawn on one of these
 // fills: the Text pin while that pin clears floor against the fill, and
 // otherwise the step of the neutral ramp nearest its mid-value that does.
 //
 // That is tokens.ColorTokens.InkOn's own rule, applied to the one role InkOn
 // refuses. InkOn asks a role for its pinned base and RoleNeutral has none —
-// the neutral ink's pin is the Text pin, which is derived against the
+// the neutral foreground's pin is the Text pin, which is derived against the
 // Background pin already — so the rule is spelled out here rather than
 // reinvented: pin first, walk only when the pin stops reading.
 //
@@ -317,30 +317,29 @@ func Ink(c tokens.ColorTokens, fill color.NRGBA, floor float64) color.NRGBA {
 	return c.MarkOn(tokens.RoleNeutral, fill, floor)
 }
 
-// Pin is the edge of the box a widget is offered that its shape is pinned to.
+// Pin is the edge of the offered box that a drawn shape is pinned to.
 //
 // It is a placement, not a stretch: the shape stays sized to its content and
 // what changes is where in the offered box it is drawn and how much of that
-// box the widget reports having used. Only the horizontal axis is pinned,
-// because the vertical one is already settled by whatever row the widget
-// stands in.
+// box is reported as used. Only the horizontal axis is pinned, because the
+// vertical one is already settled by whatever row the shape stands in.
 //
-// The seam exists because a widget alone can be placed by its container and
+// The seam exists because a shape alone can be placed by its container and
 // one handed on to a container that centres whatever it is given cannot: the
 // reserved cap and the drawn shape then part company by half the slack, and
-// the only place both widths are known is inside the widget. A pin says it
-// there, once.
+// the only place both widths are known is inside the layout.Widget. A pin
+// says it there, once.
 //
 // It costs the container the drawn rect, which is the whole box as far as it
 // can tell, so say it only where nothing upstream needs that rect. A
 // container that aligns what it is given needs no pin at all, and a pinned
-// widget would leave it aiming at a box nothing was drawn in.
+// shape would leave it aiming at a box nothing was drawn in.
 type Pin uint8
 
 const (
-	// PinNone is the zero value: the widget reports the shape it drew and no
-	// more, so a row of them is laid out at their own scale and the box
-	// around them is the container's business.
+	// PinNone is the zero value: only the shape drawn is reported, so a row
+	// of them is laid out at their own scale and the box around them is the
+	// container's business.
 	PinNone Pin = iota
 
 	// PinLeading draws the shape at the leading edge of the offered box.
@@ -350,13 +349,12 @@ const (
 	PinTrailing
 )
 
-// Layout draws w at p's edge of the box the widget was offered — the
-// horizontal half of gtx.Constraints.Max — and reports that box rather than
-// w's own size, which is what lets a caller upstream find the pinned edge
-// where it asked for it. PinNone lays w out untouched, so a widget that pins
-// nothing pays nothing.
+// Layout draws w at p's edge of the offered box — the horizontal half of
+// gtx.Constraints.Max — and reports that box rather than w's own size, which
+// is what lets a caller upstream find the pinned edge where it asked for it.
+// PinNone lays w out untouched, so pinning nothing costs nothing.
 //
-// The whole widget is offset, slop and all, so the pointer target stays
+// The whole of w is offset, slop and all, so the pointer target stays
 // centred on the shape it was extended around.
 func (p Pin) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	if p == PinNone {
@@ -410,7 +408,7 @@ func Draw(
 	// Record the label's material and its layout to learn its size before
 	// anything is painted. typeset.Layout rather than widget.Label.Layout
 	// because the role's line height has to be the height of the label box
-	// and Gio alone reports the glyph ink instead — see theme/typeset.
+	// and Gio alone reports the drawn glyph extent instead — see theme/typeset.
 	mColor := op.Record(gtx.Ops)
 	paint.ColorOp{Color: labelInk}.Add(gtx.Ops)
 	material := mColor.Stop()
@@ -438,10 +436,10 @@ func Draw(
 	// The edge, as nested fills — the shape in the edge's colour, the fill
 	// inset by one hair inside it — and not as a stroke on the shape's path. A
 	// stroke is centred on its path, so half a hair of it would fall outside
-	// the box the widget reports and every pixel of it would be a blend of the
-	// two colours rather than either.
+	// the box this control reports and every pixel of it would be a blend of
+	// the two colours rather than either.
 	//
-	// A focused widget's edge IS the focus ring: the ring replaces the rim
+	// A focused control's edge IS the focus ring: the ring replaces the rim
 	// rather than being drawn inside it. Drawn inside, the two make a
 	// three-line sandwich — hairline, a pixel of fill, then the ring — which
 	// reads as a dirty halo around the outline, the same "a band beside a
@@ -479,7 +477,7 @@ func Draw(
 	lo.Pop()
 
 	// The chevron is handed the mark's column at the shape's full height and
-	// centres itself in it, so its own ink height stays the platform's ratio
+	// centres itself in it, so its own drawn height stays the platform's ratio
 	// rather than being stretched to a box.
 	mo := op.Offset(image.Pt(offX+labelDims.Size.X+gap, 0)).Push(gtx.Ops)
 	chevron(gtx, image.Rect(0, 0, mark, h), glyphInk)

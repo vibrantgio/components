@@ -1,14 +1,14 @@
-// Package coordination provides the Subject primitive for cross-widget
+// Package coordination provides the Subject primitive for cross-component
 // coordination in Gio applications.
 //
 // The package codifies four invariants:
 //
-//  1. One-frame lag. Subject delivery is asynchronous. Cross-widget state
+//  1. One-frame lag. Subject delivery is asynchronous. Cross-component state
 //     changes are visible on the frame AFTER the emitting frame. This is
 //     correct for drag, modal, and tooltip concerns and is imperceptible at
 //     ≥30 fps.
 //
-//  2. Mutable per-widget state must be hoisted outside FRP closures. Gesture
+//  2. Mutable per-component state must be hoisted outside FRP closures. Gesture
 //     accumulators (gesture.Drag, gesture.Hover, widget.Clickable) must live
 //     in the owning struct, not inside rx.Map closures that are regenerated on
 //     every Subject emission.
@@ -18,7 +18,7 @@
 //     (modals, tooltips) BufCapSignal suffices.
 //
 //  4. Intermediate emissions are silently dropped under burst. The
-//     mvu.Window atomic snapshot retains only the most recent widget closure
+//     mvu.Window atomic snapshot retains only the most recent layout.Widget closure
 //     before the next frame fires. Signals where every value is load-bearing
 //     (undo stacks, event logs) require a different mechanism.
 //
@@ -60,7 +60,7 @@
 // It is deliberately not a forwarder to stream.Value. A forwarder would
 // compile everywhere and change delivery policy, subscriber ceiling and
 // buffering under a signature that still type-checks; the rule is to break
-// loudly rather than deprecate quietly.
+// outright rather than deprecate quietly.
 package coordination
 
 import (
@@ -106,7 +106,7 @@ const MaxSubscribers = 64
 // call sites holding the slots.
 var ErrSubscriberLimit = errors.Join(rx.Err, errors.New("coordination: Subject subscriber limit reached"))
 
-// Subject creates a typed broadcast channel for cross-widget coordination.
+// Subject creates a typed broadcast channel for cross-component coordination.
 // The Observer side is held by one producer; the Observable side may be
 // subscribed by up to MaxSubscribers concurrent consumers, and a slot is
 // returned as soon as its subscription is unsubscribed.
@@ -116,7 +116,7 @@ var ErrSubscriberLimit = errors.Join(rx.Err, errors.New("coordination: Subject s
 // for infrequent signals.
 //
 // Deprecated: use [github.com/vibrantgio/mvu/stream.Value], which lives at
-// tier 0 where every layer can reach it, costs no goroutine while nobody is
+// tier 0 where every layer can use it, costs no goroutine while nobody is
 // watching, has no subscriber ceiling, and cannot be blocked by a consumer
 // that stops draining. See this package's doc for the measurements.
 func Subject[T any](bufCap int) (rx.Observer[T], rx.Observable[T]) {

@@ -14,7 +14,7 @@ import (
 	golden "github.com/vibrantgio/components/golden"
 )
 
-// fill returns a Widget that draws c over its entire constraint maximum.
+// fill returns a layout.Widget that draws c over its entire constraint maximum.
 func fill(c color.NRGBA) gio.Widget {
 	return func(gtx gio.Context) gio.Dimensions {
 		paint.FillShape(gtx.Ops, c, clip.Rect{Max: gtx.Constraints.Max}.Op())
@@ -22,7 +22,7 @@ func fill(c color.NRGBA) gio.Widget {
 	}
 }
 
-// fixed returns a Widget that draws c in a w×h rect regardless of constraints.
+// fixed returns a layout.Widget that draws c in a w×h rect regardless of constraints.
 func fixed(w, h int, c color.NRGBA) gio.Widget {
 	return func(gtx gio.Context) gio.Dimensions {
 		sz := image.Pt(w, h)

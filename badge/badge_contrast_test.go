@@ -117,7 +117,7 @@ func TestBareForegroundClearsItsFloorOnEveryLevel(t *testing.T) {
 
 // TestTheFillSeparatesFromEveryLevel is the seam: the container's own edge
 // against the surface it is placed on. A fill a reader cannot see is not a
-// quiet second channel, it is no second channel — which is the whole reason
+// faint second channel, it is no second channel — which is the whole reason
 // the badge wears one.
 //
 // The bound is [tokens.ContainerFloor] rather than a WCAG criterion, because

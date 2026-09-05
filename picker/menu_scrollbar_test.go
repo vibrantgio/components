@@ -46,7 +46,7 @@ func scrollTestTokens() resolvedTokens {
 // under scrollTestTokens: one BodyLarge line box plus the density's vertical
 // padding, floored at the density's control height. picker_test.go carries
 // the same derivation (rowHeight) for its own, external, test package; this
-// file is internal (package picker, for drawOptionRow) and cannot reach it.
+// file is internal (package picker, for drawOptionRow) and cannot use it.
 func scrollTestRowHeight() int {
 	d := tokens.Comfortable
 	h := int(tokens.DefaultTypography.BodyLarge.LineHeight + 2*d.PaddingY)

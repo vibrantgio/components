@@ -1,6 +1,6 @@
 // An internal test: it measures the colour pairing optionRowColors returns
 // rather than the pixels it ends up as, and that function is unexported on
-// purpose — a row's fill and its ink are chosen together, and the pair is what
+// purpose — a row's fill and its foreground are chosen together, and the pair is what
 // is worth holding.
 package picker
 
@@ -14,7 +14,7 @@ import (
 )
 
 // wcagText is WCAG 1.4.3's AA floor for text below 18 pt: an option row's
-// label is BodyLarge, so it owes this over whatever ground its row paints.
+// label is BodyLarge, so it owes this over whatever fill its row paints.
 const wcagText = 4.5
 
 // wcagIndicator is WCAG 1.4.11's floor for a non-text indicator — here the
@@ -29,12 +29,13 @@ func hex(c color.NRGBA) string {
 // schemes and records the numbers in the test log.
 //
 // The coloured rows are the pairings that keep being lost, and always the same
-// way: a highlight is picked, and the ink on it is not picked with it. A
-// neutral state walk past the menu's own level-3 ground under the scheme's
-// body text read 4.27:1 in the light scheme — a mid-grey ground is where no
-// neutral ink reaches the text floor at all — and 1.75:1 in the dark, where
-// the walk runs toward the LIGHT end and the ink does not move. Asking each
-// ramp for the rung that clears its own ground is what cannot make that
+// way: a highlight is picked, and the foreground on it is not picked with it.
+// A neutral state walk past the menu's own level-3 surface under the scheme's
+// body text read 4.27:1 in the light scheme — a mid-grey surface is where no
+// neutral foreground reaches the text floor at all — and 1.75:1 in the dark,
+// where the walk runs toward the LIGHT end and the foreground does not move.
+// Asking each ramp for the step that clears its own surface is what cannot
+// make that
 // mistake, and this test is the pair being measured as a pair.
 func TestMenuOptionRowContrast(t *testing.T) {
 	for _, sc := range []struct {
@@ -59,7 +60,7 @@ func TestMenuOptionRowContrast(t *testing.T) {
 				{"selected", selFill, selInk},
 			} {
 				got := themecolor.ContrastRatio(row.ink, row.fill)
-				t.Logf("%s label on its own row %.2f:1 (fill %s, ink %s)", row.name, got, hex(row.fill), hex(row.ink))
+				t.Logf("%s label on its own row %.2f:1 (fill %s, foreground %s)", row.name, got, hex(row.fill), hex(row.ink))
 				if got < wcagText {
 					t.Errorf("%s label on its own row = %.2f:1, want at least %.1f:1", row.name, got, wcagText)
 				}
@@ -67,7 +68,7 @@ func TestMenuOptionRowContrast(t *testing.T) {
 
 			// A row that reads is only half of it: the selected row has to
 			// stay the one that looks selected, which is its fill against
-			// the fill every other row paints — and against the wash the
+			// the fill every other row paints — and against the state fill the
 			// pointer leaves, which is the same accent family and must not
 			// be mistakable for the answer.
 			for _, sep := range []struct {
@@ -87,7 +88,7 @@ func TestMenuOptionRowContrast(t *testing.T) {
 			// Hover owes no separation floor of its own: it is not a mark,
 			// it says nothing the pointer does not already say, and it is
 			// gone the moment the pointer is. The number is logged because
-			// a wash nobody can see is still worth knowing about.
+			// a state fill nobody can see is still worth knowing about.
 			t.Logf("hovered fill against the menu's own fill %.2f:1 (no floor: hover is not a mark)",
 				themecolor.ContrastRatio(hovFill, restFill))
 		})

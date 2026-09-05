@@ -193,10 +193,10 @@ func TestCheckboxChecksAreDrawn(t *testing.T) {
 		n := count(input.CheckboxRenderState{Checked: true})
 		switch {
 		case n < 15:
-			t.Errorf("%s: a checked box carries %d pixels of check ink %v over the fill %v — the mark is missing",
+			t.Errorf("%s: a checked box carries %d pixels of check mark %v over the fill %v — the mark is missing",
 				scheme.name, n, c.OnPrimary, c.Primary)
 		case n > 120:
-			t.Errorf("%s: a checked box carries %d pixels of check ink %v over the fill %v — the mark has taken over the box",
+			t.Errorf("%s: a checked box carries %d pixels of check mark %v over the fill %v — the mark has taken over the box",
 				scheme.name, n, c.OnPrimary, c.Primary)
 		default:
 			t.Logf("%s: the check covers %d px of the 20 dp box", scheme.name, n)
@@ -402,9 +402,9 @@ func nearlyEqual(got stdcolor.RGBA, want stdcolor.NRGBA) bool {
 	return !off(got.R, want.R) && !off(got.G, want.G) && !off(got.B, want.B) && got.A == want.A
 }
 
-// nearerTo reports whether a captured pixel lies closer to ink than to fill.
-// An anti-aliased figure a couple of pixels wide has an interior of exactly
-// its ink and edges of everything between ink and fill, so counting exact
+// nearerTo reports whether a captured pixel lies closer to the mark than to
+// fill. An anti-aliased figure a couple of pixels wide has an interior of
+// exactly its own colour and edges of everything between the two, so counting exact
 // matches counts the interior only — one pixel, on a dark scheme's mark. The
 // question worth asking of a stroked mark is how much of the box reads as
 // mark rather than as fill, and that is this: squared distance in RGB, the

@@ -40,7 +40,7 @@ type RadioRenderState struct {
 	// dialog at tokens.Level2 passes Level2 and the unselected ring takes
 	// whichever neutral step clears the floor over that surface. The zero
 	// value is tokens.Level0, the window's own surface. A selected radio's
-	// ring is the primary ink measured against that same surface
+	// ring is the primary colour measured against that same surface
 	// ([tokens.ColorTokens.InkOn]) rather than the bare accent pin, so it too
 	// answers to the host it stands on.
 	Level tokens.ElevationLevel
@@ -76,7 +76,7 @@ type RadioProps struct {
 }
 
 // Radio returns an rx.Observable[layout.Widget] that emits a new widget
-// whenever the theme or disabled state changes. Widget state (selected value,
+// whenever the theme or disabled state changes. Interaction state (selected value,
 // focus) lives in the rx.Defer scope and persists across emissions.
 //
 // Both integration paths are supported:

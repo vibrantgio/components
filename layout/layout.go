@@ -20,7 +20,7 @@ func InsetXY(h, v float32) gio.Inset {
 	return gio.Inset{Left: unit.Dp(h), Right: unit.Dp(h), Top: unit.Dp(v), Bottom: unit.Dp(v)}
 }
 
-// HSpacer returns a Widget that occupies dp device-independent pixels horizontally
+// HSpacer returns a layout.Widget that occupies dp device-independent pixels horizontally
 // and no vertical space. Use as a gap between children inside a Row.
 func HSpacer(dp float32) gio.Widget {
 	s := gio.Spacer{Width: unit.Dp(dp)}
@@ -29,7 +29,7 @@ func HSpacer(dp float32) gio.Widget {
 	}
 }
 
-// VSpacer returns a Widget that occupies dp device-independent pixels vertically
+// VSpacer returns a layout.Widget that occupies dp device-independent pixels vertically
 // and no horizontal space. Use as a gap between children inside a Col.
 func VSpacer(dp float32) gio.Widget {
 	s := gio.Spacer{Height: unit.Dp(dp)}
@@ -41,7 +41,7 @@ func VSpacer(dp float32) gio.Widget {
 // Pill returns a rounded-rect clip op whose corner radius is clamped to
 // min(w,h)/2. clip.RRect does not clamp corner radii to the rect, so a
 // token.Radius.Full sentinel (9999 dp) passed directly to clip.RRect sprays
-// paint across the entire canvas. Pill centralises the clamp so callers
+// paint across the entire frame. Pill centralises the clamp so callers
 // cannot reintroduce that bug.
 func Pill(ops *op.Ops, rect image.Rectangle, rad int) clip.Op {
 	if maxRad := min(rect.Dx(), rect.Dy()) / 2; rad > maxRad {

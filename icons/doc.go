@@ -96,14 +96,14 @@
 // Heavier buys nothing there. 1.5 units already covers whole pixels and comes
 // out at the control's colour undiluted; 2 units would be 1.33 px at 16 dp,
 // off the pixel grid the keyline and the band are chosen together to land on
-// (below), for ink that is already full. Nor is the set bolder than the
+// (below), for a coverage that is already full. Nor is the set bolder than the
 // platform's own marks at that weight: the platform's axis-aligned band is
 // 1.26 px at 16 pt against this set's 1.0. What settles a measure is how much
 // of a pixel the band covers, not how its number compares to another set's.
 //
 // The keyline and the band are chosen together, and that is what makes the
 // small sizes crisp. A band running from unit 3 to unit 4.5 covers device
-// pixels 2 to 3 at 16 dp — one whole pixel of ink, landed on the pixel grid,
+// pixels 2 to 3 at 16 dp — one whole pixel covered, landed on the pixel grid,
 // at the size where half a pixel of error is the largest share of the mark —
 // and pixels 4 to 6 at 16 dp on a 2 px/dp display. At 24 dp it covers 3 to 4.5,
 // and 6 to 9 at 2 px/dp, exact again. Only 20 dp lands off the grid, at 2.5 to
@@ -120,15 +120,15 @@
 // at 16 dp and covers 91% of the pixel it runs through. That is the number the
 // geometry gives, and it is not the number the eye gets: the backend
 // composites in linear light, where 91% of a pixel's area comes out at 67% of
-// the ink on screen. Beside an axis-aligned band at 100% the mark reads grey.
+// the colour on screen. Beside an axis-aligned band at 100% the mark reads grey.
 //
 // 2 units is the measure that closes it. The band is 1.33 px at 16 dp, 1.67 at
 // 20 and 2.0 at 24; it covers better than 99.7% of a pixel at all three, and it
-// comes out at 96 to 99% of the ink — level with the axis-aligned band to an
+// comes out at 96 to 99% of the colour — level with the axis-aligned band to an
 // eye, and level with the platform's own chevrons rendered at the same sizes,
 // which measure 94 to 100% at 16 pt and 100% at 20 and 24. Under 2 the mark is
 // still the lighter sibling: 1.75 units comes out at 80 to 86%. Over 2 nothing
-// is left to buy — coverage is already whole, the ink stops rising, and the
+// is left to buy — coverage is already whole, the colour stops rising, and the
 // drawing outgrows the 20-unit diagonal allowance, which a 2-unit band on a
 // centre line from 3 to 21 fills exactly.
 //
@@ -138,7 +138,7 @@
 // 1.44 and 2.18, about a seventh more. This set needs a third more, because a
 // backend compositing in linear light punishes a part-covered pixel harder
 // than one compositing in the encoded space: the same 91% of a pixel's area is
-// 67% of the ink here and 91% of it there. So the ratio is not portable, and a
+// 67% of the colour here and 91% of it there. So the ratio is not portable, and a
 // measure taken off another set's drawing is not either. Render the mark and
 // read the pixels.
 //

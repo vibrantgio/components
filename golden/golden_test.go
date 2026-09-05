@@ -12,7 +12,7 @@ import (
 	"github.com/vibrantgio/components/golden"
 )
 
-// cornflowerRect is the fixed reference widget: a solid cornflower-blue
+// cornflowerRect is the fixed reference layout.Widget: a solid cornflower-blue
 // rectangle filling the entire constraint. Using a named constant colour makes
 // the stored golden self-documenting.
 func cornflowerRect(gtx layout.Context) layout.Dimensions {
@@ -22,7 +22,7 @@ func cornflowerRect(gtx layout.Context) layout.Dimensions {
 }
 
 // TestStable verifies that the golden harness produces a bit-identical PNG
-// for the fixed reference widget on every run.
+// for the fixed reference layout.Widget on every run.
 //
 // The stored golden (testdata/golden/stable.png) is committed to the
 // repository. If this test fails with a mismatch it means the rendering
@@ -41,7 +41,7 @@ func TestOnepixelChangeDetected(t *testing.T) {
 
 	imgA := golden.Capture(t, size, cornflowerRect)
 
-	// A widget identical to cornflowerRect but with a single white pixel
+	// A layout.Widget identical to cornflowerRect but with a single white pixel
 	// painted over position (0, 0).
 	modified := func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, color.NRGBA{R: 100, G: 149, B: 237, A: 255},

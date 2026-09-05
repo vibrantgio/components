@@ -18,7 +18,7 @@ import (
 
 // TestDropdownGolden records or diffs the canonical dropdown states. The open
 // menu is recorded in both schemes: its selected row is a per-scheme colour
-// pairing (fill and ink together, see TestDropdownOptionRowContrast), and a
+// pairing (fill and foreground together, see TestDropdownOptionRowContrast), and a
 // pairing only one scheme is pictured in is a pairing the other can lose.
 func TestDropdownGolden(t *testing.T) {
 	shaper := defaultShaper(t)

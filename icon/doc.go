@@ -3,8 +3,8 @@
 // one Icon type, so a call site can resolve an icon by name without knowing
 // which format it was authored in.
 //
-// Reach for it when an application has an icon set it wants to register once
-// at start-up and look up from anywhere. A Registry ships empty and nothing in
+// Reach for it when an application has an icon set it wants to put in a
+// registry at start-up and look up from anywhere. A Registry ships empty and nothing in
 // the organization populates one yet, so the icons in it are the ones you put
 // there.
 //

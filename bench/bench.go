@@ -1,7 +1,7 @@
 // Package bench provides the shared benchmark harness for Components components.
 //
 // BenchFrame standardises per-frame measurement across components: it drives
-// widget(gtx) for b.N frames against synthesized constraints, resets the op
+// `widget(gtx)` for b.N frames against synthesized constraints, resets the op
 // buffer each frame, and enables b.ReportAllocs so both wall-clock (ns/op) and
 // per-frame allocation (B/op) can be compared against recorded baselines.
 // A change is a regression once either metric moves more than 5% for a
@@ -39,7 +39,7 @@ func WithSize(p image.Point) Option {
 }
 
 // WithRouter routes input through r for the duration of the benchmark:
-// gtx.Source is set to r.Source() and r.Frame is called after each widget(gtx).
+// gtx.Source is set to r.Source() and r.Frame is called after each `widget(gtx)`.
 // It is required for components whose rendering depends on input state — e.g. a
 // focused widget.Editor that draws a blinking caret only while gtx.Focused is
 // true. The caller is responsible for delivering any focus/queue events (and

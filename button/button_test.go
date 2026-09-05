@@ -93,15 +93,15 @@ func TestButtonGolden(t *testing.T) {
 	}
 }
 
-// ---- Emphasis registers (G0A.1) ----
+// ---- Emphasis (G0A.1) ----
 
-// onWindowSurface paints the whole canvas in the scheme's app-background pin
+// onWindowSurface paints the whole frame in the scheme's app-background pin
 // before drawing w over it. Every emphasis golden is recorded this way, and it
 // has to be: a ghost button paints no fill of its own, so against the headless
-// window's own clear colour its register would be indistinguishable from a
+// window's own clear colour its emphasis would be indistinguishable from a
 // component that failed to draw. The background pin is the system's default
 // surface — the step a tinted fill is a card over — so it is also the surface
-// on which the three registers separate the way the scale intends.
+// on which the three emphases separate the way the scale intends.
 func onWindowSurface(c tokens.ColorTokens, w layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, c.Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
@@ -109,7 +109,7 @@ func onWindowSurface(c tokens.ColorTokens, w layout.Widget) layout.Widget {
 	}
 }
 
-// The emphasis matrix: every register, in every interaction state, at both
+// The emphasis matrix: every emphasis, in every interaction state, at both
 // densities. Names come from Emphasis.String, so the stored files read
 // emph-ghost-compact-hovered.png and the golden names cannot drift from the
 // vocabulary the rest of the design system uses.
@@ -137,8 +137,8 @@ var (
 )
 
 // TestButtonEmphasisGolden records or diffs the text button across the whole
-// register × state × density matrix. The pre-existing goldens are untouched
-// by design: they are the proof that the zero register still renders exactly
+// emphasis × state × density matrix. The pre-existing goldens are untouched
+// by design: they are the proof that the zero emphasis still renders exactly
 // today's filled button, so this test stores its own files under an emph-
 // prefix rather than re-recording theirs.
 func TestButtonEmphasisGolden(t *testing.T) {
@@ -167,8 +167,8 @@ func TestButtonEmphasisGolden(t *testing.T) {
 }
 
 // TestIconButtonEmphasisGolden records or diffs the icon-only button in every
-// register, idle and focused, at both densities: icon-only composes with the
-// emphasis axis rather than being a register of its own. The focused row is
+// emphasis, idle and focused, at both densities: icon-only composes with the
+// emphasis axis rather than being an emphasis of its own. The focused row is
 // the visible half of the rule that the focus ring does not scale down with
 // emphasis — the ring is the same 2 dp of the same colour on the ghost square
 // as on the filled one.
@@ -199,7 +199,7 @@ func TestIconButtonEmphasisGolden(t *testing.T) {
 	}
 }
 
-// onLevel2 paints the whole canvas in the level-2 surface fill — the raised
+// onLevel2 paints the whole frame in the level-2 surface fill — the raised
 // level patterns/modal's dialog occupies — before drawing w over it. It is
 // the surface the ghost goldens below stand on: a ghost hosted on a raised
 // surface sits on that surface's own step, not the window's.
@@ -212,9 +212,9 @@ func onLevel2(c tokens.ColorTokens, w layout.Widget) layout.Widget {
 
 // TestGhostIconButtonWashesAboveRaisedSurfaceGolden records or diffs the
 // icon-only ghost hovering on a level-2 surface — the modal-close
-// configuration whose hover wash the window-level walk resolved to the
-// very colour it sits on. The stored image is the fix made visible: a wash
-// square that reads against its raised surface.
+// configuration whose hover fill the window-level walk resolved to the
+// very colour it sits on. The stored image is the fix made visible: a state
+// fill square that reads against its raised surface.
 func TestGhostIconButtonWashesAboveRaisedSurfaceGolden(t *testing.T) {
 	size := image.Pt(60, 60)
 	colors := tokens.DefaultLight
@@ -224,9 +224,9 @@ func TestGhostIconButtonWashesAboveRaisedSurfaceGolden(t *testing.T) {
 }
 
 // TestGhostWashDiffersFromItsRaisedSurface asserts, in pixels, that a ghost
-// hosted on a level-2 surface must hover in a wash that differs from the
-// surface it sits on. The light level-2 fill is off the neutral ramp
-// entirely, so the wash must be resolved from that surface's own colour
+// hosted on a level-2 surface must hover in a state fill that differs from
+// the surface it sits on. The light level-2 fill is off the neutral ramp
+// entirely, so that fill must be resolved from the surface's own colour
 // (tokens.ColorTokens.StateAt) rather than from a ramp index.
 func TestGhostWashDiffersFromItsRaisedSurface(t *testing.T) {
 	size := image.Pt(60, 60)
@@ -240,16 +240,16 @@ func TestGhostWashDiffersFromItsRaisedSurface(t *testing.T) {
 	}
 
 	// A pixel inside the 36 dp button square but left of the glyph box
-	// (which is inset by PaddingY, 8 dp): background wash, no glyph stroke,
+	// (which is inset by PaddingY, 8 dp): the background state fill, no glyph stroke,
 	// no ring. Opaque fills: NRGBA == RGBA byte for byte.
 	at := img.RGBAAt(3, 18)
 	surface := colors.SurfaceAt(tokens.Level2)
 	if at == (color.RGBA{R: surface.R, G: surface.G, B: surface.B, A: surface.A}) {
-		t.Fatalf("hover wash at (3,18) equals the level-2 surface %v: the ghost wash is invisible on its host surface", surface)
+		t.Fatalf("hover fill at (3,18) equals the level-2 surface %v: the ghost's state fill is invisible on its host surface", surface)
 	}
 	want := colors.StateAt(tokens.Level2, tokens.StateHover)
 	if at != (color.RGBA{R: want.R, G: want.G, B: want.B, A: want.A}) {
-		t.Errorf("hover wash at (3,18) = %v, want the level-2 surface's own one-step walk %v", at, want)
+		t.Errorf("hover fill at (3,18) = %v, want the level-2 surface's own one-step walk %v", at, want)
 	}
 }
 
@@ -281,12 +281,12 @@ func TestEmphasisRegistersAreVisuallyDistinct(t *testing.T) {
 		{"filled vs ghost", filled, ghost},
 	} {
 		if n := golden.PixelDiff(p.a, p.b); n == 0 {
-			t.Errorf("%s render identically; the emphasis register changed nothing", p.name)
+			t.Errorf("%s render identically; the emphasis changed nothing", p.name)
 		}
 	}
 }
 
-// TestGhostRestsTransparent confirms the least pronounced register paints no
+// TestGhostRestsTransparent confirms the least pronounced emphasis paints no
 // fill:
 // a ghost button at rest is pixel-identical to the bare surface it sits on,
 // everywhere except where its label is.
@@ -311,7 +311,7 @@ func TestGhostRestsTransparent(t *testing.T) {
 	if bare == nil || ghost == nil || filled == nil {
 		return
 	}
-	// The label is roughly a tenth of a 300×60 canvas; the filled fill is
+	// The label is roughly a tenth of a 300×60 frame; the filled fill is
 	// most of it. The ghost must be far closer to the bare surface than the
 	// filled button is — and it must still draw a label.
 	ghostDiff := golden.PixelDiff(bare, ghost)
@@ -324,11 +324,11 @@ func TestGhostRestsTransparent(t *testing.T) {
 	}
 }
 
-// ---- A pinned fill on the Filled register ----
+// ---- A pinned fill on the Filled emphasis ----
 
 // pinnedFill and pinnedInk are a pair no scheme carries: a fixed red of the
 // kind a caller pins when the meaning of an action, rather than the palette,
-// chooses its colour, and the ink that reads over it. They are ordinary
+// chooses its colour, and the foreground that reads over it. They are ordinary
 // colour values on purpose — the point of the pair is that nothing in the
 // theme decides them.
 var (
@@ -396,12 +396,12 @@ func TestUnpinnedFillDrawsTheStockButton(t *testing.T) {
 		name string
 		s    button.RenderState
 	}{
-		{"a fill with no ink", button.RenderState{Fill: pinnedFill}},
-		{"an ink with no fill", button.RenderState{OnFill: pinnedInk}},
+		{"a fill with no foreground", button.RenderState{Fill: pinnedFill}},
+		{"a foreground with no fill", button.RenderState{OnFill: pinnedInk}},
 		{"a transparent pair", button.RenderState{Fill: color.NRGBA{R: 0xb3}, OnFill: color.NRGBA{R: 0xff}}},
 	} {
 		if n := golden.PixelDiff(stock, shot(c.s)); n != 0 {
-			t.Errorf("%s moved %d pixels; an unset pair must leave the register exactly where it was", c.name, n)
+			t.Errorf("%s moved %d pixels; an unset pair must leave the emphasis exactly where it was", c.name, n)
 		}
 	}
 	// The control: a whole pair does move the picture, so the assertions
@@ -485,24 +485,24 @@ func ringSurface(c tokens.ColorTokens, e button.Emphasis) color.NRGBA {
 
 // TestFocusRingIsTheSameRingInEveryRegister is the pixel proof of the rule
 // that keyboard visibility does not scale down with emphasis: the ring is the
-// same shape, in the same place, at the same width in all three registers, and
+// same shape, in the same place, at the same width in all three emphases, and
 // in each of them it reaches the non-text contrast floor against the surface
 // it circles. So a ghost button's ring is neither thinner, dimmer nor smaller
 // than a filled one's.
 //
 // The step is the scheme's one focus colour wherever that colour reads on the
 // surface the band lies on, which is what a ghost's and a tonal's do. A filled
-// register's own fill is a solid primary, a step of the very ramp the ring is
+// emphasis' own fill is a solid primary, a step of the very ramp the ring is
 // a step of, and no step clears 3:1 against a neighbouring one — so that band
 // alone is walked against its own fill (focus.RingOn). Sameness belongs to the
 // ring's geometry always, and to the step everywhere the fill allows it.
 //
-// The geometry is stated here rather than compared between registers — the
+// The geometry is stated here rather than compared between emphases — the
 // outermost ring.Width dp of the button's own square, and nothing outside it
 // — so "the same ring" is a claim about a band written down once and held by
 // all three, and the ring's containment in the footprint is held too. The four
 // corner pixels are excused: a stroke's corner is anti-aliased against
-// whatever is behind it, which is a different colour in every register.
+// whatever is behind it, which is a different colour in every emphasis.
 //
 // Both schemes, because a light scheme's ring walks down its ramp from the
 // mid-value step and a dark scheme's walks up.
@@ -538,7 +538,7 @@ func TestFocusRingIsTheSameRingInEveryRegister(t *testing.T) {
 	} {
 		colors := scheme.colors
 		for _, e := range []button.Emphasis{button.Filled, button.Tonal, button.Ghost} {
-			// The step this register's ring lands on must reach the floor
+			// The step this emphasis' ring lands on must reach the floor
 			// against the surface it circles.
 			surface := ringSurface(colors, e)
 			ring := focus.RingOn(colors, surface)
@@ -594,7 +594,7 @@ func TestFocusRingIsTheSameRingInEveryRegister(t *testing.T) {
 // nearlyEqual reports whether a captured pixel is the given token colour, to
 // within the three units per channel the GPU's own rounding moves a flat fill
 // by: a solid band comes back with its last row or column a step or three off
-// in one channel. Nothing else drawn on these canvases is within an order of
+// in one channel. Nothing else drawn on these frames is within an order of
 // that distance from the ring, so the slack costs the assertion nothing.
 func nearlyEqual(got color.RGBA, want color.NRGBA) bool {
 	const slack = 3
@@ -639,7 +639,7 @@ func TestGhostIconButtonKeepsFullHitTarget(t *testing.T) {
 	dims := drive()
 	side := int(tokens.Comfortable.ControlHeight)
 	if dims.Size != image.Pt(side, side) {
-		t.Fatalf("ghost icon button visual = %v, want %dx%d (the register must not resize the control)", dims.Size, side, side)
+		t.Fatalf("ghost icon button visual = %v, want %dx%d (the emphasis must not resize the control)", dims.Size, side, side)
 	}
 
 	// The hit rect is 44 px centred on the 36 px square: -4..40 on both axes.
@@ -666,8 +666,8 @@ func densityTheme(d tokens.Density) theme.Theme {
 	return th
 }
 
-// materialize subscribes to a component observable and returns its last
-// emitted widget.
+// materialize subscribes to a component observable and returns the last
+// layout.Widget it emitted.
 func materialize(t *testing.T, obs rx.Observable[layout.Widget]) layout.Widget {
 	t.Helper()
 	var w layout.Widget
@@ -679,7 +679,7 @@ func materialize(t *testing.T, obs rx.Observable[layout.Widget]) layout.Widget {
 		t.Fatalf("subscribe: %v", err)
 	}
 	if w == nil {
-		t.Fatal("component did not emit a widget")
+		t.Fatal("component did not emit a layout.Widget")
 	}
 	return w
 }
@@ -735,7 +735,7 @@ func TestButtonVisualHeightIsControlHeight(t *testing.T) {
 // floor and not a height.
 //
 // The measurement that raised it found 29 px against a floor of 28 — the
-// glyph ink box of 17 px plus 2×6 dp — and reproduced it with an empty label,
+// drawn glyph box of 17 px plus 2×6 dp — and reproduced it with an empty label,
 // so it was never text's doing. With the line box honoured the number is 32:
 // LabelLarge's 20 dp line height plus the same 12 dp of padding. Both are over
 // the floor; only the second is derivable from the tokens, which is why it is
@@ -1027,7 +1027,7 @@ func TestButtonInjectedClickableFocusAndActivate(t *testing.T) {
 		t.Fatalf("Button subscribe: %v", err)
 	}
 	if w == nil {
-		t.Fatal("Button did not emit a widget")
+		t.Fatal("Button did not emit a layout.Widget")
 	}
 
 	r := new(gioinput.Router)

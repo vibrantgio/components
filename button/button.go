@@ -59,21 +59,20 @@ const (
 	Tonal
 
 	// Ghost is the least pronounced variant: no fill at rest, the label or
-	// glyph in the neutral ramp's low-contrast text shade, and a neutral wash
-	// only while the pointer is on it. A ghost's wash is its host surface's
-	// own walk — it derives from the surface the button stands on
-	// (RenderState.Level), not the window's own surface, so a ghost on a
-	// raised surface washes past that surface's own level, deep enough to
-	// be seen there. For
-	// affordances that must be present without being the subject — a dialog's
-	// close X, a toolbar of icons, a tertiary "Learn more". A ghost is less
-	// pronounced, not small: it keeps the full pointer target and the full
-	// focus ring.
+	// glyph in the neutral ramp's low-contrast text shade, and a neutral
+	// state fill only while the pointer is on it. That state fill is the
+	// host surface's own walk — it derives from the surface the button
+	// stands on (RenderState.Level), not the window's own surface, so a
+	// ghost on a raised surface steps past that surface's own level, deep
+	// enough to be seen there. For affordances that must be present without
+	// being the subject — a dialog's close X, a toolbar of icons, a tertiary
+	// "Learn more". A ghost is less pronounced, not small: it keeps the full
+	// pointer target and the full focus ring.
 	Ghost
 )
 
-// String returns the register's name in the vocabulary the design system
-// uses everywhere else — the same three words the token sheet's CSS classes
+// String returns the name of the emphasis in the vocabulary the design
+// system uses everywhere else — the same three words the token sheet's CSS classes
 // and the gallery's captions carry.
 func (e Emphasis) String() string {
 	switch e {
@@ -88,15 +87,15 @@ func (e Emphasis) String() string {
 }
 
 // RenderState holds the explicit visual state a static render draws in: the
-// emphasis register the button wears and the interaction state it is in.
-// The zero value is the filled register at rest, so RenderState{} is exactly
-// today's default button.
+// emphasis the button wears and the interaction state it is in. The zero
+// value is Filled emphasis at rest, so RenderState{} is exactly today's
+// default button.
 //
 // Intended for golden-image testing and static rendering; production code
 // obtains the interaction half from the Gio event system via Button, which
-// copies the register straight off Props.Emphasis.
+// copies the emphasis straight off Props.Emphasis.
 type RenderState struct {
-	// Emphasis is the visual weight register. It is a property of the
+	// Emphasis is how pronounced the button is. It is a property of the
 	// button rather than of the pointer, and it lives here because Render
 	// and RenderIcon take exactly one parameter that is not a token and
 	// this is it. Zero is Filled.
@@ -104,38 +103,38 @@ type RenderState struct {
 
 	// Level is the level of the surface the button stands on — a button has
 	// no level of its own — in the same vocabulary the host names its own
-	// fill (tokens.SurfaceAt). Two variants read it. A ghost's wash is its
-	// host surface's own walk: a dialog at tokens.Level2 passes Level2 and
-	// its ghost washes past that level's fill. A tonal button's tint is
+	// fill (tokens.SurfaceAt). Two variants read it. A ghost's state fill is
+	// its host surface's own walk: a dialog at tokens.Level2 passes Level2
+	// and its ghost steps past that level's fill. A tonal button's tint is
 	// derived against that same surface, so it separates from the dialog
 	// rather than from the window. The zero value is tokens.Level0, the
 	// window's own surface. Filled ignores it: it carries its own solid
 	// fill.
 	Level tokens.ElevationLevel
 
-	// Fill and OnFill pin the Filled register's fill and the ink over it
-	// to a pair the scheme does not carry: a colour fixed from outside the
+	// Fill and OnFill pin the Filled emphasis' fill and the foreground over
+	// it to a pair the scheme does not carry: a colour fixed from outside the
 	// palette, which a change of scheme must not move. The case they exist
 	// for is an action whose colour is not the theme's to choose — a
 	// destructive confirmation carrying the one red its platform pins for
 	// that meaning, in both schemes, where a status role would hand it the
 	// scheme's own idea of red instead.
 	//
-	// Nothing else about the register changes. The fill still walks
+	// Nothing else about the emphasis changes. The fill still walks
 	// toward the 900 end under the pointer (tokens.PinnedStateColor: hover
 	// one step, press two, at the pin's own hue and chroma), still keeps
 	// the pin at rest and under focus, still fades to the disabled opacity
-	// with the ink; and the focus ring is still the step that reads against
+	// with the foreground; and the focus ring is still the step that reads against
 	// whatever fill came back, so a pinned fill is measured against
 	// exactly as the primary one is.
 	//
 	// The two are one pin and are honoured together. Leave either half
 	// unset — the zero value, alpha zero, which is no colour a fill could
-	// use — and the register resolves from the primary role exactly as it
+	// use — and the emphasis resolves from the primary role exactly as it
 	// always has: that is what makes the pair invisible to every state
 	// written before it existed, and it means a half-written pin renders
 	// the stock button rather than an invisible label. Tonal and Ghost
-	// ignore both. A register that paints a tint, or paints nothing at
+	// ignore both. An emphasis that paints a tint, or paints nothing at
 	// all, has no solid fill to pin.
 	Fill   color.NRGBA
 	OnFill color.NRGBA
@@ -154,7 +153,7 @@ type Props struct {
 	// Description is the screen-reader label. Falls back to Label when empty.
 	Description string
 
-	// Emphasis is the visual weight register: Filled (the zero value) for
+	// Emphasis is how pronounced the button is: Filled (the zero value) for
 	// the one action a surface is about, Tonal for a secondary action,
 	// Ghost for an affordance that must be present without being the
 	// subject. It changes colour only — never the drawn size, never the
@@ -164,18 +163,18 @@ type Props struct {
 
 	// Level is the level of the surface the button stands on — a button has
 	// no level of its own — copied straight into RenderState.Level on every
-	// frame: what a Ghost's washes walk from and what a Tonal's tint is
+	// frame: what a Ghost's state fills walk from and what a Tonal's tint is
 	// derived against. A container that raises its surface (patterns/modal's
 	// level-2 dialog hosting its close X) passes its own level here; the
 	// zero value is the window's own surface. See RenderState.Level.
 	Level tokens.ElevationLevel
 
-	// Fill and OnFill pin the Filled register's fill and its ink to a
+	// Fill and OnFill pin the Filled emphasis' fill and its foreground to a
 	// pair the scheme does not carry, copied straight into RenderState on
 	// every frame — for the action whose colour is not the theme's to
 	// choose. They are one pin: set both or neither, and the zero value
-	// keeps exactly the colours the register has always had. The hover,
-	// press, focus and disabled treatments are the register's own either
+	// keeps exactly the colours the emphasis has always had. The hover,
+	// press, focus and disabled treatments are the emphasis' own either
 	// way. See RenderState.Fill.
 	Fill   color.NRGBA
 	OnFill color.NRGBA
@@ -220,13 +219,14 @@ type Props struct {
 	// map function makes of it. Set it only when this button must shape with
 	// a different shaper than the theme provides.
 	//
-	// A shaper is not safe to use from two goroutines; Gio lays the widget
-	// forest out on the one goroutine that runs the event loop, which is what
+	// A shaper is not safe to use from two goroutines; Gio lays the layout
+	// tree out on the one goroutine that runs the event loop, which is what
 	// makes sharing it correct. See theme/tokens.Typography.Shaper.
 	Shaper *text.Shaper
 }
 
-// resolvedTokens is the concrete per-emission snapshot consumed by the widget closure.
+// resolvedTokens is the concrete per-emission snapshot consumed by the
+// layout.Widget closure.
 type resolvedTokens struct {
 	color   tokens.ColorTokens
 	label   tokens.TextStyle // the LabelLarge role: typeface, weight, size, line height
@@ -236,9 +236,10 @@ type resolvedTokens struct {
 	shaper  *text.Shaper   // the theme's shaper; nil in the Render/RenderIcon path
 }
 
-// Button returns an rx.Observable[layout.Widget] that emits a new widget
-// whenever the theme or disabled state changes. Widget state (clickable, hover,
-// focus, press) lives in the rx.Defer scope and persists across emissions.
+// Button returns an rx.Observable[layout.Widget] that emits a new
+// layout.Widget whenever the theme or disabled state changes. Interaction
+// state (clickable, hover, focus, press) lives in the rx.Defer scope and
+// persists across emissions.
 //
 // Both integration paths are supported:
 //   - FRP: set Props.OnClick; FRP consumers wrap with rx.NewSubject if needed.
@@ -356,9 +357,9 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 // labelStyle is the LabelLarge role's whole text style and d is the density
 // the button draws at (control height and inner padding). Pass
 // tokens.DefaultTypography.LabelLarge and tokens.Comfortable for the default
-// desktop look. s carries the emphasis register alongside the interaction
-// state; its zero value is the filled button, so a call written before the
-// register existed draws what it always drew.
+// desktop look. s carries the emphasis alongside the interaction state; its
+// zero value is the filled button, so a call written before emphasis existed
+// draws what it always drew.
 //
 // All four properties of the style are honoured, and line height is honoured
 // in the sense a design system means: the label box is labelStyle.LineHeight
@@ -391,7 +392,7 @@ func Render(
 // RenderIcon produces a layout.Widget for a compact icon-only button in an
 // explicit visual state, without event processing or rx machinery. The glyph
 // is drawn by icon into a square d.ControlHeight on a side, inset by
-// d.PaddingY, in the register s carries — a ghost icon button is the less
+// d.PaddingY, in the emphasis s carries — a ghost icon button is the less
 // pronounced glyph patterns/modal's close affordance wants, over the same
 // square and the same pointer target as a filled one.
 // Pass tokens.Comfortable for the default desktop look. Intended
@@ -444,7 +445,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	// Shape with the LabelLarge role's typeface, weight, size and line height.
 	// Zero fields fall back to the shaper's defaults. typeset.Layout, not
 	// widget.Label.Layout, because the role's line height has to be the height
-	// of the label box and Gio alone reports the glyph ink instead — see
+	// of the label box and Gio alone reports the drawn glyph extent instead — see
 	// theme/typeset.
 	style := tok.label
 	f := typeset.Font(style, font.Normal)
@@ -470,7 +471,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
 
 	// Focus ring: the button's outermost 2 dp, inset in its own background.
-	// Same shape, same width and same place in every emphasis register —
+	// Same shape, same width and same place in every emphasis —
 	// keyboard visibility is not a prominence property, so a ghost button's
 	// ring is exactly a filled one's. focus.RingOn hands back the scheme's one
 	// focus colour wherever it reads on that background, and walks against the
@@ -497,7 +498,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 // drawIconButton renders a compact, square icon-only button: a square the
 // density's control height on a side, filled with the button background, the
 // focus ring when focused, and the glyph (drawn by icon) centred inside the
-// padding. Shares buttonColors with the text button so the register and the
+// padding. Shares buttonColors with the text button so the emphasis and the
 // hover/press/focus/disabled treatments match. All visual state comes from s;
 // no event queries are performed here.
 func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int, col color.NRGBA), tok resolvedTokens, s RenderState) layout.Dimensions {
@@ -505,7 +506,7 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 	// Density.PaddingY, so the glyph gets ControlHeight − 2·PaddingY — the
 	// same content-box rule icon.Size documents (20 dp Comfortable, 16 dp
 	// Compact). The pointer target stays the 44 dp square via hit.Extend in
-	// the live path — in every register. Emphasis reaches the colours and
+	// the live path — in every emphasis. Emphasis reaches the colours and
 	// stops there: the glyph grows less pronounced, the square does not
 	// shrink.
 	pad := gtx.Dp(unit.Dp(tok.density.PaddingY))
@@ -593,12 +594,12 @@ const (
 	// ghostText is the resting label shade: neutral step 700, the
 	// low-contrast text floor (Lc ≥ 60).
 	ghostText = 700
-	// ghostTextOnWash is the label shade once a wash appears under it.
+	// ghostTextOnWash is the label shade once a state fill appears under it.
 	// The fill walks toward the 900 end, so the label walks with it and
 	// keeps its headroom instead of spending it. It reads at the text
-	// floor over every wash shallower than the neutral ramp's mid-value
-	// step; past that step no neutral shade reaches 4.5:1 over the wash
-	// from either side, which the dark scheme's two deep levels already
+	// floor over every state fill shallower than the neutral ramp's
+	// mid-value step; past that step no neutral shade reaches 4.5:1 over
+	// that fill from either side, which the dark scheme's two deep levels already
 	// sit at (TestGhostWashClearsThePerceptibilityFloor records it).
 	ghostTextOnWash = 900
 )
@@ -619,14 +620,14 @@ const (
 // over the surface s.Level names, under the role's own foreground at the
 // text floor ([tokens.ColorTokens.ForegroundOn]) — the same two calls the
 // badge makes. So a Tonal button IS level-aware: a fixed step walks through
-// the elevation ladder and lands on the level it is tinting, which measured
+// the elevation and lands on the level it is tinting, which measured
 // 1.13:1 light and 1.11:1 dark against the paper before this, a fill nobody
 // could see.
 //
 // Ghost is the neutral walk with the resting step painted as nothing at all.
-// What a ghost walks from is its host surface's own fill — a ghost's wash is
-// that surface's own walk, taken from whichever level s.Level names
-// (ghostWash) and deep enough to be seen there, with the on-wash text riding
+// What a ghost walks from is its host surface's own fill — a ghost's state
+// fill is that surface's own walk, taken from whichever level s.Level names
+// (ghostWash) and deep enough to be seen there, with the text over it riding
 // at the ramp's 900 end, where the walk itself clamps.
 //
 // Filled is the one variant that takes a pin from the caller. A RenderState
@@ -639,7 +640,7 @@ const (
 // pin. Half a pair is no pair; the variant resolves from the accent role,
 // exactly as every state written before the pair existed does.
 //
-// Ghost's wash is neutral rather than role-tinted on purpose. A ghost claims
+// Ghost's state fill is neutral rather than role-tinted on purpose. A ghost claims
 // no role colour — that is what makes it the least pronounced variant — and
 // tinting one under the pointer would hand the brand hue to the very
 // affordance that was chosen for not carrying it.
@@ -681,7 +682,7 @@ func buttonColors(c tokens.ColorTokens, s RenderState) (bg, fg color.NRGBA) {
 		default:
 			// Rest, focus and disabled paint no fill: the surface behind
 			// shows through untouched. A fully transparent fill is a no-op
-			// over any surface, which is the whole point of the register.
+			// over any surface, which is the whole point of this emphasis.
 			fg = c.Ramps.Neutral.Step(ghostText)
 			if s.Disabled {
 				fg = tokens.Disabled(fg)
@@ -692,7 +693,7 @@ func buttonColors(c tokens.ColorTokens, s RenderState) (bg, fg color.NRGBA) {
 	default: // Filled
 		if pinnedFill(s) {
 			// The caller's pair replaces the role's, and replaces nothing
-			// else: the walk, the opacity and the ring are the register's.
+			// else: the walk, the opacity and the ring are the emphasis'.
 			fg = s.OnFill
 			bg = c.PinnedStateColor(s.Fill, state)
 		} else {
@@ -707,18 +708,18 @@ func buttonColors(c tokens.ColorTokens, s RenderState) (bg, fg color.NRGBA) {
 }
 
 // pinnedFill reports whether the state carries a fill pin the Filled
-// register should wear instead of the primary pair. Both halves must be
-// there: a fill is no fill at alpha zero, and an ink at alpha zero would
-// draw a label nobody can read, so a half-written pin is no pin — the
-// register falls back to the role it has always resolved from rather than
+// emphasis should wear instead of the primary pair. Both halves must be
+// there: a fill is no fill at alpha zero, and a foreground at alpha zero
+// would draw a label nobody can read, so a half-written pin is no pin — the
+// emphasis falls back to the role it has always resolved from rather than
 // rendering something the caller cannot have meant.
 func pinnedFill(s RenderState) bool {
 	return s.Fill.A != 0 && s.OnFill.A != 0
 }
 
-// ghostWash resolves the wash a ghost paints under the pointer: the state
-// walk taken from the fill of the surface the ghost stands on, so the wash is
-// that surface's own walk and nothing else.
+// ghostWash resolves the state fill a ghost paints under the pointer: the
+// state walk taken from the fill of the surface the ghost stands on, so that
+// fill is the surface's own walk and nothing else.
 //
 // [tokens.ColorTokens.StateAt] walks from the level's own colour on the
 // neutral ramp, so every level walks from what it is actually filled with —
@@ -726,10 +727,10 @@ func pinnedFill(s RenderState) bool {
 // Background pin.
 //
 // It carries the perceptibility floor with it ([tokens.StateFloor]): a
-// ghost paints no fill at rest, so the wash is the only thing that says the
-// pointer is here, and one step of the neutral scale is not always enough
-// of one. The floor lives in the theme rather than here because every
-// surface wash in the system asks the same question — a sidebar row and a
+// ghost paints no fill at rest, so the state fill is the only thing that
+// says the pointer is here, and one step of the neutral scale is not always
+// enough of one. The floor lives in the theme rather than here because every
+// surface state fill in the system asks the same question — a sidebar row and a
 // ghost button standing on one surface would otherwise answer it two
 // different ways in the same window.
 func ghostWash(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) color.NRGBA {

@@ -145,7 +145,7 @@ func inksClearTheirFloors(t *testing.T, label string, c tokens.ColorTokens, i Pu
 	return gotLabel, gotMark
 }
 
-// chipPurposes is every purpose, because the ink derivation is not the same for
+// chipPurposes is every purpose, because the foreground derivation is not the same for
 // all four: Assist reads in the full-strength Text pin and the other three in
 // the muted step, and both have to hold their floor on every body.
 var chipPurposes = []struct {
@@ -305,7 +305,7 @@ func TestOnlyFilterCanBeSelected(t *testing.T) {
 }
 
 // TestAssistIsTheStrongestInk pins the one difference between the purposes'
-// inks: Assist reads in the page's full-strength text colour and the other
+// foregrounds: Assist reads in the page's full-strength text colour and the other
 // three in the muted step, so on a resting chip the assist label measures at
 // least as much as theirs and, where the ramp has room, more.
 func TestAssistIsTheStrongestInk(t *testing.T) {
@@ -317,7 +317,7 @@ func TestAssistIsTheStrongestInk(t *testing.T) {
 			strong := vgcolor.ContrastRatio(assist.Label, assist.Fill)
 			muted := vgcolor.ContrastRatio(suggestion.Label, suggestion.Fill)
 			if strong < muted {
-				t.Errorf("%s %s: the assist label measures %.2f:1 and the muted one %.2f:1; assist is the full-strength ink",
+				t.Errorf("%s %s: the assist label measures %.2f:1 and the muted one %.2f:1; assist is the full-strength foreground",
 					sc.name, lv.name, strong, muted)
 			}
 		}

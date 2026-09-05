@@ -49,10 +49,10 @@ const dismissReach = unit.Dp(8192)
 // above instead.
 //
 // Either way the open field is the trigger plus the menu, stacked, and the
-// widget reports both; what changes is the order. [DropUp] therefore puts the
+// component reports both; what changes is the order. [DropUp] therefore puts the
 // TRIGGER at the bottom of the reported box, so a caller placing an upward
 // field aligns that box's BOTTOM edge with the row the trigger stands in —
-// record the widget, read the height it reports, and offset by it.
+// record the layout.Widget, read the height it reports, and offset by it.
 //
 // It is also what the trigger's own mark says, open or closed: the triangle
 // points the way the menu will go. A mark that pointed down over a menu that
@@ -123,7 +123,7 @@ type FieldProps struct {
 	// Drop is which way the open menu stacks, copied straight into
 	// [FieldState.Drop] on every frame. The zero value is [DropDown]. A caller
 	// with no room beneath the trigger says [DropUp] and then places the
-	// widget by its bottom edge. See [Drop].
+	// component by its bottom edge. See [Drop].
 	Drop Drop
 
 	// Level is the level of the surface the field stands on — the field has no
@@ -143,7 +143,7 @@ type FieldProps struct {
 
 	// Placeholder is what the trigger says while the field holds no value:
 	// the prompt that stands where the chosen option will, drawn in the
-	// prompt's own ink so an unanswered field cannot read as an answered
+	// prompt's own foreground so an unanswered field cannot read as an answered
 	// one.
 	//
 	// The wording is the caller's because it names the caller's subject —
@@ -156,7 +156,7 @@ type FieldProps struct {
 	// all, which is a different sentence from Placeholder: one asks the
 	// reader to choose and the other reports that there is no choice to
 	// make. A field offered an empty option list draws it, in the same
-	// prompt ink, and opens no menu.
+	// prompt foreground, and opens no menu.
 	NoOptions string
 
 	// Disabled, if non-nil, disables the field when it emits true.
@@ -180,8 +180,8 @@ type FieldProps struct {
 	// map function makes of it. Set it only when this field must shape with a
 	// different shaper than the theme provides.
 	//
-	// A shaper is not safe to use from two goroutines; Gio lays the widget
-	// forest out on the one goroutine that runs the event loop, which is what
+	// A shaper is not safe to use from two goroutines; Gio lays the layout
+	// tree out on the one goroutine that runs the event loop, which is what
 	// makes sharing it correct. See theme/tokens.Typography.Shaper.
 	Shaper *text.Shaper
 }
@@ -189,7 +189,7 @@ type FieldProps struct {
 // Field returns an rx.Observable[layout.Widget] that emits a new widget
 // whenever the theme or disabled state changes: the form variant's picker —
 // the flat trigger bar and, while it is open, the [Menu] it stacks against
-// itself, beneath by default and above under [DropUp]. Widget state
+// itself, beneath by default and above under [DropUp]. Interaction state
 // (open/closed, selected index, focus) lives in the rx.Defer scope and
 // persists across emissions.
 //
@@ -466,7 +466,7 @@ func stackOpen(gtx layout.Context, d Drop, tok resolvedTokens, trigger op.CallOp
 // eye cannot find, and text on one side of it running into text on the other
 // reads as corruption rather than as two surfaces.
 //
-// The ink and the geometry are patterns/popover's, because they are the same
+// The colour and the geometry are patterns/popover's, because they are the same
 // surface: the neutral step that reaches the graphic floor against the plane
 // the line circles — here the menu's own level-3 fill, which is the harder of
 // the line's two sides — laid one dp wide. A measured step is what a named one
@@ -531,11 +531,11 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	fieldW := gtx.Constraints.Max.X
 	chevronSz := gtx.Dp(fieldChevron)
 
-	// A trigger says one of three things, and which ink it says it in is the
-	// difference between a value and a prompt: an unanswered field drawn in
-	// the body ink reads as answered. Two prompts, because "choose one" and
-	// "there is nothing to choose" are different sentences and only the
-	// caller knows either.
+	// A trigger says one of three things, and which foreground it says it in
+	// is the difference between a value and a prompt: an unanswered field
+	// drawn in the body foreground reads as answered. Two prompts, because
+	// "choose one" and "there is nothing to choose" are different sentences
+	// and only the caller knows either.
 	label := ""
 	prompt := true
 	switch {

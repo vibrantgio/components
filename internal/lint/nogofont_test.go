@@ -5,7 +5,7 @@
 // import gioui.org/font/gofont. It walks the entire repository from the
 // module root, deliberately including any nested modules (e.g. a gallery/
 // demo module): the galleries were migrated off gofont too, so keeping the
-// whole repo clean is the intent. Only testdata/, vendor/, node_modules/ and
+// whole repo is kept clean. Only testdata/, vendor/, node_modules/ and
 // .git/ are skipped.
 //
 // The check matches actual parsed import declarations (go/parser in

@@ -24,7 +24,7 @@ func TestFocusGroupTraversal(t *testing.T) {
 		Source: r.Source(),
 	}
 
-	// frame processes one layout frame: Update, register tags, submit to router.
+	// frame processes one layout frame: Update, register the event tags, submit to router.
 	frame := func() {
 		gtx.Reset()
 		g.Update(gtx)

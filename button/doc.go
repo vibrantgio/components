@@ -47,7 +47,7 @@
 //
 // The filled variant alone will take a fill from its caller. Set both halves
 // of Props.Fill and Props.OnFill — RenderState.Fill and OnFill on the pure
-// path — and the button wears that fill under that ink in place of the
+// path — and the button wears that fill under that foreground in place of the
 // primary pair, keeping every treatment the variant has: the walk toward the
 // 900 end under the pointer, the disabled opacity over both halves, and a
 // focus ring measured against the fill that came back. It is for the action

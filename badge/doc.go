@@ -3,15 +3,15 @@
 // speaks in.
 //
 // [Render] is the pure path: resolved tokens plus a [RenderState] naming the
-// storey the badge stands on, one frame out, no event handling.
+// level the badge stands on, one frame out, no event handling.
 // [RenderDismissible] is the same badge carrying its close mark, for a caller
 // that owns the clickable. [Badge] is the live path — a theme observable and
-// [Props] in, a widget out on every theme emission, with the close mark's
+// [Props] in, a layout.Widget out on every theme emission, with the close mark's
 // pointer target and the dismissal dispatch the pure path cannot carry.
 //
 // # Not a control
 //
-// A badge is read, never used. It is off the control ladder entirely: its
+// A badge is read, never used. It is off the control-height scale entirely: its
 // height is its own type's line box and [tokens.Density.ControlHeight] does
 // not reach it, so a badge beside a control is a fraction of that control's
 // height and is meant to be. It draws no boundary, takes no pointer state on
@@ -20,9 +20,10 @@
 // It does wear a container, and the container is what says it is not a
 // control: a pale fill, the role's hue tinted down until it is a field, with
 // the same hue at reading strength on top of it. A saturated fill under
-// knocked-out white content is the register interaction speaks in — the filled
+// knocked-out white content is the emphasis interaction speaks in — the filled
 // button's — and a badge that borrowed it would be claiming to do something.
-// One hue, two strengths, and the loud pairing is not available here.
+// One hue, two strengths, and the more pronounced pairing is not available
+// here.
 //
 // The one thing that answers a pointer is the close mark, and what it removes
 // is the label. A badge that switched something off would be a control wearing
@@ -31,10 +32,10 @@
 //
 // A control that a user operates is components/button or components/chip. A
 // token the user themselves entered is a chip; a badge is applied ABOUT the
-// thing by the system or the author, which is the whole of the difference and
+// thing by the system or the developer, which is the whole of the difference and
 // the reason the two look nothing alike.
 //
-// # Three utterances, one anatomy
+// # Three utterances, one structure
 //
 // A badge speaks as
 //
@@ -42,7 +43,7 @@
 //	a count   "9", "128" — a word made of digits, not a second component
 //	a glyph   a check, a cross, a key — the sign that stands for the verdict
 //
-// and there is one anatomy underneath all three: the type's line box tall,
+// and there is one structure underneath all three: the type's line box tall,
 // sized to what it says, in the colours its role resolves to. A count is a
 // [Props.Label] of digits and needs no field of its own. A glyph is
 // [Props.Glyph] with no label, drawn in the line box's own square. A glyph set
@@ -50,7 +51,7 @@
 // before the word it stands for, which is also what keeps the badge from
 // reading as a chip, whose mark trails its label.
 //
-// The utterance picks the anatomy in one place, and it is the only branch in
+// The utterance picks the structure in one place, and it is the only branch in
 // the component: anything with words in it wears the container, and a sign on
 // its own stands bare. See [Fill] for why — and for the obligation that
 // carries, which is that a set of glyph badges must differ in shape, because
@@ -65,11 +66,11 @@
 //
 // A worded or counted badge draws two colours of one hue:
 //
-//	fill         a pale tint of the role's hue, relative to the storey the
+//	fill         a pale tint of the role's hue, relative to the level the
 //	             badge stands on: the container chroma, at whatever depth
-//	             separates it from that storey ([Fill])
+//	             separates it from that level ([Fill])
 //	foreground   the role's pinned base while that base clears the text floor
-//	             over that fill, and otherwise the rung of the role's own
+//	             over that fill, and otherwise the step of the role's own
 //	             ramp nearest the mid-value 500 that does ([Foreground])
 //
 // [Neutral] has no pinned base — the neutral ramp carries no pin — so its
@@ -79,8 +80,8 @@
 // inheriting a caption token's, and why it is a badge rather than prose.
 //
 // A glyph badge has no container, so its foreground is derived against the
-// storey instead ([BareForeground]). Both derivations are one function over
-// two grounds — [ForegroundOver] — and that is deliberate: the three
+// level instead ([BareForeground]). Both derivations are one function over
+// two surfaces — [ForegroundOver] — and that is deliberate: the three
 // utterances read at one weight only if they are floored the same way over
 // whatever each of them actually stands on.
 //
@@ -89,7 +90,7 @@
 // utterance at the same weight, so it is derived at the same floor;
 // 1.4.11's 3:1 ([tokens.GraphicFloor]) governs a mark that must be resolved as
 // a shape, and neither the fill nor the word on it is one. The fill's own seam
-// against the storey is gated at [tokens.ContainerFloor], the threshold for
+// against the level is gated at [tokens.ContainerFloor], the threshold for
 // seeing a field at all.
 //
 // # Geometry
@@ -115,13 +116,13 @@
 // The corner is the radius scale's Base stop, clamped to half the height.
 // Deliberately not Full: the pill is components/chip's shape, and a chip is
 // the thing a badge must not be confused with — same rough size, same inline
-// placement, opposite voice.
+// placement, opposite originator.
 //
 // The badge reports its label's baseline, so a row carrying a badge beside
 // words in a larger role can be set on one line with layout.Baseline. A glyph
 // badge reports none; a sign has no baseline to offer.
 //
-// The type role is the density's, one rung quieter than the chip's:
+// The type role is the density's, one step less pronounced than the chip's:
 //
 //	density      role          size   line box   drawn height
 //	-------      ----          ----   --------   ------------
@@ -150,9 +151,9 @@
 //
 // What answers the pointer is the fill's right cap: from the middle of the gap
 // that separates the mark from the label out to the fill's own edge and
-// corner, walked one rung on hover and two on press
+// corner, walked one step on hover and two on press
 // ([tokens.ColorTokens.PinnedStateColor]) toward the ramp's 900 end, which is
-// away from a light ground and away from a dark one alike. At rest it is the
+// away from a light surface and away from a dark one alike. At rest it is the
 // fill and cannot be told from it; under the pointer the badge grows a visibly
 // deeper end. A region rather than the mark's own colour, because an 8 dp x
 // changing colour is the smallest possible answer to a 24 dp target — the

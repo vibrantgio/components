@@ -58,7 +58,7 @@ func (v Variant) role() tokens.Role {
 	return tokens.RoleNeutral
 }
 
-// CloseHitDp is the side of the pointer target the close mark registers, in
+// CloseHitDp is the side of the pointer target the close mark claims, in
 // dp, centred on the mark and free to overhang the badge.
 //
 // It is WCAG 2.5.8 Target Size (Minimum), the AA criterion, and not the 44 dp
@@ -292,8 +292,8 @@ type Props struct {
 	Shaper *text.Shaper
 }
 
-// resolvedTokens is the concrete per-emission snapshot the widget closure
-// draws from: the whole theme flattened to the values one frame needs.
+// resolvedTokens is the concrete per-emission snapshot the layout.Widget
+// closure draws from: the whole theme flattened to the values one frame needs.
 type resolvedTokens struct {
 	color   tokens.ColorTokens
 	spacing tokens.SpacingScale
@@ -322,7 +322,7 @@ func containerPad(sp tokens.SpacingScale) float32 { return sp.S2 }
 //
 // Deliberately not Full. The pill is components/chip's shape, and a badge is
 // the thing a chip must not be confused with — same rough size, same inline
-// placement, opposite voice. A quarter of the badge's height reads as rounded
+// placement, opposite originator. A quarter of the badge's height reads as rounded
 // without reading as a capsule, which leaves the silhouette doing the same
 // work the fill does: telling a reader which of the two families this is.
 func containerRadius(rad tokens.RadiusScale) float32 { return rad.Base }
@@ -452,8 +452,8 @@ func Render(
 // It is the static half of [Props.OnDismiss], for golden-image testing and
 // demonstrations, and it takes the clickable rather than a callback because on
 // this path there is no frame loop to drain one: the caller owns the
-// clickable, lays the widget out, and reads Clicked itself. A nil dismiss
-// draws the mark and registers nothing, which is what a still image wants.
+// clickable, lays it out, and reads Clicked itself. A nil dismiss draws the
+// mark and answers no pointer, which is what a still image wants.
 func RenderDismissible(
 	shaper *text.Shaper,
 	label string,
@@ -545,7 +545,7 @@ func draw(
 		mLabel := op.Record(gtx.Ops)
 		// typeset.Layout rather than widget.Label.Layout because the role's
 		// line height has to be the height of the label box, and Gio alone
-		// reports the glyph ink instead — see theme/typeset.
+		// reports the drawn glyph extent instead — see theme/typeset.
 		labelDims = typeset.Layout(labelGtx, shaper,
 			typeset.Label(tok.style, 1), typeset.Font(tok.style, font.Normal),
 			unit.Sp(tok.style.Size), label, material)

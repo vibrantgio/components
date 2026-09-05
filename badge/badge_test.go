@@ -24,9 +24,10 @@ import (
 // two clip.Stroke lines in a sizePx×sizePx box. Being vector rather than font
 // or SVG rasterisation, it keeps the stored images stable on every machine.
 //
-// Its ink spans most of the box and is centred on it, both deliberately: the
-// badge reserves the box, so a sign that under-fills it reads as a gap in the
-// line, and one whose ink is not centred on the box sits off the baseline the
+// Its stroke spans most of the box and is centred on it, both deliberately:
+// the badge reserves the box, so a sign that under-fills it reads as a gap in
+// the line, and one whose stroke is not centred on the box sits off the
+// baseline the
 // label keeps.
 func check(gtx layout.Context, sizePx int, col color.NRGBA) {
 	w := float32(sizePx)
@@ -51,12 +52,12 @@ func defaultShaper(t *testing.T) *text.Shaper {
 }
 
 // goldenInset is the air around the specimen inside its stored image. A badge
-// drawn at the canvas origin has the image edge on two sides, and an image
+// drawn at the image origin has the image edge on two sides, and an image
 // framed that way cannot show whether the inline box the badge reported is the
-// ink it drew.
+// shape it drew.
 const goldenInset = 12
 
-// onLevel paints the whole canvas in the fill of the surface the badge stands
+// onLevel paints the whole frame in the fill of the surface the badge stands
 // on and draws w inset inside it. That surface is not decoration here: every
 // colour a badge resolves is derived against it and against nothing
 // else, so a badge captured over the headless window's own clear colour is a
@@ -68,7 +69,7 @@ func onLevel(c tokens.ColorTokens, level tokens.ElevationLevel, w layout.Widget)
 	}
 }
 
-// row lays widgets out on one line with the S4 stop between them. A badge pads
+// row lays layout.Widgets out on one line with the S4 stop between them. A badge pads
 // its own content but nothing outside itself, so what separates two of them
 // belongs to whatever sets them, and a stored image of a row has to say which
 // stop it used.
@@ -119,7 +120,7 @@ var goldenVariants = []struct {
 	{"Info", badge.Info},
 }
 
-// goldenSize is a canvas comfortably larger than a row of badges, so the
+// goldenSize is an image comfortably larger than a row of badges, so the
 // stored image carries the surface around the words as well as the words.
 var goldenSize = image.Pt(420, 44)
 
@@ -152,7 +153,7 @@ func TestBadgeGoldenOnEveryLevel(t *testing.T) {
 }
 
 // TestUtterancesGolden records the three things a badge can say, in one
-// variant, so the images show what a single anatomy means: a word, a count and
+// variant, so the images show what a single structure means: a word, a count and
 // a sign at the same weight, in the same colour, on the same line.
 func TestUtterancesGolden(t *testing.T) {
 	shaper := defaultShaper(t)
@@ -217,7 +218,7 @@ func TestCompactGolden(t *testing.T) {
 		onLevel(tokens.DefaultLight, tokens.Level0, row(ws...)))
 }
 
-// measure lays a widget out at one pixel per dp in a generous box and reports
+// measure lays a layout.Widget out at one pixel per dp in a generous box and reports
 // what it drew, which is the only honest way to ask a component its height.
 func measure(t *testing.T, w layout.Widget) image.Point {
 	t.Helper()
@@ -489,7 +490,7 @@ func badgePixel(t *testing.T, img *image.RGBA, dx, dy int) color.NRGBA {
 	return color.NRGBA{R: c.R, G: c.G, B: c.B, A: c.A}
 }
 
-// TestAWordedBadgeWearsItsContainer is the anatomy in pixels: the fill is
+// TestAWordedBadgeWearsItsContainer is the structure in pixels: the fill is
 // there, it is the colour the derivation answers with, it is inset from the
 // label by the padding stop, it stops at the badge's own reported edge, and
 // its corner is cut.

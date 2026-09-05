@@ -4,7 +4,7 @@
 // # Problem
 //
 // Inside an rx.Defer closure, state is allocated once per subscription and
-// then captured by all downstream map functions and widget closures. State
+// then captured by all downstream map functions and layout.Widget closures. State
 // that depends on layout dimensions (scroll position, viewport offsets) cannot
 // be computed until the first Gio frame, because the layout context is not
 // available at subscription time.
@@ -32,7 +32,7 @@
 // # Threading
 //
 // Value is not safe for concurrent use. All calls must occur on the same
-// goroutine — typically the Gio frame goroutine inside a widget closure.
+// goroutine — typically the Gio frame goroutine inside a layout.Widget closure.
 package initial
 
 // Value[T] is an optional T that distinguishes "never set" from "set to

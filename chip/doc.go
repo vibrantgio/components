@@ -9,7 +9,7 @@
 //
 // [Render] is the pure path: resolved tokens plus a [RenderState] carrying the
 // level, the selection and the pointer, one frame out, no event handling.
-// [Chip] is the live one — a theme observable and [Props] in, a widget out on
+// [Chip] is the live one — a theme observable and [Props] in, a layout.Widget out on
 // every theme emission, with the pointer areas, the keyboard, the filter's own
 // selection and the activation dispatch the pure path cannot carry.
 //
@@ -43,8 +43,8 @@
 //
 // # What the chip is not
 //
-// Not a less pronounced button. A button is a fixture — placed by the author, always
-// there, always offering the same action; a chip appears out of content and
+// Not a less pronounced button. A button is a fixture — placed by the
+// developer, always there, always offering the same action; a chip appears out of content and
 // context. Marking a choice is the [Filter] chip's job and no button's,
 // whatever the button's emphasis.
 //
@@ -62,13 +62,13 @@
 // table and states each derivation; what follows is why it is that shape.
 //
 // The resting chip has NO fill. Its body is painted in the surface the caller
-// named, so what a reader sees is the outline and the ink inside it — a
+// named, so what a reader sees is the outline and the foreground inside it — a
 // control that is present without claiming to be a filled thing. That outline
 // is [tokens.ColorTokens.OutlineVariant], the neutral step floored by
 // construction against Surface and Background; the chip takes it as a pin
 // rather than as an answer, because the elevation levels reach past that
 // pair and the token measures 1.80:1 on the dark scheme's level-3 plane. The
-// ink is [tokens.ColorTokens.OnSurfaceVariant], the muted step that is still a
+// foreground is [tokens.ColorTokens.OnSurfaceVariant], the muted step that is still a
 // colour text may legally be set in — except on [Assist], which reads in the
 // page's full-strength Text pin, because an assist chip proposes something to
 // do and is read at the weight of what it proposes.
@@ -96,7 +96,7 @@
 // walks from its container. Only the resting targets differ; the feedback
 // grammar is one grammar.
 //
-// Both inks are resolved against the body ACTUALLY drawn, state included, so a
+// Both foregrounds are resolved against the body ACTUALLY drawn, state included, so a
 // chip whose body has walked re-derives rather than keeping a colour that no
 // longer reads. The walk also STOPS. A ramp writes with its ends, so between
 // them lies a band of depths no step reaches the text floor against, and a body
@@ -141,7 +141,7 @@
 // # Pinning the chip to an edge
 //
 // A box wider than the chip therefore has slack in it, and by default the chip
-// sits at the box's leading edge with the slack behind it and the widget
+// sits at the box's leading edge with the slack behind it and the component
 // reports the chip alone. [Props.Pin] moves it to a named edge of that box and
 // reports the box — [PinLeading] or [PinTrailing], the horizontal axis only.
 // It is a placement, not a stretch: the drawn chip is the same chip at the
@@ -151,8 +151,8 @@
 // in a flex is offered the whole row, and a pin would have it report the whole
 // row; the container that reserved a cap for it is the one with something to
 // pin to. The seam is for the case where the container cannot do the placing
-// itself — a pattern that measures what it is given and centres it in a canvas
-// has the two widths part company by half the slack, and the only place both
+// itself — a pattern that measures what it is given and centres it in a box of
+// its own has the two widths part company by half the slack, and the only place both
 // are known is inside the chip.
 //
 // # The pointer targets

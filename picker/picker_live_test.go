@@ -19,9 +19,9 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// materialize subscribes to a component observable and returns the widget it
-// emitted. A static theme emits once synchronously, so the subscription is
-// finished by the time Wait returns.
+// materialize subscribes to a component observable and returns the
+// layout.Widget it emitted. A static theme emits once synchronously, so the
+// subscription is finished by the time Wait returns.
 func materialize(t *testing.T, obs rx.Observable[layout.Widget]) layout.Widget {
 	t.Helper()
 	var w layout.Widget
@@ -33,15 +33,15 @@ func materialize(t *testing.T, obs rx.Observable[layout.Widget]) layout.Widget {
 		t.Fatalf("subscribe: %v", err)
 	}
 	if w == nil {
-		t.Fatal("component emitted no widget")
+		t.Fatal("component emitted no layout.Widget")
 	}
 	return w
 }
 
-// driver lays a widget out against a router, one frame per call, and hands
-// back the dimensions it reported. Clicked has to run inside the frame that
-// processes the events, which is why every assertion below drives a frame
-// rather than querying the widget.
+// driver lays a layout.Widget out against a router, one frame per call, and
+// hands back the dimensions it reported. Clicked has to run inside the frame
+// that processes the events, which is why every assertion below drives a frame
+// rather than querying it.
 func driver(w layout.Widget, r *gioinput.Router, size image.Point) func() layout.Dimensions {
 	ops := new(op.Ops)
 	return func() layout.Dimensions {
@@ -68,7 +68,7 @@ func click(r *gioinput.Router, drive func() layout.Dimensions, pos f32.Point) la
 }
 
 // liveTheme is the default theme with sharp corners and a pinned shaper, so a
-// live widget measures the same on every machine.
+// live component measures the same on every machine.
 func liveTheme() theme.Theme {
 	th := theme.Default()
 	th.Radius = rx.Of(tokens.RadiusScale{})
@@ -117,7 +117,7 @@ func TestFieldOpensItsMenuAndSelectsFromIt(t *testing.T) {
 // the menu on the other side: opening moves the trigger to the BOTTOM of the
 // box, the rows take the space above it, and a click lands on the option that
 // is drawn where it was clicked. The direction is a placement and the field
-// stays one widget — nothing about picking changes with it.
+// stays one component — nothing about picking changes with it.
 func TestUpwardFieldSelectsFromTheMenuAboveItsTrigger(t *testing.T) {
 	var picked []int
 	w := materialize(t, picker.Field(rx.Of(liveTheme()), picker.FieldProps{
@@ -136,7 +136,7 @@ func TestUpwardFieldSelectsFromTheMenuAboveItsTrigger(t *testing.T) {
 		t.Fatalf("closed upward field measured %d px tall, want the trigger's %d px", dims.Size.Y, row)
 	}
 
-	// Closed, the trigger is the whole widget and stands at the top.
+	// Closed, the trigger is the whole component and stands at the top.
 	dims := click(r, drive, f32.Pt(100, float32(row)/2))
 	if want := row * (1 + len(options)); dims.Size.Y != want {
 		t.Fatalf("after clicking the trigger the field measured %d px tall, want the open %d px", dims.Size.Y, want)
@@ -154,7 +154,7 @@ func TestUpwardFieldSelectsFromTheMenuAboveItsTrigger(t *testing.T) {
 }
 
 // TestFieldTriggerHitsTheFloorBelowItsBar is the pointer-target contract for
-// the form variant: the widget measures the bar it drew, while what the
+// the form variant: the component measures the bar it drew, while what the
 // pointer may land on is the density's 44 dp floor centred on it. The click
 // below is outside the drawn bar and inside the slop, which is the only place
 // the two can be told apart.
@@ -279,7 +279,9 @@ func TestOpenFieldClosesOnAPressLandingElsewhere(t *testing.T) {
 	if dims := click(r, drive, f32.Pt(100, float32(row)/2)); dims.Size.Y != row*(1+len(options)) {
 		t.Fatalf("after clicking the trigger the field measured %d px tall, want the open %d px", dims.Size.Y, row*(1+len(options)))
 	}
-	drive() // the absorber registers with the open menu, one frame behind
+	// The absorber registers its event filters with the open menu, one frame
+	// behind.
+	drive()
 
 	dims := click(r, drive, f32.Pt(100, 300))
 	if dims.Size.Y != row {

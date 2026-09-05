@@ -202,8 +202,8 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 		}
 		// Half-leading: whatever the line box has over the tallest ascent and
 		// descent on the line is split evenly around them, half above the
-		// ascent and half below the descent, so the ink sits in the middle of
-		// its box on every line including the first and the last. The half
+		// ascent and half below the descent, so the glyphs sit in the middle
+		// of their box on every line including the first and the last. The half
 		// above is rounded down. A box no taller than the metrics leaves both
 		// halves zero, which is the metrics-only layout a paragraph with no
 		// line height keeps.
@@ -422,11 +422,11 @@ func drawStrikethrough(gtx layout.Context, s segment) {
 // the same distance clear of the glyphs.
 //
 // A link has neither fill nor border to promote, so its ring is drawn beside
-// the ink rather than at an edge — and the pad is what keeps that the same
-// idiom rather than a second one. The ring and the link ink are both primary,
-// close in depth, and a ring laid straight onto the glyphs would read as a
-// box around a word in one colour; the clear ground between them is what
-// separates the ring from the thing it circles, and it is that ground the
+// the glyphs rather than at an edge — and the pad is what keeps that the same
+// idiom rather than a second one. The ring and the link colour are both
+// primary, close in depth, and a ring laid straight onto the glyphs would read
+// as a box around a word in one colour; the clear surface between them is what
+// separates the ring from the thing it circles, and it is that surface the
 // ring's contrast is measured against.
 func drawFocusRing(gtx layout.Context, style Style, off image.Point, s segment) {
 	w := gtx.Dp(focus.Width)

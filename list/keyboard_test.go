@@ -382,7 +382,7 @@ func TestSelectionIgnoresKeysWithoutFocus(t *testing.T) {
 	frame()
 
 	if got := state.Selected(); got != -1 {
-		t.Fatalf("Selected() = %d after keys sent while another widget held focus; want -1", got)
+		t.Fatalf("Selected() = %d after keys sent while another component held focus; want -1", got)
 	}
 }
 

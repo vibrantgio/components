@@ -309,7 +309,7 @@ func TestChipSpendsNoPaddingAtAFlushEdge(t *testing.T) {
 
 // TestLineInitialChipStartsFlushWithTheMargin is the pixel half of the
 // line-start rule: a width can be spent anywhere, so this checks where the
-// glyphs actually land. A chipped word opening a line must ink its first dark
+// glyphs actually land. A chipped word opening a line must draw its first dark
 // pixel in the same column as the same word unchipped — that column is the
 // list's left edge, and a chip that pushed its glyphs a padding right of it is
 // exactly the stair-step this rule removes.
@@ -318,7 +318,7 @@ func TestLineInitialChipStartsFlushWithTheMargin(t *testing.T) {
 	size := image.Pt(300, 60)
 	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
-	// On the theme's own ground: the capture is transparent where nothing is
+	// On the theme's own surface: the capture is transparent where nothing is
 	// painted, and a threshold on darkness cannot read glyphs against that.
 	onBackground := func(spans []richtext.SpanStyle) layout.Widget {
 		return func(gtx layout.Context) layout.Dimensions {
@@ -335,9 +335,9 @@ func TestLineInitialChipStartsFlushWithTheMargin(t *testing.T) {
 		return // headless unavailable; Capture called t.Skip
 	}
 	// The chip's fill is a light neutral and the glyphs are near-black, so a
-	// midpoint threshold separates ink from fill.
+	// midpoint threshold separates glyph from fill.
 	if got, want := firstDarkColumn(chipped, 128), firstDarkColumn(plain, 128); got != want {
-		t.Errorf("a line-initial chipped word inks from column %d, a plain one from %d; the chip's glyphs must start at the margin, not a padding right of it",
+		t.Errorf("a line-initial chipped word draws from column %d, a plain one from %d; the chip's glyphs must start at the margin, not a padding right of it",
 			got, want)
 	}
 }
@@ -360,14 +360,14 @@ func firstDarkColumn(img *image.RGBA, lum float64) int {
 // ---- The line box ----
 
 // lineBoxProse repeats one syllable carrying a capital, an x-height letter and
-// a descender, so every line it wraps to inks the same band: from the cap tops
+// a descender, so every line it wraps to draws the same band: from the cap tops
 // down to the descender's foot. The distance between two such bands is then the
 // pitch itself, with nothing about the words left in it.
 const lineBoxProse = "Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg"
 
-// inkBands returns the vertical extent of every run of rows carrying ink, in
-// order, as half-open [top, bottom) intervals. Ink is any pixel departing from
-// the corner colour by more than a small luminance threshold.
+// inkBands returns the vertical extent of every run of rows carrying glyphs,
+// in order, as half-open [top, bottom) intervals. A drawn pixel is any pixel
+// departing from the corner colour by more than a small luminance threshold.
 func inkBands(img *image.RGBA) [][2]int {
 	b := img.Bounds()
 	lum := func(x, y int) float64 {
@@ -399,7 +399,7 @@ func inkBands(img *image.RGBA) [][2]int {
 }
 
 // TestWrappedLinesOccupyTheStylesLineHeight is the contract in one
-// measurement, taken off the pixels: the ink of one line to the ink of the
+// measurement, taken off the pixels: the glyphs of one line to the glyphs of the
 // next is the style's line height, and a run of n lines is n boxes tall. Both
 // halves matter — a paragraph whose lines were spaced right but whose block
 // measured wrong would put every following block in the wrong place.
@@ -416,11 +416,11 @@ func TestWrappedLinesOccupyTheStylesLineHeight(t *testing.T) {
 	})
 	bands := inkBands(img)
 	if len(bands) < 3 {
-		t.Fatalf("scanned %d ink bands, want at least 3 (one per wrapped line): %v; the probe did not wrap", len(bands), bands)
+		t.Fatalf("scanned %d glyph bands, want at least 3 (one per wrapped line): %v; the probe did not wrap", len(bands), bands)
 	}
 	for i := 1; i < len(bands); i++ {
 		if pitch := bands[i][0] - bands[i-1][0]; pitch != box {
-			t.Errorf("line %d inks %d px below line %d, want the style's %d px line height (bands %v)", i, pitch, i-1, box, bands)
+			t.Errorf("line %d draws %d px below line %d, want the style's %d px line height (bands %v)", i, pitch, i-1, box, bands)
 		}
 	}
 
@@ -436,7 +436,7 @@ func TestWrappedLinesOccupyTheStylesLineHeight(t *testing.T) {
 
 // TestTheLeadingSplitsAboveAndBelowTheInk holds the line box to the styling
 // model the tokens are written in: the space a line has over its own metrics
-// is half-leading, split around the ink, rather than piled under it. The
+// is half-leading, split around the glyphs, rather than piled under them. The
 // halves are read against the same paragraph laid out with no line height at
 // all — the growth at the bottom is what the baseline gains, the growth at the
 // top is the rest — so the measurement needs no knowledge of the face.
@@ -457,7 +457,7 @@ func TestTheLeadingSplitsAboveAndBelowTheInk(t *testing.T) {
 	below := natural.Baseline - shaped.Baseline
 	above := lead - below
 	if above < 0 || below < 0 || above-below < -1 || above-below > 1 {
-		t.Errorf("a %d px leading landed %d px above the ink and %d px below; half-leading splits it evenly, the odd pixel going below", lead, above, below)
+		t.Errorf("a %d px leading landed %d px above the glyphs and %d px below; half-leading splits it evenly, the odd pixel going below", lead, above, below)
 	}
 }
 
@@ -622,7 +622,7 @@ func TestLinkFocusTraversalAndKeyboardActivation(t *testing.T) {
 		}
 	}
 
-	// Frame 1 registers both links as focusable.
+	// Frame 1 registers each link as focusable.
 	driveFrame(w, ops, r, size)
 	if got := state.FocusedLink(probe()); got != richtext.NoLink {
 		t.Fatalf("initial FocusedLink = %d, want NoLink", got)
@@ -666,9 +666,9 @@ func TestLinkFocusTraversalAndKeyboardActivation(t *testing.T) {
 
 // TestFromTokensDefaults pins the FromTokens contract: body text in Text at
 // BodyLarge, links in Primary, and the focus ring in the library's one ring
-// colour — the primary rung measured against the paragraph ground it is drawn
-// on. Both schemes: the rung a light scheme walks to and the rung a dark one
-// walks to are different rungs, and a paragraph gets whichever its own tokens
+// colour — the primary step measured against the paragraph surface it is
+// drawn on. Both schemes: the step a light scheme walks to and the step a dark
+// one walks to are different steps, and a paragraph gets whichever its own tokens
 // name.
 func TestFromTokensDefaults(t *testing.T) {
 	for _, s := range []struct {
@@ -689,7 +689,7 @@ func TestFromTokensDefaults(t *testing.T) {
 			t.Errorf("%s: FocusColor = %v, want the measured ring %v", s.name, st.FocusColor, want)
 		}
 		if got := tcolor.ContrastRatio(st.FocusColor, s.tok.Surface); got < focus.Floor {
-			t.Errorf("%s: the link ring %v measures %.2f:1 against the paragraph ground %v",
+			t.Errorf("%s: the link ring %v measures %.2f:1 against the paragraph surface %v",
 				s.name, st.FocusColor, got, s.tok.Surface)
 		}
 		if st.Size != unit.Sp(tokens.DefaultTypography.BodyLarge.Size) {
@@ -763,7 +763,7 @@ func captureEmojiInline(t *testing.T, shaper *text.Shaper, colors tokens.ColorTo
 
 // TestEmojiInlinePaintsThePNG is the paint contract: the same span with the
 // face is not the tofu capture, and the grin's bounds hold chromatic pixels
-// that are not the body ink — the PNG, not a ColorOp-tinted hole.
+// that are not the body colour — the PNG, not a ColorOp-tinted hole.
 func TestEmojiInlinePaintsThePNG(t *testing.T) {
 	with := emojiShaper(t)
 	without := defaultShaper(t)
@@ -777,7 +777,7 @@ func TestEmojiInlinePaintsThePNG(t *testing.T) {
 
 	x0, x1 := grinXRange(t, with, int(style.Size))
 	if !hasChromaticNotInk(painted, x0, x1, style.Color) {
-		t.Errorf("no chromatic pixel unlike body ink %v in the grin's x-range [%d, %d); the PNG is missing or tinted",
+		t.Errorf("no chromatic pixel unlike the body colour %v in the grin's x-range [%d, %d); the PNG is missing or tinted",
 			style.Color, x0, x1)
 	}
 }
@@ -805,7 +805,7 @@ func TestEmojiInlineGolden(t *testing.T) {
 }
 
 // grinXRange is the horizontal extent of glyphs that did not come from
-// Roboto (face 0) when shaping s. Half-leading moves ink in y only.
+// Roboto (face 0) when shaping s. Half-leading moves glyphs in y only.
 func grinXRange(t *testing.T, shaper *text.Shaper, pxPerEm int) (x0, x1 int) {
 	t.Helper()
 	shaper.LayoutString(text.Parameters{

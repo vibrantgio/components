@@ -15,7 +15,7 @@ type Item struct {
 	Text string
 }
 
-// RowState holds per-row Gio widget state that must survive list reorders.
+// RowState holds per-row gioui.org/widget state that must survive list reorders.
 type RowState struct {
 	EditText string
 	Checked  bool

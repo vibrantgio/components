@@ -28,7 +28,7 @@ const checkboxBoxSize = unit.Dp(20)
 // meaning without being text — 3:1. A checkbox is entirely such a graphic:
 // nothing about its state is spelled out, so its edge owes the page this
 // much and its mark owes the fill it is drawn on the same. One floor serves
-// the whole control register, which is why it is derived rather than named
+// the whole control family, which is why it is derived rather than named
 // twice.
 const graphicFloor = control.GraphicFloor
 
@@ -63,8 +63,8 @@ var checkLine = [3]f32.Point{
 	{X: 19.5, Y: 6},
 }
 
-// controlBorder is the ink of a control's resting edge — the unchecked box,
-// the unselected radio, the text field: the neutral step that clears
+// controlBorder is the colour a control's resting edge is drawn in — the
+// unchecked box, the unselected radio, the text field: the neutral step that clears
 // graphicFloor against the surface the control stands on. The derivation and
 // the numbers it was held to live in components/internal/control, because
 // components/picker's field trigger is the same edge.
@@ -133,7 +133,7 @@ type CheckboxProps struct {
 }
 
 // Checkbox returns an rx.Observable[layout.Widget] that emits a new widget
-// whenever the theme or disabled state changes. Widget state (checked value,
+// whenever the theme or disabled state changes. Interaction state (checked value,
 // focus) lives in the rx.Defer scope and persists across emissions.
 //
 // Both integration paths are supported:

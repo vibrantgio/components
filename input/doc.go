@@ -12,13 +12,13 @@
 // frame's ops for the runtime to deliver to Update.
 //
 // Pick-one-from-many is components/picker's, where one menu serves both a
-// form-register trigger and a chrome-register one. Dropdown and RenderDropdown
+// form-variant trigger and a chrome-variant one. Dropdown and RenderDropdown
 // forward to picker.Field and picker.RenderField and are deprecated;
 // DropdownProps and DropdownRenderState are aliases of picker's, so props and
 // states written against either name are the same values.
 //
-// The text field, checkbox and radio inner fills paint the storey above the
-// ground they stand on and sit in the page plane; none of them raises a plane
+// The text field, checkbox and radio inner fills paint the level above the
+// surface they stand on and sit in the page plane; none of them raises a plane
 // above the page.
 //
 // The text field is uncontrolled. Props.Seed pre-fills a newly created

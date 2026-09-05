@@ -11,7 +11,7 @@ import (
 
 // pinFill and pinInk are a pair no scheme carries: a fixed red of the kind a
 // caller pins when the meaning of an action, rather than the palette, chooses
-// its colour, and the ink that reads over it (white measures 6.5:1 there).
+// its colour, and the foreground that reads over it (white measures 6.5:1 there).
 var (
 	pinFill = color.NRGBA{0xb3, 0x26, 0x1e, 0xff}
 	pinInk  = color.NRGBA{0xff, 0xff, 0xff, 0xff}
@@ -89,12 +89,12 @@ func TestEmphasisResolvesTheDocumentedColours(t *testing.T) {
 				tokens.Disabled(tonalInk(c, tonalRest(c, tokens.Level0)))},
 
 			// Ghost: no fill at rest, focused or disabled; the host
-			// surface's own hover and press wash under the pointer, with the
+			// surface's own hover and press fill under the pointer, with the
 			// label walking from low-contrast text to high-contrast text as
 			// that fill deepens.
 			//
-			// A ghost that is told nothing stands on the paper, so its wash
-			// is the paper's own walk — tokens.ColorTokens.StateAt at level
+			// A ghost that is told nothing stands on the paper, so its state
+			// fill is the paper's own walk — tokens.ColorTokens.StateAt at level
 			// 0, which lands on neutral 200 in both schemes.
 			{"ghost/normal", RenderState{Emphasis: Ghost},
 				transparent, c.Ramps.Neutral.Step(700)},
@@ -147,7 +147,7 @@ func TestEmphasisResolvesTheDocumentedColours(t *testing.T) {
 			// A pinned pair takes the place of the role's, and of nothing
 			// else: the same walk toward the 900 end, the same untouched pin
 			// at rest and under focus, the same opacity over both halves —
-			// the register's treatments, applied to the caller's colours.
+			// the emphasis' treatments, applied to the caller's colours.
 			{"filled/pinned/normal", RenderState{Fill: pinFill, OnFill: pinInk},
 				pinFill, pinInk},
 			{"filled/pinned/hovered", RenderState{Fill: pinFill, OnFill: pinInk, Hovered: true},
@@ -159,15 +159,15 @@ func TestEmphasisResolvesTheDocumentedColours(t *testing.T) {
 			{"filled/pinned/disabled", RenderState{Fill: pinFill, OnFill: pinInk, Disabled: true},
 				tokens.Disabled(pinFill), tokens.Disabled(pinInk)},
 
-			// Half a pair is no pair. A fill with no ink would draw a label
-			// nobody can read and an ink with no fill has nothing to read
-			// against, so either alone leaves the register exactly where it
-			// has always resolved from.
-			{"filled/fill-without-ink", RenderState{Fill: pinFill},
+			// Half a pair is no pair. A fill with no foreground would draw a
+			// label nobody can read and a foreground with no fill has nothing
+			// to read against, so either alone leaves the emphasis exactly
+			// where it has always resolved from.
+			{"filled/fill-without-foreground", RenderState{Fill: pinFill},
 				c.SolidStateColor(tokens.RolePrimary, tokens.StateNormal), c.OnPrimary},
-			{"filled/ink-without-fill", RenderState{OnFill: pinInk},
+			{"filled/foreground-without-fill", RenderState{OnFill: pinInk},
 				c.SolidStateColor(tokens.RolePrimary, tokens.StateNormal), c.OnPrimary},
-			{"filled/fill-without-ink/hovered", RenderState{Fill: pinFill, Hovered: true},
+			{"filled/fill-without-foreground/hovered", RenderState{Fill: pinFill, Hovered: true},
 				c.SolidStateColor(tokens.RolePrimary, tokens.StateHover), c.OnPrimary},
 
 			// The less pronounced variants ignore the pair outright: a tint
@@ -198,7 +198,7 @@ func TestEmphasisResolvesTheDocumentedColours(t *testing.T) {
 	}
 }
 
-// A transparent fill is the ghost register's whole mechanism: alpha zero
+// A transparent fill is the ghost emphasis' whole mechanism: alpha zero
 // composites as a no-op, so the surface behind the button survives it. Any
 // non-zero alpha here would mean a ghost tints whatever it sits on.
 func TestGhostRestingFillIsFullyTransparent(t *testing.T) {
@@ -230,7 +230,7 @@ func TestPinnedFillIsSchemeStableWhereTheRoleIsNot(t *testing.T) {
 			lightFG, lightBG, pinInk, pinFill)
 	}
 
-	// The control: the register's own pair does move, so the assertion above
+	// The control: the emphasis' own pair does move, so the assertion above
 	// is about the pin rather than about the two schemes being alike.
 	stockLight, _ := buttonColors(tokens.DefaultLight, RenderState{})
 	stockDark, _ := buttonColors(tokens.DefaultDark, RenderState{})
@@ -239,7 +239,7 @@ func TestPinnedFillIsSchemeStableWhereTheRoleIsNot(t *testing.T) {
 	}
 }
 
-// The zero value must be the filled register: that is what makes every Props
+// The zero value must be Filled emphasis: that is what makes every Props
 // and RenderState written before this axis existed render unchanged.
 func TestZeroEmphasisIsFilled(t *testing.T) {
 	var e Emphasis
@@ -292,15 +292,15 @@ func lstar(c color.NRGBA) float64 {
 // an icon ghost naming tokens.Level2, so the table below is the whole
 // family.
 //
-// Three things are pinned. The wash separates from the surface the ghost
-// stands on by at least tokens.StateFloor, on every level and in both
+// Three things are pinned. The state fill separates from the surface the
+// ghost stands on by at least tokens.StateFloor, on every level and in both
 // schemes of both derivations — the defect this replaced put the dark
 // paper's hover at 1.12:1, a signal nobody could see. Press lies beyond
-// hover, so the two states stay two. And the label the wash is read
-// against still clears the text floor, for as long as the wash is shallower
+// hover, so the two states stay two. And the label that fill is read
+// against still clears the text floor, for as long as the fill is shallower
 // than the neutral ramp's mid-value step: past that step no neutral shade
 // reaches 4.5:1 over it from either side, which is a question about a
-// ceiling on the wash rather than about the floor under it, and the two
+// ceiling on the fill rather than about the floor under it, and the two
 // deep levels of the dark scheme sit there already — unmoved by the floor,
 // and recorded here rather than silently skipped.
 func TestGhostWashClearsThePerceptibilityFloor(t *testing.T) {
@@ -341,7 +341,7 @@ func TestGhostWashClearsThePerceptibilityFloor(t *testing.T) {
 					where := fmt.Sprintf("seed %v %s %s %s", seed, sc.name, lv.name, w.name)
 					got := vgcolor.ContrastRatio(w.bg, surface)
 					if got < tokens.StateFloor {
-						t.Errorf("%s: wash %v on the surface %v measures %.3f:1, under the %.2f:1 floor",
+						t.Errorf("%s: state fill %v on the surface %v measures %.3f:1, under the %.2f:1 floor",
 							where, w.bg, surface, got, tokens.StateFloor)
 					} else if got < worstWash {
 						worstWash, worstWashAt = got, where
@@ -349,7 +349,7 @@ func TestGhostWashClearsThePerceptibilityFloor(t *testing.T) {
 					text := vgcolor.ContrastRatio(w.fg, w.bg)
 					if toward*lstar(w.bg) > toward*midL {
 						if text < tokens.TextFloor {
-							t.Errorf("%s: label %v on the wash %v measures %.3f:1, under the %.1f:1 text floor",
+							t.Errorf("%s: label %v on the state fill %v measures %.3f:1, under the %.1f:1 text floor",
 								where, w.fg, w.bg, text, tokens.TextFloor)
 						} else if text < worstText {
 							worstText, worstTextAt = text, where
@@ -368,7 +368,7 @@ func TestGhostWashClearsThePerceptibilityFloor(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("over %d seeds, both derivations, both schemes, five levels: worst wash %.3f:1 (floor %.2f, %s), worst press-over-hover %.3f:1 (%s), worst label %.3f:1 (%s); %d washes lie at or past the ramp's mid step, where no neutral label reaches the text floor",
+	t.Logf("over %d seeds, both derivations, both schemes, five levels: worst state fill %.3f:1 (floor %.2f, %s), worst press-over-hover %.3f:1 (%s), worst label %.3f:1 (%s); %d state fills lie at or past the ramp's mid step, where no neutral label reaches the text floor",
 		len(ghostSweepSeeds), worstWash, tokens.StateFloor, worstWashAt,
 		worstStep, worstStepAt, worstText, worstTextAt, pastMid)
 }

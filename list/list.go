@@ -39,9 +39,9 @@
 // The bar's appearance is a scrollbar.Style; derive the default themed one
 // with scrollbar.FromTokens (github.com/vibrantgio/components/scrollbar).
 //
-// For lists with reorderable rows that contain interactive Gio widgets (editors,
-// checkboxes, etc.), pair with keyed.Defer from components/keyed to keep per-row
-// widget state stable across reorders.
+// For lists with reorderable rows that contain interactive Gio components
+// (editors, checkboxes, etc.), pair with keyed.Defer from components/keyed to
+// keep per-row state stable across reorders.
 package list
 
 import (
@@ -102,7 +102,7 @@ type State struct {
 type focusTag struct{ _ byte }
 
 // Focus returns the list's keyboard focus tag: the one event.Tag that
-// [LayoutSelectable] registers, and the tag a caller passes to key.FocusCmd to
+// [LayoutSelectable] registers as an event filter, and the tag a caller passes to
 // hand the list the keyboard, or to key.Filter to read keys the list does not
 // itself consume — Enter and Space, typically, since activating a selection is
 // the caller's semantics and not the list's.

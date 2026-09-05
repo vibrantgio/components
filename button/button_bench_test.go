@@ -13,7 +13,7 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// BenchmarkButtonRender exercises widget(gtx) for b.N synthetic frames via
+// BenchmarkButtonRender exercises `widget(gtx)` for b.N synthetic frames via
 // the shared bench.BenchFrame harness. The harness enables b.ReportAllocs so
 // per-frame allocation regressions (>5% threshold) are measurable. This is
 // the idle render: default unfocused state.
@@ -66,7 +66,7 @@ func BenchmarkButtonThemeEmission(b *testing.B) {
 			b.Fatalf("subscribe: %v", err)
 		}
 		if w == nil {
-			b.Fatal("component did not emit a widget")
+			b.Fatal("component did not emit a layout.Widget")
 		}
 	}
 }

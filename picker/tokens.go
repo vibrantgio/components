@@ -10,7 +10,7 @@ import (
 	"github.com/vibrantgio/theme/typeset"
 )
 
-// resolvedTokens is the concrete per-emission snapshot the widget closures
+// resolvedTokens is the concrete per-emission snapshot the layout.Widget closures
 // draw from: the whole theme flattened to the values one frame needs.
 //
 // Two text roles, because the two triggers are drawn for two variants. The

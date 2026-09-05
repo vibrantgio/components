@@ -27,7 +27,7 @@ func testContext(ops *op.Ops, size image.Point) layout.Context {
 	}
 }
 
-// block returns a widget of a fixed natural size that ignores its
+// block returns a layout.Widget of a fixed natural size that ignores its
 // constraints, exactly as content which must not reflow does.
 func block(size image.Point) layout.Widget {
 	return func(layout.Context) layout.Dimensions {

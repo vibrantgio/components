@@ -1,4 +1,4 @@
-// Package golden provides a golden-image test harness for Gio widgets.
+// Package golden provides a golden-image test harness for Gio components.
 //
 // It is exported rather than internal on purpose: it owns the one headless-Gio
 // capture path, so a golden test anywhere imports it rather than inlining a

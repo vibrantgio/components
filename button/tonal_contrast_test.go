@@ -168,7 +168,7 @@ func TestTonalFloorsHoldForEverySeed(t *testing.T) {
 // hold, so the gap is a number under test rather than a surprise.
 //
 // The tinted walk carries a floor by construction and no ceiling. Hover and
-// press move the fill along the neutral ladder and the label is re-derived
+// press move the fill along the neutral ramp and the label is re-derived
 // against wherever it landed — the badge's own rule, and the best either can
 // do — but past a certain depth no step of the role's ramp reaches
 // tokens.TextFloor over the walked fill, so the label lands on the closest
@@ -178,7 +178,7 @@ func TestTonalFloorsHoldForEverySeed(t *testing.T) {
 //
 // The bound here is a fence and not a floor: it fails if the gap widens,
 // which is what a recorded defect owes. Closing it is a ceiling on the walk,
-// which is the state-wash recipe's question and not this variant's.
+// which is the state-fill recipe's question and not this variant's.
 func TestTonalsWalkedLabelIsTheOpenGap(t *testing.T) {
 	// The measured worst, minus a hair: a derivation change that makes the
 	// pressed label harder to read than it already is fails here.

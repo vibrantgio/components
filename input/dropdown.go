@@ -26,7 +26,7 @@ type DropdownProps = picker.FieldProps
 // whenever the theme or disabled state changes.
 //
 // Deprecated: the pick-one-from-many affordance is components/picker's, where
-// one menu serves both the form register's trigger and the chrome register's.
+// one menu serves both the form variant's trigger and the chrome variant's.
 // Use picker.Field, which this forwards to; it draws the same control from the
 // same code, and picker.Menu is the surface it drops.
 func Dropdown(th rx.Observable[theme.Theme], props DropdownProps) rx.Observable[layout.Widget] {

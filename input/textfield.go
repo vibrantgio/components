@@ -124,13 +124,14 @@ type TextFieldProps struct {
 	// map function makes of it. Set it only when this field
 	// must shape with a different shaper than the theme provides.
 	//
-	// A shaper is not safe to use from two goroutines; Gio lays the widget
-	// forest out on the one goroutine that runs the event loop, which is what
+	// A shaper is not safe to use from two goroutines; Gio lays the layout
+	// tree out on the one goroutine that runs the event loop, which is what
 	// makes sharing it correct. See theme/tokens.Typography.Shaper.
 	Shaper *text.Shaper
 }
 
-// resolvedTokens is the concrete per-emission snapshot consumed by the widget closure.
+// resolvedTokens is the concrete per-emission snapshot consumed by the
+// layout.Widget closure.
 type resolvedTokens struct {
 	color   tokens.ColorTokens
 	body    tokens.TextStyle // the BodyLarge role: typeface, weight, size, line height
@@ -151,7 +152,7 @@ func bodyLabel(tok resolvedTokens) (font.Font, widget.Label, unit.Sp) {
 }
 
 // TextField returns an rx.Observable[layout.Widget] that emits a new widget
-// whenever the theme or disabled state changes. Widget state (editor content,
+// whenever the theme or disabled state changes. Interaction state (editor content,
 // focus) lives in the rx.Defer scope and persists across emissions.
 //
 // Both integration paths are supported:
@@ -402,13 +403,13 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 		editor.LineHeightScale = 1
 	}
 	// The placeholder above went through typeset.Layout, which centres its
-	// ink within the role's line box: half the line-height deficit sits above
+	// glyphs within the role's line box: half the line-height deficit sits above
 	// the glyphs. The editor is a raw widget.Editor, and Gio baselines an
 	// editor's first line at its own ascent — its share of the line height
-	// all lands below the ink. Drawn at the same offY, the visible text would
+	// all lands below the glyphs. Drawn at the same offY, the visible text would
 	// rise by half the deficit the moment the editor takes over (focus, or a
 	// first keystroke); offsetting the editor down by that same half-deficit
-	// keeps the ink, the caret and the selection where the placeholder's ink
+	// keeps the text, the caret and the selection where the placeholder's text
 	// was, and inside the line box the field was sized from.
 	inkShift := editorInkShift(innerGtx, shaper, wl, f, textSize, placeholder, phMat, contentDims.Size.Y)
 	st := op.Offset(image.Pt(padH, offY+inkShift)).Push(gtx.Ops)
@@ -423,7 +424,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	// the WCAG 2.5.5 floor, but the pointer target never is. Register a
 	// pass-through input area over the hit rectangle — max(field, 44 dp) per
 	// axis, centred on the field, extending beyond its bounds — whose press
-	// events the TextField widget turns into a FocusCmd for the editor. The
+	// events the TextField component turns into a FocusCmd for the editor. The
 	// pass op keeps the editor's own area receiving the presses that land on
 	// the text line.
 	hitPx := gtx.Dp(unit.Dp(tok.density.MinHitTarget()))
@@ -445,10 +446,10 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 }
 
 // editorInkShift returns how far down the live editor must draw so its first
-// line's ink lands where typeset.Layout put the placeholder's: half the
+// line's glyphs land where typeset.Layout put the placeholder's: half the
 // line-height deficit the placeholder's line box carries above its glyphs.
 //
-// corrected is the box typeset.Layout reported for txt; the natural ink
+// corrected is the box typeset.Layout reported for txt; the natural glyph
 // height is re-measured here from the same single-line layout — a hit in the
 // shaper's cache, and measured against the text rather than the face, for the
 // reason the typeset package documents: a line holding a fallback run is
@@ -558,7 +559,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // textFieldColors returns (bg, text, border, placeholder) colors for the
 // given state: the field's own raised fill (controlFill), body text, the
 // resting border the neutral ramp measures against the surface the field
-// stands on (controlBorder) and the control register's own prompt ink
+// stands on (controlBorder) and the control family's own prompt foreground
 // (control.Placeholder) — the same step components/picker's field trigger
 // draws its prompt in, named once so the two cannot drift. Disabled fades
 // each to DisabledOpacity; focus promotes the border to the focus ring.

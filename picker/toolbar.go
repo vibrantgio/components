@@ -22,7 +22,7 @@ import (
 //
 // It is a placement, not a stretch: the trigger stays sized to its value and
 // what changes is where in the offered box it is drawn and how much of that
-// box the widget reports having used. Only the horizontal axis is pinned,
+// box is reported as used. Only the horizontal axis is pinned,
 // because the vertical one is already settled by whatever row the trigger
 // stands in.
 //
@@ -37,9 +37,9 @@ import (
 type Pin uint8
 
 const (
-	// PinNone is the zero value and the trigger's own habit: the widget
-	// reports the control it drew and no more, so the box around it is the
-	// container's business.
+	// PinNone is the zero value and the trigger's own habit: only the control
+	// drawn is reported and no more, so the box around it is the container's
+	// business.
 	PinNone Pin = iota
 
 	// PinLeading draws the control at the leading edge of the offered box.
@@ -124,7 +124,7 @@ type ToolbarProps struct {
 // rounded-rect corner with the single down chevron drawn by the component.
 //
 // It has no menu of its own — a chrome-variant menu floats against the window
-// and patterns/popover places it, so the caller hands this widget to the
+// and patterns/popover places it, so the caller hands this layout.Widget to the
 // popover as its anchor and a [Menu] as its content. [Field] is the trigger
 // that drops its own menu.
 //
@@ -135,9 +135,10 @@ type ToolbarProps struct {
 // The pointer target is extended to the density's tokens.Density.MinHitTarget
 // (44 dp, WCAG 2.5.5) on both axes, centred on the drawn control, exactly as
 // components/button extends its own: the trigger draws at the density's control
-// height and what the pointer may land on does not shrink with it. The widget
-// still reports the control's size — unless [ToolbarProps.Pin] asks for the box
-// instead, in which case the slop travels with the control it was centred on.
+// height and what the pointer may land on does not shrink with it. The
+// component still reports the control's size — unless [ToolbarProps.Pin] asks
+// for the box instead, in which case the slop travels with the control it was
+// centred on.
 //
 // Keyboard activation is gioui.org/widget.Clickable's: the trigger is
 // focusable, Space and Enter activate it, and gtx.Focused drives
@@ -147,7 +148,7 @@ type ToolbarProps struct {
 //   - MVU: set ToolbarProps.Message; the trigger emits mvu.MessageOp on
 //     activation.
 //
-// Widget state — hover, press, focus — lives in the rx.Defer scope and
+// Interaction state — hover, press, focus — lives in the rx.Defer scope and
 // survives every theme emission for the life of the subscription.
 func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[layout.Widget] {
 	// The typography emission carries both the LabelLarge role the trigger is
@@ -229,9 +230,10 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 // RenderToolbar produces a layout.Widget drawing the chrome variant's trigger
 // in an explicit visual state, without event processing: the control filled
 // the measured step over s.Level and walked by the pointer, its one-dp rim,
-// the value in the ink that clears the text floor on that fill, and the down
-// chevron in the ink that clears the graphic floor. When s.Focused, the focus
-// ring — measured against that fill — takes the rim's place at the control's
+// the value in the foreground that clears the text floor on that fill, and the
+// down chevron in the foreground that clears the graphic floor. When
+// s.Focused, the focus ring — measured against that fill — takes the rim's
+// place at the control's
 // edge, two dp instead of one.
 //
 // It takes no glyph, and that is the point rather than an omission: the mark

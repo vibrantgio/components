@@ -62,7 +62,7 @@ func TestFadeGolden(t *testing.T) {
 	}
 
 	golden.Render(t, "fade-light", image.Pt(viewport, len(bands)*band), func(gtx layout.Context) layout.Dimensions {
-		// The backdrop is the ground FromTokens fades into: an area whose
+		// The backdrop is the surface FromTokens fades into: an area whose
 		// fade names a colour its host does not paint is a smear, so the
 		// image only shows a dissolve if the two are asked for together.
 		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.Level0), clip.Rect{Max: gtx.Constraints.Max}.Op())

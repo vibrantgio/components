@@ -22,7 +22,7 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// live subscribes to a chip observable and returns the widget it emitted. A
+// live subscribes to a chip observable and returns the layout.Widget it emitted. A
 // static theme emits once synchronously, so the subscription is finished by
 // the time Wait returns.
 func live(t *testing.T, props chip.Props) layout.Widget {
@@ -43,15 +43,15 @@ func live(t *testing.T, props chip.Props) layout.Widget {
 		t.Fatalf("Chip subscribe: %v", err)
 	}
 	if w == nil {
-		t.Fatal("Chip emitted no widget")
+		t.Fatal("Chip emitted no layout.Widget")
 	}
 	return w
 }
 
-// driver lays a widget out against a router, one frame per call, and hands
-// back the dimensions it reported. Clicked has to run inside the frame that
-// processes the events, which is why every assertion below drives a frame
-// rather than querying the widget.
+// driver lays a layout.Widget out against a router, one frame per call, and
+// hands back the dimensions it reported. Clicked has to run inside the frame
+// that processes the events, which is why every assertion below drives a frame
+// rather than querying it.
 func driver(w layout.Widget, r *gioinput.Router, size image.Point) func() layout.Dimensions {
 	ops := new(op.Ops)
 	return func() layout.Dimensions {
@@ -69,7 +69,7 @@ func driver(w layout.Widget, r *gioinput.Router, size image.Point) func() layout
 }
 
 // TestChipReportsItsBoxAndHitsTheFloor is the pointer-target contract: the
-// widget measures the chip it drew, while what the pointer may land on is the
+// component measures the chip it drew, while what the pointer may land on is the
 // 44 dp floor centred on it. The click below is outside the drawn chip on the
 // y axis and inside the slop, the only place the two can be told apart.
 func TestChipReportsItsBoxAndHitsTheFloor(t *testing.T) {
@@ -213,7 +213,7 @@ func TestFocusedChipMeasuresTheSameBox(t *testing.T) {
 
 // TestPinnedChipDrawsAtTheEdgeOfTheBox is the pinning seam: the chip is the
 // same chip at the same width, drawn at the edge of the box it was offered,
-// and the widget reports that box.
+// and the component reports that box.
 //
 // Where the chip landed is measured with the pointer rather than with pixels,
 // because the target is centred on the drawn chip: a press two pixels in from
@@ -320,7 +320,7 @@ func TestFilterChipTogglesAndReports(t *testing.T) {
 	}
 }
 
-// TestOnlyAFilterReportsSelection is the anatomy rule on the live path: the
+// TestOnlyAFilterReportsSelection is the structure rule on the live path: the
 // other three purposes have no selection to move, so nothing they are clicked
 // with may reach OnSelect.
 func TestOnlyAFilterReportsSelection(t *testing.T) {
@@ -353,7 +353,7 @@ func TestOnlyAFilterReportsSelection(t *testing.T) {
 }
 
 // TestInputChipDismissesFromItsOwnTarget drives the dismiss mark, which is the
-// second pointer target the live path registers: it lies over the body's and
+// second pointer target the live path claims: it lies over the body's and
 // takes the pointer where the two overlap, so a click on the mark dismisses
 // rather than activating.
 func TestInputChipDismissesFromItsOwnTarget(t *testing.T) {
@@ -370,7 +370,7 @@ func TestInputChipDismissesFromItsOwnTarget(t *testing.T) {
 	dims := drive()
 
 	// The mark's centre: half an icon in from where the trailing padding
-	// starts, which is where the anatomy puts it.
+	// starts, which is where the structure puts it.
 	markX := dims.Size.X - int(tokens.Comfortable.PaddingX) -
 		int(math.Round(float64(chip.MarkDp(tokens.DefaultTypography.LabelLarge))))/2
 	press(r, markX, dims.Size.Y/2)

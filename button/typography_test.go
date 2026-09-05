@@ -32,7 +32,7 @@ const specimen = "Il1 Wm gj 018"
 // All four properties are exercised here, LineHeight included.
 // gioui.org/text's calculateYOffsets baselines the first line at that line's
 // own ascent and spends the line height only on the gap to the next one, and
-// widget.Label reports the glyph ink as its size — so a MaxLines:1 label
+// widget.Label reports the drawn glyph extent as its size — so a MaxLines:1 label
 // rendered through widget.Label is identical at any LineHeight. The label
 // box must instead be sized as the role's line box via theme/typeset, so the
 // property is observable exactly where it is documented to arrive.

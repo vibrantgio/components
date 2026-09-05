@@ -18,8 +18,8 @@
 // nothing else.
 //
 // One colour that reads everywhere is possible because the ring only ever has
-// to clear [Floor] against the surfaces elevation carries, and there are five
-// levels, not the whole scheme. The step nearest the primary ramp's mid-value
+// to clear [Floor] against the five surfaces the levels carry, not against the
+// whole scheme. The step nearest the primary ramp's mid-value
 // step that clears [Floor] against every one of those five, clears
 // [BorderSeparation] against every resting border drawn on them, and is not
 // the accent fill itself, is the ring. Over 1644 palettes — 411 seeds, both
@@ -155,9 +155,8 @@ func restingBorder(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGB
 
 // Ring is the colour every focused control in this library draws its ring in:
 // the step of the primary ramp nearest that ramp's mid-value step which
-// reaches [Floor] against every elevation level, reaches [BorderSeparation]
-// against every level's neutral resting border, and is not the accent fill
-// itself.
+// reaches [Floor] against every level, reaches [BorderSeparation] against
+// every level's neutral resting border, and is not the accent fill itself.
 //
 // Every level rather than one, because the ring is one colour and a
 // control may stand anywhere on it. Asking every level at once is what makes

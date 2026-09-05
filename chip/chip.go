@@ -35,8 +35,8 @@ type Purpose uint8
 
 const (
 	// Assist offers a contextual action on the content beside it. It is
-	// clickable and never selected, and it is the one purpose whose ink is the
-	// page's full-strength text colour: an assist chip proposes something to
+	// clickable and never selected, and it is the one purpose whose foreground
+	// is the page's full-strength text colour: an assist chip proposes something to
 	// do and is read at the weight of what it is proposing.
 	//
 	// It is the zero value, so a [Props] naming no purpose draws one.
@@ -79,7 +79,7 @@ func (i Purpose) Dismissible() bool { return i == Input }
 // A mark inside a chip is read as part of the label's own line, so it rises no
 // higher than the capitals and hangs no lower than the baseline. The platform
 // draws its marks in exactly that band: measured offscreen against a
-// system-font label at three sizes, its plus, check and cross ink out at 1.11
+// system-font label at three sizes, its plus, check and cross measure 1.11
 // to 1.21 times the label's cap height, the excess being the half-stroke a
 // line straddling the band leaves outside it. That excess is all the licence a
 // mark gets here too — the marks below stroke to the edge of this square and
@@ -97,7 +97,7 @@ func MarkDp(style tokens.TextStyle) float32 { return style.FaceMetrics().CapHeig
 // at a glance.
 const AvatarDp = 24
 
-// DismissHitDp is the side of the pointer target the dismiss mark registers,
+// DismissHitDp is the side of the pointer target the dismiss mark claims,
 // in dp, centred on the mark and free to overhang the chip.
 //
 // It is WCAG 2.5.8 Target Size (Minimum), the AA criterion, and not the 44 dp
@@ -114,7 +114,7 @@ const edgeDp = unit.Dp(1)
 // MarkStrokeDp is the line weight a chip's stroked marks are drawn at, in dp:
 // the width of the label's own upright stem.
 //
-// The marks and the words are one utterance, so they are made of ink of one
+// The marks and the words are one utterance, so they are drawn at one
 // weight — which the platform bears out. Measured offscreen at three sizes,
 // its plus, check and cross carry a stroke band of 0.82 to 1.02 times their
 // label's stem, diagonals included: a diagonal's horizontal run is wider by
@@ -149,8 +149,8 @@ type RenderState struct {
 	// Level is the level of the surface the chip stands on — a chip has no
 	// level of its own — in the same vocabulary the host names its own fill
 	// (tokens.SurfaceAt). An unselected chip carries no colour of its own, so
-	// that surface is what its body is painted in and what its ink is floored
-	// against. A dialog at tokens.Level2 passes Level2. The zero value is
+	// that surface is what its body is painted in and what its foreground is
+	// floored against. A dialog at tokens.Level2 passes Level2. The zero value is
 	// tokens.Level0, the window's own surface.
 	Level tokens.ElevationLevel
 
@@ -195,7 +195,7 @@ type Colors struct {
 	Outline  color.NRGBA
 	Outlined bool
 
-	// Label is the ink the words are set in, floored at [tokens.TextFloor]
+	// Label is the colour the words are set in, floored at [tokens.TextFloor]
 	// against [Colors.Fill].
 	Label color.NRGBA
 
@@ -209,24 +209,26 @@ type Colors struct {
 //
 // Selected and unselected are two derivations, not one with a switch in it:
 //
-//	unselected  body   the surface itself, walked by the pointer — no colour
-//	                   of the chip's own
-//	            edge   OutlineVariant while it clears the graphic floor on
-//	                   both sides, the floored neutral step otherwise
-//	            ink    OnSurfaceVariant, or the Text pin for Assist, each held
-//	                   to its floor against the body actually drawn
-//	  selected  body   the secondary container against the surface, walked by
-//	                   the pointer and stopped where it stops being a chip
-//	            edge   none
-//	            ink    InkOn(RoleSecondary, body, TextFloor) for the words,
-//	                   OnContainer's own rule against that body for the marks
+//	unselected  body        the surface itself, walked by the pointer — no
+//	                        colour of the chip's own
+//	            edge        OutlineVariant while it clears the graphic floor
+//	                        on both sides, the floored neutral step otherwise
+//	            foreground  OnSurfaceVariant, or the Text pin for Assist, each
+//	                        held to its floor against the body actually drawn
+//	  selected  body        the secondary container against the surface,
+//	                        walked by the pointer and stopped where it stops
+//	                        being a chip
+//	            edge        none
+//	            foreground  InkOn(RoleSecondary, body, TextFloor) for the
+//	                        words, OnContainer's own rule against that body
+//	                        for the marks
 //
 // The walk is the same one every state in this system takes
 // ([tokens.ColorTokens.PinnedStateColor]) and it is the whole of the feedback
 // grammar here: rest is where the two derivations differ, and hover and press
 // follow from whichever rest they started at.
 //
-// Both inks are resolved against the body ACTUALLY drawn rather than against
+// Both foregrounds are resolved against the body ACTUALLY drawn rather than against
 // the resting one. A colour derived against a surface the walk has since moved
 // is a floor that was met once: measured on the family this replaces, 4.5:1 at
 // rest became 2.3:1 pressed. On a selected chip the marks are
@@ -375,7 +377,7 @@ func neutralInk(c tokens.ColorTokens, pin, surface color.NRGBA, floor float64) c
 //
 // It is a placement, not a stretch: the chip stays sized to its content — see
 // the package doc — and what changes is where in the offered box it is drawn
-// and how much of that box the widget reports having used. Only the horizontal
+// and how much of that box is reported as used. Only the horizontal
 // axis is pinned, because the vertical one is already settled by whatever row
 // the chip stands in.
 //
@@ -391,9 +393,9 @@ func neutralInk(c tokens.ColorTokens, pin, surface color.NRGBA, floor float64) c
 type Pin uint8
 
 const (
-	// PinNone is the zero value and the chip's own habit: the widget reports
-	// the chip it drew and no more, so a row of chips is laid out at their own
-	// scale and the box around them is the container's business.
+	// PinNone is the zero value and the chip's own habit: only the chip drawn
+	// is reported, so a row of chips is laid out at their own scale and the
+	// box around them is the container's business.
 	PinNone Pin = iota
 
 	// PinLeading draws the chip at the leading edge of the offered box.
@@ -403,13 +405,13 @@ const (
 	PinTrailing
 )
 
-// Layout draws w at p's edge of the box the widget was offered — the
+// Layout draws w at p's edge of the offered box — the
 // horizontal half of gtx.Constraints.Max — and reports that box rather than
 // w's own size, which is what lets a caller upstream find the pinned edge
 // where it asked for it. PinNone lays w out untouched, so a chip that pins
 // nothing pays nothing.
 //
-// The whole widget is offset, slop and all, so the pointer target stays
+// The whole of w is offset, slop and all, so the pointer target stays
 // centred on the chip it was extended around.
 func (p Pin) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	if p == PinNone {
@@ -529,8 +531,8 @@ type Props struct {
 	Shaper *text.Shaper
 }
 
-// resolvedTokens is the concrete per-emission snapshot the widget closure
-// draws from: the whole theme flattened to the values one frame needs.
+// resolvedTokens is the concrete per-emission snapshot the layout.Widget
+// closure draws from: the whole theme flattened to the values one frame needs.
 type resolvedTokens struct {
 	color   tokens.ColorTokens
 	label   tokens.TextStyle // the LabelLarge role
@@ -541,7 +543,7 @@ type resolvedTokens struct {
 }
 
 // Chip returns an rx.Observable[layout.Widget] emitting a new widget whenever
-// the theme changes. It is the live face of [Render]: the same anatomy, drawn
+// the theme changes. It is the live face of [Render]: the same structure, drawn
 // from the theme rather than from tokens handed in, with the four things the
 // pure path cannot carry — the pointer areas, the keyboard, the [Filter]
 // chip's own selection, and the dispatch.
@@ -549,8 +551,8 @@ type resolvedTokens struct {
 // The pointer target is extended to the density's [tokens.Density.MinHitTarget]
 // (44 dp, WCAG 2.5.5) on both axes, centred on the drawn chip, exactly as
 // components/button extends its own: the chip draws at the density's chip
-// height and what the pointer may land on does not shrink with it. The widget
-// still reports the chip's size, so a row of chips is laid out at their own
+// height and what the pointer may land on does not shrink with it. The
+// component still reports the chip's size, so a row of chips is laid out at their own
 // scale and the slop overhangs the air around them — unless [Props.Pin] asks
 // for the box instead, in which case the slop travels with the chip it was
 // centred on.
@@ -567,7 +569,7 @@ type resolvedTokens struct {
 //   - FRP: set Props.OnClick, Props.OnSelect, Props.OnDismiss.
 //   - MVU: set Props.Message and Props.DismissMessage.
 //
-// Widget state — hover, press, focus, and a filter's selection — lives in the
+// Interaction state — hover, press, focus, and a filter's selection — lives in the
 // rx.Defer scope and survives every theme emission for the life of the
 // subscription.
 func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widget] {
@@ -632,7 +634,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 				if dismissed {
 					// The mark wins the frame. Its pointer area lies over the
 					// body's and Gio delivers to both, so the exclusivity the
-					// anatomy implies — the mark is a hole in the chip, not a
+					// structure implies — the mark is a hole in the chip, not a
 					// second thing on top of it — is the component's to
 					// enforce, once, here.
 					if props.OnDismiss != nil {
@@ -769,7 +771,7 @@ func draw(
 	// Record the label's material and its layout to learn its size before
 	// anything is painted. typeset.Layout rather than widget.Label.Layout
 	// because the role's line height has to be the height of the label box and
-	// Gio alone reports the glyph ink instead — see theme/typeset.
+	// Gio alone reports the drawn glyph extent instead — see theme/typeset.
 	labelDims := layout.Dimensions{}
 	var labelCall op.CallOp
 	if label != "" {
@@ -821,7 +823,7 @@ func draw(
 	// The edge, as nested fills — the shape in the edge's colour, the body
 	// inset by one hair inside it — and not as a stroke on the shape's path. A
 	// stroke is centred on its path, so half a hair of it would fall outside
-	// the box the widget reports and every pixel of it would be a blend of the
+	// the box this component reports and every pixel of it would be a blend of the
 	// two colours rather than either.
 	//
 	// A focused chip's edge IS the focus ring: the ring replaces the outline
@@ -847,14 +849,14 @@ func draw(
 
 	// One row, leading edge to trailing: mark, label, dismiss mark. The row is
 	// laid from the leading padding rather than centred in the box, because
-	// the anatomy is read from its leading edge and a chip clamped narrower
+	// the structure is read from its leading edge and a chip clamped narrower
 	// than its content must lose its trailing end and not both.
 
 	// Where the cap band sits in the chip's own coordinates: the label's
 	// baseline, less the band's height. typeset reports the baseline from the
 	// bottom of the box it laid the label out in, and that report is the only
-	// place this is knowable — the line box is taller than the ink and the
-	// leading it adds is not split evenly around the ink. Centring the mark in
+	// place this is knowable — the line box is taller than the glyphs and the
+	// leading it adds is not split evenly around them. Centring the mark in
 	// the chip instead lands it a pixel low, because the band the capitals
 	// occupy is not centred on the line box that holds them.
 	//
@@ -954,7 +956,7 @@ func stroke(gtx layout.Context, style tokens.TextStyle) float32 {
 // reads as an arm and not as a serif.
 //
 // The path runs to the edges of the box and the stroke straddles them, so half
-// a stroke of ink lies outside the cap band on each side. That is the whole of
+// a stroke lies outside the cap band on each side. That is the whole of
 // the optical licence the platform's own marks take — see [MarkDp] — and it is
 // spent by the shape rather than granted as a larger box.
 func drawCheck(gtx layout.Context, size int, w float32, c color.NRGBA) {

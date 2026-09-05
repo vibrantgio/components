@@ -17,13 +17,13 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// onLevel paints the whole canvas in the fill of the surface the trigger is
+// onLevel paints the whole frame in the fill of the surface the trigger is
 // standing on and draws w inset inside it, and it has to do both.
 //
 // The host surface, because the trigger's whole subject is how it separates
 // from it: against the headless window's own clear colour, a correct trigger and one that
 // resolved its fill from the wrong level look identical. The inset, because a
-// control drawn at the canvas origin has the host on two sides and the image
+// control drawn at the image origin has the host on two sides and the image
 // edge on the other two, and an image framed that way cannot show whether
 // anything — a ring, a shadow, a stray half-pixel of rim — spills outside the
 // box the control reported. Every stored image here has that surface on all
@@ -56,7 +56,7 @@ var goldenSchemes = []struct {
 	{"dark", tokens.DefaultDark},
 }
 
-// goldenSize is a canvas comfortably larger than the trigger, so the stored
+// goldenSize is an image comfortably larger than the trigger, so the stored
 // image carries the host surface around the control as well as the control:
 // the separation is the thing under test and it cannot be seen in a crop of
 // the fill.
@@ -183,13 +183,13 @@ func TestToolbarMarkIsSteadyAcrossTheWalk(t *testing.T) {
 // in every state, so the derivations are covered where they live.
 //
 // What it cannot cover is the mark. The chevron is a 1.5 dp DIAGONAL stroke,
-// and a diagonal hairline is antialiased: the colour Ink derives may clear the
+// and a diagonal hairline is antialiased: the colour `Ink` derives may clear the
 // graphic floor while no pixel actually drawn does. The platform has the same
 // problem and answers it by drawing diagonals heavier than its axis-aligned
 // strokes (1.44 px against 1.26 px at 16 pt, measured off the stored macOS
 // reference), and Gio composites in linear light where CoreGraphics composites
-// in encoded sRGB, which costs a hairline more ink still. So the claim worth
-// holding is about the drawn pixels: somewhere in the mark, in every scheme and
+// in encoded sRGB, which costs a hairline more of its strength still. So the
+// claim worth holding is about the drawn pixels: somewhere in the mark, in every scheme and
 // every state, the chevron reaches the floor it owes.
 func TestToolbarChevronReachesTheGraphicFloor(t *testing.T) {
 	states := []struct {
@@ -257,9 +257,9 @@ func stateOf(s picker.ToolbarState) tokens.State {
 // box. Being vector rather than font or SVG rasterisation, it costs the trigger
 // exactly its own line box and nothing that varies by machine.
 //
-// Its ink is centred on the box and spans most of it, both deliberately: the
+// Its stroke is centred on the box and spans most of it, both deliberately: the
 // trigger reserves the box, so a mark that under-fills it reads as extra trailing
-// padding, and one whose ink is not centred on the box drops below the label.
+// padding, and one whose stroke is not centred on the box drops below the label.
 func chevron(gtx layout.Context, sizePx int, col color.NRGBA) {
 	w := float32(sizePx)
 	stroke := float32(gtx.Dp(unit.Dp(1.5)))

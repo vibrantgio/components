@@ -19,7 +19,7 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// live subscribes to a badge observable and returns the widget it emitted. A
+// live subscribes to a badge observable and returns the layout.Widget it emitted. A
 // static theme emits once synchronously, so the subscription is finished by
 // the time Wait returns.
 func live(t *testing.T, props badge.Props) layout.Widget {
@@ -40,15 +40,15 @@ func live(t *testing.T, props badge.Props) layout.Widget {
 		t.Fatalf("Badge subscribe: %v", err)
 	}
 	if w == nil {
-		t.Fatal("Badge emitted no widget")
+		t.Fatal("Badge emitted no layout.Widget")
 	}
 	return w
 }
 
-// driver lays a widget out against a router, one frame per call, and hands
-// back the dimensions it reported. Clicked has to run inside the frame that
-// processes the events, which is why every assertion below drives a frame
-// rather than querying the widget.
+// driver lays a layout.Widget out against a router, one frame per call, and
+// hands back the dimensions it reported. Clicked has to run inside the frame
+// that processes the events, which is why every assertion below drives a frame
+// rather than querying it.
 func driver(w layout.Widget, r *gioinput.Router, size image.Point) func() layout.Dimensions {
 	ops := new(op.Ops)
 	return func() layout.Dimensions {
@@ -75,7 +75,7 @@ func press(r *gioinput.Router, x, y int) {
 }
 
 // TestTheBadgeReportsItsTextAndTheMarkHitsTheFloor is the pointer-target
-// contract: the widget measures the words it drew, while what the pointer may
+// contract: the component measures the words it drew, while what the pointer may
 // land on around the close mark is the 24 dp AA floor centred on it. The click
 // below is outside the drawn badge on the y axis and inside the mark's slop,
 // the only place the two can be told apart.
@@ -191,7 +191,7 @@ func TestOneDoubleClickIsOneDismissal(t *testing.T) {
 }
 
 // TestTheLiveBadgeDrawsWhatRenderDraws is the seam between the two paths: the
-// live widget and the pure one report the same box for the same badge, so a
+// live path and the pure one report the same box for the same badge, so a
 // caller measuring one has measured the other.
 func TestTheLiveBadgeDrawsWhatRenderDraws(t *testing.T) {
 	shaper := defaultShaper(t)

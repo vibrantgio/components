@@ -1,7 +1,7 @@
 // Package keyed provides Deferred, a companion to rx.Defer for
 // preserving per-item state across list reorders.
 //
-// Problem: rx.Map over an Observable[[]Item] produces new widget closures
+// Problem: rx.Map over an Observable[[]Item] produces new layout.Widget closures
 // on every emission. When the list is reordered, per-row state (editors,
 // checkboxes, scroll offsets) re-binds to the new position rather than
 // following its item. Deferred solves this by maintaining a key→value

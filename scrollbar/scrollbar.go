@@ -97,49 +97,51 @@ const (
 
 // The coverage the overlay intends: 39% at rest, 67% while hovered or dragged.
 // They are the least the thumb is ever covered by rather than a setting — the
-// derivation raises coverage when a ground asks for it and never lowers it.
+// derivation raises coverage when a surface asks for it and never lowers it.
 const (
 	restCoverage   = 100
 	activeCoverage = 170
 )
 
-// inkStep is where the thumb's ink starts: the neutral ramp's low-contrast-text
-// step, which is what chrome that must be noticed without being read is drawn
-// in. The derivation walks deeper from here and never shallower.
+// inkStep is where the thumb's foreground starts: the neutral ramp's
+// low-contrast-text step, which is what chrome that must be noticed without
+// being read is drawn in. The derivation walks deeper from here and never
+// shallower.
 const inkStep = 700
 
 // thumbInk derives one of the thumb's two states: the neutral ramp's
-// low-contrast-text rung deepened as far as floor demands over the grounds
-// this bar rides, and coverage raised past the overlay's intent only once
-// the ramp's deepest ink still falls short.
+// low-contrast-text step deepened as far as floor demands over the surfaces
+// this bar rides, and coverage raised above what the overlay intends only
+// once the ramp's deepest step still falls short.
 //
-// The order the two dials are spent in is the design. Deepening the ink
-// costs a reader nothing — two inks that reach the same composited contrast
-// over the same ground *are* the same colour on that ground — while raising
-// coverage costs precisely what an overlay is for, since coverage is how
-// much of the content underneath stops showing through. So the ink is spent
-// first, all the way to the ramp's end, and coverage only after; for a given
-// floor that is the most translucent thumb there is. Concretely, the light
-// scheme's resting thumb reaches 3:1 at 82% coverage in the low-contrast-text
-// rung and at 71% in the ramp's end rung, and the two land on the same grey.
+// The order the two dials are spent in is the design. Deepening the
+// foreground costs a reader nothing — two foregrounds that reach the same
+// composited contrast over the same surface *are* the same colour on that
+// surface — while raising coverage costs precisely what an overlay is for,
+// since coverage is how much of the content underneath stops showing through.
+// So the foreground is spent first, all the way to the ramp's end, and
+// coverage only after; for a given floor that is the most translucent thumb
+// there is. Concretely, the light scheme's resting thumb reaches 3:1 at 82%
+// coverage in the low-contrast-text step and at 71% in the ramp's end step,
+// and the two land on the same grey.
 //
 // It is derived against both surfaces an overlay bar rides — the window's
 // own content and the window's furniture the panes are filled with — and
 // answers whichever asks more, so one bar reads on both. The chrome level is
 // beneath the content rather than above it, and it is the harder of the two
-// in both schemes: the thumb's ink is dark, and a dark ink over the darker
+// in both schemes: the thumb is dark, and a dark foreground over the darker
 // surface has the less to spare. Over the whole seed sweep the two
-// grounds never disagree about the rung and differ only in coverage, because
-// an ink at the ramp's end is far from both of them.
+// surfaces never disagree about the step and differ only in coverage, because
+// a foreground at the ramp's end is far from both of them.
 //
-// The measurement is taken over the composite, not over the ink: a translucent
-// colour has no contrast of its own, and the ink's own ratio off the ramp says
-// nothing about what a reader sees — the low-contrast-text step at 39%
-// coverage measures 6.19:1 as an ink and 1.49:1 composited over the light
-// page.
+// The measurement is taken over the composite, not over the colour itself: a
+// translucent colour has no contrast of its own, and its own ratio off the
+// ramp says nothing about what a reader sees — the low-contrast-text step at
+// 39% coverage measures 6.19:1 on its own and 1.49:1 composited over the
+// light page.
 //
-// A floor no ink at any coverage reaches is answered with the ramp's end
-// rung, opaque, so a caller always has a colour: a thumb too weak for its
+// A floor no colour at any coverage reaches is answered with the ramp's end
+// step, opaque, so a caller always has a colour: a thumb too weak for its
 // floor is a contrast defect the gates report, not a reason to paint an
 // unset colour.
 func thumbInk(c tokens.ColorTokens, floor float64, coverage uint8) color.NRGBA {
@@ -177,18 +179,18 @@ func thumbInk(c tokens.ColorTokens, floor float64, coverage uint8) color.NRGBA {
 //
 // The thumb is translucent, and that translucency is its identity: content
 // shows through an overlay bar. It is not a free choice, though — a
-// translucent ink has no colour until it is composited, and the composite of
+// translucent foreground has no colour until it is composited, and the composite of
 // the low-contrast-text step at 39% coverage over the light page is #CCCCCC,
 // 1.49:1 against that page, invisible exactly when a reader looks for it. So
 // both states are derived — see thumbInk — as the most translucent thumb that
-// still clears its floor over the grounds an overlay bar rides.
+// still clears its floor over the surfaces an overlay bar rides.
 //
 // The two schemes answer differently, which is the derivation working rather
-// than a special case. Over a dark page a pale ink at low coverage lifts the
+// than a special case. Over a dark page a pale foreground at low coverage lifts the
 // composite a long way, so the dark scheme keeps the low-contrast-text step at
 // the intended coverage and measures 4.49:1. Over a light page the arithmetic
-// runs backwards — a light ground dominates a linear-light blend — so the
-// light scheme spends the ink all the way to the ramp's end and buys the rest
+// runs backwards — a light surface dominates a linear-light blend — so the
+// light scheme spends the foreground all the way to the ramp's end and buys the rest
 // with coverage, landing at 71% for 3:1 and 84% for 4.5:1. The track is
 // transparent by default.
 //

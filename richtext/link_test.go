@@ -12,7 +12,7 @@ import (
 	"github.com/vibrantgio/components/richtext"
 )
 
-// linkSweepSeeds is the seed population this package reads its link-ink
+// linkSweepSeeds is the seed population this package reads its link-colour
 // claims against, the same one theme/tokens sweeps its derivation with: the
 // default seed, the nine macOS system accents, both ends of the tonal axis,
 // three pastels stated at a dark scheme's tone, and four hundred random
@@ -45,7 +45,7 @@ func linkHex(c stdcolor.NRGBA) string { return fmt.Sprintf("#%02X%02X%02X", c.R,
 // TestLinkInkClearsTheTextFloorForEverySeed is the composition-level gate: a
 // link in a paragraph is words on a page, so whatever a caller seeds the
 // palette with, [richtext.FromTokens] hands back a link colour that reaches
-// WCAG AA against the ground the paragraph is set on. It is read over both
+// WCAG AA against the surface the paragraph is set on. It is read over both
 // schemes and both derivations, because the seed's depth decides the light
 // scheme's answer and nothing decides the dark one.
 func TestLinkInkClearsTheTextFloorForEverySeed(t *testing.T) {
@@ -68,7 +68,7 @@ func TestLinkInkClearsTheTextFloorForEverySeed(t *testing.T) {
 			ground := s.tok.SurfaceAt(tokens.Level0)
 			got := color.ContrastRatio(style.LinkColor, ground)
 			if got < tokens.TextFloor {
-				t.Errorf("seed %s: %s: link ink %s on ground %s measures %.2f:1, under the %.1f:1 text floor",
+				t.Errorf("seed %s: %s: link colour %s on surface %s measures %.2f:1, under the %.1f:1 text floor",
 					linkHex(seed), s.name, linkHex(style.LinkColor), linkHex(ground), got, tokens.TextFloor)
 			}
 			if s.light && got < worstLight {
@@ -83,7 +83,7 @@ func TestLinkInkClearsTheTextFloorForEverySeed(t *testing.T) {
 		len(linkSweepSeeds()), worstLight, worstLightAt, worstDark, worstDarkAt)
 }
 
-// TestTheCanonicalSeedsLinkInkIsThePrimaryPin asserts that deriving link ink
+// TestTheCanonicalSeedsLinkInkIsThePrimaryPin asserts that deriving the link colour
 // via InkOn costs no stored golden image: on the seed every golden is
 // rendered from, the brand's own colour already clears the floor, so it is
 // what the paragraph gets.
@@ -97,7 +97,7 @@ func TestTheCanonicalSeedsLinkInkIsThePrimaryPin(t *testing.T) {
 	} {
 		style := richtext.FromTokens(s.tok, tokens.DefaultTypography.BodyLarge)
 		if style.LinkColor != s.tok.Primary {
-			t.Errorf("%s: link ink is %s, not the Primary pin %s — a golden moved",
+			t.Errorf("%s: link colour is %s, not the Primary pin %s — a golden moved",
 				s.name, linkHex(style.LinkColor), linkHex(s.tok.Primary))
 		}
 	}
@@ -115,13 +115,13 @@ func TestAPastelSeedsLinkInkLeavesThePin(t *testing.T) {
 	}
 	lightLink := richtext.FromTokens(light, tokens.DefaultTypography.BodyLarge).LinkColor
 	if lightLink == light.Primary {
-		t.Errorf("light link ink is still the bare pin %s", linkHex(light.Primary))
+		t.Errorf("light link colour is still the bare pin %s", linkHex(light.Primary))
 	}
 
 	darkGround := dark.SurfaceAt(tokens.Level0)
 	darkLink := richtext.FromTokens(dark, tokens.DefaultTypography.BodyLarge).LinkColor
 	if darkLink != dark.Primary {
-		t.Errorf("dark link ink walked to %s; the dark pin %s clears its ground and should stand",
+		t.Errorf("dark link colour walked to %s; the dark pin %s clears its surface and should stand",
 			linkHex(darkLink), linkHex(dark.Primary))
 	}
 	t.Logf("seed %s: light link %s on %s %.2f:1 (bare pin %s %.2f:1); dark link %s on %s %.2f:1",

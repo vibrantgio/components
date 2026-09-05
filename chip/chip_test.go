@@ -24,10 +24,10 @@ import (
 // vector rather than font or SVG rasterisation, it keeps the stored images
 // stable.
 //
-// Its ink is centred on the box and spans it edge to edge, both deliberately.
+// Its stroke is centred on the box and spans it edge to edge, both deliberately.
 // A painter that draws a small figure in the middle of the box it was given
 // leaves slack the chip cannot see — the chip reserves the box, so a mark that
-// under-fills it reads as extra padding — and one whose ink is not centred on
+// under-fills it reads as extra padding — and one whose stroke is not centred on
 // the box drops below the label, because the box is what the chip centres. The
 // box is now the label's cap band, so spanning it is what puts the mark on the
 // label's own line.
@@ -64,13 +64,13 @@ func defaultShaper(t *testing.T) *text.Shaper {
 	return tokens.DefaultTypography.DeterministicShaper()
 }
 
-// onLevel paints the whole canvas in the fill of the surface the chip is
+// onLevel paints the whole frame in the fill of the surface the chip is
 // standing on and draws w inset inside it, and it has to do both.
 //
 // The surface, because a resting chip carries no fill of its own: against the
 // headless window's own clear colour, a correct chip and one that resolved its
 // body from the wrong level look identical. The inset, because a chip drawn at
-// the canvas origin has the host on two sides and the image edge on the other
+// the image origin has the host on two sides and the image edge on the other
 // two, and an image framed that way cannot show whether anything — a ring, a
 // stray half-pixel of outline — spills outside the box the chip reported.
 const goldenInset = 12
@@ -123,7 +123,7 @@ var goldenSchemes = []struct {
 	{"dark", tokens.DefaultDark},
 }
 
-// goldenSize is a canvas comfortably larger than the row it holds, so the
+// goldenSize is an image comfortably larger than the row it holds, so the
 // stored image carries the host surface around the chips as well as the chips:
 // the separation is the thing under test and it cannot be seen in a crop.
 var goldenSize = image.Pt(660, 60)
@@ -230,7 +230,7 @@ func TestChipCompactGolden(t *testing.T) {
 	golden.Render(t, "chip-light-compact", goldenSize, onLevel(c, tokens.Level0, w))
 }
 
-// measure lays a widget out at one pixel per dp in a generous box and reports
+// measure lays a layout.Widget out at one pixel per dp in a generous box and reports
 // what it drew, which is the only honest way to ask a component its height.
 func measure(t *testing.T, w layout.Widget) image.Point {
 	t.Helper()
@@ -312,7 +312,7 @@ func TestChipIsSizedToItsContent(t *testing.T) {
 // band, which is what the chip reserves for every mark but the avatar.
 func markPx() int { return int(math.Round(float64(chip.MarkDp(tokens.DefaultTypography.LabelLarge)))) }
 
-// TestEachMarkCostsItsOwnSlot pins the anatomy in widths, which is the one
+// TestEachMarkCostsItsOwnSlot pins the structure in widths, which is the one
 // place a slot can be silently dropped or silently doubled: a leading icon
 // costs the cap band and the gap after it, an Input chip's avatar costs
 // AvatarDp instead because its leading slot is the avatar slot, and the

@@ -136,7 +136,7 @@ func TestOpenFieldStacksTheSharedMenuUnderItsTrigger(t *testing.T) {
 // planeEdge redraws the field's own edge around a menu box, so the composition
 // tests can name the three things an open field is made of instead of
 // comparing it to two of them. It is the derivation the field draws, spelled
-// once here: the neutral rung that clears the graphic floor against the
+// once here: the neutral step that clears the graphic floor against the
 // level-3 plane the line circles, one dp inside the box on all four sides.
 func planeEdge(gtx layout.Context, size image.Point) {
 	ink := tokens.DefaultLight.MarkOn(tokens.RoleNeutral,
@@ -152,7 +152,7 @@ func planeEdge(gtx layout.Context, size image.Point) {
 	}
 }
 
-// TestOpenFieldMeasuresTheTriggerPlusEveryRow: the open widget reports the
+// TestOpenFieldMeasuresTheTriggerPlusEveryRow: the open component reports the
 // whole stack, because what it drew is what a container has to make room for.
 func TestOpenFieldMeasuresTheTriggerPlusEveryRow(t *testing.T) {
 	row := rowHeight(tokens.Comfortable)
@@ -285,7 +285,7 @@ func TestCappedFieldStacksTheTriggerOverTheCap(t *testing.T) {
 }
 
 // TestTriggerDrawsItsPromptApartFromItsValue is the empty-state contract: a
-// field holding no value says so, in the prompt's own ink, and the two prompts
+// field holding no value says so, in the prompt's own foreground, and the two prompts
 // are two sentences — a field with options and none picked asks the reader to
 // choose, and one with no options reports that there is nothing to choose.
 // None of the three drawings may be the same image.
@@ -307,13 +307,13 @@ func TestTriggerDrawsItsPromptApartFromItsValue(t *testing.T) {
 		t.Error("a field asking the reader to choose draws the same image as one with nothing to choose")
 	}
 
-	// The prompt is drawn in the prompt's ink, not the body ink: the same
+	// The prompt is drawn in the prompt's foreground, not the body's: the same
 	// wording as a VALUE is a different image.
 	asValue := golden.Capture(t, size, field(t, picker.FieldState{
 		Options: []string{"Choose one…"},
 	}))
 	if n := golden.PixelDiff(unpicked, asValue); n == 0 {
-		t.Error("a prompt is drawn in the same ink as a value; an unanswered field reads as answered")
+		t.Error("a prompt is drawn in the same colour as a value; an unanswered field reads as answered")
 	}
 }
 
@@ -431,6 +431,6 @@ func TestMenuMarksTheRowUnderThePointer(t *testing.T) {
 		t.Error("hovering the second row renders identically to hovering the third; hover marks a row, not the menu")
 	}
 	if n := golden.PixelDiff(rest, onSelected); n != 0 {
-		t.Errorf("hovering the selected row changed %d pixels; the standing answer outranks the transient wash", n)
+		t.Errorf("hovering the selected row changed %d pixels; the standing answer outranks the transient state fill", n)
 	}
 }

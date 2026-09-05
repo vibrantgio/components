@@ -18,7 +18,7 @@ import (
 )
 
 // radioEdgeSweepSeeds is the seed population this file reads the selected
-// radio edge's ink claims against, the same one theme/tokens and
+// radio edge's colour claims against, the same one theme/tokens and
 // components/richtext sweep their derivations with: the default seed, the
 // nine macOS system accents, both ends of the tonal axis, three pastels
 // stated at a dark scheme's tone, and four hundred random colours from a
@@ -76,7 +76,7 @@ var radioEdgeLevels = []tokens.ElevationLevel{
 
 // TestSelectedRadioEdgeClearsTheGraphicFloorForEverySeed is the site-level
 // gate: whatever a caller seeds the palette with, and whatever
-// storey hosts the radio, a selected radio's edge reaches WCAG 1.4.11
+// level hosts the radio, a selected radio's edge reaches WCAG 1.4.11
 // against that surface's own fill.
 func TestSelectedRadioEdgeClearsTheGraphicFloorForEverySeed(t *testing.T) {
 	worstLight, worstDark := 99.0, 99.0
