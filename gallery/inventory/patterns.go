@@ -29,6 +29,7 @@ import (
 	"github.com/vibrantgio/patterns/breadcrumb"
 	"github.com/vibrantgio/patterns/card"
 	"github.com/vibrantgio/patterns/feature"
+	"github.com/vibrantgio/patterns/group"
 	"github.com/vibrantgio/patterns/hero"
 	"github.com/vibrantgio/patterns/modal"
 	"github.com/vibrantgio/patterns/navbar"
@@ -58,8 +59,10 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 		// of the section below.
 		{Name: "patterns-toast", Title: "Toast — the transient message at every level", Height: 177,
 			Body: inv.toasts(c)},
-		{Name: "patterns-card", Title: "Card — outlined and filled, header, body and footer", Height: 150,
+		{Name: "patterns-card", Title: "Card — one thing singled out, raised on the page it stands on", Height: 150,
 			Body: inv.cards(c)},
+		{Name: "patterns-group", Title: "Group — the page divided, a hairline at the surface's own level", Height: 150,
+			Body: inv.groups(c)},
 		{Name: "patterns-accordion", Title: "Accordion — one section open, the rest closed", Height: 240,
 			Body: inv.accordion(c)},
 		{Name: "patterns-tabs", Title: "Tabs — the second tab selected", Height: 130,
@@ -90,7 +93,7 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 			Body: inv.hero(c)},
 		{Name: "patterns-feature", Title: "Feature grid — three columns of icon, title and body", Height: 168,
 			Body: inv.feature(c)},
-		{Name: "patterns-pricing", Title: "Pricing — three tiers, the middle one highlighted", Height: 300,
+		{Name: "patterns-pricing", Title: "Pricing — three tier groups, the middle one the recommended card", Height: 300,
 			Body: inv.pricing(c)},
 		{Name: "patterns-testimonial", Title: "Testimonial — a quote with its attribution", Height: 212,
 			Body: inv.testimonial(c)},
@@ -235,38 +238,51 @@ func (inv *Inventory) toasts(c tokens.ColorTokens) layout.Widget {
 }
 
 func (inv *Inventory) cards(c tokens.ColorTokens) layout.Widget {
-	header := func(s string) layout.Widget {
-		return func(gtx layout.Context) layout.Dimensions {
-			return LabelAt(gtx, inv.shaper, s, c.Text, 15, font.Font{Weight: font.Bold})
-		}
+	header := func(gtx layout.Context) layout.Dimensions {
+		return LabelAt(gtx, inv.shaper, "Recommended", c.Text, 15, font.Font{Weight: font.Bold})
 	}
 	body := inv.prose(c,
-		"A card groups a header,",
-		"a body and a footer on a",
-		"surface of its own.",
+		"A card is raised one step",
+		"on the surface it is in, and",
+		"the raise is what singles it out.",
 	)
 	return func(gtx layout.Context) layout.Dimensions {
-		one := func(title string, filled bool) layout.Widget {
-			return func(gtx layout.Context) layout.Dimensions {
-				gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(260))
-				gtx.Constraints.Min = gtx.Constraints.Max
-				return card.Render(card.Props{
-					Header: header(title),
-					Body:   body,
-					// The footer badge's fill is derived against the card's
-					// own level rather than the page's, and both looks stand
-					// at level 1.
-					Footer: badge.Render(inv.shaper, "Footer", nil, badge.Neutral, c, tokens.Spacing,
-						tokens.Radius, inv.badgeStyle(), badge.RenderState{Level: tokens.Level1}),
-					Filled: filled,
-				}, c, tokens.Spacing, tokens.Radius)(gtx)
-			}
-		}
-		return layout.Flex{}.Layout(gtx,
-			layout.Rigid(one("Outlined", false)),
-			layout.Rigid(complayout.HSpacer(20)),
-			layout.Rigid(one("Filled", true)),
-		)
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(260))
+		gtx.Constraints.Min = gtx.Constraints.Max
+		return card.Render(card.Props{
+			Header: header,
+			Body:   body,
+			// The badge's fill is derived against the card's own level
+			// rather than the page's: the card stands at level 1, and the
+			// developer's word about a card is a badge it carries.
+			Footer: badge.Render(inv.shaper, "Popular", nil, badge.Neutral, c, tokens.Spacing,
+				tokens.Radius, inv.badgeStyle(), badge.RenderState{Level: tokens.Level1}),
+		}, c, tokens.Spacing, tokens.Radius)(gtx)
+	}
+}
+
+// groups is the card's twin specimen: the same box at the same size, drawn
+// as the other answer to the same question. The group takes the surface it
+// is in, so nothing in the tile says where it is but the hairline — and it
+// holds two things rather than one, because what a group is for is
+// gathering related components, and a specimen holding one would not show
+// the gap between them.
+func (inv *Inventory) groups(c tokens.ColorTokens) layout.Widget {
+	first := inv.prose(c,
+		"A group draws a hairline at",
+		"the level of the surface it is",
+		"in, and raises nothing.",
+	)
+	second := inv.prose(c,
+		"It holds related components.",
+	)
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(260))
+		gtx.Constraints.Min = gtx.Constraints.Max
+		return group.Render(inv.shaper, group.Props{
+			Label:   "Density",
+			Content: []layout.Widget{first, second},
+		}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge)(gtx)
 	}
 }
 
@@ -642,7 +658,7 @@ func (inv *Inventory) pricing(c tokens.ColorTokens) layout.Widget {
 		Tiers: []pricing.Tier{
 			{Name: "Sketch", Price: "Free", Cadence: "forever",
 				Features: []string{"One seed", "Both schemes"}, CTA: &pricing.CTA{Label: "Start"}},
-			{Name: "Studio", Price: "$12", Cadence: "per month", Highlighted: true,
+			{Name: "Studio", Price: "$12", Cadence: "per month", Recommended: true,
 				Features: []string{"Unlimited seeds", "Both schemes", "Export"}, CTA: &pricing.CTA{Label: "Choose"}},
 			{Name: "Team", Price: "$40", Cadence: "per month",
 				Features: []string{"Everything in Studio", "Shared themes"}, CTA: &pricing.CTA{Label: "Contact"}},
