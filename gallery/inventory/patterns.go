@@ -24,6 +24,7 @@ import (
 	"github.com/vibrantgio/components/button"
 	"github.com/vibrantgio/components/icons"
 	complayout "github.com/vibrantgio/components/layout"
+	"github.com/vibrantgio/components/toast"
 	"github.com/vibrantgio/patterns/accordion"
 	"github.com/vibrantgio/patterns/breadcrumb"
 	"github.com/vibrantgio/patterns/card"
@@ -32,6 +33,7 @@ import (
 	"github.com/vibrantgio/patterns/hero"
 	"github.com/vibrantgio/patterns/modal"
 	"github.com/vibrantgio/patterns/navbar"
+	"github.com/vibrantgio/patterns/notifications"
 	"github.com/vibrantgio/patterns/pagination"
 	"github.com/vibrantgio/patterns/pane"
 	"github.com/vibrantgio/patterns/popover"
@@ -41,7 +43,6 @@ import (
 	"github.com/vibrantgio/patterns/table"
 	"github.com/vibrantgio/patterns/tabs"
 	"github.com/vibrantgio/patterns/testimonial"
-	"github.com/vibrantgio/patterns/toast"
 	"github.com/vibrantgio/patterns/tooltip"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -50,12 +51,12 @@ import (
 // in a slot of its own.
 func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 	return []Section{
-		// The toast slot is the four chips and the gaps between them, plus
-		// the reach of the cast shadow under the last of them: a slot cut to
-		// the chips alone would leave the shadow to fall across the heading
-		// of the section below.
-		{Name: "patterns-toast", Title: "Toast — the transient message at every level", Height: 177,
-			Body: inv.toasts(c)},
+		// The column's slot is the four toasts and the gaps between them,
+		// plus the reach of the cast shadow under the last of them: a slot
+		// cut to the toasts alone would leave the shadow to fall across the
+		// heading of the section below.
+		{Name: "patterns-notifications", Title: "Notifications — the column, one toast at every status role", Height: 177,
+			Body: inv.notifications(c)},
 		{Name: "patterns-card", Title: "Card — one thing singled out, raised on the page it stands on", Height: 150,
 			Body: inv.cards(c)},
 		{Name: "patterns-group", Title: "Group — the page divided, a hairline at the surface's own level", Height: 150,
@@ -171,33 +172,34 @@ func (inv *Inventory) specimenControl(c tokens.ColorTokens) layout.Widget {
 
 // ── The patterns ──────────────────────────────────────────────────────────────
 
-// toasts draws every level at once. A toast with a zero At does no
-// fading, so the stack stands still without a timer driving it — which is how
-// the pattern's own stored images are made.
-func (inv *Inventory) toasts(c tokens.ColorTokens) layout.Widget {
-	items := []toast.Toast{
-		{ID: 1, Level: toast.Info, Text: "Info — the theme was reloaded."},
-		{ID: 2, Level: toast.Success, Text: "Success — the seed was saved."},
-		{ID: 3, Level: toast.Warning, Text: "Warning — contrast is below target."},
-		{ID: 4, Level: toast.Error, Text: "Error — that image could not be read."},
+// notifications draws the column with one toast at every status role. A
+// notification with a zero At does no fading, so the column stands still
+// without a timer driving it — which is how the pattern's own stored images
+// are made.
+func (inv *Inventory) notifications(c tokens.ColorTokens) layout.Widget {
+	items := []notifications.Notification{
+		{ID: 1, Role: toast.Info, Text: "Info — the theme was reloaded."},
+		{ID: 2, Role: toast.Success, Text: "Success — the seed was saved."},
+		{ID: 3, Role: toast.Warning, Text: "Warning — contrast is below target."},
+		{ID: 4, Role: toast.Error, Text: "Error — that image could not be read."},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
-		// The stack gathers in a corner of the frame it is handed, one edge
+		// The column gathers in a corner of the frame it is handed, one edge
 		// margin in from it. A section's slot is not that frame: its own
 		// margin already holds the specimen that distance off the page, so a
-		// frame the size of the slot would indent the chips by two margins and
-		// drop them the same distance below the heading.
+		// frame the size of the slot would indent the toasts by two margins
+		// and drop them the same distance below the heading.
 		//
 		// So the frame is handed out one edge margin past the slot on the
-		// leading and top sides, and the stack drawn back into it. The corner
-		// the chips gather in is then the slot's own corner, and the specimen
-		// lines up with the ones above and below it.
+		// leading and top sides, and the column drawn back into it. The
+		// corner the toasts gather in is then the slot's own corner, and the
+		// specimen lines up with the ones above and below it.
 		edge := gtx.Dp(unit.Dp(tokens.Spacing.S4))
 		defer op.Offset(image.Pt(-edge, -edge)).Push(gtx.Ops).Pop()
 		gtx.Constraints.Max = gtx.Constraints.Max.Add(image.Pt(2*edge, 2*edge))
 		gtx.Constraints.Min = gtx.Constraints.Max
-		return toast.Render(inv.shaper, toast.Props{
-			Position: toast.TopLeft,
+		return notifications.Render(inv.shaper, notifications.Props{
+			Position: notifications.TopLeft,
 			Shaper:   inv.shaper,
 		}, items, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelMedium)(gtx)
 	}
@@ -471,7 +473,7 @@ func (inv *Inventory) table(c tokens.ColorTokens) layout.Widget {
 		{"Button", "Component", "1"},
 		{"Card", "Pattern", "3"},
 		{"Markdown", "Document", "9"},
-		{"Toast", "Pattern", "4"},
+		{"Toast", "Component", "4"},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(400))

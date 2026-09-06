@@ -41,6 +41,7 @@ import (
 	"github.com/vibrantgio/components/picker"
 	"github.com/vibrantgio/components/scrollarea"
 	"github.com/vibrantgio/components/scrollbar"
+	"github.com/vibrantgio/components/toast"
 	"github.com/vibrantgio/markdown"
 	"github.com/vibrantgio/markdown/highlight"
 	"github.com/vibrantgio/theme/tokens"
@@ -406,6 +407,11 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.badgeBlock(c)},
 		{Name: "components-alert", Title: "Alert — info, success, warning, error", Height: 248,
 			Body: inv.alerts(c)},
+		// The toast is drawn here as the signal alone. The cast shadow that
+		// says it floats belongs to whatever places it, so it shows up in
+		// the notifications specimen and not in this one.
+		{Name: "components-toast", Title: "Toast — the transient message at every status role", Height: 168,
+			Body: inv.toasts(c)},
 		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 60,
 			Body: inv.textFieldRow(c)},
 		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 56,
@@ -983,6 +989,41 @@ func (inv *Inventory) alerts(c tokens.ColorTokens) layout.Widget {
 					Title:   v.title,
 					Shaper:  inv.shaper,
 				}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.TitleMedium)(gtx)
+			}))
+		}
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
+	}
+}
+
+// toasts draws one toast at every status role. Every role fills with the
+// same inverse surface — level 2 is where a toast is placed, not what it is
+// filled with — so the leading edge is the only thing between them.
+func (inv *Inventory) toasts(c tokens.ColorTokens) layout.Widget {
+	roles := []struct {
+		role toast.Role
+		text string
+	}{
+		{toast.Info, "Info — the theme was reloaded."},
+		{toast.Success, "Success — the seed was saved."},
+		{toast.Warning, "Warning — contrast is below target."},
+		{toast.Error, "Error — that image could not be read."},
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		cs := make([]layout.FlexChild, 0, 2*len(roles))
+		for i, r := range roles {
+			r := r
+			if i > 0 {
+				cs = append(cs, layout.Rigid(complayout.VSpacer(8)))
+			}
+			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(toast.WidthDp))
+				gtx.Constraints.Max.Y = gtx.Dp(toast.MinHeightDp)
+				gtx.Constraints.Min = image.Point{}
+				return toast.Render(inv.shaper, toast.Props{
+					Role:   r.role,
+					Text:   r.text,
+					Shaper: inv.shaper,
+				}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelMedium)(gtx)
 			}))
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
