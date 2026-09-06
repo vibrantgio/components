@@ -424,6 +424,8 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.tooltip(c)},
 		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 60,
 			Body: inv.textFieldRow(c)},
+		{Name: "components-searchfield", Title: "Search field — at rest, and holding a query with its clear mark", Height: 60,
+			Body: inv.searchFieldRow(c)},
 		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 56,
 			Body: inv.toggleRow(c)},
 		{Name: "components-picker", Title: "Picker — the field closed, focused, open under its menu and disabled, then the chrome toolbar", Height: 180,
@@ -1068,6 +1070,41 @@ func (inv *Inventory) textFieldRow(c tokens.ColorTokens) layout.Widget {
 					}),
 					layout.Rigid(complayout.VSpacer(6)),
 					layout.Rigid(input.Render(inv.shaper, "Placeholder…", c, tokens.Spacing, tokens.Radius,
+						tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s.st)),
+				)
+			}))
+		}
+		return layout.Flex{}.Layout(gtx, cs...)
+	}
+}
+
+// searchFieldRow is the search field in the two states that separate it from
+// the text field above it: empty, where the looking glass is all there is to
+// see, and holding a query, where the clear mark has appeared beside it.
+func (inv *Inventory) searchFieldRow(c tokens.ColorTokens) layout.Widget {
+	states := []struct {
+		label string
+		st    input.RenderState
+	}{
+		{"Rest", input.RenderState{}},
+		{"Typed", input.RenderState{Text: "meeting notes"}},
+		{"Focused", input.RenderState{Focused: true, Text: "meeting notes"}},
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		cs := make([]layout.FlexChild, 0, 2*len(states))
+		for i, s := range states {
+			if i > 0 {
+				cs = append(cs, layout.Rigid(complayout.HSpacer(16)))
+			}
+			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Min.X = gtx.Dp(200)
+				gtx.Constraints.Max.X = gtx.Dp(200)
+				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						return LabelAt(gtx, inv.shaper, s.label, c.Ramps.Neutral.Step(600), 11, font.Font{})
+					}),
+					layout.Rigid(complayout.VSpacer(6)),
+					layout.Rigid(input.RenderSearch(inv.shaper, "Search", c, tokens.Spacing, tokens.Radius,
 						tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s.st)),
 				)
 			}))

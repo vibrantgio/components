@@ -55,6 +55,14 @@ const (
 	// HistoryForward is the control that goes back to what the reader had
 	// stepped away from.
 	HistoryForward Name = "history-forward"
+
+	// Search is the looking glass a search field leads with. It names the
+	// control at a glance and is the one mark in this set that operates
+	// nothing: it stands in a structure rather than on a control of its own.
+	Search Name = "search"
+
+	// Clear is the control that empties a field of what was typed into it.
+	Clear Name = "clear"
 )
 
 // Painter draws a mark into a square of sizePx at the current origin, in col.

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Search: the looking glass that names a search field at a glance. It is
+       not itself a control — pressing it operates nothing — but it stands in a
+       control's structure, so it is drawn to this set's grid like the rest.
+
+       Grid: a diagonal form, so it takes the 20-unit allowance rather than the
+       square keyline. The lens is a ring centred on 9.6,9.6, outer radius 7.1
+       and inner radius 5.1. Its band is curved everywhere: it runs along an
+       axis at four points and crosses the pixel grid at every other, so it
+       takes the diagonal measure of 2 rather than the axis-aligned 1.5. Outer
+       contour clockwise, inner counter-clockwise, so the ring is a hole under
+       the non-zero winding rule. The handle is one band at 45 degrees, the
+       diagonal measure again, its centre line running from just inside the
+       ring's inner edge out to 21.3,21.3 so the two meet with no seam. The
+       drawing spans 2.5 to 22.0 along the diagonal, filling the allowance. -->
+  <path fill="#000000" d="M9.6 2.5 C13.5213 2.5 16.7 5.6787 16.7 9.6 C16.7 13.5213 13.5213 16.7 9.6 16.7 C5.6787 16.7 2.5 13.5213 2.5 9.6 C2.5 5.6787 5.6787 2.5 9.6 2.5 Z M9.6 4.5 C6.7833 4.5 4.5 6.7833 4.5 9.6 C4.5 12.4167 6.7833 14.7 9.6 14.7 C12.4167 14.7 14.7 12.4167 14.7 9.6 C14.7 6.7833 12.4167 4.5 9.6 4.5 Z"/>
+  <!-- The handle, its own contour so it abuts the ring rather than winding
+       against it. -->
+  <path fill="#000000" d="M12.293 13.707 L20.593 22.007 L22.007 20.593 L13.707 12.293 Z"/>
+</svg>

@@ -76,7 +76,7 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 | `golden` | The organization's headless-Gio golden-image harness: `Capture`, `Render` and `PixelDiff`. Exported so callers outside components drive one capture path instead of inlining their own. |
 | `icon` | A name→icon registry holding icons in either SVG (`vibrantgio/svg`) or IVG (`vibrantgio/ivg`) form. |
 | `initial` | `Value[T]`, a typed "not set yet" cell for state that cannot be computed until the first frame has laid out — instead of a magic sentinel. |
-| `input` | Text field, checkbox, radio and dropdown, on the same state and props contract as `button`. |
+| `input` | Text field, search field, checkbox, radio and dropdown, on the same state and props contract as `button`. The search field is the text field with two slots added to its structure — the looking glass that names it and the clear mark that empties it — both spent out of the field's own width, and clearing reports the empty query the way a keystroke reports any other. |
 | `keyed` | `Deferred`, a key→state registry that keeps per-row state attached to its item across list reorders, inserts and deletes. |
 | `layout` | Spacing, inset and spacer helpers, row/column wrappers, a pill clip, and `FocusGroup` for keyboard focus across a fixed set of items. |
 | `list` | Virtual-scrolling list — only the visible rows lay out. `Layout` for the bare list, `LayoutScrollbar` to draw a bar in a reserved gutter or overlaid. |

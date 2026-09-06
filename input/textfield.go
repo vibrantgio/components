@@ -269,7 +269,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 					Focused:  foc,
 					Disabled: dis,
 					Level:    props.Level,
-				}, showPh)
+				}, showPh, adorn{})
 			}
 		})
 	})
@@ -297,12 +297,12 @@ func Render(
 ) layout.Widget {
 	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: body, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
-		return drawTextFieldStatic(gtx, shaper, placeholder, tok, s)
+		return drawTextFieldStatic(gtx, shaper, placeholder, tok, s, adorn{})
 	}
 }
 
 // drawTextFieldLive renders a live text field containing a widget.Editor.
-func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.Editor, hitTag *int, placeholder, desc string, tok resolvedTokens, s RenderState, showPlaceholder bool) layout.Dimensions {
+func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.Editor, hitTag *int, placeholder, desc string, tok resolvedTokens, s RenderState, showPlaceholder bool, ad adorn) layout.Dimensions {
 	// Sizing rule: field height = Density.ControlHeight (36 dp
 	// Comfortable, 28 dp Compact — shadcn's h-9 input), vertical padding =
 	// Density.PaddingY. Horizontal padding stays spacing.S3 (12 dp): shadcn
@@ -317,10 +317,12 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	bg, textColor, borderColor, phColor := textFieldColors(tok.color, s)
 
 	fieldW := gtx.Constraints.Max.X
-	innerW := fieldW - 2*padH
+	lead, trail := ad.slots(gtx, tok)
+	innerW := fieldW - 2*padH - lead - trail
 	if innerW < 1 {
 		innerW = 1
 	}
+	textX := padH + lead
 
 	innerGtx := gtx
 	innerGtx.Constraints = layout.Constraints{
@@ -374,7 +376,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 
 	// Placeholder overlay (only when empty and unfocused).
 	if showPlaceholder {
-		st := op.Offset(image.Pt(padH, offY)).Push(gtx.Ops)
+		st := op.Offset(image.Pt(textX, offY)).Push(gtx.Ops)
 		phCall.Add(gtx.Ops)
 		st.Pop()
 	}
@@ -412,13 +414,17 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	// keeps the text, the caret and the selection where the placeholder's text
 	// was, and inside the line box the field was sized from.
 	textShift := editorTextShift(innerGtx, shaper, wl, f, textSize, placeholder, phMat, contentDims.Size.Y)
-	st := op.Offset(image.Pt(padH, offY+textShift)).Push(gtx.Ops)
+	st := op.Offset(image.Pt(textX, offY+textShift)).Push(gtx.Ops)
 	editor.Layout(editorGtx, shaper, f, textSize, textMat, selMat)
 	st.Pop()
 
 	if !s.Disabled {
 		pointer.CursorText.Add(gtx.Ops)
 	}
+
+	// The looking glass and the clear mark are drawn over the field's own
+	// fill and outside the editor's box, so neither can be typed over.
+	ad.paint(gtx, tok, s, fieldSize, padH)
 
 	// Pointer-target extension: the drawn field may be shorter than
 	// the WCAG 2.5.5 floor, but the pointer target never is. Register a
@@ -479,7 +485,7 @@ func editorTextShift(gtx layout.Context, sh *text.Shaper, lbl widget.Label, f fo
 
 // drawTextFieldStatic renders a static text field for golden-image testing.
 // It always shows the placeholder text; there is no live editor.
-func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder string, tok resolvedTokens, s RenderState) layout.Dimensions {
+func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder string, tok resolvedTokens, s RenderState, ad adorn) layout.Dimensions {
 	// Same sizing rules as drawTextFieldLive.
 	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
@@ -491,10 +497,12 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	bg, textColor, borderColor, phColor := textFieldColors(tok.color, s)
 
 	fieldW := gtx.Constraints.Max.X
-	innerW := fieldW - 2*padH
+	lead, trail := ad.slots(gtx, tok)
+	innerW := fieldW - 2*padH - lead - trail
 	if innerW < 1 {
 		innerW = 1
 	}
+	textX := padH + lead
 
 	innerGtx := gtx
 	innerGtx.Constraints = layout.Constraints{
@@ -549,9 +557,11 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 
 	// Placeholder label centered vertically.
 	offY := (fieldH - labelDims.Size.Y) / 2
-	st := op.Offset(image.Pt(padH, offY)).Push(gtx.Ops)
+	st := op.Offset(image.Pt(textX, offY)).Push(gtx.Ops)
 	labelCall.Add(gtx.Ops)
 	st.Pop()
+
+	ad.paint(gtx, tok, s, fieldSize, padH)
 
 	return layout.Dimensions{Size: fieldSize}
 }

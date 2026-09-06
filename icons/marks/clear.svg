@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Clear: the control that empties a field of what was typed into it. Two
+       bands crossing — the figure a reader reaches for to take something back,
+       and the same one an Input chip's dismiss mark draws.
+
+       Grid: a diagonal form, so it takes the 20-unit allowance rather than the
+       square keyline. Each band's centre line runs corner to corner of that
+       allowance, 3,3 to 21,21 and 21,3 to 3,21, and each takes the diagonal
+       measure of 2 — what a 45-degree edge needs to cover device pixels whole
+       at the sizes the library draws. The ends are cut square: a cross is read
+       by its crossing, and a cap on four arms only thickens the figure. Two
+       contours, one per band, so they abut rather than wind against each
+       other. -->
+  <path fill="#000000" d="M2.293 3.707 L20.293 21.707 L21.707 20.293 L3.707 2.293 Z"/>
+  <path fill="#000000" d="M21.707 3.707 L3.707 21.707 L2.293 20.293 L20.293 2.293 Z"/>
+</svg>

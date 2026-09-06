@@ -96,6 +96,7 @@ type gallery struct {
 	btnCompare    layout.Widget
 	springBtnLive layout.Widget
 	tfLive        layout.Widget
+	sfLive        layout.Widget
 	cbLive        layout.Widget
 	rbALive       layout.Widget
 	rbBLive       layout.Widget
@@ -251,6 +252,13 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 	}).First()
 	if err != nil {
 		log.Printf("textfield: %v", err)
+	}
+
+	g.sfLive, err = input.SearchField(th, input.SearchFieldProps{
+		Placeholder: "Search",
+	}).First()
+	if err != nil {
+		log.Printf("searchfield: %v", err)
 	}
 
 	g.cbLive, err = input.Checkbox(th, input.CheckboxProps{
@@ -665,6 +673,21 @@ func (g *gallery) pageInputs(gtx layout.Context) layout.Dimensions {
 				})
 			}),
 		)
+		cs = append(cs, g.sectionHeader("SearchField — variants"))
+		cs = append(cs, g.searchFieldVariantRows()...)
+		cs = append(cs,
+			g.sectionHeader("SearchField — live (type, then press the clear mark)"),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					gtx.Constraints.Max.X = gtx.Dp(unit.Dp(300))
+					gtx.Constraints.Min.X = gtx.Dp(unit.Dp(300))
+					if g.sfLive != nil {
+						return g.sfLive(gtx)
+					}
+					return layout.Dimensions{}
+				})
+			}),
+		)
 		cs = append(cs, g.sectionHeader("Checkbox — variants"))
 		cs = append(cs, g.checkboxVariantRows()...)
 		cs = append(cs,
@@ -747,6 +770,31 @@ func (g *gallery) textFieldVariantRows() []layout.FlexChild {
 	for i, r := range rows {
 		r := r
 		w := input.Render(g.shaper, "Placeholder…", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, r.state)
+		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.Text, w)
+		})
+	}
+	return cs
+}
+
+func (g *gallery) searchFieldVariantRows() []layout.FlexChild {
+	type row struct {
+		label  string
+		state  input.RenderState
+		colors tokens.ColorTokens
+	}
+	rows := []row{
+		{"Rest (light)", input.RenderState{}, tokens.DefaultLight},
+		{"Typed (light)", input.RenderState{Text: "meeting notes"}, tokens.DefaultLight},
+		{"Focused (light)", input.RenderState{Focused: true, Text: "meeting notes"}, tokens.DefaultLight},
+		{"Rest (dark)", input.RenderState{}, tokens.DefaultDark},
+		{"Typed (dark)", input.RenderState{Text: "meeting notes"}, tokens.DefaultDark},
+		{"Disabled (dark)", input.RenderState{Disabled: true}, tokens.DefaultDark},
+	}
+	cs := make([]layout.FlexChild, len(rows))
+	for i, r := range rows {
+		r := r
+		w := input.RenderSearch(g.shaper, "Search", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.Text, w)
 		})

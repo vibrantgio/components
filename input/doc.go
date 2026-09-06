@@ -1,9 +1,10 @@
-// Package input provides the Vibrant Gio form controls — TextField, Checkbox
-// and Radio — on the same contract as components/button: an
-// rx.Observable[theme.Theme] and a props struct in, an
-// rx.Observable[layout.Widget] out, with a matching pure Render, RenderCheckbox
-// and RenderRadio path that takes resolved tokens and an explicit render state
-// and draws one frame without handling events.
+// Package input provides the Vibrant Gio form controls — TextField,
+// SearchField, Checkbox and Radio — on the same contract as
+// components/button: an rx.Observable[theme.Theme] and a props struct in, an
+// rx.Observable[layout.Widget] out, with a matching pure Render,
+// RenderSearch, RenderCheckbox and RenderRadio path that takes resolved
+// tokens and an explicit render state and draws one frame without handling
+// events.
 //
 // Reach for it for form input inside an MVU or FRP layer. Every control
 // reports both ways: through a Props callback — OnChange, OnSubmit — which is
@@ -20,6 +21,16 @@
 // The text field, checkbox and radio inner fills paint the level above the
 // surface they stand on and sit in the page plane; none of them raises a plane
 // above the page.
+//
+// The search field is the text field with two slots added to its structure:
+// the looking glass that names it, drawn leading, and the clear mark that
+// empties it, drawn trailing while there is a query to take back. Both are
+// spent out of the field's own width, so a search field and a text field of
+// the same width are the same size and the text does not reflow when the
+// mark appears. Clearing reports the empty query through the same OnChange
+// and Message a keystroke does, which is what lets a consumer's highlight die
+// with the query that caused it; what is found, and how the matches are
+// marked, is the consumer's.
 //
 // The text field is uncontrolled. Props.Seed pre-fills a newly created
 // instance so an existing value can be edited rather than retyped, but a later
