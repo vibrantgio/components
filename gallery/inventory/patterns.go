@@ -4,7 +4,7 @@
 // Every pattern here has a live twin that takes an observable theme and
 // returns an observable layout.Widget. The gallery deliberately uses the
 // static twin instead: it performs no input handling and schedules no
-// invalidation, so a page can show all eighteen at once without eighteen event
+// invalidation, so a page can show all sixteen at once without sixteen event
 // loops, and a golden test can capture one without a window.
 package inventory
 
@@ -24,7 +24,6 @@ import (
 	complayout "github.com/vibrantgio/components/layout"
 	"github.com/vibrantgio/components/toast"
 	"github.com/vibrantgio/patterns/accordion"
-	"github.com/vibrantgio/patterns/breadcrumb"
 	"github.com/vibrantgio/patterns/card"
 	"github.com/vibrantgio/patterns/feature"
 	"github.com/vibrantgio/patterns/group"
@@ -32,7 +31,6 @@ import (
 	"github.com/vibrantgio/patterns/modal"
 	"github.com/vibrantgio/patterns/navbar"
 	"github.com/vibrantgio/patterns/notifications"
-	"github.com/vibrantgio/patterns/pagination"
 	"github.com/vibrantgio/patterns/pane"
 	"github.com/vibrantgio/patterns/popover"
 	"github.com/vibrantgio/patterns/pricing"
@@ -62,10 +60,6 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 			Body: inv.accordion(c)},
 		{Name: "patterns-tabs", Title: "Tabs — the second tab selected", Height: 130,
 			Body: inv.tabs(c)},
-		{Name: "patterns-breadcrumb", Title: "Breadcrumb — a trail back to the root", Height: 20,
-			Body: inv.breadcrumb(c)},
-		{Name: "patterns-pagination", Title: "Pagination — page four of nine", Height: 36,
-			Body: inv.pagination(c)},
 		{Name: "patterns-navbar", Title: "Navbar — brand, links and actions", Height: 52,
 			Body: inv.navbar(c)},
 		{Name: "patterns-sidebar", Title: "Sidebar — expanded beside its collapsed rail", Height: 210,
@@ -258,24 +252,6 @@ func (inv *Inventory) tabs(c tokens.ColorTokens) layout.Widget {
 		return tabs.Render(inv.shaper, props, 1, c, tokens.Spacing,
 			tokens.DefaultTypography.LabelLarge, tokens.Comfortable)(gtx)
 	}
-}
-
-func (inv *Inventory) breadcrumb(c tokens.ColorTokens) layout.Widget {
-	props := breadcrumb.Props{
-		Items: []breadcrumb.Item{
-			{Label: "Design system"},
-			{Label: "Patterns"},
-			{Label: "Breadcrumb"},
-		},
-		Shaper: inv.shaper,
-	}
-	return breadcrumb.Render(inv.shaper, props, c, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
-}
-
-func (inv *Inventory) pagination(c tokens.ColorTokens) layout.Widget {
-	props := pagination.Props{Page: 4, PageCount: 9, Shaper: inv.shaper}
-	return pagination.Render(inv.shaper, props, c, tokens.Spacing, tokens.Radius,
-		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
 }
 
 func (inv *Inventory) navbarProps(c tokens.ColorTokens) navbar.Props {

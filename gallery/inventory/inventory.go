@@ -38,6 +38,7 @@ import (
 	"github.com/vibrantgio/components/input"
 	complayout "github.com/vibrantgio/components/layout"
 	"github.com/vibrantgio/components/list"
+	"github.com/vibrantgio/components/pagination"
 	"github.com/vibrantgio/components/paragraph"
 	"github.com/vibrantgio/components/picker"
 	"github.com/vibrantgio/components/scrollarea"
@@ -50,6 +51,7 @@ import (
 
 	"github.com/vibrantgio/components/alert"
 	"github.com/vibrantgio/components/badge"
+	"github.com/vibrantgio/components/breadcrumb"
 	"github.com/vibrantgio/components/button"
 	"github.com/vibrantgio/components/chip"
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
@@ -426,6 +428,10 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.toggleRow(c)},
 		{Name: "components-picker", Title: "Picker — the field closed, focused, open under its menu and disabled, then the chrome toolbar", Height: 180,
 			Body: inv.pickerRow(c)},
+		{Name: "components-breadcrumb", Title: "Breadcrumb — a trail back to the root", Height: 20,
+			Body: inv.breadcrumb(c)},
+		{Name: "components-pagination", Title: "Pagination — page four of nine", Height: 36,
+			Body: inv.pagination(c)},
 		{Name: "components-list", Title: "List — a virtual list with its scrollbar in the gutter", Height: 180,
 			Body: inv.listBlock(c)},
 		{Name: "components-scrollbar", Title: "Scrollbar — a standalone bar beside its content", Height: 180,
@@ -1414,6 +1420,24 @@ func (inv *Inventory) tooltip(c tokens.ColorTokens) layout.Widget {
 		return tooltip.Render(inv.shaper, props, true, c, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.LabelSmall)(gtx)
 	}
+}
+
+func (inv *Inventory) breadcrumb(c tokens.ColorTokens) layout.Widget {
+	props := breadcrumb.Props{
+		Items: []breadcrumb.Item{
+			{Label: "Design system"},
+			{Label: "Components"},
+			{Label: "Breadcrumb"},
+		},
+		Shaper: inv.shaper,
+	}
+	return breadcrumb.Render(inv.shaper, props, c, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+}
+
+func (inv *Inventory) pagination(c tokens.ColorTokens) layout.Widget {
+	props := pagination.Props{Page: 4, PageCount: 9, Shaper: inv.shaper}
+	return pagination.Render(inv.shaper, props, c, tokens.Spacing, tokens.Radius,
+		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
 }
 
 // ── Shared drawing helpers ────────────────────────────────────────────────────
