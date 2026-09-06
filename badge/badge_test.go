@@ -94,7 +94,7 @@ var goldenLevels = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
-	{"paper", tokens.Level0},
+	{"content", tokens.Level0},
 	{"chrome", tokens.LevelChrome},
 	{"dialog", tokens.Level2},
 }
@@ -178,7 +178,7 @@ func TestUtterancesGolden(t *testing.T) {
 // TestDismissGolden records the close mark through the states the pointer puts
 // it in. The mark walks its own region toward the ramp's 900
 // end, so the three tiles show it coming forward — darkening on the light
-// paper and lightening on the dark one.
+// content and lightening on the dark one.
 func TestDismissGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	states := []struct {

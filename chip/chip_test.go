@@ -110,7 +110,7 @@ var goldenLevels = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
-	{"paper", tokens.Level0},
+	{"content", tokens.Level0},
 	{"chrome", tokens.LevelChrome},
 	{"dialog", tokens.Level2},
 }
@@ -190,7 +190,7 @@ func stateRow(shaper *text.Shaper, c tokens.ColorTokens, selected bool) layout.W
 	return row(ws...)
 }
 
-// TestChipStateGolden records or diffs the interaction states on the paper in
+// TestChipStateGolden records or diffs the interaction states on the content in
 // both schemes and at both rests. The unselected rows are where the walk is
 // visible as a walk on a chip that has no fill: a body appears under the
 // pointer where there was none, and the outline answers a different step as it

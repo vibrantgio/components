@@ -112,7 +112,7 @@ type Chip struct {
 	//
 	// It is here because a fill does not always stand off its page. The
 	// elevation climbs toward the light in both schemes, and a light
-	// scheme has almost no room above its paper to climb into: a raised
+	// scheme has almost no room above its content to climb into: a raised
 	// chip there is a whisper — a fraction of a step — and what
 	// says where it is has to be its edge. A chip carries no shadow and
 	// takes no level of its own beyond that whisper, so the edge is the
@@ -199,7 +199,7 @@ type Style struct {
 // value from theme to paragraph — and takes no [tokens.Density], which sizes
 // controls and so has nothing to say about a paragraph.
 func FromTokens(c tokens.ColorTokens, body tokens.TextStyle) Style {
-	// The surface a link is drawn on is the paper the paragraph is set on —
+	// The surface a link is drawn on is the content the paragraph is set on —
 	// the elevation's level 0, asked of the palette. The ring beside it asks
 	// for no surface at all: focus.Ring is the scheme's one focus colour.
 	surface := c.SurfaceAt(tokens.Level0)

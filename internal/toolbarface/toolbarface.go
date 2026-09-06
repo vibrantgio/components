@@ -143,10 +143,10 @@ const darkFillStep = 1.28
 // lightFillStep is the same step where the pin is the lightest surface the
 // ramp carries, in CIELAB L\*. It is a DERIVATION and not a measurement: the
 // stored macOS reference holds no light-appearance capture, so this half takes
-// the first level over the paper — the 0.70 L\* the light scheme
+// the first level over the content — the 0.70 L\* the light scheme
 // already spends on Level1 over Level0 — spent identically over every surface
 // rather than growing with that surface's own level. The light
-// scheme has 3.12 L\* in total between its paper and the tonal axis and spends
+// scheme has 3.12 L\* in total between its content and the tonal axis and spends
 // all three levels inside it, so the platform's 1.28 would put one control
 // above where a dialog sits.
 const lightFillStep = 0.70
@@ -185,7 +185,7 @@ func fillStep(c tokens.ColorTokens) float64 {
 //
 // It is a step over the surface it stands on rather than a walk to the next
 // level. The level above is correct as depth and too pronounced: in the dark
-// scheme it stands 10.0 luminance over the window's paper where the platform's
+// scheme it stands 10.0 luminance over the window's content where the platform's
 // own toolbar capsules stand 2.65 over their band — a filled block at four
 // times the platform's step, in the one role the platform draws as a
 // near-hairline outline. The rim carries the edge; the fill does not claim

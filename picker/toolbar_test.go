@@ -43,7 +43,7 @@ var goldenSurfaces = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
-	{"paper", tokens.Level0},
+	{"content", tokens.Level0},
 	{"chrome", tokens.LevelChrome},
 	{"dialog", tokens.Level2},
 }
@@ -92,7 +92,7 @@ func TestToolbarGoldenOnEveryLevel(t *testing.T) {
 	}
 }
 
-// TestToolbarStateGolden records the trigger's walk on the paper in both
+// TestToolbarStateGolden records the trigger's walk on the content in both
 // schemes. The focused image is the one worth storing twice over: the ring
 // replaces the rim at the trigger's corner too, so a ring drawn at the pill's
 // Full radius over a rounded-rect fill would show here as a halo that misses

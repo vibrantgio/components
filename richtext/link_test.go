@@ -21,7 +21,7 @@ import (
 // The three pastels are stated at a dark scheme's tone: a palette published
 // for a dark scheme states its accents high on the tonal axis, and a brand
 // seeded with one of them derives a light scheme whose primary pin sits a
-// whisper off the paper — the case a link coloured with the bare pin would
+// whisper off the content — the case a link coloured with the bare pin would
 // fail contrast on.
 func linkSweepSeeds() []stdcolor.NRGBA {
 	rng := rand.New(rand.NewSource(20260818))

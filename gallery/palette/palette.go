@@ -3,7 +3,7 @@
 //
 // Ramps stand above picks, so a pick naming a step ("Neutral 300") reads
 // against the row it came from. Every function is a pure function of the
-// [tokens.ColorTokens] handed in, plus the furniture colours and type roles a
+// [tokens.ColorTokens] handed in, plus the chrome colours and type roles a
 // caller states in [Chrome] and [Type]; nothing reads a default palette, so
 // the same code draws either scheme and a test can capture it without a
 // window.
@@ -65,7 +65,7 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// Chrome is the story's own furniture: the four colours it draws with that
+// Chrome is the story's own frame: the four colours it draws with that
 // are not the palette it is describing. Stated by the caller rather than
 // derived here, since a heading band belongs to the page the story sits in.
 // Exactly four fields — everything else this package draws is a colour of the
@@ -96,7 +96,7 @@ type Type struct {
 	Small  textdraw.TextStyle // rules, step numbers, captions
 }
 
-// The furniture measurements the story shares with the pages it stands in.
+// The frame measurements the story shares with the pages it stands in.
 const (
 	// captionGap is what a section's caption stands off the title beside it.
 	captionGap unit.Dp = 14
@@ -113,7 +113,7 @@ const (
 
 // The section's dimensions.
 //
-// The heading rows are the column's own furniture at the column's own sizes:
+// The heading rows are the column's own frame at the column's own sizes:
 // this story stands among a page of labelled sections, and a heading a few
 // points off the ones around it reads as a heading from somewhere else.
 // Everything inside them is measured to what it holds.

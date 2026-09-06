@@ -592,7 +592,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	// every control in the library wears: focus.Ring, the scheme's single
 	// focus colour, so promoting the edge changes its hue and not what it has
 	// to answer to, and a focused trigger in a dialog draws the same pixel as
-	// a focused control on the paper behind it.
+	// a focused control on the content behind it.
 	// At rest the trigger's border is the neutral step the ramp measures as
 	// clearing the graphic floor against both sides of the edge, the same edge
 	// the field and the radio wear (control.Border).

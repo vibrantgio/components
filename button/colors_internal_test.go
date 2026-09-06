@@ -94,8 +94,8 @@ func TestEmphasisResolvesTheDocumentedColours(t *testing.T) {
 			// label walking from low-contrast text to high-contrast text as
 			// that fill deepens.
 			//
-			// A ghost that is told nothing stands on the paper, so its state
-			// fill is the paper's own walk — tokens.ColorTokens.StateAt at level
+			// A ghost that is told nothing stands on the content, so its state
+			// fill is the content's own walk — tokens.ColorTokens.StateAt at level
 			// 0, which lands on neutral 200 in both schemes.
 			{"ghost/normal", RenderState{Emphasis: Ghost},
 				transparent, c.Ramps.Neutral.Step(700)},
@@ -255,7 +255,7 @@ func TestZeroEmphasisIsFilled(t *testing.T) {
 	}
 }
 
-// ghostLevels are the surfaces a ghost is placed on: the window's furniture
+// ghostLevels are the surfaces a ghost is placed on: the chrome
 // below the content, the content itself, and the three raised levels — the
 // level-2 one being where patterns/modal stands its close mark.
 var ghostLevels = []struct {
@@ -263,7 +263,7 @@ var ghostLevels = []struct {
 	level tokens.ElevationLevel
 }{
 	{"chrome", tokens.LevelChrome},
-	{"paper", tokens.Level0},
+	{"content", tokens.Level0},
 	{"raised", tokens.Level1},
 	{"floating", tokens.Level2},
 	{"top", tokens.Level3},
@@ -296,7 +296,7 @@ func lstar(c color.NRGBA) float64 {
 // Three things are pinned. The state fill separates from the surface the
 // ghost stands on by at least tokens.StateFloor, on every level and in both
 // schemes of both derivations — the defect this replaced put the dark
-// paper's hover at 1.12:1, a signal nobody could see. Press lies beyond
+// content's hover at 1.12:1, a signal nobody could see. Press lies beyond
 // hover, so the two states stay two. And the label that fill is read
 // against still clears the text floor, for as long as the fill is shallower
 // than the neutral ramp's mid-value step: past that step no neutral shade

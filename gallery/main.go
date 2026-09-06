@@ -375,7 +375,7 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints = layout.Exact(image.Pt(w, gtx.Constraints.Max.Y))
 	c := g.chrome()
 
-	// The gallery's own rail is the window's furniture, so it fills at the
+	// The gallery's own rail is the window's chrome, so it fills at the
 	// chrome level. This coincides with the Neutral 200 ramp alias in the
 	// light scheme only.
 	paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelChrome), clip.Rect{Max: gtx.Constraints.Max}.Op())
@@ -567,7 +567,7 @@ func (g *gallery) buttonVariantRows() []layout.FlexChild {
 
 // ── Chip page ─────────────────────────────────────────────────────────────────
 
-// chipLevels are the surfaces the chip page puts a live chip on: the paper, a
+// chipLevels are the surfaces the chip page puts a live chip on: the content, a
 // card raised over it, and a dialog floating above that. The chip derives
 // every colour it draws from the surface it was handed — fill, rim, foreground
 // and ring alike — so one specimen on one surface demonstrates nothing about

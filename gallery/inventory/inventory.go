@@ -559,7 +559,7 @@ var (
 )
 
 // chipLevels are the surfaces the section shows the chip on, in the order they
-// stack: the paper a page is written on, a card raised over it,
+// stack: the content a page is written on, a card raised over it,
 // and a dialog floating above that. Three rather than one because the chip's
 // whole colour model is relative — every colour it draws is derived against
 // the surface it was handed — so a specimen on one level says nothing about
@@ -568,7 +568,7 @@ var chipLevels = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
-	{"On the paper", tokens.Level0},
+	{"On the content", tokens.Level0},
 	{"On a card", tokens.Level1},
 	{"In a dialog", tokens.Level2},
 }
@@ -800,7 +800,7 @@ var badgeLevels = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
-	{"On the paper", tokens.Level0},
+	{"On the content", tokens.Level0},
 	{"On a card", tokens.Level1},
 	{"In a dialog", tokens.Level2},
 }
@@ -1040,7 +1040,7 @@ const (
 // field in each of its states, then the chrome-variant toolbar at rest.
 //
 // Both stand in one section because they are one component — the same
-// pick-one-from-many drawn for a form and for window furniture — and telling
+// pick-one-from-many drawn for a form and for the window's chrome — and telling
 // the two variants apart is what a reader comes to this row for. The open
 // field carries the third piece with it: the menu it stacks beneath itself is
 // the shared surface, so the section shows that surface without spending a

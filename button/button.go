@@ -621,7 +621,7 @@ const (
 // text floor ([tokens.ColorTokens.ForegroundOn]) — the same two calls the
 // badge makes. So a Tonal button IS level-aware: a fixed step walks through
 // the elevation and lands on the level it is tinting, which measured
-// 1.13:1 light and 1.11:1 dark against the paper before this, a fill nobody
+// 1.13:1 light and 1.11:1 dark against the content before this, a fill nobody
 // could see.
 //
 // Ghost is the neutral walk with the resting step painted as nothing at all.

@@ -36,7 +36,7 @@ func (g *gallery) colors() tokens.ColorTokens {
 	return tokens.DefaultLight
 }
 
-// chrome returns the tokens the window's own furniture — the surface under a
+// chrome returns the tokens the window's own chrome — the surface under a
 // page and the sidebar beside it — is drawn in. It follows the page: an
 // inventory page takes the scheme its control is set to, and a per-family
 // page, which draws light-scheme components whatever the control says, keeps

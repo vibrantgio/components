@@ -109,7 +109,7 @@
 // rule.
 //
 // The focus ring is components/internal/focus's, and it asks for no surface at
-// all: one colour per scheme, the same on the paper, on a card and in a
+// all: one colour per scheme, the same on the content, on a card and in a
 // dialog. A focused chip's edge IS the ring — it takes the outline's place,
 // two dp where the outline was one, rather than being drawn inside it. Drawn
 // inside, the two make a three-line sandwich that reads as a smeared halo; it

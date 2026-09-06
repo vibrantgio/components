@@ -2,7 +2,7 @@
 // control that redraws the whole of it in the other scheme.
 //
 // A section on its own is a bare layout.Widget. What makes the inventory
-// readable is the furniture around it — the group banner that says which
+// readable is the frame around it — the group banner that says which
 // module the next run of families comes from, the header that names each one,
 // and the bounded slot each body is laid out in.
 package inventory

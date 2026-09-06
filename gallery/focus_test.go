@@ -44,7 +44,7 @@ var focusLevels = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
-	{"On the paper", tokens.Level0},
+	{"On the content", tokens.Level0},
 	{"On a card", tokens.Level1},
 	{"In a dialog", tokens.Level2},
 }

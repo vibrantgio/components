@@ -90,7 +90,7 @@ func TestTonalWearsTheBadgesTint(t *testing.T) {
 // WCAG has none for a field: 1.4.11's 3:1 governs a mark that must be
 // resolved as a shape, and gating a tint at 3:1 would make it a solid. The
 // pinned step this replaced cleared no floor at all — measured on the default
-// seed against the paper, 1.133:1 light and 1.110:1 dark, a fill the reader
+// seed against the content, 1.133:1 light and 1.110:1 dark, a fill the reader
 // could not see was there.
 func TestTonalClearsTheBadgesFloors(t *testing.T) {
 	for _, sc := range []struct {

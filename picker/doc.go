@@ -9,7 +9,7 @@
 //	           same bezel and the same focus ring
 //	[Toolbar]  the CHROME variant — the platform's pull-down control, at the
 //	           button's rounded-rect corner with a single down chevron, for a
-//	           toolbar, a header row or any other furniture
+//	           toolbar, a header row or any other chrome region
 //	[Menu]     the surface both of them stand under: the level-3 rows, the
 //	           accent selection and the accent's less pronounced state fill under
 //	           the pointer

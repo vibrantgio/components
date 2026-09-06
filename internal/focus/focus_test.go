@@ -79,7 +79,7 @@ func drawn(c tokens.ColorTokens) []struct {
 		ring stdcolor.NRGBA
 	}
 	// A link's ring rides in the paragraph surface it is padded clear into.
-	// Prose carries no level of its own, so a paragraph lies on the paper.
+	// Prose carries no level of its own, so a paragraph lies on the content.
 	out := []entry{{"link", focus.Ring(c)}}
 	for _, level := range levels {
 		at := levelName(level)

@@ -102,7 +102,7 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 	}
 }
 
-// ── The furniture the patterns are filled with ────────────────────────────────
+// ── The content the patterns are filled with ──────────────────────────────────
 
 // prose returns a layout.Widget that draws a few lines of body text, so a
 // pattern's content slot holds something with a shape rather than a
@@ -476,7 +476,7 @@ func (inv *Inventory) pane(c tokens.ColorTokens) layout.Widget {
 			"with the backdrop showing round it.",
 			"",
 			"It is at the chrome level, a step darker",
-			"than the paper: a pane is read through",
+			"than the content: a pane is read through",
 			"its edges and not through its lightness.",
 		)(doc)
 		off.Pop()
@@ -694,7 +694,7 @@ func (inv *Inventory) testimonial(c tokens.ColorTokens) layout.Widget {
 }
 
 // shell draws the three-column frame with its aside occupied, which is the
-// only place the aside's furniture shows.
+// only place the aside's own frame shows.
 func (inv *Inventory) shell(c tokens.ColorTokens) layout.Widget {
 	props := shell.Props{
 		Layout: shell.ThreeColumn,
@@ -720,7 +720,7 @@ func (inv *Inventory) shell(c tokens.ColorTokens) layout.Widget {
 	sidebarW := patsidebar.Render(inv.shaper, inv.sidebarProps(c), false, c, tokens.Spacing,
 		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
 	asideW := func(gtx layout.Context) layout.Dimensions {
-		// An aside is an inspector, which is the window's furniture: it
+		// An aside is an inspector, which is a chrome region: it
 		// fills at the chrome level, the same level the frame around it
 		// paints, rather than at the c.Surface ramp alias.
 		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelChrome), clip.Rect{Max: gtx.Constraints.Max}.Op())

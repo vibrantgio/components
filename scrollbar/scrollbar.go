@@ -126,7 +126,7 @@ const foregroundStep = 700
 // and the two land on the same grey.
 //
 // It is derived against both surfaces an overlay bar rides — the window's
-// own content and the window's furniture the panes are filled with — and
+// own content and the chrome the panes are filled with — and
 // answers whichever asks more, so one bar reads on both. The chrome level is
 // beneath the content rather than above it, and it is the harder of the two
 // in both schemes: the thumb is dark, and a dark foreground over the darker

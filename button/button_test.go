@@ -477,7 +477,7 @@ func ringSurface(c tokens.ColorTokens, e button.Emphasis) color.NRGBA {
 	case button.Tonal:
 		return c.StatusContainerOn(tokens.RolePrimary, c.SurfaceAt(tokens.Level0))
 	case button.Ghost:
-		return c.SurfaceAt(tokens.Level0) // a ghost paints none; the paper shows through
+		return c.SurfaceAt(tokens.Level0) // a ghost paints none; the content shows through
 	default:
 		return c.SolidStateColor(tokens.RolePrimary, tokens.StateFocus)
 	}
