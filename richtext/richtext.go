@@ -180,14 +180,15 @@ type Style struct {
 // paragraph surface the ring is drawn on. Pass
 // tokens.DefaultTypography.BodyLarge for the default desktop look.
 //
-// The link colour is derived via [tokens.ColorTokens.InkOn] rather than taken as
-// the bare Primary pin, because Primary is the brand colour at the brand's
-// own depth and whether a link reads on the page would otherwise be a
-// property of the seed: an accent stated at a dark scheme's tone — the shape
-// a palette published for dark mode hands out, and the shape a person seeds
-// a brand with — can put a near-white link on a near-white page. InkOn keeps
-// the brand's own colour wherever it clears WCAG AA, and answers a step of
-// the same hue where it does not.
+// The link colour is derived via [tokens.ColorTokens.ForegroundOnAtFloor]
+// rather than taken as the bare Primary pin, because Primary is the brand
+// colour at the brand's own depth and whether a link reads on the page
+// would otherwise be a property of the seed: an accent stated at a dark
+// scheme's tone — the shape a palette published for dark mode hands out,
+// and the shape a person seeds a brand with — can put a near-white link on
+// a near-white page. ForegroundOnAtFloor keeps the brand's own colour
+// wherever it clears WCAG AA, and answers a step of the same hue where it
+// does not.
 //
 // Of the role's style Size and LineHeight land in [Style]: a paragraph's
 // typeface, weight and slant are per-span properties, carried by each
@@ -204,7 +205,7 @@ func FromTokens(c tokens.ColorTokens, body tokens.TextStyle) Style {
 	ground := c.SurfaceAt(tokens.Level0)
 	return Style{
 		Color:      c.Text,
-		LinkColor:  c.InkOn(tokens.RolePrimary, ground, tokens.TextFloor),
+		LinkColor:  c.ForegroundOnAtFloor(tokens.RolePrimary, ground, tokens.TextFloor),
 		FocusColor: focus.Ring(c),
 		Size:       unit.Sp(body.Size),
 		LineHeight: unit.Sp(body.LineHeight),

@@ -83,10 +83,10 @@ func TestLinkInkClearsTheTextFloorForEverySeed(t *testing.T) {
 		len(linkSweepSeeds()), worstLight, worstLightAt, worstDark, worstDarkAt)
 }
 
-// TestTheCanonicalSeedsLinkInkIsThePrimaryPin asserts that deriving the link colour
-// via InkOn costs no stored golden image: on the seed every golden is
-// rendered from, the brand's own colour already clears the floor, so it is
-// what the paragraph gets.
+// TestTheCanonicalSeedsLinkInkIsThePrimaryPin asserts that deriving the
+// link colour via ForegroundOnAtFloor costs no stored golden image: on the
+// seed every golden is rendered from, the brand's own colour already clears
+// the floor, so it is what the paragraph gets.
 func TestTheCanonicalSeedsLinkInkIsThePrimaryPin(t *testing.T) {
 	for _, s := range []struct {
 		name string

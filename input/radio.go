@@ -34,15 +34,15 @@ type RadioRenderState struct {
 	Focused  bool
 	Disabled bool
 
-	// Level is the level of the surface the radio stands on — the radio has
-	// no level of its own — and the ring is derived against that surface, in
-	// the same vocabulary the host names its own fill (tokens.SurfaceAt). A
-	// dialog at tokens.Level2 passes Level2 and the unselected ring takes
-	// whichever neutral step clears the floor over that surface. The zero
-	// value is tokens.Level0, the window's own surface. A selected radio's
-	// ring is the primary colour measured against that same surface
-	// ([tokens.ColorTokens.InkOn]) rather than the bare accent pin, so it too
-	// answers to the host it stands on.
+	// Level is the level of the surface the radio stands on — the radio has no
+	// level of its own — and the ring is derived against that surface, in the
+	// same vocabulary the host names its own fill (tokens.SurfaceAt). A dialog
+	// at tokens.Level2 passes Level2 and the unselected ring takes whichever
+	// neutral step clears the floor over that surface. The zero value is
+	// tokens.Level0, the window's own surface. A selected radio's ring is the
+	// primary colour measured against that same surface
+	// ([tokens.ColorTokens.ForegroundOnAtFloor]) rather than the bare accent
+	// pin, so it too answers to the host it stands on.
 	Level tokens.ElevationLevel
 }
 
@@ -164,14 +164,14 @@ func RenderRadio(
 }
 
 // selectedRadioEdge is the colour a selected radio's edge is drawn in: the
-// primary pin while it clears the graphic floor against the surface at level
-// — the same surface controlBorder measures the resting edge against — and
-// otherwise the step of the primary ramp that does
-// ([tokens.ColorTokens.InkOn]). The bare Primary pin is not used directly
-// because a pastel seed's primary can fall under the graphic floor against
-// some host surfaces.
+// primary pin while it clears the graphic floor against the surface at
+// level — the same surface controlBorder measures the resting edge against
+// — and otherwise the step of the primary ramp that does
+// ([tokens.ColorTokens.ForegroundOnAtFloor]). The bare Primary pin is not
+// used directly because a pastel seed's primary can fall under the graphic
+// floor against some host surfaces.
 func selectedRadioEdge(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGBA {
-	return c.InkOn(tokens.RolePrimary, c.SurfaceAt(level), tokens.GraphicFloor)
+	return c.ForegroundOnAtFloor(tokens.RolePrimary, c.SurfaceAt(level), tokens.GraphicFloor)
 }
 
 // drawRadio renders the radio button into gtx. All visual state comes from s;

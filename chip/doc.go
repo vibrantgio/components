@@ -73,12 +73,13 @@
 // page's full-strength Text pin, because an assist chip proposes something to
 // do and is read at the weight of what it proposes.
 //
-// Selection is where colour arrives. A selected [Filter] chip fills with the
-// secondary container and drops its outline: the fill has arrived and the edge
-// is not needed twice. Its words read in InkOn(RoleSecondary, fill, TextFloor)
-// and its marks in OnContainer's own derivation against that fill — words owe
-// WCAG 1.4.3's 4.5:1 and a mark owes 1.4.11's 3:1, and the split is the whole
-// reason the two are named separately.
+// Selection is where colour arrives. A selected [Filter] chip fills with
+// the secondary container and drops its outline: the fill has arrived and
+// the edge is not needed twice. Its words read in
+// ForegroundOnAtFloor(RoleSecondary, fill, TextFloor) and its marks in
+// OnContainer's own derivation against that fill — words owe WCAG 1.4.3's
+// 4.5:1 and a mark owes 1.4.11's 3:1, and the split is the whole reason the
+// two are named separately.
 //
 // The container is a derivation and not a copied tone: it asks the role's ramp
 // and holds the hue exactly, so a brandless palette yields a brandless chip

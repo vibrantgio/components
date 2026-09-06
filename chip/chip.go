@@ -219,9 +219,9 @@ type Colors struct {
 //	                        walked by the pointer and stopped where it stops
 //	                        being a chip
 //	            edge        none
-//	            foreground  InkOn(RoleSecondary, body, TextFloor) for the
-//	                        words, OnContainer's own rule against that body
-//	                        for the marks
+//	            foreground  ForegroundOnAtFloor(RoleSecondary, body,
+//	                        TextFloor) for the words, OnContainer's own rule
+//	                        against that body for the marks
 //
 // The walk is the same one every state in this system takes
 // ([tokens.ColorTokens.PinnedStateColor]) and it is the whole of the feedback
@@ -248,11 +248,11 @@ func Resolve(c tokens.ColorTokens, i Purpose, s RenderState) Colors {
 			// what separates it from the page as well as the surface its own
 			// words are read on.
 			return vgcolor.ContrastRatio(fill, surface) >= tokens.ContainerFloor &&
-				vgcolor.ContrastRatio(c.InkOn(tokens.RoleSecondary, fill, tokens.TextFloor), fill) >= tokens.TextFloor
+				vgcolor.ContrastRatio(c.ForegroundOnAtFloor(tokens.RoleSecondary, fill, tokens.TextFloor), fill) >= tokens.TextFloor
 		})
 		return Colors{
 			Fill:  fill,
-			Label: c.InkOn(tokens.RoleSecondary, fill, tokens.TextFloor),
+			Label: c.ForegroundOnAtFloor(tokens.RoleSecondary, fill, tokens.TextFloor),
 			Mark:  c.MarkOn(tokens.RoleSecondary, fill, tokens.GraphicFloor),
 		}
 	}
@@ -359,13 +359,13 @@ func outlineOver(c tokens.ColorTokens, surface, fill color.NRGBA) color.NRGBA {
 	return cands[1]
 }
 
-// neutralInk is [tokens.ColorTokens.InkOn]'s rule for a pin no role owns: the
-// pin while it clears floor against that surface, and otherwise the step of
-// the neutral ramp nearest its mid-value that does.
+// neutralInk is [tokens.ColorTokens.ForegroundOnAtFloor]'s rule for a pin
+// no role owns: the pin while it clears floor against that surface, and
+// otherwise the step of the neutral ramp nearest its mid-value that does.
 //
-// InkOn itself asks a role for its pinned base and RoleNeutral has none, so
-// the rule is spelled out here rather than reinvented: pin first, walk only
-// when the pin stops reading.
+// ForegroundOnAtFloor itself asks a role for its pinned base and
+// RoleNeutral has none, so the rule is spelled out here rather than
+// reinvented: pin first, walk only when the pin stops reading.
 func neutralInk(c tokens.ColorTokens, pin, surface color.NRGBA, floor float64) color.NRGBA {
 	if vgcolor.ContrastRatio(pin, surface) >= floor {
 		return pin

@@ -303,11 +303,12 @@ func Rim(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) 
 // fills: the Text pin while that pin clears floor against the fill, and
 // otherwise the step of the neutral ramp nearest its mid-value that does.
 //
-// That is tokens.ColorTokens.InkOn's own rule, applied to the one role InkOn
-// refuses. InkOn asks a role for its pinned base and RoleNeutral has none —
-// the neutral foreground's pin is the Text pin, which is derived against the
-// Background pin already — so the rule is spelled out here rather than
-// reinvented: pin first, walk only when the pin stops reading.
+// That is tokens.ColorTokens.ForegroundOnAtFloor's own rule, applied to the
+// one role ForegroundOnAtFloor refuses. ForegroundOnAtFloor asks a role for
+// its pinned base and RoleNeutral has none — the neutral foreground's pin
+// is the Text pin, which is derived against the Background pin already — so
+// the rule is spelled out here rather than reinvented: pin first, walk only
+// when the pin stops reading.
 //
 // Pass tokens.TextFloor for a label and tokens.GraphicFloor for a mark.
 func Ink(c tokens.ColorTokens, fill color.NRGBA, floor float64) color.NRGBA {
