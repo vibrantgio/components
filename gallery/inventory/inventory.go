@@ -37,8 +37,8 @@ import (
 	"github.com/vibrantgio/components/input"
 	complayout "github.com/vibrantgio/components/layout"
 	"github.com/vibrantgio/components/list"
+	"github.com/vibrantgio/components/paragraph"
 	"github.com/vibrantgio/components/picker"
-	"github.com/vibrantgio/components/richtext"
 	"github.com/vibrantgio/components/scrollarea"
 	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/markdown"
@@ -415,8 +415,8 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.scrollbarBlock(c)},
 		{Name: "components-scrollarea", Title: "Scroll area — the edge dissolves while content is hidden past it", Height: 56,
 			Body: inv.scrollAreaBlock(c)},
-		{Name: "components-richtext", Title: "Rich text — weight, style, face, colour, size and links in one paragraph", Height: 127,
-			Body: inv.richtextBlock(c)},
+		{Name: "components-paragraph", Title: "Rich text — weight, style, face, colour, size and links in one paragraph", Height: 127,
+			Body: inv.paragraphBlock(c)},
 		{Name: "components-icon", Title: "Icon — a vector icon and the platform control marks", Height: 62,
 			Body: inv.iconBlock(c)},
 		{Name: "components-layout", Title: "Layout — rows, columns, spacers and insets", Height: 106,
@@ -1174,9 +1174,9 @@ func (inv *Inventory) scrollAreaBlock(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) richtextBlock(c tokens.ColorTokens) layout.Widget {
-	style := richtext.FromTokens(c, tokens.DefaultTypography.BodyLarge)
-	spans := []richtext.SpanStyle{
+func (inv *Inventory) paragraphBlock(c tokens.ColorTokens) layout.Widget {
+	style := paragraph.FromTokens(c, tokens.DefaultTypography.BodyLarge)
+	spans := []paragraph.SpanStyle{
 		{Content: "Rich text lays out "},
 		{Content: "bold", Weight: font.Bold},
 		{Content: ", "},
@@ -1196,29 +1196,29 @@ func (inv *Inventory) richtextBlock(c tokens.ColorTokens) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(520))
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(richtext.Render(inv.shaper, style, spans, richtext.Idle())),
+			layout.Rigid(paragraph.Render(inv.shaper, style, spans, paragraph.Idle())),
 			layout.Rigid(complayout.VSpacer(10)),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return LabelAt(gtx, inv.shaper, "Link states: idle, hovered, focused.", c.Ramps.Neutral.Step(600), 11, font.Font{})
 			}),
 			layout.Rigid(complayout.VSpacer(4)),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				short := []richtext.SpanStyle{
+				short := []paragraph.SpanStyle{
 					{Content: "Read the "},
 					{Content: "documentation", URL: "https://gioui.org/doc"},
 					{Content: " — hovered."},
 				}
-				return richtext.Render(inv.shaper, style, short,
-					richtext.RenderState{HoveredLink: 0, FocusedLink: richtext.NoLink})(gtx)
+				return paragraph.Render(inv.shaper, style, short,
+					paragraph.RenderState{HoveredLink: 0, FocusedLink: paragraph.NoLink})(gtx)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				short := []richtext.SpanStyle{
+				short := []paragraph.SpanStyle{
 					{Content: "Read the "},
 					{Content: "documentation", URL: "https://gioui.org/doc"},
 					{Content: " — focused."},
 				}
-				return richtext.Render(inv.shaper, style, short,
-					richtext.RenderState{HoveredLink: richtext.NoLink, FocusedLink: 0})(gtx)
+				return paragraph.Render(inv.shaper, style, short,
+					paragraph.RenderState{HoveredLink: paragraph.NoLink, FocusedLink: 0})(gtx)
 			}),
 		)
 	}

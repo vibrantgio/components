@@ -1,4 +1,4 @@
-package richtext_test
+package paragraph_test
 
 import (
 	"image"
@@ -21,7 +21,7 @@ import (
 
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/internal/focus"
-	"github.com/vibrantgio/components/richtext"
+	"github.com/vibrantgio/components/paragraph"
 	"github.com/vibrantgio/font/notocoloremoji"
 	tcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
@@ -38,8 +38,8 @@ func defaultShaper(t *testing.T) *text.Shaper {
 
 // mixedSpans is the canonical test paragraph: regular, bold, italic, and
 // monospace spans plus one hyperlink (link index 0).
-func mixedSpans() []richtext.SpanStyle {
-	return []richtext.SpanStyle{
+func mixedSpans() []paragraph.SpanStyle {
+	return []paragraph.SpanStyle{
 		{Content: "The quick "},
 		{Content: "brown", Weight: font.Bold},
 		{Content: " fox "},
@@ -69,8 +69,8 @@ func TestParagraphGolden(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			style := richtext.FromTokens(tc.colors, tokens.DefaultTypography.BodyLarge)
-			w := richtext.Render(shaper, style, mixedSpans(), richtext.Idle())
+			style := paragraph.FromTokens(tc.colors, tokens.DefaultTypography.BodyLarge)
+			w := paragraph.Render(shaper, style, mixedSpans(), paragraph.Idle())
 			golden.Render(t, tc.name, size, w)
 		})
 	}
@@ -81,17 +81,17 @@ func TestParagraphGolden(t *testing.T) {
 func TestLinkStateGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 100)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	cases := []struct {
 		name  string
-		state richtext.RenderState
+		state paragraph.RenderState
 	}{
-		{"link-hovered", richtext.RenderState{HoveredLink: 0, FocusedLink: richtext.NoLink}},
-		{"link-focused", richtext.RenderState{HoveredLink: richtext.NoLink, FocusedLink: 0}},
+		{"link-hovered", paragraph.RenderState{HoveredLink: 0, FocusedLink: paragraph.NoLink}},
+		{"link-focused", paragraph.RenderState{HoveredLink: paragraph.NoLink, FocusedLink: 0}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			w := richtext.Render(shaper, style, mixedSpans(), tc.state)
+			w := paragraph.Render(shaper, style, mixedSpans(), tc.state)
 			golden.Render(t, tc.name, size, w)
 		})
 	}
@@ -102,11 +102,11 @@ func TestLinkStateGolden(t *testing.T) {
 func TestHoveredLinkIsVisuallyDistinct(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 100)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
-	idle := golden.Capture(t, size, richtext.Render(shaper, style, mixedSpans(), richtext.Idle()))
-	hovered := golden.Capture(t, size, richtext.Render(shaper, style, mixedSpans(),
-		richtext.RenderState{HoveredLink: 0, FocusedLink: richtext.NoLink}))
+	idle := golden.Capture(t, size, paragraph.Render(shaper, style, mixedSpans(), paragraph.Idle()))
+	hovered := golden.Capture(t, size, paragraph.Render(shaper, style, mixedSpans(),
+		paragraph.RenderState{HoveredLink: 0, FocusedLink: paragraph.NoLink}))
 	if idle == nil || hovered == nil {
 		return // headless unavailable; Capture called t.Skip
 	}
@@ -120,11 +120,11 @@ func TestHoveredLinkIsVisuallyDistinct(t *testing.T) {
 func TestFocusedLinkIsVisuallyDistinct(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 100)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
-	idle := golden.Capture(t, size, richtext.Render(shaper, style, mixedSpans(), richtext.Idle()))
-	focused := golden.Capture(t, size, richtext.Render(shaper, style, mixedSpans(),
-		richtext.RenderState{HoveredLink: richtext.NoLink, FocusedLink: 0}))
+	idle := golden.Capture(t, size, paragraph.Render(shaper, style, mixedSpans(), paragraph.Idle()))
+	focused := golden.Capture(t, size, paragraph.Render(shaper, style, mixedSpans(),
+		paragraph.RenderState{HoveredLink: paragraph.NoLink, FocusedLink: 0}))
 	if idle == nil || focused == nil {
 		return
 	}
@@ -139,12 +139,12 @@ func TestFocusedLinkIsVisuallyDistinct(t *testing.T) {
 func TestStrikethroughIsVisuallyDistinct(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 100)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
-	plain := golden.Capture(t, size, richtext.Render(shaper, style,
-		[]richtext.SpanStyle{{Content: "deleted text"}}, richtext.Idle()))
-	struck := golden.Capture(t, size, richtext.Render(shaper, style,
-		[]richtext.SpanStyle{{Content: "deleted text", Strikethrough: true}}, richtext.Idle()))
+	plain := golden.Capture(t, size, paragraph.Render(shaper, style,
+		[]paragraph.SpanStyle{{Content: "deleted text"}}, paragraph.Idle()))
+	struck := golden.Capture(t, size, paragraph.Render(shaper, style,
+		[]paragraph.SpanStyle{{Content: "deleted text", Strikethrough: true}}, paragraph.Idle()))
 	if plain == nil || struck == nil {
 		return // headless unavailable; Capture called t.Skip
 	}
@@ -159,13 +159,13 @@ func TestChipIsVisuallyDistinct(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 100)
 	colors := tokens.DefaultLight
-	style := richtext.FromTokens(colors, tokens.DefaultTypography.BodyLarge)
-	chip := richtext.Chip{Color: colors.Ramps.Neutral.Step(200), Padding: 4, Radius: 4}
+	style := paragraph.FromTokens(colors, tokens.DefaultTypography.BodyLarge)
+	chip := paragraph.Chip{Color: colors.Ramps.Neutral.Step(200), Padding: 4, Radius: 4}
 
-	plain := golden.Capture(t, size, richtext.Render(shaper, style,
-		[]richtext.SpanStyle{{Content: "quoted"}}, richtext.Idle()))
-	chipped := golden.Capture(t, size, richtext.Render(shaper, style,
-		[]richtext.SpanStyle{{Content: "quoted", Chip: chip}}, richtext.Idle()))
+	plain := golden.Capture(t, size, paragraph.Render(shaper, style,
+		[]paragraph.SpanStyle{{Content: "quoted"}}, paragraph.Idle()))
+	chipped := golden.Capture(t, size, paragraph.Render(shaper, style,
+		[]paragraph.SpanStyle{{Content: "quoted", Chip: chip}}, paragraph.Idle()))
 	if plain == nil || chipped == nil {
 		return // headless unavailable; Capture called t.Skip
 	}
@@ -176,14 +176,14 @@ func TestChipIsVisuallyDistinct(t *testing.T) {
 
 // ---- Layout tests ----
 
-func measure(shaper *text.Shaper, style richtext.Style, spans []richtext.SpanStyle, maxWidth int) layout.Dimensions {
+func measure(shaper *text.Shaper, style paragraph.Style, spans []paragraph.SpanStyle, maxWidth int) layout.Dimensions {
 	var ops op.Ops
 	gtx := layout.Context{
 		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
 		Constraints: layout.Constraints{Max: image.Pt(maxWidth, 10_000)},
 		Ops:         &ops,
 	}
-	return richtext.Render(shaper, style, spans, richtext.Idle())(gtx)
+	return paragraph.Render(shaper, style, spans, paragraph.Idle())(gtx)
 }
 
 // TestParagraphWraps verifies that narrowing the constraint wraps the spans
@@ -191,7 +191,7 @@ func measure(shaper *text.Shaper, style richtext.Style, spans []richtext.SpanSty
 // both must respect their max width.
 func TestParagraphWraps(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
 	wide := measure(shaper, style, mixedSpans(), 600)
 	narrow := measure(shaper, style, mixedSpans(), 150)
@@ -212,8 +212,8 @@ func TestParagraphWraps(t *testing.T) {
 const chipPad = 4
 
 // testChip is the fill the chip tests set their span on.
-func testChip() richtext.Chip {
-	return richtext.Chip{
+func testChip() paragraph.Chip {
+	return paragraph.Chip{
 		Color:   tokens.DefaultLight.Ramps.Neutral.Step(200),
 		Padding: chipPad,
 		Radius:  4,
@@ -228,14 +228,14 @@ func testChip() richtext.Chip {
 // a list marker, a gutter rule — moving.
 func TestChipReservesItsPaddingAndNotTheLine(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
 	// Mid-line, with a word on either side to clear: the case the reservation
 	// exists for, and the one both flush edges leave alone.
-	plain := measure(shaper, style, []richtext.SpanStyle{
+	plain := measure(shaper, style, []paragraph.SpanStyle{
 		{Content: "call "}, {Content: "quoted"}, {Content: " now"},
 	}, 600)
-	chipped := measure(shaper, style, []richtext.SpanStyle{
+	chipped := measure(shaper, style, []paragraph.SpanStyle{
 		{Content: "call "}, {Content: "quoted", Chip: testChip()}, {Content: " now"},
 	}, 600)
 
@@ -258,39 +258,39 @@ func TestChipReservesItsPaddingAndNotTheLine(t *testing.T) {
 // set without the chip, and the difference is exactly the padding still spent.
 func TestChipSpendsNoPaddingAtAFlushEdge(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
 	for _, tc := range []struct {
 		name  string
-		spans []richtext.SpanStyle
+		spans []paragraph.SpanStyle
 		// want is the width the chipped paragraph must exceed the same
 		// paragraph unchipped by: the padding the chip still spends.
 		want int
 	}{
 		{
 			name:  "opening a line spends only the trailing padding",
-			spans: []richtext.SpanStyle{{Content: "quoted"}, {Content: " now"}},
+			spans: []paragraph.SpanStyle{{Content: "quoted"}, {Content: " now"}},
 			want:  chipPad,
 		},
 		{
 			name:  "before closing punctuation spends only the leading padding",
-			spans: []richtext.SpanStyle{{Content: "call "}, {Content: "quoted"}, {Content: "; now"}},
+			spans: []paragraph.SpanStyle{{Content: "call "}, {Content: "quoted"}, {Content: "; now"}},
 			want:  chipPad,
 		},
 		{
 			name:  "opening a line and closed by punctuation spends neither",
-			spans: []richtext.SpanStyle{{Content: "quoted"}, {Content: ". Now"}},
+			spans: []paragraph.SpanStyle{{Content: "quoted"}, {Content: ". Now"}},
 			want:  0,
 		},
 		{
 			name:  "an opening bracket after a chip is not closing punctuation",
-			spans: []richtext.SpanStyle{{Content: "call "}, {Content: "quoted"}, {Content: "(now)"}},
+			spans: []paragraph.SpanStyle{{Content: "call "}, {Content: "quoted"}, {Content: "(now)"}},
 			want:  2 * chipPad,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// The chipped span is the one named "quoted" in each case.
-			chipped := make([]richtext.SpanStyle, len(tc.spans))
+			chipped := make([]paragraph.SpanStyle, len(tc.spans))
 			copy(chipped, tc.spans)
 			for i := range chipped {
 				if chipped[i].Content == "quoted" {
@@ -316,21 +316,21 @@ func TestChipSpendsNoPaddingAtAFlushEdge(t *testing.T) {
 func TestLineInitialChipStartsFlushWithTheMargin(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 60)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
 	// On the theme's own surface: the capture is transparent where nothing is
 	// painted, and a threshold on darkness cannot read glyphs against that.
-	onBackground := func(spans []richtext.SpanStyle) layout.Widget {
+	onBackground := func(spans []paragraph.SpanStyle) layout.Widget {
 		return func(gtx layout.Context) layout.Dimensions {
 			paint.FillShape(gtx.Ops, tokens.DefaultLight.Background,
 				clip.Rect{Max: gtx.Constraints.Max}.Op())
-			return richtext.Render(shaper, style, spans, richtext.Idle())(gtx)
+			return paragraph.Render(shaper, style, spans, paragraph.Idle())(gtx)
 		}
 	}
 	plain := golden.Capture(t, size, onBackground(
-		[]richtext.SpanStyle{{Content: "quoted word"}}))
+		[]paragraph.SpanStyle{{Content: "quoted word"}}))
 	chipped := golden.Capture(t, size, onBackground(
-		[]richtext.SpanStyle{{Content: "quoted", Chip: testChip()}, {Content: " word"}}))
+		[]paragraph.SpanStyle{{Content: "quoted", Chip: testChip()}, {Content: " word"}}))
 	if plain == nil || chipped == nil {
 		return // headless unavailable; Capture called t.Skip
 	}
@@ -405,14 +405,14 @@ func glyphBands(img *image.RGBA) [][2]int {
 // measured wrong would put every following block in the wrong place.
 func TestWrappedLinesOccupyTheStylesLineHeight(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	box := int(style.LineHeight)
 
-	spans := []richtext.SpanStyle{{Content: lineBoxProse}}
+	spans := []paragraph.SpanStyle{{Content: lineBoxProse}}
 	img := golden.Capture(t, image.Pt(120, 200), func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, tokens.DefaultLight.Background,
 			clip.Rect{Max: gtx.Constraints.Max}.Op())
-		return richtext.Render(shaper, style, spans, richtext.Idle())(gtx)
+		return paragraph.Render(shaper, style, spans, paragraph.Idle())(gtx)
 	})
 	bands := glyphBands(img)
 	if len(bands) < 3 {
@@ -424,11 +424,11 @@ func TestWrappedLinesOccupyTheStylesLineHeight(t *testing.T) {
 		}
 	}
 
-	one := measure(shaper, style, []richtext.SpanStyle{{Content: "Hxg"}}, 600)
+	one := measure(shaper, style, []paragraph.SpanStyle{{Content: "Hxg"}}, 600)
 	if one.Size.Y != box {
 		t.Errorf("a single line measures %d px tall, want the %d px line box", one.Size.Y, box)
 	}
-	three := measure(shaper, style, []richtext.SpanStyle{{Content: "Hxg\nHxg\nHxg"}}, 600)
+	three := measure(shaper, style, []paragraph.SpanStyle{{Content: "Hxg\nHxg\nHxg"}}, 600)
 	if three.Size.Y != 3*box {
 		t.Errorf("three lines measure %d px tall, want %d — three whole line boxes", three.Size.Y, 3*box)
 	}
@@ -442,11 +442,11 @@ func TestWrappedLinesOccupyTheStylesLineHeight(t *testing.T) {
 // top is the rest — so the measurement needs no knowledge of the face.
 func TestTheLeadingSplitsAboveAndBelowTheGlyphs(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	metrics := style
 	metrics.LineHeight = 0
 
-	spans := []richtext.SpanStyle{{Content: "Hxg"}}
+	spans := []paragraph.SpanStyle{{Content: "Hxg"}}
 	natural := measure(shaper, style, spans, 600)
 	shaped := measure(shaper, metrics, spans, 600)
 
@@ -467,10 +467,10 @@ func TestTheLeadingSplitsAboveAndBelowTheGlyphs(t *testing.T) {
 // beside that line moves.
 func TestAMixedSizeSpanKeepsTheLineBox(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
-	plain := measure(shaper, style, []richtext.SpanStyle{{Content: "quoted word here"}}, 600)
-	mixed := measure(shaper, style, []richtext.SpanStyle{
+	plain := measure(shaper, style, []paragraph.SpanStyle{{Content: "quoted word here"}}, 600)
+	mixed := measure(shaper, style, []paragraph.SpanStyle{
 		{Content: "quoted "},
 		{Content: "word", Size: unit.Sp(tokens.DefaultTypography.Code.Size), Typeface: "Roboto Mono"},
 		{Content: " here"},
@@ -490,11 +490,11 @@ func TestAMixedSizeSpanKeepsTheLineBox(t *testing.T) {
 // the lines into an overlap.
 func TestAZeroLineHeightKeepsTheShapedMetrics(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	metrics := style
 	metrics.LineHeight = 0
 
-	spans := []richtext.SpanStyle{{Content: "Hxg\nHxg"}}
+	spans := []paragraph.SpanStyle{{Content: "Hxg\nHxg"}}
 	shaped := measure(shaper, metrics, spans, 600)
 	if shaped.Size.Y >= measure(shaper, style, spans, 600).Size.Y {
 		t.Fatalf("the shaped metrics measure %d px for two lines, no less than the line box does; the probe cannot tell the two apart", shaped.Size.Y)
@@ -512,10 +512,10 @@ func TestAZeroLineHeightKeepsTheShapedMetrics(t *testing.T) {
 // line.
 func TestHardNewlineBreaksLine(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
-	oneLine := measure(shaper, style, []richtext.SpanStyle{{Content: "alpha beta"}}, 600)
-	twoLines := measure(shaper, style, []richtext.SpanStyle{{Content: "alpha\nbeta"}}, 600)
+	oneLine := measure(shaper, style, []paragraph.SpanStyle{{Content: "alpha beta"}}, 600)
+	twoLines := measure(shaper, style, []paragraph.SpanStyle{{Content: "alpha\nbeta"}}, 600)
 
 	if twoLines.Size.Y <= oneLine.Size.Y {
 		t.Errorf("newline content height %d not greater than single line %d", twoLines.Size.Y, oneLine.Size.Y)
@@ -539,8 +539,8 @@ func driveFrame(w layout.Widget, ops *op.Ops, r *gioinput.Router, size image.Poi
 
 // linkFirstSpans puts the link at the paragraph origin so its interactive
 // area is at a known position for synthetic pointer events.
-func linkFirstSpans(url string) []richtext.SpanStyle {
-	return []richtext.SpanStyle{
+func linkFirstSpans(url string) []paragraph.SpanStyle {
+	return []paragraph.SpanStyle{
 		{Content: "click here", URL: url},
 		{Content: " for docs."},
 	}
@@ -555,15 +555,15 @@ func TestLinkClickFiresOnLinkClick(t *testing.T) {
 
 	var gotURL string
 	var gotOps bool
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	style.OnLinkClick = func(gtx layout.Context, u string) {
 		gotURL = u
 		gotOps = gtx.Ops != nil
 	}
 
-	state := richtext.NewState()
+	state := paragraph.NewState()
 	w := func(gtx layout.Context) layout.Dimensions {
-		return richtext.Layout(gtx, state, shaper, style, linkFirstSpans(url))
+		return paragraph.Layout(gtx, state, shaper, style, linkFirstSpans(url))
 	}
 
 	r := new(gioinput.Router)
@@ -596,17 +596,17 @@ func TestLinkFocusTraversalAndKeyboardActivation(t *testing.T) {
 	shaper := defaultShaper(t)
 
 	var clicks []string
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	style.OnLinkClick = func(_ layout.Context, u string) { clicks = append(clicks, u) }
 
-	spans := []richtext.SpanStyle{
+	spans := []paragraph.SpanStyle{
 		{Content: "first", URL: "https://a.example"},
 		{Content: " and "},
 		{Content: "second", URL: "https://b.example"},
 	}
-	state := richtext.NewState()
+	state := paragraph.NewState()
 	w := func(gtx layout.Context) layout.Dimensions {
-		return richtext.Layout(gtx, state, shaper, style, spans)
+		return paragraph.Layout(gtx, state, shaper, style, spans)
 	}
 
 	r := new(gioinput.Router)
@@ -624,7 +624,7 @@ func TestLinkFocusTraversalAndKeyboardActivation(t *testing.T) {
 
 	// Frame 1 registers each link as focusable.
 	driveFrame(w, ops, r, size)
-	if got := state.FocusedLink(probe()); got != richtext.NoLink {
+	if got := state.FocusedLink(probe()); got != paragraph.NoLink {
 		t.Fatalf("initial FocusedLink = %d, want NoLink", got)
 	}
 
@@ -678,7 +678,7 @@ func TestFromTokensDefaults(t *testing.T) {
 		{"light", tokens.DefaultLight},
 		{"dark", tokens.DefaultDark},
 	} {
-		st := richtext.FromTokens(s.tok, tokens.DefaultTypography.BodyLarge)
+		st := paragraph.FromTokens(s.tok, tokens.DefaultTypography.BodyLarge)
 		if st.Color != s.tok.Text {
 			t.Errorf("%s: Color = %v, want Text %v", s.name, st.Color, s.tok.Text)
 		}
@@ -753,11 +753,11 @@ const emojiInline = "Hi 😀!"
 
 func captureEmojiInline(t *testing.T, shaper *text.Shaper, colors tokens.ColorTokens) *image.RGBA {
 	t.Helper()
-	style := richtext.FromTokens(colors, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(colors, tokens.DefaultTypography.BodyLarge)
 	size := image.Pt(200, 48)
 	return golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, colors.Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
-		return richtext.Render(shaper, style, []richtext.SpanStyle{{Content: emojiInline}}, richtext.Idle())(gtx)
+		return paragraph.Render(shaper, style, []paragraph.SpanStyle{{Content: emojiInline}}, paragraph.Idle())(gtx)
 	})
 }
 
@@ -767,7 +767,7 @@ func captureEmojiInline(t *testing.T, shaper *text.Shaper, colors tokens.ColorTo
 func TestEmojiInlinePaintsThePNG(t *testing.T) {
 	with := emojiShaper(t)
 	without := defaultShaper(t)
-	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 
 	painted := captureEmojiInline(t, with, tokens.DefaultLight)
 	tofu := captureEmojiInline(t, without, tokens.DefaultLight)
@@ -795,10 +795,10 @@ func TestEmojiInlineGolden(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			style := richtext.FromTokens(tc.colors, tokens.DefaultTypography.BodyLarge)
+			style := paragraph.FromTokens(tc.colors, tokens.DefaultTypography.BodyLarge)
 			golden.Render(t, tc.name, size, func(gtx layout.Context) layout.Dimensions {
 				paint.FillShape(gtx.Ops, tc.colors.Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
-				return richtext.Render(shaper, style, []richtext.SpanStyle{{Content: emojiInline}}, richtext.Idle())(gtx)
+				return paragraph.Render(shaper, style, []paragraph.SpanStyle{{Content: emojiInline}}, paragraph.Idle())(gtx)
 			})
 		})
 	}

@@ -1,4 +1,4 @@
-package richtext
+package paragraph
 
 // Paragraph wrapping over Gio's text.Shaper. The algorithm follows the
 // gioui.org/x/styledtext reference (reference material only, not a

@@ -1,7 +1,7 @@
-// Package richtext provides the Components inline styled-text primitive: a span
-// model with wrapped paragraph layout and interactive link spans. The inline
-// primitive lives in the component library; a goldmark document renderer
-// lives a module above it.
+// Package paragraph draws content as a run of styled text wrapped into lines:
+// the links in it are carried controls, the rest is read. It is the Components
+// inline primitive — a span model with interactive link spans — and it lives in
+// the component library; a goldmark document renderer lives a module above it.
 //
 // # Entry points
 //
@@ -33,7 +33,7 @@
 // The package is built directly on Gio's text shaper. gioui.org/x/richtext
 // and gioui.org/x/styledtext served as reference material for the span-model
 // shape and the wrapping algorithm; neither is a dependency.
-package richtext
+package paragraph
 
 import (
 	"image/color"

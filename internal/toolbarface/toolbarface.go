@@ -33,7 +33,7 @@ import (
 )
 
 // edgeDp is the rim's width — one hair at every density, the width every
-// other derived edge in this library is drawn at (components/richtext's
+// other derived edge in this library is drawn at (components/paragraph's
 // chipEdge, components/input's field bezel). It is a width rather than a
 // token because no scale in the system carries line weights.
 const edgeDp = unit.Dp(1)

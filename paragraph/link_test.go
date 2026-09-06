@@ -1,4 +1,4 @@
-package richtext_test
+package paragraph_test
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 
-	"github.com/vibrantgio/components/richtext"
+	"github.com/vibrantgio/components/paragraph"
 )
 
 // linkSweepSeeds is the seed population this package reads its link-colour
@@ -44,7 +44,7 @@ func linkHex(c stdcolor.NRGBA) string { return fmt.Sprintf("#%02X%02X%02X", c.R,
 
 // TestLinkColorClearsTheTextFloorForEverySeed is the composition-level gate: a
 // link in a paragraph is words on a page, so whatever a caller seeds the
-// palette with, [richtext.FromTokens] hands back a link colour that reaches
+// palette with, [paragraph.FromTokens] hands back a link colour that reaches
 // WCAG AA against the surface the paragraph is set on. It is read over both
 // schemes and both derivations, because the seed's depth decides the light
 // scheme's answer and nothing decides the dark one.
@@ -64,7 +64,7 @@ func TestLinkColorClearsTheTextFloorForEverySeed(t *testing.T) {
 			{"FromSeedHighContrast light", hcLight, true},
 			{"FromSeedHighContrast dark", hcDark, false},
 		} {
-			style := richtext.FromTokens(s.tok, tokens.DefaultTypography.BodyLarge)
+			style := paragraph.FromTokens(s.tok, tokens.DefaultTypography.BodyLarge)
 			surface := s.tok.SurfaceAt(tokens.Level0)
 			got := color.ContrastRatio(style.LinkColor, surface)
 			if got < tokens.TextFloor {
@@ -95,7 +95,7 @@ func TestTheCanonicalSeedsLinkColorIsThePrimaryPin(t *testing.T) {
 		{"DefaultLight", tokens.DefaultLight},
 		{"DefaultDark", tokens.DefaultDark},
 	} {
-		style := richtext.FromTokens(s.tok, tokens.DefaultTypography.BodyLarge)
+		style := paragraph.FromTokens(s.tok, tokens.DefaultTypography.BodyLarge)
 		if style.LinkColor != s.tok.Primary {
 			t.Errorf("%s: link colour is %s, not the Primary pin %s — a golden moved",
 				s.name, linkHex(style.LinkColor), linkHex(s.tok.Primary))
@@ -113,13 +113,13 @@ func TestAPastelSeedsLinkColorLeavesThePin(t *testing.T) {
 	if bare := color.ContrastRatio(light.Primary, lightSurface); bare >= tokens.TextFloor {
 		t.Fatalf("this seed's bare light pin now measures %.2f:1 — the test no longer reads the shape it was written for", bare)
 	}
-	lightLink := richtext.FromTokens(light, tokens.DefaultTypography.BodyLarge).LinkColor
+	lightLink := paragraph.FromTokens(light, tokens.DefaultTypography.BodyLarge).LinkColor
 	if lightLink == light.Primary {
 		t.Errorf("light link colour is still the bare pin %s", linkHex(light.Primary))
 	}
 
 	darkSurface := dark.SurfaceAt(tokens.Level0)
-	darkLink := richtext.FromTokens(dark, tokens.DefaultTypography.BodyLarge).LinkColor
+	darkLink := paragraph.FromTokens(dark, tokens.DefaultTypography.BodyLarge).LinkColor
 	if darkLink != dark.Primary {
 		t.Errorf("dark link colour walked to %s; the dark pin %s clears its surface and should stand",
 			linkHex(darkLink), linkHex(dark.Primary))

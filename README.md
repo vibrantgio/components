@@ -24,14 +24,14 @@ which one a package uses follows from what it owns:
   control is 36 dp Comfortable or 28 dp Compact, while the pointer target
   keeps the 44 dp WCAG floor by extending beyond the drawn bounds, so Compact
   shrinks the pixels, never the clickable area.
-- **Immediate-mode primitives** — `list`, `richtext`, `scrollbar`, `layout` —
+- **Immediate-mode primitives** — `list`, `paragraph`, `scrollbar`, `layout` —
   take the frame's `layout.Context`, a `State` you allocate once and reuse
   across frames, and a per-frame `Style` resolved from tokens
-  (`scrollbar.FromTokens`, `richtext.FromTokens`). They are what the themed
+  (`scrollbar.FromTokens`, `paragraph.FromTokens`). They are what the themed
   components and patterns' patterns are built out of.
 
 Both shapes have a pure render path — `button.Render`, `input.RenderCheckbox`,
-`richtext.Render`, … — that takes resolved tokens and an explicit state struct
+`paragraph.Render`, … — that takes resolved tokens and an explicit state struct
 and draws one frame with no event handling. That is what the golden-image
 tests drive. As of v0.2.0 these signatures take the same token types the live
 paths do — a `tokens.TextStyle` for the role they draw text in and a
@@ -78,7 +78,7 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 | `keyed` | `Deferred`, a key→state registry that keeps per-row state attached to its item across list reorders, inserts and deletes. |
 | `layout` | Spacing, inset and spacer helpers, row/column wrappers, a pill clip, and `FocusGroup` for keyboard focus across a fixed set of items. |
 | `list` | Virtual-scrolling list — only the visible rows lay out. `Layout` for the bare list, `LayoutScrollbar` to draw a bar in a reserved gutter or overlaid. |
-| `richtext` | The inline styled-text primitive: styled spans, wrapped paragraphs, spans set on a rounded chip, and hyperlink spans with hover, focus ring and Tab traversal. Built directly on Gio's shaper. |
+| `paragraph` | Content as a run of styled text wrapped into lines: styled spans, spans set on a rounded chip, and hyperlink spans with hover, focus ring and Tab traversal. Built directly on Gio's shaper. |
 | `scrollarea` | A horizontally scrolling viewport for content that must not be reflowed to fit — a preformatted block, an over-wide diagram. The child lays out at its natural width; the cut edge dissolves into the surface while there is more past it, and an optional bar floats on the trailing edge. It claims the horizontal axis only, so it nests inside a vertical `list` without fighting it. |
 | `scrollbar` | The standalone scrollbar for any scrollable region — track, draggable thumb, click-the-track scrolling — styled from tokens. Absent while the content fits, and faded out a second after it stops moving, as the desktop platforms' overlay bars are. `list.LayoutScrollbar` draws this one. |
 

@@ -31,7 +31,7 @@ import (
 	"github.com/vibrantgio/components/input"
 	complayout "github.com/vibrantgio/components/layout"
 	"github.com/vibrantgio/components/list"
-	"github.com/vibrantgio/components/richtext"
+	"github.com/vibrantgio/components/paragraph"
 	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/mvu/stream"
 	"github.com/vibrantgio/theme/a11y"
@@ -49,7 +49,7 @@ import (
 // for close-up work on one component at a time.
 var pageNames = []string{
 	"Everything",
-	"Button", "Chip", "Inputs", "List", "Richtext", "Icon", "Layout", "A11y", "Initial", "Stream",
+	"Button", "Chip", "Inputs", "List", "Paragraph", "Icon", "Layout", "A11y", "Initial", "Stream",
 	"Patterns", "Markdown",
 }
 
@@ -59,7 +59,7 @@ const (
 	pageChip
 	pageInputs
 	pageList
-	pageRichtext
+	pageParagraph
 	pageIcon
 	pageLayout
 	pageA11y
@@ -126,12 +126,12 @@ type gallery struct {
 	sbState *scrollbar.State
 	sbItems []string
 
-	// Richtext page: persistent link-interaction state plus the themed style
+	// Paragraph page: persistent link-interaction state plus the themed style
 	// whose OnLinkClick records the last activated URL.
-	rtState   *richtext.State
-	rtStyle   richtext.Style
-	rtLastURL string
-	rtClicks  int
+	paraState   *paragraph.State
+	paraStyle   paragraph.Style
+	paraLastURL string
+	paraClicks  int
 
 	// Icon page
 	iconReg   *icon.Registry
@@ -300,12 +300,12 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 		g.sbItems[i] = fmt.Sprintf("Fake content row %d of %d", i+1, len(g.sbItems))
 	}
 
-	// Richtext: live link state; OnLinkClick carries gtx.
-	g.rtState = richtext.NewState()
-	g.rtStyle = richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
-	g.rtStyle.OnLinkClick = func(_ layout.Context, url string) {
-		g.rtLastURL = url
-		g.rtClicks++
+	// Paragraph: live link state; OnLinkClick carries gtx.
+	g.paraState = paragraph.NewState()
+	g.paraStyle = paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	g.paraStyle.OnLinkClick = func(_ layout.Context, url string) {
+		g.paraLastURL = url
+		g.paraClicks++
 		w.Invalidate()
 	}
 
@@ -430,8 +430,8 @@ func (g *gallery) content(gtx layout.Context) layout.Dimensions {
 		return g.pageInputs(gtx)
 	case pageList:
 		return g.pageList(gtx)
-	case pageRichtext:
-		return g.pageRichtext(gtx)
+	case pageParagraph:
+		return g.pageParagraph(gtx)
 	case pageIcon:
 		return g.pageIcon(gtx)
 	case pageLayout:
@@ -931,13 +931,13 @@ func (g *gallery) scrollbarDemo(gtx layout.Context) layout.Dimensions {
 	})
 }
 
-// ── Richtext page ─────────────────────────────────────────────────────────────
+// ── Paragraph page ────────────────────────────────────────────────────────────
 
-// richtextSpans is the demo paragraph exercising the span model: regular,
+// paragraphSpans is the demo paragraph exercising the span model: regular,
 // bold, italic, monospace, explicit colour, explicit size, and two links.
-func richtextSpans() []richtext.SpanStyle {
-	return []richtext.SpanStyle{
-		{Content: "Richtext lays out "},
+func paragraphSpans() []paragraph.SpanStyle {
+	return []paragraph.SpanStyle{
+		{Content: "Paragraph lays out "},
 		{Content: "bold", Weight: font.Bold},
 		{Content: ", "},
 		{Content: "italic", Style: font.Italic},
@@ -955,27 +955,27 @@ func richtextSpans() []richtext.SpanStyle {
 	}
 }
 
-func (g *gallery) pageRichtext(gtx layout.Context) layout.Dimensions {
-	return g.scrollPage(gtx, g.scrollSt[pageRichtext], func(gtx layout.Context) layout.Dimensions {
-		staticStyle := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+func (g *gallery) pageParagraph(gtx layout.Context) layout.Dimensions {
+	return g.scrollPage(gtx, g.scrollSt[pageParagraph], func(gtx layout.Context) layout.Dimensions {
+		staticStyle := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 		linkStates := []struct {
 			label string
-			state richtext.RenderState
+			state paragraph.RenderState
 		}{
-			{"Idle", richtext.Idle()},
-			{"Hovered (link 0)", richtext.RenderState{HoveredLink: 0, FocusedLink: richtext.NoLink}},
-			{"Focused (link 0)", richtext.RenderState{HoveredLink: richtext.NoLink, FocusedLink: 0}},
+			{"Idle", paragraph.Idle()},
+			{"Hovered (link 0)", paragraph.RenderState{HoveredLink: 0, FocusedLink: paragraph.NoLink}},
+			{"Focused (link 0)", paragraph.RenderState{HoveredLink: paragraph.NoLink, FocusedLink: 0}},
 		}
 
 		cs := []layout.FlexChild{
-			g.sectionHeader("Richtext — mixed spans (bold / italic / mono / colour / size / links)"),
+			g.sectionHeader("Paragraph — mixed spans (bold / italic / mono / colour / size / links)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					gtx.Constraints.Max.X = gtx.Dp(unit.Dp(520))
-					return richtext.Render(g.shaper, staticStyle, richtextSpans(), richtext.Idle())(gtx)
+					return paragraph.Render(g.shaper, staticStyle, paragraphSpans(), paragraph.Idle())(gtx)
 				})
 			}),
-			g.sectionHeader("Richtext — link states (static RenderState)"),
+			g.sectionHeader("Paragraph — link states (static RenderState)"),
 		}
 		for _, ls := range linkStates {
 			ls := ls
@@ -989,38 +989,38 @@ func (g *gallery) pageRichtext(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(400))
-							spans := []richtext.SpanStyle{
+							spans := []paragraph.SpanStyle{
 								{Content: "Read the "},
 								{Content: "documentation", URL: "https://gioui.org/doc"},
 								{Content: " for details."},
 							}
-							return richtext.Render(g.shaper, staticStyle, spans, ls.state)(gtx)
+							return paragraph.Render(g.shaper, staticStyle, spans, ls.state)(gtx)
 						}),
 					)
 				})
 			}))
 		}
 		cs = append(cs,
-			g.sectionHeader("Richtext — live links (hover for cursor, Tab to focus, click or Space/Enter to activate)"),
+			g.sectionHeader("Paragraph — live links (hover for cursor, Tab to focus, click or Space/Enter to activate)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(520))
-							return richtext.Layout(gtx, g.rtState, g.shaper, g.rtStyle, richtextSpans())
+							return paragraph.Layout(gtx, g.paraState, g.shaper, g.paraStyle, paragraphSpans())
 						}),
 						layout.Rigid(complayout.VSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							status := "Activated: (none yet — click a link above)"
-							if g.rtLastURL != "" {
-								status = fmt.Sprintf("Activated %d×, last: %s", g.rtClicks, g.rtLastURL)
+							if g.paraLastURL != "" {
+								status = fmt.Sprintf("Activated %d×, last: %s", g.paraClicks, g.paraLastURL)
 							}
 							return g.label(gtx, status, tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
 						}),
 						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
-								"richtext.Layout(gtx, state, shaper, style, spans) — OnLinkClick(gtx, url) carries gtx per GX.8.",
+								"paragraph.Layout(gtx, state, shaper, style, spans) — OnLinkClick(gtx, url) carries gtx per GX.8.",
 								tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
 						}),
 					)
