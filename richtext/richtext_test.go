@@ -365,10 +365,10 @@ func firstDarkColumn(img *image.RGBA, lum float64) int {
 // pitch itself, with nothing about the words left in it.
 const lineBoxProse = "Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg Hxg"
 
-// inkBands returns the vertical extent of every run of rows carrying glyphs,
+// glyphBands returns the vertical extent of every run of rows carrying glyphs,
 // in order, as half-open [top, bottom) intervals. A drawn pixel is any pixel
 // departing from the corner colour by more than a small luminance threshold.
-func inkBands(img *image.RGBA) [][2]int {
+func glyphBands(img *image.RGBA) [][2]int {
 	b := img.Bounds()
 	lum := func(x, y int) float64 {
 		c := img.RGBAAt(x, y)
@@ -378,16 +378,16 @@ func inkBands(img *image.RGBA) [][2]int {
 	var out [][2]int
 	top := -1
 	for y := b.Min.Y; y < b.Max.Y; y++ {
-		ink := false
-		for x := b.Min.X; x < b.Max.X && !ink; x++ {
+		drawn := false
+		for x := b.Min.X; x < b.Max.X && !drawn; x++ {
 			if d := lum(x, y) - bg; d > 24 || d < -24 {
-				ink = true
+				drawn = true
 			}
 		}
 		switch {
-		case ink && top < 0:
+		case drawn && top < 0:
 			top = y
-		case !ink && top >= 0:
+		case !drawn && top >= 0:
 			out = append(out, [2]int{top, y})
 			top = -1
 		}
@@ -414,7 +414,7 @@ func TestWrappedLinesOccupyTheStylesLineHeight(t *testing.T) {
 			clip.Rect{Max: gtx.Constraints.Max}.Op())
 		return richtext.Render(shaper, style, spans, richtext.Idle())(gtx)
 	})
-	bands := inkBands(img)
+	bands := glyphBands(img)
 	if len(bands) < 3 {
 		t.Fatalf("scanned %d glyph bands, want at least 3 (one per wrapped line): %v; the probe did not wrap", len(bands), bands)
 	}
@@ -434,13 +434,13 @@ func TestWrappedLinesOccupyTheStylesLineHeight(t *testing.T) {
 	}
 }
 
-// TestTheLeadingSplitsAboveAndBelowTheInk holds the line box to the styling
+// TestTheLeadingSplitsAboveAndBelowTheGlyphs holds the line box to the styling
 // model the tokens are written in: the space a line has over its own metrics
 // is half-leading, split around the glyphs, rather than piled under them. The
 // halves are read against the same paragraph laid out with no line height at
 // all — the growth at the bottom is what the baseline gains, the growth at the
 // top is the rest — so the measurement needs no knowledge of the face.
-func TestTheLeadingSplitsAboveAndBelowTheInk(t *testing.T) {
+func TestTheLeadingSplitsAboveAndBelowTheGlyphs(t *testing.T) {
 	shaper := defaultShaper(t)
 	style := richtext.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
 	metrics := style
@@ -776,7 +776,7 @@ func TestEmojiInlinePaintsThePNG(t *testing.T) {
 	}
 
 	x0, x1 := grinXRange(t, with, int(style.Size))
-	if !hasChromaticNotInk(painted, x0, x1, style.Color) {
+	if !hasChromaticUnlike(painted, x0, x1, style.Color) {
 		t.Errorf("no chromatic pixel unlike the body colour %v in the grin's x-range [%d, %d); the PNG is missing or tinted",
 			style.Color, x0, x1)
 	}
@@ -833,7 +833,7 @@ func grinXRange(t *testing.T, shaper *text.Shaper, pxPerEm int) (x0, x1 int) {
 	return x0, x1
 }
 
-func hasChromaticNotInk(img *image.RGBA, x0, x1 int, ink color.NRGBA) bool {
+func hasChromaticUnlike(img *image.RGBA, x0, x1 int, body color.NRGBA) bool {
 	b := img.Bounds()
 	if x0 < b.Min.X {
 		x0 = b.Min.X
@@ -844,7 +844,7 @@ func hasChromaticNotInk(img *image.RGBA, x0, x1 int, ink color.NRGBA) bool {
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := x0; x < x1; x++ {
 			c := img.RGBAAt(x, y)
-			if c.R == ink.R && c.G == ink.G && c.B == ink.B {
+			if c.R == body.R && c.G == body.G && c.B == body.B {
 				continue
 			}
 			maxc := max(c.R, max(c.G, c.B))

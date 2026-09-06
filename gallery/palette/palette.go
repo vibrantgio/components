@@ -349,10 +349,10 @@ const (
 	// and whether the scheme on screen writes any foreground in it — read off
 	// that scheme's own foregrounds rather than asserted, so the answer turns
 	// over with the scheme switch.
-	PickAxisLight = "the tonal axis's light end"
-	PickAxisDark  = "the tonal axis's dark end"
-	PickAxisInk   = "%s, a foreground here"
-	PickAxisNoInk = "%s, no foreground here"
+	PickAxisLight        = "the tonal axis's light end"
+	PickAxisDark         = "the tonal axis's dark end"
+	PickAxisForeground   = "%s, a foreground here"
+	PickAxisNoForeground = "%s, no foreground here"
 )
 
 // The token names the cells carry: the names in the theme's own source, so
@@ -422,7 +422,7 @@ func Claims(groups []Group) map[Claim]bool {
 	out := map[Claim]bool{}
 	for _, g := range groups {
 		for _, cell := range g.Cells {
-			for _, part := range [2]Part{cell.Base, cell.Ink} {
+			for _, part := range [2]Part{cell.Base, cell.Foreground} {
 				if part.Role != "" && part.Step != 0 {
 					out[Claim{part.Role, part.Step}] = true
 				}
@@ -451,20 +451,20 @@ type Part struct {
 // against the non-text floor and letters would claim a legibility nothing
 // measured.
 type Cell struct {
-	Base, Ink Part
-	Fill, On  stdcolor.NRGBA
-	Mark      bool
+	Base, Foreground Part
+	Fill, On         stdcolor.NRGBA
+	Mark             bool
 }
 
 // Paired reports whether this cell carries a foreground as well as a fill.
-func (c Cell) Paired() bool { return c.Ink.Name != "" }
+func (c Cell) Paired() bool { return c.Foreground.Name != "" }
 
 // Title is the cell's names, in the order their rules are written under them.
 func (c Cell) Title() string {
 	if !c.Paired() {
 		return c.Base.Name
 	}
-	return c.Base.Name + PickPairSep + c.Ink.Name
+	return c.Base.Name + PickPairSep + c.Foreground.Name
 }
 
 // Height is the slot this cell takes: three lines for a pair and two for a
@@ -497,17 +497,17 @@ func Groups(c, other tokens.ColorTokens, dark bool) []Group {
 			// The page and the foreground it is read in: the one pair in the
 			// theme that is two pins rather than a pin and a measurement.
 			{
-				Base: backgroundPart(n, c.Background),
-				Ink:  neutralPart(TextPick, n, c.Text),
-				Fill: c.Background, On: c.Text,
+				Base:       backgroundPart(n, c.Background),
+				Foreground: neutralPart(TextPick, n, c.Text),
+				Fill:       c.Background, On: c.Text,
 			},
 			alone(neutralPart(SurfacePick, n, c.Surface), c.Surface),
 			alone(neutralPart(DividerPick, n, c.Divider), c.Divider),
 		}},
 		{PickInverseGroup, []Cell{{
-			Base: inversePart(InverseSurfacePick, c.InverseSurface, other.Surface, PickSurfaceRole, dark),
-			Ink:  inversePart(OnInverseSurfacePick, c.OnInverseSurface, other.Text, PickTextRole, dark),
-			Fill: c.InverseSurface, On: c.OnInverseSurface,
+			Base:       inversePart(InverseSurfacePick, c.InverseSurface, other.Surface, PickSurfaceRole, dark),
+			Foreground: inversePart(OnInverseSurfacePick, c.OnInverseSurface, other.Text, PickTextRole, dark),
+			Fill:       c.InverseSurface, On: c.OnInverseSurface,
 		}}},
 		// The reserved highlighter, resolved against the page the content it
 		// marks stands on. It carries no foreground: the theme names none for
@@ -550,15 +550,15 @@ func Groups(c, other tokens.ColorTokens, dark bool) []Group {
 // axisPart is one end of the tonal axis as a cell carries it: which end it is,
 // and whether anything above it on the board is written in it.
 func axisPart(name, end string, col stdcolor.NRGBA, groups []Group) Part {
-	rule := PickAxisNoInk
-	if inkedWith(groups, col) {
-		rule = PickAxisInk
+	rule := PickAxisNoForeground
+	if writtenIn(groups, col) {
+		rule = PickAxisForeground
 	}
 	return Part{Name: name, Rule: fmt.Sprintf(rule, end)}
 }
 
-// inkedWith reports whether any cell of these families is written in col.
-func inkedWith(groups []Group, col stdcolor.NRGBA) bool {
+// writtenIn reports whether any cell of these families is written in col.
+func writtenIn(groups []Group, col stdcolor.NRGBA) bool {
 	for _, g := range groups {
 		for _, cell := range g.Cells {
 			if cell.Paired() && cell.On == col {
@@ -575,11 +575,11 @@ func inkedWith(groups []Group, col stdcolor.NRGBA) bool {
 // this exact fill and cannot be understood apart from it — and the mark is
 // drawn as a disc because that is the kind of thing it was measured to be.
 func containerCell(role string, c tokens.ColorTokens, id tokens.Role, r tokens.Ramp) Cell {
-	ground, mark := c.StatusContainer(id), c.OnStatusContainer(id)
+	fill, mark := c.StatusContainer(id), c.OnStatusContainer(id)
 	return Cell{
-		Base: containerPart(role, r, ground),
-		Ink:  markPart(role, r, mark),
-		Fill: ground, On: mark, Mark: true,
+		Base:       containerPart(role, r, fill),
+		Foreground: markPart(role, r, mark),
+		Fill:       fill, On: mark, Mark: true,
 	}
 }
 
@@ -595,8 +595,8 @@ func containerCell(role string, c tokens.ColorTokens, id tokens.Role, r tokens.R
 // enough to be mistaken for it — the dot on the grid always marks the step a
 // pick's rule names, and marking only the close containers would leave two of
 // four rows with word-for-word identical rules dotted differently.
-func containerPart(role string, r tokens.Ramp, ground stdcolor.NRGBA) Part {
-	step := ToneStep(r, ground)
+func containerPart(role string, r tokens.Ramp, fill stdcolor.NRGBA) Part {
+	step := ToneStep(r, fill)
 	return Part{
 		Name: role + ContainerPick,
 		Rule: fmt.Sprintf(PickContainerRule, role, step),
@@ -637,11 +637,11 @@ func ToneStep(r tokens.Ramp, col stdcolor.NRGBA) int {
 // base it has to clear. near is what the base's rule says when it landed
 // beside a step rather than on one; off is what it says when it landed beside
 // none.
-func pinnedCell(role string, r tokens.Ramp, base, ink stdcolor.NRGBA, near, off string) Cell {
+func pinnedCell(role string, r tokens.Ramp, base, foreground stdcolor.NRGBA, near, off string) Cell {
 	return Cell{
-		Base: BasePart(role, r, base, near, off),
-		Ink:  inkPart(role, r, ink),
-		Fill: base, On: ink,
+		Base:       BasePart(role, r, base, near, off),
+		Foreground: foregroundPart(role, r, foreground),
+		Fill:       base, On: foreground,
 	}
 }
 
@@ -678,13 +678,13 @@ func BasePart(role string, r tokens.Ramp, col stdcolor.NRGBA, near, off string) 
 // light-scheme accent is pinned one unit of lightness off its own 700 step
 // (three parts in 255 — invisible to eye or display).
 //
-// Distance is measured in OKLab, and [RungTolerance] is set by measurement:
+// Distance is measured in OKLab, and [StepTolerance] is set by measurement:
 // pins that should match sit up to 0.0158 from their step, and the closest two
 // steps of any ramp this derivation builds are 0.0330 apart, so the tolerance
 // must clear the first and stay under half the second or a colour could sit
 // close enough to two steps at once.
 func NearestStep(r tokens.Ramp, col stdcolor.NRGBA) int {
-	best, at := RungTolerance, 0
+	best, at := StepTolerance, 0
 	for i := range r {
 		if d := OKLabDistance(r[i], col); d < best {
 			best, at = d, (i+1)*100
@@ -693,18 +693,18 @@ func NearestStep(r tokens.Ramp, col stdcolor.NRGBA) int {
 	return at
 }
 
-// RungTolerance is how far from a step a colour may sit and still be that step
+// StepTolerance is how far from a step a colour may sit and still be that step
 // as far as anybody looking is concerned. See [NearestStep] for the two
 // measurements it stands between.
-const RungTolerance = 0.016
+const StepTolerance = 0.016
 
-// PinRung is the step a pinned base claims: the step it is exactly, else the
+// PinStep is the step a pinned base claims: the step it is exactly, else the
 // one it is indistinguishable from, else 0 — the two questions [BasePart]
 // resolves a base's rule by, asked in the order it asks them, so the grid and
 // the rule cannot disagree about whether a pin lives on a step. The one pin
 // that claims nothing is a lifted seed whose depth falls between two steps of
 // the scale, and its row's chip carries the dot instead — see [rampGrid].
-func PinRung(r tokens.Ramp, pin stdcolor.NRGBA) int {
+func PinStep(r tokens.Ramp, pin stdcolor.NRGBA) int {
 	if n := StepIn(r, pin); n != 0 {
 		return n
 	}
@@ -737,14 +737,14 @@ func backgroundPart(n tokens.Ramp, col stdcolor.NRGBA) Part {
 	return Part{Name: BackgroundPick, Role: NeutralName, Rule: PickContentPin}
 }
 
-// inkPart names what the derivation put over the base and kept: one of the two
-// ends of the tonal axis, named for the base it was measured over, or — where
-// the base is a dark scheme's — the role's own deepest step. The axis ends are
+// foregroundPart names what the derivation put over the base and kept: one of
+// the two ends of the tonal axis, named for the base it was measured over, or
+// — where the base is a dark scheme's — the role's own deepest step. The axis ends are
 // on no ramp, so a foreground that is one of them claims no step and the grid
 // marks nothing for it.
-func inkPart(role string, r tokens.Ramp, ink stdcolor.NRGBA) Part {
+func foregroundPart(role string, r tokens.Ramp, foreground stdcolor.NRGBA) Part {
 	part := Part{Name: "On" + role, Role: role}
-	switch ink {
+	switch foreground {
 	case tokens.White:
 		part.Rule = PickWhite + fmt.Sprintf(PickMeasuredOver, role)
 		return part
@@ -752,7 +752,7 @@ func inkPart(role string, r tokens.Ramp, ink stdcolor.NRGBA) Part {
 		part.Rule = PickBlack + fmt.Sprintf(PickMeasuredOver, role)
 		return part
 	}
-	if n := StepIn(r, ink); n != 0 {
+	if n := StepIn(r, foreground); n != 0 {
 		part.Rule, part.Step = fmt.Sprintf("%s %d%s", role, n, PickMeasured), n
 		return part
 	}
@@ -1031,7 +1031,7 @@ func rampGrid(p Chrome, c tokens.ColorTokens, ty Type, claims map[Claim]bool) fu
 					paint.FillShape(gtx.Ops, step, clip.Rect(in).Op())
 				}
 				if claims[Claim{r.Name, (n + 1) * 100}] {
-					markRung(gtx, cell, step)
+					markStep(gtx, cell, step)
 				}
 			}
 			if pinW > 0 {
@@ -1040,8 +1040,8 @@ func rampGrid(p Chrome, c tokens.ColorTokens, ty Type, claims map[Claim]bool) fu
 					markPin(gtx, c, slot, r.Pin)
 					// A pin that claims no step has no cell to dot, so the dot
 					// lands on the chip instead.
-					if PinRung(r.Ramp, r.Pin) == 0 {
-						markRung(gtx, slot, r.Pin)
+					if PinStep(r.Ramp, r.Pin) == 0 {
+						markStep(gtx, slot, r.Pin)
 					}
 				} else {
 					textdraw.FillText(gtx, ty.Shaper, ty.Small, slot, 0.5, 0.5, p.Muted, RampPinNone)
@@ -1064,22 +1064,22 @@ func markPin(gtx layout.Context, c tokens.ColorTokens, box image.Rectangle, pin 
 	strokeRRect(gtx, box, radius, gtx.Dp(hairline), EdgeIn(c))
 }
 
-// markRung puts the dot on the fill a pick lives on: the cell of a step it
+// markStep puts the dot on the fill a pick lives on: the cell of a step it
 // took, or — for a pin that claims no step — the chip at the end of its row.
 // Its colour is measured over that fill rather than taken from the page, since
 // the mark can land on any of seventy-two steps or on an arbitrary pinned chip
 // and a page-chosen colour would be invisible on some of them.
-func markRung(gtx layout.Context, cell image.Rectangle, step stdcolor.NRGBA) {
+func markStep(gtx layout.Context, cell image.Rectangle, step stdcolor.NRGBA) {
 	d := min(gtx.Dp(RampMark), min(cell.Dx(), cell.Dy())/2)
 	if d <= 0 {
 		return
 	}
 	mid := image.Pt((cell.Min.X+cell.Max.X)/2, (cell.Min.Y+cell.Max.Y)/2)
 	dot := image.Rect(mid.X-d/2, mid.Y-d/2, mid.X-d/2+d, mid.Y-d/2+d)
-	fillRRect(gtx, dot, d/2, MarkInkOn(step))
+	fillRRect(gtx, dot, d/2, MarkForegroundOn(step))
 }
 
-// MarkInkOn is the colour a mark takes over one step: whichever end of the
+// MarkForegroundOn is the colour a mark takes over one step: whichever end of the
 // tonal axis reads better on it, measured.
 //
 // Measured, and not decided by asking whether the step is dark. Half-way up
@@ -1092,7 +1092,7 @@ func markRung(gtx layout.Context, cell image.Rectangle, step stdcolor.NRGBA) {
 // candidates are tried and the better one kept, which is what the derivation
 // itself does when it picks an on-colour, and the mark is doing the same job
 // on the same fill.
-func MarkInkOn(step stdcolor.NRGBA) stdcolor.NRGBA {
+func MarkForegroundOn(step stdcolor.NRGBA) stdcolor.NRGBA {
 	if vgcolor.ContrastRatio(tokens.White, step) > vgcolor.ContrastRatio(tokens.Black, step) {
 		return tokens.White
 	}
@@ -1227,7 +1227,7 @@ func drawCell(gtx layout.Context, p Chrome, c tokens.ColorTokens, ty Type, cell 
 		y += rule
 		textdraw.FillText(gtx, ty.Shaper, ty.Small,
 			image.Rect(lines, y, r.Max.X, y+rule), 0, 0.5, p.Muted,
-			FitLine(gtx, ty.Shaper, ty.Small, cell.Ink.Rule, room))
+			FitLine(gtx, ty.Shaper, ty.Small, cell.Foreground.Rule, room))
 	}
 }
 
@@ -1367,12 +1367,12 @@ const typeSection = "foundations-type"
 // trailing one — so a borrowed title splits into a band with nothing reworded.
 const sectionTitleSep = " — "
 
-// TypeLadderRows is the inventory's type stack as two rows in the story's own
+// TypeScaleRows is the inventory's type stack as two rows in the story's own
 // bands: the heading band the story's own sections wear, over the inventory
 // section's own body. The inventory's own title words are kept, split at the
 // em dash its titles are already written with, so nothing is reworded here. A
 // title with no separator lands as the whole label with no caption.
-func TypeLadderRows(inv *inventory.Inventory, p Chrome, c tokens.ColorTokens, ty Type) []layout.Widget {
+func TypeScaleRows(inv *inventory.Inventory, p Chrome, c tokens.ColorTokens, ty Type) []layout.Widget {
 	for _, s := range inv.Foundations(c) {
 		if s.Name != typeSection {
 			continue
@@ -1380,17 +1380,17 @@ func TypeLadderRows(inv *inventory.Inventory, p Chrome, c tokens.ColorTokens, ty
 		label, hint, _ := strings.Cut(s.Title, sectionTitleSep)
 		return []layout.Widget{
 			Heading(p, c, ty, label, hint),
-			Body(c, ladderBody(s)),
+			Body(c, scaleBody(s)),
 		}
 	}
 	return nil
 }
 
-// ladderBody adapts an inventory section's body to the story body's shape: the
+// scaleBody adapts an inventory section's body to the story body's shape: the
 // story measures its content and reports the height, while a section body is
 // laid out in a slot of the height the section states — bounded, since the
 // type stack measures nothing of its own.
-func ladderBody(s inventory.Section) func(gtx layout.Context, width int) int {
+func scaleBody(s inventory.Section) func(gtx layout.Context, width int) int {
 	return func(gtx layout.Context, width int) int {
 		h := gtx.Dp(s.Height)
 		gtx.Constraints = layout.Constraints{Max: image.Pt(width, h)}

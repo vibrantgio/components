@@ -265,8 +265,8 @@ func Resolve(c tokens.ColorTokens, i Purpose, s RenderState) Colors {
 		Fill:     fill,
 		Outline:  outlineOver(c, surface, fill),
 		Outlined: true,
-		Label:    neutralInk(c, pin, fill, tokens.TextFloor),
-		Mark:     neutralInk(c, pin, fill, tokens.GraphicFloor),
+		Label:    neutralForeground(c, pin, fill, tokens.TextFloor),
+		Mark:     neutralForeground(c, pin, fill, tokens.GraphicFloor),
 	}
 }
 
@@ -315,7 +315,7 @@ func walk(c tokens.ColorTokens, rest color.NRGBA, st tokens.State, good func(col
 // depended on which purpose stood on it would put two chips in one row at two
 // different depths under one pointer.
 func writable(c tokens.ColorTokens, fill color.NRGBA) bool {
-	return vgcolor.ContrastRatio(neutralInk(c, c.OnSurfaceVariant(), fill, tokens.TextFloor), fill) >= tokens.TextFloor
+	return vgcolor.ContrastRatio(neutralForeground(c, c.OnSurfaceVariant(), fill, tokens.TextFloor), fill) >= tokens.TextFloor
 }
 
 // outlineOver is the unselected chip's edge: the boundary token while it holds
@@ -359,14 +359,14 @@ func outlineOver(c tokens.ColorTokens, surface, fill color.NRGBA) color.NRGBA {
 	return cands[1]
 }
 
-// neutralInk is [tokens.ColorTokens.ForegroundOnAtFloor]'s rule for a pin
+// neutralForeground is [tokens.ColorTokens.ForegroundOnAtFloor]'s rule for a pin
 // no role owns: the pin while it clears floor against that surface, and
 // otherwise the step of the neutral ramp nearest its mid-value that does.
 //
 // ForegroundOnAtFloor itself asks a role for its pinned base and
 // RoleNeutral has none, so the rule is spelled out here rather than
 // reinvented: pin first, walk only when the pin stops reading.
-func neutralInk(c tokens.ColorTokens, pin, surface color.NRGBA, floor float64) color.NRGBA {
+func neutralForeground(c tokens.ColorTokens, pin, surface color.NRGBA, floor float64) color.NRGBA {
 	if vgcolor.ContrastRatio(pin, surface) >= floor {
 		return pin
 	}
@@ -834,13 +834,13 @@ func draw(
 	// Nothing else moves: the chip measures the same box focused as at rest,
 	// and the label does not shift.
 	radius := min(gtx.Dp(unit.Dp(tok.radius.Lg)), h/2)
-	edgeInk, edged := col.Outline, col.Outlined
+	edgeColor, edged := col.Outline, col.Outlined
 	if s.Focused {
-		band, edgeInk, edged = gtx.Dp(focus.Width), focus.Ring(tok.color), true
+		band, edgeColor, edged = gtx.Dp(focus.Width), focus.Ring(tok.color), true
 	}
 	inner, innerRad := box, radius
 	if edged {
-		paint.FillShape(gtx.Ops, edgeInk, rrect(gtx.Ops, box, radius))
+		paint.FillShape(gtx.Ops, edgeColor, rrect(gtx.Ops, box, radius))
 		if in := box.Inset(band); in.Dx() > 0 && in.Dy() > 0 {
 			inner, innerRad = in, max(radius-band, 0)
 		}

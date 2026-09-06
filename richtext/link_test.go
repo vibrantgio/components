@@ -42,13 +42,13 @@ func linkSweepSeeds() []stdcolor.NRGBA {
 
 func linkHex(c stdcolor.NRGBA) string { return fmt.Sprintf("#%02X%02X%02X", c.R, c.G, c.B) }
 
-// TestLinkInkClearsTheTextFloorForEverySeed is the composition-level gate: a
+// TestLinkColorClearsTheTextFloorForEverySeed is the composition-level gate: a
 // link in a paragraph is words on a page, so whatever a caller seeds the
 // palette with, [richtext.FromTokens] hands back a link colour that reaches
 // WCAG AA against the surface the paragraph is set on. It is read over both
 // schemes and both derivations, because the seed's depth decides the light
 // scheme's answer and nothing decides the dark one.
-func TestLinkInkClearsTheTextFloorForEverySeed(t *testing.T) {
+func TestLinkColorClearsTheTextFloorForEverySeed(t *testing.T) {
 	worstLight, worstDark := 99.0, 99.0
 	var worstLightAt, worstDarkAt string
 	for _, seed := range linkSweepSeeds() {
@@ -65,11 +65,11 @@ func TestLinkInkClearsTheTextFloorForEverySeed(t *testing.T) {
 			{"FromSeedHighContrast dark", hcDark, false},
 		} {
 			style := richtext.FromTokens(s.tok, tokens.DefaultTypography.BodyLarge)
-			ground := s.tok.SurfaceAt(tokens.Level0)
-			got := color.ContrastRatio(style.LinkColor, ground)
+			surface := s.tok.SurfaceAt(tokens.Level0)
+			got := color.ContrastRatio(style.LinkColor, surface)
 			if got < tokens.TextFloor {
 				t.Errorf("seed %s: %s: link colour %s on surface %s measures %.2f:1, under the %.1f:1 text floor",
-					linkHex(seed), s.name, linkHex(style.LinkColor), linkHex(ground), got, tokens.TextFloor)
+					linkHex(seed), s.name, linkHex(style.LinkColor), linkHex(surface), got, tokens.TextFloor)
 			}
 			if s.light && got < worstLight {
 				worstLight, worstLightAt = got, linkHex(seed)
@@ -83,11 +83,11 @@ func TestLinkInkClearsTheTextFloorForEverySeed(t *testing.T) {
 		len(linkSweepSeeds()), worstLight, worstLightAt, worstDark, worstDarkAt)
 }
 
-// TestTheCanonicalSeedsLinkInkIsThePrimaryPin asserts that deriving the
+// TestTheCanonicalSeedsLinkColorIsThePrimaryPin asserts that deriving the
 // link colour via ForegroundOnAtFloor costs no stored golden image: on the
 // seed every golden is rendered from, the brand's own colour already clears
 // the floor, so it is what the paragraph gets.
-func TestTheCanonicalSeedsLinkInkIsThePrimaryPin(t *testing.T) {
+func TestTheCanonicalSeedsLinkColorIsThePrimaryPin(t *testing.T) {
 	for _, s := range []struct {
 		name string
 		tok  tokens.ColorTokens
@@ -103,14 +103,14 @@ func TestTheCanonicalSeedsLinkInkIsThePrimaryPin(t *testing.T) {
 	}
 }
 
-// TestAPastelSeedsLinkInkLeavesThePin covers a light scheme seeded with a
+// TestAPastelSeedsLinkColorLeavesThePin covers a light scheme seeded with a
 // dark scheme's accent, where the bare primary pin fails the text floor.
-func TestAPastelSeedsLinkInkLeavesThePin(t *testing.T) {
+func TestAPastelSeedsLinkColorLeavesThePin(t *testing.T) {
 	seed := stdcolor.NRGBA{0x89, 0xb4, 0xfa, 0xff}
 	light, dark := tokens.FromSeed(seed)
 
-	lightGround := light.SurfaceAt(tokens.Level0)
-	if bare := color.ContrastRatio(light.Primary, lightGround); bare >= tokens.TextFloor {
+	lightSurface := light.SurfaceAt(tokens.Level0)
+	if bare := color.ContrastRatio(light.Primary, lightSurface); bare >= tokens.TextFloor {
 		t.Fatalf("this seed's bare light pin now measures %.2f:1 — the test no longer reads the shape it was written for", bare)
 	}
 	lightLink := richtext.FromTokens(light, tokens.DefaultTypography.BodyLarge).LinkColor
@@ -118,14 +118,14 @@ func TestAPastelSeedsLinkInkLeavesThePin(t *testing.T) {
 		t.Errorf("light link colour is still the bare pin %s", linkHex(light.Primary))
 	}
 
-	darkGround := dark.SurfaceAt(tokens.Level0)
+	darkSurface := dark.SurfaceAt(tokens.Level0)
 	darkLink := richtext.FromTokens(dark, tokens.DefaultTypography.BodyLarge).LinkColor
 	if darkLink != dark.Primary {
 		t.Errorf("dark link colour walked to %s; the dark pin %s clears its surface and should stand",
 			linkHex(darkLink), linkHex(dark.Primary))
 	}
 	t.Logf("seed %s: light link %s on %s %.2f:1 (bare pin %s %.2f:1); dark link %s on %s %.2f:1",
-		linkHex(seed), linkHex(lightLink), linkHex(lightGround), color.ContrastRatio(lightLink, lightGround),
-		linkHex(light.Primary), color.ContrastRatio(light.Primary, lightGround),
-		linkHex(darkLink), linkHex(darkGround), color.ContrastRatio(darkLink, darkGround))
+		linkHex(seed), linkHex(lightLink), linkHex(lightSurface), color.ContrastRatio(lightLink, lightSurface),
+		linkHex(light.Primary), color.ContrastRatio(light.Primary, lightSurface),
+		linkHex(darkLink), linkHex(darkSurface), color.ContrastRatio(darkLink, darkSurface))
 }

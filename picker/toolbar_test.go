@@ -39,7 +39,7 @@ func onLevel(c tokens.ColorTokens, level tokens.ElevationLevel, w layout.Widget)
 
 // The three surfaces a chrome-variant trigger actually rests on: the content
 // surface, the chrome level a toolbar band stands at, and a dialog.
-var goldenGrounds = []struct {
+var goldenSurfaces = []struct {
 	name  string
 	level tokens.ElevationLevel
 }{
@@ -82,7 +82,7 @@ func toolbar(t *testing.T, c tokens.ColorTokens, s picker.ToolbarState) layout.W
 // control is visible there because of its rim, not because of its fill.
 func TestToolbarGoldenOnEveryLevel(t *testing.T) {
 	for _, sc := range goldenSchemes {
-		for _, g := range goldenGrounds {
+		for _, g := range goldenSurfaces {
 			name := "toolbar-" + sc.name + "-" + g.name
 			t.Run(name, func(t *testing.T) {
 				w := toolbar(t, sc.colors, picker.ToolbarState{Level: g.level})
@@ -183,8 +183,8 @@ func TestToolbarMarkIsSteadyAcrossTheWalk(t *testing.T) {
 // in every state, so the derivations are covered where they live.
 //
 // What it cannot cover is the mark. The chevron is a 1.5 dp DIAGONAL stroke,
-// and a diagonal hairline is antialiased: the colour `Ink` derives may clear the
-// graphic floor while no pixel actually drawn does. The platform has the same
+// and a diagonal hairline is antialiased: the colour `Foreground` derives may
+// clear the graphic floor while no pixel actually drawn does. The platform has the same
 // problem and answers it by drawing diagonals heavier than its axis-aligned
 // strokes (1.44 px against 1.26 px at 16 pt, measured off the stored macOS
 // reference), and Gio composites in linear light where CoreGraphics composites
@@ -202,7 +202,7 @@ func TestToolbarChevronReachesTheGraphicFloor(t *testing.T) {
 		{"focused", picker.ToolbarState{Focused: true}},
 	}
 	for _, sc := range goldenSchemes {
-		for _, g := range goldenGrounds {
+		for _, g := range goldenSurfaces {
 			for _, st := range states {
 				name := sc.name + " " + g.name + " " + st.name
 				t.Run(name, func(t *testing.T) {

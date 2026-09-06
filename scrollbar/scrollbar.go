@@ -103,13 +103,13 @@ const (
 	activeCoverage = 170
 )
 
-// inkStep is where the thumb's foreground starts: the neutral ramp's
+// foregroundStep is where the thumb's foreground starts: the neutral ramp's
 // low-contrast-text step, which is what chrome that must be noticed without
 // being read is drawn in. The derivation walks deeper from here and never
 // shallower.
-const inkStep = 700
+const foregroundStep = 700
 
-// thumbInk derives one of the thumb's two states: the neutral ramp's
+// thumbForeground derives one of the thumb's two states: the neutral ramp's
 // low-contrast-text step deepened as far as floor demands over the surfaces
 // this bar rides, and coverage raised above what the overlay intends only
 // once the ramp's deepest step still falls short.
@@ -144,35 +144,35 @@ const inkStep = 700
 // step, opaque, so a caller always has a colour: a thumb too weak for its
 // floor is a contrast defect the gates report, not a reason to paint an
 // unset colour.
-func thumbInk(c tokens.ColorTokens, floor float64, coverage uint8) color.NRGBA {
-	grounds := [...]color.NRGBA{
+func thumbForeground(c tokens.ColorTokens, floor float64, coverage uint8) color.NRGBA {
+	surfaces := [...]color.NRGBA{
 		c.SurfaceAt(tokens.Level0),
 		c.SurfaceAt(tokens.LevelChrome),
 	}
-	clears := func(ink color.NRGBA) bool {
-		for _, ground := range grounds {
-			if tcolor.ContrastRatio(tcolor.Over(ink, ground), ground) < floor {
+	clears := func(foreground color.NRGBA) bool {
+		for _, surface := range surfaces {
+			if tcolor.ContrastRatio(tcolor.Over(foreground, surface), surface) < floor {
 				return false
 			}
 		}
 		return true
 	}
-	for step := inkStep; step <= 900; step += 100 {
-		ink := c.Ramps.Neutral.Step(step)
-		ink.A = coverage
-		if clears(ink) {
-			return ink
+	for step := foregroundStep; step <= 900; step += 100 {
+		foreground := c.Ramps.Neutral.Step(step)
+		foreground.A = coverage
+		if clears(foreground) {
+			return foreground
 		}
 	}
-	ink := c.Ramps.Neutral.Step(900)
+	foreground := c.Ramps.Neutral.Step(900)
 	for a := int(coverage); a < 255; a++ {
-		ink.A = uint8(a)
-		if clears(ink) {
-			return ink
+		foreground.A = uint8(a)
+		if clears(foreground) {
+			return foreground
 		}
 	}
-	ink.A = 255
-	return ink
+	foreground.A = 255
+	return foreground
 }
 
 // FromTokens derives the default scrollbar look from colour tokens.
@@ -182,8 +182,8 @@ func thumbInk(c tokens.ColorTokens, floor float64, coverage uint8) color.NRGBA {
 // translucent foreground has no colour until it is composited, and the composite of
 // the low-contrast-text step at 39% coverage over the light page is #CCCCCC,
 // 1.49:1 against that page, invisible exactly when a reader looks for it. So
-// both states are derived — see thumbInk — as the most translucent thumb that
-// still clears its floor over the surfaces an overlay bar rides.
+// both states are derived — see thumbForeground — as the most translucent
+// thumb that still clears its floor over the surfaces an overlay bar rides.
 //
 // The two schemes answer differently, which is the derivation working rather
 // than a special case. Over a dark page a pale foreground at low coverage lifts the
@@ -203,8 +203,8 @@ func thumbInk(c tokens.ColorTokens, floor float64, coverage uint8) color.NRGBA {
 // bar back. Set FadeDelay to zero for a bar that stays visible.
 func FromTokens(c tokens.ColorTokens) Style {
 	return Style{
-		ThumbColor:        thumbInk(c, restFloor, restCoverage),
-		ThumbHoverColor:   thumbInk(c, activeFloor, activeCoverage),
+		ThumbColor:        thumbForeground(c, restFloor, restCoverage),
+		ThumbHoverColor:   thumbForeground(c, activeFloor, activeCoverage),
 		TrackColor:        color.NRGBA{},
 		ThumbMinorWidth:   6,
 		TrackPadding:      2,

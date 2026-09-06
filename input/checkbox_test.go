@@ -409,12 +409,12 @@ func nearlyEqual(got stdcolor.RGBA, want stdcolor.NRGBA) bool {
 // question worth asking of a stroked mark is how much of the box reads as
 // mark rather than as fill, and that is this: squared distance in RGB, the
 // two ends of the blend as the only candidates.
-func nearerTo(got stdcolor.RGBA, ink, fill stdcolor.NRGBA) bool {
+func nearerTo(got stdcolor.RGBA, mark, fill stdcolor.NRGBA) bool {
 	d := func(c stdcolor.NRGBA) int {
 		dr := int(got.R) - int(c.R)
 		dg := int(got.G) - int(c.G)
 		db := int(got.B) - int(c.B)
 		return dr*dr + dg*dg + db*db
 	}
-	return got.A == 0xff && d(ink) < d(fill)
+	return got.A == 0xff && d(mark) < d(fill)
 }

@@ -66,7 +66,7 @@ func TestFocusedSpecimensGolden(t *testing.T) {
 	for _, sc := range schemes() {
 		sheet := focusSheet(t, sc.colors)
 		size := measure(sheet, focusSheetW, 1<<20)
-		golden.Render(t, "focus-"+sc.name, size, ground(sc.colors, sheet))
+		golden.Render(t, "focus-"+sc.name, size, onBackground(sc.colors, sheet))
 	}
 }
 

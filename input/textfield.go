@@ -411,8 +411,8 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	// first keystroke); offsetting the editor down by that same half-deficit
 	// keeps the text, the caret and the selection where the placeholder's text
 	// was, and inside the line box the field was sized from.
-	inkShift := editorInkShift(innerGtx, shaper, wl, f, textSize, placeholder, phMat, contentDims.Size.Y)
-	st := op.Offset(image.Pt(padH, offY+inkShift)).Push(gtx.Ops)
+	textShift := editorTextShift(innerGtx, shaper, wl, f, textSize, placeholder, phMat, contentDims.Size.Y)
+	st := op.Offset(image.Pt(padH, offY+textShift)).Push(gtx.Ops)
 	editor.Layout(editorGtx, shaper, f, textSize, textMat, selMat)
 	st.Pop()
 
@@ -445,7 +445,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	return layout.Dimensions{Size: fieldSize}
 }
 
-// editorInkShift returns how far down the live editor must draw so its first
+// editorTextShift returns how far down the live editor must draw so its first
 // line's glyphs land where typeset.Layout put the placeholder's: half the
 // line-height deficit the placeholder's line box carries above its glyphs.
 //
@@ -461,7 +461,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 // line height, a LineHeightScale other than 1, or text already as tall as its
 // box. It is never negative, so the editor never draws above the field's
 // content offset.
-func editorInkShift(gtx layout.Context, sh *text.Shaper, lbl widget.Label, f font.Font, size unit.Sp, txt string, material op.CallOp, corrected int) int {
+func editorTextShift(gtx layout.Context, sh *text.Shaper, lbl widget.Label, f font.Font, size unit.Sp, txt string, material op.CallOp, corrected int) int {
 	if gtx.Sp(lbl.LineHeight) <= 0 || lbl.LineHeightScale != 1 {
 		return 0
 	}

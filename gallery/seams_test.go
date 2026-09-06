@@ -32,10 +32,10 @@ const (
 // counted.
 const seamProbe = 96
 
-// seamInk is how far a pixel has to sit from the page's own fill before it
+// seamTolerance is how far a pixel has to sit from the page's own fill before it
 // counts as something drawn. One level is dithering and rounding; three is a
 // mark.
-const seamInk = 3
+const seamTolerance = 3
 
 // seamMeasure is one section's seams, in pixels of the captured page.
 type seamMeasure struct {
@@ -48,9 +48,9 @@ type seamMeasure struct {
 	// left is the first column the body draws in, measured from the page's
 	// own edge.
 	left int
-	// `ink` is how tall what the body draws measures, and slot is the run the
+	// `drawn` is how tall what the body draws measures, and slot is the run the
 	// section asked for.
-	ink, slot int
+	drawn, slot int
 }
 
 // TestSectionSeams measures every seam on the everything page, in both
@@ -67,7 +67,7 @@ func TestSectionSeams(t *testing.T) {
 			for _, s := range grp.Sections {
 				m := measureSeam(t, inv, sc.colors, s)
 				t.Logf("%-6s %-24s slot %3d  drawn %3d  top %3d  bottom %3d  left %3d",
-					sc.name, m.name, m.slot, m.ink, m.top, m.bottom, m.left)
+					sc.name, m.name, m.slot, m.drawn, m.top, m.bottom, m.left)
 				if m.top < seamGap-seamBleed {
 					t.Errorf("%s %s: %d px under its heading, want the %d px section margin",
 						sc.name, m.name, m.top, seamGap)
@@ -102,7 +102,7 @@ func measureSeam(t *testing.T, inv *inventory.Inventory, c tokens.ColorTokens, s
 	})
 	w := inventory.Column(items)
 	total := measure(w, pageWidth, 1<<20)
-	img := golden.Capture(t, total, ground(c, w))
+	img := golden.Capture(t, total, onBackground(c, w))
 
 	// The rows the column laid out above the body: the probe group's banner,
 	// then the section's own heading.
@@ -112,30 +112,30 @@ func measureSeam(t *testing.T, inv *inventory.Inventory, c tokens.ColorTokens, s
 
 	bg := img.RGBAAt(pageWidth-1, total.Y-1)
 	m := seamMeasure{name: s.Name, slot: int(s.Height), top: -1, bottom: -1, left: pageWidth}
-	firstInk, lastInk := -1, -1
+	firstDrawn, lastDrawn := -1, -1
 	for y := bodyTop; y < total.Y; y++ {
 		// Walked from the left and stopped at the first mark: the row's
 		// leftmost is all the left margin needs, and the rows themselves say
 		// where what the section draws starts and ends.
 		for x := 0; x < pageWidth; x++ {
 			p := img.RGBAAt(x, y)
-			if absDiff(p.R, bg.R) < seamInk && absDiff(p.G, bg.G) < seamInk && absDiff(p.B, bg.B) < seamInk {
+			if absDiff(p.R, bg.R) < seamTolerance && absDiff(p.G, bg.G) < seamTolerance && absDiff(p.B, bg.B) < seamTolerance {
 				continue
 			}
-			if firstInk < 0 {
-				firstInk = y
+			if firstDrawn < 0 {
+				firstDrawn = y
 			}
-			lastInk = y
+			lastDrawn = y
 			if x < m.left {
 				m.left = x
 			}
 			break
 		}
 	}
-	if firstInk >= 0 {
-		m.top = firstInk - bodyTop
-		m.bottom = bodyBottom - 1 - lastInk
-		m.ink = lastInk - firstInk + 1
+	if firstDrawn >= 0 {
+		m.top = firstDrawn - bodyTop
+		m.bottom = bodyBottom - 1 - lastDrawn
+		m.drawn = lastDrawn - firstDrawn + 1
 	}
 	if m.left == pageWidth {
 		m.left = -1

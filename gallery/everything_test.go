@@ -100,7 +100,7 @@ func TestGroupGoldens(t *testing.T) {
 					if total.Y > tileHeight {
 						tile = fmt.Sprintf("%s-%d", name, n)
 					}
-					golden.Render(t, tile, size, ground(sc.colors, shiftUp(w, y)))
+					golden.Render(t, tile, size, onBackground(sc.colors, shiftUp(w, y)))
 				}
 			})
 		}
@@ -218,7 +218,7 @@ func TestEverythingDump(t *testing.T) {
 		for y, n := 0, 0; y < total.Y; y, n = y+tileHeight, n+1 {
 			h := min(tileHeight, total.Y-y)
 			shifted := shiftUp(w, y)
-			img := golden.Capture(t, image.Pt(pageWidth, h), ground(sc.colors, shifted))
+			img := golden.Capture(t, image.Pt(pageWidth, h), onBackground(sc.colors, shifted))
 			path := filepath.Join(*dumpDir, fmt.Sprintf("everything-%s-%d.png", sc.name, n))
 			if err := golden.Save(path, img); err != nil {
 				t.Fatalf("gallery: save %s: %v", path, err)
@@ -230,9 +230,9 @@ func TestEverythingDump(t *testing.T) {
 
 // ── Test-side layout helpers ──────────────────────────────────────────────────
 
-// `ground` paints the scheme's background under w, so a captured image shows
+// `onBackground` paints the scheme's background under w, so a captured image shows
 // what the page shows rather than whatever the framebuffer held.
-func ground(c tokens.ColorTokens, w layout.Widget) layout.Widget {
+func onBackground(c tokens.ColorTokens, w layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, c.Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
 		return w(gtx)

@@ -166,7 +166,7 @@ func TestTextFieldCompactGolden(t *testing.T) {
 	golden.Render(t, "textfield-light-compact", image.Pt(300, 60), w)
 }
 
-// TestTextFieldEditorInkRestsOnPlaceholderLine pins the field's focus
+// TestTextFieldEditorTextRestsOnPlaceholderLine pins the field's focus
 // transition: the resting placeholder is drawn through typeset.Layout with
 // half its line-height deficit above the glyphs, while the live editor is a
 // raw widget.Editor whose first line Gio baselines at its own ascent. Unless
@@ -179,7 +179,7 @@ func TestTextFieldCompactGolden(t *testing.T) {
 // difference against a blank field; the editor draws its content whenever it
 // is non-empty, so seeding it exercises the exact draw path a focused field
 // uses.
-func TestTextFieldEditorInkRestsOnPlaceholderLine(t *testing.T) {
+func TestTextFieldEditorTextRestsOnPlaceholderLine(t *testing.T) {
 	const txt = "Email address"
 	size := image.Pt(300, 60)
 

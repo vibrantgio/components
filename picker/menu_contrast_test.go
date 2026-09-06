@@ -46,21 +46,21 @@ func TestMenuOptionRowContrast(t *testing.T) {
 		{"dark", tokens.DefaultDark},
 	} {
 		t.Run(sc.name, func(t *testing.T) {
-			restFill, restInk := optionRowColors(sc.colors, false, false)
-			hovFill, hovInk := optionRowColors(sc.colors, false, true)
-			selFill, selInk := optionRowColors(sc.colors, true, false)
+			restFill, restForeground := optionRowColors(sc.colors, false, false)
+			hovFill, hovForeground := optionRowColors(sc.colors, false, true)
+			selFill, selForeground := optionRowColors(sc.colors, true, false)
 
 			for _, row := range []struct {
-				name string
-				fill color.NRGBA
-				ink  color.NRGBA
+				name       string
+				fill       color.NRGBA
+				foreground color.NRGBA
 			}{
-				{"unselected", restFill, restInk},
-				{"hovered", hovFill, hovInk},
-				{"selected", selFill, selInk},
+				{"unselected", restFill, restForeground},
+				{"hovered", hovFill, hovForeground},
+				{"selected", selFill, selForeground},
 			} {
-				got := themecolor.ContrastRatio(row.ink, row.fill)
-				t.Logf("%s label on its own row %.2f:1 (fill %s, foreground %s)", row.name, got, hex(row.fill), hex(row.ink))
+				got := themecolor.ContrastRatio(row.foreground, row.fill)
+				t.Logf("%s label on its own row %.2f:1 (fill %s, foreground %s)", row.name, got, hex(row.fill), hex(row.foreground))
 				if got < wcagText {
 					t.Errorf("%s label on its own row = %.2f:1, want at least %.1f:1", row.name, got, wcagText)
 				}
@@ -72,13 +72,13 @@ func TestMenuOptionRowContrast(t *testing.T) {
 			// pointer leaves, which is the same accent family and must not
 			// be mistakable for the answer.
 			for _, sep := range []struct {
-				name   string
-				ground color.NRGBA
+				name string
+				fill color.NRGBA
 			}{
 				{"the menu's own fill", restFill},
 				{"a hovered row", hovFill},
 			} {
-				got := themecolor.ContrastRatio(selFill, sep.ground)
+				got := themecolor.ContrastRatio(selFill, sep.fill)
 				t.Logf("selected fill against %s %.2f:1", sep.name, got)
 				if got < wcagIndicator {
 					t.Errorf("selected fill against %s = %.2f:1, want at least %.1f:1", sep.name, got, wcagIndicator)
@@ -121,19 +121,19 @@ func TestMenuOptionRowContrastHoldsForEverySeed(t *testing.T) {
 			{"light", light},
 			{"dark", dark},
 		} {
-			restFill, restInk := optionRowColors(sc.colors, false, false)
-			hovFill, hovInk := optionRowColors(sc.colors, false, true)
-			selFill, selInk := optionRowColors(sc.colors, true, false)
+			restFill, restForeground := optionRowColors(sc.colors, false, false)
+			hovFill, hovForeground := optionRowColors(sc.colors, false, true)
+			selFill, selForeground := optionRowColors(sc.colors, true, false)
 			for _, row := range []struct {
-				name string
-				fill color.NRGBA
-				ink  color.NRGBA
+				name       string
+				fill       color.NRGBA
+				foreground color.NRGBA
 			}{
-				{"unselected", restFill, restInk},
-				{"hovered", hovFill, hovInk},
-				{"selected", selFill, selInk},
+				{"unselected", restFill, restForeground},
+				{"hovered", hovFill, hovForeground},
+				{"selected", selFill, selForeground},
 			} {
-				got := themecolor.ContrastRatio(row.ink, row.fill)
+				got := themecolor.ContrastRatio(row.foreground, row.fill)
 				if got < worstText {
 					worstText = got
 				}
@@ -143,13 +143,13 @@ func TestMenuOptionRowContrastHoldsForEverySeed(t *testing.T) {
 				}
 			}
 			for _, sep := range []struct {
-				name   string
-				ground color.NRGBA
+				name string
+				fill color.NRGBA
 			}{
 				{"the menu's own fill", restFill},
 				{"a hovered row", hovFill},
 			} {
-				got := themecolor.ContrastRatio(selFill, sep.ground)
+				got := themecolor.ContrastRatio(selFill, sep.fill)
 				if got < worstSep {
 					worstSep = got
 				}

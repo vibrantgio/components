@@ -139,7 +139,7 @@ func TestOpenFieldStacksTheSharedMenuUnderItsTrigger(t *testing.T) {
 // once here: the neutral step that clears the graphic floor against the
 // level-3 plane the line circles, one dp inside the box on all four sides.
 func planeEdge(gtx layout.Context, size image.Point) {
-	ink := tokens.DefaultLight.MarkOn(tokens.RoleNeutral,
+	edge := tokens.DefaultLight.MarkOn(tokens.RoleNeutral,
 		tokens.DefaultLight.SurfaceAt(tokens.Level3), tokens.GraphicFloor)
 	w := gtx.Dp(1)
 	for _, r := range []image.Rectangle{
@@ -148,7 +148,7 @@ func planeEdge(gtx layout.Context, size image.Point) {
 		{Max: image.Pt(w, size.Y)},
 		{Min: image.Pt(size.X-w, 0), Max: size},
 	} {
-		paint.FillShape(gtx.Ops, ink, clip.Rect(r).Op())
+		paint.FillShape(gtx.Ops, edge, clip.Rect(r).Op())
 	}
 }
 

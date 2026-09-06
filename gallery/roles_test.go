@@ -50,9 +50,9 @@ func roleChips(c tokens.ColorTokens) []struct {
 // the capture instead (see chipRuns).
 const chipH = 40
 
-// inkCoverageTolerance is how far from the foreground a role names the darkest
-// (or lightest) pixel of its chip's label may land, as a fraction of the
-// distance from the chip's fill to that colour. Some slack is needed because a
+// foregroundCoverageTolerance is how far from the foreground a role names the
+// darkest (or lightest) pixel of its chip's label may land, as a fraction of
+// the distance from the chip's fill to that colour. Some slack is needed because a
 // label is antialiased: a 13sp glyph's stems are about a pixel wide, so even
 // the pixel most covered by it is a blend and lands a little short. It is a
 // tolerance rather than a floor because both directions are defects — a chip
@@ -60,7 +60,7 @@ const chipH = 40
 // written for, and a chip drawing a stronger one is painting a pairing the
 // tokens do not prescribe just the same. Every chip in both schemes measures
 // 0.99 of the way.
-const inkCoverageTolerance = 0.15
+const foregroundCoverageTolerance = 0.15
 
 // TestRoleSwatchesPaintTheirTokenPairs measures the roles row off the rendered
 // page, in both schemes: every chip's fill is the colour its role names, the
@@ -84,7 +84,7 @@ func TestRoleSwatchesPaintTheirTokenPairs(t *testing.T) {
 			row := inv.Foundations(sc.colors)[0]
 			chips := roleChips(sc.colors)
 			img := golden.Capture(t, image.Pt(pageWidth, chipH),
-				ground(sc.colors, row.Body))
+				onBackground(sc.colors, row.Body))
 			runs := chipRuns(img, sc.colors.Ramps.Neutral.Step(400))
 			if len(runs) != len(chips) {
 				t.Fatalf("the row drew %d chips, want %d — the roles row and this test disagree about what it shows",
@@ -93,16 +93,16 @@ func TestRoleSwatchesPaintTheirTokenPairs(t *testing.T) {
 			for i, chip := range chips {
 				// The chip interior, inside the hairline border.
 				at := image.Rect(runs[i][0]+1, 1, runs[i][1], chipH-1)
-				fill, ink, coverage := chipInk(img, at, chip.on)
-				ratio := vgcolor.ContrastRatio(ink, fill)
+				fill, foreground, coverage := chipForeground(img, at, chip.on)
+				ratio := vgcolor.ContrastRatio(foreground, fill)
 				t.Logf("%s: fill %v, label reaches %v (%.2f of the way to the token's %v), %.2f:1",
-					chip.name, fill, ink, coverage, chip.on, ratio)
+					chip.name, fill, foreground, coverage, chip.on, ratio)
 				if fill != chip.fill {
 					t.Errorf("%s: the chip is filled %v, want the role's %v", chip.name, fill, chip.fill)
 				}
-				if math.Abs(coverage-1) > inkCoverageTolerance {
+				if math.Abs(coverage-1) > foregroundCoverageTolerance {
 					t.Errorf("%s: the label's most-covered pixel %v lands %.2f of the way from the fill %v to the foreground %v the role names — the chip is not painting its own on-colour",
-						chip.name, ink, coverage, fill, chip.on)
+						chip.name, foreground, coverage, fill, chip.on)
 				}
 				if ratio < wcagAA {
 					t.Errorf("%s: the label measures %.2f:1 on the chip, under the %.1f:1 floor",
@@ -142,13 +142,13 @@ func chipRuns(img *image.RGBA, edge stdcolor.NRGBA) [][2]int {
 	return runs
 }
 
-// chipInk reads one chip out of a capture: the colour it is filled with — the
-// one most of it is — the pixel of the label most covered by the foreground,
-// and how far that pixel travelled from the fill toward want, as a fraction of
-// the whole distance. Coverage is measured on relative luminance rather than
+// chipForeground reads one chip out of a capture: the colour it is filled
+// with — the one most of it is — the pixel of the label most covered by the
+// foreground, and how far that pixel travelled from the fill toward want, as
+// a fraction of the whole distance. Coverage is measured on relative luminance rather than
 // per channel, because that is what makes a label readable and what the ratio
 // beside it is computed from.
-func chipInk(img *image.RGBA, at image.Rectangle, want stdcolor.NRGBA) (fill, ink stdcolor.NRGBA, coverage float64) {
+func chipForeground(img *image.RGBA, at image.Rectangle, want stdcolor.NRGBA) (fill, foreground stdcolor.NRGBA, coverage float64) {
 	counts := map[stdcolor.NRGBA]int{}
 	for y := at.Min.Y; y < at.Max.Y; y++ {
 		for x := at.Min.X; x < at.Max.X; x++ {
@@ -166,14 +166,14 @@ func chipInk(img *image.RGBA, at image.Rectangle, want stdcolor.NRGBA) (fill, in
 	}
 	fl := vgcolor.RelativeLuminance(fill)
 	span := vgcolor.RelativeLuminance(want) - fl
-	ink = fill
+	foreground = fill
 	for c := range counts {
-		if math.Abs(vgcolor.RelativeLuminance(c)-fl) > math.Abs(vgcolor.RelativeLuminance(ink)-fl) {
-			ink = c
+		if math.Abs(vgcolor.RelativeLuminance(c)-fl) > math.Abs(vgcolor.RelativeLuminance(foreground)-fl) {
+			foreground = c
 		}
 	}
 	if span == 0 {
-		return fill, ink, 1
+		return fill, foreground, 1
 	}
-	return fill, ink, (vgcolor.RelativeLuminance(ink) - fl) / span
+	return fill, foreground, (vgcolor.RelativeLuminance(foreground) - fl) / span
 }

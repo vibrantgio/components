@@ -202,10 +202,10 @@ func FromTokens(c tokens.ColorTokens, body tokens.TextStyle) Style {
 	// The surface a link is drawn on is the paper the paragraph is set on —
 	// the elevation's level 0, asked of the palette. The ring beside it asks
 	// for no surface at all: focus.Ring is the scheme's one focus colour.
-	ground := c.SurfaceAt(tokens.Level0)
+	surface := c.SurfaceAt(tokens.Level0)
 	return Style{
 		Color:      c.Text,
-		LinkColor:  c.ForegroundOnAtFloor(tokens.RolePrimary, ground, tokens.TextFloor),
+		LinkColor:  c.ForegroundOnAtFloor(tokens.RolePrimary, surface, tokens.TextFloor),
 		FocusColor: focus.Ring(c),
 		Size:       unit.Sp(body.Size),
 		LineHeight: unit.Sp(body.LineHeight),

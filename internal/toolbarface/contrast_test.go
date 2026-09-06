@@ -140,12 +140,12 @@ func TestEdgeHoldsOnEveryLevelAndState(t *testing.T) {
 	}
 }
 
-// TestInksClearTheirFloors measures the label and the mark against the fill
+// TestForegroundsClearTheirFloors measures the label and the mark against the fill
 // they are drawn on, in every state and on every surface. The label owes WCAG
 // 1.4.3's 4.5:1 because it is words; the mark owes 1.4.11's 3:1 because it is
-// a mark. What this gates is that `Ink` does not hand back the Text pin once
-// that pin has stopped reading.
-func TestInksClearTheirFloors(t *testing.T) {
+// a mark. What this gates is that `Foreground` does not hand back the Text pin
+// once that pin has stopped reading.
+func TestForegroundsClearTheirFloors(t *testing.T) {
 	for _, sc := range []struct {
 		name   string
 		colors tokens.ColorTokens
@@ -158,20 +158,20 @@ func TestInksClearTheirFloors(t *testing.T) {
 			for _, lv := range levels {
 				for _, st := range states {
 					fill := Fill(c, lv.level, st.state)
-					for _, ink := range []struct {
+					for _, foreground := range []struct {
 						name  string
 						col   color.NRGBA
 						floor float64
 					}{
-						{"label", Ink(c, fill, tokens.TextFloor), tokens.TextFloor},
-						{"glyph", Ink(c, fill, tokens.GraphicFloor), tokens.GraphicFloor},
+						{"label", Foreground(c, fill, tokens.TextFloor), tokens.TextFloor},
+						{"glyph", Foreground(c, fill, tokens.GraphicFloor), tokens.GraphicFloor},
 					} {
-						got := vgcolor.ContrastRatio(ink.col, fill)
+						got := vgcolor.ContrastRatio(foreground.col, fill)
 						t.Logf("%s %s %s %s on the fill %s: %.2f:1",
-							lv.name, st.name, ink.name, hex(ink.col), hex(fill), got)
-						if got < ink.floor {
+							lv.name, st.name, foreground.name, hex(foreground.col), hex(fill), got)
+						if got < foreground.floor {
 							t.Errorf("%s %s %s %s on the fill %s = %.2f:1, want at least %.1f:1",
-								lv.name, st.name, ink.name, hex(ink.col), hex(fill), got, ink.floor)
+								lv.name, st.name, foreground.name, hex(foreground.col), hex(fill), got, foreground.floor)
 						}
 					}
 				}
@@ -205,20 +205,20 @@ func TestPairingsHoldForEverySeed(t *testing.T) {
 						c, lv.level, st.state); got < worstRim {
 						worstRim = got
 					}
-					labelInk := Ink(c, fill, tokens.TextFloor)
-					if got := vgcolor.ContrastRatio(labelInk, fill); got < worstLabel {
+					labelForeground := Foreground(c, fill, tokens.TextFloor)
+					if got := vgcolor.ContrastRatio(labelForeground, fill); got < worstLabel {
 						worstLabel = got
 						if got < tokens.TextFloor {
 							t.Errorf("seed %s %s: %s %s label %s on its fill = %.2f:1, want at least %.1f:1",
-								hex(seed), sc.name, lv.name, st.name, hex(labelInk), got, tokens.TextFloor)
+								hex(seed), sc.name, lv.name, st.name, hex(labelForeground), got, tokens.TextFloor)
 						}
 					}
-					glyphInk := Ink(c, fill, tokens.GraphicFloor)
-					if got := vgcolor.ContrastRatio(glyphInk, fill); got < worstGlyph {
+					glyphForeground := Foreground(c, fill, tokens.GraphicFloor)
+					if got := vgcolor.ContrastRatio(glyphForeground, fill); got < worstGlyph {
 						worstGlyph = got
 						if got < tokens.GraphicFloor {
 							t.Errorf("seed %s %s: %s %s glyph %s on its fill = %.2f:1, want at least %.1f:1",
-								hex(seed), sc.name, lv.name, st.name, hex(glyphInk), got, tokens.GraphicFloor)
+								hex(seed), sc.name, lv.name, st.name, hex(glyphForeground), got, tokens.GraphicFloor)
 						}
 					}
 				}

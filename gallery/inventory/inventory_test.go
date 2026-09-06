@@ -238,8 +238,8 @@ func TestTheSchemeControlIsAControl(t *testing.T) {
 					t.Errorf("%s: a segment draws %v tall, under the %v a target owes before any slop is spent on it",
 						sc.name, dims.Size.Y, schemeDrawnFloor)
 				}
-				ink, ground := schemeSegmentInks(sc.c, selected)
-				ratio := themecolor.ContrastRatio(ink, ground)
+				foreground, fill := schemeSegmentColors(sc.c, selected)
+				ratio := themecolor.ContrastRatio(foreground, fill)
 				t.Logf("%s scheme, %s segment, selected=%v: glyph %.2f:1 on the fill behind it",
 					sc.name, map[bool]string{false: "sun", true: "moon"}[dark], selected, ratio)
 				if ratio < schemeGlyphFloor {

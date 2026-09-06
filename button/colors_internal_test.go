@@ -9,15 +9,16 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// pinFill and pinInk are a pair no scheme carries: a fixed red of the kind a
-// caller pins when the meaning of an action, rather than the palette, chooses
-// its colour, and the foreground that reads over it (white measures 6.5:1 there).
+// pinFill and pinForeground are a pair no scheme carries: a fixed red of the
+// kind a caller pins when the meaning of an action, rather than the palette,
+// chooses its colour, and the foreground that reads over it (white measures
+// 6.5:1 there).
 var (
-	pinFill = color.NRGBA{0xb3, 0x26, 0x1e, 0xff}
-	pinInk  = color.NRGBA{0xff, 0xff, 0xff, 0xff}
+	pinFill       = color.NRGBA{0xb3, 0x26, 0x1e, 0xff}
+	pinForeground = color.NRGBA{0xff, 0xff, 0xff, 0xff}
 )
 
-// tonalRest and tonalInk are the badge's tint recipe written out for the
+// tonalRest and tonalForeground are the badge's tint recipe written out for the
 // table below: the floored, surface-aware container over the level the
 // button stands on, and the role's own foreground at the text floor over
 // whatever the fill has walked to. components/badge draws with exactly these
@@ -26,7 +27,7 @@ func tonalRest(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGBA {
 	return c.StatusContainerOn(tokens.RolePrimary, c.SurfaceAt(level))
 }
 
-func tonalInk(c tokens.ColorTokens, fill color.NRGBA) color.NRGBA {
+func tonalForeground(c tokens.ColorTokens, fill color.NRGBA) color.NRGBA {
 	return c.ForegroundOn(tokens.RolePrimary, fill)
 }
 
@@ -75,18 +76,18 @@ func TestEmphasisResolvesTheDocumentedColours(t *testing.T) {
 			// pointer and the foreground is re-derived against wherever the
 			// walk landed.
 			{"tonal/normal", RenderState{Emphasis: Tonal},
-				tonalRest(c, tokens.Level0), tonalInk(c, tonalRest(c, tokens.Level0))},
+				tonalRest(c, tokens.Level0), tonalForeground(c, tonalRest(c, tokens.Level0))},
 			{"tonal/hovered", RenderState{Emphasis: Tonal, Hovered: true},
 				c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StateHover),
-				tonalInk(c, c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StateHover))},
+				tonalForeground(c, c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StateHover))},
 			{"tonal/pressed", RenderState{Emphasis: Tonal, Pressed: true},
 				c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StatePressed),
-				tonalInk(c, c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StatePressed))},
+				tonalForeground(c, c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StatePressed))},
 			{"tonal/focused", RenderState{Emphasis: Tonal, Focused: true},
-				tonalRest(c, tokens.Level0), tonalInk(c, tonalRest(c, tokens.Level0))},
+				tonalRest(c, tokens.Level0), tonalForeground(c, tonalRest(c, tokens.Level0))},
 			{"tonal/disabled", RenderState{Emphasis: Tonal, Disabled: true},
 				tokens.Disabled(tonalRest(c, tokens.Level0)),
-				tokens.Disabled(tonalInk(c, tonalRest(c, tokens.Level0)))},
+				tokens.Disabled(tonalForeground(c, tonalRest(c, tokens.Level0)))},
 
 			// Ghost: no fill at rest, focused or disabled; the host
 			// surface's own hover and press fill under the pointer, with the
@@ -137,27 +138,27 @@ func TestEmphasisResolvesTheDocumentedColours(t *testing.T) {
 			{"filled/level2/hovered", RenderState{Level: tokens.Level2, Hovered: true},
 				c.SolidStateColor(tokens.RolePrimary, tokens.StateHover), c.OnPrimary},
 			{"tonal/level2/normal", RenderState{Emphasis: Tonal, Level: tokens.Level2},
-				tonalRest(c, tokens.Level2), tonalInk(c, tonalRest(c, tokens.Level2))},
+				tonalRest(c, tokens.Level2), tonalForeground(c, tonalRest(c, tokens.Level2))},
 			{"tonal/level2/hovered", RenderState{Emphasis: Tonal, Level: tokens.Level2, Hovered: true},
 				c.PinnedStateColor(tonalRest(c, tokens.Level2), tokens.StateHover),
-				tonalInk(c, c.PinnedStateColor(tonalRest(c, tokens.Level2), tokens.StateHover))},
+				tonalForeground(c, c.PinnedStateColor(tonalRest(c, tokens.Level2), tokens.StateHover))},
 			{"tonal/chrome/normal", RenderState{Emphasis: Tonal, Level: tokens.LevelChrome},
-				tonalRest(c, tokens.LevelChrome), tonalInk(c, tonalRest(c, tokens.LevelChrome))},
+				tonalRest(c, tokens.LevelChrome), tonalForeground(c, tonalRest(c, tokens.LevelChrome))},
 
 			// A pinned pair takes the place of the role's, and of nothing
 			// else: the same walk toward the 900 end, the same untouched pin
 			// at rest and under focus, the same opacity over both halves —
 			// the emphasis' treatments, applied to the caller's colours.
-			{"filled/pinned/normal", RenderState{Fill: pinFill, OnFill: pinInk},
-				pinFill, pinInk},
-			{"filled/pinned/hovered", RenderState{Fill: pinFill, OnFill: pinInk, Hovered: true},
-				c.PinnedStateColor(pinFill, tokens.StateHover), pinInk},
-			{"filled/pinned/pressed", RenderState{Fill: pinFill, OnFill: pinInk, Pressed: true},
-				c.PinnedStateColor(pinFill, tokens.StatePressed), pinInk},
-			{"filled/pinned/focused", RenderState{Fill: pinFill, OnFill: pinInk, Focused: true},
-				pinFill, pinInk},
-			{"filled/pinned/disabled", RenderState{Fill: pinFill, OnFill: pinInk, Disabled: true},
-				tokens.Disabled(pinFill), tokens.Disabled(pinInk)},
+			{"filled/pinned/normal", RenderState{Fill: pinFill, OnFill: pinForeground},
+				pinFill, pinForeground},
+			{"filled/pinned/hovered", RenderState{Fill: pinFill, OnFill: pinForeground, Hovered: true},
+				c.PinnedStateColor(pinFill, tokens.StateHover), pinForeground},
+			{"filled/pinned/pressed", RenderState{Fill: pinFill, OnFill: pinForeground, Pressed: true},
+				c.PinnedStateColor(pinFill, tokens.StatePressed), pinForeground},
+			{"filled/pinned/focused", RenderState{Fill: pinFill, OnFill: pinForeground, Focused: true},
+				pinFill, pinForeground},
+			{"filled/pinned/disabled", RenderState{Fill: pinFill, OnFill: pinForeground, Disabled: true},
+				tokens.Disabled(pinFill), tokens.Disabled(pinForeground)},
 
 			// Half a pair is no pair. A fill with no foreground would draw a
 			// label nobody can read and a foreground with no fill has nothing
@@ -165,7 +166,7 @@ func TestEmphasisResolvesTheDocumentedColours(t *testing.T) {
 			// where it has always resolved from.
 			{"filled/fill-without-foreground", RenderState{Fill: pinFill},
 				c.SolidStateColor(tokens.RolePrimary, tokens.StateNormal), c.OnPrimary},
-			{"filled/foreground-without-fill", RenderState{OnFill: pinInk},
+			{"filled/foreground-without-fill", RenderState{OnFill: pinForeground},
 				c.SolidStateColor(tokens.RolePrimary, tokens.StateNormal), c.OnPrimary},
 			{"filled/fill-without-foreground/hovered", RenderState{Fill: pinFill, Hovered: true},
 				c.SolidStateColor(tokens.RolePrimary, tokens.StateHover), c.OnPrimary},
@@ -173,14 +174,14 @@ func TestEmphasisResolvesTheDocumentedColours(t *testing.T) {
 			// The less pronounced variants ignore the pair outright: a tint
 			// and an absent fill are not solid fills, so there is nothing in
 			// them to pin.
-			{"tonal/pinned/normal", RenderState{Emphasis: Tonal, Fill: pinFill, OnFill: pinInk},
-				tonalRest(c, tokens.Level0), tonalInk(c, tonalRest(c, tokens.Level0))},
-			{"tonal/pinned/hovered", RenderState{Emphasis: Tonal, Fill: pinFill, OnFill: pinInk, Hovered: true},
+			{"tonal/pinned/normal", RenderState{Emphasis: Tonal, Fill: pinFill, OnFill: pinForeground},
+				tonalRest(c, tokens.Level0), tonalForeground(c, tonalRest(c, tokens.Level0))},
+			{"tonal/pinned/hovered", RenderState{Emphasis: Tonal, Fill: pinFill, OnFill: pinForeground, Hovered: true},
 				c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StateHover),
-				tonalInk(c, c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StateHover))},
-			{"ghost/pinned/normal", RenderState{Emphasis: Ghost, Fill: pinFill, OnFill: pinInk},
+				tonalForeground(c, c.PinnedStateColor(tonalRest(c, tokens.Level0), tokens.StateHover))},
+			{"ghost/pinned/normal", RenderState{Emphasis: Ghost, Fill: pinFill, OnFill: pinForeground},
 				transparent, c.Ramps.Neutral.Step(700)},
-			{"ghost/pinned/hovered", RenderState{Emphasis: Ghost, Fill: pinFill, OnFill: pinInk, Hovered: true},
+			{"ghost/pinned/hovered", RenderState{Emphasis: Ghost, Fill: pinFill, OnFill: pinForeground, Hovered: true},
 				c.StateAt(tokens.Level0, tokens.StateHover), c.Ramps.Neutral.Step(900)},
 		}
 
@@ -218,16 +219,16 @@ func TestGhostRestingFillIsFullyTransparent(t *testing.T) {
 // its red as a paired scale, so the scheme decides how deep that red is; a
 // caller whose colour is fixed from outside the palette needs it not to.
 func TestPinnedFillIsSchemeStableWhereTheRoleIsNot(t *testing.T) {
-	pinned := RenderState{Fill: pinFill, OnFill: pinInk}
+	pinned := RenderState{Fill: pinFill, OnFill: pinForeground}
 	lightBG, lightFG := buttonColors(tokens.DefaultLight, pinned)
 	darkBG, darkFG := buttonColors(tokens.DefaultDark, pinned)
 	if lightBG != darkBG || lightFG != darkFG {
 		t.Errorf("pinned pair moved between schemes: light %v on %v, dark %v on %v",
 			lightFG, lightBG, darkFG, darkBG)
 	}
-	if lightBG != pinFill || lightFG != pinInk {
+	if lightBG != pinFill || lightFG != pinForeground {
 		t.Errorf("pinned pair resolved to %v on %v, want the caller's %v on %v",
-			lightFG, lightBG, pinInk, pinFill)
+			lightFG, lightBG, pinForeground, pinFill)
 	}
 
 	// The control: the emphasis' own pair does move, so the assertion above
@@ -286,7 +287,7 @@ func lstar(c color.NRGBA) float64 {
 	return l
 }
 
-// TestGhostWashClearsThePerceptibilityFloor gates every ghost affordance in
+// TestGhostStateFillClearsThePerceptibilityFloor gates every ghost affordance in
 // the system at once: the label button and the icon button resolve their
 // colours through the one buttonColors, and patterns/modal's close mark is
 // an icon ghost naming tokens.Level2, so the table below is the whole
@@ -303,8 +304,8 @@ func lstar(c color.NRGBA) float64 {
 // ceiling on the fill rather than about the floor under it, and the two
 // deep levels of the dark scheme sit there already — unmoved by the floor,
 // and recorded here rather than silently skipped.
-func TestGhostWashClearsThePerceptibilityFloor(t *testing.T) {
-	worstWash, worstWashAt := 99.0, ""
+func TestGhostStateFillClearsThePerceptibilityFloor(t *testing.T) {
+	worstStateFill, worstStateFillAt := 99.0, ""
 	worstStep, worstStepAt := 99.0, ""
 	worstText, worstTextAt := 99.0, ""
 	pastMid := 0
@@ -343,8 +344,8 @@ func TestGhostWashClearsThePerceptibilityFloor(t *testing.T) {
 					if got < tokens.StateFloor {
 						t.Errorf("%s: state fill %v on the surface %v measures %.3f:1, under the %.2f:1 floor",
 							where, w.bg, surface, got, tokens.StateFloor)
-					} else if got < worstWash {
-						worstWash, worstWashAt = got, where
+					} else if got < worstStateFill {
+						worstStateFill, worstStateFillAt = got, where
 					}
 					text := vgcolor.ContrastRatio(w.fg, w.bg)
 					if toward*lstar(w.bg) > toward*midL {
@@ -369,6 +370,6 @@ func TestGhostWashClearsThePerceptibilityFloor(t *testing.T) {
 		}
 	}
 	t.Logf("over %d seeds, both derivations, both schemes, five levels: worst state fill %.3f:1 (floor %.2f, %s), worst press-over-hover %.3f:1 (%s), worst label %.3f:1 (%s); %d state fills lie at or past the ramp's mid step, where no neutral label reaches the text floor",
-		len(ghostSweepSeeds), worstWash, tokens.StateFloor, worstWashAt,
+		len(ghostSweepSeeds), worstStateFill, tokens.StateFloor, worstStateFillAt,
 		worstStep, worstStepAt, worstText, worstTextAt, pastMid)
 }

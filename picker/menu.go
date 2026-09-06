@@ -394,7 +394,7 @@ func stackRows(gtx layout.Context, rows *list.State, n int, maxH unit.Dp, tok re
 // Selection wins over hover, the way a press wins over a hover elsewhere in
 // this library: the selected row is already the row the menu is pointing at,
 // and a transient state fill has nothing to add to a standing answer.
-func optionRowColors(c tokens.ColorTokens, selected, hovered bool) (fill, ink color.NRGBA) {
+func optionRowColors(c tokens.ColorTokens, selected, hovered bool) (fill, foreground color.NRGBA) {
 	plane := c.SurfaceAt(tokens.Level3)
 	switch {
 	case selected:

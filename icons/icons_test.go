@@ -149,26 +149,26 @@ func TestMarkRendersAtEverySizeItIsDrawnAt(t *testing.T) {
 		for pass := range 2 {
 			for _, px := range []int{16, 20, 24} {
 				img := shoot(t, px, func(gtx layout.Context) { mark(gtx, px, black) })
-				ink := painted(img)
-				if ink == 0 {
+				covered := painted(img)
+				if covered == 0 {
 					t.Errorf("%q, %d px, pass %d: nothing was drawn", name, px, pass)
 				}
-				if ink == px*px {
+				if covered == px*px {
 					t.Errorf("%q, %d px, pass %d: the whole square was covered, so the drawing is not a mark", name, px, pass)
 				}
 				if pass == 0 {
-					first[px] = ink
+					first[px] = covered
 					continue
 				}
-				if ink != first[px] {
-					t.Errorf("%q, %d px: replaying the built drawing covered %d pixels, and building it covered %d", name, px, ink, first[px])
+				if covered != first[px] {
+					t.Errorf("%q, %d px: replaying the built drawing covered %d pixels, and building it covered %d", name, px, covered, first[px])
 				}
 			}
 		}
 	}
 }
 
-// TestEveryMarkComesOutAtFullInk is the set's evenness rule read off the
+// TestEveryMarkComesOutAtFullStrength is the set's evenness rule read off the
 // pixels: whichever way a mark's edges run, its darkest pixel has to arrive at
 // the colour the control asked for, or near enough that no eye separates the
 // marks standing side by side.
@@ -180,7 +180,7 @@ func TestMarkRendersAtEverySizeItIsDrawnAt(t *testing.T) {
 // colour and reads grey beside a mark that covers whole ones. That is what the
 // diagonal marks carry a heavier measure for, and this is the check that
 // notices if one of them stops carrying it.
-func TestEveryMarkComesOutAtFullInk(t *testing.T) {
+func TestEveryMarkComesOutAtFullStrength(t *testing.T) {
 	// A shade this near the colour asked for is that colour: 0x14 of 0xff is
 	// under a hundredth of the light a white surface gives back.
 	const solid = 0x14

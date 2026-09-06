@@ -483,14 +483,14 @@ func planeEdge(gtx layout.Context, size image.Point, c tokens.ColorTokens) {
 	if w < 1 {
 		w = 1
 	}
-	ink := control.Border(c, tokens.Level3)
+	border := control.Border(c, tokens.Level3)
 	for _, r := range [...]image.Rectangle{
 		{Max: image.Pt(size.X, w)},
 		{Min: image.Pt(0, size.Y-w), Max: size},
 		{Max: image.Pt(w, size.Y)},
 		{Min: image.Pt(size.X-w, 0), Max: size},
 	} {
-		paint.FillShape(gtx.Ops, ink, clip.Rect(r).Op())
+		paint.FillShape(gtx.Ops, border, clip.Rect(r).Op())
 	}
 }
 

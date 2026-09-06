@@ -594,14 +594,14 @@ const (
 	// ghostText is the resting label shade: neutral step 700, the
 	// low-contrast text floor (Lc ≥ 60).
 	ghostText = 700
-	// ghostTextOnWash is the label shade once a state fill appears under it.
+	// ghostTextOnFill is the label shade once a state fill appears under it.
 	// The fill walks toward the 900 end, so the label walks with it and
 	// keeps its headroom instead of spending it. It reads at the text
 	// floor over every state fill shallower than the neutral ramp's
 	// mid-value step; past that step no neutral shade reaches 4.5:1 over
 	// that fill from either side, which the dark scheme's two deep levels already
-	// sit at (TestGhostWashClearsThePerceptibilityFloor records it).
-	ghostTextOnWash = 900
+	// sit at (TestGhostStateFillClearsThePerceptibilityFloor records it).
+	ghostTextOnFill = 900
 )
 
 // buttonColors returns the background and foreground colours for the given
@@ -627,7 +627,7 @@ const (
 // Ghost is the neutral walk with the resting step painted as nothing at all.
 // What a ghost walks from is its host surface's own fill — a ghost's state
 // fill is that surface's own walk, taken from whichever level s.Level names
-// (ghostWash) and deep enough to be seen there, with the text over it riding
+// (ghostStateFill) and deep enough to be seen there, with the text over it riding
 // at the ramp's 900 end, where the walk itself clamps.
 //
 // Filled is the one variant that takes a pin from the caller. A RenderState
@@ -677,8 +677,8 @@ func buttonColors(c tokens.ColorTokens, s RenderState) (bg, fg color.NRGBA) {
 	case Ghost:
 		switch state {
 		case tokens.StateHover, tokens.StatePressed:
-			fg = c.Ramps.Neutral.Step(ghostTextOnWash)
-			bg = ghostWash(c, s.Level, state)
+			fg = c.Ramps.Neutral.Step(ghostTextOnFill)
+			bg = ghostStateFill(c, s.Level, state)
 		default:
 			// Rest, focus and disabled paint no fill: the surface behind
 			// shows through untouched. A fully transparent fill is a no-op
@@ -717,7 +717,7 @@ func pinnedFill(s RenderState) bool {
 	return s.Fill.A != 0 && s.OnFill.A != 0
 }
 
-// ghostWash resolves the state fill a ghost paints under the pointer: the
+// ghostStateFill resolves the state fill a ghost paints under the pointer: the
 // state walk taken from the fill of the surface the ghost stands on, so that
 // fill is the surface's own walk and nothing else.
 //
@@ -733,7 +733,7 @@ func pinnedFill(s RenderState) bool {
 // surface state fill in the system asks the same question — a sidebar row and a
 // ghost button standing on one surface would otherwise answer it two
 // different ways in the same window.
-func ghostWash(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) color.NRGBA {
+func ghostStateFill(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) color.NRGBA {
 	return c.StateAt(level, state)
 }
 

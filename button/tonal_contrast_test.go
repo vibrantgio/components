@@ -69,14 +69,14 @@ func TestTonalWearsTheBadgesTint(t *testing.T) {
 
 			fill := c.StatusContainerOn(tokens.RolePrimary, surface)
 			fg := c.ForegroundOn(tokens.RolePrimary, fill)
-			bg, ink := buttonColors(c, RenderState{Emphasis: Tonal, Level: lv.level})
+			bg, foreground := buttonColors(c, RenderState{Emphasis: Tonal, Level: lv.level})
 			if bg != fill {
 				t.Errorf("%s %s: tonal fill %s is not the shared container %s",
 					sc.name, lv.name, hexOf(bg), hexOf(fill))
 			}
-			if ink != fg {
+			if foreground != fg {
 				t.Errorf("%s %s: tonal foreground %s is not the shared foreground %s",
-					sc.name, lv.name, hexOf(ink), hexOf(fg))
+					sc.name, lv.name, hexOf(foreground), hexOf(fg))
 			}
 		}
 	}

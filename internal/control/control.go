@@ -33,7 +33,7 @@ const GraphicFloor = 3.0
 // fixed step barely moves between schemes while the surface under it moves the
 // whole way.
 //
-// `ground` is the level the control stands on, and the walk is taken
+// `level` is the level the control stands on, and the walk is taken
 // against that level's own fill rather than against the window's. Aimed at
 // level 0 unconditionally, the same derivation measures the light scheme's
 // step at 2.94:1 over a level-2 plane and 2.15:1 over a level-3 one, both
@@ -50,8 +50,8 @@ const GraphicFloor = 3.0
 // interior inside — and the first that clears both is the edge. Over the seed
 // sweep, both derivations and every level, one of the two always does, and the
 // worst side of the kept step measures 3.07:1.
-func Border(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
-	outside, inside := c.SurfaceAt(ground), Fill(c, ground)
+func Border(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGBA {
+	outside, inside := c.SurfaceAt(level), Fill(c, level)
 	against := c.MarkOn(tokens.RoleNeutral, outside, GraphicFloor)
 	for _, cand := range [...]color.NRGBA{
 		against,
@@ -89,8 +89,8 @@ func Border(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
 // ([tokens.Raise.Seamed]); this one never draws a second hairline for it,
 // because [Border] is already a 3:1 mark around exactly that pairing and two
 // lines saying one thing is worse than one.
-func Fill(c tokens.ColorTokens, ground tokens.ElevationLevel) color.NRGBA {
-	return c.RaisedOn(c.SurfaceAt(ground)).Fill
+func Fill(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGBA {
+	return c.RaisedOn(c.SurfaceAt(level)).Fill
 }
 
 // Placeholder is the foreground a control's prompt is drawn in: the wording a

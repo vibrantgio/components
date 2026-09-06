@@ -288,8 +288,8 @@ func SchemeSwitch(c tokens.ColorTokens, dark bool) layout.Widget {
 // happens to be drawn as two. What it puts that area over is the target
 // [SchemeTarget] hands it and not the track, which is smaller.
 func SchemeSegment(c tokens.ColorTokens, dark, selected bool) layout.Widget {
-	ink, ground := schemeSegmentInks(c, selected)
-	glyph := schemeGlyph(dark, ink)
+	foreground, fill := schemeSegmentColors(c, selected)
+	glyph := schemeGlyph(dark, foreground)
 	return func(gtx layout.Context) layout.Dimensions {
 		w, h := gtx.Dp(SchemeSegmentW), gtx.Dp(SchemeSwitchH)
 		r := h / 2
@@ -305,7 +305,7 @@ func SchemeSegment(c tokens.ColorTokens, dark, selected bool) layout.Widget {
 				NW:   (h - 2*in) / 2, SW: (h - 2*in) / 2,
 				NE: (h - 2*in) / 2, SE: (h - 2*in) / 2,
 			}
-			paint.FillShape(gtx.Ops, ground, thumb.Op(gtx.Ops))
+			paint.FillShape(gtx.Ops, fill, thumb.Op(gtx.Ops))
 		}
 		size := gtx.Dp(schemeIconSize)
 		off := op.Offset(image.Pt((w-size)/2, (h-size)/2)).Push(gtx.Ops)
@@ -360,7 +360,7 @@ func SchemeTarget(gtx layout.Context, lay func(layout.Context, layout.Widget) la
 // competes with what it changes.
 func schemeTrack(c tokens.ColorTokens) color.NRGBA { return c.Ramps.Neutral.Step(300) }
 
-// schemeSegmentInks returns the glyph's colour and the fill it is read
+// schemeSegmentColors returns the glyph's colour and the fill it is read
 // against, for a segment that is or is not the current one. Both come out of
 // here rather than being written at the point they are painted, so what a
 // contrast measurement reads is what the control draws.
@@ -369,14 +369,14 @@ func schemeTrack(c tokens.ColorTokens) color.NRGBA { return c.Ramps.Neutral.Step
 // pairing in a palette guaranteed legible; the other is a less pronounced
 // neutral on the track, dark enough to be read as a glyph and light enough not
 // to be mistaken for the choice that is in force.
-func schemeSegmentInks(c tokens.ColorTokens, selected bool) (ink, ground color.NRGBA) {
+func schemeSegmentColors(c tokens.ColorTokens, selected bool) (foreground, fill color.NRGBA) {
 	if selected {
 		return c.OnPrimary, c.Primary
 	}
 	return c.Ramps.Neutral.Step(700), schemeTrack(c)
 }
 
-// schemeGlyph returns the sun or the moon drawn in `ink`, from the Material
+// schemeGlyph returns the sun or the moon drawn in `foreground`, from the Material
 // set. The vector carries its own colours, which on the wrong fill would be a
 // dark disc on a dark segment, so the colour is substituted on the way in.
 //
@@ -384,12 +384,12 @@ func schemeSegmentInks(c tokens.ColorTokens, selected bool) (ink, ground color.N
 // costs a few microseconds against a frame budget of several thousand, and a
 // cache of them would be shared mutable state in a package whose whole point
 // is that a surface is a function of the tokens it was handed.
-func schemeGlyph(dark bool, ink color.NRGBA) layout.Widget {
+func schemeGlyph(dark bool, foreground color.NRGBA) layout.Widget {
 	data := mdicons.ImageWBSunny
 	if dark {
 		data = mdicons.ImageBrightness2
 	}
-	w, err := ivgraster.Widget(data, schemeIconSize, schemeIconSize, ivgraster.WithColors(ink))
+	w, err := ivgraster.Widget(data, schemeIconSize, schemeIconSize, ivgraster.WithColors(foreground))
 	if err != nil {
 		// A glyph that will not decode leaves a blank of the right size: the
 		// control keeps its shape and its targets, which is more than a panic

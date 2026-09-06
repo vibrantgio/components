@@ -182,9 +182,9 @@ func NewForOS(shaper *text.Shaper, goos string) *Inventory {
 	return inv
 }
 
-// vectorIcon returns the registered vector icon drawn in `ink`.
-func (inv *Inventory) vectorIcon(ink color.NRGBA) layout.Widget {
-	if w, ok := inv.ivg[ink]; ok {
+// vectorIcon returns the registered vector icon drawn in `foreground`.
+func (inv *Inventory) vectorIcon(foreground color.NRGBA) layout.Widget {
+	if w, ok := inv.ivg[foreground]; ok {
 		return w
 	}
 	blank := func(gtx layout.Context) layout.Dimensions {
@@ -192,11 +192,11 @@ func (inv *Inventory) vectorIcon(ink color.NRGBA) layout.Widget {
 	}
 	w := blank
 	if ic, ok := inv.reg.Icon("info"); ok {
-		if built, err := ivgraster.Widget(ic.IVG(), 40, 40, ivgraster.WithColors(ink)); err == nil {
+		if built, err := ivgraster.Widget(ic.IVG(), 40, 40, ivgraster.WithColors(foreground)); err == nil {
 			w = built
 		}
 	}
-	inv.ivg[ink] = w
+	inv.ivg[foreground] = w
 	return w
 }
 
@@ -510,7 +510,7 @@ func (inv *Inventory) buttonCells(c tokens.ColorTokens, cells []buttonCell) layo
 	}
 }
 
-// PinnedFill and PinnedInk are the pair the pinned specimen wears: a fixed
+// PinnedFill and PinnedForeground are the pair the pinned specimen wears: a fixed
 // red, and the foreground that reads over it. They are ordinary colour values
 // and not tokens, which is the whole of what this row has to say — an action
 // whose colour is chosen by its meaning rather than by the palette hands the
@@ -518,8 +518,8 @@ func (inv *Inventory) buttonCells(c tokens.ColorTokens, cells []buttonCell) layo
 // around it inverts. They are exported so the assertion that this row holds
 // still can name the very colour it is looking for.
 var (
-	PinnedFill = color.NRGBA{R: 0xb3, G: 0x26, B: 0x1e, A: 0xff}
-	PinnedInk  = color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+	PinnedFill       = color.NRGBA{R: 0xb3, G: 0x26, B: 0x1e, A: 0xff}
+	PinnedForeground = color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 )
 
 // pinnedButtonRow puts the theme's own Filled pair beside a pinned one, at
@@ -531,7 +531,7 @@ var (
 func (inv *Inventory) pinnedButtonRow(c tokens.ColorTokens) layout.Widget {
 	return inv.buttonCells(c, []buttonCell{
 		{label: "Filled", st: button.RenderState{}},
-		{label: "Pinned", st: button.RenderState{Fill: PinnedFill, OnFill: PinnedInk}},
+		{label: "Pinned", st: button.RenderState{Fill: PinnedFill, OnFill: PinnedForeground}},
 	})
 }
 

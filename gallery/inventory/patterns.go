@@ -317,7 +317,7 @@ func (inv *Inventory) tabs(c tokens.ColorTokens) layout.Widget {
 		// pattern's default level would dissolve into the page and leave a
 		// strip floating on nothing. On Level1 the panel keeps the Surface it
 		// has always drawn and the strip stands one step over it.
-		Ground: tokens.Level1,
+		Level: tokens.Level1,
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(460))

@@ -255,10 +255,11 @@ func legible(c tokens.ColorTokens, rest, walked color.NRGBA) color.NRGBA {
 }
 
 // writable reports whether the foreground this family would write a label in
-// reaches its floor on fill — `Ink`'s own answer, measured, since `Ink` hands
-// back the best-reading step when no step reaches the floor at all.
+// reaches its floor on fill — `Foreground`'s own answer, measured, since
+// `Foreground` hands back the best-reading step when no step reaches the
+// floor at all.
 func writable(c tokens.ColorTokens, fill color.NRGBA) bool {
-	return vgcolor.ContrastRatio(Ink(c, fill, tokens.TextFloor), fill) >= tokens.TextFloor
+	return vgcolor.ContrastRatio(Foreground(c, fill, tokens.TextFloor), fill) >= tokens.TextFloor
 }
 
 // Rim is the edge, and whether there is one: the step of the neutral ramp
@@ -299,7 +300,7 @@ func Rim(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) 
 	return color.NRGBA{}, false
 }
 
-// `Ink` is the colour something reads in when it is drawn on one of these
+// `Foreground` is the colour something reads in when it is drawn on one of these
 // fills: the Text pin while that pin clears floor against the fill, and
 // otherwise the step of the neutral ramp nearest its mid-value that does.
 //
@@ -311,7 +312,7 @@ func Rim(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) 
 // when the pin stops reading.
 //
 // Pass tokens.TextFloor for a label and tokens.GraphicFloor for a mark.
-func Ink(c tokens.ColorTokens, fill color.NRGBA, floor float64) color.NRGBA {
+func Foreground(c tokens.ColorTokens, fill color.NRGBA, floor float64) color.NRGBA {
 	if vgcolor.ContrastRatio(c.Text, fill) >= floor {
 		return c.Text
 	}
@@ -394,8 +395,8 @@ func Draw(
 	st := s.state()
 	fill := Fill(c, s.Level, st)
 	rim, rimmed := Rim(c, s.Level, st)
-	labelInk := Ink(c, fill, tokens.TextFloor)
-	glyphInk := Ink(c, fill, tokens.GraphicFloor)
+	labelForeground := Foreground(c, fill, tokens.TextFloor)
+	glyphForeground := Foreground(c, fill, tokens.GraphicFloor)
 
 	padH := gtx.Dp(unit.Dp(d.PaddingX))
 	padV := gtx.Dp(unit.Dp(d.PaddingY))
@@ -411,7 +412,7 @@ func Draw(
 	// because the role's line height has to be the height of the label box
 	// and Gio alone reports the drawn glyph extent instead — see theme/typeset.
 	mColor := op.Record(gtx.Ops)
-	paint.ColorOp{Color: labelInk}.Add(gtx.Ops)
+	paint.ColorOp{Color: labelForeground}.Add(gtx.Ops)
 	material := mColor.Stop()
 
 	labelGtx := gtx
@@ -456,13 +457,13 @@ func Draw(
 	// the button's. Reading the stop rather than naming a number is what keeps
 	// the two in step if the scale ever moves.
 	radius := gtx.Dp(unit.Dp(rad.Md))
-	band, edgeInk, edged := max(gtx.Dp(edgeDp), 1), rim, rimmed
+	band, edgeColor, edged := max(gtx.Dp(edgeDp), 1), rim, rimmed
 	if s.Focused {
-		band, edgeInk, edged = gtx.Dp(focus.Width), focus.Ring(c), true
+		band, edgeColor, edged = gtx.Dp(focus.Width), focus.Ring(c), true
 	}
 	inner, innerRad := box, radius
 	if edged {
-		paint.FillShape(gtx.Ops, edgeInk, vglayout.Pill(gtx.Ops, box, radius))
+		paint.FillShape(gtx.Ops, edgeColor, vglayout.Pill(gtx.Ops, box, radius))
 		if in := box.Inset(band); in.Dx() > 0 && in.Dy() > 0 {
 			inner, innerRad = in, max(radius-band, 0)
 		}
@@ -481,7 +482,7 @@ func Draw(
 	// centres itself in it, so its own drawn height stays the platform's ratio
 	// rather than being stretched to a box.
 	mo := op.Offset(image.Pt(offX+labelDims.Size.X+gap, 0)).Push(gtx.Ops)
-	chevron(gtx, image.Rect(0, 0, mark, h), glyphInk)
+	chevron(gtx, image.Rect(0, 0, mark, h), glyphForeground)
 	mo.Pop()
 
 	pointer.CursorPointer.Add(gtx.Ops)

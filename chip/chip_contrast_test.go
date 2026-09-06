@@ -122,14 +122,14 @@ func bodyIsFindable(t *testing.T, label string, c tokens.ColorTokens, s RenderSt
 	return got
 }
 
-// inksClearTheirFloors measures the label and the marks against the body they
-// are drawn on. The label owes WCAG 1.4.3's 4.5:1 because it is words; the
+// foregroundsClearTheirFloors measures the label and the marks against the
+// body they are drawn on. The label owes WCAG 1.4.3's 4.5:1 because it is words; the
 // marks — the leading checkmark, the leading glyph, the dismiss cross — owe
 // 1.4.11's 3:1 because they are shapes that must be resolved.
 //
 // It is the gate on the one thing a re-derivation can silently stop doing:
 // handing back a token that has stopped reading on the body under it.
-func inksClearTheirFloors(t *testing.T, label string, c tokens.ColorTokens, i Purpose, s RenderState) (float64, float64) {
+func foregroundsClearTheirFloors(t *testing.T, label string, c tokens.ColorTokens, i Purpose, s RenderState) (float64, float64) {
 	t.Helper()
 	col := Resolve(c, i, s)
 	gotLabel := vgcolor.ContrastRatio(col.Label, col.Fill)
@@ -182,9 +182,9 @@ func TestBodyIsFindableOnEveryLevelAndState(t *testing.T) {
 	}
 }
 
-// TestInksClearTheirFloorsOnEveryPurpose measures every purpose's label and
+// TestForegroundsClearTheirFloorsOnEveryPurpose measures every purpose's label and
 // mark on every level, in every state and both selections.
-func TestInksClearTheirFloorsOnEveryPurpose(t *testing.T) {
+func TestForegroundsClearTheirFloorsOnEveryPurpose(t *testing.T) {
 	for _, sc := range chipSchemes {
 		t.Run(sc.name, func(t *testing.T) {
 			for _, in := range chipPurposes {
@@ -194,7 +194,7 @@ func TestInksClearTheirFloorsOnEveryPurpose(t *testing.T) {
 							continue
 						}
 						name := in.name + " " + lv.name + " " + st.name
-						lab, mark := inksClearTheirFloors(t, name, sc.colors, in.i, stateOf(lv.level, row))
+						lab, mark := foregroundsClearTheirFloors(t, name, sc.colors, in.i, stateOf(lv.level, row))
 						t.Logf("%s: label %.2f:1, mark %.2f:1", name, lab, mark)
 					}
 				}
@@ -234,7 +234,7 @@ func TestChipPairingsHoldForEverySeed(t *testing.T) {
 								worstEdge = got
 							}
 						}
-						lab, mark := inksClearTheirFloors(t, name, sc.colors, in.i, s)
+						lab, mark := foregroundsClearTheirFloors(t, name, sc.colors, in.i, s)
 						if lab < worstLabel {
 							worstLabel = lab
 						}
@@ -304,11 +304,11 @@ func TestOnlyFilterCanBeSelected(t *testing.T) {
 	}
 }
 
-// TestAssistIsTheStrongestInk pins the one difference between the purposes'
+// TestAssistIsTheStrongestForeground pins the one difference between the purposes'
 // foregrounds: Assist reads in the page's full-strength text colour and the other
 // three in the muted step, so on a resting chip the assist label measures at
 // least as much as theirs and, where the ramp has room, more.
-func TestAssistIsTheStrongestInk(t *testing.T) {
+func TestAssistIsTheStrongestForeground(t *testing.T) {
 	for _, sc := range chipSchemes {
 		for _, lv := range chipLevels {
 			s := RenderState{Level: lv.level}

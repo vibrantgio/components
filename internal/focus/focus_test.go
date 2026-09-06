@@ -243,11 +243,11 @@ func TestRingIsNeverTheAccentFill(t *testing.T) {
 	}
 }
 
-// TestRingIsARungOfThePrimaryRamp holds the "primary-coloured" half of the rule
+// TestRingIsAStepOfThePrimaryRamp holds the "primary-coloured" half of the rule
 // the floor cannot see. A ring that met its floor by reaching for a neutral, an
 // inverse surface or an invented colour would satisfy every contrast assertion
 // above and would not be the brand's focus ring.
-func TestRingIsARungOfThePrimaryRamp(t *testing.T) {
+func TestRingIsAStepOfThePrimaryRamp(t *testing.T) {
 	for _, seed := range sweepSeeds() {
 		for _, c := range palettes(seed) {
 			ring := focus.Ring(c)

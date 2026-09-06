@@ -269,10 +269,10 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		// channel a reader may not have. So the box draws a check, in the
 		// on-colour the fill is paired with, at the icon set's weight.
 		fill := tok.color.Primary
-		ink := tok.color.OnPrimary
+		foreground := tok.color.OnPrimary
 		if s.Disabled {
 			fill = tokens.Disabled(fill)
-			ink = tokens.Disabled(ink)
+			foreground = tokens.Disabled(foreground)
 		}
 		paint.FillShape(gtx.Ops, fill, rrectOuter.Op(gtx.Ops))
 
@@ -288,7 +288,7 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 				check.LineTo(at)
 			}
 		}
-		paint.FillShape(gtx.Ops, ink, clip.Stroke{
+		paint.FillShape(gtx.Ops, foreground, clip.Stroke{
 			Path:  check.End(),
 			Width: checkBandUnits * scale,
 		}.Op())
