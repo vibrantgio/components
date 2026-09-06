@@ -16,7 +16,7 @@
 // A base and its foreground are one cell because they are one decision: the
 // derivation pins the base, then measures both ends of the tonal axis over
 // that exact colour and keeps the better one, so the foreground cannot be
-// understood apart from the fill it was measured against. Surface and Divider
+// understood apart from the fill it was measured against. Surface and Seam
 // stand alone because the theme names no foreground for either.
 //
 // Each ramp row ends with the base that role pinned, drawn as a chip because
@@ -73,8 +73,8 @@ import (
 type Chrome struct {
 	// Surface is the fill a section's heading band carries.
 	Surface stdcolor.NRGBA
-	// Divider is the rule under a family's name on the picks board.
-	Divider stdcolor.NRGBA
+	// Seam is the rule under a family's name on the picks board.
+	Seam stdcolor.NRGBA
 	// Text is the reading foreground: section labels, their captions, the ramp
 	// names and the step numbers over the grid.
 	Text stdcolor.NRGBA
@@ -369,7 +369,7 @@ const (
 	BackgroundPick       = "Background"
 	TextPick             = "Text"
 	SurfacePick          = "Surface"
-	DividerPick          = "Divider"
+	SeamPick             = "Seam"
 	InverseSurfacePick   = "InverseSurface"
 	OnInverseSurfacePick = "OnInverseSurface"
 	HighlightPick        = "Highlight"
@@ -502,7 +502,7 @@ func Groups(c, other tokens.ColorTokens, dark bool) []Group {
 				Fill:       c.Background, On: c.Text,
 			},
 			alone(neutralPart(SurfacePick, n, c.Surface), c.Surface),
-			alone(neutralPart(DividerPick, n, c.Divider), c.Divider),
+			alone(neutralPart(SeamPick, n, c.Seam), c.Seam),
 		}},
 		{PickInverseGroup, []Cell{{
 			Base:       inversePart(InverseSurfacePick, c.InverseSurface, other.Surface, PickSurfaceRole, dark),
@@ -841,7 +841,7 @@ func Heading(p Chrome, c tokens.ColorTokens, ty Type, title, hint string) layout
 		size := image.Pt(gtx.Constraints.Max.X, gtx.Dp(SectionHeadH))
 		paint.FillShape(gtx.Ops, p.Surface, clip.Rect{Max: size}.Op())
 		line := gtx.Dp(hairline)
-		paint.FillShape(gtx.Ops, c.Divider,
+		paint.FillShape(gtx.Ops, c.Seam,
 			clip.Rect(image.Rect(0, size.Y-line, size.X, size.Y)).Op())
 		pad := gtx.Dp(inventory.SectionPadX)
 		box := image.Rect(pad, 0, max(pad, size.X-pad), size.Y)
@@ -1167,7 +1167,7 @@ func drawFamily(gtx layout.Context, p Chrome, ty Type, name string, x, y, w int)
 	textdraw.FillText(gtx, ty.Shaper, ty.Head, image.Rect(x, y, x+w, y+head), 0, 0.5, p.Text,
 		FitLine(gtx, ty.Shaper, ty.Head, name, w))
 	line := gtx.Dp(hairline)
-	paint.FillShape(gtx.Ops, p.Divider, clip.Rect(image.Rect(x, y+head, x+w, y+head+line)).Op())
+	paint.FillShape(gtx.Ops, p.Seam, clip.Rect(image.Rect(x, y+head, x+w, y+head+line)).Op())
 	return head + line + gtx.Dp(PickHeadGap)
 }
 

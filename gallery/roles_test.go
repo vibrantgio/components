@@ -37,7 +37,7 @@ func roleChips(c tokens.ColorTokens) []struct {
 		{"Error", c.Error, c.OnError},
 		{"Background", c.Background, c.Text},
 		{"Surface", c.Surface, c.Text},
-		{"Divider", c.Divider, c.Text},
+		{"Seam", c.Seam, c.Text},
 		{"Inverse", c.InverseSurface, c.OnInverseSurface},
 	}
 }

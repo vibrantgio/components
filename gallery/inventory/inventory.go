@@ -256,7 +256,7 @@ func (inv *Inventory) roleSwatches(c tokens.ColorTokens) layout.Widget {
 		{"Error", c.Error, c.OnError, "Aa"},
 		{"Background", c.Background, c.Text, "Aa"},
 		{"Surface", c.Surface, c.Text, "Aa"},
-		{"Divider", c.Divider, c.Text, "Aa"},
+		{"Seam", c.Seam, c.Text, "Aa"},
 		{"Inverse", c.InverseSurface, c.OnInverseSurface, "Aa"},
 	}
 	return func(gtx layout.Context) layout.Dimensions {

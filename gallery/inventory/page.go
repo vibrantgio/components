@@ -120,7 +120,7 @@ func pageEnd(shaper *text.Shaper, c tokens.ColorTokens, sections int) layout.Wid
 		// The closing strip stands at the chrome level, under the
 		// specimens rather than raised over them.
 		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelChrome), clip.Rect{Max: sz}.Op())
-		paint.FillShape(gtx.Ops, c.Divider, clip.Rect(image.Rect(0, 0, sz.X, 1)).Op())
+		paint.FillShape(gtx.Ops, c.Seam, clip.Rect(image.Rect(0, 0, sz.X, 1)).Op())
 		gtx.Constraints = layout.Exact(sz)
 		return complayout.InsetXY(24, 24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return LabelAt(gtx, shaper,
@@ -152,7 +152,7 @@ func sectionHeaderRow(shaper *text.Shaper, c tokens.ColorTokens, title string) l
 		// A section header bands the inventory, so it fills at the chrome
 		// level rather than at the ramp.
 		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelChrome), clip.Rect{Max: sz}.Op())
-		paint.FillShape(gtx.Ops, c.Divider,
+		paint.FillShape(gtx.Ops, c.Seam,
 			clip.Rect(image.Rect(0, h-1, sz.X, h)).Op())
 		gtx.Constraints = layout.Exact(sz)
 		return complayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {

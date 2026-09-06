@@ -1197,7 +1197,7 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 		Primary:    color.NRGBA{0x00, 0x00, 0x00, 0xff},
 		OnPrimary:  color.NRGBA{0xff, 0xff, 0xff, 0xff},
 		Surface:    color.NRGBA{0xff, 0xff, 0xff, 0xff},
-		Divider:    color.NRGBA{0x00, 0x00, 0x00, 0xff},
+		Seam:       color.NRGBA{0x00, 0x00, 0x00, 0xff},
 	}
 
 	return g.scrollPage(gtx, g.scrollSt[pageA11y], func(gtx layout.Context) layout.Dimensions {
