@@ -4,7 +4,7 @@
 // Every pattern here has a live twin that takes an observable theme and
 // returns an observable layout.Widget. The gallery deliberately uses the
 // static twin instead: it performs no input handling and schedules no
-// invalidation, so a page can show all nineteen at once without nineteen event
+// invalidation, so a page can show all eighteen at once without eighteen event
 // loops, and a golden test can capture one without a window.
 package inventory
 
@@ -25,7 +25,6 @@ import (
 	"github.com/vibrantgio/components/icons"
 	complayout "github.com/vibrantgio/components/layout"
 	"github.com/vibrantgio/patterns/accordion"
-	"github.com/vibrantgio/patterns/alert"
 	"github.com/vibrantgio/patterns/breadcrumb"
 	"github.com/vibrantgio/patterns/card"
 	"github.com/vibrantgio/patterns/feature"
@@ -51,8 +50,6 @@ import (
 // in a slot of its own.
 func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 	return []Section{
-		{Name: "patterns-alert", Title: "Alert — info, success, warning, error", Height: 248,
-			Body: inv.alerts(c)},
 		// The toast slot is the four chips and the gaps between them, plus
 		// the reach of the cast shadow under the last of them: a slot cut to
 		// the chips alone would leave the shadow to fall across the heading
@@ -173,38 +170,6 @@ func (inv *Inventory) specimenControl(c tokens.ColorTokens) layout.Widget {
 }
 
 // ── The patterns ──────────────────────────────────────────────────────────────
-
-func (inv *Inventory) alerts(c tokens.ColorTokens) layout.Widget {
-	variants := []struct {
-		title string
-		v     alert.Variant
-	}{
-		{"Deploy finished", alert.Info},
-		{"All checks passed", alert.Success},
-		{"Two goldens are stale", alert.Warning},
-		{"The build could not start", alert.Error},
-	}
-	return func(gtx layout.Context) layout.Dimensions {
-		cs := make([]layout.FlexChild, 0, 2*len(variants))
-		for i, v := range variants {
-			v := v
-			if i > 0 {
-				cs = append(cs, layout.Rigid(complayout.VSpacer(8)))
-			}
-			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(520))
-				gtx.Constraints.Max.Y = gtx.Dp(56)
-				gtx.Constraints.Min = gtx.Constraints.Max
-				return alert.Render(inv.shaper, alert.Props{
-					Variant: v.v,
-					Title:   v.title,
-					Shaper:  inv.shaper,
-				}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.TitleMedium)(gtx)
-			}))
-		}
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
-	}
-}
 
 // toasts draws every level at once. A toast with a zero At does no
 // fading, so the stack stands still without a timer driving it — which is how

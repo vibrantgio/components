@@ -45,6 +45,7 @@ import (
 	"github.com/vibrantgio/markdown/highlight"
 	"github.com/vibrantgio/theme/tokens"
 
+	"github.com/vibrantgio/components/alert"
 	"github.com/vibrantgio/components/badge"
 	"github.com/vibrantgio/components/button"
 	"github.com/vibrantgio/components/chip"
@@ -403,6 +404,8 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.chipBlock(c)},
 		{Name: "components-badge", Title: "Badge — the five variants on three levels, the three utterances, and the close mark", Height: badgeBlockH,
 			Body: inv.badgeBlock(c)},
+		{Name: "components-alert", Title: "Alert — info, success, warning, error", Height: 248,
+			Body: inv.alerts(c)},
 		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 60,
 			Body: inv.textFieldRow(c)},
 		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 56,
@@ -415,7 +418,7 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.scrollbarBlock(c)},
 		{Name: "components-scrollarea", Title: "Scroll area — the edge dissolves while content is hidden past it", Height: 56,
 			Body: inv.scrollAreaBlock(c)},
-		{Name: "components-paragraph", Title: "Rich text — weight, style, face, colour, size and links in one paragraph", Height: 127,
+		{Name: "components-paragraph", Title: "Paragraph — weight, style, face, colour, size and links in one run of text", Height: 151,
 			Body: inv.paragraphBlock(c)},
 		{Name: "components-icon", Title: "Icon — a vector icon and the platform control marks", Height: 62,
 			Body: inv.iconBlock(c)},
@@ -954,6 +957,38 @@ func badgeLine(inv *Inventory, c tokens.ColorTokens, caption string, cells []lay
 	}
 }
 
+func (inv *Inventory) alerts(c tokens.ColorTokens) layout.Widget {
+	variants := []struct {
+		title string
+		v     alert.Variant
+	}{
+		{"Deploy finished", alert.Info},
+		{"All checks passed", alert.Success},
+		{"Two goldens are stale", alert.Warning},
+		{"The build could not start", alert.Error},
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		cs := make([]layout.FlexChild, 0, 2*len(variants))
+		for i, v := range variants {
+			v := v
+			if i > 0 {
+				cs = append(cs, layout.Rigid(complayout.VSpacer(8)))
+			}
+			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(520))
+				gtx.Constraints.Max.Y = gtx.Dp(56)
+				gtx.Constraints.Min = gtx.Constraints.Max
+				return alert.Render(inv.shaper, alert.Props{
+					Variant: v.v,
+					Title:   v.title,
+					Shaper:  inv.shaper,
+				}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.TitleMedium)(gtx)
+			}))
+		}
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
+	}
+}
+
 func (inv *Inventory) textFieldRow(c tokens.ColorTokens) layout.Widget {
 	states := []struct {
 		label string
@@ -1177,7 +1212,7 @@ func (inv *Inventory) scrollAreaBlock(c tokens.ColorTokens) layout.Widget {
 func (inv *Inventory) paragraphBlock(c tokens.ColorTokens) layout.Widget {
 	style := paragraph.FromTokens(c, tokens.DefaultTypography.BodyLarge)
 	spans := []paragraph.SpanStyle{
-		{Content: "Rich text lays out "},
+		{Content: "A paragraph lays out "},
 		{Content: "bold", Weight: font.Bold},
 		{Content: ", "},
 		{Content: "italic", Style: font.Italic},
