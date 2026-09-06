@@ -24,6 +24,7 @@ import (
 
 	"gioui.org/f32"
 	"gioui.org/font"
+	"gioui.org/io/semantic"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -42,6 +43,7 @@ import (
 	"github.com/vibrantgio/components/scrollarea"
 	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/components/toast"
+	"github.com/vibrantgio/components/tooltip"
 	"github.com/vibrantgio/markdown"
 	"github.com/vibrantgio/markdown/highlight"
 	"github.com/vibrantgio/theme/tokens"
@@ -412,6 +414,12 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 		// the notifications specimen and not in this one.
 		{Name: "components-toast", Title: "Toast — the transient message at every status role", Height: 168,
 			Body: inv.toasts(c)},
+		// The slot stands the trigger in the middle and hangs the bubble
+		// above it, so it has to hold the trigger's whole square plus what
+		// hangs: a slot cut to the bubble alone shears it off at the band's
+		// edge.
+		{Name: "components-tooltip", Title: "Tooltip — shown above its trigger", Height: 96,
+			Body: inv.tooltip(c)},
 		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 60,
 			Body: inv.textFieldRow(c)},
 		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 56,
@@ -1393,6 +1401,21 @@ func (inv *Inventory) layoutBlock(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
+func (inv *Inventory) tooltip(c tokens.ColorTokens) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(320))
+		gtx.Constraints.Min = gtx.Constraints.Max
+		props := tooltip.Props{
+			Text:      specimenName,
+			Trigger:   inv.specimenControl(c),
+			Placement: tooltip.Top,
+			Shaper:    inv.shaper,
+		}
+		return tooltip.Render(inv.shaper, props, true, c, tokens.Spacing, tokens.Radius,
+			tokens.DefaultTypography.LabelSmall)(gtx)
+	}
+}
+
 // ── Shared drawing helpers ────────────────────────────────────────────────────
 
 // ActionInfoIVG is the vector icon the icon section draws — the Material
@@ -1417,4 +1440,32 @@ func LabelAt(gtx layout.Context, shaper *text.Shaper, s string, col color.NRGBA,
 	mat := m.Stop()
 	lbl := widget.Label{MaxLines: 1}
 	return lbl.Layout(gtx, shaper, f, size, s, mat)
+}
+
+// specimenName is the accessible name the trigger and the anchor both carry,
+// and the words the tooltip shows. One string for both halves: an icon-only
+// control has no label to fall back on, so the name a reader hovers for and
+// the name a screen reader announces are the same name or they disagree.
+const specimenName = "Show the sidebar"
+
+// specimenControl is the trigger the tooltip cell and the anchor the popover
+// cell hang their surface off: one Ghost icon-only button, identical in both,
+// so the two cells differ by what is attached and not by what it attaches to.
+//
+// Drawn hovered. That is the state each cell is frozen in — a tooltip stands
+// only while the pointer rests on its trigger — and it is what gives the
+// popover's beak a fill to seat on: Ghost emphasis draws none at rest, and an
+// apex aimed at a square with no fill points at empty air.
+//
+// The name is emitted as a semantic description because the label is empty by
+// construction, and an icon-only button has no label to fall back on.
+func (inv *Inventory) specimenControl(c tokens.ColorTokens) layout.Widget {
+	w := button.RenderIcon(inv.marks.Mark(icons.Sidebar), c, tokens.Spacing,
+		tokens.Radius, tokens.Comfortable,
+		button.RenderState{Emphasis: button.Ghost, Hovered: true})
+	return func(gtx layout.Context) layout.Dimensions {
+		semantic.ClassOp(semantic.Button).Add(gtx.Ops)
+		semantic.DescriptionOp(specimenName).Add(gtx.Ops)
+		return w(gtx)
+	}
 }

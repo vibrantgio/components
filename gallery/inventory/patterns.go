@@ -13,7 +13,6 @@ import (
 	"image/color"
 
 	"gioui.org/font"
-	"gioui.org/io/semantic"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -22,7 +21,6 @@ import (
 
 	"github.com/vibrantgio/components/badge"
 	"github.com/vibrantgio/components/button"
-	"github.com/vibrantgio/components/icons"
 	complayout "github.com/vibrantgio/components/layout"
 	"github.com/vibrantgio/components/toast"
 	"github.com/vibrantgio/patterns/accordion"
@@ -43,7 +41,6 @@ import (
 	"github.com/vibrantgio/patterns/table"
 	"github.com/vibrantgio/patterns/tabs"
 	"github.com/vibrantgio/patterns/testimonial"
-	"github.com/vibrantgio/patterns/tooltip"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -79,14 +76,12 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 			Body: inv.table(c)},
 		{Name: "patterns-modal", Title: "Modal — a decision answered from its footer, and a panel closed from the mark at its corner", Height: 260,
 			Body: inv.modal(c)},
-		// Both slots stand their control in the middle and hang the pattern
-		// off it, so the slot has to hold the control's whole square plus
-		// what hangs: a slot cut to the pattern alone shears the surface off
-		// at the band's edge.
+		// The slot stands the control in the middle and hangs the panel off
+		// it, so it has to hold the control's whole square plus what hangs:
+		// a slot cut to the panel alone shears the surface off at the
+		// band's edge.
 		{Name: "patterns-popover", Title: "Popover — a floating panel tied to its anchor", Height: 190,
 			Body: inv.popover(c)},
-		{Name: "patterns-tooltip", Title: "Tooltip — shown above its trigger", Height: 96,
-			Body: inv.tooltip(c)},
 		{Name: "patterns-hero", Title: "Hero — eyebrow, headline, subtitle and a pair of calls to action", Height: 208,
 			Body: inv.hero(c)},
 		{Name: "patterns-feature", Title: "Feature grid — three columns of icon, title and body", Height: 168,
@@ -139,34 +134,6 @@ func dot(fill color.NRGBA, size unit.Dp) layout.Widget {
 		r := clip.RRect{Rect: image.Rect(0, 0, d, d), SE: d / 2, SW: d / 2, NW: d / 2, NE: d / 2}
 		paint.FillShape(gtx.Ops, fill, r.Op(gtx.Ops))
 		return layout.Dimensions{Size: image.Pt(d, d)}
-	}
-}
-
-// specimenName is the accessible name the trigger and the anchor both carry,
-// and the words the tooltip shows. One string for both halves: an icon-only
-// control has no label to fall back on, so the name a reader hovers for and
-// the name a screen reader announces are the same name or they disagree.
-const specimenName = "Show the sidebar"
-
-// specimenControl is the control the tooltip and the popover cells both hang
-// their pattern on: one Ghost icon-only button, identical in both, so the two
-// cells differ by the pattern and not by what it is attached to.
-//
-// Drawn hovered. That is the state each cell is frozen in — a tooltip stands
-// only while the pointer rests on its trigger — and it is what gives the
-// popover's beak a fill to seat on: Ghost emphasis draws none at rest, and an
-// apex aimed at a square with no fill points at empty air.
-//
-// The name is emitted as a semantic description because the label is empty by
-// construction, and an icon-only button has no label to fall back on.
-func (inv *Inventory) specimenControl(c tokens.ColorTokens) layout.Widget {
-	w := button.RenderIcon(inv.marks.Mark(icons.Sidebar), c, tokens.Spacing,
-		tokens.Radius, tokens.Comfortable,
-		button.RenderState{Emphasis: button.Ghost, Hovered: true})
-	return func(gtx layout.Context) layout.Dimensions {
-		semantic.ClassOp(semantic.Button).Add(gtx.Ops)
-		semantic.DescriptionOp(specimenName).Add(gtx.Ops)
-		return w(gtx)
 	}
 }
 
@@ -571,21 +538,6 @@ func (inv *Inventory) popover(c tokens.ColorTokens) layout.Widget {
 			Placement: popover.Bottom,
 		}
 		return popover.Render(props, true, c, tokens.Spacing, tokens.Radius)(gtx)
-	}
-}
-
-func (inv *Inventory) tooltip(c tokens.ColorTokens) layout.Widget {
-	return func(gtx layout.Context) layout.Dimensions {
-		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(320))
-		gtx.Constraints.Min = gtx.Constraints.Max
-		props := tooltip.Props{
-			Text:      specimenName,
-			Trigger:   inv.specimenControl(c),
-			Placement: tooltip.Top,
-			Shaper:    inv.shaper,
-		}
-		return tooltip.Render(inv.shaper, props, true, c, tokens.Spacing, tokens.Radius,
-			tokens.DefaultTypography.LabelSmall)(gtx)
 	}
 }
 
