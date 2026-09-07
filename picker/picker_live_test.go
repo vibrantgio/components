@@ -6,11 +6,13 @@ import (
 	"testing"
 
 	"gioui.org/f32"
+	"gioui.org/io/event"
 	gioinput "gioui.org/io/input"
 	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 	"gioui.org/unit"
 
 	"github.com/reactivego/rx"
@@ -386,5 +388,146 @@ func TestCappedMenuOpensOnTheSelectedRow(t *testing.T) {
 	}
 	if picked[0] < 26 {
 		t.Errorf("clicking the first visible row of a menu holding option 30 selected option %d; the viewport opened at the top instead of on the selection", picked[0])
+	}
+}
+
+// ---- The dropped menu is deferred ----
+//
+// The menu's ops go through op.Defer, which puts them above every sibling
+// laid out after the field's slot for hit-testing as well as for paint. These
+// two hold the consequences: a press meant for a row is not taken by whatever
+// the row covers; and the menu leaves with its trigger, so a scroll that
+// carries the field away puts the menu down rather than leaving it standing
+// over a window its trigger has left.
+
+// pressCounter draws nothing and counts the presses landing on the whole box
+// it is given.
+func pressCounter(tag *int, count *int, size image.Point) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		area := clip.Rect{Max: size}.Push(gtx.Ops)
+		event.Op(gtx.Ops, tag)
+		area.Pop()
+		for {
+			e, ok := gtx.Event(pointer.Filter{Target: tag, Kinds: pointer.Press})
+			if !ok {
+				break
+			}
+			if pe, ok := e.(pointer.Event); ok && pe.Kind == pointer.Press {
+				*count++
+			}
+		}
+		return layout.Dimensions{Size: size}
+	}
+}
+
+// scroller is a scroller's stand-in: it claims the wheel over the box it is
+// given, sums what it was handed, and lays the child out INSIDE that box, the
+// way a real scroller encloses what it carries. A pointer hit walks the area
+// it landed in and that area's ancestors — never its siblings — so nesting is
+// what puts this in the same chain as the field's own absorber.
+func scroller(tag *int, sum *float32, size image.Point, child layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		for {
+			e, ok := gtx.Event(pointer.Filter{
+				Target:  tag,
+				Kinds:   pointer.Scroll,
+				ScrollY: pointer.ScrollRange{Min: -1e6, Max: 1e6},
+			})
+			if !ok {
+				break
+			}
+			if pe, ok := e.(pointer.Event); ok && pe.Kind == pointer.Scroll {
+				*sum += pe.Scroll.Y
+			}
+		}
+		area := clip.Rect{Max: size}.Push(gtx.Ops)
+		event.Op(gtx.Ops, tag)
+		dims := child(gtx)
+		area.Pop()
+		return dims
+	}
+}
+
+// TestPressOnADeferredMenuRowReachesTheRow is the hit-order half of the
+// deferral: the menu is topmost for input as well as for paint, so a press on
+// an option picks that option and the sibling painted over the menu's band
+// never sees it.
+func TestPressOnADeferredMenuRowReachesTheRow(t *testing.T) {
+	var picked []int
+	fieldW := materialize(t, picker.Field(rx.Of(liveTheme()), picker.FieldProps{
+		Description: "choose",
+		Options:     options,
+		Shaper:      defaultShaper(t),
+		OnSelect:    func(_ layout.Context, i int) { picked = append(picked, i) },
+	}))
+
+	row := rowHeight(tokens.Comfortable)
+	size := image.Pt(200, row*(1+len(options))+40)
+	var sibTag, sibHits int
+	scene := func(gtx layout.Context) layout.Dimensions {
+		dims := fieldW(gtx)
+		off := op.Offset(image.Pt(0, row)).Push(gtx.Ops)
+		pressCounter(&sibTag, &sibHits, image.Pt(size.X, size.Y-row))(gtx)
+		off.Pop()
+		return dims
+	}
+
+	r := new(gioinput.Router)
+	drive := driver(scene, r, size)
+	drive()
+	click(r, drive, f32.Pt(100, float32(row)/2)) // the trigger: open
+
+	// The second option's row, which the sibling covers whole.
+	onRow := f32.Pt(100, float32(2*row)+float32(row)/2)
+	click(r, drive, onRow)
+	if len(picked) != 1 || picked[0] != 1 {
+		t.Fatalf("press at %v on the menu's second row selected %v, want exactly one call carrying index 1", onRow, picked)
+	}
+	if sibHits != 0 {
+		t.Errorf("press at %v also reached the sibling under the menu %d times", onRow, sibHits)
+	}
+}
+
+// TestScrollingTheFieldAwayClosesItsMenu is the attachment's other half: the
+// menu leaves with its trigger. A scroll landing anywhere but inside the menu
+// closes it, and the absorber that notices takes none of the distance — the
+// scroller under the field still receives the whole wheel, so the field is
+// carried away on the same frame its menu goes down.
+func TestScrollingTheFieldAwayClosesItsMenu(t *testing.T) {
+	fieldW := materialize(t, picker.Field(rx.Of(liveTheme()), picker.FieldProps{
+		Description: "choose",
+		Options:     options,
+		Shaper:      defaultShaper(t),
+	}))
+
+	row := rowHeight(tokens.Comfortable)
+	size := image.Pt(200, 400)
+	var scrollTag int
+	var scrolled float32
+	scene := scroller(&scrollTag, &scrolled, size, fieldW)
+
+	r := new(gioinput.Router)
+	drive := driver(scene, r, size)
+	drive()
+	if dims := click(r, drive, f32.Pt(100, float32(row)/2)); dims.Size.Y != row*(1+len(options)) {
+		t.Fatalf("the field did not open: it measured %d px tall, want %d", dims.Size.Y, row*(1+len(options)))
+	}
+	// The absorber registers its event filters with the open menu, one frame
+	// behind.
+	drive()
+
+	// A wheel turn well clear of the menu, where the scroller under the
+	// field would take it.
+	r.Queue(pointer.Event{
+		Kind:     pointer.Scroll,
+		Position: f32.Pt(100, 350),
+		Scroll:   f32.Pt(0, 40),
+		Source:   pointer.Mouse,
+	})
+	if dims := drive(); dims.Size.Y != row {
+		t.Errorf("after a scroll the field measured %d px tall, want the closed %d px: the menu did not go with its trigger", dims.Size.Y, row)
+	}
+	if scrolled != 40 {
+		t.Errorf("the scroller under the field received %v of the 40 px wheel turn; the field's absorber is taking scroll distance it must only watch", scrolled)
 	}
 }

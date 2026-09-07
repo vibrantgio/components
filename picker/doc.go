@@ -41,6 +41,13 @@
 // pattern. So a toolbar trigger's caller hands the trigger to the popover as
 // the anchor slot and a [Menu] as the content slot, and the two meet there.
 //
+// The field's inline menu is still a floating surface, so it is drawn like
+// one: the trigger stays where the caller put it and the menu goes through
+// op.Defer, painting and hit-testing above everything the window lays out
+// after the field's slot — patterns/popover's package doc states the idiom.
+// It goes with its trigger too: a scroll that carries the field away takes
+// the menu with it, the way a press elsewhere and Escape do.
+//
 // Either way the surface is the same one: a floating, unscrimmed, shadowless
 // transient plane whose rows fill at level 3, the top of the elevation, and
 // whose coloured rows are the accent — the selection at the weight text is held

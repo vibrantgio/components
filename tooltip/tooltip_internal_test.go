@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"gioui.org/f32"
+	"gioui.org/io/event"
 	gioinput "gioui.org/io/input"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
@@ -62,9 +63,15 @@ func driveFrameAt(w layout.Widget, ops *op.Ops, r *gioinput.Router, size image.P
 // hoverRig builds a live single-tooltip frame driver over its own Arbiter,
 // and returns the arbiter, the tooltip's state and the layout.Widget.
 func hoverRig(delay time.Duration) (*Arbiter, *tooltipState, layout.Widget) {
+	return hoverRigAt(delay, Top)
+}
+
+// hoverRigAt is hoverRig with the placement chosen, for the tests that need
+// the annotation to land on a particular side of the trigger.
+func hoverRigAt(delay time.Duration, p Placement) (*Arbiter, *tooltipState, layout.Widget) {
 	shaper := tokens.DefaultTypography.DeterministicShaper()
 	arb := NewArbiter()
-	props := Props{Text: "Save", Trigger: intTrigger(), Placement: Top, Shaper: shaper, Arbiter: arb}
+	props := Props{Text: "Save", Trigger: intTrigger(), Placement: p, Shaper: shaper, Arbiter: arb}
 	st := newState(props)
 	return arb, st, func(gtx layout.Context) layout.Dimensions {
 		return drawTooltip(gtx, shaper, props, delay, intTok(), st, true)
@@ -238,5 +245,142 @@ func TestOvertakenTooltipDoesNotStealBackInTheSameFrame(t *testing.T) {
 		if arb.isTop(st) {
 			t.Fatalf("frame %d: A took top back in the same frame the claimant took it; both would paint", i)
 		}
+	}
+}
+
+// ---- The annotation is deferred ----
+//
+// The annotation's ops go through op.Defer, which puts them above every
+// sibling laid out after the trigger's slot for hit-testing as well as for
+// paint. These two hold the consequences: a tooltip carries no input of its
+// own, so nothing it covers loses its presses; and it leaves with its
+// trigger, so a trigger carried out of view takes the annotation with it.
+
+// pressCounter draws a solid rect, claims the presses that land on it, and
+// counts them.
+func pressCounter(tag *int, count *int, c color.NRGBA, size image.Point) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, c, clip.Rect{Max: size}.Op())
+		area := clip.Rect{Max: size}.Push(gtx.Ops)
+		event.Op(gtx.Ops, tag)
+		area.Pop()
+		for {
+			e, ok := gtx.Event(pointer.Filter{Target: tag, Kinds: pointer.Press})
+			if !ok {
+				break
+			}
+			if pe, ok := e.(pointer.Event); ok && pe.Kind == pointer.Press {
+				*count++
+			}
+		}
+		return layout.Dimensions{Size: size}
+	}
+}
+
+// TestPressUnderTheAnnotationReachesWhatItCovers is the hit-order half of
+// the deferral. Deferred operations are topmost for input as well as for
+// paint, so a tooltip that claimed any pointer area would swallow the presses
+// meant for whatever it floats over — and a tooltip holds text only, never a
+// control, so it claims none. The press is aimed at a point inside the
+// annotation and inside the sibling under it, and the sibling gets it.
+func TestPressUnderTheAnnotationReachesWhatItCovers(t *testing.T) {
+	const (
+		delay  = 50 * time.Millisecond
+		stripH = 40 // the slot the tooltip is handed, across the top
+	)
+	arb, st, w := hoverRigAt(delay, Bottom)
+
+	var sibTag, sibHits int
+	sibling := pressCounter(&sibTag, &sibHits, color.NRGBA{R: 255, G: 0, B: 255, A: 255}, image.Pt(intFrameW, intFrameH-stripH))
+	scene := func(gtx layout.Context) layout.Dimensions {
+		strip := gtx
+		strip.Constraints = layout.Exact(image.Pt(intFrameW, stripH))
+		w(strip)
+		off := op.Offset(image.Pt(0, stripH)).Push(gtx.Ops)
+		sibling(gtx)
+		off.Pop()
+		return layout.Dimensions{Size: gtx.Constraints.Max}
+	}
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	t0 := time.Unix(1700000000, 0)
+	tShown := t0.Add(delay).Add(time.Millisecond)
+
+	// The trigger is 60x28 centred in the 320x40 strip, so it spans
+	// y [6,34]; the pointer sits on its middle.
+	driveFrameAt(scene, ops, r, intFrame, t0)
+	r.Queue(pointer.Event{Kind: pointer.Move, Position: f32.Pt(intFrameW/2, stripH/2), Source: pointer.Mouse})
+	driveFrameAt(scene, ops, r, intFrame, t0)
+	driveFrameAt(scene, ops, r, intFrame, tShown)
+	if !arb.isTop(st) {
+		t.Fatalf("precondition failed: the annotation is not shown after entry + delay")
+	}
+
+	// A press two rows into the sibling's band, on the trigger's midline:
+	// the annotation stands S1 = 4 px below the trigger's foot at y=34 and
+	// is at least 16 px deep, so this point is inside it.
+	onAnnotation := f32.Pt(intFrameW/2, stripH+2)
+	r.Queue(
+		pointer.Event{Kind: pointer.Press, Position: onAnnotation, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+		pointer.Event{Kind: pointer.Release, Position: onAnnotation, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+	)
+	driveFrameAt(scene, ops, r, intFrame, tShown.Add(time.Millisecond))
+
+	if sibHits != 1 {
+		t.Errorf("press at %v under the annotation reached the sibling %d times, want 1", onAnnotation, sibHits)
+	}
+}
+
+// TestTriggerScrolledOutOfViewDismisses is the attachment's other half: the
+// annotation leaves with its trigger. The tooltip is laid out inside a
+// viewport that clips it, the pointer rests on the trigger, and then the
+// viewport scrolls the trigger away under a pointer that has not moved. The
+// trigger's hit area goes with the clip, the hover ends there, and the
+// annotation — which the deferral would otherwise have drawn outside the
+// viewport, since deferring drops the clip — goes with it.
+func TestTriggerScrolledOutOfViewDismisses(t *testing.T) {
+	const (
+		delay = 50 * time.Millisecond
+		viewH = 80 // the scroller's viewport, at the top of the frame
+	)
+	arb, st, w := hoverRigAt(delay, Bottom)
+
+	scrollY := 0
+	scene := func(gtx layout.Context) layout.Dimensions {
+		area := clip.Rect{Max: image.Pt(intFrameW, viewH)}.Push(gtx.Ops)
+		off := op.Offset(image.Pt(0, -scrollY)).Push(gtx.Ops)
+		inner := gtx
+		inner.Constraints = layout.Exact(image.Pt(intFrameW, viewH))
+		w(inner)
+		off.Pop()
+		area.Pop()
+		return layout.Dimensions{Size: gtx.Constraints.Max}
+	}
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	t0 := time.Unix(1700000000, 0)
+	tShown := t0.Add(delay).Add(time.Millisecond)
+
+	driveFrameAt(scene, ops, r, intFrame, t0)
+	r.Queue(pointer.Event{Kind: pointer.Move, Position: f32.Pt(intFrameW/2, viewH/2), Source: pointer.Mouse})
+	driveFrameAt(scene, ops, r, intFrame, t0)
+	driveFrameAt(scene, ops, r, intFrame, tShown)
+	if !arb.isTop(st) {
+		t.Fatalf("precondition failed: the annotation is not shown after entry + delay")
+	}
+
+	// Scroll the trigger clear of the viewport. The pointer does not move.
+	// The router re-runs its hit test at frame end and posts the Leave; the
+	// tooltip reads it on the frame after, which is where it lets go.
+	scrollY = viewH * 2
+	driveFrameAt(scene, ops, r, intFrame, tShown.Add(time.Millisecond))
+	driveFrameAt(scene, ops, r, intFrame, tShown.Add(2*time.Millisecond))
+	if arb.isTop(st) {
+		t.Fatalf("the annotation still stands after its trigger scrolled out of the viewport")
+	}
+	if st.claimed || !st.entryAt.IsZero() {
+		t.Fatalf("the dwell was left armed: claimed = %v, entryAt zero = %v; want false, true", st.claimed, st.entryAt.IsZero())
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
@@ -109,5 +110,109 @@ func TestTooltipShownAndHiddenDiffer(t *testing.T) {
 	imgHidden := golden.Capture(t, frameSize, scene(hidden, bg))
 	if n := golden.PixelDiff(imgShown, imgHidden); n == 0 {
 		t.Error("shown and hidden tooltip render identically; expected the bubble + label to appear when shown")
+	}
+}
+
+// ---- Paint-order tests ----
+//
+// The defect these cover (feeds, 2026-09-06, on the popover): a floating
+// surface drawn inline in its anchor's own paint order is painted over by
+// every sibling the window lays out after that anchor's slot. The tooltip
+// takes the same idiom, so it takes the same guard.
+
+const (
+	// stripH is the early slot's height: the room the tooltip is handed,
+	// across the top of the scene, with the covering sibling filling
+	// everything below it. The trigger is 60x28 centred in it, so a Bottom
+	// annotation stands S1 below the trigger's foot at y=34 — inside the
+	// covered band.
+	stripH = 40
+)
+
+var coverColor = color.NRGBA{R: 255, G: 0, B: 255, A: 255}
+
+// stripScene lays w out in a strip across the top — the early slot — and,
+// when covered, paints an opaque sibling over everything below it, the way a
+// shell paints its main column after the navigation bar's actions.
+func stripScene(w layout.Widget, bg color.NRGBA, covered bool) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, bg, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		strip := gtx
+		strip.Constraints = layout.Exact(image.Pt(gtx.Constraints.Max.X, stripH))
+		w(strip)
+		if covered {
+			off := op.Offset(image.Pt(0, stripH)).Push(gtx.Ops)
+			paint.FillShape(gtx.Ops, coverColor, clip.Rect{
+				Max: image.Pt(gtx.Constraints.Max.X, gtx.Constraints.Max.Y-stripH),
+			}.Op())
+			off.Pop()
+		}
+		return layout.Dimensions{Size: gtx.Constraints.Max}
+	}
+}
+
+// at reads one pixel as an opaque NRGBA, so captures compare against the
+// colours they were painted with.
+func at(img *image.RGBA, x, y int) color.NRGBA {
+	r, g, b, _ := img.At(x, y).RGBA()
+	return color.NRGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: 255}
+}
+
+// fillBounds is the bounding box of every pixel drawn in c — the annotation's
+// own rect, found rather than asserted, so the test carries no arithmetic the
+// component could change under it.
+func fillBounds(img *image.RGBA, c color.NRGBA) (image.Rectangle, bool) {
+	b := image.Rectangle{Min: image.Pt(1<<30, 1<<30)}
+	found := false
+	for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
+		for x := img.Bounds().Min.X; x < img.Bounds().Max.X; x++ {
+			if at(img, x, y) != c {
+				continue
+			}
+			found = true
+			b.Min.X = min(b.Min.X, x)
+			b.Min.Y = min(b.Min.Y, y)
+			b.Max.X = max(b.Max.X, x+1)
+			b.Max.Y = max(b.Max.Y, y+1)
+		}
+	}
+	return b, found
+}
+
+// TestAnnotationIsWholeOverALaterSibling is the paint-order contract: the
+// annotation stands above the sibling laid out after the tooltip's slot, so
+// the pixels inside it are the same ones it draws with nothing over it at
+// all.
+func TestAnnotationIsWholeOverALaterSibling(t *testing.T) {
+	shaper := defaultShaper(t)
+	colors := tokens.DefaultLight
+	props := tooltip.Props{
+		Text:      "Save",
+		Trigger:   fixedRect(color.NRGBA{R: 80, G: 160, B: 220, A: 255}, 60, 28),
+		Placement: tooltip.Bottom,
+		Shaper:    shaper,
+	}
+	w := tooltip.Render(shaper, props, true, colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelSmall)
+	bg := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
+
+	bare := golden.Capture(t, frameSize, stripScene(w, bg, false))
+	covered := golden.Capture(t, frameSize, stripScene(w, bg, true))
+
+	box, ok := fillBounds(bare, colors.InverseSurface)
+	if !ok {
+		t.Fatalf("no pixel of the annotation's fill %v was drawn at all", colors.InverseSurface)
+	}
+	if box.Max.Y <= stripH {
+		t.Fatalf("the annotation ends at y=%d, inside the strip; nothing covers it and the test proves nothing", box.Max.Y)
+	}
+	if got := at(covered, 8, frameH-8); got != coverColor {
+		t.Fatalf("the covering sibling did not paint: (8,%d) is %v, want %v", frameH-8, got, coverColor)
+	}
+	for y := box.Min.Y; y < box.Max.Y; y++ {
+		for x := box.Min.X; x < box.Max.X; x++ {
+			if a, b := at(bare, x, y), at(covered, x, y); a != b {
+				t.Fatalf("(%d,%d) inside the annotation is %v with a later sibling painted and %v without it", x, y, b, a)
+			}
+		}
 	}
 }

@@ -20,6 +20,14 @@
 // thing rather than as a panel. The tooltip and the toast are the
 // inverse pair's two adoptions.
 //
+// THE FLOATING SURFACE PAINTS LAST. The trigger is drawn where the caller
+// put it; the annotation goes through op.Defer. patterns/popover's package
+// doc states the idiom and what deferral keeps and drops — this package
+// applies it unchanged. The annotation leaves with its trigger: it stands
+// only while the trigger holds hover or focus, and a trigger clipped out of
+// view is no longer hit-tested, so the hover ends there and takes the
+// annotation with it.
+//
 // The trigger renders at the frame centre; the tooltip surface is placed
 // adjacent per Placement. Show/hide is instantaneous in this package;
 // entrance/exit transitions are deferred to a later Effects-integration
@@ -345,6 +353,10 @@ func drawStatic(
 // drawSurface paints the rounded tooltip bubble with the label inside,
 // positioned adjacent to triggerRect per props.Placement. The bubble is
 // filled inverse: InverseSurface under OnInverseSurface.
+//
+// Everything it draws is recorded and handed to op.Defer, so the annotation
+// paints above every sibling the window lays out after the trigger's slot
+// (see the package doc).
 func drawSurface(
 	gtx layout.Context,
 	shaper *text.Shaper,
@@ -352,6 +364,8 @@ func drawSurface(
 	tok resolvedTokens,
 	triggerRect image.Rectangle,
 ) {
+	floating := op.Record(gtx.Ops)
+
 	frame := gtx.Constraints.Max
 	r := gtx.Dp(unit.Dp(tok.radius.Sm))
 	padH := gtx.Dp(unit.Dp(tok.spacing.S2))
@@ -408,4 +422,6 @@ func drawSurface(
 	labelCall.Add(gtx.Ops)
 	labelOff.Pop()
 	surfOff.Pop()
+
+	op.Defer(gtx.Ops, floating.Stop())
 }

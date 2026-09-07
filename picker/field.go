@@ -202,13 +202,13 @@ type FieldProps struct {
 //
 // # Leaving without choosing
 //
-// The open menu is a transient overlay and owns both ways out of one: a press
-// landing anywhere but on the field, and Escape. Both are the field's while
-// the menu stands and neither is the field's while it is closed, so a dialog
-// hosting the field keeps its own Escape until the moment there is a menu to
-// spend it on. Opening the menu also gives the trigger the keyboard, which is
-// what a key is bound to and what the ring the trigger then wears is saying.
-// See dismissed.
+// The open menu is a transient overlay and owns the ways out of one: a press
+// landing anywhere but on the field, a scroll that carries the trigger, and
+// Escape. All three are the field's while the menu stands and none is the
+// field's while it is closed, so a dialog hosting the field keeps its own
+// Escape until the moment there is a menu to spend it on. Opening the menu
+// also gives the trigger the keyboard, which is what a key is bound to and
+// what the ring the trigger then wears is saying. See dismissed.
 //
 // Keyboard reach through the open menu is [Menu]'s, and its doc states what
 // each of the two arrangements — per-row tags uncapped, the list's own tag
@@ -320,8 +320,8 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 	})
 }
 
-// dismissed reports whether this frame carried one of the two events that
-// close an open menu without choosing from it, and drains both either way.
+// dismissed reports whether this frame carried one of the three events that
+// close an open menu without choosing from it, and drains them all either way.
 //
 // A PRESS LANDING ELSEWHERE. The absorber under the open field catches it,
 // and catching is the whole of what it does: while a menu stands, the next
@@ -330,6 +330,14 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 // also a press on the dialog behind it — and it is why the absorber is
 // registered UNDER the trigger and the rows, which answer presses inside
 // their own bounds first.
+//
+// A SCROLL LANDING ELSEWHERE. The menu is a floating surface and goes with
+// its trigger: a trigger carried out of view by the scroller it stands in
+// would leave the menu standing over a window the trigger has left. The same
+// absorber watches the wheel for that, and declares NO scroll range, so it
+// takes none of the distance: the scroller still moves and the menu leaves
+// on the same frame. A capped menu's own rows are hit first and consume the
+// wheel there, so scrolling inside the menu is not scrolling past it.
 //
 // ESCAPE. Bound to the tags the open field can hold the keyboard through —
 // the trigger, and the list's own tag once a capped menu has it — and drained
@@ -342,11 +350,11 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 func dismissed(gtx layout.Context, outside *int, keys ...event.Tag) bool {
 	leave := false
 	for {
-		e, ok := gtx.Event(pointer.Filter{Target: outside, Kinds: pointer.Press})
+		e, ok := gtx.Event(pointer.Filter{Target: outside, Kinds: pointer.Press | pointer.Scroll})
 		if !ok {
 			break
 		}
-		if pe, ok := e.(pointer.Event); ok && pe.Kind == pointer.Press {
+		if pe, ok := e.(pointer.Event); ok && (pe.Kind == pointer.Press || pe.Kind == pointer.Scroll) {
 			leave = true
 		}
 	}
@@ -439,6 +447,14 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 // make room for. Under [DropUp] the trigger is the LOWER half, which is what
 // lets an upward field be placed by the bottom edge of the box it reports.
 //
+// The trigger is drawn inline, where the caller put it; the menu and its edge
+// go through op.Defer, so the open plane paints and hit-tests above every
+// sibling the window lays out after the field's slot. patterns/popover's
+// package doc states the idiom and what deferral keeps and drops. The
+// reported box is unchanged: the menu floats over what follows it in the
+// frame and the field still asks its container for the room, so a caller
+// placing an upward field by the box's bottom edge places it where it did.
+//
 // The menu's plane takes its edge here, in both directions, because the plane
 // is the field's to draw: [Menu] handed to a pattern is circled by that
 // pattern's own surface and would wear two lines.
@@ -450,10 +466,12 @@ func stackOpen(gtx layout.Context, d Drop, tok resolvedTokens, trigger op.CallOp
 	off := op.Offset(image.Pt(0, triggerY)).Push(gtx.Ops)
 	trigger.Add(gtx.Ops)
 	off.Pop()
-	off = op.Offset(image.Pt(0, menuY)).Push(gtx.Ops)
+	floating := op.Record(gtx.Ops)
+	menuOff := op.Offset(image.Pt(0, menuY)).Push(gtx.Ops)
 	menu.Add(gtx.Ops)
 	planeEdge(gtx, menuDims.Size, tok.color)
-	off.Pop()
+	menuOff.Pop()
+	op.Defer(gtx.Ops, floating.Stop())
 	return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, triggerDims.Size.Y+menuDims.Size.Y)}
 }
 

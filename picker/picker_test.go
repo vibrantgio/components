@@ -2,6 +2,7 @@ package picker_test
 
 import (
 	"image"
+	"image/color"
 	"testing"
 
 	"gioui.org/layout"
@@ -433,4 +434,64 @@ func TestMenuMarksTheRowUnderThePointer(t *testing.T) {
 	if n := golden.PixelDiff(rest, onSelected); n != 0 {
 		t.Errorf("hovering the selected row changed %d pixels; the standing answer outranks the transient state fill", n)
 	}
+}
+
+// ---- Paint-order tests ----
+//
+// The defect these cover (feeds, 2026-09-06, on the popover): a floating
+// surface drawn inline in its anchor's own paint order is painted over by
+// every sibling the window lays out after that anchor's slot. The field's
+// dropped menu is such a surface and takes the same idiom.
+
+// menuCover is the opaque sibling painted after the field, over everything
+// below the trigger's own band — the way a shell paints its main column after
+// the row the field stands in.
+var menuCover = color.NRGBA{R: 255, G: 0, B: 255, A: 255}
+
+// coveredField lays the field out and then, when covered, paints menuCover
+// over every row below the trigger.
+func coveredField(w layout.Widget, bg color.NRGBA, triggerH int, covered bool) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, bg, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		w(gtx)
+		if covered {
+			off := op.Offset(image.Pt(0, triggerH)).Push(gtx.Ops)
+			paint.FillShape(gtx.Ops, menuCover, clip.Rect{
+				Max: image.Pt(gtx.Constraints.Max.X, gtx.Constraints.Max.Y-triggerH),
+			}.Op())
+			off.Pop()
+		}
+		return layout.Dimensions{Size: gtx.Constraints.Max}
+	}
+}
+
+// TestOpenMenuIsWholeOverALaterSibling is the paint-order contract: the
+// dropped menu stands above the sibling laid out after the field, so every
+// pixel of it is the one it draws with nothing over it at all.
+func TestOpenMenuIsWholeOverALaterSibling(t *testing.T) {
+	row := rowHeight(tokens.Comfortable)
+	size := image.Pt(200, row*(1+len(options))+40)
+	w := field(t, picker.FieldState{Open: true, Selected: 1, Options: options})
+	bg := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
+
+	bare := golden.Capture(t, size, coveredField(w, bg, row, false))
+	covered := golden.Capture(t, size, coveredField(w, bg, row, true))
+
+	if got := px(covered, size.X-1, size.Y-1); got != menuCover {
+		t.Fatalf("the covering sibling did not paint: (%d,%d) is %v, want %v", size.X-1, size.Y-1, got, menuCover)
+	}
+	for y := row; y < row*(1+len(options)); y++ {
+		for x := 0; x < size.X; x++ {
+			if a, b := px(bare, x, y), px(covered, x, y); a != b {
+				t.Fatalf("(%d,%d) inside the menu is %v with a later sibling painted and %v without it", x, y, b, a)
+			}
+		}
+	}
+}
+
+// px reads one pixel as an opaque NRGBA, so a capture compares against the
+// colours it was painted with.
+func px(img *image.RGBA, x, y int) color.NRGBA {
+	r, g, b, _ := img.At(x, y).RGBA()
+	return color.NRGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: 255}
 }
