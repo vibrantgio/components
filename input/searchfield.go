@@ -57,6 +57,16 @@ type SearchFieldProps struct {
 	// with the editor's focus tag. See [TextFieldProps.FocusTag].
 	FocusTag func(tag event.Tag)
 
+	// Clear, if non-nil, is called once when the field instance is created
+	// with a function that empties the field. It is how a query is taken back
+	// from outside the field — a key the application binds, a panel closing —
+	// where the clear mark takes it back from inside.
+	//
+	// Emptying the field this way reports the empty query on the next frame,
+	// through OnChange and Message like any other edit, which is what
+	// dismisses a consumer's highlight along with the query that caused it.
+	Clear func(clear func())
+
 	// Disabled, if non-nil, disables the field when it emits true. A disabled
 	// field draws its marks faded with the rest of it and offers no clear.
 	Disabled rx.Observable[bool]
@@ -135,6 +145,9 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 		}
 		if props.FocusTag != nil {
 			props.FocusTag(editor)
+		}
+		if props.Clear != nil {
+			props.Clear(func() { editor.SetText("") })
 		}
 
 		return rx.Map(inputs, func(next rx.Tuple2[resolvedTokens, bool]) layout.Widget {

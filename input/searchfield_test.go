@@ -158,3 +158,56 @@ func TestSearchFieldClearMarkEmptiesTheField(t *testing.T) {
 		t.Errorf("a press where the mark stood on an emptied field reported %v; the field was already empty and the mark is not drawn there any more", changes[n:])
 	}
 }
+
+// TestSearchFieldClearsFromOutside drives SearchFieldProps.Clear: the query is
+// taken back by the application rather than by the mark in the field, the
+// empty query is reported the way every other edit is, and the field is empty
+// afterwards.
+func TestSearchFieldClearsFromOutside(t *testing.T) {
+	var (
+		changes []string
+		clear   func()
+	)
+	w := materialize(t, input.SearchField(rx.Of(theme.Default()), input.SearchFieldProps{
+		Placeholder: "Search",
+		Seed:        "meeting notes",
+		Shaper:      defaultShaper(t),
+		Clear:       func(c func()) { clear = c },
+		OnChange:    func(_ layout.Context, s string) { changes = append(changes, s) },
+	}))
+	if clear == nil {
+		t.Fatal("the field never handed the caller a way to empty it")
+	}
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	size := image.Pt(300, 120)
+	dims := driveTextFieldFrame(w, ops, r, size)
+	// The seeded field reports what it was seeded with on its first frame;
+	// what this test is about is everything after that.
+	seeded := len(changes)
+
+	clear()
+	driveTextFieldFrame(w, ops, r, size)
+	if len(changes) == seeded {
+		t.Fatal("emptying the field from outside reported no change at all")
+	}
+	if got := changes[len(changes)-1]; got != "" {
+		t.Errorf("emptying the field from outside reported %q; the field is empty, so it reports the empty query", got)
+	}
+	emptied := len(changes)
+
+	// And the field is empty, read off the mark: an emptied field draws no
+	// clear mark, so a press where it stood takes nothing back.
+	pos := f32.Pt(float32(dims.Size.X)-tokens.Spacing.S3-float32(icon.Size(tokens.Comfortable))/2,
+		float32(dims.Size.Y)/2)
+	r.Queue(
+		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+	)
+	driveTextFieldFrame(w, ops, r, size)
+	driveTextFieldFrame(w, ops, r, size)
+	if len(changes) != emptied {
+		t.Errorf("a press where the mark stood reported %v; the field was already empty and the mark is not drawn there", changes[emptied:])
+	}
+}
