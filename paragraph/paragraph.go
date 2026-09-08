@@ -36,6 +36,7 @@
 package paragraph
 
 import (
+	"image"
 	"image/color"
 
 	"gioui.org/font"
@@ -76,6 +77,26 @@ type SpanStyle struct {
 	// Chip sets the span on a rounded fill behind its glyphs. The zero value
 	// draws none.
 	Chip Chip
+	// Fills are fields painted behind runs of the span's own glyphs. They
+	// are byte ranges into Content, which is what keeps them off the
+	// shaping: the span is shaped whole whether it carries fills or not, so
+	// filling part of it moves no glyph and rewraps no line.
+	Fills []Fill
+}
+
+// Fill is a field painted behind one run of a span's glyphs: the run's own
+// width and the height of the line box it sits in. It is drawn before
+// everything else the span draws — before a [Chip], before the glyphs — so a
+// span already sitting on a fill keeps it, and the text stays on top.
+//
+// A run that wraps is filled on every line it reaches, each line's fragment
+// covering that line's box.
+type Fill struct {
+	// Start and End are byte offsets into [SpanStyle].Content. An empty or
+	// reversed range fills nothing, and the range is clamped to the content.
+	Start, End int
+	// Color fills the run. A zero alpha paints nothing.
+	Color color.NRGBA
 }
 
 // Chip is the rounded fill a span may sit on: the treatment a reading surface
@@ -164,6 +185,16 @@ type Style struct {
 	// distribute at that point, and lines drawn into a box shorter than their
 	// glyphs would overlap, so the metrics stand.
 	LineHeight unit.Sp
+	// OnFill, when non-nil, is called for every [Fill] the layout paints,
+	// with the index of the span the fill belongs to in the slice laid out,
+	// the fill's index within that span's Fills, and the rectangle it covers
+	// in the paragraph's own coordinates. A fill that wraps is reported once
+	// per line.
+	//
+	// It is how a caller that put a fill somewhere learns where it landed,
+	// which is what it takes to scroll to it: the position is a result of
+	// wrapping and is not knowable before the paragraph is laid out.
+	OnFill func(span, fill int, r image.Rectangle)
 	// OnLinkClick is called when a link is activated by pointer click or by
 	// Space/Enter while focused. The gtx argument is the live layout.Context
 	// active on the frame the activation is processed, allowing consumers to

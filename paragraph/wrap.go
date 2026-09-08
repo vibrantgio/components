@@ -43,6 +43,11 @@ import (
 // resolvedSpan is a SpanStyle with the paragraph Style's defaults applied and
 // its link group resolved.
 type resolvedSpan struct {
+	// index is the span's position in the slice the caller laid out, kept
+	// so a fill can be reported back against the span the caller wrote it
+	// on; spans with no content are dropped and the positions do not close
+	// up.
+	index   int
 	font    font.Font
 	size    int // shaped px (gtx.Sp applied)
 	color   color.NRGBA
@@ -51,6 +56,29 @@ type resolvedSpan struct {
 	url     string
 	strike  bool
 	chip    resolvedChip
+	fills   []spanFill
+}
+
+// spanFill is a [Fill] in runes: the range is counted in runes rather than
+// bytes because that is what the shaper reports per glyph, and it is measured
+// from the start of what is left of the span, so a span split across lines
+// carries its fills onto the next line by subtracting what the first line
+// consumed.
+type spanFill struct {
+	// index is the fill's position in the span's own Fills.
+	index int
+	from  int // first rune covered
+	to    int // one past the last rune covered
+	color color.NRGBA
+}
+
+// fillExtent is where one spanFill landed within a shaped fragment: the
+// horizontal run its glyphs occupy, measured from the fragment's first glyph.
+type fillExtent struct {
+	index int
+	color color.NRGBA
+	x0    int
+	x1    int
 }
 
 // resolvedChip is a [Chip] in pixels. A zero-alpha colour draws none, and
@@ -67,6 +95,8 @@ type resolvedChip struct {
 // text (or, for a single word wider than the wrap width, one indivisible
 // multi-line block).
 type segment struct {
+	span   int // the caller's span index; see resolvedSpan.index
+	fills  []fillExtent
 	call   op.CallOp
 	x      int // offset within the line
 	width  int // the glyphs plus whatever chip padding the fragment spends
@@ -93,7 +123,7 @@ func resolve(gtx layout.Context, style Style, spans []SpanStyle, rs RenderState)
 	nLinks := 0
 	prevURL := ""
 	current := -1
-	for _, s := range spans {
+	for i, s := range spans {
 		if s.Content == "" {
 			continue
 		}
@@ -134,6 +164,8 @@ func resolve(gtx layout.Context, style Style, spans []SpanStyle, rs RenderState)
 			}
 		}
 		out = append(out, resolvedSpan{
+			index:   i,
+			fills:   resolveFills(s),
 			font:    s.Font(),
 			size:    gtx.Sp(size),
 			color:   col,
@@ -145,6 +177,44 @@ func resolve(gtx layout.Context, style Style, spans []SpanStyle, rs RenderState)
 		})
 	}
 	return out, nLinks
+}
+
+// resolveFills converts a span's byte ranges into the rune ranges the shaper
+// counts in, dropping the ones that fill nothing.
+func resolveFills(s SpanStyle) []spanFill {
+	var out []spanFill
+	for i, f := range s.Fills {
+		if f.Color.A == 0 {
+			continue
+		}
+		start := max(f.Start, 0)
+		end := min(f.End, len(s.Content))
+		if start >= end {
+			continue
+		}
+		out = append(out, spanFill{
+			index: i,
+			from:  utf8.RuneCountInString(s.Content[:start]),
+			to:    utf8.RuneCountInString(s.Content[:end]),
+			color: f.Color,
+		})
+	}
+	return out
+}
+
+// shiftFills moves fills onto the remainder of a span split after n runes,
+// dropping the ones the first fragment consumed whole.
+func shiftFills(fills []spanFill, n int) []spanFill {
+	var out []spanFill
+	for _, f := range fills {
+		if f.to <= n {
+			continue
+		}
+		f.from = max(f.from-n, 0)
+		f.to -= n
+		out = append(out, f)
+	}
+	return out
 }
 
 // hoverBlend is the hover treatment for link text: a ~10% white overlay,
@@ -213,6 +283,20 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 			below = lead - above
 		}
 		lineTop := overall.Y + above
+		lineBox := image.Rect(0, overall.Y, 0, lineTop+maxAscent+maxDescent+below)
+		// The fills go down first, across the whole line box and under
+		// everything the line draws, so a run marked inside a chipped span
+		// keeps the chip and the glyphs stay on top of both.
+		for _, s := range segs {
+			for _, f := range s.fills {
+				r := lineBox
+				r.Min.X, r.Max.X = s.x+s.padL+f.x0, s.x+s.padL+f.x1
+				paint.FillShape(gtx.Ops, f.color, clip.Rect(r).Op())
+				if style.OnFill != nil {
+					style.OnFill(s.span, f.index, r)
+				}
+			}
+		}
 		for _, s := range segs {
 			// Baseline-align: shift each segment down so all baselines on
 			// the line coincide at lineTop+maxAscent.
@@ -278,6 +362,8 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 		}
 
 		segs = append(segs, segment{
+			span:   span.index,
+			fills:  res.fills,
 			call:   res.call,
 			x:      lineWidth,
 			width:  width,
@@ -294,6 +380,7 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 		if res.multiLine {
 			// Continue the split span on the next line.
 			work[i].content = span.content[byteLen(span.content, res.runes):]
+			work[i].fills = shiftFills(span.fills, res.runes)
 			commitLine()
 			continue
 		}
@@ -466,6 +553,7 @@ func registerLinkArea(gtx layout.Context, l *linkState, off image.Point, s segme
 // spanResult is the outcome of shaping one span against the width remaining
 // on the current line.
 type spanResult struct {
+	fills  []fillExtent
 	call   op.CallOp
 	width  int
 	height int
@@ -506,6 +594,7 @@ func layoutSpan(gtx layout.Context, shaper *text.Shaper, maxWidth int, span reso
 		}
 	}
 	return spanResult{
+		fills:            it.extents(),
 		call:             call,
 		width:            it.bounds.Dx(),
 		height:           it.bounds.Dy(),
@@ -538,7 +627,7 @@ func shapeSpan(gtx layout.Context, shaper *text.Shaper, maxWidth int, span resol
 		Locale:     gtx.Locale,
 		WrapPolicy: text.WrapWords,
 	}, span.content)
-	it := glyphIter{maxLines: 1}
+	it := glyphIter{maxLines: 1, fills: span.fills}
 	var buf [32]text.Glyph
 	line := buf[:0]
 	for g, ok := shaper.NextGlyph(); ok; g, ok = shaper.NextGlyph() {
@@ -573,6 +662,10 @@ type glyphIter struct {
 	// runes counts the runes represented by processed (non-truncator)
 	// glyphs.
 	runes int
+	// fills are the runs of this span to be filled, in runes; ext collects
+	// where each of them landed, in the order they were first reached.
+	fills []spanFill
+	ext   []fillExtent
 	// hasNewline reports a hard paragraph break inside the processed run.
 	hasNewline bool
 	// bounds is the logical bounding box of the processed glyphs; baseline
@@ -629,6 +722,43 @@ func (it *glyphIter) process(g text.Glyph) bool {
 	return true
 }
 
+// extend folds one processed glyph, covering runes [from, to), into the
+// extents of whatever fills it falls inside. The x range is measured from the
+// fragment's first glyph, which is where the fragment's own box begins.
+func (it *glyphIter) extend(from, to int, g text.Glyph) {
+	x0 := (g.X - it.firstX).Floor()
+	x1 := (g.X + g.Advance - it.firstX).Ceil()
+	for _, f := range it.fills {
+		if to <= f.from || from >= f.to {
+			continue
+		}
+		found := false
+		for i := range it.ext {
+			if it.ext[i].index != f.index {
+				continue
+			}
+			it.ext[i].x0 = min(it.ext[i].x0, x0)
+			it.ext[i].x1 = max(it.ext[i].x1, x1)
+			found = true
+			break
+		}
+		if !found {
+			it.ext = append(it.ext, fillExtent{index: f.index, color: f.color, x0: x0, x1: x1})
+		}
+	}
+}
+
+// extents returns the fills this fragment reached, empty ones dropped.
+func (it *glyphIter) extents() []fillExtent {
+	var out []fillExtent
+	for _, e := range it.ext {
+		if e.x1 > e.x0 {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
 // paint buffers processed glyphs and flushes them as outline paths at each
 // line break, when the buffer fills, or when processing stops. Bitmap
 // glyphs (CBDT/PNG color emoji) are painted after the outline fill, the way
@@ -636,11 +766,15 @@ func (it *glyphIter) process(g text.Glyph) bool {
 // by the span colour. The line slice's backing array is reused across calls
 // to keep glyph buffering off the heap.
 func (it *glyphIter) paint(gtx layout.Context, shaper *text.Shaper, g text.Glyph, line []text.Glyph) ([]text.Glyph, bool) {
+	before := it.runes
 	keep := it.process(g)
 	if keep {
 		if !it.painted {
 			it.painted = true
 			it.firstX = g.X
+		}
+		if len(it.fills) > 0 {
+			it.extend(before, it.runes, g)
 		}
 		if len(line) == 0 {
 			it.lineOff = image.Pt((g.X - it.firstX).Floor(), int(g.Y))
