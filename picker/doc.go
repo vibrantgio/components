@@ -49,6 +49,22 @@
 // height and no more. It goes with its trigger too: a scroll that carries the
 // field away takes the menu with it, the way a press elsewhere and Escape do.
 //
+// # The available room
+//
+// A floating surface has to land whole, so the field fits its menu to the room
+// there actually is. [FieldProps.AvailableRoom] is how it learns that room —
+// the pixels above the trigger's top edge and below its bottom edge, inside
+// the container that laid the field out — and it is the container's to answer,
+// because Gio hands a component its constraints and nothing about where its
+// ancestors put it. Given the room, [Drop] becomes a preference: a menu that
+// cannot be seen whole on the preferred side while the other side holds more
+// of it flips to that other side, mark and all, and either way the plane is
+// capped to what the chosen side leaves and the rows scroll inside the cap.
+// [FieldProps.MaxHeight] is a preference of the same kind — the room may
+// tighten it and can never loosen it. A caller that reports no room is
+// bounded by the window alone, which is what a floating surface is bounded by
+// when nobody says otherwise, and a catalogue opened in one wants a MaxHeight.
+//
 // Either way the surface is the same one: a floating, unscrimmed, shadowless
 // transient plane whose rows fill at level 3, the top of the elevation, and
 // whose coloured rows are the accent — the selection at the weight text is held

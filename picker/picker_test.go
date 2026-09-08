@@ -548,3 +548,100 @@ func px(img *image.RGBA, x, y int) color.NRGBA {
 	r, g, b, _ := img.At(x, y).RGBA()
 	return color.NRGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: 255}
 }
+
+// catalogue is an option list longer than any room a test gives it, so what
+// bounds the menu is the room and never the list running out.
+func catalogue(n int) []string {
+	out := make([]string, n)
+	for i := range out {
+		out[i] = "Option " + string(rune('A'+i%26))
+	}
+	return out
+}
+
+// TestUpwardMenuStaysInTheRoomAbove is the fitting contract on the side the
+// caller asked for: a field pinned near the top of a short container, dropping
+// upward, floats a plane no taller than the space above its trigger — and the
+// caller's own MaxHeight, three times that space, does not buy it back. The
+// available room tightens a preference and never loosens it.
+//
+// The extent is read off the pixels, which is where a floating plane's height
+// is visible at all: the field reports its trigger either way.
+func TestUpwardMenuStaysInTheRoomAbove(t *testing.T) {
+	row := rowHeight(tokens.Comfortable)
+	long := catalogue(40)
+	above := row * 2
+	triggerY := row * 3
+	size := image.Pt(200, row*8)
+
+	img := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, menuCover, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		off := op.Offset(image.Pt(0, triggerY)).Push(gtx.Ops)
+		defer off.Pop()
+		return field(t, picker.FieldState{
+			Open: true, Drop: picker.DropUp, Options: long, MaxHeight: unit.Dp(row * 6),
+			AvailableRoom: func(layout.Context) (int, int) { return above, 0 },
+		})(gtx)
+	})
+	if top := triggerY - above; px(img, 100, top-1) != menuCover {
+		t.Errorf("y=%d, one pixel above the room the container reported, is %v and not the %v behind it; the upward menu stands taller than the room above its trigger",
+			top-1, px(img, 100, top-1), menuCover)
+	}
+	if top := triggerY - above; px(img, 100, top) == menuCover {
+		t.Errorf("y=%d, the top of the room above the trigger, was left unpainted; the menu is shorter than the room it was given", top)
+	}
+	if mid := triggerY - 1; px(img, 100, mid) == menuCover {
+		t.Errorf("y=%d, directly above the trigger, was left unpainted; no menu was floated at all", mid)
+	}
+}
+
+// TestFieldWithNoRoomFlipsToTheSideThatHasIt is the fitting contract against
+// the side the caller asked for: [Drop] is a preference, and a field told
+// there is nothing above it and six rows below it drops DOWNWARD however it
+// was asked. Nothing is painted over the container above the trigger, the
+// plane below is the room below exactly, and the trigger is the downward
+// trigger pixel for pixel — the mark travels with the menu, because a mark
+// announcing a direction the menu does not take is a defect.
+func TestFieldWithNoRoomFlipsToTheSideThatHasIt(t *testing.T) {
+	row := rowHeight(tokens.Comfortable)
+	long := catalogue(40)
+	below := row * 6
+	triggerY := row
+	size := image.Pt(200, row*9)
+
+	flipped := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, menuCover, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		off := op.Offset(image.Pt(0, triggerY)).Push(gtx.Ops)
+		defer off.Pop()
+		return field(t, picker.FieldState{
+			Open: true, Drop: picker.DropUp, Options: long,
+			AvailableRoom: func(layout.Context) (int, int) { return 0, below },
+		})(gtx)
+	})
+	for y := 0; y < triggerY; y++ {
+		if got := px(flipped, 100, y); got != menuCover {
+			t.Fatalf("y=%d, above a trigger with no room above it, is %v and not the %v behind it; the menu did not flip", y, got, menuCover)
+		}
+	}
+	if last := triggerY + row + below - 1; px(flipped, 100, last) == menuCover {
+		t.Errorf("y=%d, the last pixel of the room below the trigger, was left unpainted; the flipped menu is shorter than the room it flipped into", last)
+	}
+	if past := triggerY + row + below; px(flipped, 100, past) != menuCover {
+		t.Errorf("y=%d, one pixel past the room below the trigger, is %v and not the %v behind it; the flipped menu is taller than the room it flipped into",
+			past, px(flipped, 100, past), menuCover)
+	}
+
+	downward := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, menuCover, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		off := op.Offset(image.Pt(0, triggerY)).Push(gtx.Ops)
+		defer off.Pop()
+		return field(t, picker.FieldState{Options: long})(gtx)
+	})
+	for y := triggerY; y < triggerY+row; y++ {
+		for x := 0; x < size.X; x++ {
+			if a, b := px(flipped, x, y), px(downward, x, y); a != b {
+				t.Fatalf("(%d,%d) of the flipped field's trigger is %v and the downward trigger's is %v; the mark does not point the way the menu went", x, y, a, b)
+			}
+		}
+	}
+}

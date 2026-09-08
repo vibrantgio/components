@@ -40,13 +40,19 @@ const fieldChevron = unit.Dp(16)
 // display and whatever the field stands in clips it back.
 const dismissReach = unit.Dp(8192)
 
-// Drop is the side an open [Field] floats its menu on.
+// Drop is the side an open [Field] PREFERS to float its menu on.
 //
 // It answers a question only the caller can see: whether the room beneath the
 // trigger is the room the menu should take. A field at the foot of a dialog
 // has none — a menu dropped there would stand off the bottom edge — so that
 // caller says [DropUp] and the menu floats above the trigger instead, over
 // whatever the window laid out before it.
+//
+// It is a preference and not an instruction. A caller that reports the
+// available room ([FieldProps.AvailableRoom]) is telling the field how much
+// there is on each side, and a menu that cannot be seen whole on the preferred
+// side while the other side holds more of it flips to that other side, mark
+// and all. With no room reported the preference is simply obeyed.
 //
 // Either way the open field reports its TRIGGER and nothing else. The menu is
 // a floating surface deferred to the end of the frame, and a floating surface
@@ -95,9 +101,24 @@ type FieldState struct {
 	// carrying the edge that level draws (see planeEdge).
 	Level tokens.ElevationLevel
 
-	// MaxHeight caps the open menu's plane; above it the rows scroll inside
-	// the cap. The zero value is no cap. See [MenuProps.MaxHeight].
+	// MaxHeight is the tallest the caller would like the open menu's plane to
+	// be; above it the rows scroll inside the cap. It is a preference the
+	// available room may TIGHTEN and can never loosen: the menu is capped to
+	// the smaller of this and what AvailableRoom leaves on the side the menu
+	// floats on. The zero value states no preference, and the room alone
+	// decides. See [MenuProps.MaxHeight].
 	MaxHeight unit.Dp
+
+	// AvailableRoom, if non-nil, reports the room the open menu has to stand
+	// in: the pixels between the trigger's top edge and the top of the
+	// container the field was laid out in, and between its bottom edge and
+	// that container's bottom. It is asked on every frame the menu stands,
+	// before the menu is laid out.
+	//
+	// The zero value is nil, and a menu with no room reported is bounded by
+	// the window alone — what a floating surface is bounded by when nobody
+	// says otherwise. See [FieldProps.AvailableRoom].
+	AvailableRoom func(gtx layout.Context) (above, below int)
 
 	// Placeholder is the wording the trigger shows in place of a value while
 	// the field holds none — Selected naming no option. See
@@ -120,11 +141,13 @@ type FieldProps struct {
 	// Selected is the initial selected index established on subscribe.
 	Selected int
 
-	// Drop is the side the open menu floats on, copied straight into
+	// Drop is the side the open menu PREFERS to float on, copied straight into
 	// [FieldState.Drop] on every frame. The zero value is [DropDown]. A caller
 	// with no room beneath the trigger says [DropUp]; either way the field
 	// reports its trigger alone and an open one is placed where a closed one
-	// is. See [Drop].
+	// is. A field that has been told the available room flips to the other
+	// side when this one cannot hold the menu and the other holds more of it.
+	// See [Drop].
 	Drop Drop
 
 	// Level is the level of the surface the field stands on — the field has no
@@ -134,13 +157,36 @@ type FieldProps struct {
 	// window's own surface. See [FieldState.Level].
 	Level tokens.ElevationLevel
 
-	// MaxHeight caps the open menu's plane; above it the rows scroll inside
-	// the cap and the selected row is kept in view. The zero value is no cap
-	// and the menu draws every option. A field whose options are a
-	// catalogue rather than a handful wants one: uncapped, the far end of
-	// the list is drawn past the bottom of the window, where nothing reaches
-	// it. See [MenuProps.MaxHeight] for what the cap trades.
+	// MaxHeight is the tallest the caller would like the open menu's plane to
+	// be; above it the rows scroll inside the cap and the selected row is kept
+	// in view. It is a PREFERENCE: the available room may tighten it and can
+	// never loosen it, so a caller that states 320 dp where only 120 dp stands
+	// above the trigger gets 120. The zero value states no preference, and a
+	// field that has been told its room is capped by the room alone.
+	//
+	// A caller that reports no room and holds a catalogue rather than a
+	// handful wants a number here: uncapped and unbounded, the far end of the
+	// list is drawn past the bottom of the window, where nothing operates it.
+	// See [MenuProps.MaxHeight] for what the cap trades.
 	MaxHeight unit.Dp
+
+	// AvailableRoom, if non-nil, is asked on every frame the menu stands for
+	// the room it has to stand in — the pixels above the trigger's top edge
+	// and below its bottom edge, inside the container that laid the field out
+	// — and it settles both questions a floating surface has: which side of
+	// the trigger the menu goes on, and how tall it may be. The menu is capped
+	// to what the chosen side leaves and scrolls inside that cap, and [Drop]
+	// is a preference the room can overrule.
+	//
+	// The container is asked because a component cannot see past its own box:
+	// Gio gives a component its constraints and no readback of the transform or
+	// of the clip its ancestors imposed, so where the trigger stands inside
+	// the dialog, the column or the window around it is knowable only where
+	// that box was laid out. The container measures it; it is not a number
+	// anybody picks.
+	//
+	// Nil leaves the menu bounded by the window alone.
+	AvailableRoom func(gtx layout.Context) (above, below int)
 
 	// Placeholder is what the trigger says while the field holds no value:
 	// the prompt that stands where the chosen option will, drawn in the
@@ -300,16 +346,17 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 				foc := !dis && gtx.Focused(&trigger)
 
 				dims := layoutFieldLive(gtx, shaper, &trigger, optClicks, rows, &outside, tok, props.Description, FieldState{
-					Open:        open,
-					Focused:     foc,
-					Disabled:    dis,
-					Selected:    selected,
-					Options:     props.Options,
-					Drop:        props.Drop,
-					Level:       props.Level,
-					MaxHeight:   props.MaxHeight,
-					Placeholder: props.Placeholder,
-					NoOptions:   props.NoOptions,
+					Open:          open,
+					Focused:       foc,
+					Disabled:      dis,
+					Selected:      selected,
+					Options:       props.Options,
+					Drop:          props.Drop,
+					Level:         props.Level,
+					MaxHeight:     props.MaxHeight,
+					AvailableRoom: props.AvailableRoom,
+					Placeholder:   props.Placeholder,
+					NoOptions:     props.NoOptions,
 				})
 				if moved := rows.Selected(); open && moved >= 0 && moved != selected {
 					selected = moved
@@ -399,6 +446,13 @@ func RenderField(
 
 // layoutFieldLive lays out the interactive field with Clickable hit areas.
 func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Clickable, optClicks []widget.Clickable, rows *list.State, outside *int, tok resolvedTokens, desc string, s FieldState) layout.Dimensions {
+	// The side and the cap are settled before anything is drawn, because the
+	// mark on the trigger announces the side: a trigger recorded pointing one
+	// way over a menu that flipped the other would be a defect.
+	drop, capPx := fitMenu(gtx, shaper, tok, s)
+	marked := s
+	marked.Drop = drop
+
 	// The trigger's pointer area is at least MinHitTarget (44 dp) on each
 	// axis, centred on the visual bar: density shrinks the drawn trigger,
 	// never the hit target. The menu's rows are not extended — see
@@ -409,7 +463,7 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 		if desc != "" {
 			semantic.DescriptionOp(desc).Add(gtx.Ops)
 		}
-		return drawTrigger(gtx, shaper, tok, s)
+		return drawTrigger(gtx, shaper, tok, marked)
 	})
 	triggerCall := triggerMacro.Stop()
 
@@ -420,11 +474,10 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 
 	menuMacro := op.Record(gtx.Ops)
 	menuDims := layoutMenuLive(gtx, shaper, optClicks, rows, tok, MenuState{
-		Options:   s.Options,
-		Selected:  s.Selected,
-		Hovered:   hoveredRow(optClicks),
-		MaxHeight: s.MaxHeight,
-	})
+		Options:  s.Options,
+		Selected: s.Selected,
+		Hovered:  hoveredRow(optClicks),
+	}, capPx)
 	menuCall := menuMacro.Stop()
 
 	// The outside-press absorber, registered before the trigger and the rows
@@ -440,11 +493,89 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 	event.Op(gtx.Ops, outside)
 	area.Pop()
 
-	return floatMenu(gtx, s.Drop, tok, triggerCall, triggerDims, menuCall, menuDims)
+	return floatMenu(gtx, drop, tok, triggerCall, triggerDims, menuCall, menuDims)
+}
+
+// fitMenu settles the two questions the available room answers before an open
+// menu is laid out: which side of the trigger it floats on, and how tall its
+// plane may be. A closed field, or one with nothing to pick, is asked nothing
+// and keeps the caller's own side and preference.
+//
+// [FieldState.Drop] is a preference and stands unless the room says otherwise.
+// The menu FLIPS when the preferred side cannot hold what the menu would draw
+// and the other side holds more of it: a surface the reader can see more of is
+// worth the side the caller did not ask for, and a surface that fits where it
+// was asked to go is not moved for a roomier neighbour. The cap is then the
+// chosen side's room, tightened further by [FieldState.MaxHeight] where the
+// caller stated one — the room may tighten a preference and never loosen it —
+// and a cap no smaller than the menu's own height is no cap at all, so a menu
+// with room to spare stacks its rows plainly and draws whole.
+//
+// With no room reported ([FieldState.AvailableRoom] nil) the caller's side and
+// cap are the whole answer and the menu is bounded by the window.
+func fitMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s FieldState) (Drop, int) {
+	prefer := capPixels(gtx, s.MaxHeight)
+	if !s.Open || len(s.Options) == 0 || s.AvailableRoom == nil {
+		return s.Drop, prefer
+	}
+
+	// What the menu would draw uncapped, row by row, so the cap can end on a
+	// row's edge as well as inside the room.
+	heights := rowHeights(gtx, shaper, tok, MenuState{Options: s.Options, Selected: s.Selected})
+	uncapped := 0
+	for _, h := range heights {
+		uncapped += h
+	}
+
+	above, below := s.AvailableRoom(gtx)
+	drop := s.Drop
+	room, other := below, above
+	if drop == DropUp {
+		room, other = above, below
+	}
+	want := uncapped
+	if prefer > 0 && prefer < want {
+		want = prefer
+	}
+	if room < want && other > room {
+		if drop == DropUp {
+			drop = DropDown
+		} else {
+			drop = DropUp
+		}
+		room = other
+	}
+	capPx := room
+	if prefer > 0 && prefer < capPx {
+		capPx = prefer
+	}
+	// The plane ends on a row's edge: a cap taken raw stops through the
+	// letters of whatever row the room ran out inside, which reads as a
+	// drawing fault rather than as more rows below. A room too small for even
+	// one row keeps the room, since the room is the bound.
+	whole := 0
+	for _, h := range heights {
+		if whole+h > capPx {
+			break
+		}
+		whole += h
+	}
+	if whole > 0 {
+		capPx = whole
+	}
+	// A side that leaves nothing is still a bound and not the absence of one,
+	// so the plane is capped to a sliver rather than uncapped.
+	if capPx < 1 {
+		capPx = 1
+	}
+	if capPx >= uncapped {
+		return drop, 0
+	}
+	return drop, capPx
 }
 
 // floatMenu draws the recorded trigger where the caller put it, floats the
-// recorded menu against it on the [Drop]'s side — directly beneath under
+// recorded menu against it on the side fitMenu chose — directly beneath under
 // [DropDown], directly above under [DropUp] — and reports the TRIGGER, which
 // is the whole of what the field measures whether its menu stands or not.
 //
@@ -514,8 +645,12 @@ func planeEdge(gtx layout.Context, size image.Point, c tokens.ColorTokens) {
 // drawField renders the static field — the trigger and, when open, the menu
 // it floats — for golden-image testing.
 func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s FieldState) layout.Dimensions {
+	drop, capPx := fitMenu(gtx, shaper, tok, s)
+	marked := s
+	marked.Drop = drop
+
 	triggerMacro := op.Record(gtx.Ops)
-	triggerDims := drawTrigger(gtx, shaper, tok, s)
+	triggerDims := drawTrigger(gtx, shaper, tok, marked)
 	triggerCall := triggerMacro.Stop()
 
 	if !s.Open || len(s.Options) == 0 {
@@ -525,13 +660,12 @@ func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fi
 
 	menuMacro := op.Record(gtx.Ops)
 	menuDims := drawMenu(gtx, shaper, tok, MenuState{
-		Options:   s.Options,
-		Selected:  s.Selected,
-		MaxHeight: s.MaxHeight,
-	})
+		Options:  s.Options,
+		Selected: s.Selected,
+	}, capPx)
 	menuCall := menuMacro.Stop()
 
-	return floatMenu(gtx, s.Drop, tok, triggerCall, triggerDims, menuCall, menuDims)
+	return floatMenu(gtx, drop, tok, triggerCall, triggerDims, menuCall, menuDims)
 }
 
 // drawTrigger renders the field trigger bar (the closed face).

@@ -162,11 +162,10 @@ func Menu(th rx.Observable[theme.Theme], props MenuProps) rx.Observable[layout.W
 					rows.Reveal(selected)
 				}
 				dims := layoutMenuLive(gtx, shaper, optClicks, rows, tok, MenuState{
-					Options:   props.Options,
-					Selected:  selected,
-					Hovered:   hoveredRow(optClicks),
-					MaxHeight: props.MaxHeight,
-				})
+					Options:  props.Options,
+					Selected: selected,
+					Hovered:  hoveredRow(optClicks),
+				}, capPixels(gtx, props.MaxHeight))
 				if moved := rows.Selected(); moved >= 0 && moved != selected {
 					selected = moved
 					dispatch(gtx, props.OnSelect, props.Message, moved)
@@ -200,6 +199,15 @@ func hoveredRow(optClicks []widget.Clickable) int {
 	return 0
 }
 
+// capPixels converts a stated [MenuProps.MaxHeight] into the pixel cap the row
+// stack takes, where zero is no cap at all.
+func capPixels(gtx layout.Context, h unit.Dp) int {
+	if h <= 0 {
+		return 0
+	}
+	return gtx.Dp(h)
+}
+
 // RenderMenu produces a layout.Widget for the open surface in an explicit
 // visual state, without any event processing or rx machinery. Intended for
 // golden-image testing and static demonstrations; production code should use
@@ -223,7 +231,7 @@ func RenderMenu(
 ) layout.Widget {
 	tok := resolvedTokens{color: colors, spacing: sp, body: body, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
-		return drawMenu(gtx, shaper, tok, s)
+		return drawMenu(gtx, shaper, tok, s, capPixels(gtx, s.MaxHeight))
 	}
 }
 
@@ -258,8 +266,8 @@ func menuTokens(th rx.Observable[theme.Theme]) rx.Observable[resolvedTokens] {
 // floor in both densities — so both clear WCAG 2.5.8 Target Size (Minimum),
 // the 24 dp AA criterion these rows are held to. See tokens.MinHitTarget for
 // why 2.5.5's 44 dp is not that criterion.
-func layoutMenuLive(gtx layout.Context, shaper *text.Shaper, optClicks []widget.Clickable, rows *list.State, tok resolvedTokens, s MenuState) layout.Dimensions {
-	return stackRows(gtx, rows, len(s.Options), s.MaxHeight, tok, func(gtx layout.Context, i int) layout.Dimensions {
+func layoutMenuLive(gtx layout.Context, shaper *text.Shaper, optClicks []widget.Clickable, rows *list.State, tok resolvedTokens, s MenuState, capPx int) layout.Dimensions {
+	return stackRows(gtx, rows, len(s.Options), capPx, tok, func(gtx layout.Context, i int) layout.Dimensions {
 		return optClicks[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			semantic.Button.Add(gtx.Ops)
 			return drawOptionRow(gtx, shaper, tok, i == s.Selected, i+1 == s.Hovered, s.Options[i])
@@ -268,11 +276,11 @@ func layoutMenuLive(gtx layout.Context, shaper *text.Shaper, optClicks []widget.
 }
 
 // drawMenu stacks the option rows for the pure path.
-func drawMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s MenuState) layout.Dimensions {
+func drawMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s MenuState, capPx int) layout.Dimensions {
 	// A viewport with no frames behind it: a static render of a capped menu
 	// is its resting state, the rows from the top, because a scroll position
 	// is something a menu acquires by being scrolled.
-	return stackRows(gtx, nil, len(s.Options), s.MaxHeight, tok, func(gtx layout.Context, i int) layout.Dimensions {
+	return stackRows(gtx, nil, len(s.Options), capPx, tok, func(gtx layout.Context, i int) layout.Dimensions {
 		return drawOptionRow(gtx, shaper, tok, i == s.Selected, i+1 == s.Hovered, s.Options[i])
 	})
 }
@@ -297,14 +305,14 @@ func drawMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Men
 // catalogue short earns the bar.
 //
 // rows may be nil, and is where there are no frames to keep a position across.
-func stackRows(gtx layout.Context, rows *list.State, n int, maxH unit.Dp, tok resolvedTokens, row func(gtx layout.Context, i int) layout.Dimensions) layout.Dimensions {
+func stackRows(gtx layout.Context, rows *list.State, n, capPx int, tok resolvedTokens, row func(gtx layout.Context, i int) layout.Dimensions) layout.Dimensions {
 	if n == 0 {
 		// An empty menu is not an empty plane, it is nothing at all.
 		return layout.Dimensions{}
 	}
 	fieldW := gtx.Constraints.Max.X
 
-	if maxH <= 0 {
+	if capPx <= 0 {
 		totalH := 0
 		for i := 0; i < n; i++ {
 			off := op.Offset(image.Pt(0, totalH)).Push(gtx.Ops)
@@ -320,16 +328,12 @@ func stackRows(gtx layout.Context, rows *list.State, n int, maxH unit.Dp, tok re
 		return layout.Dimensions{Size: image.Pt(fieldW, totalH)}
 	}
 
-	capPx := gtx.Dp(maxH)
-	if capPx < 1 {
-		capPx = 1
-	}
 	if rows == nil {
 		rows = list.NewState()
 	}
-	// The cap is the caller's number and not a share of the box the menu was
-	// offered: a field's menu is drawn outside the trigger's own row and the
-	// height it was handed says nothing about the room the menu has.
+	// The cap is a height in pixels and not a share of the box the menu was
+	// offered: a field's menu is drawn outside the trigger's own row, so the
+	// box the rows were handed says nothing about the room the menu has.
 	viewGtx := gtx
 	viewGtx.Constraints = layout.Constraints{
 		Min: image.Pt(fieldW, 0),
@@ -346,6 +350,26 @@ func stackRows(gtx layout.Context, rows *list.State, n int, maxH unit.Dp, tok re
 	return list.LayoutSelectableScrollbar(viewGtx, rows, bar, list.Overlay, idx, func(gtx layout.Context, i int, _ bool) layout.Dimensions {
 		return row(gtx, i)
 	})
+}
+
+// rowHeights measures every option row on its own, into a recording nothing
+// adds, so a caller fitting the plane to the available room can end the plane
+// on a row's edge instead of through one row's letters. The rows are measured
+// at the width the menu will draw at, which is what a row's height is a
+// function of once a label is long enough to wrap.
+func rowHeights(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s MenuState) []int {
+	hs := make([]int, len(s.Options))
+	measure := op.Record(gtx.Ops)
+	rowGtx := gtx
+	rowGtx.Constraints = layout.Constraints{
+		Min: image.Point{},
+		Max: image.Pt(gtx.Constraints.Max.X, gtx.Constraints.Max.Y),
+	}
+	for i := range s.Options {
+		hs[i] = drawOptionRow(rowGtx, shaper, tok, i == s.Selected, false, s.Options[i]).Size.Y
+	}
+	measure.Stop()
+	return hs
 }
 
 // optionRowColors returns an option row's fill and the foreground that reads
