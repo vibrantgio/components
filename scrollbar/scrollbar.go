@@ -45,8 +45,10 @@ func NewState() *State {
 	return &State{}
 }
 
-// Style describes how a scrollbar is drawn for one frame: resolved colours
-// plus metrics. Derive defaults with FromTokens and override fields as needed.
+// Style describes how a scrollbar is drawn for one frame: resolved colours,
+// metrics, and — while the caller has a search query — where its matches lie
+// in the content. Derive defaults with FromTokens and override fields as
+// needed.
 type Style struct {
 	// ThumbColor fills the thumb at rest.
 	ThumbColor color.NRGBA
@@ -63,6 +65,40 @@ type Style struct {
 	ThumbCornerRadius unit.Dp
 	// ThumbMinLen is the minimum thumb length along the major axis.
 	ThumbMinLen unit.Dp
+
+	// Matches says where the matches of the caller's search query lie in the
+	// content: one entry per match, as a fraction of the content's length in
+	// [0,1], in any order. The bar paints each of them inside the track at
+	// that fraction of its major axis, so the reader sees where in the whole
+	// content the query was found and not merely inside the viewport.
+	//
+	// An empty slice paints nothing. The caller sets this per frame and drops
+	// it when it drops the query, which is what makes what is painted live
+	// exactly as long as the query does.
+	Matches []float32
+	// Current indexes Matches: the one match the caller is on, painted in
+	// CurrentMatchFill while the rest take MatchFill. An index outside
+	// Matches — the -1 FromTokens starts at — paints every match alike.
+	Current int
+
+	// MatchFill paints one match of the caller's query in the track.
+	//
+	// FromTokens takes the theme's highlight, the fill this system reserves
+	// for marking content the reader is being shown, so what the bar paints
+	// and what the content itself is marked with are the same fill.
+	MatchFill color.NRGBA
+	// CurrentMatchFill paints the match named by Current, so the reader can
+	// tell it from the others while stepping through them.
+	//
+	// FromTokens takes the same highlight carried one step further from the
+	// page on the scheme's own scale, which is deeper in a light scheme and
+	// brighter in a dark one.
+	CurrentMatchFill color.NRGBA
+	// MatchLen is the extent along the major axis of what one match is
+	// painted as; it spans the track's minor extent, the thumb's own width.
+	// It has to survive a 1:1 device pixel ratio, so it is a few dp and not
+	// one.
+	MatchLen unit.Dp
 
 	// FadeDelay is how long the bar stays fully opaque after the last
 	// activity — a scroll, a hover over the gutter or thumb, or a drag —
@@ -201,6 +237,13 @@ func thumbForeground(c tokens.ColorTokens, floor float64, coverage uint8) color.
 // middle of fading out is on its way to invisible on purpose. The gutter
 // keeps its hit areas while faded, so moving the pointer onto it brings the
 // bar back. Set FadeDelay to zero for a bar that stays visible.
+//
+// What the bar paints for a search query does not fade with the thumb: on
+// macOS the places of the matches stay in the track for as long as the query
+// does, and a reader who has just searched is looking for exactly them. The
+// current match is one step further from the page on the scheme's own scale
+// than the rest, rather than a second colour, because the two are one kind of
+// mark at two strengths; no token is reserved for either.
 func FromTokens(c tokens.ColorTokens) Style {
 	return Style{
 		ThumbColor:        thumbForeground(c, restFloor, restCoverage),
@@ -210,6 +253,10 @@ func FromTokens(c tokens.ColorTokens) Style {
 		TrackPadding:      2,
 		ThumbCornerRadius: 3,
 		ThumbMinLen:       16,
+		Current:           -1,
+		MatchFill:         c.Highlight,
+		CurrentMatchFill:  c.PinnedStateColor(c.Highlight, tokens.StateHover),
+		MatchLen:          3,
 		FadeDelay:         time.Second,
 		FadeDuration:      tokens.Motion.DurSlow,
 	}

@@ -2,6 +2,7 @@ package scrollbar
 
 import (
 	"image"
+	"image/color"
 	"math"
 
 	"gioui.org/io/pointer"
@@ -62,6 +63,13 @@ func (s Style) fade(gtx layout.Context, state *State, viewportStart, viewportEnd
 // With a non-zero Style.FadeDelay the thumb fades out once the content stops
 // moving and the pointer leaves the gutter; it keeps its size and its hit
 // areas throughout, so nothing reflows and a hover brings it back. See fade.
+//
+// While Style.Matches holds the places of a search query's matches, the bar
+// paints each of them in the track and the thumb passes under them: they are
+// drawn after it, so none is ever hidden, and they keep their opacity while
+// the thumb fades. Nothing is painted for a query with no matches, and the
+// bar renders nothing at all while the content fits, matches or not. See
+// paintMatches.
 func (s Style) Layout(gtx layout.Context, state *State, axis layout.Axis, viewportStart, viewportEnd float32) layout.Dimensions {
 	if viewportStart <= 0 && viewportEnd >= 1 {
 		// Everything fits: no scrollbar.
@@ -135,25 +143,71 @@ func (s Style) Layout(gtx layout.Context, state *State, axis layout.Axis, viewpo
 				})
 				radius := gtx.Dp(s.ThumbCornerRadius)
 
-				// Draw the thumb.
-				offset := convert(image.Pt(viewStart, 0))
-				defer op.Offset(offset).Push(gtx.Ops).Pop()
-				paint.FillShape(gtx.Ops, thumbColor, clip.RRect{
-					Rect: image.Rectangle{Max: thumbDims},
-					SW:   radius,
-					NW:   radius,
-					NE:   radius,
-					SE:   radius,
-				}.Op(gtx.Ops))
+				// The thumb draws inside its own scope so that its offset
+				// is popped before anything after it is drawn.
+				func() {
+					offset := convert(image.Pt(viewStart, 0))
+					defer op.Offset(offset).Push(gtx.Ops).Pop()
+					paint.FillShape(gtx.Ops, thumbColor, clip.RRect{
+						Rect: image.Rectangle{Max: thumbDims},
+						SW:   radius,
+						NW:   radius,
+						NE:   radius,
+						SE:   radius,
+					}.Op(gtx.Ops))
 
-				// Register the thumb's pointer hit area.
-				area := clip.Rect(image.Rectangle{Max: thumbDims})
-				defer pointer.PassOp{}.Push(gtx.Ops).Pop()
-				defer area.Push(gtx.Ops).Pop()
-				state.AddIndicator(gtx.Ops)
+					// Register the thumb's pointer hit area.
+					area := clip.Rect(image.Rectangle{Max: thumbDims})
+					defer pointer.PassOp{}.Push(gtx.Ops).Pop()
+					defer area.Push(gtx.Ops).Pop()
+					state.AddIndicator(gtx.Ops)
+				}()
+
+				s.paintMatches(gtx, convert, trackLen, gtx.Constraints.Min.Y)
 
 				return layout.Dimensions{Size: convert(gtx.Constraints.Min)}
 			})
 		},
 	)
+}
+
+// paintMatches paints where each of Style.Matches lies inside the track:
+// across the track's minor extent, MatchLen long along its major axis,
+// centred on the match's fraction of the track and pushed inside the track's
+// two ends so the first and the last are painted whole. trackLen and minor
+// are the track's extents in pixels, in axis-independent space; convert maps
+// that space to the axis being drawn.
+//
+// It is called after the thumb has been drawn, which is what keeps the thumb
+// from ever hiding a match: the thumb passes under them rather than over
+// them. And it is called with the fills at their full opacity, outside the
+// fade the thumb takes, because the places of the matches stay in the track
+// for as long as the query does.
+//
+// The current match is painted last so that it is the one that survives where
+// two matches land on the same pixels.
+func (s Style) paintMatches(gtx layout.Context, convert func(image.Point) image.Point, trackLen, minor int) {
+	length := gtx.Dp(s.MatchLen)
+	if len(s.Matches) == 0 || length <= 0 || trackLen <= 0 || minor <= 0 {
+		return
+	}
+	length = min(length, trackLen)
+	paintAt := func(fraction float32, fill color.NRGBA) {
+		start := int(math.Round(float64(clamp1(fraction))*float64(trackLen))) - length/2
+		start = min(max(start, 0), trackLen-length)
+		rect := image.Rectangle{
+			Min: convert(image.Pt(start, 0)),
+			Max: convert(image.Pt(start+length, minor)),
+		}
+		paint.FillShape(gtx.Ops, fill, clip.Rect(rect).Op())
+	}
+	for i, fraction := range s.Matches {
+		if i == s.Current {
+			continue
+		}
+		paintAt(fraction, s.MatchFill)
+	}
+	if s.Current >= 0 && s.Current < len(s.Matches) {
+		paintAt(s.Matches[s.Current], s.CurrentMatchFill)
+	}
 }

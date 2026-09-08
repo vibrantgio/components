@@ -102,7 +102,12 @@ type Inventory struct {
 	listSt  *list.State
 	barList layout.List
 	barSt   *scrollbar.State
-	areaSt  *scrollarea.State
+	// The search specimen keeps its own list and bar so that scrolling the
+	// plain scrollbar above it does not move it: the two sections stand side
+	// by side in one column and answer different questions.
+	foundList layout.List
+	foundSt   *scrollbar.State
+	areaSt    *scrollarea.State
 
 	marks *icons.Set
 	reg   *icon.Registry
@@ -166,16 +171,18 @@ func New(shaper *text.Shaper) *Inventory { return NewForOS(shaper, runtime.GOOS)
 // same bytes on every machine has to name the platform it is of.
 func NewForOS(shaper *text.Shaper, goos string) *Inventory {
 	inv := &Inventory{
-		shaper:  shaper,
-		typo:    tokens.DefaultTypography,
-		listSt:  list.NewState(),
-		barList: layout.List{Axis: layout.Vertical},
-		barSt:   scrollbar.NewState(),
-		areaSt:  scrollarea.NewState(),
-		marks:   icons.New(goos),
-		reg:     icon.New(),
-		doc:     markdown.NewDocument(markdown.Parse([]byte(readingSample))),
-		code:    markdown.NewDocument(markdown.Parse([]byte(codeSample))),
+		shaper:    shaper,
+		typo:      tokens.DefaultTypography,
+		listSt:    list.NewState(),
+		barList:   layout.List{Axis: layout.Vertical},
+		foundList: layout.List{Axis: layout.Vertical},
+		foundSt:   scrollbar.NewState(),
+		barSt:     scrollbar.NewState(),
+		areaSt:    scrollarea.NewState(),
+		marks:     icons.New(goos),
+		reg:       icon.New(),
+		doc:       markdown.NewDocument(markdown.Parse([]byte(readingSample))),
+		code:      markdown.NewDocument(markdown.Parse([]byte(codeSample))),
 	}
 	inv.rows = make([]string, 40)
 	inv.bars = make([]string, 40)
@@ -438,6 +445,8 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.listBlock(c)},
 		{Name: "components-scrollbar", Title: "Scrollbar — a standalone bar beside its content", Height: 180,
 			Body: inv.scrollbarBlock(c)},
+		{Name: "components-scrollbar-search", Title: "Scrollbar — while a search is on, where the matches lie in the content, the current one stronger", Height: 180,
+			Body: inv.scrollbarSearchBlock(c)},
 		{Name: "components-scrollarea", Title: "Scroll area — the edge dissolves while content is hidden past it", Height: 56,
 			Body: inv.scrollAreaBlock(c)},
 		{Name: "components-paragraph", Title: "Paragraph — weight, style, face, colour, size and links in one run of text", Height: 151,
@@ -1298,6 +1307,41 @@ func (inv *Inventory) scrollbarBlock(c tokens.ColorTokens) layout.Widget {
 				dims := style.Layout(gtx, inv.barSt, layout.Vertical, start, end)
 				if d := inv.barSt.ScrollDistance(); d != 0 {
 					inv.barList.ScrollBy(d * float32(len(inv.bars)))
+				}
+				return dims
+			}),
+		)
+	}
+}
+
+// scrollbarSearchBlock is the bar of the section above it with a search on:
+// the same content, and the places of five matches spread through the whole
+// of it, the one the reader is on mid-track. The thumb is parked at the
+// start, so the pair the section is for is visible at once — a match the
+// thumb sits on is painted over it, and a match far below the viewport is
+// painted all the same.
+func (inv *Inventory) scrollbarSearchBlock(c tokens.ColorTokens) layout.Widget {
+	style := scrollbar.FromTokens(c)
+	style.Matches = []float32{0.04, 0.23, 0.5, 0.71, 0.96}
+	style.Current = 2
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(520))
+		gtx.Constraints.Min = gtx.Constraints.Max
+		h := gtx.Constraints.Max.Y
+		barW := gtx.Dp(style.Width())
+		return layout.Flex{}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Max.X -= barW
+				gtx.Constraints.Min = gtx.Constraints.Max
+				return inv.foundList.Layout(gtx, len(inv.bars), func(gtx layout.Context, i int) layout.Dimensions {
+					return inv.textRow(gtx, inv.bars[i], c)
+				})
+			}),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				start, end := scrollbar.FromListPosition(inv.foundList.Position, len(inv.bars), h)
+				dims := style.Layout(gtx, inv.foundSt, layout.Vertical, start, end)
+				if d := inv.foundSt.ScrollDistance(); d != 0 {
+					inv.foundList.ScrollBy(d * float32(len(inv.bars)))
 				}
 				return dims
 			}),
