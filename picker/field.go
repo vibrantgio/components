@@ -40,19 +40,19 @@ const fieldChevron = unit.Dp(16)
 // display and whatever the field stands in clips it back.
 const dismissReach = unit.Dp(8192)
 
-// Drop is the direction an open [Field] stacks its menu in.
+// Drop is the side an open [Field] floats its menu on.
 //
 // It answers a question only the caller can see: whether the room beneath the
-// trigger is room the menu may have. A field at the foot of a dialog whose
-// action row is drawn after the body has none — a menu dropped there is
-// painted over by the row — so that caller says [DropUp] and the menu stands
-// above instead.
+// trigger is the room the menu should take. A field at the foot of a dialog
+// has none — a menu dropped there would stand off the bottom edge — so that
+// caller says [DropUp] and the menu floats above the trigger instead, over
+// whatever the window laid out before it.
 //
-// Either way the open field is the trigger plus the menu, stacked, and the
-// component reports both; what changes is the order. [DropUp] therefore puts the
-// TRIGGER at the bottom of the reported box, so a caller placing an upward
-// field aligns that box's BOTTOM edge with the row the trigger stands in —
-// record the layout.Widget, read the height it reports, and offset by it.
+// Either way the open field reports its TRIGGER and nothing else. The menu is
+// a floating surface deferred to the end of the frame, and a floating surface
+// asks the container its anchor stands in for no room: an open field is placed
+// exactly where a closed one is, and the direction changes what the menu
+// covers, never the box the field reports.
 //
 // It is also what the trigger's own mark says, open or closed: the triangle
 // points the way the menu will go. A mark that pointed down over a menu that
@@ -60,11 +60,11 @@ const dismissReach = unit.Dp(8192)
 type Drop uint8
 
 const (
-	// DropDown is the zero value: the menu stands directly beneath the
+	// DropDown is the zero value: the menu floats directly beneath the
 	// trigger, which is what a form's select does.
 	DropDown Drop = iota
 
-	// DropUp stands the menu directly above the trigger.
+	// DropUp floats the menu directly above the trigger.
 	DropUp
 )
 
@@ -81,8 +81,8 @@ type FieldState struct {
 	Selected int
 	Options  []string
 
-	// Drop is which way the open menu stacks. The zero value is [DropDown],
-	// beneath the trigger. See [Drop].
+	// Drop is the side the open menu floats on. The zero value is
+	// [DropDown], beneath the trigger. See [Drop].
 	Drop Drop
 
 	// Level is the level of the surface the trigger stands on — the trigger
@@ -120,10 +120,11 @@ type FieldProps struct {
 	// Selected is the initial selected index established on subscribe.
 	Selected int
 
-	// Drop is which way the open menu stacks, copied straight into
+	// Drop is the side the open menu floats on, copied straight into
 	// [FieldState.Drop] on every frame. The zero value is [DropDown]. A caller
-	// with no room beneath the trigger says [DropUp] and then places the
-	// component by its bottom edge. See [Drop].
+	// with no room beneath the trigger says [DropUp]; either way the field
+	// reports its trigger alone and an open one is placed where a closed one
+	// is. See [Drop].
 	Drop Drop
 
 	// Level is the level of the surface the field stands on — the field has no
@@ -188,7 +189,7 @@ type FieldProps struct {
 
 // Field returns an rx.Observable[layout.Widget] that emits a new widget
 // whenever the theme or disabled state changes: the form variant's picker —
-// the flat trigger bar and, while it is open, the [Menu] it stacks against
+// the flat trigger bar and, while it is open, the [Menu] it floats against
 // itself, beneath by default and above under [DropUp]. Interaction state
 // (open/closed, selected index, focus) lives in the rx.Defer scope and
 // persists across emissions.
@@ -439,40 +440,38 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 	event.Op(gtx.Ops, outside)
 	area.Pop()
 
-	return stackOpen(gtx, s.Drop, tok, triggerCall, triggerDims, menuCall, menuDims)
+	return floatMenu(gtx, s.Drop, tok, triggerCall, triggerDims, menuCall, menuDims)
 }
 
-// stackOpen places the recorded trigger and menu in the [Drop]'s order and
-// reports the whole stack, because what was drawn is what a container has to
-// make room for. Under [DropUp] the trigger is the LOWER half, which is what
-// lets an upward field be placed by the bottom edge of the box it reports.
+// floatMenu draws the recorded trigger where the caller put it, floats the
+// recorded menu against it on the [Drop]'s side — directly beneath under
+// [DropDown], directly above under [DropUp] — and reports the TRIGGER, which
+// is the whole of what the field measures whether its menu stands or not.
 //
-// The trigger is drawn inline, where the caller put it; the menu and its edge
-// go through op.Defer, so the open plane paints and hit-tests above every
-// sibling the window lays out after the field's slot. patterns/popover's
-// package doc states the idiom and what deferral keeps and drops. The
-// reported box is unchanged: the menu floats over what follows it in the
-// frame and the field still asks its container for the room, so a caller
-// placing an upward field by the box's bottom edge places it where it did.
+// The menu and its edge go through op.Defer, so the open plane paints and
+// hit-tests above every sibling the window lays out after the field's slot,
+// bounded by the window rather than by whatever clipped the trigger.
+// patterns/popover's package doc states the idiom and what deferral keeps and
+// drops. A floating surface takes no room from the container its anchor
+// stands in, so the box the field reports is the trigger's either way and an
+// open field is placed exactly where a closed one is.
 //
 // The menu's plane takes its edge here, in both directions, because the plane
 // is the field's to draw: [Menu] handed to a pattern is circled by that
 // pattern's own surface and would wear two lines.
-func stackOpen(gtx layout.Context, d Drop, tok resolvedTokens, trigger op.CallOp, triggerDims layout.Dimensions, menu op.CallOp, menuDims layout.Dimensions) layout.Dimensions {
-	triggerY, menuY := 0, triggerDims.Size.Y
-	if d == DropUp {
-		triggerY, menuY = menuDims.Size.Y, 0
-	}
-	off := op.Offset(image.Pt(0, triggerY)).Push(gtx.Ops)
+func floatMenu(gtx layout.Context, d Drop, tok resolvedTokens, trigger op.CallOp, triggerDims layout.Dimensions, menu op.CallOp, menuDims layout.Dimensions) layout.Dimensions {
 	trigger.Add(gtx.Ops)
-	off.Pop()
+	menuY := triggerDims.Size.Y
+	if d == DropUp {
+		menuY = -menuDims.Size.Y
+	}
 	floating := op.Record(gtx.Ops)
 	menuOff := op.Offset(image.Pt(0, menuY)).Push(gtx.Ops)
 	menu.Add(gtx.Ops)
 	planeEdge(gtx, menuDims.Size, tok.color)
 	menuOff.Pop()
 	op.Defer(gtx.Ops, floating.Stop())
-	return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, triggerDims.Size.Y+menuDims.Size.Y)}
+	return triggerDims
 }
 
 // planeEdge draws the open menu's own edge: the one line that says where the
@@ -492,7 +491,7 @@ func stackOpen(gtx layout.Context, d Drop, tok resolvedTokens, trigger op.CallOp
 // depth in both schemes while the surface under it moves the whole way.
 //
 // It is drawn INSIDE the box the menu reported, on all four sides, so the edge
-// costs the stack no height and the two drop directions are one drawing.
+// costs the plane no height and the two drop directions are one drawing.
 func planeEdge(gtx layout.Context, size image.Point, c tokens.ColorTokens) {
 	if size.X <= 0 || size.Y <= 0 {
 		return
@@ -513,7 +512,7 @@ func planeEdge(gtx layout.Context, size image.Point, c tokens.ColorTokens) {
 }
 
 // drawField renders the static field — the trigger and, when open, the menu
-// under it — for golden-image testing.
+// it floats — for golden-image testing.
 func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s FieldState) layout.Dimensions {
 	triggerMacro := op.Record(gtx.Ops)
 	triggerDims := drawTrigger(gtx, shaper, tok, s)
@@ -532,7 +531,7 @@ func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fi
 	})
 	menuCall := menuMacro.Stop()
 
-	return stackOpen(gtx, s.Drop, tok, triggerCall, triggerDims, menuCall, menuDims)
+	return floatMenu(gtx, s.Drop, tok, triggerCall, triggerDims, menuCall, menuDims)
 }
 
 // drawTrigger renders the field trigger bar (the closed face).

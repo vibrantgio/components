@@ -102,7 +102,7 @@ func TestFieldTriggerHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 	}
 }
 
-// TestOpenFieldStacksTheSharedMenuUnderItsTrigger is the one-surface contract:
+// TestOpenFieldFloatsTheSharedMenuUnderItsTrigger is the one-surface contract:
 // the menu an open field drops is [Menu], not a second drawing of it. The
 // composite below draws the closed trigger, the standalone menu at the
 // trigger's own height, and the edge the field draws around that menu's plane
@@ -114,7 +114,7 @@ func TestFieldTriggerHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 // the field. What the shared-surface contract holds is that the rows are one
 // drawing; the edge around them is the field's frame and is asserted here as
 // the third term rather than folded into either.
-func TestOpenFieldStacksTheSharedMenuUnderItsTrigger(t *testing.T) {
+func TestOpenFieldFloatsTheSharedMenuUnderItsTrigger(t *testing.T) {
 	row := rowHeight(tokens.Comfortable)
 	size := image.Pt(200, row*(1+len(options)))
 
@@ -153,33 +153,88 @@ func planeEdge(gtx layout.Context, size image.Point) {
 	}
 }
 
-// TestOpenFieldMeasuresTheTriggerPlusEveryRow: the open component reports the
-// whole stack, because what it drew is what a container has to make room for.
-func TestOpenFieldMeasuresTheTriggerPlusEveryRow(t *testing.T) {
+// TestOpenFieldReportsTheTriggerAlone is the floating-surface contract in
+// measurements: the menu is deferred to the end of the frame and bounded by
+// the window, so it takes no room from the container the trigger stands in.
+// An open field reports what the closed one reports, either direction, and a
+// container places the two identically.
+//
+// The second half is why that is not simply a field that stopped drawing: the
+// band below the trigger, captured off an open field, is the standalone menu
+// with the field's own plane edge around it, pixel for pixel. The menu still
+// paints whole where the reported box no longer reaches.
+func TestOpenFieldReportsTheTriggerAlone(t *testing.T) {
 	row := rowHeight(tokens.Comfortable)
-	dims := measure(t, image.Pt(200, 400), field(t, picker.FieldState{Open: true, Options: options}))
-	if want := row * (1 + len(options)); dims.Size.Y != want {
-		t.Errorf("open field measured %d px tall, want %d px (trigger + %d rows of %d)", dims.Size.Y, want, len(options), row)
+	closed := measure(t, image.Pt(200, 400), field(t, picker.FieldState{Options: options}))
+	if closed.Size != (image.Pt(200, row)) {
+		t.Fatalf("closed field measured %v, want the trigger's %v", closed.Size, image.Pt(200, row))
 	}
-	if dims.Size.X != 200 {
-		t.Errorf("open field measured %d px wide, want the 200 px it was offered: a menu is as wide as its trigger", dims.Size.X)
+	for _, d := range []struct {
+		name string
+		drop picker.Drop
+	}{{"down", picker.DropDown}, {"up", picker.DropUp}} {
+		open := measure(t, image.Pt(200, 400), field(t, picker.FieldState{
+			Open: true, Drop: d.drop, Options: options,
+		}))
+		if open != closed {
+			t.Errorf("dropping %s, an open field measured %v against the closed field's %v; the menu floats and asks its container for no room",
+				d.name, open, closed)
+		}
+	}
+
+	size := image.Pt(200, row*(1+len(options)))
+	bg := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
+	onBg := func(w layout.Widget) layout.Widget {
+		return func(gtx layout.Context) layout.Dimensions {
+			paint.FillShape(gtx.Ops, bg, clip.Rect{Max: gtx.Constraints.Max}.Op())
+			w(gtx)
+			return layout.Dimensions{Size: gtx.Constraints.Max}
+		}
+	}
+	open := golden.Capture(t, size, onBg(field(t, picker.FieldState{
+		Open: true, Options: options, Selected: 1,
+	})))
+	plane := golden.Capture(t, size, onBg(func(gtx layout.Context) layout.Dimensions {
+		off := op.Offset(image.Pt(0, row)).Push(gtx.Ops)
+		rows := menu(t, picker.MenuState{Options: options, Selected: 1})(gtx)
+		planeEdge(gtx, rows.Size)
+		off.Pop()
+		return rows
+	}))
+	painted := false
+	for y := row; y < size.Y; y++ {
+		for x := 0; x < size.X; x++ {
+			if a, b := px(open, x, y), px(plane, x, y); a != b {
+				t.Fatalf("(%d,%d), below the box the open field reported, is %v and the menu's own drawing is %v", x, y, a, b)
+			}
+			if px(open, x, y) != bg {
+				painted = true
+			}
+		}
+	}
+	if !painted {
+		t.Error("nothing at all was drawn below the trigger; an open field that reports its trigger must still float its menu")
 	}
 }
 
-// TestOpenFieldStacksTheSharedMenuOverItsTrigger is the same contract the
-// other way up: a field told there is no room below it draws the one surface
-// ABOVE the trigger, and the trigger lands at the bottom of the box — which is
-// the half a caller needs, because an upward field can only be placed by that
-// bottom edge. The plane's edge travels with the plane, so the composite
-// carries it here too and the direction still changes the order and nothing
-// else.
-func TestOpenFieldStacksTheSharedMenuOverItsTrigger(t *testing.T) {
+// TestOpenFieldFloatsTheSharedMenuOverItsTrigger is the same contract the
+// other way up: a field told there is no room below it floats the one surface
+// ABOVE its trigger, over whatever the window laid out before it. The trigger
+// stays where the caller put it — which is why the field below is laid out a
+// menu's height down the capture, the room the upward menu takes back — and
+// the plane's edge travels with the plane, so the composite carries it here
+// too and the direction changes the side and nothing else.
+func TestOpenFieldFloatsTheSharedMenuOverItsTrigger(t *testing.T) {
 	row := rowHeight(tokens.Comfortable)
 	size := image.Pt(200, row*(1+len(options)))
 
-	open := golden.Capture(t, size, field(t, picker.FieldState{
-		Open: true, Drop: picker.DropUp, Options: options, Selected: 1,
-	}))
+	open := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
+		off := op.Offset(image.Pt(0, row*len(options))).Push(gtx.Ops)
+		defer off.Pop()
+		return field(t, picker.FieldState{
+			Open: true, Drop: picker.DropUp, Options: options, Selected: 1,
+		})(gtx)
+	})
 	composed := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
 		rows := menu(t, picker.MenuState{Options: options, Selected: 1})(gtx)
 		planeEdge(gtx, rows.Size)
@@ -211,14 +266,18 @@ func TestOpenFieldDrawsItsPlaneEdgeBothWaysUp(t *testing.T) {
 		name string
 		drop picker.Drop
 	}{{"down", picker.DropDown}, {"up", picker.DropUp}} {
-		open := golden.Capture(t, size, field(t, picker.FieldState{
-			Open: true, Drop: d.drop, Options: options, Selected: 1,
-		}))
+		triggerY, menuY := 0, row
+		if d.drop == picker.DropUp {
+			triggerY, menuY = row*len(options), 0
+		}
+		open := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
+			off := op.Offset(image.Pt(0, triggerY)).Push(gtx.Ops)
+			defer off.Pop()
+			return field(t, picker.FieldState{
+				Open: true, Drop: d.drop, Options: options, Selected: 1,
+			})(gtx)
+		})
 		bare := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
-			triggerY, menuY := 0, row
-			if d.drop == picker.DropUp {
-				triggerY, menuY = row*len(options), 0
-			}
 			off := op.Offset(image.Pt(0, triggerY)).Push(gtx.Ops)
 			field(t, picker.FieldState{Options: options, Selected: 1, Drop: d.drop})(gtx)
 			off.Pop()
@@ -266,11 +325,13 @@ func TestCappedMenuIsTheCapAndScrolls(t *testing.T) {
 	}
 }
 
-// TestCappedFieldStacksTheTriggerOverTheCap: the cap reaches the field the
-// same way, so an open field over a catalogue measures its trigger plus the
-// cap rather than its trigger plus forty rows. That is the whole of what the
-// cap is for — a container can make room for it.
-func TestCappedFieldStacksTheTriggerOverTheCap(t *testing.T) {
+// TestCappedFieldFloatsExactlyTheCap: the cap reaches the field the same way
+// it reaches the menu, so an open field over a catalogue floats a plane
+// exactly the cap tall rather than one forty rows tall — and measures its
+// trigger either way, because the plane is not the field's to make room for.
+// The extent is read off the pixels, which is where a floating plane's height
+// is now visible at all.
+func TestCappedFieldFloatsExactlyTheCap(t *testing.T) {
 	row := rowHeight(tokens.Comfortable)
 	long := make([]string, 40)
 	for i := range long {
@@ -280,8 +341,21 @@ func TestCappedFieldStacksTheTriggerOverTheCap(t *testing.T) {
 	dims := measure(t, image.Pt(200, 2000), field(t, picker.FieldState{
 		Open: true, Options: long, MaxHeight: cap,
 	}))
-	if want := row * 6; dims.Size.Y != want {
-		t.Errorf("an open capped field measured %d px tall, want the trigger plus the cap: %d px", dims.Size.Y, want)
+	if dims.Size.Y != row {
+		t.Errorf("an open capped field measured %d px tall, want the trigger's %d px", dims.Size.Y, row)
+	}
+
+	size := image.Pt(200, row*8)
+	img := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, menuCover, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		return field(t, picker.FieldState{Open: true, Options: long, MaxHeight: cap})(gtx)
+	})
+	if last := row*6 - 1; px(img, 100, last) == menuCover {
+		t.Errorf("y=%d, the last row inside the cap, was left unpainted; the plane is shorter than the cap it was given", last)
+	}
+	if past := row * 6; px(img, 100, past) != menuCover {
+		t.Errorf("y=%d, one pixel past the trigger plus the cap, is %v and not the %v behind it; the plane is taller than its cap",
+			past, px(img, 100, past), menuCover)
 	}
 }
 
@@ -315,27 +389,6 @@ func TestTriggerDrawsItsPromptApartFromItsValue(t *testing.T) {
 	}))
 	if n := golden.PixelDiff(unpicked, asValue); n == 0 {
 		t.Error("a prompt is drawn in the same colour as a value; an unanswered field reads as answered")
-	}
-}
-
-// TestBothDropDirectionsMeasureTheSameStack: which way the menu goes is a
-// placement, not a size — a container makes room for the trigger and every row
-// either way, and the two orders are the same box.
-func TestBothDropDirectionsMeasureTheSameStack(t *testing.T) {
-	row := rowHeight(tokens.Comfortable)
-	want := row * (1 + len(options))
-	for _, d := range []struct {
-		name string
-		drop picker.Drop
-	}{{"down", picker.DropDown}, {"up", picker.DropUp}} {
-		t.Run(d.name, func(t *testing.T) {
-			dims := measure(t, image.Pt(200, 400), field(t, picker.FieldState{
-				Open: true, Drop: d.drop, Options: options,
-			}))
-			if dims.Size.Y != want {
-				t.Errorf("open field measured %d px tall, want %d px (trigger + %d rows of %d)", dims.Size.Y, want, len(options), row)
-			}
-		})
 	}
 }
 

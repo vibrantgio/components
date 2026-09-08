@@ -30,23 +30,24 @@
 //
 // # Where the menu is placed
 //
-// [Field] stacks its menu against its own trigger, which is what a form's
+// [Field] floats its menu against its own trigger, which is what a form's
 // select does and what its [FieldState.Open] draws — beneath by default, and
 // above it when the caller says [DropUp] because the room below is somebody
-// else's. Either way the open field is one component reporting one box, and an
-// upward field is placed by that box's bottom edge, with its trigger's triangle
-// pointing the way its menu goes. [Toolbar] does not:
+// else's. Either way the box the field reports is the trigger's alone, so an
+// open field is placed exactly where a closed one is, with its trigger's
+// triangle pointing the way its menu goes. [Toolbar] does not:
 // a chrome-variant menu is a floating surface placed against the window, and
 // placing it is patterns/popover's job — a component may not reach up into a
 // pattern. So a toolbar trigger's caller hands the trigger to the popover as
 // the anchor slot and a [Menu] as the content slot, and the two meet there.
 //
-// The field's inline menu is still a floating surface, so it is drawn like
-// one: the trigger stays where the caller put it and the menu goes through
-// op.Defer, painting and hit-testing above everything the window lays out
-// after the field's slot — patterns/popover's package doc states the idiom.
-// It goes with its trigger too: a scroll that carries the field away takes
-// the menu with it, the way a press elsewhere and Escape do.
+// The menu the field places itself is a floating surface, so it is drawn like
+// one and it costs like one: the trigger stays where the caller put it and the
+// menu goes through op.Defer, painting and hit-testing above everything the
+// window lays out after the field's slot — patterns/popover's package doc
+// states the idiom — while the field asks its container for the trigger's
+// height and no more. It goes with its trigger too: a scroll that carries the
+// field away takes the menu with it, the way a press elsewhere and Escape do.
 //
 // Either way the surface is the same one: a floating, unscrimmed, shadowless
 // transient plane whose rows fill at level 3, the top of the elevation, and
@@ -56,7 +57,7 @@
 // [Menu]'s optionRowColors carries the measurements.
 //
 // Who draws the plane's EDGE depends on who placed the plane. [Field] draws it
-// around the menu it stacks, because inline there is nobody else to; a [Menu]
+// around the menu it places itself, because there is nobody else to; a [Menu]
 // handed to patterns/popover is circled by that pattern's surface and draws
 // none of its own, which is the only arrangement in which the plane wears one
 // line.

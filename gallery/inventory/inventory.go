@@ -1169,7 +1169,7 @@ const (
 // Both stand in one section because they are one component — the same
 // pick-one-from-many drawn for a form and for the window's chrome — and telling
 // the two variants apart is what a reader comes to this row for. The open
-// field carries the third piece with it: the menu it stacks beneath itself is
+// field carries the third piece with it: the menu it floats beneath itself is
 // the shared surface, so the section shows that surface without spending a
 // cell on it.
 //
@@ -1205,8 +1205,12 @@ func (inv *Inventory) pickerRow(c tokens.ColorTokens) layout.Widget {
 			if len(cs) > 0 {
 				cs = append(cs, layout.Rigid(complayout.HSpacer(pickerCellGap)))
 			}
-			w := cell(f.label, picker.RenderField(inv.shaper, c, tokens.Spacing, tokens.Radius,
-				tokens.DefaultTypography.BodyLarge, tokens.Comfortable, f.st))
+			body := picker.RenderField(inv.shaper, c, tokens.Spacing, tokens.Radius,
+				tokens.DefaultTypography.BodyLarge, tokens.Comfortable, f.st)
+			if f.st.Open {
+				body = inv.padByMenu(c, f.st, body)
+			}
+			w := cell(f.label, body)
 			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = gtx.Dp(pickerFieldW)
 				gtx.Constraints.Max.X = gtx.Dp(pickerFieldW)
@@ -1218,6 +1222,29 @@ func (inv *Inventory) pickerRow(c tokens.ColorTokens) layout.Widget {
 			layout.Rigid(cell("Toolbar", picker.RenderToolbar(inv.shaper, opts[0], c,
 				tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
 				tokens.Comfortable, picker.ToolbarState{}))))...)
+	}
+}
+
+// padByMenu reports the open field's cell as the trigger PLUS the menu the
+// field floats under it, so the whole open surface stands inside this
+// section's own slot.
+//
+// An open field reports its trigger and nothing else — the menu is a floating
+// surface, deferred to the end of the frame and bounded by the window — so a
+// cell cut to what the field reports would let the menu paint across the
+// section below it, which is another family's row. The padding is the menu's
+// measured height rather than a number, so the cell follows the density and
+// the option list.
+func (inv *Inventory) padByMenu(c tokens.ColorTokens, st picker.FieldState, body layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		dims := body(gtx)
+		measure := op.Record(gtx.Ops)
+		menu := picker.RenderMenu(inv.shaper, c, tokens.Spacing,
+			tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+			picker.MenuState{Options: st.Options, Selected: st.Selected})(gtx)
+		measure.Stop()
+		dims.Size.Y += menu.Size.Y
+		return dims
 	}
 }
 
