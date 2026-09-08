@@ -95,7 +95,10 @@ type Fill struct {
 	// Start and End are byte offsets into [SpanStyle].Content. An empty or
 	// reversed range fills nothing, and the range is clamped to the content.
 	Start, End int
-	// Color fills the run. A zero alpha paints nothing.
+	// Color fills the run. A zero alpha paints nothing and is reported to
+	// [Style].OnFill all the same, which is how a caller asks where a run of
+	// its own text landed without marking it: where a run lies is a result
+	// of the wrapping and is not knowable before the paragraph is laid out.
 	Color color.NRGBA
 }
 
@@ -185,11 +188,11 @@ type Style struct {
 	// distribute at that point, and lines drawn into a box shorter than their
 	// glyphs would overlap, so the metrics stand.
 	LineHeight unit.Sp
-	// OnFill, when non-nil, is called for every [Fill] the layout paints,
-	// with the index of the span the fill belongs to in the slice laid out,
-	// the fill's index within that span's Fills, and the rectangle it covers
-	// in the paragraph's own coordinates. A fill that wraps is reported once
-	// per line.
+	// OnFill, when non-nil, is called for every [Fill] the layout places —
+	// the colourless ones included — with the index of the span the fill
+	// belongs to in the slice laid out, the fill's index within that span's
+	// Fills, and the rectangle it covers in the paragraph's own coordinates.
+	// A fill that wraps is reported once per line.
 	//
 	// It is how a caller that put a fill somewhere learns where it landed,
 	// which is what it takes to scroll to it: the position is a result of

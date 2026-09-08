@@ -64,6 +64,9 @@ type resolvedSpan struct {
 // from the start of what is left of the span, so a span split across lines
 // carries its fills onto the next line by subtracting what the first line
 // consumed.
+//
+// A colourless fill is kept: it paints nothing and is reported, which is what
+// makes a fill usable as a probe for where a run of text landed.
 type spanFill struct {
 	// index is the fill's position in the span's own Fills.
 	index int
@@ -184,9 +187,6 @@ func resolve(gtx layout.Context, style Style, spans []SpanStyle, rs RenderState)
 func resolveFills(s SpanStyle) []spanFill {
 	var out []spanFill
 	for i, f := range s.Fills {
-		if f.Color.A == 0 {
-			continue
-		}
 		start := max(f.Start, 0)
 		end := min(f.End, len(s.Content))
 		if start >= end {
@@ -291,7 +291,9 @@ func draw(gtx layout.Context, shaper *text.Shaper, style Style, spans []SpanStyl
 			for _, f := range s.fills {
 				r := lineBox
 				r.Min.X, r.Max.X = s.x+s.padL+f.x0, s.x+s.padL+f.x1
-				paint.FillShape(gtx.Ops, f.color, clip.Rect(r).Op())
+				if f.color.A > 0 {
+					paint.FillShape(gtx.Ops, f.color, clip.Rect(r).Op())
+				}
 				if style.OnFill != nil {
 					style.OnFill(s.span, f.index, r)
 				}

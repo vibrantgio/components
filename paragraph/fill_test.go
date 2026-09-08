@@ -179,3 +179,28 @@ func TestSpanFillKeepsTheChipUnderIt(t *testing.T) {
 		t.Error("the chip is gone from under the field; the fill was painted over it, not under it")
 	}
 }
+
+// TestColourlessFillPaintsNothingAndIsReported holds the probe half of the
+// fill's contract: a fill with no colour in it moves no pixel and is still
+// reported where it landed, which is how a caller asks where a run of its own
+// text is without marking it.
+func TestColourlessFillPaintsNothingAndIsReported(t *testing.T) {
+	const content = "alpha beta gamma delta"
+	plain, none := captureFill(t, []paragraph.SpanStyle{{Content: content}}, 300)
+	if len(none) != 0 {
+		t.Fatalf("a span with no fills reported %d places", len(none))
+	}
+	probed, places := captureFill(t, []paragraph.SpanStyle{{
+		Content: content,
+		Fills:   []paragraph.Fill{{Start: 6, End: 10}},
+	}}, 300)
+	if len(places) != 1 {
+		t.Fatalf("the colourless fill was reported %d times, want once", len(places))
+	}
+	if places[0].Empty() {
+		t.Error("the colourless fill was reported at an empty rectangle")
+	}
+	if n := golden.PixelDiff(plain, probed); n != 0 {
+		t.Errorf("the colourless fill moved %d pixels; it must paint nothing", n)
+	}
+}
