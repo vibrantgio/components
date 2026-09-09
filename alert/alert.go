@@ -1,25 +1,24 @@
 // Package alert provides the alert: the status signal for a situation — a
-// tinted-Surface rounded banner with a leading variant icon, a Title, and
+// tinted-Surface rounded banner with a leading status icon, a Title, and
 // an arbitrary Body layout.Widget, standing in the page flow until the
 // situation resolves. It holds words about the situation, never a control:
-// an action on the situation stands beside the alert. Variants are Info,
-// Success, Warning, and Error.
+// an action on the situation stands beside the alert. The statuses are
+// Info, Success, Warning and Error; an alert given no status is Info.
 //
 // Alert is a callable Go function consuming a components theme observable,
 // returning a stream of layout.Widget. Source is intentionally short and
 // free of opaque configuration — copy it into your own app and modify as
 // needed.
 //
-// One thing about the variants is worth knowing before you theme them: all
-// four draw the same right-pointing chevron glyph, differing only in
-// colour; the per-variant icon set arrives with components/icon.
+// All four statuses draw the same right-pointing chevron glyph, differing
+// only in colour; the per-status icon set arrives with components/icon.
 //
-// Colour: each variant is a status role, and the banner is that role's
-// tonal container with the role's own mark on it — StatusContainer and
-// OnStatusContainer, both realized at a tone by the theme rather than mixed
-// here. Info is the info role, not the accent: an informational banner that
-// wore the brand said whatever the brand happened to say, and under a
-// red-heavy brand it said "error" more loudly than the error variant did.
+// Colour: the banner is the status's role tonal container with that role's
+// own mark on it — StatusContainer and OnStatusContainer, both realized at
+// a tone by the theme rather than mixed here. Info is the Info role, not
+// the accent: an informational banner that wore the brand said whatever
+// the brand happened to say, and under a red-heavy brand it said "error"
+// more loudly than an alert indicating Error did.
 //
 // The banner fills the constraints it is given rather than shrinking to
 // its content — it reports gtx.Constraints.Max as its size — so an Alert
@@ -47,11 +46,12 @@ import (
 	"github.com/vibrantgio/theme/typeset"
 )
 
-// Variant selects the alert's semantic palette.
-type Variant int
+// Status is the status the alert indicates. The zero value is Info: an
+// alert given no status is Info.
+type Status int
 
 const (
-	Info Variant = iota
+	Info Status = iota
 	Success
 	Warning
 	Error
@@ -60,9 +60,9 @@ const (
 // Props configures an Alert. Title may be empty (the title row is omitted);
 // Body may be nil (only the icon and title render).
 type Props struct {
-	Variant Variant
-	Title   string
-	Body    layout.Widget
+	Status Status
+	Title  string
+	Body   layout.Widget
 
 	// Shaper is an explicit per-instance override of the text shaper. Leave
 	// it nil in normal use: the alert then shapes its title with the theme's
@@ -151,7 +151,7 @@ func drawAlert(gtx layout.Context, shaper *text.Shaper, props Props, colors toke
 	size := gtx.Constraints.Max
 	r := gtx.Dp(unit.Dp(rad.Lg))
 
-	role := roleOf(props.Variant)
+	role := roleOf(props.Status)
 	accent := colors.OnStatusContainer(role)
 	bg := colors.StatusContainer(role)
 
@@ -169,9 +169,9 @@ func drawAlert(gtx layout.Context, shaper *text.Shaper, props Props, colors toke
 	return layout.Dimensions{Size: size}
 }
 
-// iconWidget renders the variant icon — a right-pointing filled chevron —
-// into a fixed sizeDp square. All variants share this chevron shape and
-// differentiate by colour only.
+// iconWidget renders the status icon — a right-pointing filled chevron —
+// into a fixed sizeDp square. All four statuses share this chevron shape
+// and differentiate by colour only.
 func iconWidget(sizeDp float32, col color.NRGBA) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		sz := gtx.Dp(unit.Dp(sizeDp))
@@ -229,12 +229,12 @@ func drawChevron(gtx layout.Context, cx, cy, sz int, col color.NRGBA) {
 	paint.FillShape(gtx.Ops, col, clip.Outline{Path: p.End()}.Op())
 }
 
-// roleOf maps Variant to its status role in the token set. All four are
-// status roles — info included — so all four flip with light/dark and
+// roleOf maps a status to its colour role in the token set. All four are
+// status roles — Info included — so all four flip with light/dark and
 // follow whatever seed, palette or high-contrast variant the theme is
 // emitting, and none of them wears the accent.
-func roleOf(v Variant) tokens.Role {
-	switch v {
+func roleOf(s Status) tokens.Role {
+	switch s {
 	case Error:
 		return tokens.RoleError
 	case Success:

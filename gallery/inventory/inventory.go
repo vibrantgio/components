@@ -866,8 +866,9 @@ func (inv *Inventory) badgeStyle() tokens.TextStyle {
 }
 
 // badgeBlock shows the vocabulary in one column and the structure under it: the
-// five variants as the words they name, then the three utterances a badge can
-// make, then the close mark through the states the pointer puts it in.
+// four statuses and Neutral as the words they name, then the three utterances
+// a badge can make, then the close mark through the states the pointer puts
+// it in.
 //
 // The vocabulary is drawn once per level, exactly as the chip's is, because
 // a badge's fill is derived against the surface it is put on and a specimen on
@@ -878,9 +879,9 @@ func (inv *Inventory) badgeStyle() tokens.TextStyle {
 // the one question that is not.
 func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 	style := inv.badgeStyle()
-	variants := []struct {
-		label string
-		v     badge.Variant
+	statuses := []struct {
+		label  string
+		status badge.Status
 	}{
 		{"Neutral", badge.Neutral},
 		{"Success", badge.Success},
@@ -888,17 +889,17 @@ func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 		{"Error", badge.Error},
 		{"Info", badge.Info},
 	}
-	plain := func(label string, glyph badge.Glyph, v badge.Variant) layout.Widget {
-		return badge.Render(inv.shaper, label, glyph, v, c, tokens.Spacing, tokens.Radius, style,
+	plain := func(label string, glyph badge.Glyph, status badge.Status) layout.Widget {
+		return badge.Render(inv.shaper, label, glyph, status, c, tokens.Spacing, tokens.Radius, style,
 			badge.RenderState{})
 	}
 
 	// Each row varies one thing and each row varies a DIFFERENT thing, which
 	// is what makes the two dials readable as two: hue across the first row
 	// at one utterance, utterance across the second at one hue, the close
-	// mark's states across the third at a third hue. Drawing every row in one
-	// variant would leave a reader unable to tell whether the utterances and
-	// the close mark belong to that variant or to the component.
+	// mark's states across the third at a third hue. Drawing every row at one
+	// status would leave a reader unable to tell whether the utterances and
+	// the close mark belong to that status or to the component.
 	//
 	// Exactly three cells stand in the utterance row, because there are
 	// exactly three utterances. A sign set beside a word is a composition of
@@ -934,9 +935,9 @@ func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 		name  string
 		level tokens.ElevationLevel
 	}) layout.Widget {
-		cells := make([]layout.Widget, 0, len(variants))
-		for _, va := range variants {
-			cells = append(cells, badge.Render(inv.shaper, va.label, nil, va.v, c,
+		cells := make([]layout.Widget, 0, len(statuses))
+		for _, bs := range statuses {
+			cells = append(cells, badge.Render(inv.shaper, bs.label, nil, bs.status, c,
 				tokens.Spacing, tokens.Radius, style, badge.RenderState{Level: st.level}))
 		}
 		band := func(gtx layout.Context) layout.Dimensions {
@@ -989,9 +990,9 @@ func badgeLine(inv *Inventory, c tokens.ColorTokens, caption string, cells []lay
 }
 
 func (inv *Inventory) alerts(c tokens.ColorTokens) layout.Widget {
-	variants := []struct {
-		title string
-		v     alert.Variant
+	statuses := []struct {
+		title  string
+		status alert.Status
 	}{
 		{"Deploy finished", alert.Info},
 		{"All checks passed", alert.Success},
@@ -999,9 +1000,9 @@ func (inv *Inventory) alerts(c tokens.ColorTokens) layout.Widget {
 		{"The build could not start", alert.Error},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
-		cs := make([]layout.FlexChild, 0, 2*len(variants))
-		for i, v := range variants {
-			v := v
+		cs := make([]layout.FlexChild, 0, 2*len(statuses))
+		for i, st := range statuses {
+			st := st
 			if i > 0 {
 				cs = append(cs, layout.Rigid(complayout.VSpacer(8)))
 			}
@@ -1010,9 +1011,9 @@ func (inv *Inventory) alerts(c tokens.ColorTokens) layout.Widget {
 				gtx.Constraints.Max.Y = gtx.Dp(56)
 				gtx.Constraints.Min = gtx.Constraints.Max
 				return alert.Render(inv.shaper, alert.Props{
-					Variant: v.v,
-					Title:   v.title,
-					Shaper:  inv.shaper,
+					Status: st.status,
+					Title:  st.title,
+					Shaper: inv.shaper,
 				}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.TitleMedium)(gtx)
 			}))
 		}
@@ -1020,13 +1021,13 @@ func (inv *Inventory) alerts(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-// toasts draws one toast at every status role. Every role fills with the
-// same inverse surface — level 2 is where a toast is placed, not what it is
+// toasts draws one toast at every status. All four fill with the same
+// inverse surface — level 2 is where a toast is placed, not what it is
 // filled with — so the leading edge is the only thing between them.
 func (inv *Inventory) toasts(c tokens.ColorTokens) layout.Widget {
-	roles := []struct {
-		role toast.Role
-		text string
+	statuses := []struct {
+		status toast.Status
+		text   string
 	}{
 		{toast.Info, "Info — the theme was reloaded."},
 		{toast.Success, "Success — the seed was saved."},
@@ -1034,9 +1035,9 @@ func (inv *Inventory) toasts(c tokens.ColorTokens) layout.Widget {
 		{toast.Error, "Error — that image could not be read."},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
-		cs := make([]layout.FlexChild, 0, 2*len(roles))
-		for i, r := range roles {
-			r := r
+		cs := make([]layout.FlexChild, 0, 2*len(statuses))
+		for i, st := range statuses {
+			st := st
 			if i > 0 {
 				cs = append(cs, layout.Rigid(complayout.VSpacer(8)))
 			}
@@ -1045,8 +1046,8 @@ func (inv *Inventory) toasts(c tokens.ColorTokens) layout.Widget {
 				gtx.Constraints.Max.Y = gtx.Dp(toast.MinHeightDp)
 				gtx.Constraints.Min = image.Point{}
 				return toast.Render(inv.shaper, toast.Props{
-					Role:   r.role,
-					Text:   r.text,
+					Status: st.status,
+					Text:   st.text,
 					Shaper: inv.shaper,
 				}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelMedium)(gtx)
 			}))

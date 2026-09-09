@@ -1,6 +1,8 @@
 // Package badge provides the Vibrant Gio badge: the system's own word about a
-// thing, set inline at the size of its type and coloured by the role it
-// speaks in.
+// thing, set inline at the size of its type and coloured in its status's
+// role. The developer gives a badge one of the four statuses — [Error],
+// [Success], [Warning], [Info] — or no status; a badge given no status is
+// [Neutral].
 //
 // [Render] is the pure path: resolved tokens plus a [RenderState] naming the
 // level the badge stands on, one frame out, no event handling.
@@ -20,7 +22,7 @@
 // It does wear a container, and the container is what says it is not a
 // control: a pale fill, the role's hue tinted down until it is a field, with
 // the same hue at reading strength on top of it. A saturated fill under
-// knocked-out white content is the emphasis interaction speaks in — the filled
+// knocked-out white content is the emphasis interaction is drawn in — the filled
 // button's — and a badge that borrowed it would be claiming to do something.
 // One hue, two strengths, and the more pronounced pairing is not available
 // here.
@@ -37,7 +39,7 @@
 //
 // # Three utterances, one structure
 //
-// A badge speaks as
+// A badge says its piece as
 //
 //	a word    "Popular", "Beta", "Deprecated"
 //	a count   "9", "128" — a word made of digits, not a second component
@@ -55,14 +57,14 @@
 // the component: anything with words in it wears the container, and a sign on
 // its own stands bare. See [Fill] for why — and for the obligation that
 // carries, which is that a set of glyph badges must differ in shape, because
-// a sign repeated in two variants is two hues and nothing else.
+// a sign repeated under two statuses is two hues and nothing else.
 //
 // # Colour: one hue at two strengths
 //
-// Five variants and they differ in hue alone: [Neutral] for a plain category
-// label, [Success], [Warning], [Error] and [Info] for the four statuses. There
-// is no emphasis axis and there will not be one — emphasis belongs where
-// interaction does, and nothing here is interactive.
+// Five values and they differ in hue alone: [Neutral] for a plain category
+// label carrying no status, [Success], [Warning], [Error] and [Info] for the
+// four statuses. There is no emphasis axis and there will not be one —
+// emphasis belongs where interaction does, and nothing here is interactive.
 //
 // A worded or counted badge draws two colours of one hue:
 //

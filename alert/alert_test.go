@@ -36,13 +36,13 @@ func defaultShaper(t *testing.T) *text.Shaper {
 	return tokens.DefaultTypography.DeterministicShaper()
 }
 
-// variantTitle is the Title each variant carries. Alert draws its title in
+// statusTitle is the Title each status carries. Alert draws its title in
 // the TitleMedium role and omits the title row entirely when Title is empty.
 // Latin text in Roboto rasterises identically on every machine via
 // DeterministicShaper; keep this ASCII only so no symbol reaches a stored
 // image.
-func variantTitle(v alert.Variant) string {
-	switch v {
+func statusTitle(status alert.Status) string {
+	switch status {
 	case alert.Success:
 		return "Changes saved"
 	case alert.Warning:
@@ -75,8 +75,8 @@ func scene(w layout.Widget, bgColor color.NRGBA) layout.Widget {
 	}
 }
 
-// TestAlertGolden records or diffs every variant × {light, dark} pair; the
-// full 4×2 matrix is recorded so cross-variant regressions surface
+// TestAlertGolden records or diffs every status × {light, dark} pair; the
+// full 4×2 matrix is recorded so cross-status regressions surface
 // immediately.
 func TestAlertGolden(t *testing.T) {
 	shaper := defaultShaper(t)
@@ -86,10 +86,10 @@ func TestAlertGolden(t *testing.T) {
 	darkBG := color.NRGBA{R: 20, G: 20, B: 20, A: 255}
 
 	cases := []struct {
-		name    string
-		variant alert.Variant
-		colors  tokens.ColorTokens
-		bg      color.NRGBA
+		name   string
+		status alert.Status
+		colors tokens.ColorTokens
+		bg     color.NRGBA
 	}{
 		{"info-light", alert.Info, tokens.DefaultLight, lightBG},
 		{"info-dark", alert.Info, tokens.DefaultDark, darkBG},
@@ -103,10 +103,10 @@ func TestAlertGolden(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			props := alert.Props{
-				Variant: tc.variant,
-				Title:   variantTitle(tc.variant),
-				Body:    body,
-				Shaper:  shaper,
+				Status: tc.status,
+				Title:  statusTitle(tc.status),
+				Body:   body,
+				Shaper: shaper,
 			}
 			w := alert.Render(shaper, props, tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)
 			golden.Render(t, tc.name, frameSize, scene(w, tc.bg))
@@ -114,37 +114,37 @@ func TestAlertGolden(t *testing.T) {
 	}
 }
 
-// TestAlertVariantsDiffer confirms each variant produces visibly distinct
-// pixels in the same theme. Catches regressions where the Variant flag
+// TestAlertStatusesDiffer confirms each status produces visibly distinct
+// pixels in the same theme. Catches regressions where the Status field
 // silently no-ops.
-func TestAlertVariantsDiffer(t *testing.T) {
+func TestAlertStatusesDiffer(t *testing.T) {
 	shaper := defaultShaper(t)
 	body := fillRect(color.NRGBA{R: 200, G: 200, B: 200, A: 255}, 32)
 	bg := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
 
-	render := func(v alert.Variant) *image.RGBA {
-		props := alert.Props{Variant: v, Title: variantTitle(v), Body: body, Shaper: shaper}
+	render := func(status alert.Status) *image.RGBA {
+		props := alert.Props{Status: status, Title: statusTitle(status), Body: body, Shaper: shaper}
 		w := alert.Render(shaper, props, tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)
 		return golden.Capture(t, frameSize, scene(w, bg))
 	}
 
-	variants := []struct {
-		name string
-		v    alert.Variant
+	statuses := []struct {
+		name   string
+		status alert.Status
 	}{
 		{"info", alert.Info},
 		{"success", alert.Success},
 		{"warning", alert.Warning},
 		{"error", alert.Error},
 	}
-	imgs := make([]*image.RGBA, len(variants))
-	for i, v := range variants {
-		imgs[i] = render(v.v)
+	imgs := make([]*image.RGBA, len(statuses))
+	for i, st := range statuses {
+		imgs[i] = render(st.status)
 	}
-	for i := range variants {
-		for j := i + 1; j < len(variants); j++ {
+	for i := range statuses {
+		for j := i + 1; j < len(statuses); j++ {
 			if n := golden.PixelDiff(imgs[i], imgs[j]); n == 0 {
-				t.Errorf("%s and %s render identically; expected variant-specific accent", variants[i].name, variants[j].name)
+				t.Errorf("%s and %s render identically; expected a status-specific accent", statuses[i].name, statuses[j].name)
 			}
 		}
 	}
@@ -157,16 +157,16 @@ func TestAlertLightDarkDiffer(t *testing.T) {
 	body := fillRect(color.NRGBA{R: 200, G: 200, B: 200, A: 255}, 32)
 	bg := color.NRGBA{R: 128, G: 128, B: 128, A: 255}
 
-	for _, v := range []alert.Variant{alert.Info, alert.Success, alert.Warning, alert.Error} {
-		propsL := alert.Props{Variant: v, Title: variantTitle(v), Body: body, Shaper: shaper}
-		propsD := alert.Props{Variant: v, Title: variantTitle(v), Body: body, Shaper: shaper}
+	for _, status := range []alert.Status{alert.Info, alert.Success, alert.Warning, alert.Error} {
+		propsL := alert.Props{Status: status, Title: statusTitle(status), Body: body, Shaper: shaper}
+		propsD := alert.Props{Status: status, Title: statusTitle(status), Body: body, Shaper: shaper}
 		light := alert.Render(shaper, propsL, tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)
 		dark := alert.Render(shaper, propsD, tokens.DefaultDark, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)
 
 		imgLight := golden.Capture(t, frameSize, scene(light, bg))
 		imgDark := golden.Capture(t, frameSize, scene(dark, bg))
 		if n := golden.PixelDiff(imgLight, imgDark); n == 0 {
-			t.Errorf("variant %v: light and dark render identically; expected colour differences", v)
+			t.Errorf("status %v: light and dark render identically; expected colour differences", status)
 		}
 	}
 }

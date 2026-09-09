@@ -83,7 +83,7 @@ func TestTheBadgeReportsItsTextAndTheMarkHitsTheFloor(t *testing.T) {
 	var dismissed int
 	w := live(t, badge.Props{
 		Label:     "Filtered by owner",
-		Variant:   badge.Info,
+		Status:    badge.Info,
 		OnDismiss: func(_ layout.Context) { dismissed++ },
 	})
 
@@ -116,7 +116,7 @@ func TestAClickAwayFromTheMarkIsNotADismissal(t *testing.T) {
 	var dismissed int
 	w := live(t, badge.Props{
 		Label:     "Filtered by owner",
-		Variant:   badge.Info,
+		Status:    badge.Info,
 		OnDismiss: func(_ layout.Context) { dismissed++ },
 	})
 
@@ -135,11 +135,11 @@ func TestAClickAwayFromTheMarkIsNotADismissal(t *testing.T) {
 // mark and registers no pointer area, so nothing anywhere in its box — or in
 // the air a target would have overhung — answers a press.
 func TestABadgeWithoutDismissTakesNoInput(t *testing.T) {
-	plain := live(t, badge.Props{Label: "Popular", Variant: badge.Info})
+	plain := live(t, badge.Props{Label: "Popular", Status: badge.Info})
 	var dismissed int
 	dismissible := live(t, badge.Props{
 		Label:     "Popular",
-		Variant:   badge.Info,
+		Status:    badge.Info,
 		OnDismiss: func(_ layout.Context) { dismissed++ },
 	})
 
@@ -198,7 +198,7 @@ func TestTheLiveBadgeDrawsWhatRenderDraws(t *testing.T) {
 	pure := measure(t, badge.Render(shaper, "Popular", nil, badge.Success,
 		tokens.DefaultLight, tokens.Spacing, tokens.Radius, badgeStyle(), badge.RenderState{}))
 
-	w := live(t, badge.Props{Label: "Popular", Variant: badge.Success, Shaper: shaper})
+	w := live(t, badge.Props{Label: "Popular", Status: badge.Success, Shaper: shaper})
 	got := driver(w, new(gioinput.Router), image.Pt(1000, 1000))()
 	if got.Size != pure {
 		t.Errorf("the live badge measured %v and Render measured %v", got.Size, pure)
@@ -210,8 +210,8 @@ func TestTheLiveBadgeDrawsWhatRenderDraws(t *testing.T) {
 // around it, so two badges laid out side by side must come back as two named
 // nodes rather than one label overwriting the other on whatever encloses them.
 func TestEachBadgeNamesItself(t *testing.T) {
-	first := live(t, badge.Props{Label: "Popular", Variant: badge.Info})
-	second := live(t, badge.Props{Label: "Deprecated", Variant: badge.Warning,
+	first := live(t, badge.Props{Label: "Popular", Status: badge.Info})
+	second := live(t, badge.Props{Label: "Deprecated", Status: badge.Warning,
 		Description: "This model is deprecated"})
 
 	r := new(gioinput.Router)

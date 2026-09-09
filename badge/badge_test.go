@@ -107,11 +107,11 @@ var goldenSchemes = []struct {
 	{"dark", tokens.DefaultDark},
 }
 
-// goldenVariants is the whole vocabulary, each labelled with its own name so
+// goldenStatuses is the whole vocabulary, each labelled with its own name so
 // the row reads without a caption under it.
-var goldenVariants = []struct {
-	label string
-	v     badge.Variant
+var goldenStatuses = []struct {
+	label  string
+	status badge.Status
 }{
 	{"Neutral", badge.Neutral},
 	{"Success", badge.Success},
@@ -124,13 +124,13 @@ var goldenVariants = []struct {
 // stored image carries the surface around the words as well as the words.
 var goldenSize = image.Pt(420, 44)
 
-// badgeStyle is the role a Comfortable badge speaks in, asked of the component
+// badgeStyle is the type role a Comfortable badge is set in, asked of the component
 // rather than named, so a test cannot claim a size the badge does not draw.
 func badgeStyle() tokens.TextStyle {
 	return badge.Style(tokens.DefaultTypography, tokens.Comfortable)
 }
 
-// TestBadgeGoldenOnEveryLevel records the five variants side by side, in both
+// TestBadgeGoldenOnEveryLevel records the five side by side, in both
 // schemes, on each of the three surfaces. Six images, and between them they
 // are the claim the package doc makes: every colour is derived against the
 // surface, so the same five words wear five different containers on three.
@@ -140,9 +140,9 @@ func TestBadgeGoldenOnEveryLevel(t *testing.T) {
 		for _, g := range goldenLevels {
 			name := "badge-" + sc.name + "-" + g.name
 			t.Run(name, func(t *testing.T) {
-				ws := make([]layout.Widget, 0, len(goldenVariants))
-				for _, va := range goldenVariants {
-					ws = append(ws, badge.Render(shaper, va.label, nil, va.v,
+				ws := make([]layout.Widget, 0, len(goldenStatuses))
+				for _, st := range goldenStatuses {
+					ws = append(ws, badge.Render(shaper, st.label, nil, st.status,
 						sc.colors, tokens.Spacing, tokens.Radius, badgeStyle(),
 						badge.RenderState{Level: g.level}))
 				}
@@ -152,8 +152,8 @@ func TestBadgeGoldenOnEveryLevel(t *testing.T) {
 	}
 }
 
-// TestUtterancesGolden records the three things a badge can say, in one
-// variant, so the images show what a single structure means: a word, a count and
+// TestUtterancesGolden records the three things a badge can say, at one
+// status, so the images show what a single structure means: a word, a count and
 // a sign at the same weight, in the same colour, on the same line.
 func TestUtterancesGolden(t *testing.T) {
 	shaper := defaultShaper(t)
@@ -209,9 +209,9 @@ func TestDismissGolden(t *testing.T) {
 func TestCompactGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	style := badge.Style(tokens.DefaultTypography, tokens.Compact)
-	ws := make([]layout.Widget, 0, len(goldenVariants))
-	for _, va := range goldenVariants {
-		ws = append(ws, badge.Render(shaper, va.label, nil, va.v,
+	ws := make([]layout.Widget, 0, len(goldenStatuses))
+	for _, st := range goldenStatuses {
+		ws = append(ws, badge.Render(shaper, st.label, nil, st.status,
 			tokens.DefaultLight, tokens.Spacing, tokens.Radius, style, badge.RenderState{}))
 	}
 	golden.Render(t, "badge-light-compact", goldenSize,
@@ -297,7 +297,7 @@ func TestTheDensityPicksTheTypeRole(t *testing.T) {
 		t.Errorf("Compact badge style = %+v, want LabelSmall %+v", got, typo.LabelSmall)
 	}
 	if badge.Style(typo, tokens.Comfortable).Size == badge.Style(typo, tokens.Compact).Size {
-		t.Error("both densities speak at the same type size: density does not reach the badge")
+		t.Error("both densities are set at the same type size: density does not reach the badge")
 	}
 }
 
@@ -502,12 +502,12 @@ func TestAWordedBadgeWearsItsContainer(t *testing.T) {
 	style := badgeStyle()
 	pad := int(tokens.Spacing.S2)
 	for _, sc := range goldenSchemes {
-		for _, va := range goldenVariants {
-			w := badge.Render(shaper, va.label, nil, va.v,
+		for _, st := range goldenStatuses {
+			w := badge.Render(shaper, st.label, nil, st.status,
 				sc.colors, tokens.Spacing, tokens.Radius, style, badge.RenderState{})
 			size := measure(t, w)
 			img := golden.Capture(t, goldenSize, onLevel(sc.colors, tokens.Level0, w))
-			fill := badge.Fill(sc.colors, va.v, tokens.Level0)
+			fill := badge.Fill(sc.colors, st.status, tokens.Level0)
 			surface := sc.colors.SurfaceAt(tokens.Level0)
 			mid := size.Y / 2
 
@@ -515,23 +515,23 @@ func TestAWordedBadgeWearsItsContainer(t *testing.T) {
 			for _, dx := range []int{0, pad - 1} {
 				if got := badgePixel(t, img, dx, mid); got != fill {
 					t.Errorf("%s %s: the pixel %d in from the badge's left edge is %v, want the fill %v",
-						sc.name, va.label, dx, got, fill)
+						sc.name, st.label, dx, got, fill)
 				}
 			}
 			// Outside it, on both sides, where only that surface can be.
 			if got := badgePixel(t, img, -1, mid); got != surface {
 				t.Errorf("%s %s: the pixel before the badge's left edge is %v, want the surface %v — the fill overruns the box the badge reported",
-					sc.name, va.label, got, surface)
+					sc.name, st.label, got, surface)
 			}
 			if got := badgePixel(t, img, size.X, mid); got != surface {
 				t.Errorf("%s %s: the pixel after the badge's right edge is %v, want the surface %v — the fill overruns the box the badge reported",
-					sc.name, va.label, got, surface)
+					sc.name, st.label, got, surface)
 			}
 			// The corner is cut, which is the silhouette half of telling a
 			// badge from a chip: a square fill here would be the other one.
 			if got := badgePixel(t, img, 0, 0); got == fill {
 				t.Errorf("%s %s: the badge's top-left pixel is the fill — the container is not rounded",
-					sc.name, va.label)
+					sc.name, st.label)
 			}
 		}
 	}

@@ -30,15 +30,15 @@ func hexOf(c color.NRGBA) string { return fmt.Sprintf("#%02x%02x%02x", c.R, c.G,
 // ramp step here, a walk there — fails this test, which is the whole point of
 // keeping one recipe.
 //
-// Both halves are checked from both ends. Each badge variant is held to the
+// Both halves are checked from both ends. Each badge status is held to the
 // two token calls, so the recipe is stated independently of components/badge;
 // then Tonal is held to the same two calls at the accent role, so a drift in
 // either component is caught by the other's statement of the rule.
 func TestTonalWearsTheBadgesTint(t *testing.T) {
-	variants := []struct {
-		name string
-		v    badge.Variant
-		role tokens.Role
+	statuses := []struct {
+		name   string
+		status badge.Status
+		role   tokens.Role
 	}{
 		{"neutral", badge.Neutral, tokens.RoleNeutral},
 		{"success", badge.Success, tokens.RoleSuccess},
@@ -54,16 +54,16 @@ func TestTonalWearsTheBadgesTint(t *testing.T) {
 		for _, lv := range ghostLevels {
 			surface := c.SurfaceAt(lv.level)
 
-			for _, va := range variants {
-				fill := c.StatusContainerOn(va.role, surface)
-				if got := badge.Fill(c, va.v, lv.level); got != fill {
+			for _, bs := range statuses {
+				fill := c.StatusContainerOn(bs.role, surface)
+				if got := badge.Fill(c, bs.status, lv.level); got != fill {
 					t.Errorf("%s %s: badge %s fill %s is not the shared container %s",
-						sc.name, lv.name, va.name, hexOf(got), hexOf(fill))
+						sc.name, lv.name, bs.name, hexOf(got), hexOf(fill))
 				}
-				fg := c.ForegroundOn(va.role, fill)
-				if got := badge.Foreground(c, va.v, lv.level); got != fg {
+				fg := c.ForegroundOn(bs.role, fill)
+				if got := badge.Foreground(c, bs.status, lv.level); got != fg {
 					t.Errorf("%s %s: badge %s foreground %s is not the shared foreground %s",
-						sc.name, lv.name, va.name, hexOf(got), hexOf(fg))
+						sc.name, lv.name, bs.name, hexOf(got), hexOf(fg))
 				}
 			}
 

@@ -37,11 +37,11 @@ func defaultShaper(t *testing.T) *text.Shaper {
 	return tokens.DefaultTypography.DeterministicShaper()
 }
 
-// roleText is the message each status role carries. ASCII only: Latin text
+// statusText is the message each status carries. ASCII only: Latin text
 // in Roboto rasterises identically on every machine, and no symbol reaches a
 // stored image.
-func roleText(r toast.Role) string {
-	switch r {
+func statusText(status toast.Status) string {
+	switch status {
 	case toast.Success:
 		return "Workspace saved"
 	case toast.Warning:
@@ -72,9 +72,9 @@ func scene(w layout.Widget, bg color.NRGBA) layout.Widget {
 	}
 }
 
-// TestToastGolden records or diffs one stored scene per status role in each
-// scheme. The role's leading edge is the load-bearing visual signal — the
-// fill is the same inverse surface at every role — and the message carries
+// TestToastGolden records or diffs one stored scene per status in each
+// scheme. The status's leading edge is the load-bearing visual signal — the
+// fill is the same inverse surface at every status — and the message carries
 // the LabelMedium role. The scenes composite over a real pane background
 // (SurfaceAt(LevelChrome)), so a fill that stops separating from real app
 // backgrounds fails the diff instead of hiding behind an arbitrary grey.
@@ -87,9 +87,9 @@ func TestToastGolden(t *testing.T) {
 		{"light", tokens.DefaultLight},
 		{"dark", tokens.DefaultDark},
 	}
-	roles := []struct {
-		name string
-		role toast.Role
+	statuses := []struct {
+		name   string
+		status toast.Status
 	}{
 		{"info", toast.Info},
 		{"success", toast.Success},
@@ -97,10 +97,10 @@ func TestToastGolden(t *testing.T) {
 		{"error", toast.Error},
 	}
 	for _, sc := range schemes {
-		for _, r := range roles {
-			name := r.name + "-" + sc.name
+		for _, st := range statuses {
+			name := st.name + "-" + sc.name
 			t.Run(name, func(t *testing.T) {
-				w := toast.Render(shaper, toast.Props{Role: r.role, Text: roleText(r.role), Shaper: shaper},
+				w := toast.Render(shaper, toast.Props{Status: st.status, Text: statusText(st.status), Shaper: shaper},
 					sc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelMedium)
 				golden.Render(t, name, frameSize, scene(w, sc.colors.SurfaceAt(tokens.LevelChrome)))
 			})
@@ -117,7 +117,7 @@ func TestAlphaFadesTheWholeToast(t *testing.T) {
 	shaper := defaultShaper(t)
 	bg := color.NRGBA{R: 128, G: 128, B: 128, A: 255}
 	render := func(alpha float64) *image.RGBA {
-		w := toast.Render(shaper, toast.Props{Role: toast.Warning, Text: roleText(toast.Warning), Alpha: alpha, Shaper: shaper},
+		w := toast.Render(shaper, toast.Props{Status: toast.Warning, Text: statusText(toast.Warning), Alpha: alpha, Shaper: shaper},
 			tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelMedium)
 		return golden.Capture(t, frameSize, scene(w, bg))
 	}
@@ -139,7 +139,7 @@ func TestToastHugsItsMessage(t *testing.T) {
 	var dims layout.Dimensions
 	golden.Capture(t, frameSize, func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints = layout.Constraints{Max: frameSize}
-		dims = toast.Render(shaper, toast.Props{Role: toast.Info, Text: roleText(toast.Info), Shaper: shaper},
+		dims = toast.Render(shaper, toast.Props{Status: toast.Info, Text: statusText(toast.Info), Shaper: shaper},
 			tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelMedium)(gtx)
 		return dims
 	})

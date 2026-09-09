@@ -4,6 +4,9 @@
 // toast and nothing else; the column that receives notifications, places,
 // stacks and times them is patterns/notifications.
 //
+// The developer gives a toast one of the four statuses — Error, Success,
+// Warning, Info — and a toast given no status is Info.
+//
 // Toast is a callable Go function consuming a components theme observable,
 // returning a stream of layout.Widget. Source is intentionally short and
 // free of opaque configuration — copy it into your own app and modify as
@@ -14,7 +17,7 @@
 // InverseSurface under its OnInverseSurface, the pair built from the
 // counterpart scheme — which reads as speech and is found over any content
 // in either scheme by construction rather than by out-raising it. The
-// status role speaks through the leading edge, never through the fill.
+// status is indicated through the leading edge, never through the fill.
 //
 // The cast shadow that says a toast floats and can leave is not drawn here:
 // it belongs to whatever places the toast, because only the placement knows
@@ -40,14 +43,14 @@ import (
 	"github.com/vibrantgio/theme/typeset"
 )
 
-// Role is the status role a toast speaks: the colour identity its leading
-// edge carries. It is not a variant — a toast in Warning is a toast
-// speaking Warning — and it is not a level, which is where the toast is
-// placed.
-type Role int
+// Status is the status the toast indicates, carried by its leading edge in
+// that status's role. The zero value is Info: a toast given no status is
+// Info. It is not a variant, and it is not a level — a level is where the
+// toast is placed.
+type Status int
 
 const (
-	Info Role = iota
+	Info Status = iota
 	Success
 	Warning
 	Error
@@ -66,8 +69,8 @@ const (
 
 // Props configures a Toast.
 type Props struct {
-	Role Role
-	Text string
+	Status Status
+	Text   string
 
 	// Alpha is the opacity every colour the toast paints is scaled by,
 	// which is how a placement fades one out. A non-positive Alpha is
@@ -190,7 +193,7 @@ func draw(gtx layout.Context, shaper *text.Shaper, props Props, tok resolvedToke
 	}
 
 	fill := withAlpha(Fill(tok.color), alpha)
-	edge := withAlpha(Edge(tok.color, props.Role), alpha)
+	edge := withAlpha(Edge(tok.color, props.Status), alpha)
 	fg := withAlpha(Foreground(tok.color), alpha)
 
 	// Pre-record the label so we can size the surface around its dims. The
@@ -240,8 +243,8 @@ func draw(gtx layout.Context, shaper *text.Shaper, props Props, tok resolvedToke
 	return layout.Dimensions{Size: image.Pt(w, h)}
 }
 
-// Fill is the colour a toast's surface is filled with, at every status
-// role: the token set's InverseSurface. Level 2 is where a toast is placed,
+// Fill is the colour a toast's surface is filled with, whatever its status:
+// the token set's InverseSurface. Level 2 is where a toast is placed,
 // not what it is filled with, so the fill tells no two toasts apart.
 func Fill(c tokens.ColorTokens) color.NRGBA { return c.InverseSurface }
 
@@ -251,8 +254,8 @@ func Foreground(c tokens.ColorTokens) color.NRGBA { return c.OnInverseSurface }
 
 // edgeFloor is the contrast the leading edge owes the inverse surface it
 // sits on. The edge is a graphic and not text, so 3:1 would satisfy WCAG,
-// but it is also the only thing on a toast that says which status role this
-// is, so it is held to the body-text floor instead.
+// but it is also the only thing on a toast that says which status this is,
+// so it is held to the body-text floor instead.
 //
 // The number does not bind, which is worth knowing before anyone tunes it.
 // Over the whole seed sweep, both derivations, all four roles and both
@@ -263,8 +266,8 @@ func Foreground(c tokens.ColorTokens) color.NRGBA { return c.OnInverseSurface }
 // built out of the counterpart scheme — see edgeColor — and not this floor.
 const edgeFloor = 4.5
 
-// Edge maps Role to the colour of the toast's leading edge: the step of that
-// role's own ramp nearest the ramp's mid-value step that still clears
+// Edge maps a status to the colour of the toast's leading edge: the step of
+// that status's role ramp nearest the ramp's mid-value step that still clears
 // edgeFloor over the inverse surface (tokens.MarkOn), so the edge flips
 // with light/dark and follows whatever seed, palette or high-contrast
 // variant the theme is emitting.
@@ -281,13 +284,13 @@ const edgeFloor = 4.5
 // chroma — and a dark scheme is forced to step 400, the nearest-to-middle
 // step that still reads over its own light surface at all.
 //
-// Info reads the info ramp rather than the accent one, so an informational
-// toast's colour says "info" regardless of the brand's own hue; the info
+// Info reads the Info ramp rather than the accent one, so an informational
+// toast's colour says "info" regardless of the brand's own hue; the Info
 // role is anchored on a blue of its own, so the four stay four whatever the
 // seed.
-func Edge(c tokens.ColorTokens, r Role) color.NRGBA {
+func Edge(c tokens.ColorTokens, status Status) color.NRGBA {
 	var role tokens.Role
-	switch r {
+	switch status {
 	case Error:
 		role = tokens.RoleError
 	case Success:

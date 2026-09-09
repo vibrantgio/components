@@ -133,16 +133,16 @@ func dot(fill color.NRGBA, size unit.Dp) layout.Widget {
 
 // ── The patterns ──────────────────────────────────────────────────────────────
 
-// notifications draws the column with one toast at every status role. A
+// notifications draws the column with one toast at every status. A
 // notification with a zero At does no fading, so the column stands still
 // without a timer driving it — which is how the pattern's own stored images
 // are made.
 func (inv *Inventory) notifications(c tokens.ColorTokens) layout.Widget {
 	items := []notifications.Notification{
-		{ID: 1, Role: toast.Info, Text: "Info — the theme was reloaded."},
-		{ID: 2, Role: toast.Success, Text: "Success — the seed was saved."},
-		{ID: 3, Role: toast.Warning, Text: "Warning — contrast is below target."},
-		{ID: 4, Role: toast.Error, Text: "Error — that image could not be read."},
+		{ID: 1, Status: toast.Info, Text: "Info — the theme was reloaded."},
+		{ID: 2, Status: toast.Success, Text: "Success — the seed was saved."},
+		{ID: 3, Status: toast.Warning, Text: "Warning — contrast is below target."},
+		{ID: 4, Status: toast.Error, Text: "Error — that image could not be read."},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		// The column gathers in a corner of the frame it is handed, one edge
