@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
@@ -168,5 +169,49 @@ func TestAlertLightDarkDiffer(t *testing.T) {
 		if n := golden.PixelDiff(imgLight, imgDark); n == 0 {
 			t.Errorf("status %v: light and dark render identically; expected colour differences", status)
 		}
+	}
+}
+
+// TestAlertTakesItsContentsDepth is the banner's sizing contract, and the
+// reason an alert can stand in a page flow at all: given room to be any
+// depth it is as deep as the words in it, and given an exact box it fills
+// that box. A banner that always reported its slot's full height could only
+// be used at a depth the caller had guessed in advance.
+func TestAlertTakesItsContentsDepth(t *testing.T) {
+	shaper := defaultShaper(t)
+	props := func(bodyH float32) alert.Props {
+		return alert.Props{
+			Status: alert.Error,
+			Title:  statusTitle(alert.Error),
+			Body:   fillRect(color.NRGBA{R: 200, G: 200, B: 200, A: 255}, bodyH),
+			Shaper: shaper,
+		}
+	}
+	measure := func(p alert.Props, cs layout.Constraints) layout.Dimensions {
+		var ops op.Ops
+		gtx := layout.Context{
+			Constraints: cs,
+			Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
+			Ops:         &ops,
+		}
+		return alert.Render(shaper, p, tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)(gtx)
+	}
+
+	free := layout.Constraints{Max: image.Pt(frameW, 1000)}
+	short := measure(props(16), free)
+	tall := measure(props(64), free)
+	if short.Size.Y >= tall.Size.Y {
+		t.Errorf("a 16 dp body gives a %d dp banner and a 64 dp body a %d dp one; the banner must follow its content", short.Size.Y, tall.Size.Y)
+	}
+	if short.Size.Y >= 1000 {
+		t.Errorf("the banner reports %d dp of the 1000 dp it was offered; it may not take a column it does not need", short.Size.Y)
+	}
+	if short.Size.X != frameW {
+		t.Errorf("banner width = %d, want the %d it was given — the width is the slot's", short.Size.X, frameW)
+	}
+
+	exact := measure(props(16), layout.Exact(image.Pt(frameW, 200)))
+	if exact.Size.Y != 200 {
+		t.Errorf("banner in an exact 200 dp box = %d dp, want 200 — an exact box is still filled", exact.Size.Y)
 	}
 }

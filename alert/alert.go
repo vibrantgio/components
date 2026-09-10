@@ -20,10 +20,11 @@
 // the brand happened to say, and under a red-heavy brand it said "error"
 // more loudly than an alert indicating Error did.
 //
-// The banner fills the constraints it is given rather than shrinking to
-// its content — it reports gtx.Constraints.Max as its size — so an Alert
-// handed a full-height column takes the whole column. Give it a
-// height-constrained slot.
+// The banner takes the width it is given and the height its content
+// needs, clamped into the height its slot allows: an alert standing in a
+// page flow is as deep as the words in it, and an alert given an exact box
+// still fills that box. A title is one line; a Body of arbitrary depth
+// carries the rest.
 package alert
 
 import (
@@ -148,23 +149,29 @@ type resolvedTokens struct {
 const iconDp = 20
 
 func drawAlert(gtx layout.Context, shaper *text.Shaper, props Props, colors tokens.ColorTokens, sp tokens.SpacingScale, rad tokens.RadiusScale, title tokens.TextStyle) layout.Dimensions {
-	size := gtx.Constraints.Max
 	r := gtx.Dp(unit.Dp(rad.Lg))
 
 	role := roleOf(props.Status)
 	accent := colors.OnStatusContainer(role)
 	bg := colors.StatusContainer(role)
 
-	rrect := clip.RRect{Rect: image.Rectangle{Max: size}, SE: r, SW: r, NE: r, NW: r}
-	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
-
-	layout.UniformInset(unit.Dp(sp.S4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	// The content is measured before the banner is filled, so the fill can
+	// be laid under the depth the words actually took. Recording it keeps
+	// the paint order the reader sees: fill first, words over it.
+	rec := op.Record(gtx.Ops)
+	inner := layout.UniformInset(unit.Dp(sp.S4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Start}.Layout(gtx,
 			layout.Rigid(iconWidget(iconDp, accent)),
 			layout.Rigid(complayout.HSpacer(sp.S3)),
 			layout.Flexed(1, contentColumn(shaper, props, colors, sp, title)),
 		)
 	})
+	content := rec.Stop()
+
+	size := image.Pt(gtx.Constraints.Max.X, min(max(inner.Size.Y, gtx.Constraints.Min.Y), gtx.Constraints.Max.Y))
+	rrect := clip.RRect{Rect: image.Rectangle{Max: size}, SE: r, SW: r, NE: r, NW: r}
+	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
+	content.Add(gtx.Ops)
 
 	return layout.Dimensions{Size: size}
 }
