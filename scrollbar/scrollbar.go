@@ -83,16 +83,15 @@ type Style struct {
 
 	// MatchFill paints one match of the caller's query in the track.
 	//
-	// FromTokens takes the theme's highlight, the fill this system reserves
-	// for marking content the reader is being shown, so what the bar paints
-	// and what the content itself is marked with are the same fill.
+	// FromTokens takes the theme's highlight laid over what the track shows,
+	// so what the bar paints and what the content itself is marked with are
+	// the same fill.
 	MatchFill color.NRGBA
 	// CurrentMatchFill paints the match named by Current, so the reader can
 	// tell it from the others while stepping through them.
 	//
-	// FromTokens takes the same highlight carried one step further from the
-	// page on the scheme's own scale, which is deeper in a light scheme and
-	// brighter in a dark one.
+	// FromTokens takes the same yellow over the same surface at a higher
+	// coverage.
 	CurrentMatchFill color.NRGBA
 	// MatchLen is the extent along the major axis of what one match is
 	// painted as; it spans the track's minor extent, the thumb's own width.
@@ -241,21 +240,27 @@ func thumbForeground(c tokens.ColorTokens, floor float64, coverage uint8) color.
 // What the bar paints for a search query does not fade with the thumb: on
 // macOS the places of the matches stay in the track for as long as the query
 // does, and a reader who has just searched is looking for exactly them. The
-// current match is one step further from the page on the scheme's own scale
-// than the rest, rather than a second colour, because the two are one kind of
-// mark at two strengths; no token is reserved for either.
+// current match is the same yellow laid on more strongly than the rest,
+// rather than a second colour, because the two are one kind of mark at two
+// strengths.
+//
+// Both are laid over what the track shows. This track is transparent, so what
+// a mark lands on is the content the bar rides — a Style that gives the track
+// a fill of its own has to lay the two marks over that fill instead.
 func FromTokens(c tokens.ColorTokens) Style {
+	track := color.NRGBA{} // transparent: the content shows through
+	marked := c.Background // what a mark lands on through that track
 	return Style{
 		ThumbColor:        thumbForeground(c, restFloor, restCoverage),
 		ThumbHoverColor:   thumbForeground(c, activeFloor, activeCoverage),
-		TrackColor:        color.NRGBA{},
+		TrackColor:        track,
 		ThumbMinorWidth:   6,
 		TrackPadding:      2,
 		ThumbCornerRadius: 3,
 		ThumbMinLen:       16,
 		Current:           -1,
-		MatchFill:         c.Highlight,
-		CurrentMatchFill:  c.PinnedStateColor(c.Highlight, tokens.StateHover),
+		MatchFill:         c.HighlightOn(marked),
+		CurrentMatchFill:  c.CurrentMatchOn(marked),
 		MatchLen:          3,
 		FadeDelay:         time.Second,
 		FadeDuration:      tokens.Motion.DurSlow,
