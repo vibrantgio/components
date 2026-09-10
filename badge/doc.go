@@ -59,6 +59,47 @@
 // carries, which is that a set of glyph badges must differ in shape, because
 // a sign repeated under two statuses is two hues and nothing else.
 //
+// # The disc
+//
+// A glyph badge may be asked to stand on its status's fill instead of bare:
+// [RenderState.Disc], or [Props.Disc] on the live path. The fill is the same
+// one a word wears ([Fill]) and the sign reads in the same [Foreground] over
+// it, drawn as a circle inscribed in the glyph's own line-box square:
+//
+//	diameter = style.LineHeight
+//
+// which is the box a labelled badge's line already reserves at that density.
+// So the disc costs the badge nothing — same reported size, same baseline of
+// none — and a row that held a bare sign holds a disc without moving. The
+// [Neutral] disc takes the badge's Neutral fill, depth alone, like every
+// other Neutral fill in this package.
+//
+// The bare sign is the default and stays it. A verdict standing beside a
+// field reads as a report on that field precisely because it has no box of
+// its own; the disc is for where a sign has to hold its own against what is
+// set around it, and it is asked for rather than assumed.
+//
+// A label ignores the disc. The container a worded badge already wears IS the
+// fill the disc would add, so there is still exactly one structure branch,
+// and a labelled badge that also asked for a disc would be a badge inside a
+// badge.
+//
+// The sign itself is handed the square inscribed in that circle, centred on
+// it, rather than the line box the bare sign gets:
+//
+//	sign box = round down to the diameter's parity of (diameter / √2)
+//
+// which is the largest box whose every point is inside the circle. A [Glyph]
+// is a painter this package cannot inspect and the contract it is written to
+// is that a sign spans most of the box it is handed, so handing one the disc's
+// full square puts a check's tip on the antialiased rim and a sign drawn
+// corner to corner outside it altogether. The inscribed square is the only
+// size that holds for a painter the badge has not seen. Rounding to the
+// diameter's own parity is what keeps the sign centred on whole pixels.
+//
+// A caller passes the same [Glyph] either way: the sign is smaller inside a
+// disc than standing bare, and the badge's box is the same size in both.
+//
 // # Colour: one hue at two strengths
 //
 // Five values and they differ in hue alone: [Neutral] for a plain category
@@ -82,7 +123,8 @@
 // inheriting a caption token's, and why it is a badge rather than prose.
 //
 // A glyph badge has no container, so its foreground is derived against the
-// level instead ([BareForeground]). Both derivations are one function over
+// level instead ([BareForeground]) — a disc puts the container back, and with
+// it [Fill] and [Foreground]. Both derivations are one function over
 // two surfaces — [ForegroundOver] — and that is deliberate: the three
 // utterances read at one weight only if they are floored the same way over
 // whatever each of them actually stands on.
@@ -138,7 +180,8 @@
 //
 // The glyph's square is the line box, the rule components/chip states for an
 // inline mark: a mark on a line belongs to that line rather than to a control
-// around it.
+// around it. The disc is that same square's inscribed circle, so a glyph badge
+// measures the line box square whether it stands bare or on a disc.
 //
 // # The close mark
 //

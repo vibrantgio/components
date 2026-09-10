@@ -414,7 +414,7 @@ func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
 			Body: inv.pinnedButtonRow(c)},
 		{Name: "components-chip", Title: "Chip — the four purposes on three levels, then rest, hover, press and focus", Height: chipBlockH,
 			Body: inv.chipBlock(c)},
-		{Name: "components-badge", Title: "Badge — the five variants on three levels, the three utterances, and the close mark", Height: badgeBlockH,
+		{Name: "components-badge", Title: "Badge — the five variants on three levels, the three utterances, the disc, and the close mark", Height: badgeBlockH,
 			Body: inv.badgeBlock(c)},
 		{Name: "components-alert", Title: "Alert — info, success, warning, error", Height: 248,
 			Body: inv.alerts(c)},
@@ -821,7 +821,7 @@ const (
 var (
 	badgeLineBox = unit.Dp(badge.Style(tokens.DefaultTypography, tokens.Comfortable).LineHeight)
 	badgePanelH  = badgeLineBox + 2*badgePanelPadY
-	badgeBlockH  = 3*badgePanelH + 2*badgeLineBox + 4*badgeRowGap
+	badgeBlockH  = 3*badgePanelH + 4*badgeLineBox + 6*badgeRowGap
 )
 
 // badgeLevels are the surfaces the section shows the vocabulary on, in the
@@ -846,16 +846,39 @@ var badgeLevels = []struct {
 // it reads as a gap in the line.
 func badgeCheck(gtx layout.Context, sizePx int, col color.NRGBA) {
 	w := float32(sizePx)
-	stroke := float32(gtx.Dp(unit.Dp(1.5)))
-	if stroke < 1 {
-		stroke = 1
-	}
 	var p clip.Path
 	p.Begin(gtx.Ops)
 	p.MoveTo(f32.Pt(w*0.16, w*0.52))
 	p.LineTo(f32.Pt(w*0.42, w*0.76))
 	p.LineTo(f32.Pt(w*0.84, w*0.24))
-	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: stroke}.Op())
+	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: badgeGlyphStroke(gtx)}.Op())
+}
+
+// badgeCross is the check's opposite, the second sign the disc row needs: the
+// two rows below the vocabulary are the obligation drawn, that a set of glyph
+// badges differs in shape and not in hue alone.
+//
+// Its arms span the same 0.16 to 0.84 of the box the check does, so the two
+// rows are one family: two signs that filled their boxes to different extents
+// would read as two icon sets rather than as one shape varying.
+func badgeCross(gtx layout.Context, sizePx int, col color.NRGBA) {
+	w := float32(sizePx)
+	var p clip.Path
+	p.Begin(gtx.Ops)
+	p.MoveTo(f32.Pt(w*0.16, w*0.16))
+	p.LineTo(f32.Pt(w*0.84, w*0.84))
+	p.MoveTo(f32.Pt(w*0.84, w*0.16))
+	p.LineTo(f32.Pt(w*0.16, w*0.84))
+	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: badgeGlyphStroke(gtx)}.Op())
+}
+
+// badgeGlyphStroke is the verdict signs' stroke width in pixels, floored at
+// one: a sub-pixel stroke leaves a smear rather than a sign.
+func badgeGlyphStroke(gtx layout.Context) float32 {
+	if s := float32(gtx.Dp(unit.Dp(1.5))); s >= 1 {
+		return s
+	}
+	return 1
 }
 
 // badgeStyle is the type role every badge on the page is set in. The whole
@@ -867,8 +890,8 @@ func (inv *Inventory) badgeStyle() tokens.TextStyle {
 
 // badgeBlock shows the vocabulary in one column and the structure under it: the
 // four statuses and Neutral as the words they name, then the three utterances
-// a badge can make, then the close mark through the states the pointer puts
-// it in.
+// a badge can make, then the same five as discs under two signs, then the
+// close mark through the states the pointer puts it in.
 //
 // The vocabulary is drawn once per level, exactly as the chip's is, because
 // a badge's fill is derived against the surface it is put on and a specimen on
@@ -893,17 +916,32 @@ func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 		return badge.Render(inv.shaper, label, glyph, status, c, tokens.Spacing, tokens.Radius, style,
 			badge.RenderState{})
 	}
+	// A disc is a glyph badge asked to stand on its status's fill instead of
+	// bare. The fill is the same one the vocabulary panels above show on three
+	// surfaces, so the disc rows are drawn on the page like the other
+	// structure rows: what they ask a reader to judge is the shape, not a
+	// derivation the panels already answer.
+	discs := func(glyph badge.Glyph) []layout.Widget {
+		cells := make([]layout.Widget, 0, len(statuses))
+		for _, bs := range statuses {
+			cells = append(cells, badge.Render(inv.shaper, "", glyph, bs.status, c,
+				tokens.Spacing, tokens.Radius, style, badge.RenderState{Disc: true}))
+		}
+		return cells
+	}
 
 	// Each row varies one thing and each row varies a DIFFERENT thing, which
-	// is what makes the two dials readable as two: hue across the first row
-	// at one utterance, utterance across the second at one hue, the close
-	// mark's states across the third at a third hue. Drawing every row at one
+	// is what makes the dials readable as separate ones: hue across the
+	// panels above at one utterance, utterance across the first row here at
+	// one hue, hue again across the two disc rows at one sign each, the close
+	// mark's states across the last at a third hue. Drawing every row at one
 	// status would leave a reader unable to tell whether the utterances and
 	// the close mark belong to that status or to the component.
 	//
 	// Exactly three cells stand in the utterance row, because there are
 	// exactly three utterances. A sign set beside a word is a composition of
-	// two of them and would read as a fourth.
+	// two of them and would read as a fourth. The disc is not a fourth
+	// utterance either: it is the glyph utterance given the fill a word wears.
 	rows := []struct {
 		caption string
 		cells   []layout.Widget
@@ -913,6 +951,12 @@ func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 			plain("128", nil, badge.Success),
 			plain("", badgeCheck, badge.Success),
 		}},
+		// Two sign rows rather than one, and the same five statuses across
+		// both: the disc puts a field of the status's hue behind the sign
+		// without making hue enough on its own, so a reader has to be able to
+		// read the pair down the column where only the shape changed.
+		{caption: "Disc, a check", cells: discs(badgeCheck)},
+		{caption: "Disc, a cross", cells: discs(badgeCross)},
 		{caption: "Dismissible", cells: []layout.Widget{
 			// Real targets rather than drawings of a mark: the specimen is
 			// one a pointer can reach. Their clicks are drained and dropped —

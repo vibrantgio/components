@@ -3,6 +3,7 @@ package badge
 import (
 	"image"
 	"image/color"
+	"math"
 
 	"gioui.org/f32"
 	"gioui.org/font"
@@ -179,6 +180,13 @@ func ForegroundOver(c tokens.ColorTokens, status Status, surface color.NRGBA) co
 // container, and a glyph carries its meaning in its shape. A check and a cross
 // differ for a reader who sees neither hue.
 //
+// A glyph badge may still be given this fill as a disc ([RenderState.Disc]),
+// which is a request and not a second structure: the same fill and the same
+// [Foreground], put behind the sign as a circle rather than behind a word as a
+// rounded box. The bare sign stays the default, because standing bare is what
+// lets a verdict sit inside a line of controls without reading as one more
+// field.
+//
 // Which is an obligation on the caller and not a property the package can
 // hold. [Props.Glyph] is a painter this package cannot inspect, so two glyph
 // badges drawn with ONE sign under two statuses are two hues and nothing else —
@@ -208,8 +216,8 @@ func Foreground(c tokens.ColorTokens, status Status, level tokens.ElevationLevel
 }
 
 // RenderState holds the explicit visual state a static badge render draws in.
-// The zero value is a badge on the window's own surface with nothing under the
-// pointer, so RenderState{} is the default badge.
+// The zero value is a badge on the window's own surface, nothing under the
+// pointer and a sign standing bare, so RenderState{} is the default badge.
 //
 // Intended for golden-image testing and static rendering; production code
 // obtains the two pointer flags from the Gio event system.
@@ -229,6 +237,18 @@ type RenderState struct {
 	// there is nothing on it to operate.
 	DismissHovered bool
 	DismissPressed bool
+
+	// Disc asks a glyph badge to stand on the status's fill instead of bare:
+	// a circle the glyph's line box across, the sign centred in it in
+	// [Foreground] rather than [BareForeground] and drawn in the square
+	// inscribed in that circle. It is a request and not a structure of its
+	// own — a badge with a label already wears its container and ignores this,
+	// and a badge with neither label nor glyph has nothing to put a disc
+	// behind.
+	//
+	// The bare sign is the default, so the zero value leaves every badge
+	// drawn today untouched.
+	Disc bool
 }
 
 // state is the interaction state the close mark's region is walked by.
@@ -252,6 +272,12 @@ type Props struct {
 	// Glyph is the sign the badge draws, in the label's own line box, leading
 	// the label across the spacing scale's S1 stop. A nil Glyph draws none.
 	Glyph Glyph
+
+	// Disc asks a glyph badge — a non-nil Glyph with an empty Label — to
+	// stand on the status's fill: a circle the glyph's line box across, the
+	// sign centred in it and drawn smaller to fit. Copied straight into
+	// [RenderState.Disc]. A badge with a label ignores it.
+	Disc bool
 
 	// Status is the status the badge indicates. The zero value is [Neutral]:
 	// a badge given no status is Neutral.
@@ -301,6 +327,25 @@ type resolvedTokens struct {
 	radius  tokens.RadiusScale
 	style   tokens.TextStyle // the density's badge role, per [Style]
 	shaper  *text.Shaper
+}
+
+// discSign is the square a sign is handed inside a disc px across: the square
+// inscribed in the circle, rounded down to the diameter's own parity so the
+// sign centres on whole pixels rather than half of one.
+//
+// Inscribed rather than fitted to a particular sign, and that is the whole
+// reason for it. A [Glyph] is a painter this package cannot inspect, and the
+// contract it is written to is that a sign spans most of the box it is handed
+// — so a sign handed the disc's full square lands on the rim, and one drawn
+// corner to corner spills past it. The inscribed square is the largest box
+// whose every point is inside the circle, so it is the only size that holds
+// for a painter the badge has not seen.
+func discSign(px int) int {
+	in := int(float32(px) / math.Sqrt2)
+	if (px-in)%2 != 0 {
+		in--
+	}
+	return in
 }
 
 // containerPad is the space the container holds on each side between its edge
@@ -381,7 +426,7 @@ func Badge(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 			}
 
 			return func(gtx layout.Context) layout.Dimensions {
-				s := RenderState{Level: props.Level}
+				s := RenderState{Level: props.Level, Disc: props.Disc}
 				if props.OnDismiss == nil {
 					return draw(gtx, shaper, props.Label, props.Glyph, props.Status,
 						tok, s, desc, false, nil)
@@ -419,10 +464,10 @@ func Badge(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 // empty, in which case it is its glyph alone. That choice is also the choice
 // of structure: a badge with a label wears its status's [Fill] and reads in
 // [Foreground], and a glyph-only badge stands bare and reads in
-// [BareForeground] against s.Level. style is the whole text style the badge is
-// set in — pass [Style]
-// of the density in play, which is tokens.DefaultTypography.LabelMedium at
-// tokens.Comfortable.
+// [BareForeground] against s.Level — unless s.Disc asks the glyph badge to
+// stand on a disc, which puts it back on [Fill] and [Foreground]. style is the
+// whole text style the badge is set in — pass [Style] of the density in play,
+// which is tokens.DefaultTypography.LabelMedium at tokens.Comfortable.
 //
 // The badge is sized to its content and clamped to the constraints it is
 // handed, and reports the baseline of its label so a row can set it on the
@@ -490,10 +535,17 @@ func draw(
 	dismiss *widget.Clickable,
 ) layout.Dimensions {
 	// The utterance picks the structure: anything with words in it wears the
-	// container, a sign on its own stands bare. See [Fill].
-	contained := label != ""
+	// container, a sign on its own stands bare unless the caller asked for the
+	// disc. See [Fill].
+	//
+	// A label ignores [RenderState.Disc] rather than being refused it: the
+	// container the words already wear IS the fill the disc would add, so
+	// honouring both would mean a badge inside a badge, and there is exactly
+	// one structure branch here.
+	worded := label != ""
+	disc := !worded && glyph != nil && s.Disc
 	var fill, fg color.NRGBA
-	if contained {
+	if worded || disc {
 		fill, fg = Fill(tok.color, status, s.Level), Foreground(tok.color, status, s.Level)
 	} else {
 		fg = BareForeground(tok.color, status, s.Level)
@@ -504,8 +556,11 @@ func draw(
 	// that line, container or not.
 	lineBox := gtx.Dp(unit.Dp(tok.style.LineHeight))
 	gap := gtx.Dp(unit.Dp(tok.spacing.S1))
+	// A disc takes no padding: its circle is inscribed in the glyph's own
+	// square, so a disc badge's box is the same line-box square a bare sign
+	// reports and a row that reserved room for one holds the other unmoved.
 	pad := 0
-	if contained {
+	if worded {
 		pad = gtx.Dp(unit.Dp(containerPad(tok.spacing)))
 	}
 
@@ -563,7 +618,7 @@ func draw(
 	// constraints rounds to a stadium rather than drawing a corner larger
 	// than the box it belongs to.
 	radius := min(gtx.Dp(unit.Dp(containerRadius(tok.radius))), h/2)
-	if contained {
+	if worded {
 		paint.FillShape(gtx.Ops, fill, clip.RRect{
 			Rect: image.Rectangle{Max: size},
 			NW:   radius, NE: radius, SE: radius, SW: radius,
@@ -573,7 +628,17 @@ func draw(
 	x := pad
 	if sign > 0 {
 		so := op.Offset(image.Pt(x, (h-sign)/2)).Push(gtx.Ops)
-		glyph(gtx, sign, fg)
+		inner := sign
+		if disc {
+			// The circle inscribed in the glyph's square, so the diameter is
+			// the line box; the sign is then drawn in the square inscribed in
+			// THAT circle, centred on it.
+			paint.FillShape(gtx.Ops, fill, clip.Ellipse{Max: image.Pt(sign, sign)}.Op(gtx.Ops))
+			inner = discSign(sign)
+		}
+		io := op.Offset(image.Pt((sign-inner)/2, (sign-inner)/2)).Push(gtx.Ops)
+		glyph(gtx, inner, fg)
+		io.Pop()
 		so.Pop()
 		x += sign + signGap
 	}
@@ -620,7 +685,7 @@ func draw(
 
 	origin := image.Pt(x+markGap, (h-mark)/2)
 	markFg := fg
-	if contained {
+	if worded {
 		// The close mark's REGION is what walks: the container hands the
 		// pointer a field of colour to answer with, and a field is what makes
 		// an 8 dp x with a 24 dp target findable at all. The zone is the
@@ -647,7 +712,15 @@ func draw(
 		// Bare, there is no fill to walk, so the mark's own colour does it —
 		// toward the ramp's 900 end at that colour's hue and chroma, which is
 		// away from a light surface and away from a dark one alike.
-		markFg = tok.color.PinnedStateColor(fg, s.state())
+		//
+		// A disc's mark stands beside the circle rather than on it, so it is
+		// derived against the surface like any bare sign and not against the
+		// fill the sign inside the disc reads over.
+		base := fg
+		if disc {
+			base = BareForeground(tok.color, status, s.Level)
+		}
+		markFg = tok.color.PinnedStateColor(base, s.state())
 	}
 	drawClose(gtx, origin, mark, markFg)
 	registerCloseTarget(gtx, desc, origin, mark, dismiss)
