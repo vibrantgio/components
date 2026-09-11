@@ -255,8 +255,11 @@ func TestToolbarActivatesAndKeepsItsPointerFloor(t *testing.T) {
 		t.Fatalf("toolbar measured %d px wide at a 400 px constraint: it is sized to its value", dims.Size.X)
 	}
 
-	// The hit rect is 44 px centred on the 36 px control: −4..40 on the y axis.
-	click(r, drive, f32.Pt(float32(dims.Size.X)/2, 38))
+	// The pointer target is MinHitTarget centred on the control, so the slop
+	// reaches half their difference past the control's own foot. The press
+	// lands in the middle of that slop, below everything the trigger drew.
+	slop := (int(tokens.Comfortable.MinHitTarget()) - dims.Size.Y) / 2
+	click(r, drive, f32.Pt(float32(dims.Size.X)/2, float32(dims.Size.Y+slop/2)))
 	if clicks != 1 {
 		t.Errorf("click in the slop below the toolbar: OnClick fired %d times, want 1", clicks)
 	}

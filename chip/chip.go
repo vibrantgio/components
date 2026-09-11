@@ -19,7 +19,6 @@ import (
 	"github.com/reactivego/rx"
 
 	"github.com/vibrantgio/mvu"
-	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
@@ -35,9 +34,7 @@ type Purpose uint8
 
 const (
 	// Assist offers a contextual action on the content beside it. It is
-	// clickable and never selected, and it is the one purpose whose foreground
-	// is the page's full-strength text colour: an assist chip proposes something to
-	// do and is read at the weight of what it is proposing.
+	// clickable and never selected.
 	//
 	// It is the zero value, so a [Props] naming no purpose draws one.
 	Assist Purpose = iota
@@ -106,9 +103,9 @@ const AvatarDp = 24
 // past both ends of the chip carrying it.
 const DismissHitDp = 24
 
-// edgeDp is the outline's width — one hair at every density, the width every
-// other derived edge in this library is drawn at. It is a width rather than a
-// token because no scale in the system carries line weights.
+// edgeDp is the rim's width — one hair at every density, the width every
+// other edge in this library is drawn at. It is a width rather than a token
+// because no scale in the system carries line weights.
 const edgeDp = unit.Dp(1)
 
 // MarkStrokeDp is the line weight a chip's stroked marks are drawn at, in dp:
@@ -135,45 +132,26 @@ func MarkStrokeDp(style tokens.TextStyle) float32 { return style.FaceMetrics().S
 //
 // A nil Glyph draws no leading mark; the chip loses the mark and the gap after
 // it and nothing else. A painter that draws its own picture may ignore col;
-// one that draws a sign must honour it, because col is what the chip derived
-// against the body actually drawn.
+// one that draws a sign must honour it, because col is what reads on the body
+// the chip drew.
 type Glyph func(gtx layout.Context, sizePx int, col color.NRGBA)
 
 // RenderState holds the explicit visual state a static chip render draws in.
-// The zero value is a resting, unselected chip on the window's own surface,
-// so RenderState{} is the default chip.
+// The zero value is a resting, unselected chip, so RenderState{} is the
+// default chip.
 //
 // Intended for golden-image testing and static rendering; production code
 // obtains the interaction half from the Gio event system.
 type RenderState struct {
-	// Level is the level of the surface the chip stands on — a chip has no
-	// level of its own — in the same vocabulary the host names its own fill
-	// (tokens.SurfaceAt). An unselected chip carries no colour of its own, so
-	// that surface is what its body is painted in and what its foreground is
-	// floored against. A dialog at tokens.Level2 passes Level2. The zero value is
-	// tokens.Level0, the window's own surface.
-	Level tokens.ElevationLevel
-
 	// Selected is honoured only where [Purpose.Selectable] is true. A selected
-	// chip drops its outline, fills, and leads with a checkmark.
+	// chip drops its rim, fills, and leads with a checkmark.
 	Selected bool
 
+	// Hovered moves no colour: see [Resolve]. It is carried so a caller can
+	// hand the whole pointer state in one value.
 	Hovered bool
 	Pressed bool
 	Focused bool
-}
-
-// state is the token vocabulary's name for the interaction the chip is in.
-// Press wins over hover, because a pressed control is under the pointer by
-// definition and the deeper walk is the one that has something to say.
-func (s RenderState) state() tokens.State {
-	switch {
-	case s.Pressed:
-		return tokens.StatePressed
-	case s.Hovered:
-		return tokens.StateHover
-	}
-	return tokens.StateNormal
 }
 
 // Colors is the set one chip draws with, resolved together by [Resolve].
@@ -183,194 +161,70 @@ func (s RenderState) state() tokens.State {
 // the answers the chip drew with, and re-deriving them at the call site is how
 // two answers appear.
 type Colors struct {
-	// Fill is what the chip's body is painted in. On an unselected chip at
-	// rest it is the surface the caller named, which is what leaves the
-	// outline carrying the whole appearance; under the pointer it is that
-	// surface walked, and on a selected chip the secondary container walked.
-	Fill color.NRGBA
+	// Fill is what the chip's body is painted in; Overlay is what is laid
+	// over it while the chip is held, at the platform's own coverage. The two
+	// are separate because Fill itself may be translucent, and a coverage
+	// blended into a translucent fill is not the pixel the platform draws.
+	// A zero-alpha Overlay draws nothing.
+	Fill    color.NRGBA
+	Overlay color.NRGBA
 
-	// Outline is the resting body's one hair of edge, and Outlined is whether
-	// it is drawn. A selected chip has no outline: the fill has arrived and
-	// the edge is not needed twice.
+	// Outline is the rim the body wears, and Outlined is whether it is drawn
+	// at all. A selected chip has no rim: the fill has arrived and the edge is
+	// not needed twice.
 	Outline  color.NRGBA
 	Outlined bool
 
-	// Label is the colour the words are set in, floored at [tokens.TextFloor]
-	// against [Colors.Fill].
+	// Label is the colour the words are set in. Mark is the leading glyph's
+	// and the selected filter's checkmark's, which is the same colour: a mark
+	// in the leading slot is part of the label's own line.
 	Label color.NRGBA
+	Mark  color.NRGBA
 
-	// Mark is the colour the leading checkmark, the leading glyph and the
-	// dismiss mark are drawn in, floored at [tokens.GraphicFloor] against
-	// [Colors.Fill].
-	Mark color.NRGBA
+	// Dismiss is an [Input] chip's trailing mark, the one part of a chip the
+	// platform draws weaker than the words beside it.
+	Dismiss color.NRGBA
 }
 
 // Resolve returns the colours a chip of purpose i draws with in state s.
 //
-// Selected and unselected are two derivations, not one with a switch in it:
+// A chip is an ordinary small control on this platform, and every colour here
+// is one of the platform's own names:
 //
-//	unselected  body        the surface itself, walked by the pointer — no
-//	                        colour of the chip's own
-//	            edge        OutlineVariant while it clears the graphic floor
-//	                        on both sides, the floored neutral step otherwise
-//	            foreground  OnSurfaceVariant, or the Text pin for Assist, each
-//	                        held to its floor against the body actually drawn
-//	  selected  body        the secondary container against the surface,
-//	                        walked by the pointer and stopped where it stops
-//	                        being a chip
-//	            edge        none
-//	            foreground  ForegroundOnAtFloor(RoleSecondary, body,
-//	                        TextFloor) for the words, OnContainer's own rule
-//	                        against that body for the marks
+//	resting   body Control, rim Separator, words and leading mark ControlText
+//	selected  body SelectedContentBackground, no rim, words and checkmark
+//	          AlternateSelectedControlText
+//	held      PressOverlay over whichever body the chip started from
+//	dismiss   SecondaryLabel, in every state
 //
-// The walk is the same one every state in this system takes
-// ([tokens.ColorTokens.PinnedStateColor]) and it is the whole of the feedback
-// grammar here: rest is where the two derivations differ, and hover and press
-// follow from whichever rest they started at.
+// The four purposes do not differ in colour. They differ in behaviour and in
+// structure — which of them selects, which carries the trailing mark, what
+// stands in its leading slot — and a selected [Filter] chip is the one
+// variation the colours carry.
 //
-// Both foregrounds are resolved against the body ACTUALLY drawn rather than against
-// the resting one. A colour derived against a surface the walk has since moved
-// is a floor that was met once: measured on the family this replaces, 4.5:1 at
-// rest became 2.3:1 pressed. On a selected chip the marks are
-// [tokens.ColorTokens.OnContainer]'s own derivation — the role's mark against
-// its container at the graphic floor — re-run against the container the chip
-// is actually wearing.
-//
-// The words take the text floor and the marks the graphic one, which is the
-// split those two floors are for: [tokens.TextFloor] is what a run of words
-// owes, and [tokens.GraphicFloor] is what a shape that must be resolved owes.
-func Resolve(c tokens.ColorTokens, i Purpose, s RenderState) Colors {
-	st := s.state()
-	surface := c.SurfaceAt(s.Level)
-	if s.Selected && i.Selectable() {
-		fill := walk(c, c.ContainerOn(tokens.RoleSecondary, surface), st, func(fill color.NRGBA) bool {
-			// A selected chip carries no outline, so its fill is the whole of
-			// what separates it from the page as well as the surface its own
-			// words are read on.
-			return vgcolor.LuminanceRatio(fill, surface) >= tokens.ContainerFloor &&
-				vgcolor.Magnitude(c.ForegroundOnAtFloor(tokens.RoleSecondary, fill, tokens.TextFloor), fill) >= tokens.TextFloor
-		})
-		return Colors{
-			Fill:  fill,
-			Label: c.ForegroundOnAtFloor(tokens.RoleSecondary, fill, tokens.TextFloor),
-			Mark:  c.MarkOn(tokens.RoleSecondary, fill, tokens.GraphicFloor),
-		}
-	}
-	fill := walk(c, surface, st, func(fill color.NRGBA) bool { return writable(c, fill) })
-	pin := c.OnSurfaceVariant()
-	if i == Assist {
-		pin = c.Text
-	}
-	return Colors{
-		Fill:     fill,
-		Outline:  outlineOver(c, surface, fill),
+// There is no hover answer: a push-button-shaped control does not change
+// colour under the pointer on macOS 26, measured against the stored captures.
+// A focused chip wears [focus.Ring] in place of its rim, which the draw
+// applies rather than this.
+func Resolve(p tokens.PlatformColors, i Purpose, s RenderState) Colors {
+	col := Colors{
+		Fill:     p.Control,
+		Outline:  p.Separator,
 		Outlined: true,
-		Label:    neutralForeground(c, pin, fill, tokens.TextFloor),
-		Mark:     neutralForeground(c, pin, fill, tokens.GraphicFloor),
+		Label:    p.ControlText,
+		Mark:     p.ControlText,
+		Dismiss:  p.SecondaryLabel,
 	}
-}
-
-// walk is the state walk and where it stops: [tokens.ColorTokens.PinnedStateColor]
-// from rest, held back to the last depth on the way that good still accepts.
-//
-// The stop is a condition on being a chip at all rather than a second thought
-// about the walk. The walk is depth on the neutral ramp and a ramp writes
-// with its ends, so between them lies a band of depths no step reaches the text
-// floor against; a body nothing can be written on is not a state to walk to. A
-// selected chip adds the second condition, because it carries no outline and a
-// walk that took its fill through the depth of the surface it stands on would
-// erase the chip at the crossing.
-//
-// The depth is found by measuring the realized tone rather than by solving for
-// the boundary, because a tone is realized in 8-bit sRGB and a depth solved
-// exactly on the edge rounds to either side of it; halving the interval keeps
-// the answer on the side that measured good. A resting body that already fails
-// is left alone — that is a defect in the resting appearance and belongs to the
-// gates, not to a state walk.
-func walk(c tokens.ColorTokens, rest color.NRGBA, st tokens.State, good func(color.NRGBA) bool) color.NRGBA {
-	walked := c.PinnedStateColor(rest, st)
-	if good(walked) || !good(rest) {
-		return walked
+	if s.Selected && i.Selectable() {
+		col.Fill = p.SelectedContentBackground
+		col.Outlined = false
+		col.Label = p.AlternateSelectedControlText
+		col.Mark = p.AlternateSelectedControlText
 	}
-	restL, _, _ := vgcolor.LabFromNRGBA(rest)
-	walkedL, _, _ := vgcolor.LabFromNRGBA(walked)
-	_, chroma, hue := vgcolor.OKLChFromNRGBA(walked)
-	// lo is always a depth that measured good, hi one that did not.
-	lo, hi := restL, walkedL
-	for range 24 {
-		mid := (lo + hi) / 2
-		if good(vgcolor.NRGBAFromToneChromaHue(mid, chroma, hue)) {
-			lo = mid
-		} else {
-			hi = mid
-		}
+	if s.Pressed {
+		col.Overlay = p.PressOverlay
 	}
-	return vgcolor.NRGBAFromToneChromaHue(lo, chroma, hue)
-}
-
-// writable reports whether a label can be set on fill at all, and it asks with
-// the MUTED pin rather than the full-strength one: the muted pin is a step of
-// the neutral ramp, so a depth it reaches is one the ramp reaches, and the
-// walk must stop at the same depth for all four purposes. A body whose depth
-// depended on which purpose stood on it would put two chips in one row at two
-// different depths under one pointer.
-func writable(c tokens.ColorTokens, fill color.NRGBA) bool {
-	return vgcolor.Magnitude(neutralForeground(c, c.OnSurfaceVariant(), fill, tokens.TextFloor), fill) >= tokens.TextFloor
-}
-
-// outlineOver is the unselected chip's edge: the boundary token while it holds
-// the graphic floor on both sides of the edge, and a floored neutral step
-// otherwise.
-//
-// [tokens.ColorTokens.OutlineVariant] is floored by construction against
-// Surface and Background, which is the pair a neutral boundary is drawn over
-// when nobody names a level. A chip does name one, and the levels reach
-// past that pair: on the dark scheme's level-3 plane the token measures
-// 1.80:1. So it is a pin and not an answer — used while it reads, walked when
-// it stops, which is the idiom every other derived colour in this package
-// takes.
-//
-// An edge has two sides and one colour, and the inside of this one moves: the
-// body walks a step and two under the pointer. Both sides are asked for, and
-// where no step can clear both — the deep end of a press on a high level, at
-// which point the two neighbours are further apart than twice the floor — the
-// OUTER side keeps the colour. What the outline separates the chip from is the
-// page; what is inside it is the chip's own transient state, already under the
-// reader's pointer when the two collide.
-func outlineOver(c tokens.ColorTokens, surface, fill color.NRGBA) color.NRGBA {
-	cands := [...]color.NRGBA{
-		c.OutlineVariant(),
-		c.MarkOn(tokens.RoleNeutral, surface, tokens.GraphicFloor),
-		c.MarkOn(tokens.RoleNeutral, fill, tokens.GraphicFloor),
-	}
-	clears := func(cand, over color.NRGBA) bool {
-		return vgcolor.Magnitude(cand, over) >= tokens.GraphicFloor
-	}
-	for _, cand := range cands {
-		if clears(cand, surface) && clears(cand, fill) {
-			return cand
-		}
-	}
-	for _, cand := range cands {
-		if clears(cand, surface) {
-			return cand
-		}
-	}
-	return cands[1]
-}
-
-// neutralForeground is [tokens.ColorTokens.ForegroundOnAtFloor]'s rule for a pin
-// no role owns: the pin while it clears floor against that surface, and
-// otherwise the step of the neutral ramp nearest its mid-value that does.
-//
-// ForegroundOnAtFloor itself asks a role for its pinned base and
-// RoleNeutral has none, so the rule is spelled out here rather than
-// reinvented: pin first, walk only when the pin stops reading.
-func neutralForeground(c tokens.ColorTokens, pin, surface color.NRGBA, floor float64) color.NRGBA {
-	if vgcolor.Magnitude(pin, surface) >= floor {
-		return pin
-	}
-	return c.MarkOn(tokens.RoleNeutral, surface, floor)
+	return col
 }
 
 // Pin is the edge of the box a chip is offered that its body is pinned to.
@@ -466,12 +320,6 @@ type Props struct {
 	// Description is the screen-reader label. Falls back to Label when empty.
 	Description string
 
-	// Level is the level of the surface the chip stands on — a chip has no
-	// level of its own — copied straight into [RenderState.Level] on every
-	// frame. A dialog at tokens.Level2 passes Level2. The zero value is
-	// tokens.Level0, the window's own surface. See [RenderState.Level].
-	Level tokens.ElevationLevel
-
 	// Pin is the edge of the offered box the chip is drawn at. The zero value
 	// is [PinNone] and the chip reports itself alone, which is every chip laid
 	// out by its own container. Set it where the box is a cap the caller sized
@@ -534,12 +382,12 @@ type Props struct {
 // resolvedTokens is the concrete per-emission snapshot the layout.Widget
 // closure draws from: the whole theme flattened to the values one frame needs.
 type resolvedTokens struct {
-	color   tokens.ColorTokens
-	label   tokens.TextStyle // the LabelLarge role
-	spacing tokens.SpacingScale
-	radius  tokens.RadiusScale
-	density tokens.Density
-	shaper  *text.Shaper
+	platform tokens.PlatformColors
+	label    tokens.TextStyle // the LabelLarge role
+	spacing  tokens.SpacingScale
+	radius   tokens.RadiusScale
+	density  tokens.Density
+	shaper   *text.Shaper
 }
 
 // Chip returns an rx.Observable[layout.Widget] emitting a new widget whenever
@@ -558,9 +406,9 @@ type resolvedTokens struct {
 // centred on.
 //
 // An [Input] chip's dismiss mark registers a second, smaller target
-// ([DismissHitDp]) over the body's, and the body keeps walking while the
-// pointer is on it: the mark is part of the chip, so a reader reaching for it
-// must not see the chip go cold.
+// ([DismissHitDp]) over the body's, and the body keeps the pointer while it is
+// on the mark: the mark is part of the chip, so a reader reaching for it must
+// not see the chip go cold.
 //
 // Keyboard activation is gioui.org/widget.Clickable's: the chip is focusable,
 // Space and Enter activate it, and gtx.Focused drives [RenderState.Focused] —
@@ -578,16 +426,16 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 	// and the theme's cached shaper (ADR-003: the theme owns the typeface).
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest5(t.Color, t.Typography, t.Spacing, t.Radius, t.Density),
-			func(n rx.Tuple5[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
+			rx.CombineLatest5(t.Platform, t.Typography, t.Spacing, t.Radius, t.Density),
+			func(n rx.Tuple5[tokens.PlatformColors, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
 				typ := n.Second
 				return resolvedTokens{
-					color:   n.First,
-					label:   typ.LabelLarge,
-					spacing: n.Third,
-					radius:  n.Fourth,
-					density: n.Fifth,
-					shaper:  typ.Shaper(),
+					platform: n.First,
+					label:    typ.LabelLarge,
+					spacing:  n.Third,
+					radius:   n.Fourth,
+					density:  n.Fifth,
+					shaper:   typ.Shaper(),
 				}
 			},
 		)
@@ -662,7 +510,6 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 				}
 
 				s := RenderState{
-					Level:    props.Level,
 					Selected: selected,
 					// The dismiss mark's area lies over the body's and takes
 					// the pointer from it, so the body reads both: a chip
@@ -704,14 +551,14 @@ func Render(
 	label string,
 	i Purpose,
 	icon Glyph,
-	colors tokens.ColorTokens,
+	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
 	labelStyle tokens.TextStyle,
 	d tokens.Density,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, label: labelStyle, spacing: sp, radius: rad, density: d}
+	tok := resolvedTokens{platform: p, label: labelStyle, spacing: sp, radius: rad, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
 		return draw(gtx, shaper, label, i, icon, tok, s, label, nil)
 	}
@@ -731,13 +578,13 @@ func draw(
 	dismiss *widget.Clickable,
 ) layout.Dimensions {
 	selected := s.Selected && i.Selectable()
-	col := Resolve(tok.color, i, s)
+	col := Resolve(tok.platform, i, s)
 
 	padH := gtx.Dp(unit.Dp(tok.density.PaddingX))
 	gap := gtx.Dp(unit.Dp(tok.spacing.S2))
 
 	// The marks are capped at the body's INNER height — the chip's own height
-	// less the edge on both sides — so a mark never lies on the outline it
+	// less the edge on both sides — so a mark never lies on the rim it
 	// stands inside. It binds at Compact, where the density's chip height and
 	// the avatar slot are the same number; the cap band is well under both.
 	band := max(gtx.Dp(edgeDp), 1)
@@ -794,12 +641,11 @@ func draw(
 	// Sized to content, not to the width it was given: a chip is something
 	// content sprouted, and one that stretched would be a banner.
 	//
-	// The height is the density's chip height outright — not a floor under
-	// max(content, ControlHeight + padding), which is the rule for the control
-	// family the chip has just left. A chip is shorter than a button by
-	// construction and its label's line box fits inside that height at both
-	// densities, so the only thing that can push it taller is a caller's own
-	// oversized style.
+	// The height is the density's chip height under the label's own line box,
+	// and not a floor under max(content, ControlHeight + padding), which is
+	// the rule for the control family the chip has just left: a chip is
+	// shorter than a button by construction and spends no padding on this
+	// axis.
 	h := max(chipH, labelDims.Size.Y)
 	h = min(h, gtx.Constraints.Max.Y)
 
@@ -826,7 +672,7 @@ func draw(
 	// the box this component reports and every pixel of it would be a blend of the
 	// two colours rather than either.
 	//
-	// A focused chip's edge IS the focus ring: the ring replaces the outline
+	// A focused chip's edge IS the focus ring: the ring replaces the rim
 	// rather than being drawn inside it. Drawn inside, the two make a
 	// three-line sandwich — hairline, a pixel of body, then the ring — which
 	// reads as a dirty halo, the same "a band beside a boundary reads as part
@@ -836,7 +682,7 @@ func draw(
 	radius := min(gtx.Dp(unit.Dp(tok.radius.Lg)), h/2)
 	edgeColor, edged := col.Outline, col.Outlined
 	if s.Focused {
-		band, edgeColor, edged = gtx.Dp(focus.Width), focus.Ring(tok.color), true
+		band, edgeColor, edged = gtx.Dp(focus.Width), focus.Ring(tok.platform), true
 	}
 	inner, innerRad := box, radius
 	if edged {
@@ -846,6 +692,9 @@ func draw(
 		}
 	}
 	paint.FillShape(gtx.Ops, col.Fill, rrect(gtx.Ops, inner, innerRad))
+	if col.Overlay.A > 0 {
+		paint.FillShape(gtx.Ops, col.Overlay, rrect(gtx.Ops, inner, innerRad))
+	}
 
 	// One row, leading edge to trailing: mark, label, dismiss mark. The row is
 	// laid from the leading padding rather than centred in the box, because
@@ -928,7 +777,7 @@ func draw(
 	if trail > 0 {
 		origin := image.Pt(x+trailGap, markY)
 		mo := op.Offset(origin).Push(gtx.Ops)
-		drawCross(gtx, trail, stroke(gtx, tok.label), col.Mark)
+		drawCross(gtx, trail, stroke(gtx, tok.label), col.Dismiss)
 		mo.Pop()
 		registerDismissTarget(gtx, desc, origin, trail, dismiss)
 	}

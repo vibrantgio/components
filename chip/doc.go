@@ -1,5 +1,5 @@
 // Package chip provides the Vibrant Gio chip: the small control that content
-// sprouts — an outline at rest, coloured only when meaning arrives.
+// sprouts, drawn as the platform draws an ordinary small control.
 //
 // A chip is defined by its purpose and by nothing else. [Assist] offers a
 // contextual action, [Filter] narrows a set and is the one that toggles,
@@ -8,7 +8,7 @@
 // structure, one silhouette, one height, four purposes.
 //
 // [Render] is the pure path: resolved tokens plus a [RenderState] carrying the
-// level, the selection and the pointer, one frame out, no event handling.
+// selection and the pointer, one frame out, no event handling.
 // [Chip] is the live one — a theme observable and [Props] in, a layout.Widget out on
 // every theme emission, with the pointer areas, the keyboard, the filter's own
 // selection and the activation dispatch the pure path cannot carry.
@@ -56,81 +56,51 @@
 // over a list of the alternatives is components/picker's, which draws the
 // platform's own measured pop-up capsule.
 //
-// # Colour: an outline at rest, a container when selected
+// # Colour
 //
-// Everything is derived and nothing is a literal. [Resolve] carries the whole
-// table and states each derivation; what follows is why it is that shape.
+// Every colour is one of the platform's own names and nothing is measured or
+// mixed. [Resolve] carries the table: a resting chip is the platform's
+// Control behind a Separator rim with ControlText words, a selected [Filter]
+// chip is SelectedContentBackground with AlternateSelectedControlText and no
+// rim, and a held chip wears PressOverlay over whichever body it started
+// from. The trailing dismiss mark is SecondaryLabel, which is the one part of
+// a chip the platform draws weaker than the words beside it.
 //
-// The resting chip has NO fill. Its body is painted in the surface the caller
-// named, so what a reader sees is the outline and the foreground inside it — a
-// control that is present without claiming to be a filled thing. That outline
-// is [tokens.ColorTokens.OutlineVariant], the neutral step floored by
-// construction against Surface and Background; the chip takes it as a pin
-// rather than as an answer, because the elevation levels reach past that
-// pair and the token measures 1.80:1 on the dark scheme's level-3 plane. The
-// foreground is [tokens.ColorTokens.OnSurfaceVariant], the muted step that is still a
-// colour text may legally be set in — except on [Assist], which reads in the
-// page's full-strength Text pin, because an assist chip proposes something to
-// do and is read at the weight of what it proposes.
+// The four purposes are one colour. What separates them is behaviour and
+// structure — which one selects, which carries the trailing mark, what stands
+// in the leading slot — and the platform draws all four alike.
 //
-// Selection is where colour arrives. A selected [Filter] chip fills with
-// the secondary container and drops its outline: the fill has arrived and
-// the edge is not needed twice. Its words read in
-// ForegroundOnAtFloor(RoleSecondary, fill, TextFloor) and its marks in
-// OnContainer's own derivation against that fill — words owe WCAG 1.4.3's
-// 4.5:1 and a mark owes 1.4.11's 3:1, and the split is the whole reason the
-// two are named separately.
+// The pointer moves no colour at rest. A push-button-shaped control does not
+// change colour under the pointer on macOS 26, measured against the stored
+// captures, so hover is the cursor and nothing else; press is the only pointer
+// state that paints. The overlay is laid over the body as a second fill rather than
+// blended into it, because the body itself is translucent in the dark scheme
+// and a coverage folded into a translucent fill is not the pixel the platform
+// draws.
 //
-// The container is a derivation and not a copied tone: it asks the role's ramp
-// and holds the hue exactly, so a brandless palette yields a brandless chip
-// rather than inventing a hue the theme does not have. It is realized against
-// the surface the chip stands on rather than at the family's fixed step, for
-// the reason everything else here is measured against that surface — the
-// levels walk through that fixed step, and in the dark scheme a level-2
-// surface and the
-// fixed secondary container measure 1.00:1 against each other.
-//
-// Hover and press are the same state walk every other control in this system
-// takes ([tokens.ColorTokens.PinnedStateColor]), started from whichever rest
-// the chip is in: an unselected chip walks from the surface it stands on, so a
-// body appears under the pointer where there was none, and a selected one
-// walks from its container. Only the resting targets differ; the feedback
-// grammar is one grammar.
-//
-// Both foregrounds are resolved against the body ACTUALLY drawn, state included, so a
-// chip whose body has walked re-derives rather than keeping a colour that no
-// longer reads. The walk also STOPS. A ramp writes with its ends, so between
-// them lies a band of depths no step reaches the text floor against, and a body
-// nothing can be written on is not a state to walk to; the selected walk adds a
-// second stop, because a filled chip carries no outline and a walk that took
-// its fill through the depth of that surface would erase the chip at the
-// crossing.
-// Either walk halts at the last depth that still holds. [Resolve] carries the
-// rule.
-//
-// The focus ring is components/internal/focus's, and it asks for no surface at
-// all: one colour per scheme, the same on the content, on a card and in a
-// dialog. A focused chip's edge IS the ring — it takes the outline's place,
-// two dp where the outline was one, rather than being drawn inside it. Drawn
-// inside, the two make a three-line sandwich that reads as a smeared halo; it
-// is the same reason components/button holds its ring clear of its own
-// boundary. The chip measures the same box focused as at rest and the label
-// does not shift.
+// The focus ring is components/internal/focus's, the platform's keyboard
+// focus indicator, one colour per appearance on every surface. A focused
+// chip's edge IS the ring — it takes the rim's place, two dp where the rim
+// was one, rather than being drawn inside it. Drawn inside, the two make a
+// three-line sandwich that reads as a smeared halo; it is the same reason
+// components/button holds its ring clear of its own boundary. The chip
+// measures the same box focused as at rest and the label does not shift.
 //
 // # Geometry
 //
 // The height is [tokens.Density.ChipHeight] — the density's control height
-// less the system's chip drop, 32 dp Comfortable and 24 dp Compact. It is a
-// height and not a floor over the padding rule, which is the rule for controls
-// in the control family the chip has just left: a chip is smaller than a button by
-// construction, and the label's line box fits inside that height at both
-// densities. What the height still yields to is a caller's own oversized
-// style, because a box shorter than the words in it is not a chip either.
+// less the system's chip drop, 20 dp Comfortable and 15 dp Compact — under the
+// label's own line box, which the chip takes wherever that box is taller. It
+// is not a floor over the padding rule, which is the rule for controls in the
+// control family the chip has just left: a chip is smaller than a button by
+// construction and spends no padding on the axis. At Compact the line box is
+// taller than the chip height in both label roles, so a Compact chip measures
+// its label; a box shorter than the words in it is not a chip either.
 //
 // Horizontal padding is d.PaddingX at each end. The silhouette is the radius
 // scale's Lg stop, 8 dp, clamped to half the height — a rounded rectangle, not
 // a capsule. The edge is one dp at every density, the width every other
-// derived edge in this library draws, and it is painted as nested fills rather
+// edge in this library draws, and it is painted as nested fills rather
 // than as a stroke on the shape's path: a stroke is centred on the path, so
 // half of it would fall outside the box the chip reports and every pixel of it
 // would be a blend of the two colours rather than either.

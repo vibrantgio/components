@@ -64,20 +64,21 @@ func defaultShaper(t *testing.T) *text.Shaper {
 	return tokens.DefaultTypography.DeterministicShaper()
 }
 
-// onLevel paints the whole frame in the fill of the surface the chip is
-// standing on and draws w inset inside it, and it has to do both.
+// onPage paints the whole frame in the platform's window fill and draws w
+// inset inside it, and it has to do both.
 //
-// The surface, because a resting chip carries no fill of its own: against the
-// headless window's own clear colour, a correct chip and one that resolved its
-// body from the wrong level look identical. The inset, because a chip drawn at
-// the image origin has the host on two sides and the image edge on the other
-// two, and an image framed that way cannot show whether anything — a ring, a
-// stray half-pixel of outline — spills outside the box the chip reported.
+// The page, because the chip's own fill is the platform's control fill, which
+// is that same white in the light appearance: against the headless window's
+// clear colour a correct chip and one that painted nothing look identical.
+// The inset, because a chip drawn at the image origin has the page on two
+// sides and the image edge on the other two, and an image framed that way
+// cannot show whether anything — a ring, a stray half-pixel of rim — spills
+// outside the box the chip reported.
 const goldenInset = 12
 
-func onLevel(c tokens.ColorTokens, level tokens.ElevationLevel, w layout.Widget) layout.Widget {
+func onPage(p tokens.PlatformColors, w layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		paint.FillShape(gtx.Ops, c.SurfaceAt(level), clip.Rect{Max: gtx.Constraints.Max}.Op())
+		paint.FillShape(gtx.Ops, p.WindowBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
 		return layout.UniformInset(unit.Dp(goldenInset)).Layout(gtx, w)
 	}
 }
@@ -102,25 +103,12 @@ func row(ws ...layout.Widget) layout.Widget {
 	}
 }
 
-// The three surfaces a chip actually rests on. There are five levels and the
-// contrast sweep walks all of them; these are the three a chip is put on in
-// practice — the content surface, the chrome level a toolbar band stands
-// at, and a dialog — so they are the three whose pixels are worth storing.
-var goldenLevels = []struct {
-	name  string
-	level tokens.ElevationLevel
-}{
-	{"content", tokens.Level0},
-	{"chrome", tokens.LevelChrome},
-	{"dialog", tokens.Level2},
-}
-
 var goldenSchemes = []struct {
-	name   string
-	colors tokens.ColorTokens
+	name string
+	p    tokens.PlatformColors
 }{
-	{"light", tokens.DefaultLight},
-	{"dark", tokens.DefaultDark},
+	{"light", tokens.PlatformLight},
+	{"dark", tokens.PlatformDark},
 }
 
 // goldenSize is an image comfortably larger than the row it holds, so the
@@ -131,9 +119,9 @@ var goldenSize = image.Pt(660, 60)
 // render is the pure path at the comfortable default, which is what every
 // golden here draws through.
 func render(shaper *text.Shaper, label string, i chip.Purpose, icon chip.Glyph,
-	c tokens.ColorTokens, s chip.RenderState,
+	p tokens.PlatformColors, s chip.RenderState,
 ) layout.Widget {
-	return chip.Render(shaper, label, i, icon, c, tokens.Spacing, tokens.Radius,
+	return chip.Render(shaper, label, i, icon, p, tokens.Spacing, tokens.Radius,
 		tokens.DefaultTypography.LabelLarge, tokens.Comfortable, s)
 }
 
@@ -141,38 +129,35 @@ func render(shaper *text.Shaper, label string, i chip.Purpose, icon chip.Glyph,
 // both of its two rests. Left to right — assist with a leading mark, a filter
 // that is not selected, the same filter selected, an input chip with an avatar
 // and its dismiss mark, and a label-only suggestion.
-func purposeRow(shaper *text.Shaper, c tokens.ColorTokens, level tokens.ElevationLevel) layout.Widget {
-	rest := chip.RenderState{Level: level}
-	picked := chip.RenderState{Level: level, Selected: true}
+func purposeRow(shaper *text.Shaper, p tokens.PlatformColors) layout.Widget {
+	rest := chip.RenderState{}
+	picked := chip.RenderState{Selected: true}
 	return row(
-		render(shaper, "Assist", chip.Assist, chevron, c, rest),
-		render(shaper, "Filter", chip.Filter, nil, c, rest),
-		render(shaper, "Filter", chip.Filter, nil, c, picked),
-		render(shaper, "Input", chip.Input, block, c, rest),
-		render(shaper, "Suggestion", chip.Suggestion, nil, c, rest),
+		render(shaper, "Assist", chip.Assist, chevron, p, rest),
+		render(shaper, "Filter", chip.Filter, nil, p, rest),
+		render(shaper, "Filter", chip.Filter, nil, p, picked),
+		render(shaper, "Input", chip.Input, block, p, rest),
+		render(shaper, "Suggestion", chip.Suggestion, nil, p, rest),
 	)
 }
 
-// TestChipPurposesOnEveryLevel records or diffs the whole structure in both
-// schemes on each of the three surfaces. Six images, and between them they are
-// the claim the package doc makes: a resting chip is an outline and colour
-// arrives only with selection.
-func TestChipPurposesOnEveryLevel(t *testing.T) {
+// TestChipPurposes records or diffs the whole structure in both appearances:
+// four purposes, both of the filter's rests, on the platform's own page. It is
+// the claim the package doc makes — the purposes are one colour, and a
+// selected filter is the only variation the colours carry.
+func TestChipPurposes(t *testing.T) {
 	shaper := defaultShaper(t)
 	for _, sc := range goldenSchemes {
-		for _, g := range goldenLevels {
-			name := "chip-" + sc.name + "-" + g.name
-			t.Run(name, func(t *testing.T) {
-				golden.Render(t, name, goldenSize,
-					onLevel(sc.colors, g.level, purposeRow(shaper, sc.colors, g.level)))
-			})
-		}
+		name := "chip-" + sc.name + "-purposes"
+		t.Run(name, func(t *testing.T) {
+			golden.Render(t, name, goldenSize, onPage(sc.p, purposeRow(shaper, sc.p)))
+		})
 	}
 }
 
 // stateRow is one chip in each of the four states the pointer and the keyboard
 // put it in, at the given selection.
-func stateRow(shaper *text.Shaper, c tokens.ColorTokens, selected bool) layout.Widget {
+func stateRow(shaper *text.Shaper, p tokens.PlatformColors, selected bool) layout.Widget {
 	ws := make([]layout.Widget, 0, 4)
 	for _, st := range []struct {
 		label string
@@ -185,16 +170,15 @@ func stateRow(shaper *text.Shaper, c tokens.ColorTokens, selected bool) layout.W
 	} {
 		s := st.s
 		s.Selected = selected
-		ws = append(ws, render(shaper, st.label, chip.Filter, nil, c, s))
+		ws = append(ws, render(shaper, st.label, chip.Filter, nil, p, s))
 	}
 	return row(ws...)
 }
 
-// TestChipStateGolden records or diffs the interaction states on the content in
-// both schemes and at both rests. The unselected rows are where the walk is
-// visible as a walk on a chip that has no fill: a body appears under the
-// pointer where there was none, and the outline answers a different step as it
-// does.
+// TestChipStateGolden records or diffs the interaction states in both
+// appearances and at both rests. Hover is in the row on purpose: the platform
+// moves no colour on a control of this shape under the pointer, so that tile
+// is the resting tile and the image says so.
 func TestChipStateGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	for _, sc := range goldenSchemes {
@@ -208,7 +192,7 @@ func TestChipStateGolden(t *testing.T) {
 			name := "chip-" + sc.name + "-" + sel.name
 			t.Run(name, func(t *testing.T) {
 				golden.Render(t, name, goldenSize,
-					onLevel(sc.colors, tokens.Level0, stateRow(shaper, sc.colors, sel.selected)))
+					onPage(sc.p, stateRow(shaper, sc.p, sel.selected)))
 			})
 		}
 	}
@@ -218,16 +202,16 @@ func TestChipStateGolden(t *testing.T) {
 // chip height is 24 dp and the marks do not shrink with it.
 func TestChipCompactGolden(t *testing.T) {
 	shaper := defaultShaper(t)
-	c := tokens.DefaultLight
+	p := tokens.PlatformLight
 	w := row(
-		chip.Render(shaper, "Assist", chip.Assist, chevron, c, tokens.Spacing, tokens.Radius,
+		chip.Render(shaper, "Assist", chip.Assist, chevron, p, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.LabelLarge, tokens.Compact, chip.RenderState{}),
-		chip.Render(shaper, "Filter", chip.Filter, nil, c, tokens.Spacing, tokens.Radius,
+		chip.Render(shaper, "Filter", chip.Filter, nil, p, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.LabelLarge, tokens.Compact, chip.RenderState{Selected: true}),
-		chip.Render(shaper, "Input", chip.Input, block, c, tokens.Spacing, tokens.Radius,
+		chip.Render(shaper, "Input", chip.Input, block, p, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.LabelLarge, tokens.Compact, chip.RenderState{}),
 	)
-	golden.Render(t, "chip-light-compact", goldenSize, onLevel(c, tokens.Level0, w))
+	golden.Render(t, "chip-light-compact", goldenSize, onPage(p, w))
 }
 
 // measure lays a layout.Widget out at one pixel per dp in a generous box and reports
@@ -243,28 +227,31 @@ func measure(t *testing.T, w layout.Widget) image.Point {
 	return w(gtx).Size
 }
 
-// TestHeightIsTheDensityChipHeight is the gate on the number a reader is most
-// likely to re-invent. A chip is off the control family's padding rule: its
-// height is tokens.Density.ChipHeight outright — 32 dp Comfortable, 24 dp
-// Compact — and neither the type role nor the marks move it, because both fit
-// inside that box at every pairing a chip is drawn at.
-func TestHeightIsTheDensityChipHeight(t *testing.T) {
+// TestChipHeightIsTheDensityChipHeightOrTheLabelsBox is the gate on the number
+// a reader is most likely to re-invent. A chip is off the control family's
+// padding rule: its height is tokens.Density.ChipHeight — the density's
+// control height less the system's chip drop, 20 dp Comfortable and 15 dp
+// Compact — under the label's own line box, which the chip takes wherever that
+// box is taller. At Compact both roles' boxes are taller, so a Compact chip
+// measures its label.
+func TestChipHeightIsTheDensityChipHeightOrTheLabelsBox(t *testing.T) {
 	shaper := defaultShaper(t)
 	for _, d := range []struct {
 		name string
 		d    tokens.Density
-		want int
 	}{
-		{"comfortable", tokens.Comfortable, 32},
-		{"compact", tokens.Compact, 24},
+		{"comfortable", tokens.Comfortable},
+		{"compact", tokens.Compact},
 	} {
 		for _, style := range []struct {
 			name string
 			ts   tokens.TextStyle
+			want int
 		}{
-			{"label-large", tokens.DefaultTypography.LabelLarge},
-			{"label-medium", tokens.DefaultTypography.LabelMedium},
+			{"label-large", tokens.DefaultTypography.LabelLarge, 20},
+			{"label-medium", tokens.DefaultTypography.LabelMedium, 16},
 		} {
+			want := max(int(d.d.ChipHeight()), style.want)
 			for _, in := range []struct {
 				name string
 				i    chip.Purpose
@@ -279,10 +266,10 @@ func TestHeightIsTheDensityChipHeight(t *testing.T) {
 				name := d.name + " " + style.name + " " + in.name
 				t.Run(name, func(t *testing.T) {
 					got := measure(t, chip.Render(shaper, "Model", in.i, in.icon,
-						tokens.DefaultLight, tokens.Spacing, tokens.Radius, style.ts, d.d, in.s))
-					if got.Y != d.want {
-						t.Errorf("height = %d dp, want the density's chip height %d (%g − %g)",
-							got.Y, d.want, d.d.ControlHeight, tokens.ChipDrop)
+						tokens.PlatformLight, tokens.Spacing, tokens.Radius, style.ts, d.d, in.s))
+					if got.Y != want {
+						t.Errorf("height = %d dp, want %d — the density's chip height %g (%g − %g) under the role's %d dp line box",
+							got.Y, want, d.d.ChipHeight(), d.d.ControlHeight, tokens.ChipDrop, style.want)
 					}
 				})
 			}
@@ -296,9 +283,9 @@ func TestHeightIsTheDensityChipHeight(t *testing.T) {
 // size.
 func TestChipIsSizedToItsContent(t *testing.T) {
 	shaper := defaultShaper(t)
-	short := measure(t, render(shaper, "A", chip.Assist, chevron, tokens.DefaultLight, chip.RenderState{}))
+	short := measure(t, render(shaper, "A", chip.Assist, chevron, tokens.PlatformLight, chip.RenderState{}))
 	long := measure(t, render(shaper, "A considerably longer summary", chip.Assist, chevron,
-		tokens.DefaultLight, chip.RenderState{}))
+		tokens.PlatformLight, chip.RenderState{}))
 	if short.X >= long.X {
 		t.Errorf("a one-letter chip measured %d dp wide and a long one %d: the chip is not sized to its label",
 			short.X, long.X)
@@ -325,10 +312,15 @@ func TestEachMarkCostsItsOwnSlot(t *testing.T) {
 	shaper := defaultShaper(t)
 	gap := int(tokens.Spacing.S2)
 	mark := markPx()
-	avatarInset := (int(tokens.Comfortable.ChipHeight()) - chip.AvatarDp) / 2
+	// The avatar slot is capped at the body's inner height — the drawn chip
+	// less one hair of rim on each side — so a mark never lies on the rim it
+	// stands inside, and the trade below is made against the slot as capped.
+	drawn := measure(t, render(shaper, "Model", chip.Input, block, tokens.PlatformLight, chip.RenderState{}))
+	avatar := min(chip.AvatarDp, int(tokens.Comfortable.ChipHeight())-2)
+	avatarInset := (drawn.Y - avatar) / 2
 	textInset := int(tokens.Comfortable.PaddingX)
 	width := func(i chip.Purpose, icon chip.Glyph, s chip.RenderState) int {
-		return measure(t, render(shaper, "Model", i, icon, tokens.DefaultLight, s)).X
+		return measure(t, render(shaper, "Model", i, icon, tokens.PlatformLight, s)).X
 	}
 	bare := width(chip.Suggestion, nil, chip.RenderState{})
 	for _, tc := range []struct {
@@ -341,7 +333,7 @@ func TestEachMarkCostsItsOwnSlot(t *testing.T) {
 		{"an input chip's dismiss mark", width(chip.Input, nil, chip.RenderState{}) - bare, mark + gap},
 		{"an input chip's avatar and dismiss mark",
 			width(chip.Input, block, chip.RenderState{}) - bare,
-			chip.AvatarDp + mark + 2*gap - (textInset - avatarInset)},
+			avatar + mark + 2*gap - (textInset - avatarInset)},
 	} {
 		if tc.got != tc.want {
 			t.Errorf("%s cost the chip %d dp, want %d", tc.name, tc.got, tc.want)
@@ -356,25 +348,24 @@ func TestEachMarkCostsItsOwnSlot(t *testing.T) {
 func TestASelectedFilterLeadsWithTheCheckmark(t *testing.T) {
 	shaper := defaultShaper(t)
 	withIcon := measure(t, render(shaper, "Model", chip.Filter, chevron,
-		tokens.DefaultLight, chip.RenderState{Selected: true})).X
+		tokens.PlatformLight, chip.RenderState{Selected: true})).X
 	withNone := measure(t, render(shaper, "Model", chip.Filter, nil,
-		tokens.DefaultLight, chip.RenderState{Selected: true})).X
+		tokens.PlatformLight, chip.RenderState{Selected: true})).X
 	if withIcon != withNone {
 		t.Errorf("a selected filter with an icon measured %d dp and one without %d: the checkmark takes the slot",
 			withIcon, withNone)
 	}
 }
 
-// TestEveryStateIsDrawnApartFromRest is the state walk stated in pixels: a chip
-// is clickable and every state a pointer or a keyboard can put it in changes
-// what it draws. The stored tiles show WHAT each one looks like; this is the
-// claim that none of them is the resting image — including on a chip whose rest
-// has no fill at all, where a walk that did nothing would be invisible rather
-// than wrong-looking.
-func TestEveryStateIsDrawnApartFromRest(t *testing.T) {
+// TestTheDrawnStatesAreTheResolvedOnes is the state table stated in pixels. A
+// press and a focus must move pixels, or the feedback is not there at all; a
+// hover must move none, because the platform moves no colour on a control of
+// this shape under the pointer and a chip that did would be the only thing in
+// the window doing it.
+func TestTheDrawnStatesAreTheResolvedOnes(t *testing.T) {
 	shaper := defaultShaper(t)
 	frame := func(w layout.Widget) *image.RGBA {
-		return golden.Capture(t, goldenSize, onLevel(tokens.DefaultLight, tokens.Level0, w))
+		return golden.Capture(t, goldenSize, onPage(tokens.PlatformLight, w))
 	}
 	for _, sel := range []struct {
 		name     string
@@ -385,19 +376,27 @@ func TestEveryStateIsDrawnApartFromRest(t *testing.T) {
 	} {
 		draw := func(s chip.RenderState) layout.Widget {
 			s.Selected = sel.selected
-			return render(shaper, "Model", chip.Filter, nil, tokens.DefaultLight, s)
+			return render(shaper, "Model", chip.Filter, nil, tokens.PlatformLight, s)
 		}
 		rest := frame(draw(chip.RenderState{}))
+		if rest == nil {
+			return // headless unavailable; Capture called t.Skip
+		}
 		for _, tc := range []struct {
-			name string
-			s    chip.RenderState
+			name  string
+			s     chip.RenderState
+			apart bool
 		}{
-			{"hovered", chip.RenderState{Hovered: true}},
-			{"pressed", chip.RenderState{Pressed: true}},
-			{"focused", chip.RenderState{Focused: true}},
+			{"hovered", chip.RenderState{Hovered: true}, false},
+			{"pressed", chip.RenderState{Pressed: true}, true},
+			{"focused", chip.RenderState{Focused: true}, true},
 		} {
-			if n := golden.PixelDiff(rest, frame(draw(tc.s))); n == 0 {
+			n := golden.PixelDiff(rest, frame(draw(tc.s)))
+			if tc.apart && n == 0 {
 				t.Errorf("a %s %s chip is pixel-identical to a resting one", sel.name, tc.name)
+			}
+			if !tc.apart && n != 0 {
+				t.Errorf("a %s %s chip moved %d pixels; the pointer moves no colour on a chip", sel.name, tc.name, n)
 			}
 		}
 	}
@@ -409,8 +408,8 @@ func TestEveryStateIsDrawnApartFromRest(t *testing.T) {
 func TestSelectionIsDrawn(t *testing.T) {
 	shaper := defaultShaper(t)
 	frame := func(selected bool) *image.RGBA {
-		return golden.Capture(t, goldenSize, onLevel(tokens.DefaultLight, tokens.Level0,
-			render(shaper, "Model", chip.Filter, nil, tokens.DefaultLight,
+		return golden.Capture(t, goldenSize, onPage(tokens.PlatformLight,
+			render(shaper, "Model", chip.Filter, nil, tokens.PlatformLight,
 				chip.RenderState{Selected: selected})))
 	}
 	if n := golden.PixelDiff(frame(false), frame(true)); n == 0 {

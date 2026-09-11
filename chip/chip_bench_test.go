@@ -35,7 +35,7 @@ func benchFrame(b *testing.B, w layout.Widget) {
 func BenchmarkChipRender(b *testing.B) {
 	benchFrame(b, chip.Render(
 		tokens.DefaultTypography.DeterministicShaper(), "Claude · Opus 5", chip.Assist, chevron,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		tokens.DefaultTypography.LabelLarge, tokens.Comfortable, chip.RenderState{}))
 }
 
@@ -44,7 +44,7 @@ func BenchmarkChipRender(b *testing.B) {
 func BenchmarkChipRenderSelected(b *testing.B) {
 	benchFrame(b, chip.Render(
 		tokens.DefaultTypography.DeterministicShaper(), "Claude · Opus 5", chip.Filter, nil,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		chip.RenderState{Selected: true}))
 }
@@ -54,7 +54,7 @@ func BenchmarkChipRenderSelected(b *testing.B) {
 func BenchmarkChipRenderFocused(b *testing.B) {
 	benchFrame(b, chip.Render(
 		tokens.DefaultTypography.DeterministicShaper(), "Claude · Opus 5", chip.Assist, chevron,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		chip.RenderState{Focused: true}))
 }

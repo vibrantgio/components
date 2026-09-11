@@ -14,7 +14,6 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 
-	tcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -50,10 +49,9 @@ func NewState() *State {
 // in the content. Derive defaults with FromTokens and override fields as
 // needed.
 type Style struct {
-	// ThumbColor fills the thumb at rest.
+	// ThumbColor fills the thumb. It is translucent, so it composites over
+	// whatever the bar rides.
 	ThumbColor color.NRGBA
-	// ThumbHoverColor fills the thumb while hovered or dragged.
-	ThumbHoverColor color.NRGBA
 	// TrackColor fills the track gutter. The zero value draws nothing.
 	TrackColor color.NRGBA
 
@@ -83,15 +81,14 @@ type Style struct {
 
 	// MatchFill paints one match of the caller's query in the track.
 	//
-	// FromTokens takes the theme's highlight laid over what the track shows,
-	// so what the bar paints and what the content itself is marked with are
-	// the same fill.
+	// FromTokens takes the platform's find highlight at a coverage, so what
+	// the bar paints and what the content itself is highlighted with are the
+	// same fill. It composites over whatever the track shows.
 	MatchFill color.NRGBA
 	// CurrentMatchFill paints the match named by Current, so the reader can
 	// tell it from the others while stepping through them.
 	//
-	// FromTokens takes the same yellow over the same surface at a higher
-	// coverage.
+	// FromTokens takes the same highlight at a higher coverage.
 	CurrentMatchFill color.NRGBA
 	// MatchLen is the extent along the major axis of what one match is
 	// painted as; it spans the track's minor extent, the thumb's own width.
@@ -116,149 +113,50 @@ func (s Style) Width() unit.Dp {
 	return s.ThumbMinorWidth + 2*s.TrackPadding
 }
 
-// Contrast floors the thumb is derived against, both the theme's own.
-//
-// At rest the thumb is a graphic that carries meaning without being text —
-// nothing about the position it reports is spelled out anywhere — so it owes
-// the page [tokens.GraphicFloor] and no more. Under the pointer it owes more:
-// a hovered or dragged thumb has stopped reporting a position and become a
-// target, something the reader is aiming at rather than glancing at, so that
-// state takes the body-text floor instead. One derivation, two floors, and
-// that difference is the whole of what separates the two states.
+// The coverages the platform's find highlight is laid on at: one match among
+// many, and the one the caller is on. The two are one fill at two strengths
+// rather than two colours, so a reader tells the current match from the rest
+// without learning a second mark.
 const (
-	restFloor   = tokens.GraphicFloor
-	activeFloor = tokens.TextFloor
+	matchCoverage        = 0x66
+	currentMatchCoverage = 0xb2
 )
 
-// The coverage the overlay intends: 39% at rest, 67% while hovered or dragged.
-// They are the least the thumb is ever covered by rather than a setting — the
-// derivation raises coverage when a surface asks for it and never lowers it.
-const (
-	restCoverage   = 100
-	activeCoverage = 170
-)
-
-// foregroundStep is where the thumb's foreground starts: the neutral ramp's
-// low-contrast-text step, which is what chrome that must be noticed without
-// being read is drawn in. The derivation walks deeper from here and never
-// shallower.
-const foregroundStep = 700
-
-// thumbForeground derives one of the thumb's two states: the neutral ramp's
-// low-contrast-text step deepened as far as floor demands over the surfaces
-// this bar rides, and coverage raised above what the overlay intends only
-// once the ramp's deepest step still falls short.
+// FromTokens derives the default scrollbar look from the platform's colour
+// set.
 //
-// The order the two dials are spent in is the design. Deepening the
-// foreground costs a reader nothing — two foregrounds that reach the same
-// composited contrast over the same surface *are* the same colour on that
-// surface — while raising coverage costs precisely what an overlay is for,
-// since coverage is how much of the content underneath stops showing through.
-// So the foreground is spent first, all the way to the ramp's end, and
-// coverage only after; for a given floor that is the most translucent thumb
-// there is. Concretely, the light scheme's resting thumb reaches 3:1 at 82%
-// coverage in the low-contrast-text step and at 71% in the ramp's end step,
-// and the two land on the same grey.
+// The thumb is the platform's own knob colour, and it is translucent: content
+// shows through an overlay bar. Nothing is composited here — the thumb is
+// painted over whatever the bar rides and mixes there.
 //
-// It is derived against both surfaces an overlay bar rides — the window's
-// own content and the chrome the panes are filled with — and
-// answers whichever asks more, so one bar reads on both. The chrome level is
-// beneath the content rather than above it, and it is the harder of the two
-// in both schemes: the thumb is dark, and a dark foreground over the darker
-// surface has the less to spare. Over the whole seed sweep the two
-// surfaces never disagree about the step and differ only in coverage, because
-// a foreground at the ramp's end is far from both of them.
+// The bar fades: it is fully present while the content scrolls or the pointer
+// is on the gutter, then fades out a second after the last of either, which is
+// how the desktop platforms' overlay scrollbars behave. The gutter keeps its
+// hit areas while faded, so moving the pointer onto it brings the bar back.
+// Set FadeDelay to zero for a bar that stays visible.
 //
-// The measurement is taken over the composite, not over the colour itself: a
-// translucent colour has no contrast of its own, and its own reading off the
-// ramp says nothing about what a reader sees.
+// The track is transparent by default: the platform's overlay bar shows no
+// gutter until it is being operated.
 //
-// A floor no colour at any coverage reaches is answered with the ramp's end
-// step, opaque, so a caller always has a colour: a thumb too weak for its
-// floor is a contrast defect the gates report, not a reason to paint an
-// unset colour.
-func thumbForeground(c tokens.ColorTokens, floor float64, coverage uint8) color.NRGBA {
-	surfaces := [...]color.NRGBA{
-		c.SurfaceAt(tokens.Level0),
-		c.SurfaceAt(tokens.LevelChrome),
-	}
-	clears := func(foreground color.NRGBA) bool {
-		for _, surface := range surfaces {
-			if tcolor.Magnitude(tcolor.Over(foreground, surface), surface) < floor {
-				return false
-			}
-		}
-		return true
-	}
-	for step := foregroundStep; step <= 900; step += 100 {
-		foreground := c.Ramps.Neutral.Step(step)
-		foreground.A = coverage
-		if clears(foreground) {
-			return foreground
-		}
-	}
-	foreground := c.Ramps.Neutral.Step(900)
-	for a := int(coverage); a < 255; a++ {
-		foreground.A = uint8(a)
-		if clears(foreground) {
-			return foreground
-		}
-	}
-	foreground.A = 255
-	return foreground
-}
-
-// FromTokens derives the default scrollbar look from colour tokens.
-//
-// The thumb is translucent, and that translucency is its identity: content
-// shows through an overlay bar. It is not a free choice, though — a
-// translucent foreground has no colour until it is composited, and the composite of
-// the low-contrast-text step at 39% coverage over the light page is #CCCCCC,
-// 1.49:1 against that page, invisible exactly when a reader looks for it. So
-// both states are derived — see thumbForeground — as the most translucent
-// thumb that still clears its floor over the surfaces an overlay bar rides.
-//
-// The two schemes answer differently, which is the derivation working rather
-// than a special case. Over a dark page a pale foreground at low coverage lifts the
-// composite a long way, so the dark scheme keeps the low-contrast-text step at
-// the intended coverage and measures 4.49:1. Over a light page the arithmetic
-// runs backwards — a light surface dominates a linear-light blend — so the
-// light scheme spends the foreground all the way to the ramp's end and buys the rest
-// with coverage, landing at 71% for 3:1 and 84% for 4.5:1. The track is
-// transparent by default.
-//
-// The bar also fades: it is fully present while the content scrolls or the
-// pointer is on the gutter, then fades out a second after the last of
-// either, which is how the desktop platforms' overlay scrollbars behave.
-// The floors above are what the bar owes while it is present; a bar in the
-// middle of fading out is on its way to invisible on purpose. The gutter
-// keeps its hit areas while faded, so moving the pointer onto it brings the
-// bar back. Set FadeDelay to zero for a bar that stays visible.
-//
-// What the bar paints for a search query does not fade with the thumb: on
-// macOS the places of the matches stay in the track for as long as the query
-// does, and a reader who has just searched is looking for exactly them. The
-// current match is the same yellow laid on more strongly than the rest,
-// rather than a second colour, because the two are one kind of mark at two
-// strengths.
-//
-// Both are laid over what the track shows. This track is transparent, so what
-// a mark lands on is the content the bar rides — a Style that gives the track
-// a fill of its own has to lay the two marks over that fill instead.
-func FromTokens(c tokens.ColorTokens) Style {
-	track := color.NRGBA{} // transparent: the content shows through
-	marked := c.Background // what a mark lands on through that track
+// What the bar paints for a search query does not fade with the thumb: the
+// places of the matches stay in the track for as long as the query does, and a
+// reader who has just searched is looking for exactly them. Both fills are
+// laid over what the track shows — this track is transparent, so what they
+// land on is the content the bar rides, and a Style that gives the track a
+// fill of its own lays them over that instead.
+func FromTokens(p tokens.PlatformColors) Style {
+	match, currentMatch := p.FindHighlight, p.FindHighlight
+	match.A, currentMatch.A = matchCoverage, currentMatchCoverage
 	return Style{
-		ThumbColor:        thumbForeground(c, restFloor, restCoverage),
-		ThumbHoverColor:   thumbForeground(c, activeFloor, activeCoverage),
-		TrackColor:        track,
+		ThumbColor:        p.ScrollbarThumb,
+		TrackColor:        color.NRGBA{}, // transparent: the content shows through
 		ThumbMinorWidth:   6,
 		TrackPadding:      2,
 		ThumbCornerRadius: 3,
 		ThumbMinLen:       16,
 		Current:           -1,
-		MatchFill:         c.HighlightOn(marked),
-		CurrentMatchFill:  c.CurrentMatchOn(marked),
+		MatchFill:         match,
+		CurrentMatchFill:  currentMatch,
 		MatchLen:          3,
 		FadeDelay:         time.Second,
 		FadeDuration:      tokens.Motion.DurSlow,

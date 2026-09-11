@@ -17,11 +17,11 @@ import (
 // ruler draws a band of evenly spaced marks, so where the content has been
 // scrolled to is readable off the image and a dissolved edge is obviously a
 // dissolve and not a clip.
-func ruler(c tokens.ColorTokens, width int) layout.Widget {
+func ruler(p tokens.PlatformColors, width int) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		const pitch, mark = 22, 14
 		for x := 0; x < width; x += pitch {
-			paint.FillShape(gtx.Ops, c.Primary,
+			paint.FillShape(gtx.Ops, p.Label,
 				clip.Rect(image.Rect(x, 8, min(x+mark, width), 36)).Op())
 		}
 		return layout.Dimensions{Size: image.Pt(width, 44)}
@@ -37,9 +37,9 @@ func ruler(c tokens.ColorTokens, width int) layout.Widget {
 // at full opacity.
 func TestFadeGolden(t *testing.T) {
 	const viewport, content, band = 280, 900, 60
-	c := tokens.DefaultLight
-	style := FromTokens(c)
-	bar := scrollbar.FromTokens(c)
+	p := tokens.PlatformLight
+	style := FromTokens(p)
+	bar := scrollbar.FromTokens(p)
 
 	bands := []struct {
 		width  int
@@ -57,20 +57,21 @@ func TestFadeGolden(t *testing.T) {
 	var scratch op.Ops
 	for i, b := range bands {
 		states[i] = NewState()
-		style.LayoutScrollbar(testContext(&scratch, image.Pt(viewport, band)), states[i], bar, ruler(c, b.width))
+		style.LayoutScrollbar(testContext(&scratch, image.Pt(viewport, band)), states[i], bar, ruler(p, b.width))
 		states[i].SetOffset(b.offset)
 	}
 
 	golden.Render(t, "fade-light", image.Pt(viewport, len(bands)*band), func(gtx layout.Context) layout.Dimensions {
 		// The backdrop is the surface FromTokens fades into: an area whose
-		// fade names a colour its host does not paint is a smear, so the
-		// image only shows a dissolve if the two are asked for together.
-		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.Level0), clip.Rect{Max: gtx.Constraints.Max}.Op())
+		// fade names a colour its host does not paint reads as a band laid
+		// across the content, so the image only shows a dissolve if the two
+		// are asked for together.
+		paint.FillShape(gtx.Ops, p.ControlBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
 		for i, b := range bands {
 			bgtx := gtx
 			bgtx.Constraints = layout.Constraints{Max: image.Pt(viewport, band)}
 			tr := op.Offset(image.Pt(0, i*band)).Push(gtx.Ops)
-			style.LayoutScrollbar(bgtx, states[i], bar, ruler(c, b.width))
+			style.LayoutScrollbar(bgtx, states[i], bar, ruler(p, b.width))
 			tr.Pop()
 		}
 		return layout.Dimensions{Size: gtx.Constraints.Max}

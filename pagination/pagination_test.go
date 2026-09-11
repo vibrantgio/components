@@ -14,7 +14,7 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/pagination"
-	tcolor "github.com/vibrantgio/theme/color"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -45,9 +45,9 @@ func scene(w layout.Widget, bgColor color.NRGBA) layout.Widget {
 // TestPaginationGolden records or diffs the three Measurable goldens.
 //
 // A zero radius scale (sharp corners) keeps the cell edges deterministic. The
-// distinguishing signal across goldens is which cell carries the Primary fill:
-// page-1-of-5 highlights the first cell, page-3-of-5 the third, and the light
-// and dark variants flip the palette.
+// distinguishing signal across goldens is which cell carries the accent fill:
+// page-1-of-5 fills the first cell, page-3-of-5 the third, and the light and
+// dark variants swap the platform's two recorded sets.
 func TestPaginationGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	lightBG := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
@@ -58,25 +58,25 @@ func TestPaginationGolden(t *testing.T) {
 		name      string
 		page      int
 		pageCount int
-		colors    tokens.ColorTokens
+		platform  tokens.PlatformColors
 		bg        color.NRGBA
 	}{
-		{"light-page-1-of-5", 1, 5, tokens.DefaultLight, lightBG},
-		{"light-page-3-of-5", 3, 5, tokens.DefaultLight, lightBG},
-		{"dark-page-3-of-5", 3, 5, tokens.DefaultDark, darkBG},
+		{"light-page-1-of-5", 1, 5, tokens.PlatformLight, lightBG},
+		{"light-page-3-of-5", 3, 5, tokens.PlatformLight, lightBG},
+		{"dark-page-3-of-5", 3, 5, tokens.PlatformDark, darkBG},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			props := pagination.Props{Page: tc.page, PageCount: tc.pageCount, Shaper: shaper}
-			w := pagination.Render(shaper, props, tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+			w := pagination.Render(shaper, props, tc.platform, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
 			golden.Render(t, tc.name, frameSize, scene(w, tc.bg))
 		})
 	}
 }
 
 // TestPaginationCurrentPagePositionDiffers confirms that moving the active
-// page shifts the Primary-coloured cell to a different x position. Guards
-// against a regression in which all cells render with identical styling.
+// page shifts the filled cell to a different x position. Guards against a
+// regression in which all cells render with identical styling.
 func TestPaginationCurrentPagePositionDiffers(t *testing.T) {
 	shaper := defaultShaper(t)
 	bg := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
@@ -84,14 +84,14 @@ func TestPaginationCurrentPagePositionDiffers(t *testing.T) {
 
 	render := func(page int) *image.RGBA {
 		props := pagination.Props{Page: page, PageCount: 5, Shaper: shaper}
-		w := pagination.Render(shaper, props, tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+		w := pagination.Render(shaper, props, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
 		return golden.Capture(t, frameSize, scene(w, bg))
 	}
 
 	one := render(1)
 	three := render(3)
 	if n := golden.PixelDiff(one, three); n == 0 {
-		t.Error("page-1-of-5 and page-3-of-5 render identically; expected the Primary-coloured cell to move")
+		t.Error("page-1-of-5 and page-3-of-5 render identically; expected the filled cell to move")
 	}
 }
 
@@ -103,98 +103,112 @@ func TestPaginationLightDarkDiffer(t *testing.T) {
 	sharpRadius := tokens.RadiusScale{}
 
 	props := pagination.Props{Page: 3, PageCount: 5, Shaper: shaper}
-	light := pagination.Render(shaper, props, tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
-	dark := pagination.Render(shaper, props, tokens.DefaultDark, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+	light := pagination.Render(shaper, props, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+	dark := pagination.Render(shaper, props, tokens.PlatformDark, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
 
 	imgLight := golden.Capture(t, frameSize, scene(light, bg))
 	imgDark := golden.Capture(t, frameSize, scene(dark, bg))
 	if n := golden.PixelDiff(imgLight, imgDark); n == 0 {
-		t.Error("light and dark render identically; expected token-pair colour differences")
+		t.Error("light and dark render identically; expected the two recorded sets to read apart")
 	}
 }
 
-// TestTheCurrentPageWearsTheChosenItemStep confirms the cell for the page
-// the reader is on fills from the Primary ramp's tinted step 300 — the same
-// fill a sidebar's open row and a table's selected row take — and its digit
-// is derived from that ramp's own step 700 rather than the theme's OnPrimary
-// token, which is derived against the ramp's pin and does not clear WCAG AA
-// over the tinted step. Both schemes are checked, and the resting cell
-// beside the current one is checked too, since a mark says nothing if every
-// cell wears it.
-func TestTheCurrentPageWearsTheChosenItemStep(t *testing.T) {
-	t.Skip("the current page's digit reads |Lc| 57.30 over the chosen-item step where TextFloor is 75; the Material palette leaves in Phase CE (CE2.7).")
+// TestTheCurrentPageIsTheAccentAndTheRestAreLabels pins the row's colours by
+// name, in both recorded sets. The page the reader is on is the platform's
+// accent with the text that reads on an accent fill, and no other page carries
+// a fill at all, so the cells beside it are the digit alone over whatever the
+// row stands on.
+//
+// The gates are ranges rather than single pixels because a digit is
+// antialiased: every pixel of a cell lies between the colour behind it and the
+// colour of the text drawn over it, and the platform's text carries a
+// coverage, so the far end of that range is the composite and not the recorded
+// value.
+func TestTheCurrentPageIsTheAccentAndTheRestAreLabels(t *testing.T) {
 	shaper := defaultShaper(t)
 	sharpRadius := tokens.RadiusScale{}
 	const page, pageCount = 3, 5
 
 	// The cell's own geometry, derived rather than measured: the row is a
 	// leading chevron, then one ControlHeight square per page, every pair
-	// separated by an S2 gap, laid out middle-aligned in the frame. Sampling
-	// three pixels in from the cell's leading top corner clears both the
-	// (sharp) corner and the centred digit.
+	// separated by an S2 gap, laid out middle-aligned in the frame.
 	side := int(tokens.Comfortable.ControlHeight)
 	gap := int(tokens.Spacing.S2)
-	cellAt := func(n int) image.Point {
+	cellAt := func(n int) image.Rectangle {
 		x := side + gap + (n-1)*(side+gap)
 		y := (frameH - side) / 2
-		return image.Pt(x+3, y+3)
+		// Inset by one pixel: the cell's own edge is antialiased against the
+		// pixel beside it.
+		return image.Rect(x+1, y+1, x+side-1, y+side-1)
 	}
 
 	for _, tc := range []struct {
 		name string
-		c    tokens.ColorTokens
+		p    tokens.PlatformColors
 		bg   color.NRGBA
 	}{
-		{"light", tokens.DefaultLight, color.NRGBA{R: 240, G: 240, B: 240, A: 255}},
-		{"dark", tokens.DefaultDark, color.NRGBA{R: 20, G: 20, B: 20, A: 255}},
+		{"light", tokens.PlatformLight, color.NRGBA{R: 240, G: 240, B: 240, A: 255}},
+		{"dark", tokens.PlatformDark, color.NRGBA{R: 20, G: 20, B: 20, A: 255}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			props := pagination.Props{Page: page, PageCount: pageCount, Shaper: shaper}
-			w := pagination.Render(shaper, props, tc.c, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+			w := pagination.Render(shaper, props, tc.p, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
 			img := golden.Capture(t, frameSize, scene(w, tc.bg))
 
-			at := func(p image.Point) color.NRGBA {
-				r, g, b, _ := img.At(p.X, p.Y).RGBA()
-				return color.NRGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: 0xff}
+			current := cellAt(page)
+			accent := tc.p.ControlAccent
+			digit := vgcolor.Over(tc.p.AlternateSelectedControlText, accent)
+			if out, moved := spanOf(img, current, accent, digit); !moved {
+				t.Errorf("the current page cell is the accent %v and nothing else; no pixel carries its digit %v", accent, digit)
+			} else if out != nil {
+				t.Errorf("pixel %v of the current page cell is %v, which is neither the accent fill %v nor its digit %v nor a blend of the two",
+					out.at, out.got, accent, digit)
 			}
 
-			tint := tc.c.Ramps.Primary.Step(300)
-			if got := at(cellAt(page)); got != tint {
-				t.Errorf("current page cell = %v, want the chosen-item step %v", got, tint)
-			}
-			if got := at(cellAt(page)); got == tc.c.Primary {
-				t.Errorf("current page cell fills with the Primary pin %v; the pin inverts against the step between schemes", got)
-			}
-			if got, want := at(cellAt(page-1)), tc.c.Ramps.Neutral.Step(300); got != want {
-				t.Errorf("resting page cell = %v, want the neutral fill %v", got, want)
-			}
-
-			// The digit's colour comes from the fill's own ramp; OnPrimary is
-			// derived against the ramp's pin and does not clear WCAG AA over
-			// the tinted step used here.
-			foreground := tc.c.Ramps.Primary.Step(700)
-			if got := tcolor.Magnitude(foreground, tint); got < aaBodyText {
-				t.Errorf("current page digit %v over %v = |Lc| %.2f, below WCAG AA body text |Lc| %.1f", foreground, tint, got, aaBodyText)
-			}
-			if got := tcolor.Magnitude(tc.c.OnPrimary, tint); got >= aaBodyText {
-				t.Errorf("OnPrimary %v now reads |Lc| %.2f over %v; this test's premise has moved", tc.c.OnPrimary, got, tint)
-			}
-
-			// And it reads at the weight the cells beside it do, so the
-			// current page is the coloured cell rather than the strongest or the
-			// faintest one.
-			resting := tcolor.Magnitude(tc.c.Ramps.Neutral.Step(700), tc.c.Ramps.Neutral.Step(300))
-			current := tcolor.Magnitude(foreground, tint)
-			if d := current / resting; d < 0.75 || d > 1.35 {
-				t.Errorf("current digit reads |Lc| %.2f against the resting cells' |Lc| %.2f; one cell in the row is a different weight from the others", current, resting)
+			resting := cellAt(page - 1)
+			label := vgcolor.Over(tc.p.Label, tc.bg)
+			if out, moved := spanOf(img, resting, tc.bg, label); !moved {
+				t.Errorf("the resting page cell carries no digit; want the label %v over the surface %v", label, tc.bg)
+			} else if out != nil {
+				t.Errorf("pixel %v of the resting page cell is %v, which is neither the surface %v nor the label over it %v nor a blend of the two; a resting page carries no fill",
+					out.at, out.got, tc.bg, label)
 			}
 		})
 	}
 }
 
-// aaBodyText is the theme's floor for body-sized text, which a page digit in
-// the LabelLarge role is.
-const aaBodyText = tokens.TextFloor
+// stray is one pixel that fell outside the span a cell's pixels must lie in.
+type stray struct {
+	at  image.Point
+	got color.NRGBA
+}
+
+// spanOf walks r and reports the first pixel outside the per-channel span
+// from a to b — the two colours a cell is drawn from, the surface and the text
+// composited over it — and whether any pixel left a at all, which is how a
+// drawn glyph is told from an empty cell.
+func spanOf(img *image.RGBA, r image.Rectangle, a, b color.NRGBA) (*stray, bool) {
+	moved := false
+	within := func(v, lo, hi uint8) bool {
+		if lo > hi {
+			lo, hi = hi, lo
+		}
+		return v >= lo && v <= hi
+	}
+	for y := r.Min.Y; y < r.Max.Y; y++ {
+		for x := r.Min.X; x < r.Max.X; x++ {
+			cr, cg, cb, _ := img.At(x, y).RGBA()
+			got := color.NRGBA{R: uint8(cr >> 8), G: uint8(cg >> 8), B: uint8(cb >> 8), A: 0xff}
+			if !within(got.R, a.R, b.R) || !within(got.G, a.G, b.G) || !within(got.B, a.B, b.B) {
+				return &stray{at: image.Pt(x, y), got: got}, moved
+			}
+			if got != a {
+				moved = true
+			}
+		}
+	}
+	return nil, moved
+}
 
 // liveWidget subscribes to obs and returns its last emitted layout.Widget.
 func liveWidget(t *testing.T, obs rx.Observable[layout.Widget]) layout.Widget {

@@ -30,7 +30,7 @@ func fadeAt(style Style, state *State, now time.Time, start, end float32) float3
 // the delay's midpoint, invisible after, and opaque again the moment the
 // content moves.
 func TestFadeTimeline(t *testing.T) {
-	style := FromTokens(tokens.DefaultLight)
+	style := FromTokens(tokens.PlatformLight)
 	state := NewState()
 	t0 := time.Unix(1700000000, 0)
 
@@ -66,7 +66,7 @@ func TestFadeTimeline(t *testing.T) {
 // TestFadeDisabled asserts the zero FadeDelay opt-out: a Style with no delay
 // keeps the thumb fully opaque however long the content sits still.
 func TestFadeDisabled(t *testing.T) {
-	style := FromTokens(tokens.DefaultLight)
+	style := FromTokens(tokens.PlatformLight)
 	style.FadeDelay = 0
 	state := NewState()
 	t0 := time.Unix(1700000000, 0)
@@ -81,7 +81,7 @@ func TestFadeDisabled(t *testing.T) {
 // its gutter. The alternative — collapsing to nothing — would reflow the
 // content it sits beside every time the reader paused.
 func TestFadeLeavesGeometryAlone(t *testing.T) {
-	style := FromTokens(tokens.DefaultLight)
+	style := FromTokens(tokens.PlatformLight)
 	state := NewState()
 	t0 := time.Unix(1700000000, 0)
 
@@ -106,12 +106,12 @@ func TestFadeLeavesGeometryAlone(t *testing.T) {
 // midpoint on a throwaway frame first, because the frame a scrollbar is born
 // on is always opaque.
 func TestFadeGolden(t *testing.T) {
-	style := FromTokens(tokens.DefaultLight)
+	style := FromTokens(tokens.PlatformLight)
 	state := NewState()
 	t0 := time.Unix(1700000000, 0)
 	fadeAt(style, state, t0, 0.35, 0.65)
 	mid := t0.Add(style.FadeDelay + style.FadeDuration/2)
-	surface := tokens.DefaultLight.Surface
+	surface := tokens.PlatformLight.ControlBackground
 
 	golden.Render(t, "fading-mid", image.Pt(24, 400), func(gtx layout.Context) layout.Dimensions {
 		gtx.Metric = unit.Metric{PxPerDp: 1, PxPerSp: 1}
@@ -125,7 +125,7 @@ func TestFadeGolden(t *testing.T) {
 // TestFadeDefaults pins the timings FromTokens hands out, so a change to the
 // platform-matching second-then-fade behaviour is a deliberate edit.
 func TestFadeDefaults(t *testing.T) {
-	s := FromTokens(tokens.DefaultLight)
+	s := FromTokens(tokens.PlatformLight)
 	if s.FadeDelay != time.Second {
 		t.Errorf("FadeDelay = %v, want %v", s.FadeDelay, time.Second)
 	}

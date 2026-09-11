@@ -8,7 +8,7 @@ import (
 
 // Size returns the default icon glyph size for a density: the control's inner
 // content box, ControlHeight − 2·PaddingY — 20 dp at tokens.Comfortable
-// (36 − 2·8), 16 dp at tokens.Compact (28 − 2·6).
+// (24 − 2·2), 19 dp at tokens.Compact (19 − 2·0).
 //
 // shadcn/ui draws 16 px icons ([&_svg]:size-4) inside its h-9 py-2 buttons,
 // whose content box is 36 − 2·8 = 20 px; MD3 draws 24 dp icons inside its

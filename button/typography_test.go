@@ -100,7 +100,7 @@ func typographyWidget(t *testing.T, style tokens.TextStyle) layout.Widget {
 	t.Helper()
 	return button.Render(
 		defaultShaper(t), specimen,
-		tokens.DefaultLight, tokens.Spacing, tokens.RadiusScale{}, style, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.RadiusScale{}, style, tokens.Comfortable,
 		button.RenderState{},
 	)
 }
@@ -142,7 +142,7 @@ func TestLineHeightSizesTheLabelBox(t *testing.T) {
 		style := withLineHeight(tokens.DefaultTypography.LabelLarge, lh)
 		dims := button.Render(
 			shaper, specimen,
-			tokens.DefaultLight, tokens.Spacing, tokens.Radius, style, d,
+			tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, d,
 			button.RenderState{},
 		)(gtx)
 

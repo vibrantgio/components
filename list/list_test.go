@@ -121,7 +121,7 @@ func TestListDensityRowGolden(t *testing.T) {
 //     over their trailing edge.
 func TestScrollbarGolden(t *testing.T) {
 	size := image.Pt(viewW, viewH)
-	bar := scrollbar.FromTokens(tokens.DefaultLight)
+	bar := scrollbar.FromTokens(tokens.PlatformLight)
 	cases := []struct {
 		name   string
 		anchor list.Anchor
@@ -147,7 +147,7 @@ func TestScrollbarGolden(t *testing.T) {
 // the same dimensions as plain Layout.
 func TestLayoutScrollbarNonScrollable(t *testing.T) {
 	size := image.Pt(viewW, 300) // 3 rows of 30px in a 300px viewport
-	bar := scrollbar.FromTokens(tokens.DefaultLight)
+	bar := scrollbar.FromTokens(tokens.PlatformLight)
 
 	var plainDims layout.Dimensions
 	plainImg := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {

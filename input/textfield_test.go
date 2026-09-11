@@ -48,22 +48,22 @@ func TestTextFieldGolden(t *testing.T) {
 	// composite non-deterministically against the headless window background.
 	// The disabled visual is tested separately in TestTextFieldDisabledIsVisuallyDistinct.
 	cases := []struct {
-		name   string
-		colors tokens.ColorTokens
-		state  input.RenderState
+		name     string
+		platform tokens.PlatformColors
+		state    input.RenderState
 	}{
 		// Prefixed per component: see the note in checkbox_test.go. These four
 		// share testdata/golden with the checkbox, radio and dropdown cases.
-		{"textfield-light-normal", tokens.DefaultLight, input.RenderState{}},
-		{"textfield-dark-normal", tokens.DefaultDark, input.RenderState{}},
-		{"textfield-light-focused", tokens.DefaultLight, input.RenderState{Focused: true}},
-		{"textfield-light-focused-with-text", tokens.DefaultLight, input.RenderState{Focused: true, Text: "hello@example.com"}},
+		{"textfield-light-normal", tokens.PlatformLight, input.RenderState{}},
+		{"textfield-dark-normal", tokens.PlatformDark, input.RenderState{}},
+		{"textfield-light-focused", tokens.PlatformLight, input.RenderState{Focused: true}},
+		{"textfield-light-focused-with-text", tokens.PlatformLight, input.RenderState{Focused: true, Text: "hello@example.com"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			w := input.Render(
 				shaper, "Email address",
-				tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				tc.platform, tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 				tc.state,
 			)
 			golden.Render(t, tc.name, size, w)
@@ -74,13 +74,13 @@ func TestTextFieldGolden(t *testing.T) {
 // ---- Accessibility tests ----
 
 // TestTextFieldHeightIsItsLineBoxOverTheFloor checks the drawn field is
-// max(ControlHeight, BodyLarge's line box + 2×PaddingY), which is what
-// [tokens.Density.ControlHeight] being a floor means at the one control where
-// the two readings differ. BodyLarge is a 24 dp line box, so a Comfortable
-// field is 24 + 16 = 40 dp, four taller than the 36 dp floor and four taller
-// than a Comfortable button in the 20 dp LabelLarge role. That is the type
-// roles talking, not a defect: line height means the line box, so a field
-// set in a larger role is a larger field.
+// max(FieldHeight, BodyLarge's line box + 2×PaddingY).
+//
+// The floor is [tokens.Density.FieldHeight] and not
+// [tokens.Density.ControlHeight]: the platform draws a field shorter than the
+// button standing beside it, so the density carries the two separately and a
+// field that took the button's floor would be the wrong height wherever the
+// type role left the floor binding.
 //
 // The 44 dp WCAG 2.5.5 floor applies to the pointer target, verified by
 // TestTextFieldHitSlopFocusesEditor.
@@ -96,24 +96,24 @@ func TestTextFieldHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 
 	dims := input.Render(
 		shaper, "Email",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.RenderState{},
 	)(gtx)
 
 	body := tokens.DefaultTypography.BodyLarge
 	want := int(body.LineHeight + 2*tokens.Comfortable.PaddingY)
-	if floor := int(tokens.Comfortable.ControlHeight); want < floor {
+	if floor := int(tokens.Comfortable.FieldHeight); want < floor {
 		want = floor
 	}
 	if dims.Size.Y != want {
-		t.Errorf("text field height = %d px, want %d px (BodyLarge line box %v + 2\u00d7PaddingY %v, floored at ControlHeight %v)",
-			dims.Size.Y, want, body.LineHeight, tokens.Comfortable.PaddingY, tokens.Comfortable.ControlHeight)
+		t.Errorf("text field height = %d px, want %d px (BodyLarge line box %v + 2\u00d7PaddingY %v, floored at FieldHeight %v)",
+			dims.Size.Y, want, body.LineHeight, tokens.Comfortable.PaddingY, tokens.Comfortable.FieldHeight)
 	}
 }
 
 // TestTextFieldHitSlopFocusesEditor checks the live field's pointer target
-// extends to the 44 dp floor: a press below the 36 dp visual field, inside
-// the hit slop, focuses the editor.
+// extends to the 44 dp floor: a press below the drawn field, inside the hit
+// slop, focuses the editor.
 func TestTextFieldHitSlopFocusesEditor(t *testing.T) {
 	var tag event.Tag
 	w := materialize(t, input.TextField(rx.Of(theme.Default()), input.TextFieldProps{
@@ -128,13 +128,17 @@ func TestTextFieldHitSlopFocusesEditor(t *testing.T) {
 
 	dims := driveTextFieldFrame(w, ops, r, size)
 	fieldH := int(tokens.DefaultTypography.BodyLarge.LineHeight + 2*tokens.Comfortable.PaddingY)
+	if floor := int(tokens.Comfortable.FieldHeight); fieldH < floor {
+		fieldH = floor
+	}
 	if dims.Size.Y != fieldH {
 		t.Fatalf("field height = %d px, want %d", dims.Size.Y, fieldH)
 	}
 
-	// The hit rect is the 44 px floor centred on the 40 px field: -2..42.
-	// Press at y=41 — outside the field, inside the slop.
-	pos := f32.Pt(150, 41)
+	// The hit rect is the 44 px floor centred on the drawn field, so it
+	// reaches (44-fieldH)/2 px below it. Press two px under the field's own
+	// bottom edge — outside the field, inside the slop.
+	pos := f32.Pt(150, float32(fieldH+2))
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
@@ -155,7 +159,7 @@ func TestTextFieldHitSlopFocusesEditor(t *testing.T) {
 }
 
 // TestTextFieldCompactGolden records or diffs the field at tokens.Compact
-// through the live pipeline: a 28 dp bar (shadcn h-8 territory).
+// through the live pipeline.
 func TestTextFieldCompactGolden(t *testing.T) {
 	w := materialize(t, input.TextField(rx.Of(densityTheme(tokens.Compact)), input.TextFieldProps{
 		Placeholder: "Email address",
@@ -197,7 +201,7 @@ func TestTextFieldEditorTextRestsOnPlaceholderLine(t *testing.T) {
 			}
 
 			// Blank baseline: same field, no placeholder, empty editor —
-			// border and background only.
+			// the edge and the fill only.
 			imgBlank := golden.Capture(t, size, field(input.TextFieldProps{}))
 			// The placeholder: empty, unfocused field showing txt.
 			imgPh := golden.Capture(t, size, field(input.TextFieldProps{Placeholder: txt}))
@@ -245,12 +249,12 @@ func TestTextFieldDisabledIsVisuallyDistinct(t *testing.T) {
 
 	imgEnabled := golden.Capture(t, size, input.Render(
 		shaper, "Placeholder",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.RenderState{},
 	))
 	imgDisabled := golden.Capture(t, size, input.Render(
 		shaper, "Placeholder",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.RenderState{Disabled: true},
 	))
 
@@ -270,12 +274,12 @@ func TestTextFieldFocusRingIsVisuallyDistinct(t *testing.T) {
 
 	imgNormal := golden.Capture(t, size, input.Render(
 		shaper, "Placeholder",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.RenderState{},
 	))
 	imgFocused := golden.Capture(t, size, input.Render(
 		shaper, "Placeholder",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.RenderState{Focused: true},
 	))
 

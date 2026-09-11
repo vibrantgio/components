@@ -16,7 +16,6 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/icon"
 	"github.com/vibrantgio/components/icons"
-	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
@@ -44,10 +43,6 @@ type SearchFieldProps struct {
 
 	// Description is the screen-reader label. Falls back to Placeholder when empty.
 	Description string
-
-	// Level is the level of the surface the field stands on — the field has
-	// no level of its own. See [TextFieldProps.Level].
-	Level tokens.ElevationLevel
 
 	// Seed, when non-empty, pre-fills the editor when the field instance is
 	// created. See [TextFieldProps.Seed]; the field stays uncontrolled.
@@ -117,16 +112,16 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest5(t.Color, t.Typography, t.Spacing, t.Radius, t.Density),
-			func(n rx.Tuple5[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
+			rx.CombineLatest5(t.Platform, t.Typography, t.Spacing, t.Radius, t.Density),
+			func(n rx.Tuple5[tokens.PlatformColors, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
 				typ := n.Second
 				return resolvedTokens{
-					color:   n.First,
-					body:    typ.BodyLarge,
-					spacing: n.Third,
-					radius:  n.Fourth,
-					density: n.Fifth,
-					shaper:  typ.Shaper(),
+					platform: n.First,
+					body:     typ.BodyLarge,
+					spacing:  n.Third,
+					radius:   n.Fourth,
+					density:  n.Fifth,
+					shaper:   typ.Shaper(),
 				}
 			},
 		)
@@ -227,7 +222,6 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 				return drawTextFieldLive(gtx, shaper, editor, hitTag, props.Placeholder, desc, tok, RenderState{
 					Focused:  foc,
 					Disabled: dis,
-					Level:    props.Level,
 				}, showPh, adorn{
 					search:    true,
 					clear:     true,
@@ -251,14 +245,14 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 func RenderSearch(
 	shaper *text.Shaper,
 	placeholder string,
-	colors tokens.ColorTokens,
+	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
 	body tokens.TextStyle,
 	d tokens.Density,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: body, density: d}
+	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, body: body, density: d}
 	ad := adorn{search: true, clear: true, showClear: !s.Disabled && s.Text != ""}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawTextFieldStatic(gtx, shaper, placeholder, tok, s, ad)
@@ -321,18 +315,19 @@ func (a adorn) slots(gtx layout.Context, tok resolvedTokens) (lead, trail int) {
 // paint draws the marks the field carries into the slots it reserved, and on
 // the live path registers the clear mark's own pointer target.
 //
-// Both are drawn in the control family's prompt foreground: they say what the
-// control is and what it offers, not what it holds, and a mark drawn in the
-// text colour reads as content the reader put there. Disabled fades them with
-// the rest of the field.
+// Both are drawn in the platform's secondary label: they say what the control
+// is and what it offers, not what it holds, and a mark drawn in the text
+// colour reads as content the reader put there. A disabled field offers no
+// clear, so both take the platform's disabled control text with the rest of
+// the field's foregrounds.
 func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, field image.Point, padH int) {
 	if !a.search && !a.clear {
 		return
 	}
 	slot := a.slotPx(gtx, tok)
-	col := control.Placeholder(tok.color)
+	col := tok.platform.SecondaryLabel
 	if s.Disabled {
-		col = tokens.Disabled(col)
+		col = tok.platform.DisabledControlText
 	}
 
 	if a.search {

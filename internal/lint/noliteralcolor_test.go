@@ -35,13 +35,6 @@ var exceptions = []exception{
 		// and row fills exist only to showcase the button variants.
 		reason: "demo app; illustrative backgrounds",
 	},
-	{
-		path: "button/button.go",
-		// Pressed (~15% black) and hovered (~10% white) state feedback:
-		// pure-alpha overlays blended over token-derived colours. They
-		// are compositing scrims, not palette entries.
-		reason: "state-feedback alpha overlays composited over token colours",
-	},
 }
 
 // TestNoLiteralColors enforces the design-token rule: library source must

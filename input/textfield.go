@@ -34,16 +34,6 @@ type RenderState struct {
 	Focused  bool
 	Disabled bool
 
-	// Level is the level of the surface the field stands on — the field has
-	// no level of its own — and its resting border is derived against that
-	// surface, in the same vocabulary the host names its own fill
-	// (tokens.SurfaceAt). A dialog at tokens.Level2 passes Level2 and the
-	// border takes whichever neutral step clears the floor over that surface.
-	// The zero value is tokens.Level0, the window's own surface. A focused
-	// field ignores it: its
-	// border is promoted to the focus ring, which derives against the fill
-	// inside the border instead.
-	Level tokens.ElevationLevel
 	// Text, when non-empty, is rendered in place of the placeholder using the
 	// text colour. It models a field that holds user input for the static
 	// render path; it has no effect on the live TextField, whose text is held
@@ -58,14 +48,6 @@ type TextFieldProps struct {
 
 	// Description is the screen-reader label. Falls back to Placeholder when empty.
 	Description string
-
-	// Level is the level of the surface the field stands on — the field has
-	// no level of its own — copied straight into RenderState.Level on every
-	// frame: what the resting border is derived against. A container that
-	// raises its surface (a level-2 dialog carrying a form) passes its own
-	// level here; the zero value is the window's own surface. See
-	// RenderState.Level.
-	Level tokens.ElevationLevel
 
 	// Seed, when non-empty, pre-fills the editor when the field instance is
 	// created, so an existing value can be edited rather than retyped. The
@@ -133,12 +115,12 @@ type TextFieldProps struct {
 // resolvedTokens is the concrete per-emission snapshot consumed by the
 // layout.Widget closure.
 type resolvedTokens struct {
-	color   tokens.ColorTokens
-	body    tokens.TextStyle // the BodyLarge role: typeface, weight, size, line height
-	spacing tokens.SpacingScale
-	radius  tokens.RadiusScale
-	density tokens.Density // control height and inner padding
-	shaper  *text.Shaper   // the theme's shaper; nil in the Render* paths
+	platform tokens.PlatformColors
+	body     tokens.TextStyle // the BodyLarge role: typeface, weight, size, line height
+	spacing  tokens.SpacingScale
+	radius   tokens.RadiusScale
+	density  tokens.Density // control height, field height and inner padding
+	shaper   *text.Shaper   // the theme's shaper; nil in the Render* paths
 }
 
 // bodyLabel derives the Gio font, a single-line label and the text size from
@@ -169,16 +151,16 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 	// theme's cached shaper — the theme owns the typeface.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest5(t.Color, t.Typography, t.Spacing, t.Radius, t.Density),
-			func(n rx.Tuple5[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
+			rx.CombineLatest5(t.Platform, t.Typography, t.Spacing, t.Radius, t.Density),
+			func(n rx.Tuple5[tokens.PlatformColors, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
 				typ := n.Second
 				return resolvedTokens{
-					color:   n.First,
-					body:    typ.BodyLarge,
-					spacing: n.Third,
-					radius:  n.Fourth,
-					density: n.Fifth,
-					shaper:  typ.Shaper(),
+					platform: n.First,
+					body:     typ.BodyLarge,
+					spacing:  n.Third,
+					radius:   n.Fourth,
+					density:  n.Fifth,
+					shaper:   typ.Shaper(),
 				}
 			},
 		)
@@ -268,7 +250,6 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 				return drawTextFieldLive(gtx, shaper, editor, hitTag, props.Placeholder, desc, tok, RenderState{
 					Focused:  foc,
 					Disabled: dis,
-					Level:    props.Level,
 				}, showPh, adorn{})
 			}
 		})
@@ -288,14 +269,14 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 func Render(
 	shaper *text.Shaper,
 	placeholder string,
-	colors tokens.ColorTokens,
+	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
 	body tokens.TextStyle,
 	d tokens.Density,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: body, density: d}
+	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, body: body, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawTextFieldStatic(gtx, shaper, placeholder, tok, s, adorn{})
 	}
@@ -303,18 +284,19 @@ func Render(
 
 // drawTextFieldLive renders a live text field containing a widget.Editor.
 func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.Editor, hitTag *int, placeholder, desc string, tok resolvedTokens, s RenderState, showPlaceholder bool, ad adorn) layout.Dimensions {
-	// Sizing rule: field height = Density.ControlHeight (36 dp
-	// Comfortable, 28 dp Compact — shadcn's h-9 input), vertical padding =
-	// Density.PaddingY. Horizontal padding stays spacing.S3 (12 dp): shadcn
-	// keeps px-3 on inputs across sizes, so it does not follow density.
+	// Sizing rule: the height floor is Density.FieldHeight and not
+	// Density.ControlHeight — the platform draws a field shorter than the
+	// button beside it, which is why the density carries the two separately
+	// — and the drawn height is max(that floor, line box + 2×PaddingY).
+	// Horizontal padding stays spacing.S3 and does not follow density.
 	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
-	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
+	minH := gtx.Dp(unit.Dp(tok.density.FieldHeight))
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
 
-	bg, textColor, borderColor, phColor := textFieldColors(tok.color, s)
+	fillColor, textColor, edgeColor, phColor := textFieldColors(tok.platform, s)
 
 	fieldW := gtx.Constraints.Max.X
 	lead, trail := ad.slots(gtx, tok)
@@ -336,7 +318,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	semantic.EnabledOp(!s.Disabled).Add(gtx.Ops)
 
 	// Measure content height via recorded label layout so we can size the
-	// field before drawing the background. Replay if placeholder is needed.
+	// field before drawing its fill. Replay if placeholder is needed.
 	mPhColor := op.Record(gtx.Ops)
 	paint.ColorOp{Color: phColor}.Add(gtx.Ops)
 	phMat := mPhColor.Stop()
@@ -351,8 +333,8 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	}
 	fieldSize := image.Pt(fieldW, fieldH)
 
-	// Border as nested fills: outer rect in border color, inner rect in
-	// background color. Avoids clip.Stroke anti-aliasing variance in tests.
+	// The edge as nested fills: outer rect in the edge colour, inner rect in
+	// the field's own fill. Avoids clip.Stroke anti-aliasing variance in tests.
 	borderPx := gtx.Dp(1)
 	if s.Focused {
 		borderPx = gtx.Dp(focus.Width)
@@ -362,7 +344,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 		innerRad = 0
 	}
 	rrectOuter := clip.RRect{Rect: image.Rectangle{Max: fieldSize}, SE: rad, SW: rad, NE: rad, NW: rad}
-	paint.FillShape(gtx.Ops, borderColor, rrectOuter.Op(gtx.Ops))
+	paint.FillShape(gtx.Ops, edgeColor, rrectOuter.Op(gtx.Ops))
 	rrectInner := clip.RRect{
 		Rect: image.Rectangle{
 			Min: image.Pt(borderPx, borderPx),
@@ -370,7 +352,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 		},
 		SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad,
 	}
-	paint.FillShape(gtx.Ops, bg, rrectInner.Op(gtx.Ops))
+	paint.FillShape(gtx.Ops, fillColor, rrectInner.Op(gtx.Ops))
 
 	offY := (fieldH - contentDims.Size.Y) / 2
 
@@ -387,7 +369,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	textMat := mText.Stop()
 
 	mSel := op.Record(gtx.Ops)
-	paint.ColorOp{Color: withAlpha(tok.color.Primary, 0x40)}.Add(gtx.Ops)
+	paint.ColorOp{Color: tok.platform.SelectedTextBackground}.Add(gtx.Ops)
 	selMat := mSel.Stop()
 
 	// Editor — always laid out so it receives pointer/keyboard events.
@@ -486,15 +468,16 @@ func editorTextShift(gtx layout.Context, sh *text.Shaper, lbl widget.Label, f fo
 // drawTextFieldStatic renders a static text field for golden-image testing.
 // It always shows the placeholder text; there is no live editor.
 func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder string, tok resolvedTokens, s RenderState, ad adorn) layout.Dimensions {
-	// Same sizing rules as drawTextFieldLive.
+	// Same sizing rules as drawTextFieldLive: the floor is
+	// Density.FieldHeight, the field's own, not the button's.
 	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
-	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
+	minH := gtx.Dp(unit.Dp(tok.density.FieldHeight))
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
 
-	bg, textColor, borderColor, phColor := textFieldColors(tok.color, s)
+	fillColor, textColor, edgeColor, phColor := textFieldColors(tok.platform, s)
 
 	fieldW := gtx.Constraints.Max.X
 	lead, trail := ad.slots(gtx, tok)
@@ -534,8 +517,8 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	}
 	fieldSize := image.Pt(fieldW, fieldH)
 
-	// Border as nested fills: outer rect in border color, inner rect in
-	// background color. Avoids clip.Stroke anti-aliasing variance in tests.
+	// The edge as nested fills: outer rect in the edge colour, inner rect in
+	// the field's own fill. Avoids clip.Stroke anti-aliasing variance in tests.
 	borderPx := gtx.Dp(1)
 	if s.Focused {
 		borderPx = gtx.Dp(focus.Width)
@@ -545,7 +528,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 		innerRad = 0
 	}
 	rrectOuter := clip.RRect{Rect: image.Rectangle{Max: fieldSize}, SE: rad, SW: rad, NE: rad, NW: rad}
-	paint.FillShape(gtx.Ops, borderColor, rrectOuter.Op(gtx.Ops))
+	paint.FillShape(gtx.Ops, edgeColor, rrectOuter.Op(gtx.Ops))
 	rrectInner := clip.RRect{
 		Rect: image.Rectangle{
 			Min: image.Pt(borderPx, borderPx),
@@ -553,7 +536,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 		},
 		SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad,
 	}
-	paint.FillShape(gtx.Ops, bg, rrectInner.Op(gtx.Ops))
+	paint.FillShape(gtx.Ops, fillColor, rrectInner.Op(gtx.Ops))
 
 	// Placeholder label centered vertically.
 	offY := (fieldH - labelDims.Size.Y) / 2
@@ -566,47 +549,32 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	return layout.Dimensions{Size: fieldSize}
 }
 
-// textFieldColors returns (bg, text, border, placeholder) colors for the
-// given state: the field's own raised fill (controlFill), body text, the
-// resting border the neutral ramp measures against the surface the field
-// stands on (controlBorder) and the control family's own prompt foreground
-// (control.Placeholder) — the same step components/picker's field trigger
-// draws its prompt in, named once so the two cannot drift. Disabled fades
-// each to DisabledOpacity; focus promotes the border to the focus ring.
+// textFieldColors returns the (fill, foreground, edge, placeholder) colours
+// for the given state, each named by the platform: the fill a text field is
+// drawn with, the colour of the text in it, the hairline it wears at rest and
+// the foreground of the prompt standing in for a value that is not there yet
+// (control.Placeholder — the same name components/picker's field trigger
+// draws its prompt in, named once so the two cannot drift).
 //
-// The fill is walked from the surface the field was handed (controlFill)
-// rather than a named surface colour, so the field stays lighter than
-// whatever it lies on in both colour schemes and stays lighter as the host
-// rises.
+// Disabled moves the foregrounds and nothing else: the platform keeps the
+// field's own fill under a field that cannot be typed into, so what says it
+// is unavailable is the text, in the colour the platform publishes for a
+// control's disabled text.
 //
-// The border is derived from the neutral ramp against the surface the field
-// stands on (controlBorder) rather than a named ramp step, so the field wears
-// the same edge the checkbox and the radio do, on whatever level it is put.
-//
-// The focused border's colour is focus.Ring — the scheme's one focus colour,
-// the same on every level and on every control, so promoting the edge changes
-// its hue and not what it has to answer to. That surface lies immediately
-// outside
-// the promoted band and that is the side the ring's floor is measured to.
-func textFieldColors(c tokens.ColorTokens, s RenderState) (bg, text, border, placeholder color.NRGBA) {
-	bg = controlFill(c, s.Level)
-	text = c.Text
-	border = controlBorder(c, s.Level)
-	placeholder = control.Placeholder(c)
+// Focus replaces the edge with focus.Ring — the platform's keyboard focus
+// indicator, the one ring every control in this library wears — drawn at
+// focus.Width instead of the hairline's single pixel.
+func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, edge, placeholder color.NRGBA) {
+	fill = control.Fill(p)
+	foreground = p.Text
+	edge = control.Border(p)
+	placeholder = control.Placeholder(p)
 	switch {
 	case s.Disabled:
-		bg = tokens.Disabled(bg)
-		text = tokens.Disabled(text)
-		border = tokens.Disabled(border)
-		placeholder = tokens.Disabled(placeholder)
+		foreground = p.DisabledControlText
+		placeholder = p.DisabledControlText
 	case s.Focused:
-		border = focus.Ring(c)
+		edge = focus.Ring(p)
 	}
 	return
-}
-
-// withAlpha returns c with its alpha scaled by factor a (0–255).
-func withAlpha(c color.NRGBA, a uint8) color.NRGBA {
-	c.A = uint8(uint16(c.A) * uint16(a) / 255)
-	return c
 }

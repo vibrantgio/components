@@ -134,14 +134,10 @@ type Chip struct {
 	// library draws. A zero alpha draws none, which is what a fill that
 	// stands off its page on its own needs.
 	//
-	// It is here because a fill does not always stand off its page. The
-	// elevation climbs toward the light in both schemes, and a light
-	// scheme has almost no room above its content to climb into: a raised
-	// chip there is a whisper — a fraction of a step — and what
-	// says where it is has to be its edge. A chip carries no shadow and
-	// takes no level of its own beyond that whisper, so the edge is the
-	// only thing left to say it. The caller decides whether the fill needs
-	// the help; this only draws it.
+	// It is here because a fill does not always stand off its page: the
+	// platform's own control fill is the page's own white in the light
+	// appearance, and what says where such a chip is has to be its edge. The
+	// caller decides whether the fill needs the help; this only draws it.
 	Border color.NRGBA
 	// Padding is the horizontal space between the fill's edge and the glyphs,
 	// on each side.
@@ -161,13 +157,14 @@ func (s SpanStyle) Font() font.Font {
 type Style struct {
 	// Color is the text colour for spans with a zero Color.
 	Color color.NRGBA
-	// LinkColor is the text colour for link spans with a zero Color. A
-	// paragraph is words on a page, so this is text and owes the surface it
-	// is set on WCAG AA; [FromTokens] derives it against that surface rather
-	// than naming a token.
+	// LinkColor is the text colour for link spans with a zero Color.
 	LinkColor color.NRGBA
 	// FocusColor is the focus-ring colour drawn around the focused link.
 	FocusColor color.NRGBA
+	// HoverColor is laid over a link's own colour while the pointer is on
+	// it. It carries its own coverage, so one value moves a link of any
+	// colour in the direction the appearance calls for.
+	HoverColor color.NRGBA
 	// Size is the text size for spans with a zero Size.
 	Size unit.Sp
 	// LineHeight is the height of one line box — the whole box, in the CSS
@@ -205,24 +202,11 @@ type Style struct {
 	OnLinkClick func(gtx layout.Context, url string)
 }
 
-// FromTokens derives the default paragraph style from colour tokens and the
-// BodyLarge text style: body text in Text at body.Size, lines in the role's own
-// line height, links in the brand colour measured against the surface the
-// paragraph is set on, and the focus ring in the one colour every
-// control in this library rings a focused element with — the step of the
-// primary ramp measured to clear the non-text contrast floor against the
-// paragraph surface the ring is drawn on. Pass
+// FromTokens derives the default paragraph style from the platform's colour
+// set and the BodyLarge text style: body text in Text, links in Link, the
+// focus ring in the one colour every control in this library rings a focused
+// element with, and the role's own size and line height. Pass
 // tokens.DefaultTypography.BodyLarge for the default desktop look.
-//
-// The link colour is derived via [tokens.ColorTokens.ForegroundOnAtFloor]
-// rather than taken as the bare Primary pin, because Primary is the brand
-// colour at the brand's own depth and whether a link reads on the page
-// would otherwise be a property of the seed: an accent stated at a dark
-// scheme's tone — the shape a palette published for dark mode hands out,
-// and the shape a person seeds a brand with — can put a near-white link on
-// a near-white page. ForegroundOnAtFloor keeps the brand's own colour
-// wherever it clears WCAG AA, and answers a step of the same hue where it
-// does not.
 //
 // Of the role's style Size and LineHeight land in [Style]: a paragraph's
 // typeface, weight and slant are per-span properties, carried by each
@@ -232,15 +216,12 @@ type Style struct {
 // FromTokens takes the whole [tokens.TextStyle] anyway so the role stays one
 // value from theme to paragraph — and takes no [tokens.Density], which sizes
 // controls and so has nothing to say about a paragraph.
-func FromTokens(c tokens.ColorTokens, body tokens.TextStyle) Style {
-	// The surface a link is drawn on is the content the paragraph is set on —
-	// the elevation's level 0, asked of the palette. The ring beside it asks
-	// for no surface at all: focus.Ring is the scheme's one focus colour.
-	surface := c.SurfaceAt(tokens.Level0)
+func FromTokens(p tokens.PlatformColors, body tokens.TextStyle) Style {
 	return Style{
-		Color:      c.Text,
-		LinkColor:  c.ForegroundOnAtFloor(tokens.RolePrimary, surface, tokens.TextFloor),
-		FocusColor: focus.Ring(c),
+		Color:      p.Text,
+		LinkColor:  p.Link,
+		FocusColor: focus.Ring(p),
+		HoverColor: p.HoverOverlay,
 		Size:       unit.Sp(body.Size),
 		LineHeight: unit.Sp(body.LineHeight),
 	}

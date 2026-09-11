@@ -15,14 +15,16 @@ import (
 )
 
 // TestSizeFollowsDensity pins the content-box rule: the default glyph size is
-// ControlHeight − 2·PaddingY — 20 dp Comfortable, 16 dp Compact — so the icon
-// scales in lockstep with the control it sits in.
+// ControlHeight − 2·PaddingY — 20 dp Comfortable, 19 dp Compact — so the icon
+// scales in lockstep with the control it sits in. The two are close because
+// Compact has no vertical padding to spend: its control height is already
+// under the label line box it has to hold.
 func TestSizeFollowsDensity(t *testing.T) {
 	if got := icon.Size(tokens.Comfortable); got != 20 {
 		t.Errorf("Size(Comfortable) = %v dp, want 20", got)
 	}
-	if got := icon.Size(tokens.Compact); got != 16 {
-		t.Errorf("Size(Compact) = %v dp, want 16", got)
+	if got := icon.Size(tokens.Compact); got != 19 {
+		t.Errorf("Size(Compact) = %v dp, want 19", got)
 	}
 	if got := icon.DefaultSize; got != icon.Size(tokens.Comfortable) {
 		t.Errorf("DefaultSize = %v dp, want Size(Comfortable)", got)
@@ -31,7 +33,7 @@ func TestSizeFollowsDensity(t *testing.T) {
 
 // TestIconDensityGolden records or diffs a deterministic glyph stand-in (a
 // solid square, no SVG/IVG rasterisation) at each density's default icon
-// size: 20 px Comfortable, 16 px Compact at 1:1 scale.
+// size: 20 px Comfortable, 19 px Compact at 1:1 scale.
 func TestIconDensityGolden(t *testing.T) {
 	cases := []struct {
 		name    string

@@ -34,22 +34,22 @@ func TestSearchFieldGolden(t *testing.T) {
 	// TestTextFieldGolden gives.
 	sharpRadius := tokens.RadiusScale{}
 	cases := []struct {
-		name   string
-		colors tokens.ColorTokens
-		state  input.RenderState
+		name     string
+		platform tokens.PlatformColors
+		state    input.RenderState
 	}{
-		{"searchfield-light-normal", tokens.DefaultLight, input.RenderState{}},
-		{"searchfield-dark-normal", tokens.DefaultDark, input.RenderState{}},
-		{"searchfield-light-typed", tokens.DefaultLight, input.RenderState{Text: "meeting notes"}},
-		{"searchfield-dark-typed", tokens.DefaultDark, input.RenderState{Text: "meeting notes"}},
-		{"searchfield-light-focused", tokens.DefaultLight, input.RenderState{Focused: true}},
-		{"searchfield-dark-focused", tokens.DefaultDark, input.RenderState{Focused: true}},
+		{"searchfield-light-normal", tokens.PlatformLight, input.RenderState{}},
+		{"searchfield-dark-normal", tokens.PlatformDark, input.RenderState{}},
+		{"searchfield-light-typed", tokens.PlatformLight, input.RenderState{Text: "meeting notes"}},
+		{"searchfield-dark-typed", tokens.PlatformDark, input.RenderState{Text: "meeting notes"}},
+		{"searchfield-light-focused", tokens.PlatformLight, input.RenderState{Focused: true}},
+		{"searchfield-dark-focused", tokens.PlatformDark, input.RenderState{Focused: true}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			w := input.RenderSearch(
 				shaper, "Search",
-				tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				tc.platform, tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 				tc.state,
 			)
 			golden.Render(t, tc.name, size, w)
@@ -62,7 +62,7 @@ func TestSearchFieldGolden(t *testing.T) {
 	t.Run("searchfield-light-compact", func(t *testing.T) {
 		w := input.RenderSearch(
 			shaper, "Search",
-			tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Compact,
+			tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Compact,
 			input.RenderState{Text: "meeting notes"},
 		)
 		golden.Render(t, "searchfield-light-compact", size, w)
@@ -90,11 +90,11 @@ func TestSearchFieldReservesBothSlots(t *testing.T) {
 		return w(gtx).Size
 	}
 
-	empty := measure(input.RenderSearch(shaper, "Search", tokens.DefaultLight, tokens.Spacing,
+	empty := measure(input.RenderSearch(shaper, "Search", tokens.PlatformLight, tokens.Spacing,
 		tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{}))
-	typed := measure(input.RenderSearch(shaper, "Search", tokens.DefaultLight, tokens.Spacing,
+	typed := measure(input.RenderSearch(shaper, "Search", tokens.PlatformLight, tokens.Spacing,
 		tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{Text: "q"}))
-	plain := measure(input.Render(shaper, "Search", tokens.DefaultLight, tokens.Spacing,
+	plain := measure(input.Render(shaper, "Search", tokens.PlatformLight, tokens.Spacing,
 		tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{}))
 
 	if empty != typed {

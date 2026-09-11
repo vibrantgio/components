@@ -12,12 +12,12 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// BenchmarkRadioRender exercises `widget(gtx)` for b.N synthetic frames.
+// BenchmarkRadioRender exercises the layout.Widget for b.N synthetic frames.
 // b.ReportAllocs is enabled so CI can gate on per-frame allocation
 // regressions (>5% threshold).
 func BenchmarkRadioRender(b *testing.B) {
 	w := input.RenderRadio(
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		input.RadioRenderState{},
 	)
 
@@ -35,11 +35,11 @@ func BenchmarkRadioRender(b *testing.B) {
 	}
 }
 
-// BenchmarkRadioRenderSelected benchmarks the selected state which draws a
-// three-layer nested fill (outer ring, surface gap, inner dot).
+// BenchmarkRadioRenderSelected benchmarks the selected state, which draws the
+// accent disc and the dot on it rather than an edge and a gap.
 func BenchmarkRadioRenderSelected(b *testing.B) {
 	w := input.RenderRadio(
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		input.RadioRenderState{Selected: true},
 	)
 

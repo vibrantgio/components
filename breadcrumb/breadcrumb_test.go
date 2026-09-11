@@ -41,8 +41,8 @@ func scene(w layout.Widget, bgColor color.NRGBA) layout.Widget {
 }
 
 // trail is the three-segment fixture: a real path, in document order, so the
-// last segment is the current location and the two before it are the
-// low-contrast ancestors. Labels are ASCII only, so Latin text in Roboto
+// last segment is the current location and the two before it are the links
+// back up. Labels are ASCII only, so Latin text in Roboto
 // rasterises identically on every machine and no symbol reaches a stored
 // image.
 func trail() []breadcrumb.Item {
@@ -63,19 +63,19 @@ func TestBreadcrumbGolden(t *testing.T) {
 	singleItem := []breadcrumb.Item{{Label: "Home"}}
 
 	cases := []struct {
-		name   string
-		items  []breadcrumb.Item
-		colors tokens.ColorTokens
-		bg     color.NRGBA
+		name     string
+		items    []breadcrumb.Item
+		platform tokens.PlatformColors
+		bg       color.NRGBA
 	}{
-		{"light-three-segments", threeItems, tokens.DefaultLight, lightBG},
-		{"dark-three-segments", threeItems, tokens.DefaultDark, darkBG},
-		{"light-single-segment", singleItem, tokens.DefaultLight, lightBG},
+		{"light-three-segments", threeItems, tokens.PlatformLight, lightBG},
+		{"dark-three-segments", threeItems, tokens.PlatformDark, darkBG},
+		{"light-single-segment", singleItem, tokens.PlatformLight, lightBG},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			props := breadcrumb.Props{Items: tc.items, Shaper: shaper}
-			w := breadcrumb.Render(shaper, props, tc.colors, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+			w := breadcrumb.Render(shaper, props, tc.platform, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
 			golden.Render(t, tc.name, frameSize, scene(w, tc.bg))
 		})
 	}
@@ -90,7 +90,7 @@ func TestBreadcrumbThreeVsSingle(t *testing.T) {
 
 	render := func(items []breadcrumb.Item) *image.RGBA {
 		props := breadcrumb.Props{Items: items, Shaper: shaper}
-		w := breadcrumb.Render(shaper, props, tokens.DefaultLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+		w := breadcrumb.Render(shaper, props, tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
 		return golden.Capture(t, frameSize, scene(w, bg))
 	}
 
@@ -110,8 +110,8 @@ func TestBreadcrumbLightDarkDiffer(t *testing.T) {
 	items := trail()
 	propsL := breadcrumb.Props{Items: items, Shaper: shaper}
 	propsD := breadcrumb.Props{Items: items, Shaper: shaper}
-	light := breadcrumb.Render(shaper, propsL, tokens.DefaultLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
-	dark := breadcrumb.Render(shaper, propsD, tokens.DefaultDark, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+	light := breadcrumb.Render(shaper, propsL, tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+	dark := breadcrumb.Render(shaper, propsD, tokens.PlatformDark, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
 
 	imgLight := golden.Capture(t, frameSize, scene(light, bg))
 	imgDark := golden.Capture(t, frameSize, scene(dark, bg))
@@ -140,13 +140,13 @@ func TestChevronSizeIsTheCallersOrTheDefault(t *testing.T) {
 
 	static := func(size unit.Dp) int {
 		w := breadcrumb.Render(shaper, breadcrumb.Props{Items: items, Chevron: size},
-			tokens.DefaultLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+			tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
 		gtx := layout.Context{Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}, Constraints: loose, Ops: new(op.Ops)}
 		return w(gtx).Size.X
 	}
 	perFrame := func(size unit.Dp) int {
 		w := breadcrumb.NewTrail(shaper, breadcrumb.TrailProps{Chevron: size},
-			tokens.DefaultLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+			tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
 		gtx := layout.Context{Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}, Constraints: loose, Ops: new(op.Ops)}
 		return w(gtx, segs).Size.X
 	}

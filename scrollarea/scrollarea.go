@@ -118,26 +118,20 @@ type Style struct {
 	FadeColor color.NRGBA
 }
 
-// FromTokens derives the default scroll-area look from colour tokens: the
-// content dissolves into the window's own surface over an S4 run at each cut
-// edge.
+// FromTokens derives the default scroll-area look from the platform's colour
+// set: the content dissolves into the surface the area stands on over an S4
+// run at each cut edge.
 //
-// # The fade takes no level
+// # The fade is an overlay, not a surface
 //
-// A fade is an overlay, not a surface: it does not rise through the levels
-// when the thing under it rises. It is painted over the content, inside the
-// area's clip, as the area's own fill run out to zero alpha, and its whole
-// job is to be indistinguishable from what lies behind the content so the
-// hidden end reads as passing under the edge. A fill that rose a step here
-// would paint a lighter band across the content, which is exactly what
-// [Style.FadeColor] forbids.
+// It is painted over the content, inside the area's clip, as the area's own
+// fill run out to zero alpha, and its whole job is to be indistinguishable
+// from what lies behind the content so the hidden end reads as passing under
+// the edge. Any fill that is not what is behind the content paints a band
+// across it instead, which is what [Style.FadeColor] forbids.
 //
-// The default names the window's own surface, SurfaceAt(Level0) — the
-// convention every Level field in this library gives its zero value. It may
-// not name a ramp step instead: the paired ramps realize a given step at the
-// same perceptual depth from opposite ends, so one step is a level in one
-// scheme and no level at all in the other, and a fade that dissolved a light page's
-// content into #E8E8E8 while the page was #F6F6F6 is a grey smear.
+// The default names the platform's content plane, which is what a scroll area
+// stands on unless its host says otherwise.
 //
 // The fade is the affordance, and it is deliberately not a scrollbar. A
 // desktop overlay bar is absent at rest — it appears while the content moves
@@ -150,13 +144,12 @@ type Style struct {
 // [Style.LayoutScrollbar].
 //
 // Override FadeColor whenever the area sits on something other than the
-// window's own surface — c.SurfaceAt(the host's own level), never a step
-// walked from it. The
-// fade must match what is behind the content or it reads as a smear.
-func FromTokens(c tokens.ColorTokens) Style {
+// content plane: the fade must match what is behind the content or it reads
+// as a band laid across it.
+func FromTokens(p tokens.PlatformColors) Style {
 	return Style{
 		Fade:      unit.Dp(tokens.Spacing.S4),
-		FadeColor: c.SurfaceAt(tokens.Level0),
+		FadeColor: p.ControlBackground,
 	}
 }
 

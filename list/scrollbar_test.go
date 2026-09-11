@@ -53,7 +53,7 @@ func sbRowFn(seenWidth *int) func(gtx layout.Context, item int) layout.Dimension
 // the viewport width minus the gutter, while the reported dimensions are
 // re-widened to the full viewport width.
 func TestLayoutScrollbarOccupyNarrowsRows(t *testing.T) {
-	bar := scrollbar.FromTokens(tokens.DefaultLight)
+	bar := scrollbar.FromTokens(tokens.PlatformLight)
 	state := NewState()
 	gtx := sbTestContext()
 	barWidth := gtx.Dp(bar.Width())
@@ -82,7 +82,7 @@ func TestLayoutScrollbarOccupyNarrowsRows(t *testing.T) {
 // 100 rows of 30px in a 150px viewport: a delta of 0.5 (half the content)
 // should scroll by 50 rows.
 func TestApplyScrollDeltaAdvancesPosition(t *testing.T) {
-	bar := scrollbar.FromTokens(tokens.DefaultLight)
+	bar := scrollbar.FromTokens(tokens.PlatformLight)
 	state := NewState()
 	items := sbItems(100)
 

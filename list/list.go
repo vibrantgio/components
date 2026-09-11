@@ -56,7 +56,7 @@ import (
 )
 
 // RowHeight returns the standard list row height for a density: exactly
-// ControlHeight — 36 dp at tokens.Comfortable, 28 dp at tokens.Compact; the
+// ControlHeight — 24 dp at tokens.Comfortable, 19 dp at tokens.Compact; the
 // same rule sizes dropdown option rows. Rows are drawn by the caller's
 // rowFn, so this is the height rowFn should give a standard single-line row;
 // the list itself imposes no height. Adjacent full-width rows are their own

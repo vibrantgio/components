@@ -32,9 +32,9 @@ type MenuState struct {
 	// Options is the list of selectable items, in the order they are drawn.
 	Options []string
 
-	// Selected is the index of the one row drawn on the accent plane. An
-	// index outside Options selects nothing, which is what a picker with no
-	// value yet looks like.
+	// Selected is the index of the one row drawn on the platform's selection
+	// fill. An index outside Options selects nothing, which is what a picker
+	// with no value yet looks like.
 	Selected int
 
 	// Hovered is the row the pointer is over, counted from ONE, so that the
@@ -223,33 +223,34 @@ func capPixels(gtx layout.Context, h unit.Dp) int {
 // caller draws it on.
 func RenderMenu(
 	shaper *text.Shaper,
-	colors tokens.ColorTokens,
+	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	body tokens.TextStyle,
 	d tokens.Density,
 	s MenuState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, body: body, density: d}
+	tok := resolvedTokens{platform: p, spacing: sp, body: body, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawMenu(gtx, shaper, tok, s, capPixels(gtx, s.MaxHeight))
 	}
 }
 
 // menuTokens flattens the theme into the snapshot a menu frame needs: the
-// palette, the BodyLarge role its rows are set in, the spacing scale, the
-// density, and the theme's cached shaper (the theme owns the typeface).
+// platform's colours, the BodyLarge style its rows are set in, the spacing
+// scale, the density, and the theme's cached shaper (the theme owns the
+// typeface).
 func menuTokens(th rx.Observable[theme.Theme]) rx.Observable[resolvedTokens] {
 	return rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest4(t.Color, t.Typography, t.Spacing, t.Density),
-			func(n rx.Tuple4[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.Density]) resolvedTokens {
+			rx.CombineLatest4(t.Platform, t.Typography, t.Spacing, t.Density),
+			func(n rx.Tuple4[tokens.PlatformColors, tokens.Typography, tokens.SpacingScale, tokens.Density]) resolvedTokens {
 				typ := n.Second
 				return resolvedTokens{
-					color:   n.First,
-					body:    typ.BodyLarge,
-					spacing: n.Third,
-					density: n.Fourth,
-					shaper:  typ.Shaper(),
+					platform: n.First,
+					body:     typ.BodyLarge,
+					spacing:  n.Third,
+					density:  n.Fourth,
+					shaper:   typ.Shaper(),
 				}
 			},
 		)
@@ -298,8 +299,8 @@ func drawMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Men
 //
 // The capped viewport is drawn through [list.LayoutSelectableScrollbar] with
 // [list.Overlay]: the same coupling components/gallery/inventory's list block
-// already draws its own bar through. The bar is scrollbar.FromTokens(tok.color)
-// — the rows' own palette — and scrollbar.Style.Layout draws nothing when the
+// already draws its own bar through. The bar is the rows' own colours, and
+// scrollbar.Style.Layout draws nothing when the
 // viewport shows the whole of the content, so a capped menu whose rows all
 // fit is exactly as bare as an uncapped one; only a cap that actually cuts the
 // catalogue short earns the bar.
@@ -346,7 +347,7 @@ func stackRows(gtx layout.Context, rows *list.State, n, capPx int, tok resolvedT
 	for i := range idx {
 		idx[i] = i
 	}
-	bar := scrollbar.FromTokens(tok.color)
+	bar := scrollbar.FromTokens(tok.platform)
 	return list.LayoutSelectableScrollbar(viewGtx, rows, bar, list.Overlay, idx, func(gtx layout.Context, i int, _ bool) layout.Dimensions {
 		return row(gtx, i)
 	})
@@ -373,61 +374,25 @@ func rowHeights(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s M
 }
 
 // optionRowColors returns an option row's fill and the foreground that reads
-// on it, chosen together. A surface decides what can be read on it, so a row's two
-// colours are never picked apart: they are returned as a pair and measured as
-// a pair (TestMenuOptionRowContrast).
+// on it. A surface decides what can be read on it, so a row's two colours are
+// never picked apart: they are returned as a pair.
 //
-// THE MENU'S OWN PLANE. A resting row is it. The open menu is a floating
-// transient overlay — an unscrimmed, shadowless plane like patterns/popover —
-// so its rows fill at level 3, the top of the elevation,
-// asked of the palette rather than of a ramp index. The scheme's body text
-// reads on that fill at 18.58:1 light and 8.01:1 dark.
+// THE MENU'S OWN PLANE. A resting row is it: the platform's control
+// background, which is what it fills a menu with, under the platform's label.
 //
-// THE SELECTED ROW is the accent, which is the one thing on the menu that is
-// not neutral and the one row that is not a choice but the answer. The fill is
-// the step of the accent ramp nearest its mid-value step that reaches WCAG
-// 1.4.3's 4.5:1 against the menu's own plane, and the foreground is the
-// neutral step that reaches the same floor against that fill — each side asked
-// of the ramp against the surface it actually meets, neither named. Aiming the
-// fill at the 3:1 non-text floor instead is not enough by half: it answers a mid-tone the
-// neutral ramp cannot carry text on at all, 4.27:1 at its best, which is the
-// same wall a mid-grey highlight runs into. Held at the text floor the pairing
-// measures 6.72:1 selected-against-menu and 4.53:1 foreground-on-selected in the
-// light scheme, 4.58 and 4.58 in the dark, and over a ten-seed sweep of both
-// schemes and both contrast variants no pairing falls under 4.56 and 4.50.
+// THE SELECTED ROW is the platform's emphasized selection — the fill it draws
+// behind the chosen row of a menu — under the foreground it names for text
+// standing on a fill the accent paints.
 //
-// A neutral state walk on the menu's own surface cannot serve for either
-// coloured row, and this is where that is settled once. A mid-grey surface is
-// precisely where no neutral foreground reaches the text floor, and a walk
-// whose surface flips with the scheme while its foreground does not measures
-// 1.75:1 in the
-// dark scheme: light text on a light-grey highlight. The neutral ramp's 900
-// end is the DARK end in one scheme and the light end in the other, so "one
-// step further along the ramp" is not one direction.
-//
-// THE HOVERED ROW is the accent again, a step less pronounced: the role's tonal
-// container, its hue held at one measured chroma and one measured depth. It
-// is the same colour family as the selection and nowhere near its weight, so
-// the pointer says "here" without ever being mistaken for the answer — the
-// two are 4.53:1 apart in light and 6.66:1 in dark. Body text reads on it at
-// 12.53:1 and 11.64:1, worst 11.65 over the sweep. The container carries no
-// contrast floor of its own because hover is not a mark: it says nothing the
-// reader cannot already see from where the pointer is, and it is gone the
-// moment the pointer is.
-//
-// Selection wins over hover, the way a press wins over a hover elsewhere in
-// this library: the selected row is already the row the menu is pointing at,
-// and a transient state fill has nothing to add to a standing answer.
-func optionRowColors(c tokens.ColorTokens, selected, hovered bool) (fill, foreground color.NRGBA) {
-	plane := c.SurfaceAt(tokens.Level3)
-	switch {
-	case selected:
-		f := c.MarkOn(tokens.RolePrimary, plane, tokens.TextFloor)
-		return f, c.MarkOn(tokens.RoleNeutral, f, tokens.TextFloor)
-	case hovered:
-		return c.StatusContainer(tokens.RolePrimary), c.Text
+// THE HOVERED ROW takes the SAME pair. On this platform a menu highlights the
+// row under the pointer exactly as it marks the chosen one, so there is one
+// fill and not two, and selection winning over hover costs the drawing
+// nothing.
+func optionRowColors(p tokens.PlatformColors, selected, hovered bool) (fill, foreground color.NRGBA) {
+	if selected || hovered {
+		return p.SelectedContentBackground, p.AlternateSelectedControlText
 	}
-	return plane, c.Text
+	return p.ControlBackground, p.Label
 }
 
 // drawOptionRow renders a single option row.
@@ -441,7 +406,7 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	fieldW := gtx.Constraints.Max.X
 
-	bg, textCol := optionRowColors(tok.color, selected, hovered)
+	bg, textCol := optionRowColors(tok.platform, selected, hovered)
 	innerW := fieldW - 2*padH
 	if innerW < 1 {
 		innerW = 1

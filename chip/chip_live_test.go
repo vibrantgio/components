@@ -91,8 +91,12 @@ func TestChipReportsItsBoxAndHitsTheFloor(t *testing.T) {
 		t.Fatalf("chip measured %d px wide at a 300 px constraint: a chip is sized to its content", dims.Size.X)
 	}
 
-	// The hit rect is 44 px centred on the 32 px chip: −6..38 on the y axis.
-	pos := f32.Pt(float32(dims.Size.X)/2, 36)
+	// The hit rect is the density's 44 px minimum centred on the drawn chip,
+	// so the slop below it is half the difference; the click lands in the
+	// middle of that slop, which is the only place the box and the target
+	// part.
+	slop := (int(tokens.Comfortable.MinHitTarget()) - dims.Size.Y) / 2
+	pos := f32.Pt(float32(dims.Size.X)/2, float32(dims.Size.Y+slop/2))
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},

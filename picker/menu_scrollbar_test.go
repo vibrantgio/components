@@ -31,14 +31,14 @@ func scrollTestOptions() []string {
 }
 
 // scrollTestTokens is the resolvedTokens both references below draw with —
-// the default light palette at comfortable density, the same pair RenderMenu
-// hands drawMenu.
+// the platform's light colours at comfortable density, the same pair
+// RenderMenu hands drawMenu.
 func scrollTestTokens() resolvedTokens {
 	return resolvedTokens{
-		color:   tokens.DefaultLight,
-		body:    tokens.DefaultTypography.BodyLarge,
-		spacing: tokens.Spacing,
-		density: tokens.Comfortable,
+		platform: tokens.PlatformLight,
+		body:     tokens.DefaultTypography.BodyLarge,
+		spacing:  tokens.Spacing,
+		density:  tokens.Comfortable,
 	}
 }
 
@@ -125,7 +125,7 @@ func TestCappedOverflowingMenuDrawsTheBarOnlyInTheGutter(t *testing.T) {
 	state := MenuState{Options: opts, Selected: 2, MaxHeight: cap}
 	size := image.Pt(200, row*5)
 
-	withBar := golden.Capture(t, size, RenderMenu(shaper, tok.color, tok.spacing,
+	withBar := golden.Capture(t, size, RenderMenu(shaper, tok.platform, tok.spacing,
 		tok.body, tok.density, state))
 	suppressed := golden.Capture(t, size, suppressedCappedMenu(shaper, tok, state))
 
@@ -133,7 +133,7 @@ func TestCappedOverflowingMenuDrawsTheBarOnlyInTheGutter(t *testing.T) {
 		t.Fatal("a capped, overflowing menu drew identically to the same menu with the bar suppressed; the bar never rendered")
 	}
 
-	barPx := unit.Metric{PxPerDp: 1, PxPerSp: 1}.Dp(scrollbar.FromTokens(tok.color).Width())
+	barPx := unit.Metric{PxPerDp: 1, PxPerSp: 1}.Dp(scrollbar.FromTokens(tok.platform).Width())
 	gutter := size.X - barPx
 	bounds := withBar.Bounds()
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
@@ -157,7 +157,7 @@ func TestCappedMenuThatFitsStaysBareWithTheBarWired(t *testing.T) {
 	state := MenuState{Options: []string{"Alpha", "Beta", "Gamma"}, Selected: 1, MaxHeight: cap}
 	size := image.Pt(200, row*5)
 
-	withBar := golden.Capture(t, size, RenderMenu(shaper, tok.color, tok.spacing,
+	withBar := golden.Capture(t, size, RenderMenu(shaper, tok.platform, tok.spacing,
 		tok.body, tok.density, state))
 	suppressed := golden.Capture(t, size, suppressedCappedMenu(shaper, tok, state))
 
@@ -180,7 +180,7 @@ func TestUncappedMenuStaysBareWithTheScrollbarCoupling(t *testing.T) {
 	row := scrollTestRowHeight()
 	size := image.Pt(200, row*len(opts))
 
-	uncapped := golden.Capture(t, size, RenderMenu(shaper, tok.color, tok.spacing,
+	uncapped := golden.Capture(t, size, RenderMenu(shaper, tok.platform, tok.spacing,
 		tok.body, tok.density, state))
 	reference := golden.Capture(t, size, stackedRows(shaper, tok, state))
 

@@ -1,262 +1,81 @@
-// The three pairings this geometry answers, measured rather than eyeballed:
-// the rim against the surface the control stands on and against the control's
-// own fill, the label against that fill, and the mark against it. All four
-// colours come out of derivations rather than fields, so what is held is the
-// ratio each lands on and not the step it picked.
-//
-// Every sweep here runs every level — five of them is every
-// placement State.Level admits — and every interaction state, because the
-// fill walks under the pointer and the foregrounds are resolved against the fill
-// actually drawn.
 package toolbarface
 
 import (
 	"image/color"
 	"testing"
 
-	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
-
-	"github.com/vibrantgio/components/internal/focus"
 )
 
-// focusFloor is what the ring owes whatever it lies on — the same 3:1 the
-// focus package derives it to, named here so the assertion and the derivation
-// cannot drift apart.
-const focusFloor = focus.Floor
-
-// seeds is the spread the pairings are held over, because a palette is
-// generated and the defaults are only one of its outputs: the default seed,
-// the six saturated corners of sRGB, a seed with no chroma at all, and the two
-// ends of the lightness range.
-var seeds = []color.NRGBA{
-	{R: 0x6c, G: 0x3a, B: 0xd4, A: 0xff}, // the default seed
-	{R: 0xff, A: 0xff},
-	{G: 0xff, A: 0xff},
-	{B: 0xff, A: 0xff},
-	{R: 0xff, G: 0xff, A: 0xff},
-	{G: 0xff, B: 0xff, A: 0xff},
-	{R: 0xff, G: 0x80, A: 0xff},
-	{R: 0x80, G: 0x80, B: 0x80, A: 0xff},
-	{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
-	{A: 0xff},
-}
-
-// levels is every level — every surface the control can be handed.
-var levels = []struct {
-	name  string
-	level tokens.ElevationLevel
-}{
-	{"chrome", tokens.LevelChrome},
-	{"level-0", tokens.Level0},
-	{"level-1", tokens.Level1},
-	{"level-2", tokens.Level2},
-	{"level-3", tokens.Level3},
-}
-
-// states is the walk the interactive face takes. The badge face draws only
-// the first of them, so measuring all three measures both faces.
-var states = []struct {
-	name  string
-	state tokens.State
-}{
-	{"at rest", tokens.StateNormal},
-	{"hovered", tokens.StateHover},
-	{"pressed", tokens.StatePressed},
-}
-
-func hex(c color.NRGBA) string {
-	const digits = "0123456789abcdef"
-	return string([]byte{'#',
-		digits[c.R>>4], digits[c.R&0xf],
-		digits[c.G>>4], digits[c.G&0xf],
-		digits[c.B>>4], digits[c.B&0xf],
-	})
-}
-
-// edgeHolds is the whole claim this edge makes, in one function: on every
-// surface, in every state, the control's boundary is legible — either the
-// rim clears the graphic floor against both the surface outside it and the fill
-// inside it, or there is no rim and the fill itself clears the floor against
-// the surface.
-//
-// The two halves must be asserted together: asserting only the drawn rim would
-// be satisfied by a derivation that dropped the rim whenever it got hard, and
-// asserting only the fill would be satisfied by the light scheme's 1.02:1
-// whisper.
-func edgeHolds(t *testing.T, label string, c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) float64 {
-	t.Helper()
-	below := c.SurfaceAt(level)
-	fill := Fill(c, level, state)
-	rim, rimmed := Rim(c, level, state)
-	if !rimmed {
-		got := vgcolor.Magnitude(fill, below)
-		if got < tokens.GraphicFloor {
-			t.Errorf("%s: no rim and the fill %s only reaches |Lc| %.2f against the surface %s, want at least |Lc| %.1f",
-				label, hex(fill), got, hex(below), tokens.GraphicFloor)
-		}
-		return got
-	}
-	worst := vgcolor.Magnitude(rim, below)
-	if worst < tokens.GraphicFloor {
-		t.Errorf("%s: rim %s against the surface %s = |Lc| %.2f, want at least |Lc| %.1f",
-			label, hex(rim), hex(below), worst, tokens.GraphicFloor)
-	}
-	if got := vgcolor.Magnitude(rim, fill); got < tokens.GraphicFloor {
-		t.Errorf("%s: rim %s against its own fill %s = |Lc| %.2f, want at least |Lc| %.1f",
-			label, hex(rim), hex(fill), got, tokens.GraphicFloor)
-	} else if got < worst {
-		worst = got
-	}
-	return worst
-}
-
-// TestEdgeHoldsOnEveryLevelAndState measures the edge on both of its sides,
-// on every surface and in every state the fill walks through.
-func TestEdgeHoldsOnEveryLevelAndState(t *testing.T) {
+// The chrome-variant trigger is the one control in this library that tints
+// under the pointer, and every colour it draws is a platform name. This is
+// the table that says which.
+func TestTheTriggerTakesThePlatformsNames(t *testing.T) {
 	for _, sc := range []struct {
-		name   string
-		colors tokens.ColorTokens
+		name string
+		p    tokens.PlatformColors
 	}{
-		{"light", tokens.DefaultLight},
-		{"dark", tokens.DefaultDark},
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
 	} {
-		t.Run(sc.name, func(t *testing.T) {
-			c := sc.colors
-			for _, lv := range levels {
-				for _, st := range states {
-					name := lv.name + " " + st.name
-					got := edgeHolds(t, name, c, lv.level, st.state)
-					if rim, rimmed := Rim(c, lv.level, st.state); rimmed {
-						t.Logf("%s: rim %s on %s over %s, worst side |Lc| %.2f", name, hex(rim),
-							hex(Fill(c, lv.level, st.state)), hex(c.SurfaceAt(lv.level)), got)
-					} else {
-						t.Logf("%s: no rim — the fill %s carries its own edge over %s at |Lc| %.2f", name,
-							hex(Fill(c, lv.level, st.state)), hex(c.SurfaceAt(lv.level)), got)
-					}
-				}
-			}
-		})
-	}
-}
-
-// TestForegroundsClearTheirFloors measures the label and the mark against the fill
-// they are drawn on, in every state and on every surface. The label owes WCAG
-// 1.4.3's 4.5:1 because it is words; the mark owes 1.4.11's 3:1 because it is
-// a mark. What this gates is that `Foreground` does not hand back the Text pin
-// once that pin has stopped reading.
-func TestForegroundsClearTheirFloors(t *testing.T) {
-	for _, sc := range []struct {
-		name   string
-		colors tokens.ColorTokens
-	}{
-		{"light", tokens.DefaultLight},
-		{"dark", tokens.DefaultDark},
-	} {
-		t.Run(sc.name, func(t *testing.T) {
-			c := sc.colors
-			for _, lv := range levels {
-				for _, st := range states {
-					fill := Fill(c, lv.level, st.state)
-					for _, foreground := range []struct {
-						name  string
-						col   color.NRGBA
-						floor float64
-					}{
-						{"label", Foreground(c, fill, tokens.TextFloor), tokens.TextFloor},
-						{"glyph", Foreground(c, fill, tokens.GraphicFloor), tokens.GraphicFloor},
-					} {
-						got := vgcolor.Magnitude(foreground.col, fill)
-						t.Logf("%s %s %s %s on the fill %s: |Lc| %.2f",
-							lv.name, st.name, foreground.name, hex(foreground.col), hex(fill), got)
-						if got < foreground.floor {
-							t.Errorf("%s %s %s %s on the fill %s = |Lc| %.2f, want at least |Lc| %.1f",
-								lv.name, st.name, foreground.name, hex(foreground.col), hex(fill), got, foreground.floor)
-						}
-					}
-				}
-			}
-		})
-	}
-}
-
-// TestPairingsHoldForEverySeed walks all three pairings over the seed
-// spread and both contrast variants. The ramps carry the seed's tint, so the
-// measurements move from seed to seed; the verdict may not.
-func TestPairingsHoldForEverySeed(t *testing.T) {
-	worstRim, worstLabel, worstGlyph := 99.0, 99.0, 99.0
-	for _, seed := range seeds {
-		light, dark := tokens.FromSeed(seed)
-		lightHC, darkHC := tokens.FromSeedHighContrast(seed)
-		for _, sc := range []struct {
-			name   string
-			colors tokens.ColorTokens
+		p := sc.p
+		for _, tc := range []struct {
+			state tokens.State
+			want  color.NRGBA
 		}{
-			{"light", light},
-			{"dark", dark},
-			{"light high-contrast", lightHC},
-			{"dark high-contrast", darkHC},
+			{tokens.StateNormal, color.NRGBA{}},
+			{tokens.StateFocus, color.NRGBA{}},
+			{tokens.StateHover, p.HoverOverlay},
+			{tokens.StatePressed, p.PressOverlay},
 		} {
-			c := sc.colors
-			for _, lv := range levels {
-				for _, st := range states {
-					fill := Fill(c, lv.level, st.state)
-					if got := edgeHolds(t, "seed "+hex(seed)+" "+sc.name+" "+lv.name+" "+st.name,
-						c, lv.level, st.state); got < worstRim {
-						worstRim = got
-					}
-					labelForeground := Foreground(c, fill, tokens.TextFloor)
-					if got := vgcolor.Magnitude(labelForeground, fill); got < worstLabel {
-						worstLabel = got
-						if got < tokens.TextFloor {
-							t.Errorf("seed %s %s: %s %s label %s on its fill = |Lc| %.2f, want at least |Lc| %.1f",
-								hex(seed), sc.name, lv.name, st.name, hex(labelForeground), got, tokens.TextFloor)
-						}
-					}
-					glyphForeground := Foreground(c, fill, tokens.GraphicFloor)
-					if got := vgcolor.Magnitude(glyphForeground, fill); got < worstGlyph {
-						worstGlyph = got
-						if got < tokens.GraphicFloor {
-							t.Errorf("seed %s %s: %s %s glyph %s on its fill = |Lc| %.2f, want at least |Lc| %.1f",
-								hex(seed), sc.name, lv.name, st.name, hex(glyphForeground), got, tokens.GraphicFloor)
-						}
-					}
-				}
+			if got := Fill(p, tc.state); got != tc.want {
+				t.Errorf("%s: Fill(%v) = %v, want %v", sc.name, tc.state, got, tc.want)
 			}
 		}
+		if got, want := Rim(p), p.Separator; got != want {
+			t.Errorf("%s: Rim = %v, want the platform's separator %v", sc.name, got, want)
+		}
+		if got, want := Label(p), p.ControlText; got != want {
+			t.Errorf("%s: Label = %v, want the platform's control text %v", sc.name, got, want)
+		}
+		if got, want := Mark(p), p.SecondaryLabel; got != want {
+			t.Errorf("%s: Mark = %v, want the platform's secondary label %v", sc.name, got, want)
+		}
 	}
-	t.Logf("worst over the sweep: edge |Lc| %.2f, label |Lc| %.2f, glyph |Lc| %.2f", worstRim, worstLabel, worstGlyph)
 }
 
-// TestFocusRingClearsItsFloor measures the ring against the side of the band
-// that owes it a floor. A focused control's ring takes the rim's place, so the
-// surface it stands on lies immediately outside it and its own fill
-// immediately inside; the surface is the side that is the same for every control
-// on that surface and the side the ring is read against.
-//
-// The fill inside is not measured, and the pressed control is why: it walks up
-// to 20 L* off its surface, so no one colour could clear both it and the surface
-// it lies on. Derived against that fill instead — as this geometry once did —
-// the walk answered the fill rather than the scheme, and a control resting on
-// a card came out 19 L* from the button beside it.
-func TestFocusRingClearsItsFloor(t *testing.T) {
-	worst := 99.0
-	for _, seed := range seeds {
-		light, dark := tokens.FromSeed(seed)
-		lightHC, darkHC := tokens.FromSeedHighContrast(seed)
-		for _, c := range []tokens.ColorTokens{light, dark, lightHC, darkHC} {
-			ring := focus.Ring(c)
-			for _, lv := range levels {
-				surface := c.SurfaceAt(lv.level)
-				if got := vgcolor.Magnitude(ring, surface); got < worst {
-					worst = got
-					if got < focusFloor {
-						t.Errorf("seed %s: %s focus ring %s on the surface %s = |Lc| %.2f, want at least |Lc| %.1f",
-							hex(seed), lv.name, hex(ring), hex(surface), got, focusFloor)
-					}
-				}
+// At rest the trigger lays nothing over the chrome it stands on: alpha zero
+// composites as a no-op, so the chrome survives it untouched.
+func TestRestingFillIsFullyTransparent(t *testing.T) {
+	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
+		if a := Fill(p, tokens.StateNormal).A; a != 0 {
+			t.Errorf("resting fill alpha = %d, want 0", a)
+		}
+	}
+}
+
+// Press lies beyond hover, so the two states stay two: a control held down
+// must not look like one merely under the pointer.
+func TestPressLiesBeyondHover(t *testing.T) {
+	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
+		hover, press := Fill(p, tokens.StateHover), Fill(p, tokens.StatePressed)
+		if hover == press {
+			t.Errorf("hover and press are one colour %v", hover)
+		}
+		if press.A <= hover.A {
+			t.Errorf("press coverage %d does not exceed hover's %d", press.A, hover.A)
+		}
+	}
+}
+
+// Both overlays are the platform's own black or white at a coverage, so the
+// control needs to know nothing about the chrome beneath it.
+func TestBothOverlaysCarryACoverage(t *testing.T) {
+	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
+		for _, st := range []tokens.State{tokens.StateHover, tokens.StatePressed} {
+			if a := Fill(p, st).A; a == 0 || a == 0xff {
+				t.Errorf("%v overlay alpha = %d, want the platform's partial coverage", st, a)
 			}
 		}
 	}
-	t.Logf("worst focus-ring pairing over the sweep: |Lc| %.2f", worst)
 }

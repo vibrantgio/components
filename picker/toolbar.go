@@ -50,20 +50,11 @@ const (
 )
 
 // ToolbarState holds the explicit visual state a static toolbar render draws
-// in. The zero value is a resting trigger on the window's own surface.
+// in. The zero value is a resting trigger.
 //
 // Intended for golden-image testing and static rendering; production code
 // obtains the interaction half from the Gio event system via [Toolbar].
 type ToolbarState struct {
-	// Level is the level of the surface the trigger stands on — the trigger
-	// has no level of its own — in the same vocabulary the host names its own
-	// fill (tokens.SurfaceAt). It is the input to every colour the trigger
-	// resolves: the fill is the measured step over that surface, and the rim
-	// is the neutral step that clears the graphic floor against both sides of
-	// the edge. A dialog at tokens.Level2 passes Level2. The zero value is
-	// tokens.Level0, the window's own surface.
-	Level tokens.ElevationLevel
-
 	Hovered bool
 	Pressed bool
 	Focused bool
@@ -77,12 +68,6 @@ type ToolbarProps struct {
 
 	// Description is the screen-reader label. Falls back to Value when empty.
 	Description string
-
-	// Level is the level of the surface the trigger stands on — the trigger
-	// has no level of its own — copied straight into [ToolbarState.Level] on
-	// every frame. A dialog at tokens.Level2 passes Level2. The zero value is
-	// tokens.Level0, the window's own surface. See [ToolbarState.Level].
-	Level tokens.ElevationLevel
 
 	// Pin is the edge of the offered box the control is drawn at. The zero
 	// value is [PinNone] and the trigger reports the control alone. See [Pin].
@@ -151,22 +136,22 @@ type ToolbarProps struct {
 // Interaction state — hover, press, focus — lives in the rx.Defer scope and
 // survives every theme emission for the life of the subscription.
 func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[layout.Widget] {
-	// The typography emission carries both the LabelLarge role the trigger is
-	// set in — the role a control that names a value is set in, not the
+	// The typography emission carries both the LabelLarge style the trigger is
+	// set in — the style a control that names a value is set in, not the
 	// BodyLarge the form triggers take — and the theme's cached shaper (the
 	// theme owns the typeface).
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest5(t.Color, t.Typography, t.Spacing, t.Radius, t.Density),
-			func(n rx.Tuple5[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
+			rx.CombineLatest5(t.Platform, t.Typography, t.Spacing, t.Radius, t.Density),
+			func(n rx.Tuple5[tokens.PlatformColors, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
 				typ := n.Second
 				return resolvedTokens{
-					color:   n.First,
-					label:   typ.LabelLarge,
-					spacing: n.Third,
-					radius:  n.Fourth,
-					density: n.Fifth,
-					shaper:  typ.Shaper(),
+					platform: n.First,
+					label:    typ.LabelLarge,
+					spacing:  n.Third,
+					radius:   n.Fourth,
+					density:  n.Fifth,
+					shaper:   typ.Shaper(),
 				}
 			},
 		)
@@ -205,7 +190,6 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 				}
 
 				s := toolbarface.State{
-					Level:   props.Level,
 					Hovered: click.Hovered(),
 					Pressed: click.Pressed(),
 					Focused: gtx.Focused(click),
@@ -218,7 +202,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 							semantic.LabelOp(props.Value).Add(gtx.Ops)
 							semantic.DescriptionOp(desc).Add(gtx.Ops)
 							semantic.EnabledOp(true).Add(gtx.Ops)
-							return toolbarface.Draw(gtx, shaper, props.Value, tok.color,
+							return toolbarface.Draw(gtx, shaper, props.Value, tok.platform,
 								tok.spacing, tok.radius, tok.label, tok.density, s)
 						})
 				})
@@ -228,13 +212,12 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 }
 
 // RenderToolbar produces a layout.Widget drawing the chrome variant's trigger
-// in an explicit visual state, without event processing: the control filled
-// the measured step over s.Level and walked by the pointer, its one-dp rim,
-// the value in the foreground that clears the text floor on that fill, and the
-// down chevron in the foreground that clears the graphic floor. When
-// s.Focused, the focus ring — measured against that fill — takes the rim's
-// place at the control's
-// edge, two dp instead of one.
+// in an explicit visual state, without event processing: the chrome showing
+// through at rest and tinted by the platform's overlays under the pointer and
+// while held, the one-dp rim of the platform's seam, the value in the
+// platform's control text, and the down chevron in its secondary label. When
+// s.Focused, the focus ring takes the rim's place at the control's edge, two
+// dp instead of one.
 //
 // It takes no glyph, and that is the point rather than an omission: the mark
 // on a pull-down trigger is not the caller's to choose, and it does not change
@@ -250,7 +233,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 func RenderToolbar(
 	shaper *text.Shaper,
 	value string,
-	colors tokens.ColorTokens,
+	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
 	labelStyle tokens.TextStyle,
@@ -258,18 +241,25 @@ func RenderToolbar(
 	s ToolbarState,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return toolbarface.Draw(gtx, shaper, value, colors, sp, rad, labelStyle, d,
+		return toolbarface.Draw(gtx, shaper, value, p, sp, rad, labelStyle, d,
 			toolbarface.State(s))
 	}
 }
 
-// ToolbarFill is the fill the chrome variant's trigger draws at on the surface
-// named by level, under the given interaction state: the platform's measured
-// step over that surface, walked by the pointer.
+// ToolbarFill is what the chrome variant's trigger lays over the chrome it
+// stands on, under the given interaction state: nothing at rest, the
+// platform's hover overlay under the pointer, its press overlay while it is
+// held. A toolbar button is the one control on this platform that tints under
+// the pointer.
 //
-// It is exported because a window deciding what its own chrome must clear, or
-// a test measuring those levels, needs the answer the trigger drew with, and
-// re-deriving it at the call site is how two answers appear.
-func ToolbarFill(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) color.NRGBA {
-	return toolbarface.Fill(c, level, state)
+// The returned colour carries its own coverage and composites over whatever
+// the trigger was put on, so a caller that needs the opaque colour the control
+// lands as lays it over that surface itself. At rest the return is the zero
+// value, which is no colour at all: the chrome shows through untouched.
+//
+// It is exported because a window deciding what its own chrome must clear
+// needs the answer the trigger drew with, and re-deriving it at the call site
+// is how two answers appear.
+func ToolbarFill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
+	return toolbarface.Fill(p, state)
 }

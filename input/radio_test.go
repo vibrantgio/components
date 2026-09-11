@@ -21,18 +21,18 @@ func TestRadioGolden(t *testing.T) {
 	size := image.Pt(44, 44)
 
 	cases := []struct {
-		name   string
-		colors tokens.ColorTokens
-		state  input.RadioRenderState
+		name     string
+		platform tokens.PlatformColors
+		state    input.RadioRenderState
 	}{
-		{"radio-light-unselected", tokens.DefaultLight, input.RadioRenderState{}},
-		{"radio-dark-unselected", tokens.DefaultDark, input.RadioRenderState{}},
-		{"radio-light-selected", tokens.DefaultLight, input.RadioRenderState{Selected: true}},
-		{"radio-light-focused", tokens.DefaultLight, input.RadioRenderState{Focused: true}},
+		{"radio-light-unselected", tokens.PlatformLight, input.RadioRenderState{}},
+		{"radio-dark-unselected", tokens.PlatformDark, input.RadioRenderState{}},
+		{"radio-light-selected", tokens.PlatformLight, input.RadioRenderState{Selected: true}},
+		{"radio-light-focused", tokens.PlatformLight, input.RadioRenderState{Focused: true}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			w := input.RenderRadio(tc.colors, tokens.Spacing, tokens.Radius, tc.state)
+			w := input.RenderRadio(tc.platform, tokens.Spacing, tokens.Radius, tc.state)
 			golden.Render(t, tc.name, size, w)
 		})
 	}
@@ -41,9 +41,10 @@ func TestRadioGolden(t *testing.T) {
 // ---- Accessibility tests ----
 
 // TestRadioFootprintIsControlHeight checks the radio's visual footprint is
-// the density's control-height square (36 dp Comfortable) with the
-// 20 dp glyph centred in it. The 44 dp WCAG 2.5.5 floor applies to the
-// pointer target, not the footprint: the live Radio extends its hit area via
+// the density's control-height square with the 16 dp glyph centred in it —
+// the checkbox's measured side length, which the radio's circle follows so
+// the two read as one row. The 44 dp WCAG 2.5.5 floor applies to the pointer
+// target, not the footprint: the live Radio extends its hit area via
 // internal/hit (same mechanism TestCheckboxHitSlopToggles exercises).
 func TestRadioFootprintIsControlHeight(t *testing.T) {
 	var ops op.Ops
@@ -54,7 +55,7 @@ func TestRadioFootprintIsControlHeight(t *testing.T) {
 	}
 
 	dims := input.RenderRadio(
-		tokens.DefaultLight,
+		tokens.PlatformLight,
 		tokens.Spacing,
 		tokens.Radius,
 		input.RadioRenderState{},
@@ -67,7 +68,7 @@ func TestRadioFootprintIsControlHeight(t *testing.T) {
 }
 
 // TestRadioCompactGolden records or diffs the radio at tokens.Compact through
-// the live pipeline: the 20 dp glyph centred in a 28 dp footprint.
+// the live pipeline: the 16 dp glyph centred in the Compact control height.
 func TestRadioCompactGolden(t *testing.T) {
 	w := materialize(t, input.Radio(rx.Of(densityTheme(tokens.Compact)), input.RadioProps{
 		Description: "choice",
@@ -82,11 +83,11 @@ func TestRadioSelectedIsVisuallyDistinct(t *testing.T) {
 	size := image.Pt(44, 44)
 
 	imgUnselected := golden.Capture(t, size, input.RenderRadio(
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		input.RadioRenderState{},
 	))
 	imgSelected := golden.Capture(t, size, input.RenderRadio(
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		input.RadioRenderState{Selected: true},
 	))
 
@@ -104,11 +105,11 @@ func TestRadioFocusRingIsVisuallyDistinct(t *testing.T) {
 	size := image.Pt(44, 44)
 
 	imgNormal := golden.Capture(t, size, input.RenderRadio(
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		input.RadioRenderState{},
 	))
 	imgFocused := golden.Capture(t, size, input.RenderRadio(
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		input.RadioRenderState{Focused: true},
 	))
 

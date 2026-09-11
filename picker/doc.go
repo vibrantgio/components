@@ -4,15 +4,15 @@
 // It is one component with two triggers and one open surface, because the two
 // triggers differ only in which variant they are drawn for:
 //
-//	[Field]    the FORM variant — the flat bar that stands in a form beside a
-//	           text field and a checkbox, at the same control height, with the
-//	           same bezel and the same focus ring
+//	[Field]    the FORM variant — the platform's pop-up button, standing in a
+//	           form beside a text field and a checkbox at the same control
+//	           height, with the same focus ring
 //	[Toolbar]  the CHROME variant — the platform's pull-down control, at the
 //	           button's rounded-rect corner with a single down chevron, for a
 //	           toolbar, a header row or any other chrome region
-//	[Menu]     the surface both of them stand under: the level-3 rows, the
-//	           accent selection and the accent's less pronounced state fill under
-//	           the pointer
+//	[Menu]     the surface both of them stand under: the platform's menu
+//	           rows, with its selection fill on the chosen row and on the row
+//	           under the pointer
 //
 // Each has a live path and a pure one, the contract every component in this
 // library keeps: an rx.Observable[theme.Theme] and a props struct in, an
@@ -66,11 +66,10 @@
 // when nobody says otherwise, and a catalogue opened in one wants a MaxHeight.
 //
 // Either way the surface is the same one: a floating, unscrimmed, shadowless
-// transient plane whose rows fill at level 3, the top of the elevation, and
-// whose coloured rows are the accent — the selection at the weight text is held
-// to against the plane, the pointer's state fill at the accent's own container
-// depth.
-// [Menu]'s optionRowColors carries the measurements.
+// transient plane whose rows take the platform's control background under its
+// label, and whose chosen row — and the row under the pointer, which this
+// platform marks the same way — takes its emphasized selection fill.
+// [Menu]'s optionRowColors names them.
 //
 // Who draws the plane's EDGE depends on who placed the plane. [Field] draws it
 // around the menu it places itself, because there is nobody else to; a [Menu]
@@ -81,12 +80,13 @@
 // # The chrome variant's trigger
 //
 // [Toolbar] is the platform's pull-down control, drawn from the measured
-// geometry components/internal/toolbarface holds: the fill a measured step over
-// the surface it stands on and walked by the pointer, the rim derived against
-// both of its sides, the foregrounds resolved against the fill actually drawn, the
-// focus ring that replaces that rim, the density's height and padding, the
-// 44 dp pointer target, the pin. [ToolbarFill] is that fill, for a caller that
-// must clear it. Two things are the toolbar trigger's own.
+// geometry components/internal/toolbarface holds: the chrome showing through
+// untouched at rest and tinted by the platform's own overlays under the
+// pointer and while held, the rim of its seam, the value in its control text,
+// the chevron in its secondary label, the focus ring that replaces that rim,
+// the density's height and padding, the 44 dp pointer target, the pin.
+// [ToolbarFill] is what the trigger lays over the chrome, for a caller that
+// must know. Two things are the toolbar trigger's own.
 //
 // THE CORNER. The scale's Md stop, the same one components/button reads for
 // every variant it draws. The platform draws its pop-up control as a rounded

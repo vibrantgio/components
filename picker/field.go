@@ -75,8 +75,7 @@ const (
 )
 
 // FieldState holds the explicit visual state a static field render draws in.
-// All fields default to their zero values (normal, closed, idle, on the
-// window's own surface).
+// All fields default to their zero values: closed, unfocused, enabled.
 //
 // Intended for golden-image testing; production code obtains state from the
 // Gio event system via [Field].
@@ -90,16 +89,6 @@ type FieldState struct {
 	// Drop is the side the open menu floats on. The zero value is
 	// [DropDown], beneath the trigger. See [Drop].
 	Drop Drop
-
-	// Level is the level of the surface the trigger stands on — the trigger
-	// has no level of its own — and its resting border is derived against
-	// that surface, in the same vocabulary the host names its own fill
-	// (tokens.SurfaceAt). A dialog at tokens.Level2 passes Level2 and the
-	// border takes whichever neutral step clears the floor over that surface.
-	// The zero value is tokens.Level0, the window's own surface. It governs
-	// the trigger only: the open menu is its own plane, a level-3 overlay
-	// carrying the edge that level draws (see planeEdge).
-	Level tokens.ElevationLevel
 
 	// MaxHeight is the tallest the caller would like the open menu's plane to
 	// be; above it the rows scroll inside the cap. It is a preference the
@@ -149,13 +138,6 @@ type FieldProps struct {
 	// side when this one cannot hold the menu and the other holds more of it.
 	// See [Drop].
 	Drop Drop
-
-	// Level is the level of the surface the field stands on — the field has no
-	// level of its own — copied straight into [FieldState.Level] on every
-	// frame: what the trigger's resting border is derived against. A container
-	// that raises its surface passes its own level here; the zero value is the
-	// window's own surface. See [FieldState.Level].
-	Level tokens.ElevationLevel
 
 	// MaxHeight is the tallest the caller would like the open menu's plane to
 	// be; above it the rows scroll inside the cap and the selected row is kept
@@ -268,16 +250,16 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest5(t.Color, t.Typography, t.Spacing, t.Radius, t.Density),
-			func(n rx.Tuple5[tokens.ColorTokens, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
+			rx.CombineLatest5(t.Platform, t.Typography, t.Spacing, t.Radius, t.Density),
+			func(n rx.Tuple5[tokens.PlatformColors, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
 				typ := n.Second
 				return resolvedTokens{
-					color:   n.First,
-					body:    typ.BodyLarge,
-					spacing: n.Third,
-					radius:  n.Fourth,
-					density: n.Fifth,
-					shaper:  typ.Shaper(),
+					platform: n.First,
+					body:     typ.BodyLarge,
+					spacing:  n.Third,
+					radius:   n.Fourth,
+					density:  n.Fifth,
+					shaper:   typ.Shaper(),
 				}
 			},
 		)
@@ -352,7 +334,6 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 					Selected:      selected,
 					Options:       props.Options,
 					Drop:          props.Drop,
-					Level:         props.Level,
 					MaxHeight:     props.MaxHeight,
 					AvailableRoom: props.AvailableRoom,
 					Placeholder:   props.Placeholder,
@@ -431,14 +412,14 @@ func dismissed(gtx layout.Context, outside *int, keys ...event.Tag) bool {
 // tokens.Comfortable for the default desktop look.
 func RenderField(
 	shaper *text.Shaper,
-	colors tokens.ColorTokens,
+	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
 	body tokens.TextStyle,
 	d tokens.Density,
 	s FieldState,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, body: body, density: d}
+	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, body: body, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawField(gtx, shaper, tok, s)
 	}
@@ -599,7 +580,7 @@ func floatMenu(gtx layout.Context, d Drop, tok resolvedTokens, trigger op.CallOp
 	floating := op.Record(gtx.Ops)
 	menuOff := op.Offset(image.Pt(0, menuY)).Push(gtx.Ops)
 	menu.Add(gtx.Ops)
-	planeEdge(gtx, menuDims.Size, tok.color)
+	planeEdge(gtx, menuDims.Size, tok.platform)
 	menuOff.Pop()
 	op.Defer(gtx.Ops, floating.Stop())
 	return triggerDims
@@ -609,21 +590,17 @@ func floatMenu(gtx layout.Context, d Drop, tok resolvedTokens, trigger op.CallOp
 // transient plane ends.
 //
 // Without it the plane is separated from what it covers by fill alone, and the
-// fill is not always a separation — a level-3 menu over a level-2 dialog
-// measures 1.03:1 in the light scheme, which is not a seam but a colour the
-// eye cannot find, and text on one side of it running into text on the other
-// reads as corruption rather than as two surfaces.
+// fill is not always a separation — a menu standing on a pane the platform
+// fills the same way is a colour the eye cannot find, and text on one side of
+// it running into text on the other reads as corruption rather than as two
+// surfaces.
 //
-// The colour and the geometry are patterns/popover's, because they are the same
-// surface: the neutral step that reaches the graphic floor against the plane
-// the line circles — here the menu's own level-3 fill, which is the harder of
-// the line's two sides — laid one dp wide. A measured step is what a named one
-// cannot be, since the paired ramps put a fixed step at the same perceptual
-// depth in both schemes while the surface under it moves the whole way.
+// The line is the platform's seam, laid over whatever is beneath it, one dp
+// wide. The geometry is patterns/popover's, because they are the same surface.
 //
 // It is drawn INSIDE the box the menu reported, on all four sides, so the edge
 // costs the plane no height and the two drop directions are one drawing.
-func planeEdge(gtx layout.Context, size image.Point, c tokens.ColorTokens) {
+func planeEdge(gtx layout.Context, size image.Point, p tokens.PlatformColors) {
 	if size.X <= 0 || size.Y <= 0 {
 		return
 	}
@@ -631,7 +608,7 @@ func planeEdge(gtx layout.Context, size image.Point, c tokens.ColorTokens) {
 	if w < 1 {
 		w = 1
 	}
-	border := control.Border(c, tokens.Level3)
+	border := p.Separator
 	for _, r := range [...]image.Rectangle{
 		{Max: image.Pt(size.X, w)},
 		{Min: image.Pt(0, size.Y-w), Max: size},
@@ -670,7 +647,7 @@ func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fi
 
 // drawTrigger renders the field trigger bar (the closed face).
 func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s FieldState) layout.Dimensions {
-	// The trigger follows the text field's sizing rule — height =
+	// The trigger is a button and takes the button's sizing rule — height =
 	// Density.ControlHeight, vertical padding = Density.PaddingY, horizontal
 	// padding a static spacing.S3 (12 dp).
 	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
@@ -698,12 +675,12 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 		label = s.Placeholder
 	}
 
-	textCol := tok.color.Text
+	textCol := tok.platform.ControlText
 	if prompt {
-		textCol = control.Placeholder(tok.color)
+		textCol = control.Placeholder(tok.platform)
 	}
 	if s.Disabled {
-		textCol = tokens.Disabled(textCol)
+		textCol = tok.platform.DisabledControlText
 	}
 
 	// Reserve space for chevron: padH on the right side plus chevron width.
@@ -731,31 +708,19 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	}
 	triggerSize := image.Pt(fieldW, triggerH)
 
-	// The trigger's own fill is the step it is raised to over the surface it
-	// stands on (control.Fill), the same walk the field, the box and the radio
-	// take. Disabled fades that fill rather than naming a second one, so the
-	// state follows the surface wherever the trigger was put.
-	bg := control.Fill(tok.color, s.Level)
-	if s.Disabled {
-		bg = tokens.Disabled(bg)
-	}
-	// Focus promotes the trigger's border to the focus ring, the one idiom
-	// every control in the library wears: focus.Ring, the scheme's single
-	// focus colour, so promoting the edge changes its hue and not what it has
-	// to answer to, and a focused trigger in a dialog draws the same pixel as
+	// The trigger is the platform's ordinary button, so its fill is the
+	// platform's control fill — translucent in the dark scheme, where it
+	// composites over whatever the trigger was put on. A disabled trigger
+	// keeps it: the platform fades the wording and leaves the control.
+	bg := tok.platform.Control
+	// At rest the edge is the platform's seam, laid over whatever is beneath
+	// it. Focus replaces it with the ring, the one idiom every control in the
+	// library wears, so a focused trigger in a dialog draws the same pixel as
 	// a focused control on the content behind it.
-	// At rest the trigger's border is the neutral step the ramp measures as
-	// clearing the graphic floor against both sides of the edge, the same edge
-	// the field and the radio wear (control.Border).
-	borderCol := control.Border(tok.color, s.Level)
-	if s.Focused {
-		borderCol = focus.Ring(tok.color)
-	}
-	if s.Disabled {
-		borderCol = tokens.Disabled(control.Border(tok.color, s.Level))
-	}
+	borderCol := tok.platform.Separator
 	borderPx := gtx.Dp(1)
 	if s.Focused {
+		borderCol = focus.Ring(tok.platform)
 		borderPx = gtx.Dp(focus.Width)
 	}
 	innerRad := rad - borderPx
@@ -763,8 +728,17 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 		innerRad = 0
 	}
 
+	// The fill inside the edge's shape, and the edge as a band laid ON it
+	// rather than as a shape beneath it. Both carry their own coverage, so a
+	// fill painted over the whole of the edge's shape would carry the edge's
+	// colour across the entire interior instead of leaving it a hairline.
+	//
+	// The band is a stroke of twice the edge's width centred on the shape's
+	// outline and clipped to that shape, which puts every pixel of it inside
+	// the box the trigger reports: a stroke of the edge's own width would fall
+	// half outside it. Drawn that way both of the band's sides follow the
+	// corner, which four rectangles could not.
 	rrectOuter := clip.RRect{Rect: image.Rectangle{Max: triggerSize}, SE: rad, SW: rad, NE: rad, NW: rad}
-	paint.FillShape(gtx.Ops, borderCol, rrectOuter.Op(gtx.Ops))
 	rrectInner := clip.RRect{
 		Rect: image.Rectangle{
 			Min: image.Pt(borderPx, borderPx),
@@ -773,6 +747,10 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 		SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad,
 	}
 	paint.FillShape(gtx.Ops, bg, rrectInner.Op(gtx.Ops))
+	edgePath := rrectOuter.Path(gtx.Ops)
+	edgeArea := rrectOuter.Push(gtx.Ops)
+	paint.FillShape(gtx.Ops, borderCol, clip.Stroke{Path: edgePath, Width: float32(2 * borderPx)}.Op())
+	edgeArea.Pop()
 
 	// Text label: vertically centered.
 	offY := (triggerH - labelDims.Size.Y) / 2
@@ -784,9 +762,9 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	// menu opens, which is the whole of what it has to say. See [Drop].
 	cx := fieldW - padH - chevronSz/2
 	cy := triggerH / 2
-	chevronCol := tok.color.Ramps.Neutral.Step(700) // low-contrast glyph
+	chevronCol := tok.platform.SecondaryLabel
 	if s.Disabled {
-		chevronCol = tokens.Disabled(chevronCol)
+		chevronCol = tok.platform.DisabledControlText
 	}
 	drawChevron(gtx, cx, cy, chevronSz, chevronCol, s.Drop == DropUp)
 

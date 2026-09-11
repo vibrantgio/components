@@ -16,7 +16,7 @@ import (
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/input"
 	"github.com/vibrantgio/components/internal/focus"
-	tcolor "github.com/vibrantgio/theme/color"
+	themecolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -33,21 +33,21 @@ func TestCheckboxGolden(t *testing.T) {
 	sharpRadius := tokens.RadiusScale{}
 
 	cases := []struct {
-		name   string
-		colors tokens.ColorTokens
-		state  input.CheckboxRenderState
+		name     string
+		platform tokens.PlatformColors
+		state    input.CheckboxRenderState
 	}{
 		// Every name carries the component prefix: all four inputs share one
 		// testdata/golden directory, so an unprefixed name risks one golden
 		// file silently serving two different components' renders.
-		{"checkbox-light-unchecked", tokens.DefaultLight, input.CheckboxRenderState{}},
-		{"checkbox-dark-unchecked", tokens.DefaultDark, input.CheckboxRenderState{}},
-		{"checkbox-light-checked", tokens.DefaultLight, input.CheckboxRenderState{Checked: true}},
-		{"checkbox-light-focused", tokens.DefaultLight, input.CheckboxRenderState{Focused: true}},
+		{"checkbox-light-unchecked", tokens.PlatformLight, input.CheckboxRenderState{}},
+		{"checkbox-dark-unchecked", tokens.PlatformDark, input.CheckboxRenderState{}},
+		{"checkbox-light-checked", tokens.PlatformLight, input.CheckboxRenderState{Checked: true}},
+		{"checkbox-light-focused", tokens.PlatformLight, input.CheckboxRenderState{Focused: true}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			w := input.RenderCheckbox(tc.colors, tokens.Spacing, sharpRadius, tc.state)
+			w := input.RenderCheckbox(tc.platform, tokens.Spacing, sharpRadius, tc.state)
 			golden.Render(t, tc.name, size, w)
 		})
 	}
@@ -56,10 +56,10 @@ func TestCheckboxGolden(t *testing.T) {
 // ---- Accessibility tests ----
 
 // TestCheckboxFootprintIsControlHeight checks the checkbox's visual footprint
-// is the density's control-height square (36 dp Comfortable) with the
-// 20 dp glyph centred in it. The 44 dp WCAG 2.5.5 floor applies to the pointer
-// target, not the footprint: the live Checkbox extends its hit area via
-// internal/hit, exercised by TestCheckboxHitSlopToggles.
+// is the density's control-height square with the measured 16 dp glyph centred
+// in it. The 44 dp WCAG 2.5.5 floor applies to the pointer target, not the
+// footprint: the live Checkbox extends its hit area via internal/hit,
+// exercised by TestCheckboxHitSlopToggles.
 func TestCheckboxFootprintIsControlHeight(t *testing.T) {
 	var ops op.Ops
 	gtx := layout.Context{
@@ -69,7 +69,7 @@ func TestCheckboxFootprintIsControlHeight(t *testing.T) {
 	}
 
 	dims := input.RenderCheckbox(
-		tokens.DefaultLight,
+		tokens.PlatformLight,
 		tokens.Spacing,
 		tokens.Radius,
 		input.CheckboxRenderState{},
@@ -107,9 +107,11 @@ func TestCheckboxHitSlopToggles(t *testing.T) {
 
 	drive() // register the input area
 
-	// The hit rect is 44 px centred on the 36 px footprint: -4..40 on each
-	// axis. Click at (38, 38) — outside the footprint, inside the slop.
-	pos := f32.Pt(38, 38)
+	// The hit rect is the 44 px floor centred on the ControlHeight footprint,
+	// so it reaches (44-ControlHeight)/2 px past each edge. Click one px
+	// outside the footprint's far corner — outside the glyph's row, inside
+	// the slop.
+	pos := f32.Pt(float32(tokens.Comfortable.ControlHeight)+1, float32(tokens.Comfortable.ControlHeight)+1)
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
@@ -121,7 +123,8 @@ func TestCheckboxHitSlopToggles(t *testing.T) {
 }
 
 // TestCheckboxCompactGolden records or diffs the checkbox at tokens.Compact
-// through the live pipeline: the 20 dp glyph centred in a 28 dp footprint.
+// through the live pipeline: the 16 dp glyph centred in the Compact control
+// height, which is smaller than the glyph's own row at Comfortable.
 func TestCheckboxCompactGolden(t *testing.T) {
 	w := materialize(t, input.Checkbox(rx.Of(densityTheme(tokens.Compact)), input.CheckboxProps{
 		Description: "opt-in",
@@ -136,11 +139,11 @@ func TestCheckboxCheckedIsVisuallyDistinct(t *testing.T) {
 	size := image.Pt(44, 44)
 
 	imgUnchecked := golden.Capture(t, size, input.RenderCheckbox(
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		input.CheckboxRenderState{},
 	))
 	imgChecked := golden.Capture(t, size, input.RenderCheckbox(
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		input.CheckboxRenderState{Checked: true},
 	))
 
@@ -153,28 +156,28 @@ func TestCheckboxCheckedIsVisuallyDistinct(t *testing.T) {
 }
 
 // TestCheckboxChecksAreDrawn asserts the check mark itself is present, not
-// merely that the checked state differs in colour from the unchecked one —
-// a colour-only difference reads as a swatch, or as an indeterminate state,
-// to anyone who cannot use hue. It measures how much of the checked box
-// reads as check versus as fill, in both schemes.
+// merely that the checked state differs in colour from the fill it is drawn
+// on — a colour-only difference reads as a swatch, or as an indeterminate
+// state, to anyone who cannot use hue. It measures how much of the checked
+// box reads as mark versus as fill, in both schemes.
 //
 // The count is a band rather than a number because a stroked figure two
-// pixels wide is mostly its own anti-aliased edge. At the 1 px/dp the harness
-// pins, the mark covers 40 px of the light box and 28 of the dark one; the
-// band's job is to fail both a mark that vanished and a mark that swallowed
-// the box, not to pin the figure — that is what the goldens are for.
+// pixels wide is mostly its own anti-aliased edge. The band's job is to fail
+// both a mark that vanished and a mark that swallowed the box, not to pin the
+// figure — that is what the goldens are for.
 func TestCheckboxChecksAreDrawn(t *testing.T) {
 	size := image.Pt(44, 44)
 	for _, scheme := range []struct {
-		name   string
-		colors tokens.ColorTokens
+		name     string
+		platform tokens.PlatformColors
 	}{
-		{"light", tokens.DefaultLight},
-		{"dark", tokens.DefaultDark},
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
 	} {
-		c := scheme.colors
+		p := scheme.platform
+		mark, fill := p.AlternateSelectedControlText, p.ControlAccent
 		count := func(s input.CheckboxRenderState) int {
-			img := golden.Capture(t, size, input.RenderCheckbox(c, tokens.Spacing, tokens.Radius, s))
+			img := golden.Capture(t, size, input.RenderCheckbox(p, tokens.Spacing, tokens.Radius, s))
 			if img == nil {
 				return -1
 			}
@@ -182,7 +185,7 @@ func TestCheckboxChecksAreDrawn(t *testing.T) {
 			b := img.Bounds()
 			for y := b.Min.Y; y < b.Max.Y; y++ {
 				for x := b.Min.X; x < b.Max.X; x++ {
-					if nearerTo(img.RGBAAt(x, y), c.OnPrimary, c.Primary) {
+					if nearerTo(img.RGBAAt(x, y), mark, fill) {
 						n++
 					}
 				}
@@ -192,14 +195,14 @@ func TestCheckboxChecksAreDrawn(t *testing.T) {
 
 		n := count(input.CheckboxRenderState{Checked: true})
 		switch {
-		case n < 15:
+		case n < 10:
 			t.Errorf("%s: a checked box carries %d pixels of check mark %v over the fill %v — the mark is missing",
-				scheme.name, n, c.OnPrimary, c.Primary)
-		case n > 120:
+				scheme.name, n, mark, fill)
+		case n > 90:
 			t.Errorf("%s: a checked box carries %d pixels of check mark %v over the fill %v — the mark has taken over the box",
-				scheme.name, n, c.OnPrimary, c.Primary)
+				scheme.name, n, mark, fill)
 		default:
-			t.Logf("%s: the check covers %d px of the 20 dp box", scheme.name, n)
+			t.Logf("%s: the check covers %d px of the 16 dp box", scheme.name, n)
 		}
 	}
 }
@@ -210,11 +213,11 @@ func TestCheckboxFocusRingIsVisuallyDistinct(t *testing.T) {
 	size := image.Pt(44, 44)
 
 	imgNormal := golden.Capture(t, size, input.RenderCheckbox(
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		input.CheckboxRenderState{},
 	))
 	imgFocused := golden.Capture(t, size, input.RenderCheckbox(
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		input.CheckboxRenderState{Focused: true},
 	))
 
@@ -229,28 +232,31 @@ func TestCheckboxFocusRingIsVisuallyDistinct(t *testing.T) {
 // TestFocusIsVisibleOnEveryControlInEveryState asserts that the ring colour
 // is absent from every control's resting state and present in its focused
 // state, across every state each control has and in both colour schemes.
-// A colour-only signal is not enough on its own: the chosen radio's edge is
-// already primary, so promoting that same edge on focus would move primary
-// to a neighbouring step of primary rather than adding a distinguishable
-// mark. The assertion instead counts the ring's own colour at the pixel
-// level, in both the resting and focused renders.
+// A colour-only signal is not enough on its own: a chosen radio is already
+// drawn in the accent, so promoting its own edge on focus would move one blue
+// to a neighbouring blue rather than adding a distinguishable mark. The
+// assertion instead counts the ring's own colour at the pixel level, in both
+// the resting and focused renders.
+//
+// It counts the colour the ring lands as rather than the value the platform
+// publishes. The keyboard focus indicator carries a coverage of its own, so
+// what a capture holds is the ring composited over whatever was under it —
+// here the harness's window, which is cleared to black at zero coverage. That
+// composite is what [themecolor.Over] returns, blended in linear light, which
+// is where Gio blends.
 func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 	size := image.Pt(44, 44)
 	shaper := defaultShaper(t)
 
 	for _, scheme := range []struct {
-		name   string
-		colors tokens.ColorTokens
+		name     string
+		platform tokens.PlatformColors
 	}{
-		{"light", tokens.DefaultLight},
-		{"dark", tokens.DefaultDark},
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
 	} {
-		c := scheme.colors
-		ring := focus.Ring(c)
-		if got := tcolor.Magnitude(ring, c.Surface); got < focus.Floor {
-			t.Errorf("%s: ring %v measures |Lc| %.2f against the surface it lies on %v",
-				scheme.name, ring, got, c.Surface)
-		}
+		p := scheme.platform
+		ring := themecolor.Over(focus.Ring(p), stdcolor.NRGBA{})
 
 		count := func(sz image.Point, w layout.Widget) int {
 			img := golden.Capture(t, sz, w)
@@ -273,27 +279,32 @@ func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 			focus layout.Widget
 		}{
 			{"checkbox unchecked", size,
-				input.RenderCheckbox(c, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{}),
-				input.RenderCheckbox(c, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Focused: true})},
+				input.RenderCheckbox(p, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{}),
+				input.RenderCheckbox(p, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Focused: true})},
 			{"checkbox checked", size,
-				input.RenderCheckbox(c, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Checked: true}),
-				input.RenderCheckbox(c, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Checked: true, Focused: true})},
+				input.RenderCheckbox(p, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Checked: true}),
+				input.RenderCheckbox(p, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Checked: true, Focused: true})},
 			{"radio unselected", size,
-				input.RenderRadio(c, tokens.Spacing, tokens.Radius, input.RadioRenderState{}),
-				input.RenderRadio(c, tokens.Spacing, tokens.Radius, input.RadioRenderState{Focused: true})},
+				input.RenderRadio(p, tokens.Spacing, tokens.Radius, input.RadioRenderState{}),
+				input.RenderRadio(p, tokens.Spacing, tokens.Radius, input.RadioRenderState{Focused: true})},
 			{"radio selected", size,
-				input.RenderRadio(c, tokens.Spacing, tokens.Radius, input.RadioRenderState{Selected: true}),
-				input.RenderRadio(c, tokens.Spacing, tokens.Radius, input.RadioRenderState{Selected: true, Focused: true})},
+				input.RenderRadio(p, tokens.Spacing, tokens.Radius, input.RadioRenderState{Selected: true}),
+				input.RenderRadio(p, tokens.Spacing, tokens.Radius, input.RadioRenderState{Selected: true, Focused: true})},
 			{"text field", image.Pt(300, 60),
-				input.Render(shaper, "you@example.com", c, tokens.Spacing, tokens.Radius,
+				input.Render(shaper, "you@example.com", p, tokens.Spacing, tokens.Radius,
 					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{}),
-				input.Render(shaper, "you@example.com", c, tokens.Spacing, tokens.Radius,
+				input.Render(shaper, "you@example.com", p, tokens.Spacing, tokens.Radius,
+					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{Focused: true})},
+			{"search field", image.Pt(300, 60),
+				input.RenderSearch(shaper, "Search", p, tokens.Spacing, tokens.Radius,
+					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{}),
+				input.RenderSearch(shaper, "Search", p, tokens.Spacing, tokens.Radius,
 					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{Focused: true})},
 			{"dropdown trigger", image.Pt(200, 44),
-				input.RenderDropdown(shaper, c, tokens.Spacing, tokens.Radius,
+				input.RenderDropdown(shaper, p, tokens.Spacing, tokens.Radius,
 					tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 					input.DropdownRenderState{Options: []string{"One", "Two"}}),
-				input.RenderDropdown(shaper, c, tokens.Spacing, tokens.Radius,
+				input.RenderDropdown(shaper, p, tokens.Spacing, tokens.Radius,
 					tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 					input.DropdownRenderState{Focused: true, Options: []string{"One", "Two"}})},
 		} {
@@ -309,88 +320,12 @@ func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 	}
 }
 
-// TestFocusRingIsOneColourOnEveryLevelAndControl asserts in pixels what
-// focus states as a rule: the ring a control paints is the scheme's one focus
-// colour, whatever level the control was told it stands on and whichever of
-// the two placements it takes. The assertion is over painted pixels rather
-// than over the derivation, because what the rule forbids is a caller handing
-// the walk a surface of its own and painting the answer.
-//
-// Both placements are checked, since the two have different neighbours: a ring
-// that rides in slack has that surface on both sides of it, and a promoted
-// border has the control's own fill inside it and that surface outside.
-func TestFocusRingIsOneColourOnEveryLevelAndControl(t *testing.T) {
-	shaper := defaultShaper(t)
-
-	for _, scheme := range []struct {
-		name   string
-		colors tokens.ColorTokens
-	}{
-		{"light", tokens.DefaultLight},
-		{"dark", tokens.DefaultDark},
-	} {
-		c := scheme.colors
-		count := func(sz image.Point, w layout.Widget, want stdcolor.NRGBA) int {
-			img := golden.Capture(t, sz, w)
-			if img == nil {
-				return -1
-			}
-			n := 0
-			b := img.Bounds()
-			for y := b.Min.Y; y < b.Max.Y; y++ {
-				for x := b.Min.X; x < b.Max.X; x++ {
-					if nearlyEqual(img.RGBAAt(x, y), want) {
-						n++
-					}
-				}
-			}
-			return n
-		}
-
-		for _, level := range []tokens.ElevationLevel{
-			tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
-		} {
-			ring := focus.Ring(c)
-			if got := tcolor.Magnitude(ring, c.SurfaceAt(level)); got < focus.Floor {
-				t.Errorf("%s level %d: ring %v measures |Lc| %.2f against the surface it stands on %v",
-					scheme.name, level, ring, got, c.SurfaceAt(level))
-			}
-			for _, ctl := range []struct {
-				name string
-				size image.Point
-				w    layout.Widget
-				ring stdcolor.NRGBA
-			}{
-				{"checkbox", image.Pt(44, 44),
-					input.RenderCheckbox(c, tokens.Spacing, tokens.Radius,
-						input.CheckboxRenderState{Focused: true, Level: level}), ring},
-				{"radio", image.Pt(44, 44),
-					input.RenderRadio(c, tokens.Spacing, tokens.Radius,
-						input.RadioRenderState{Focused: true, Level: level}), ring},
-				{"text field", image.Pt(300, 60),
-					input.Render(shaper, "you@example.com", c, tokens.Spacing, tokens.Radius,
-						tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
-						input.RenderState{Focused: true, Level: level}), ring},
-				{"dropdown trigger", image.Pt(200, 44),
-					input.RenderDropdown(shaper, c, tokens.Spacing, tokens.Radius,
-						tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
-						input.DropdownRenderState{Focused: true, Level: level, Options: []string{"One", "Two"}}), ring},
-			} {
-				n := count(ctl.size, ctl.w, ctl.ring)
-				if n == 0 {
-					t.Errorf("%s %s on level %d: focused, and not one pixel of the scheme's ring colour %v",
-						scheme.name, ctl.name, level, ctl.ring)
-				}
-			}
-		}
-	}
-}
-
-// nearlyEqual reports whether a captured pixel is the given token colour, to
+// nearlyEqual reports whether a captured pixel carries the given colour, to
 // within the three units per channel the GPU's own rounding moves a flat fill
-// by. The colours compared against here — the ring's step and the neutral
-// border it replaces — are nowhere near each other, so the slack costs
-// nothing.
+// by. Alpha is not compared: a translucent fill keeps its own coverage in the
+// capture while the colour it is checked against is the opaque composite, and
+// the colours compared here are nowhere near each other on the three channels
+// that are.
 func nearlyEqual(got stdcolor.RGBA, want stdcolor.NRGBA) bool {
 	const slack = 3
 	off := func(a, b uint8) bool {
@@ -399,7 +334,7 @@ func nearlyEqual(got stdcolor.RGBA, want stdcolor.NRGBA) bool {
 		}
 		return b-a > slack
 	}
-	return !off(got.R, want.R) && !off(got.G, want.G) && !off(got.B, want.B) && got.A == want.A
+	return !off(got.R, want.R) && !off(got.G, want.G) && !off(got.B, want.B)
 }
 
 // nearerTo reports whether a captured pixel lies closer to the mark than to

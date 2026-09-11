@@ -18,19 +18,29 @@
 // DropdownProps and DropdownRenderState are aliases of picker's, so props and
 // states written against either name are the same values.
 //
-// The text field, checkbox and radio inner fills paint the level above the
-// surface they stand on and sit in the page plane; none of them raises a plane
-// above the page.
+// Every colour these controls draw is a platform colour taken by name. A
+// field and an unchecked box are filled with the platform's text background
+// and edged with its measured field edge; a checked box and a chosen radio
+// are its accent, marked in the foreground it names for text on that accent;
+// a disabled control's foreground is its disabled control text; and a focused
+// control wears its keyboard focus indicator. None of them measures, walks or
+// derives a colour of its own.
+//
+// A text field takes the density's field height rather than its control
+// height: the platform draws a field shorter than the button standing beside
+// it, and that is the one place in the library where the two heights part.
 //
 // The search field is the text field with two slots added to its structure:
 // the looking glass that names it, drawn leading, and the clear mark that
 // empties it, drawn trailing while there is a query to take back. Both are
 // spent out of the field's own width, so a search field and a text field of
 // the same width are the same size and the text does not reflow when the
-// mark appears. Clearing reports the empty query through the same OnChange
-// and Message a keystroke does, which is what lets a consumer's highlight die
-// with the query that caused it; what is found, and how the matches are
-// marked, is the consumer's.
+// mark appears. Both are drawn in the platform's secondary label. Clearing
+// reports the empty query through the same OnChange and Message a keystroke
+// does, which is what lets a consumer's highlight die with the query that
+// caused it; what is found is the consumer's, and the fill it marks a match
+// with is the platform's find highlight, which leaves the text it covers its
+// own colour.
 //
 // The text field is uncontrolled. Props.Seed pre-fills a newly created
 // instance so an existing value can be edited rather than retyped, but a later

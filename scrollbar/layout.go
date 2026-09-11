@@ -88,14 +88,11 @@ func (s Style) Layout(gtx layout.Context, state *State, axis layout.Axis, viewpo
 	// Process events against last frame's areas before reading hover state.
 	state.Update(gtx, axis, viewportStart, viewportEnd)
 
-	thumbColor := s.ThumbColor
-	if state.IndicatorHovered() || state.Dragging() {
-		thumbColor = s.ThumbHoverColor
-	}
 	// Fade after the gesture areas have been updated, so this frame's hover
 	// and drag state counts as activity. The track's areas are registered
 	// below whatever the opacity, so a faded-out bar can still be hovered
 	// back into view.
+	thumbColor := s.ThumbColor
 	thumbColor.A = uint8(float32(thumbColor.A)*s.fade(gtx, state, viewportStart, viewportEnd) + 0.5)
 
 	inset := layout.Inset{

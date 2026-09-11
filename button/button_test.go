@@ -73,13 +73,13 @@ func TestButtonGolden(t *testing.T) {
 	sharpRadius := tokens.RadiusScale{} // all zeros → sharp corners, no AA
 	cases := []struct {
 		name   string
-		colors tokens.ColorTokens
+		colors tokens.PlatformColors
 		state  button.RenderState
 	}{
-		{"light-normal", tokens.DefaultLight, button.RenderState{}},
-		{"dark-normal", tokens.DefaultDark, button.RenderState{}},
-		{"light-focused", tokens.DefaultLight, button.RenderState{Focused: true}},
-		{"light-pressed", tokens.DefaultLight, button.RenderState{Pressed: true}},
+		{"light-normal", tokens.PlatformLight, button.RenderState{}},
+		{"dark-normal", tokens.PlatformDark, button.RenderState{}},
+		{"light-focused", tokens.PlatformLight, button.RenderState{Focused: true}},
+		{"light-pressed", tokens.PlatformLight, button.RenderState{Pressed: true}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -99,12 +99,11 @@ func TestButtonGolden(t *testing.T) {
 // before drawing w over it. Every emphasis golden is recorded this way, and it
 // has to be: a ghost button paints no fill of its own, so against the headless
 // window's own clear colour its emphasis would be indistinguishable from a
-// component that failed to draw. The background pin is the system's default
-// surface — the step a tinted fill is a card over — so it is also the surface
-// on which the three emphases separate the way the scale intends.
-func onWindowSurface(c tokens.ColorTokens, w layout.Widget) layout.Widget {
+// component that failed to draw. It is the window's own plane, which is what
+// a dialog's buttons stand on.
+func onWindowSurface(p tokens.PlatformColors, w layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		paint.FillShape(gtx.Ops, c.Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		paint.FillShape(gtx.Ops, p.WindowBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
 		return w(gtx)
 	}
 }
@@ -145,7 +144,7 @@ func TestButtonEmphasisGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 60)
 	sharpRadius := tokens.RadiusScale{} // all zeros → sharp corners, no AA
-	colors := tokens.DefaultLight
+	colors := tokens.PlatformLight
 
 	for _, reg := range emphases {
 		for _, den := range emphasisDensities {
@@ -175,7 +174,7 @@ func TestButtonEmphasisGolden(t *testing.T) {
 func TestIconButtonEmphasisGolden(t *testing.T) {
 	size := image.Pt(60, 60)
 	sharpRadius := tokens.RadiusScale{}
-	colors := tokens.DefaultLight
+	colors := tokens.PlatformLight
 
 	states := []struct {
 		name string
@@ -199,67 +198,13 @@ func TestIconButtonEmphasisGolden(t *testing.T) {
 	}
 }
 
-// onLevel2 paints the whole frame in the level-2 surface fill — the raised
-// level patterns/modal's dialog occupies — before drawing w over it. It is
-// the surface the ghost goldens below stand on: a ghost hosted on a raised
-// surface sits on that surface's own step, not the window's.
-func onLevel2(c tokens.ColorTokens, w layout.Widget) layout.Widget {
-	return func(gtx layout.Context) layout.Dimensions {
-		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.Level2), clip.Rect{Max: gtx.Constraints.Max}.Op())
-		return w(gtx)
-	}
-}
-
-// TestGhostIconButtonFillsAboveRaisedSurfaceGolden records or diffs the
-// icon-only ghost hovering on a level-2 surface — the modal-close
-// configuration whose hover fill the window-level walk resolved to the
-// very colour it sits on. The stored image is the fix made visible: a state
-// fill square that reads against its raised surface.
-func TestGhostIconButtonFillsAboveRaisedSurfaceGolden(t *testing.T) {
-	size := image.Pt(60, 60)
-	colors := tokens.DefaultLight
-	w := button.RenderIcon(crossIcon, colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
-		button.RenderState{Emphasis: button.Ghost, Level: tokens.Level2, Hovered: true})
-	golden.Render(t, "emph-icon-ghost-level2-hovered", size, onLevel2(colors, w))
-}
-
-// TestGhostStateFillDiffersFromItsRaisedSurface asserts, in pixels, that a ghost
-// hosted on a level-2 surface must hover in a state fill that differs from
-// the surface it sits on. The light level-2 fill is off the neutral ramp
-// entirely, so that fill must be resolved from the surface's own colour
-// (tokens.ColorTokens.StateAt) rather than from a ramp index.
-func TestGhostStateFillDiffersFromItsRaisedSurface(t *testing.T) {
-	size := image.Pt(60, 60)
-	colors := tokens.DefaultLight
-	img := golden.Capture(t, size, onLevel2(colors, button.RenderIcon(
-		crossIcon, colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
-		button.RenderState{Emphasis: button.Ghost, Level: tokens.Level2, Hovered: true},
-	)))
-	if img == nil {
-		return // headless unavailable; Capture called t.Skip
-	}
-
-	// A pixel inside the 36 dp button square but left of the glyph box
-	// (which is inset by PaddingY, 8 dp): the background state fill, no glyph stroke,
-	// no ring. Opaque fills: NRGBA == RGBA byte for byte.
-	at := img.RGBAAt(3, 18)
-	surface := colors.SurfaceAt(tokens.Level2)
-	if at == (color.RGBA{R: surface.R, G: surface.G, B: surface.B, A: surface.A}) {
-		t.Fatalf("hover fill at (3,18) equals the level-2 surface %v: the ghost's state fill is invisible on its host surface", surface)
-	}
-	want := colors.StateAt(tokens.Level2, tokens.StateHover)
-	if at != (color.RGBA{R: want.R, G: want.G, B: want.B, A: want.A}) {
-		t.Errorf("hover fill at (3,18) = %v, want the level-2 surface's own one-step walk %v", at, want)
-	}
-}
-
 // TestEmphasesAreVisuallyDistinct confirms the three emphases are
 // three different pictures. Without it the matrix above could record the same
 // filled button thirty times and still pass on every future run.
 func TestEmphasesAreVisuallyDistinct(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 60)
-	colors := tokens.DefaultLight
+	colors := tokens.PlatformLight
 
 	shot := func(e button.Emphasis) *image.RGBA {
 		return golden.Capture(t, size, onWindowSurface(colors, button.Render(
@@ -293,7 +238,7 @@ func TestEmphasesAreVisuallyDistinct(t *testing.T) {
 func TestGhostRestsTransparent(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 60)
-	colors := tokens.DefaultLight
+	colors := tokens.PlatformLight
 
 	bare := golden.Capture(t, size, onWindowSurface(colors, func(gtx layout.Context) layout.Dimensions {
 		return layout.Dimensions{Size: gtx.Constraints.Max}
@@ -350,10 +295,10 @@ func TestPinnedFillGolden(t *testing.T) {
 
 	for _, sc := range []struct {
 		name   string
-		colors tokens.ColorTokens
+		colors tokens.PlatformColors
 	}{
-		{"light", tokens.DefaultLight},
-		{"dark", tokens.DefaultDark},
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
 	} {
 		for _, st := range emphasisStates {
 			state := st.s
@@ -379,7 +324,7 @@ func TestPinnedFillGolden(t *testing.T) {
 func TestUnpinnedFillDrawsTheStockButton(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 60)
-	colors := tokens.DefaultLight
+	colors := tokens.PlatformLight
 
 	shot := func(s button.RenderState) *image.RGBA {
 		return golden.Capture(t, size, onWindowSurface(colors, button.Render(
@@ -412,11 +357,9 @@ func TestUnpinnedFillDrawsTheStockButton(t *testing.T) {
 }
 
 // TestPinnedFillCarriesARingThatReadsOnIt holds the half of the emphasis a
-// pinned fill could silently break. The focus ring is not a fixed colour: it
-// is the primary step that clears the non-text floor against the fill it
-// circles, and the fill it circles is now the caller's. So the ring must
-// be chosen against the pin — and drawn in that colour — or a keyboard user
-// loses the button on the one action that most needs confirming.
+// pinned fill could silently break: the ring composites over whatever fill
+// is there, so a caller's pin must show through it exactly as the accent
+// fill does.
 func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
 	size := image.Pt(60, 60)
 	side := int(tokens.Comfortable.ControlHeight) // 1 px per dp in the harness
@@ -424,16 +367,14 @@ func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
 
 	for _, scheme := range []struct {
 		name   string
-		colors tokens.ColorTokens
+		colors tokens.PlatformColors
 	}{
-		{"light", tokens.DefaultLight},
-		{"dark", tokens.DefaultDark},
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
 	} {
-		ring := focus.RingOn(scheme.colors, pinnedFill)
-		if got := tcolor.Magnitude(ring, pinnedFill); got < focus.Floor {
-			t.Errorf("%s: ring %v measures |Lc| %.2f against the pinned fill %v",
-				scheme.name, ring, got, pinnedFill)
-		}
+		// The platform's focus indicator carries a coverage, so the pixel
+		// on the band is that indicator over the pin it lies on.
+		ring := tcolor.Over(focus.Ring(scheme.colors), pinnedFill)
 		img := golden.Capture(t, size, onWindowSurface(scheme.colors, button.RenderIcon(
 			crossIcon, scheme.colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
 			button.RenderState{Fill: pinnedFill, OnFill: pinnedForeground, Focused: true},
@@ -444,68 +385,51 @@ func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
 		// A pixel on the ring's left band, clear of both corners: the band
 		// spans w to 2w inside the button's own edge.
 		if at := img.RGBAAt(w, side/2); !nearlyEqual(at, ring) {
-			t.Errorf("%s: ring pixel at (%d,%d) = %v, want the step measured against the pin %v",
+			t.Errorf("%s: ring pixel at (%d,%d) = %v, want the focus indicator over the pin %v",
 				scheme.name, w, side/2, at, ring)
 		}
 	}
 }
 
-// ringSurface is what a focused button's ring circles, per variant: the
-// variant's own resting background, and — for the ghost, which paints none —
-// the host surface showing through it. It is the test's own copy of the rule
-// drawButton applies, kept here so the assertion below measures the ring
-// against a surface stated independently of the code that painted it.
+// beneathTheRing is what a focused button's ring band lies on: the variant's
+// own resting fill over the window's plane. It is the test's own copy of the
+// rule drawButton applies, kept here so the assertion below reads a value
+// written independently of the code that painted it. Focus keeps the resting
+// fill in every variant, so the fill under the band is the resting one.
 //
-// Focus keeps the resting fill in every variant, so the surface the ring
-// circles is the resting one and not a focus treatment of its own.
-// variantForeground is the colour the variant draws its label or glyph in at
-// rest, stated here for the same reason ringSurface is: so the assertion
-// below reads a value written independently of the code that painted it.
-func variantForeground(c tokens.ColorTokens, e button.Emphasis) color.NRGBA {
+// Both the platform's control fill and its focus indicator carry a coverage,
+// so every one of these is a composite rather than a value straight off the
+// set.
+func beneathTheRing(p tokens.PlatformColors, e button.Emphasis) color.NRGBA {
 	switch e {
 	case button.Tonal:
-		return c.ForegroundOn(tokens.RolePrimary, ringSurface(c, e))
+		return tcolor.Over(p.Control, p.WindowBackground)
 	case button.Ghost:
-		return c.Ramps.Neutral.Step(700)
+		return p.WindowBackground // a ghost paints none; the plane shows through
 	default:
-		return c.OnPrimary
-	}
-}
-
-func ringSurface(c tokens.ColorTokens, e button.Emphasis) color.NRGBA {
-	switch e {
-	case button.Tonal:
-		return c.StatusContainerOn(tokens.RolePrimary, c.SurfaceAt(tokens.Level0))
-	case button.Ghost:
-		return c.SurfaceAt(tokens.Level0) // a ghost paints none; the content shows through
-	default:
-		return c.SolidStateColor(tokens.RolePrimary, tokens.StateFocus)
+		return tcolor.Over(p.ControlAccent, p.WindowBackground)
 	}
 }
 
 // TestFocusRingIsTheSameRingInEveryEmphasis is the pixel proof of the rule
 // that keyboard visibility does not scale down with emphasis: the ring is the
-// same shape, in the same place, at the same width in all three emphases, and
-// in each of them it reaches the non-text contrast floor against the surface
-// it circles. So a ghost button's ring is neither thinner, dimmer nor smaller
-// than a filled one's.
+// same shape, in the same place, at the same width in all three emphases. So
+// a ghost button's ring is neither thinner, dimmer nor smaller than a filled
+// one's.
 //
-// The step is the scheme's one focus colour wherever that colour reads on the
-// surface the band lies on, which is what a ghost's and a tonal's do. A filled
-// emphasis' own fill is a solid primary, a step of the very ramp the ring is
-// a step of, and no step clears 3:1 against a neighbouring one — so that band
-// alone is walked against its own fill (focus.RingOn). Sameness belongs to the
-// ring's geometry always, and to the step everywhere the fill allows it.
+// The colour is the platform's one focus indicator in every variant. It
+// carries a coverage, so what lands on the band is that indicator over the
+// variant's own fill, and the expected pixel is composited per variant.
 //
 // The geometry is stated here rather than compared between emphases — the
-// outermost ring.Width dp of the button's own square, and nothing outside it
+// outermost focus.Width dp of the button's own square, and nothing outside it
 // — so "the same ring" is a claim about a band written down once and held by
 // all three, and the ring's containment in the footprint is held too. The four
 // corner pixels are excused: a stroke's corner is anti-aliased against
 // whatever is behind it, which is a different colour in every emphasis.
 //
-// Both schemes, because a light scheme's ring walks down its ramp from the
-// mid-value step and a dark scheme's walks up.
+// Both appearances, because the platform answers the indicator per
+// appearance.
 func TestFocusRingIsTheSameRingInEveryEmphasis(t *testing.T) {
 	size := image.Pt(60, 60)
 	side := int(tokens.Comfortable.ControlHeight) // 1 px per dp in the harness
@@ -531,50 +455,34 @@ func TestFocusRingIsTheSameRingInEveryEmphasis(t *testing.T) {
 
 	for _, scheme := range []struct {
 		name   string
-		colors tokens.ColorTokens
+		colors tokens.PlatformColors
 	}{
-		{"light", tokens.DefaultLight},
-		{"dark", tokens.DefaultDark},
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
 	} {
 		colors := scheme.colors
 		for _, e := range []button.Emphasis{button.Filled, button.Tonal, button.Ghost} {
-			// The step this emphasis' ring lands on must reach the floor
-			// against the surface it circles.
-			surface := ringSurface(colors, e)
-			ring := focus.RingOn(colors, surface)
-			if got := tcolor.Magnitude(ring, surface); got < focus.Floor {
-				t.Errorf("%s %s: ring %v measures |Lc| %.2f against the surface it circles %v",
-					scheme.name, e, ring, got, surface)
-			}
+			ring := tcolor.Over(focus.Ring(colors), beneathTheRing(colors, e))
 
+			// No glyph: at the platform's control height the padding is
+			// 2 dp and the ring is 2 dp wide, so a glyph inset by the
+			// padding reaches into the band and a colour scan of the band
+			// would be reading the glyph. The claim here is about the band.
 			img := golden.Capture(t, size, onWindowSurface(colors, button.RenderIcon(
-				crossIcon, colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
+				nil, colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
 				button.RenderState{Emphasis: e, Focused: true},
 			)))
-			// Where the ring's step and the variant's own foreground land on
-			// the same colour — which the light scheme's ring and a tonal
-			// button's label now do, both being the accent step nearest the
-			// mid-value that clears its floor — a colour test cannot tell a
-			// ring pixel from a glyph pixel. The leak scan then excuses the
-			// button's interior and keeps the claim that matters, which is
-			// that nothing outside the footprint is drawn in the ring.
-			glyphIsRingColoured := nearlyEqual(
-				color.RGBA(variantForeground(colors, e)), ring)
 			missing, leaked := 0, 0
 			b := img.Bounds()
 			for y := b.Min.Y; y < b.Max.Y; y++ {
 				for x := b.Min.X; x < b.Max.X; x++ {
 					p := image.Pt(x, y)
 					band, corner := onBand(p)
-					inside := p.X >= 0 && p.Y >= 0 && p.X < side && p.Y < side
 					isRing := nearlyEqual(img.RGBAAt(x, y), ring)
 					switch {
 					case band && !corner && !isRing:
 						missing++
 					case !band && isRing:
-						if glyphIsRingColoured && inside {
-							continue
-						}
 						leaked++
 					}
 				}
@@ -642,8 +550,10 @@ func TestGhostIconButtonKeepsFullHitTarget(t *testing.T) {
 		t.Fatalf("ghost icon button visual = %v, want %dx%d (the emphasis must not resize the control)", dims.Size, side, side)
 	}
 
-	// The hit rect is 44 px centred on the 36 px square: -4..40 on both axes.
-	pos := f32.Pt(18, 38)
+	// The hit rect is MinHitTarget px centred on the ControlHeight square:
+	// -10..34 on both axes at Comfortable. Click below the visual, inside
+	// the slop.
+	pos := f32.Pt(float32(side)/2, float32(side)+6)
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
@@ -720,7 +630,7 @@ func TestButtonVisualHeightIsControlHeight(t *testing.T) {
 
 	dims := button.Render(
 		shaper, "OK",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{},
 	)(gtx)
 
@@ -757,7 +667,7 @@ func TestCompactButtonClearsTheControlHeightFloor(t *testing.T) {
 	d := tokens.Compact
 	dims := button.Render(
 		shaper, "",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, style, d,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, d,
 		button.RenderState{},
 	)(gtx)
 
@@ -773,8 +683,9 @@ func TestCompactButtonClearsTheControlHeightFloor(t *testing.T) {
 }
 
 // TestButtonMinHitTarget checks the live button's pointer target extends to
-// the 44 dp WCAG 2.5.5 floor even though the visual control is only 36 dp
-// tall: a click below the visual bounds, inside the hit slop, activates it.
+// the 44 dp WCAG 2.5.5 floor even though the visual control is only the
+// density's control height: a click below the visual bounds, inside the hit
+// slop, activates it.
 func TestButtonMinHitTarget(t *testing.T) {
 	var clicked int
 	w := materialize(t, button.Button(rx.Of(theme.Default()), button.Props{
@@ -804,9 +715,9 @@ func TestButtonMinHitTarget(t *testing.T) {
 		t.Fatalf("visual height = %d px, want %d", dims.Size.Y, int(tokens.Comfortable.ControlHeight))
 	}
 
-	// The hit rect is 44 px centred on the 36 px visual: -4..40. Click at
-	// y=38 — outside the visual, inside the hit slop.
-	pos := f32.Pt(150, 38)
+	// The hit rect is MinHitTarget px centred on the ControlHeight visual.
+	// Click below the visual, inside the slop.
+	pos := f32.Pt(150, float32(tokens.Comfortable.ControlHeight)+6)
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
@@ -825,12 +736,12 @@ func TestButtonDisabledIsVisuallyDistinct(t *testing.T) {
 
 	imgEnabled := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{},
 	))
 	imgDisabled := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{Disabled: true},
 	))
 
@@ -850,12 +761,12 @@ func TestButtonFocusRingIsVisuallyDistinct(t *testing.T) {
 
 	imgNormal := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{},
 	))
 	imgFocused := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{Focused: true},
 	))
 
@@ -875,12 +786,12 @@ func TestButtonPressedIsVisuallyDistinct(t *testing.T) {
 
 	imgNormal := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{},
 	))
 	imgPressed := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{Pressed: true},
 	))
 
@@ -889,31 +800,6 @@ func TestButtonPressedIsVisuallyDistinct(t *testing.T) {
 	}
 	if n := golden.PixelDiff(imgNormal, imgPressed); n == 0 {
 		t.Error("pressed and normal buttons render identically; expected visual difference")
-	}
-}
-
-// TestButtonHoveredIsVisuallyDistinct confirms hovered state renders
-// differently from normal state.
-func TestButtonHoveredIsVisuallyDistinct(t *testing.T) {
-	shaper := defaultShaper(t)
-	size := image.Pt(300, 60)
-
-	imgNormal := golden.Capture(t, size, button.Render(
-		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
-		button.RenderState{},
-	))
-	imgHovered := golden.Capture(t, size, button.Render(
-		shaper, "Click me",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
-		button.RenderState{Hovered: true},
-	))
-
-	if imgNormal == nil || imgHovered == nil {
-		return
-	}
-	if n := golden.PixelDiff(imgNormal, imgHovered); n == 0 {
-		t.Error("hovered and normal buttons render identically; expected visual difference")
 	}
 }
 
@@ -927,11 +813,11 @@ func TestIconButtonGolden(t *testing.T) {
 	sharpRadius := tokens.RadiusScale{} // all zeros → sharp corners, no AA
 	cases := []struct {
 		name   string
-		colors tokens.ColorTokens
+		colors tokens.PlatformColors
 		state  button.RenderState
 	}{
-		{"icon-light-normal", tokens.DefaultLight, button.RenderState{}},
-		{"icon-light-focused", tokens.DefaultLight, button.RenderState{Focused: true}},
+		{"icon-light-normal", tokens.PlatformLight, button.RenderState{}},
+		{"icon-light-focused", tokens.PlatformLight, button.RenderState{Focused: true}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -958,7 +844,7 @@ func TestIconButtonVisualIsControlHeightSquare(t *testing.T) {
 	}
 	dims := button.RenderIcon(
 		crossIcon,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.Comfortable,
 		button.RenderState{},
 	)(gtx)
 
@@ -985,12 +871,12 @@ func TestIconButtonFocusRingIsVisuallyDistinct(t *testing.T) {
 
 	imgNormal := golden.Capture(t, size, button.RenderIcon(
 		crossIcon,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.Comfortable,
 		button.RenderState{},
 	))
 	imgFocused := golden.Capture(t, size, button.RenderIcon(
 		crossIcon,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.Comfortable,
 		button.RenderState{Focused: true},
 	))
 

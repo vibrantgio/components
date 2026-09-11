@@ -13,24 +13,24 @@ import (
 // resolvedTokens is the concrete per-emission snapshot the layout.Widget closures
 // draw from: the whole theme flattened to the values one frame needs.
 //
-// Two text roles, because the two triggers are drawn for two variants. The
-// field and the menu rows are BodyLarge, the role the form controls beside
-// them are set in; the toolbar trigger is LabelLarge, the role a control that names a
-// value rather than accepting one is set in.
+// Two text styles, because the two triggers are drawn for two variants. The
+// field and the menu rows are BodyLarge, the style the form controls beside
+// them are set in; the toolbar trigger is LabelLarge, the style a control that
+// names a value rather than accepting one is set in.
 type resolvedTokens struct {
-	color   tokens.ColorTokens
-	body    tokens.TextStyle // the BodyLarge role: the field and the menu rows
-	label   tokens.TextStyle // the LabelLarge role: the toolbar trigger
-	spacing tokens.SpacingScale
-	radius  tokens.RadiusScale
-	density tokens.Density // control height and inner padding
-	shaper  *text.Shaper   // the theme's shaper; nil in the Render* paths
+	platform tokens.PlatformColors
+	body     tokens.TextStyle // BodyLarge: the field and the menu rows
+	label    tokens.TextStyle // LabelLarge: the toolbar trigger
+	spacing  tokens.SpacingScale
+	radius   tokens.RadiusScale
+	density  tokens.Density // control height and inner padding
+	shaper   *text.Shaper   // the theme's shaper; nil in the Render* paths
 }
 
 // bodyLabel derives the Gio font, a single-line label and the text size from
-// the BodyLarge role carried in tok. Zero fields fall back to the shaper's
+// the BodyLarge style carried in tok. Zero fields fall back to the shaper's
 // defaults. Lay the returned label out with typeset.Layout rather than
-// widget.Label.Layout: the role's line height is the height of the line box,
+// widget.Label.Layout: the style's line height is the height of the line box,
 // which Gio does not give a single line on its own.
 func bodyLabel(tok resolvedTokens) (font.Font, widget.Label, unit.Sp) {
 	style := tok.body

@@ -39,12 +39,12 @@ func Dropdown(th rx.Observable[theme.Theme], props DropdownProps) rx.Observable[
 // Deprecated: use picker.RenderField, which this forwards to.
 func RenderDropdown(
 	shaper *text.Shaper,
-	colors tokens.ColorTokens,
+	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
 	body tokens.TextStyle,
 	d tokens.Density,
 	s DropdownRenderState,
 ) layout.Widget {
-	return picker.RenderField(shaper, colors, sp, rad, body, d, s)
+	return picker.RenderField(shaper, p, sp, rad, body, d, s)
 }

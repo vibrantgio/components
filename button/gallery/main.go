@@ -80,12 +80,11 @@ func frame(gtx layout.Context, shaper *text.Shaper) layout.Dimensions {
 	list := &layout.List{Axis: layout.Vertical}
 	return list.Layout(gtx, len(rows), func(gtx layout.Context, i int) layout.Dimensions {
 		r := rows[i]
-		colors := tokens.DefaultLight
-		rowBg := color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+		colors := tokens.PlatformLight
 		if r.dark {
-			colors = tokens.DefaultDark
-			rowBg = tokens.DefaultDark.Background
+			colors = tokens.PlatformDark
 		}
+		rowBg := colors.WindowBackground
 
 		const (
 			rowHeightDp = unit.Dp(60)
@@ -116,7 +115,7 @@ func frame(gtx layout.Context, shaper *text.Shaper) layout.Dimensions {
 					gtx.Constraints.Max.X = lw
 
 					m := op.Record(gtx.Ops)
-					paint.ColorOp{Color: colors.Text}.Add(gtx.Ops)
+					paint.ColorOp{Color: colors.Label}.Add(gtx.Ops)
 					mat := m.Stop()
 
 					lbl := widget.Label{MaxLines: 1}

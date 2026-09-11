@@ -12,12 +12,12 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// BenchmarkCheckboxRender exercises `widget(gtx)` for b.N synthetic frames.
+// BenchmarkCheckboxRender exercises the layout.Widget for b.N synthetic frames.
 // b.ReportAllocs is enabled so CI can gate on per-frame allocation
 // regressions (>5% threshold).
 func BenchmarkCheckboxRender(b *testing.B) {
 	w := input.RenderCheckbox(
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		input.CheckboxRenderState{},
 	)
 
@@ -35,11 +35,11 @@ func BenchmarkCheckboxRender(b *testing.B) {
 	}
 }
 
-// BenchmarkCheckboxRenderChecked benchmarks the checked state which draws a
-// solid primary fill instead of a bordered box.
+// BenchmarkCheckboxRenderChecked benchmarks the checked state, which draws a
+// solid accent fill and a stroked mark instead of an edged box.
 func BenchmarkCheckboxRenderChecked(b *testing.B) {
 	w := input.RenderCheckbox(
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
 		input.CheckboxRenderState{Checked: true},
 	)
 

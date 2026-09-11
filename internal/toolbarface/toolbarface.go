@@ -1,7 +1,7 @@
 // Package toolbarface holds the geometry components/picker's chrome-variant
-// trigger is drawn from: the measured fill, the state walk, the two-sided rim,
-// the walked foregrounds, the focus ring that replaces that rim, the density's
-// height and padding, the pointer target's placement, and the chevron that says a
+// trigger is drawn from: the fill it tints under the pointer, the hairline
+// around it, the focus ring that replaces that hairline, the density's height
+// and padding, the pointer target's placement, and the chevron that says a
 // menu opens below.
 //
 // It is internal because it is a seam and not a component: a caller reaches
@@ -12,7 +12,6 @@ package toolbarface
 import (
 	"image"
 	"image/color"
-	"math"
 
 	"gioui.org/f32"
 	"gioui.org/font"
@@ -25,7 +24,6 @@ import (
 	"gioui.org/unit"
 
 	vglayout "github.com/vibrantgio/components/layout"
-	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
 
@@ -51,7 +49,7 @@ const edgeDp = unit.Dp(1)
 //	chevronWidthRatio  the mark's width, 9 of the control's 29
 //	chevronAspect      the mark's height, 5 of its own 9
 //
-// which at this system's 36 dp comfortable control comes out at 11.2 × 6.2 dp.
+// which at this system's 24 dp comfortable control comes out at 7.4 × 4.1 dp.
 const (
 	chevronWidthRatio = 9.0 / 29.0
 	chevronAspect     = 5.0 / 9.0
@@ -97,17 +95,8 @@ func chevron(gtx layout.Context, box image.Rectangle, col color.NRGBA) {
 }
 
 // State is the explicit visual state a static render draws in. The zero value
-// is a resting control on the window's own surface.
+// is a resting control.
 type State struct {
-	// Level is the level of the surface the control stands on — the control
-	// has no level of its own — in the same vocabulary the host names its own fill
-	// (tokens.SurfaceAt). It is the input to every colour resolved here: the
-	// fill is the measured step over that surface, and the rim is the neutral
-	// step that clears the graphic floor against both sides of the edge. A
-	// dialog at tokens.Level2 passes Level2. The zero value is tokens.Level0,
-	// the window's own surface.
-	Level tokens.ElevationLevel
-
 	Hovered bool
 	Pressed bool
 	Focused bool
@@ -126,198 +115,42 @@ func (s State) state() tokens.State {
 	return tokens.StateNormal
 }
 
-// darkFillStep is how far over the surface it stands on a resting trigger
-// sits where the Background pin is the darkest surface the neutral ramp
-// carries, in CIELAB
-// L\*. It is a MEASUREMENT of the platform, not a derivation: the step macOS
-// takes between a unified toolbar's band and the pop-up capsules drawn on it,
-// which is this control's exact role. From the stored macOS reference
-// (reference/macos/mail-window.png in the org's .github repository;
-// window-bounded capture, macOS 26.5.2, dark appearance):
+// Fill is what the control lays over the chrome it stands on: nothing at
+// rest, the platform's hover overlay under the pointer, its press overlay
+// while it is held.
 //
-//	Mail's unified toolbar band          #232A2E   L* 16.555   luminance 40.80
-//	its pop-up capsules on that band     #242D32   L* 17.837   luminance 43.45
-//	                                               step 1.28   step +2.65
-const darkFillStep = 1.28
-
-// lightFillStep is the same step where the pin is the lightest surface the
-// ramp carries, in CIELAB L\*. It is a DERIVATION and not a measurement: the
-// stored macOS reference holds no light-appearance capture, so this half takes
-// the first level over the content — the 0.70 L\* the light scheme
-// already spends on Level1 over Level0 — spent identically over every surface
-// rather than growing with that surface's own level. The light
-// scheme has 3.12 L\* in total between its content and the tonal axis and spends
-// all three levels inside it, so the platform's 1.28 would put one control
-// above where a dialog sits.
-const lightFillStep = 0.70
-
-// fillStep is how far above the surface beneath a resting fill stands, in
-// CIELAB L\*.
-// One number per scheme, and the scheme is never named: which half applies is
-// read off the neutral surface band's direction, exactly as theme/tokens reads
-// it for the floor's own two measurements.
+// A toolbar button is the one control on this platform that tints under the
+// pointer — a push button, a list row and a sidebar row do not, which is the
+// reading control-hover-{light,dark}.png records — so the overlay is applied
+// here and nowhere else in this library. Both overlays carry their own
+// coverage and are painted over whatever the chrome is filled with, so the
+// control needs to know nothing about the surface beneath it.
 //
-// A scheme whose band climbs away from its 100 stop has its pin as the
-// darkest surface the ramp carries — the dark scheme — and takes the
-// platform's measured capsule step. One whose band descends has the pin as
-// its lightest surface and almost no room above it, and takes the derived
-// whisper.
-func fillStep(c tokens.ColorTokens) float64 {
-	pin, _, _ := vgcolor.LabFromNRGBA(c.Background)
-	top := math.Inf(-1)
-	for i := 1; i <= 4; i++ {
-		l, _, _ := vgcolor.LabFromNRGBA(c.Ramps.Neutral.Step(i * 100))
-		if l > top {
-			top = l
-		}
+// At rest the return is the zero value, which is no colour at all: the
+// chrome shows through untouched.
+func Fill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
+	switch state {
+	case tokens.StatePressed:
+		return p.PressOverlay
+	case tokens.StateHover:
+		return p.HoverOverlay
 	}
-	if top > pin {
-		return darkFillStep
-	}
-	return lightFillStep
+	return color.NRGBA{}
 }
 
-// restFill is the fill at rest: the surface the control stands on, lifted by
-// the measured step for its scheme, realized at that surface's own hue and
-// chroma so the shape carries whatever tint the levels carry and none of
-// its own. Nothing is mixed and no colour is named — the step is a depth in
-// L\* and the palette renders it, the way theme/tokens realizes a level.
-//
-// It is a step over the surface it stands on rather than a walk to the next
-// level. The level above is correct as depth and too pronounced: in the dark
-// scheme it stands 10.0 luminance over the window's content where the platform's
-// own toolbar capsules stand 2.65 over their band — a filled block at four
-// times the platform's step, in the one role the platform draws as a
-// near-hairline outline. The rim carries the edge; the fill does not claim
-// attention under it.
-func restFill(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGBA {
-	base := c.SurfaceAt(level)
-	l, _, _ := vgcolor.LabFromNRGBA(base)
-	target := min(l+fillStep(c), 100)
-	_, chroma, hue := vgcolor.OKLChFromNRGBA(base)
-	return vgcolor.NRGBAFromToneChromaHue(target, chroma, hue)
-}
+// Rim is the hairline around the control: the platform's separator, laid
+// over whatever is beneath it, which is how the platform draws every
+// hairline it draws.
+func Rim(p tokens.PlatformColors) color.NRGBA { return p.Separator }
 
-// Fill is the control's own fill: the measured step over the surface it stands
-// on, walked by the interaction state and stopped short of any depth its own
-// label could not be read on.
-//
-// The walk is [tokens.ColorTokens.PinnedStateColor] — the same walk
-// [tokens.ColorTokens.StateAt] takes from a level, taken from the resting
-// fill instead, because that fill is not a level. Hover and press therefore
-// follow the rest automatically and their stride is untouched.
-//
-// The stopping is the label's, and it binds where the ramp's own two ends are
-// too close together to write on its middle. A ramp writes with its ends, so
-// between them lies a band of depths no step of it reaches tokens.TextFloor
-// against — for the dark ramp, L\* 46.0 to 53.8 — and a control standing high
-// among the levels walks into it: pressed on a level-2 plane the walk
-// lands at 48.1 and hovered on a level-3 one at 47.6, where the best
-// foreground the palette carries measures 4.09:1 and 4.21:1. A fill nothing
-// can be written on is not a state to walk to, so the walk stops at the last depth on its way
-// that the palette can still write on. Both fills come to rest at 45.7 with
-// their label at 4.51:1, and nothing else on either scheme's levels moves: the
-// light ramp's ends are a near-black and a near-white, its band lies at L\* 47
-// to 52, and the deepest fill this family walks to in that scheme is 75.5.
-func Fill(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) color.NRGBA {
-	rest := restFill(c, level)
-	return legible(c, rest, c.PinnedStateColor(rest, state))
-}
+// Label is the colour the control's own wording reads in: the platform's
+// control text.
+func Label(p tokens.PlatformColors) color.NRGBA { return p.ControlText }
 
-// legible is the walk's stop: walked itself while the palette can write a
-// label on it, and otherwise the last depth between rest and walked that it
-// can, at walked's own hue and chroma.
-//
-// The depth is found by measuring the realized tone rather than by solving for
-// the band's edge, because a tone is realized in 8-bit sRGB and a depth solved
-// exactly on the edge rounds to either side of it; halving the interval keeps
-// the answer on the side that measured legible. A rest fill that cannot be
-// written on has no such side and is left alone — that is a defect in the
-// resting appearance and belongs to the gates, not to a state walk.
-func legible(c tokens.ColorTokens, rest, walked color.NRGBA) color.NRGBA {
-	if writable(c, walked) || !writable(c, rest) {
-		return walked
-	}
-	restL, _, _ := vgcolor.LabFromNRGBA(rest)
-	walkedL, _, _ := vgcolor.LabFromNRGBA(walked)
-	_, chroma, hue := vgcolor.OKLChFromNRGBA(walked)
-	// lo is always a depth that measured legible, hi one that did not.
-	lo, hi := restL, walkedL
-	for range 24 {
-		mid := (lo + hi) / 2
-		if writable(c, vgcolor.NRGBAFromToneChromaHue(mid, chroma, hue)) {
-			lo = mid
-		} else {
-			hi = mid
-		}
-	}
-	return vgcolor.NRGBAFromToneChromaHue(lo, chroma, hue)
-}
-
-// writable reports whether the foreground this family would write a label in
-// reaches its floor on fill — `Foreground`'s own answer, measured, since
-// `Foreground` hands back the best-reading step when no step reaches the
-// floor at all.
-func writable(c tokens.ColorTokens, fill color.NRGBA) bool {
-	return vgcolor.Magnitude(Foreground(c, fill, tokens.TextFloor), fill) >= tokens.TextFloor
-}
-
-// Rim is the edge, and whether there is one: the step of the neutral ramp
-// that reaches the graphic floor against BOTH of the edge's neighbours — the
-// surface outside it and the fill inside it — or no rim at all when no step
-// can reach both.
-//
-// An edge has two sides and one colour, so a walk aimed at one side is a
-// promise about the other, and this family's inner side moves besides — one
-// and two steps under the pointer, and in the dark scheme those steps are
-// long. Aimed at the surface alone, the rim lands ON the pressed fill at level
-// 1 — 1.00:1, the same colour twice — and aimed at the fill alone it comes
-// too close to that surface at rest in the light scheme, where the raise off
-// the content measures 1.13:1 and the rim is the only thing there is. So both candidates are derived and
-// the one that clears both sides is kept, which is the rule every two-sided
-// edge in this library takes (components/internal/control's border, the focus
-// ring that replaces this rim).
-//
-// When neither clears both, the two neighbours are further apart than twice
-// the floor and no colour on any ramp could sit between them — which is
-// exactly the case where no rim is needed, because a fill that far off its
-// surface is carrying its own edge. That is this library's outline ruling in
-// the elevation levels' vocabulary: a fill that separates on its own needs no
-// outline, and a fill that cannot never will. So the second return is false
-// there and the caller draws the shape without one.
-func Rim(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) (color.NRGBA, bool) {
-	below := c.SurfaceAt(level)
-	above := Fill(c, level, state)
-	for _, cand := range [...]color.NRGBA{
-		c.MarkOn(tokens.RoleNeutral, below, tokens.GraphicFloor),
-		c.MarkOn(tokens.RoleNeutral, above, tokens.GraphicFloor),
-	} {
-		if vgcolor.Magnitude(cand, below) >= tokens.GraphicFloor &&
-			vgcolor.Magnitude(cand, above) >= tokens.GraphicFloor {
-			return cand, true
-		}
-	}
-	return color.NRGBA{}, false
-}
-
-// `Foreground` is the colour something reads in when it is drawn on one of these
-// fills: the Text pin while that pin clears floor against the fill, and
-// otherwise the step of the neutral ramp nearest its mid-value that does.
-//
-// That is tokens.ColorTokens.ForegroundOnAtFloor's own rule, applied to the
-// one role ForegroundOnAtFloor refuses. ForegroundOnAtFloor asks a role for
-// its pinned base and RoleNeutral has none — the neutral foreground's pin
-// is the Text pin, which is derived against the Background pin already — so
-// the rule is spelled out here rather than reinvented: pin first, walk only
-// when the pin stops reading.
-//
-// Pass tokens.TextFloor for a label and tokens.GraphicFloor for a mark.
-func Foreground(c tokens.ColorTokens, fill color.NRGBA, floor float64) color.NRGBA {
-	if vgcolor.Magnitude(c.Text, fill) >= floor {
-		return c.Text
-	}
-	return c.MarkOn(tokens.RoleNeutral, fill, floor)
-}
+// Mark is the colour the chevron reads in: the platform's secondary label,
+// which is what it draws a control's own marks in beside that control's
+// wording.
+func Mark(p tokens.PlatformColors) color.NRGBA { return p.SecondaryLabel }
 
 // Pin is the edge of the offered box that a drawn shape is pinned to.
 //
@@ -378,25 +211,23 @@ func (p Pin) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	return layout.Dimensions{Size: box, Baseline: dims.Baseline}
 }
 
-// Draw paints the pull-down trigger: the walked fill, the two-sided rim or the
-// focus ring that replaces it, the label, and the chevron that says a menu
-// opens below.
+// Draw paints the pull-down trigger: the hairline or the focus ring that
+// replaces it, the fill it tints under the pointer, the label, and the
+// chevron that says a menu opens below.
 func Draw(
 	gtx layout.Context,
 	shaper *text.Shaper,
 	label string,
-	c tokens.ColorTokens,
+	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
 	labelStyle tokens.TextStyle,
 	d tokens.Density,
 	s State,
 ) layout.Dimensions {
-	st := s.state()
-	fill := Fill(c, s.Level, st)
-	rim, rimmed := Rim(c, s.Level, st)
-	labelForeground := Foreground(c, fill, tokens.TextFloor)
-	glyphForeground := Foreground(c, fill, tokens.GraphicFloor)
+	fill := Fill(p, s.state())
+	labelForeground := Label(p)
+	glyphForeground := Mark(p)
 
 	padH := gtx.Dp(unit.Dp(d.PaddingX))
 	padV := gtx.Dp(unit.Dp(d.PaddingY))
@@ -457,18 +288,36 @@ func Draw(
 	// the button's. Reading the stop rather than naming a number is what keeps
 	// the two in step if the scale ever moves.
 	radius := gtx.Dp(unit.Dp(rad.Md))
-	band, edgeColor, edged := max(gtx.Dp(edgeDp), 1), rim, rimmed
+	band, edgeColor := max(gtx.Dp(edgeDp), 1), Rim(p)
 	if s.Focused {
-		band, edgeColor, edged = gtx.Dp(focus.Width), focus.Ring(c), true
+		band, edgeColor = gtx.Dp(focus.Width), focus.Ring(p)
+	}
+	if maxRad := min(box.Dx(), box.Dy()) / 2; radius > maxRad {
+		radius = maxRad
 	}
 	inner, innerRad := box, radius
-	if edged {
-		paint.FillShape(gtx.Ops, edgeColor, vglayout.Pill(gtx.Ops, box, radius))
-		if in := box.Inset(band); in.Dx() > 0 && in.Dy() > 0 {
-			inner, innerRad = in, max(radius-band, 0)
-		}
+	if in := box.Inset(band); in.Dx() > 0 && in.Dy() > 0 {
+		inner, innerRad = in, max(radius-band, 0)
 	}
-	paint.FillShape(gtx.Ops, fill, vglayout.Pill(gtx.Ops, inner, innerRad))
+	// The fill inside the edge's shape, and the edge as a band laid ON that
+	// shape rather than as a shape beneath it. Both carry their own
+	// coverage, so a shape painted in the edge's colour with the fill over
+	// it would carry the edge's colour across the whole interior instead of
+	// leaving it a hairline — and at rest there is no fill over it at all.
+	//
+	// The band is a stroke of twice the edge's width centred on the shape's
+	// outline and clipped to that shape, which puts every pixel of it inside
+	// the box this control reports: a stroke of the edge's own width would
+	// fall half outside it. Drawn that way both of the band's sides follow
+	// the corner, which four rectangles could not.
+	if fill.A != 0 {
+		paint.FillShape(gtx.Ops, fill, vglayout.Pill(gtx.Ops, inner, innerRad))
+	}
+	outer := clip.RRect{Rect: box, SE: radius, SW: radius, NE: radius, NW: radius}
+	edgePath := outer.Path(gtx.Ops)
+	edgeArea := outer.Push(gtx.Ops)
+	paint.FillShape(gtx.Ops, edgeColor, clip.Stroke{Path: edgePath, Width: float32(2 * band)}.Op())
+	edgeArea.Pop()
 
 	// Label and mark on one centred row: the label leads, the mark follows it
 	// across the S2 gap, and the pair is centred in what the padding leaves.

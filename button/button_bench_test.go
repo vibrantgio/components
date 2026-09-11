@@ -21,7 +21,7 @@ func BenchmarkButtonRender(b *testing.B) {
 	shaper := tokens.DefaultTypography.DeterministicShaper()
 	w := button.Render(
 		shaper, "Benchmark",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{},
 	)
 	bench.BenchFrame(b, w)
@@ -33,7 +33,7 @@ func BenchmarkButtonRenderFocused(b *testing.B) {
 	shaper := tokens.DefaultTypography.DeterministicShaper()
 	w := button.Render(
 		shaper, "Benchmark",
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 		button.RenderState{Focused: true},
 	)
 	bench.BenchFrame(b, w)

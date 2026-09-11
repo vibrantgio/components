@@ -15,27 +15,28 @@ import (
 )
 
 // TestScrollbarGolden records or diffs canonical vertical scrollbar renders on
-// a Surface-filled background: thumb at top, middle and bottom in the light
-// scheme, the same middle position in the dark scheme (colours must differ),
-// and a near-zero viewport fraction proving the 16dp minimum thumb length.
+// the content plane the bar rides: thumb at top, middle and bottom in the
+// light scheme, the same middle position in the dark scheme (the composite
+// must differ), and a near-zero viewport fraction proving the 16dp minimum
+// thumb length.
 func TestScrollbarGolden(t *testing.T) {
 	size := image.Pt(24, 400)
 	cases := []struct {
 		name       string
-		c          tokens.ColorTokens
+		p          tokens.PlatformColors
 		start, end float32
 	}{
-		{"light-top", tokens.DefaultLight, 0, 0.3},
-		{"light-mid", tokens.DefaultLight, 0.35, 0.65},
-		{"dark-mid", tokens.DefaultDark, 0.35, 0.65},
-		{"light-bottom", tokens.DefaultLight, 0.7, 1.0},
-		{"min-thumb", tokens.DefaultLight, 0.5, 0.501},
+		{"light-top", tokens.PlatformLight, 0, 0.3},
+		{"light-mid", tokens.PlatformLight, 0.35, 0.65},
+		{"dark-mid", tokens.PlatformDark, 0.35, 0.65},
+		{"light-bottom", tokens.PlatformLight, 0.7, 1.0},
+		{"min-thumb", tokens.PlatformLight, 0.5, 0.501},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			state := NewState()
-			style := FromTokens(tc.c)
-			surface := tc.c.Surface
+			style := FromTokens(tc.p)
+			surface := tc.p.ControlBackground
 			start, end := tc.start, tc.end
 			golden.Render(t, tc.name, size, func(gtx layout.Context) layout.Dimensions {
 				gtx.Metric = unit.Metric{PxPerDp: 1, PxPerSp: 1}
@@ -47,39 +48,42 @@ func TestScrollbarGolden(t *testing.T) {
 	}
 }
 
+// TestFromTokens pins every colour the default bar draws to the platform name
+// it is taken from, and the metrics it hands out.
 func TestFromTokens(t *testing.T) {
-	cases := []struct {
+	for _, tc := range []struct {
 		name string
-		c    tokens.ColorTokens
-		// The step and coverage the derivation answers for this scheme,
-		// spelled out rather than recomputed: both schemes spend the
-		// foreground to the ramp's end and buy the rest with coverage, and
-		// the dark scheme buys less of it. See FromTokens for why they
-		// differ.
-		thumbStep, thumbAlpha int
-		hoverStep, hoverAlpha int
+		p    tokens.PlatformColors
 	}{
-		{"DefaultLight", tokens.DefaultLight, 900, 171, 900, 237},
-		{"DefaultDark", tokens.DefaultDark, 900, 100, 900, 181},
-	}
-	for _, tc := range cases {
+		{"PlatformLight", tokens.PlatformLight},
+		{"PlatformDark", tokens.PlatformDark},
+	} {
 		t.Run(tc.name, func(t *testing.T) {
-			s := FromTokens(tc.c)
+			s := FromTokens(tc.p)
 
-			wantThumb := tc.c.Ramps.Neutral.Step(tc.thumbStep)
-			wantThumb.A = uint8(tc.thumbAlpha)
-			if s.ThumbColor != wantThumb {
-				t.Errorf("ThumbColor = %v, want %v", s.ThumbColor, wantThumb)
+			if s.ThumbColor != tc.p.ScrollbarThumb {
+				t.Errorf("ThumbColor = %v, want ScrollbarThumb %v", s.ThumbColor, tc.p.ScrollbarThumb)
 			}
-
-			wantHover := tc.c.Ramps.Neutral.Step(tc.hoverStep)
-			wantHover.A = uint8(tc.hoverAlpha)
-			if s.ThumbHoverColor != wantHover {
-				t.Errorf("ThumbHoverColor = %v, want %v", s.ThumbHoverColor, wantHover)
+			if s.ThumbColor.A == 0xff {
+				t.Errorf("ThumbColor = %v is opaque; an overlay thumb composites over what it rides", s.ThumbColor)
 			}
-
 			if s.TrackColor != (color.NRGBA{}) {
 				t.Errorf("TrackColor = %v, want transparent zero value", s.TrackColor)
+			}
+
+			wantMatch := tc.p.FindHighlight
+			wantMatch.A = matchCoverage
+			if s.MatchFill != wantMatch {
+				t.Errorf("MatchFill = %v, want FindHighlight at %#x, %v", s.MatchFill, matchCoverage, wantMatch)
+			}
+			wantCurrent := tc.p.FindHighlight
+			wantCurrent.A = currentMatchCoverage
+			if s.CurrentMatchFill != wantCurrent {
+				t.Errorf("CurrentMatchFill = %v, want FindHighlight at %#x, %v", s.CurrentMatchFill, currentMatchCoverage, wantCurrent)
+			}
+			if s.MatchFill.A >= s.CurrentMatchFill.A {
+				t.Errorf("the current match at %#x is not laid on more strongly than the rest at %#x",
+					s.CurrentMatchFill.A, s.MatchFill.A)
 			}
 
 			metrics := []struct {

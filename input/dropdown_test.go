@@ -43,38 +43,38 @@ func TestDropdownGolden(t *testing.T) {
 	sharpRadius := tokens.RadiusScale{}
 
 	cases := []struct {
-		name   string
-		colors tokens.ColorTokens
-		size   image.Point
-		state  input.DropdownRenderState
+		name     string
+		platform tokens.PlatformColors
+		size     image.Point
+		state    input.DropdownRenderState
 	}{
 		{
 			"dropdown-light-closed",
-			tokens.DefaultLight,
+			tokens.PlatformLight,
 			image.Pt(200, 44),
 			input.DropdownRenderState{Options: opts},
 		},
 		{
 			"dropdown-dark-closed",
-			tokens.DefaultDark,
+			tokens.PlatformDark,
 			image.Pt(200, 44),
 			input.DropdownRenderState{Options: opts},
 		},
 		{
 			"dropdown-light-focused",
-			tokens.DefaultLight,
+			tokens.PlatformLight,
 			image.Pt(200, 44),
 			input.DropdownRenderState{Focused: true, Options: opts},
 		},
 		{
 			"dropdown-light-open",
-			tokens.DefaultLight,
+			tokens.PlatformLight,
 			image.Pt(200, openH),
 			input.DropdownRenderState{Open: true, Options: opts, Selected: 0},
 		},
 		{
 			"dropdown-dark-open",
-			tokens.DefaultDark,
+			tokens.PlatformDark,
 			image.Pt(200, openH),
 			input.DropdownRenderState{Open: true, Options: opts, Selected: 0},
 		},
@@ -84,7 +84,7 @@ func TestDropdownGolden(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			w := input.RenderDropdown(
 				shaper,
-				tc.colors,
+				tc.platform,
 				tokens.Spacing,
 				sharpRadius,
 				tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
@@ -115,7 +115,7 @@ func TestDropdownTriggerHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 
 	dims := input.RenderDropdown(
 		shaper,
-		tokens.DefaultLight,
+		tokens.PlatformLight,
 		tokens.Spacing,
 		tokens.Radius,
 		tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
@@ -155,12 +155,12 @@ func TestDropdownFocusRingIsVisuallyDistinct(t *testing.T) {
 
 	imgNormal := golden.Capture(t, size, input.RenderDropdown(
 		shaper,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.DropdownRenderState{Options: opts},
 	))
 	imgFocused := golden.Capture(t, size, input.RenderDropdown(
 		shaper,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.DropdownRenderState{Focused: true, Options: opts},
 	))
 
@@ -181,12 +181,12 @@ func TestDropdownOpenStateIsVisuallyDistinct(t *testing.T) {
 
 	imgClosed := golden.Capture(t, image.Pt(200, openH), input.RenderDropdown(
 		shaper,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.DropdownRenderState{Options: opts},
 	))
 	imgOpen := golden.Capture(t, image.Pt(200, openH), input.RenderDropdown(
 		shaper,
-		tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 		input.DropdownRenderState{Open: true, Options: opts, Selected: 0},
 	))
 

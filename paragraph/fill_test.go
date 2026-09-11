@@ -49,12 +49,12 @@ func countFill(img *image.RGBA) (int, image.Rectangle) {
 func captureFill(t *testing.T, spans []paragraph.SpanStyle, width int) (*image.RGBA, []image.Rectangle) {
 	t.Helper()
 	shaper := defaultShaper(t)
-	colors := tokens.DefaultLight
-	style := paragraph.FromTokens(colors, tokens.DefaultTypography.BodyLarge)
+	p := tokens.PlatformLight
+	style := paragraph.FromTokens(p, tokens.DefaultTypography.BodyLarge)
 	var got []image.Rectangle
 	style.OnFill = func(span, fill int, r image.Rectangle) { got = append(got, r) }
 	img := golden.Capture(t, image.Pt(width, 90), func(gtx layout.Context) layout.Dimensions {
-		paint.FillShape(gtx.Ops, colors.Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		paint.FillShape(gtx.Ops, p.TextBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
 		return paragraph.Render(shaper, style, spans, paragraph.Idle())(gtx)
 	})
 	return img, got
@@ -95,7 +95,7 @@ func TestSpanFillPaintsBehindItsOwnRun(t *testing.T) {
 // paragraph unmarked does, so marking a word moves no glyph.
 func TestSpanFillLeavesTheShapingAlone(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge)
 	const content = "The quick brown fox jumps over the lazy dog and keeps running"
 	measure := func(spans []paragraph.SpanStyle) layout.Dimensions {
 		var dims layout.Dimensions

@@ -86,7 +86,7 @@ func Trail(th rx.Observable[theme.Theme], props TrailProps) rx.Observable[TrailL
 				shaper = tok.shaper
 			}
 			return func(gtx layout.Context, segments []Segment) layout.Dimensions {
-				return st.layout(gtx, shaper, segments, tok.color, tok.spacing, tok.label, props.Chevron)
+				return st.layout(gtx, shaper, segments, tok.platform, tok.spacing, tok.label, props.Chevron)
 			}
 		})
 	})
@@ -107,13 +107,13 @@ func Trail(th rx.Observable[theme.Theme], props TrailProps) rx.Observable[TrailL
 func NewTrail(
 	shaper *text.Shaper,
 	props TrailProps,
-	colors tokens.ColorTokens,
+	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	label tokens.TextStyle,
 ) TrailLayout {
 	st := new(trailState)
 	return func(gtx layout.Context, segments []Segment) layout.Dimensions {
-		return st.layout(gtx, shaper, segments, colors, sp, label, props.Chevron)
+		return st.layout(gtx, shaper, segments, p, sp, label, props.Chevron)
 	}
 }
 
@@ -172,14 +172,14 @@ func (s *trailState) layout(
 	gtx layout.Context,
 	shaper *text.Shaper,
 	segments []Segment,
-	colors tokens.ColorTokens,
+	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	style tokens.TextStyle,
 	chevron unit.Dp,
 ) layout.Dimensions {
 	s.fire(gtx)
 	items, clicks := s.adopt(segments)
-	return drawBreadcrumb(gtx, shaper, items, clicks, colors, sp, style, chevron)
+	return drawBreadcrumb(gtx, shaper, items, clicks, p, sp, style, chevron)
 }
 
 // fire reports the clicks queued against the identities the previous frame

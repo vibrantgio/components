@@ -51,17 +51,17 @@ func measure(t *testing.T, size image.Point, w layout.Widget) layout.Dimensions 
 	})
 }
 
-// field is RenderField at the default light palette and comfortable density.
+// field is RenderField in the platform's light colours at comfortable density.
 func field(t *testing.T, s picker.FieldState) layout.Widget {
 	t.Helper()
-	return picker.RenderField(defaultShaper(t), tokens.DefaultLight, tokens.Spacing,
+	return picker.RenderField(defaultShaper(t), tokens.PlatformLight, tokens.Spacing,
 		sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s)
 }
 
-// menu is RenderMenu at the same palette and density.
+// menu is RenderMenu in the same colours at the same density.
 func menu(t *testing.T, s picker.MenuState) layout.Widget {
 	t.Helper()
-	return picker.RenderMenu(defaultShaper(t), tokens.DefaultLight, tokens.Spacing,
+	return picker.RenderMenu(defaultShaper(t), tokens.PlatformLight, tokens.Spacing,
 		tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s)
 }
 
@@ -91,7 +91,7 @@ func TestFieldTriggerHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 		d    tokens.Density
 	}{{"comfortable", tokens.Comfortable}, {"compact", tokens.Compact}} {
 		t.Run(d.name, func(t *testing.T) {
-			w := picker.RenderField(defaultShaper(t), tokens.DefaultLight, tokens.Spacing,
+			w := picker.RenderField(defaultShaper(t), tokens.PlatformLight, tokens.Spacing,
 				tokens.Radius, tokens.DefaultTypography.BodyLarge, d.d,
 				picker.FieldState{Options: options})
 			dims := measure(t, image.Pt(200, 200), w)
@@ -136,12 +136,10 @@ func TestOpenFieldFloatsTheSharedMenuUnderItsTrigger(t *testing.T) {
 
 // planeEdge redraws the field's own edge around a menu box, so the composition
 // tests can name the three things an open field is made of instead of
-// comparing it to two of them. It is the derivation the field draws, spelled
-// once here: the neutral step that clears the graphic floor against the
-// level-3 plane the line circles, one dp inside the box on all four sides.
+// comparing it to two of them. It is the line the field draws, spelled once
+// here: the platform's seam, one dp inside the box on all four sides.
 func planeEdge(gtx layout.Context, size image.Point) {
-	edge := tokens.DefaultLight.MarkOn(tokens.RoleNeutral,
-		tokens.DefaultLight.SurfaceAt(tokens.Level3), tokens.GraphicFloor)
+	edge := tokens.PlatformLight.Separator
 	w := gtx.Dp(1)
 	for _, r := range []image.Rectangle{
 		{Max: image.Pt(size.X, w)},
@@ -434,9 +432,8 @@ func TestMenuWithNoOptionsIsNoSurface(t *testing.T) {
 }
 
 // TestMenuSelectedRowIsDrawnApartFromTheRest: the selected row leaves the
-// menu's own plane for the theme's inverse pair, so which row is selected
-// changes the drawing. The ratios that pairing has to clear are measured in
-// menu_contrast_test.go; this is the pixels saying the pairing is reached.
+// menu's own plane for the platform's selection fill, so which row is selected
+// changes the drawing.
 func TestMenuSelectedRowIsDrawnApartFromTheRest(t *testing.T) {
 	size := image.Pt(200, rowHeight(tokens.Comfortable)*len(options))
 	first := golden.Capture(t, size, menu(t, picker.MenuState{Options: options, Selected: 0}))
@@ -455,7 +452,7 @@ func TestMenuSelectedRowIsDrawnApartFromTheRest(t *testing.T) {
 // offered and otherwise reports its own width, at the density's control
 // height.
 func TestToolbarIsSizedToItsValue(t *testing.T) {
-	w := picker.RenderToolbar(defaultShaper(t), "Anthropic · Opus 5", tokens.DefaultLight,
+	w := picker.RenderToolbar(defaultShaper(t), "Anthropic · Opus 5", tokens.PlatformLight,
 		tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
 		tokens.Comfortable, picker.ToolbarState{})
 	dims := measure(t, image.Pt(400, 200), w)

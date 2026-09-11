@@ -1,20 +1,16 @@
 // Package pagination provides the pagination control: moving between
 // numbered pages of content. It draws a horizontal row of numbered page
-// buttons flanked by prev/next chevrons. Every cell is
-// one tinted-fill pair — a ramp's step 300 as fill, the same ramp's step 700
-// as label — and the only thing the current page changes is which ramp the
-// pair comes off: Primary for the page the reader is on, neutral for the
-// pages they are not. So the row says "this one" in hue and in nothing else,
-// and the two kinds of cell read at one weight (light 4.54 against the
-// neutrals' 4.51, dark 8.40 against 8.46).
+// buttons flanked by prev/next chevrons. One cell carries a fill — the page
+// the reader is on, in the platform's accent with the text that reads on an
+// accent fill — and every other page is a digit standing on whatever the row
+// stands on, so the row says "this one" in one place and nowhere else.
 //
 // Page cells are drawn natively rather than through components/button:
 // inside a density-sized ControlHeight square, components/button's
 // Comfortable padding would truncate the page digit to a sliver. Drawing the
-// cell here — a tinted fill, radius.Md corners, centred digit — keeps the
-// visuals aligned with components/button while letting every metric follow
-// the density; future components/button styling changes must be mirrored
-// here by hand.
+// cell here — radius.Md corners, centred digit — keeps the visuals aligned
+// with components/button while letting every metric follow the density;
+// future components/button styling changes must be mirrored here by hand.
 //
 // Pagination is a callable Go function consuming a components theme
 // observable, returning a stream of layout.Widget. Source is intentionally
@@ -83,16 +79,16 @@ func Pagination(th rx.Observable[theme.Theme], props Props) rx.Observable[layout
 	// theme's cached shaper: the theme owns the typeface.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest5(t.Color, t.Spacing, t.Radius, t.Typography, t.Density),
-			func(n rx.Tuple5[tokens.ColorTokens, tokens.SpacingScale, tokens.RadiusScale, tokens.Typography, tokens.Density]) resolvedTokens {
+			rx.CombineLatest5(t.Platform, t.Spacing, t.Radius, t.Typography, t.Density),
+			func(n rx.Tuple5[tokens.PlatformColors, tokens.SpacingScale, tokens.RadiusScale, tokens.Typography, tokens.Density]) resolvedTokens {
 				typ := n.Fourth
 				return resolvedTokens{
-					color:   n.First,
-					spacing: n.Second,
-					radius:  n.Third,
-					label:   typ.LabelLarge,
-					density: n.Fifth,
-					shaper:  typ.Shaper(),
+					platform: n.First,
+					spacing:  n.Second,
+					radius:   n.Third,
+					label:    typ.LabelLarge,
+					density:  n.Fifth,
+					shaper:   typ.Shaper(),
 				}
 			},
 		)
@@ -145,25 +141,25 @@ func Pagination(th rx.Observable[theme.Theme], props Props) rx.Observable[layout
 func Render(
 	shaper *text.Shaper,
 	props Props,
-	colors tokens.ColorTokens,
+	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
 	label tokens.TextStyle,
 	d tokens.Density,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, label: label, density: d}
+	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, label: label, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawPagination(gtx, shaper, props, nil, nil, nil, tok)
 	}
 }
 
 type resolvedTokens struct {
-	color   tokens.ColorTokens
-	spacing tokens.SpacingScale
-	radius  tokens.RadiusScale
-	label   tokens.TextStyle // the LabelLarge role: typeface, weight, size, line height
-	density tokens.Density   // cell square and chevron glyph source
-	shaper  *text.Shaper     // the theme's shaper; nil in the Render path
+	platform tokens.PlatformColors
+	spacing  tokens.SpacingScale
+	radius   tokens.RadiusScale
+	label    tokens.TextStyle // the LabelLarge role: typeface, weight, size, line height
+	density  tokens.Density   // cell square and chevron glyph source
+	shaper   *text.Shaper     // the theme's shaper; nil in the Render path
 }
 
 // Cell metrics: every pagination control is a Density.ControlHeight square
@@ -172,17 +168,6 @@ type resolvedTokens struct {
 // = ControlHeight − 2·PaddingY (20/16 dp), matching components icon
 // buttons. Cells are adjacent controls separated by S2 gaps, so their hit
 // area stays the cell bounds.
-
-// The tinted-fill pair every page cell is drawn from, stated once because the
-// current cell and the resting ones differ only in which ramp they read it
-// off. Step 300 is the tinted end used as a window's chosen-item fill — the
-// step the sidebar pill and the selected table row already wear — and step
-// 700 is the step four along from it, which is where a ramp's own colour
-// clears WCAG AA body text over its own 300 in both schemes.
-const (
-	cellFillStep  = 300
-	cellLabelStep = 700
-)
 
 func drawPagination(
 	gtx layout.Context,
@@ -201,7 +186,8 @@ func drawPagination(
 	children = append(children, layout.Rigid(chevronCellWidget(false, prevClick, props.Page > 1, tok)))
 	children = append(children, gap)
 	for i := 1; i <= props.PageCount; i++ {
-		children = append(children, layout.Rigid(pageCellWidget(shaper, i, i == props.Page, clickFor(pageClicks, i-1), tok)))
+		click := clickFor(pageClicks, i-1)
+		children = append(children, layout.Rigid(pageCellWidget(shaper, i, i == props.Page, click != nil && props.OnSelect != nil, click, tok)))
 		if i < props.PageCount {
 			children = append(children, gap)
 		}
@@ -218,20 +204,27 @@ func clickFor(clicks []widget.Clickable, i int) *widget.Clickable {
 	return &clicks[i]
 }
 
-// pageCellWidget returns a clickable ControlHeight-square cell rendering
-// page n natively. Both kinds of cell take one recipe — the ramp's step 300
-// as fill, its step 700 as label — and the current page is the cell that
-// takes it off the Primary ramp rather than the neutral one.
-//
-// The label is derived from the fill's own ramp rather than the theme's
-// OnPrimary token: OnPrimary is derived against the ramp's pin and does not
-// clear WCAG AA body text over the tinted step used here.
-func pageCellWidget(shaper *text.Shaper, n int, current bool, click *widget.Clickable, tok resolvedTokens) layout.Widget {
-	ramp := tok.color.Ramps.Neutral
-	if current {
-		ramp = tok.color.Ramps.Primary
+// pageCellColors answers what one page cell is drawn in. The page the reader
+// is on is the accent fill with the text that reads on an accent fill; a page
+// the control can take the reader to is a link; any other page number is a
+// label. A zero fill is no fill at all: only the current page carries one, so
+// the rest of the row stands on whatever the row stands on.
+func pageCellColors(current, navigable bool, p tokens.PlatformColors) (fill, fg color.NRGBA) {
+	switch {
+	case current:
+		return p.ControlAccent, p.AlternateSelectedControlText
+	case navigable:
+		return color.NRGBA{}, p.Link
+	default:
+		return color.NRGBA{}, p.Label
 	}
-	bg, fg := ramp.Step(cellFillStep), ramp.Step(cellLabelStep)
+}
+
+// pageCellWidget returns a clickable ControlHeight-square cell rendering
+// page n natively. navigable says a click on this cell goes to page n, which
+// is what makes the digit a link rather than a label.
+func pageCellWidget(shaper *text.Shaper, n int, current, navigable bool, click *widget.Clickable, tok resolvedTokens) layout.Widget {
+	bg, fg := pageCellColors(current, navigable, tok.platform)
 	label := strconv.Itoa(n)
 
 	return func(gtx layout.Context) layout.Dimensions {
@@ -254,14 +247,16 @@ func pageCellWidget(shaper *text.Shaper, n int, current bool, click *widget.Clic
 }
 
 // drawPageCell paints one page-number cell: a side×side rounded square
-// (radius.Md, components/button's corner) filled with bg, the digit shaped in
-// the LabelLarge role and centred. The digit is never truncated — the
-// square is the control, the digit its glyph, mirroring the icon-button
-// rule rather than the text-button padding rule.
+// (radius.Md, components/button's corner) filled with bg where there is one,
+// the digit shaped in the LabelLarge role and centred. The digit is never
+// truncated — the square is the control, the digit its glyph, mirroring the
+// icon-button rule rather than the text-button padding rule.
 func drawPageCell(gtx layout.Context, shaper *text.Shaper, label string, bg, fg color.NRGBA, tok resolvedTokens, side int) layout.Dimensions {
-	rad := gtx.Dp(unit.Dp(tok.radius.Md))
-	rrect := clip.RRect{Rect: image.Rectangle{Max: image.Pt(side, side)}, SE: rad, SW: rad, NE: rad, NW: rad}
-	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
+	if bg.A != 0 {
+		rad := gtx.Dp(unit.Dp(tok.radius.Md))
+		rrect := clip.RRect{Rect: image.Rectangle{Max: image.Pt(side, side)}, SE: rad, SW: rad, NE: rad, NW: rad}
+		paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
+	}
 
 	mColor := op.Record(gtx.Ops)
 	paint.ColorOp{Color: fg}.Add(gtx.Ops)
@@ -298,13 +293,15 @@ func drawPageCell(gtx layout.Context, shaper *text.Shaper, label string, bg, fg 
 
 // chevronCellWidget renders a ControlHeight-square chevron cell whose
 // glyph takes the icon rule, icon.Size(d). pointsRight selects
-// the "next" direction; otherwise the chevron points "prev". enabled=false
-// dims the glyph to tokens.DisabledOpacity and skips click registration —
-// matching the disabled-control convention used by components/button.
+// the "next" direction; otherwise the chevron points "prev". A step arrow is
+// a drawn glyph rather than words, so it takes the label's strength; at the
+// edge it cannot step, and takes the platform's disabled control text and
+// registers no click — matching the disabled-control convention used by
+// components/button.
 func chevronCellWidget(pointsRight bool, click *widget.Clickable, enabled bool, tok resolvedTokens) layout.Widget {
-	fg := tok.color.Text
+	fg := tok.platform.Label
 	if !enabled {
-		fg = tokens.Disabled(fg)
+		fg = tok.platform.DisabledControlText
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		side := gtx.Dp(unit.Dp(tok.density.ControlHeight))

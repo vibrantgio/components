@@ -38,6 +38,8 @@ import (
 	// text.Glyph metrics are fixed.Int26_6); it is already required by
 	// gioui.org itself and introduces no new third-party dependency.
 	"golang.org/x/image/math/fixed"
+
+	vgcolor "github.com/vibrantgio/theme/color"
 )
 
 // resolvedSpan is a SpanStyle with the paragraph Style's defaults applied and
@@ -151,7 +153,7 @@ func resolve(gtx layout.Context, style Style, spans []SpanStyle, rs RenderState)
 			}
 		}
 		if link >= 0 && link == rs.HoveredLink {
-			col = hoverBlend(col)
+			col = hoverBlend(col, style.HoverColor)
 		}
 		size := s.Size
 		if size == 0 {
@@ -217,16 +219,20 @@ func shiftFills(fills []spanFill, n int) []spanFill {
 	return out
 }
 
-// hoverBlend is the hover treatment for link text: a ~10% white overlay,
-// matching components/button's hover feedback.
-func hoverBlend(base color.NRGBA) color.NRGBA {
-	const a = float32(0x1a) / 255
-	return color.NRGBA{
-		R: uint8(float32(base.R)*(1-a) + 0xff*a + 0.5),
-		G: uint8(float32(base.G)*(1-a) + 0xff*a + 0.5),
-		B: uint8(float32(base.B)*(1-a) + 0xff*a + 0.5),
-		A: base.A,
+// hoverBlend is the hover treatment for link text: the platform's hover
+// overlay composited onto the link's own colour, keeping that colour's own
+// coverage. An overlay of alpha zero leaves the link where it was.
+//
+// The composite is taken here rather than painted as a second pass because
+// what moves is the colour of a run of glyphs, not a fill behind them: two
+// paints of the same glyphs would double their antialiased edges.
+func hoverBlend(base, overlay color.NRGBA) color.NRGBA {
+	if overlay.A == 0 {
+		return base
 	}
+	out := vgcolor.Over(overlay, base)
+	out.A = base.A
+	return out
 }
 
 // draw lays out the wrapped paragraph and paints it. rs selects the hover and
@@ -512,11 +518,10 @@ func drawStrikethrough(gtx layout.Context, s segment) {
 //
 // A link has neither fill nor border to promote, so its ring is drawn beside
 // the glyphs rather than at an edge — and the pad is what keeps that the same
-// idiom rather than a second one. The ring and the link colour are both
-// primary, close in depth, and a ring laid straight onto the glyphs would read
-// as a box around a word in one colour; the clear surface between them is what
-// separates the ring from the thing it circles, and it is that surface the
-// ring's contrast is measured against.
+// idiom rather than a second one. The ring and the link are both the
+// platform's blue, so a ring laid straight onto the glyphs would read as a box
+// around a word in one colour; the clear page between them is what separates
+// the ring from the thing it circles.
 func drawFocusRing(gtx layout.Context, style Style, off image.Point, s segment) {
 	w := gtx.Dp(focus.Width)
 	pad := w

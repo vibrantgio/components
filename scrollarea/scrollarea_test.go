@@ -40,7 +40,7 @@ func block(size image.Point) layout.Widget {
 // nothing to scroll to, and its own width; content past it reports the
 // overflow, the viewport's width, and the fraction of itself on screen.
 func TestFitsAndOverflows(t *testing.T) {
-	style := FromTokens(tokens.DefaultLight)
+	style := FromTokens(tokens.PlatformLight)
 	viewport := image.Pt(200, 50)
 
 	cases := []struct {
@@ -93,7 +93,7 @@ func TestFitsAndOverflows(t *testing.T) {
 // delta. A viewport that grows until the content fits pulls a far-out offset
 // back with it rather than leaving the content scrolled past its own end.
 func TestOffsetBounds(t *testing.T) {
-	style := FromTokens(tokens.DefaultLight)
+	style := FromTokens(tokens.PlatformLight)
 	var ops op.Ops
 	state := NewState()
 	style.Layout(testContext(&ops, image.Pt(200, 50)), state, block(image.Pt(400, 50)))
@@ -132,7 +132,7 @@ func TestOffsetBounds(t *testing.T) {
 // the same pixels reaches the ancestor that scrolls the column instead. The
 // two handlers are stacked exactly as a code block inside a document list is.
 func TestScrollClaimsHorizontalAxisOnly(t *testing.T) {
-	style := FromTokens(tokens.DefaultLight)
+	style := FromTokens(tokens.PlatformLight)
 	state := NewState()
 	var outer gesture.Scroll
 	var outerTotal int
@@ -189,7 +189,7 @@ func TestScrollClaimsHorizontalAxisOnly(t *testing.T) {
 // even a horizontal gesture over it is free to reach an ancestor that can use
 // one.
 func TestFittingContentIsTransparentToThePointer(t *testing.T) {
-	style := FromTokens(tokens.DefaultLight)
+	style := FromTokens(tokens.PlatformLight)
 	state := NewState()
 	var outer gesture.Scroll
 	var outerTotal int
@@ -229,8 +229,8 @@ func TestFittingContentIsTransparentToThePointer(t *testing.T) {
 // where the viewport sits, and dragging it moves the viewport. The bar sits
 // on the area's trailing edge, so the drag runs along the bottom strip.
 func TestScrollbarDragScrolls(t *testing.T) {
-	style := FromTokens(tokens.DefaultLight)
-	bar := scrollbar.FromTokens(tokens.DefaultLight)
+	style := FromTokens(tokens.PlatformLight)
+	bar := scrollbar.FromTokens(tokens.PlatformLight)
 	state := NewState()
 
 	r := new(gioinput.Router)
@@ -269,7 +269,7 @@ func TestScrollbarDragScrolls(t *testing.T) {
 // the style at zero draws no dissolve, and none of the four combinations
 // moves anything.
 func TestFadeIsNotLayout(t *testing.T) {
-	base := FromTokens(tokens.DefaultLight)
+	base := FromTokens(tokens.PlatformLight)
 	cases := []struct {
 		name  string
 		style Style

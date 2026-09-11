@@ -1,9 +1,8 @@
 // Package breadcrumb provides the breadcrumb control: going back up the
 // hierarchy — each step a link, the last where you are. It draws a
 // horizontal row of labels separated by chevron glyphs. The last segment
-// renders in Text (the current location); preceding segments render in the
-// low-contrast neutral-700 step and may invoke an OnClick callback to
-// navigate.
+// renders as a label (the current location); the segments before it render
+// as links, and may invoke an OnClick callback to navigate.
 //
 // Breadcrumb is a callable Go function consuming a components theme
 // observable, returning a stream of layout.Widget. Source is intentionally
@@ -11,7 +10,7 @@
 // modify as needed.
 //
 // Colour and interactivity are decided independently and can disagree.
-// The Text "current location" colour goes to the last Item by
+// The "current location" colour goes to the last Item by
 // position, whatever its OnClick; a segment is clickable exactly when its
 // own OnClick is non-nil. The conventional trail — every segment but the
 // last carrying an OnClick — is the caller's to build, and nothing here
@@ -124,7 +123,7 @@ func Breadcrumb(th rx.Observable[theme.Theme], props Props) rx.Observable[layout
 						props.Items[i].OnClick(gtx)
 					}
 				}
-				return drawBreadcrumb(gtx, shaper, props.Items, clicks, tok.color, tok.spacing, tok.label, props.Chevron)
+				return drawBreadcrumb(gtx, shaper, props.Items, clicks, tok.platform, tok.spacing, tok.label, props.Chevron)
 			}
 		})
 	})
@@ -143,20 +142,20 @@ func Breadcrumb(th rx.Observable[theme.Theme], props Props) rx.Observable[layout
 func Render(
 	shaper *text.Shaper,
 	props Props,
-	colors tokens.ColorTokens,
+	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	label tokens.TextStyle,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return drawBreadcrumb(gtx, shaper, props.Items, nil, colors, sp, label, props.Chevron)
+		return drawBreadcrumb(gtx, shaper, props.Items, nil, p, sp, label, props.Chevron)
 	}
 }
 
 type resolvedTokens struct {
-	color   tokens.ColorTokens
-	spacing tokens.SpacingScale
-	label   tokens.TextStyle // the TitleSmall role: typeface, weight, size, line height
-	shaper  *text.Shaper     // the theme's shaper; nil in the Render path
+	platform tokens.PlatformColors
+	spacing  tokens.SpacingScale
+	label    tokens.TextStyle // the TitleSmall role: typeface, weight, size, line height
+	shaper   *text.Shaper     // the theme's shaper; nil in the Render path
 }
 
 // resolveTokens flattens the nested theme observables into a stream of
@@ -166,14 +165,14 @@ type resolvedTokens struct {
 func resolveTokens(th rx.Observable[theme.Theme]) rx.Observable[resolvedTokens] {
 	return rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest3(t.Color, t.Spacing, t.Typography),
-			func(n rx.Tuple3[tokens.ColorTokens, tokens.SpacingScale, tokens.Typography]) resolvedTokens {
+			rx.CombineLatest3(t.Platform, t.Spacing, t.Typography),
+			func(n rx.Tuple3[tokens.PlatformColors, tokens.SpacingScale, tokens.Typography]) resolvedTokens {
 				typ := n.Third
 				return resolvedTokens{
-					color:   n.First,
-					spacing: n.Second,
-					label:   typ.TitleSmall,
-					shaper:  typ.Shaper(),
+					platform: n.First,
+					spacing:  n.Second,
+					label:    typ.TitleSmall,
+					shaper:   typ.Shaper(),
 				}
 			},
 		)
@@ -199,7 +198,7 @@ func drawBreadcrumb(
 	shaper *text.Shaper,
 	items []Item,
 	clicks []*widget.Clickable,
-	colors tokens.ColorTokens,
+	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	style tokens.TextStyle,
 	chevron unit.Dp,
@@ -210,11 +209,11 @@ func drawBreadcrumb(
 
 	children := make([]layout.FlexChild, 0, 2*len(items)-1)
 	for i, item := range items {
-		fg := labelColor(i, len(items), colors)
+		fg := labelColor(i, len(items), p)
 		if i > 0 {
 			children = append(children,
 				layout.Rigid(complayout.HSpacer(sp.S2)),
-				layout.Rigid(chevronWidget(chevronSize(chevron), colors.Ramps.Neutral.Step(700))),
+				layout.Rigid(chevronWidget(chevronSize(chevron), p.SecondaryLabel)),
 				layout.Rigid(complayout.HSpacer(sp.S2)),
 			)
 		}
@@ -223,14 +222,16 @@ func drawBreadcrumb(
 	return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx, children...)
 }
 
-// labelColor returns the foreground colour for the segment at index i in
-// a breadcrumb of n items. The last segment uses Text (current location);
-// preceding segments use the low-contrast neutral-700 step.
-func labelColor(i, n int, colors tokens.ColorTokens) color.NRGBA {
+// labelColor returns the foreground colour for the segment at index i in a
+// breadcrumb of n items. The last segment is where you are and takes the
+// label; the segments before it are the way back and take the link. The
+// separator between them is the secondary label, the row's one piece of text
+// that is neither.
+func labelColor(i, n int, p tokens.PlatformColors) color.NRGBA {
 	if i == n-1 {
-		return colors.Text
+		return p.Label
 	}
-	return colors.Ramps.Neutral.Step(700)
+	return p.Link
 }
 
 // clickFor returns the clickable drawing segment i, or nil when the caller

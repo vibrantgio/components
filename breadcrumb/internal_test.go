@@ -9,33 +9,39 @@ import (
 )
 
 // TestLabelColorRule asserts the Specific contract: in a breadcrumb of n
-// items, the last segment renders in Text (current location) and the
-// preceding segments render in neutral 700. The goldens carry real labels
-// and so do show the two foregrounds apart, but only as pixels; this
-// pure-Go test guards the rule itself, on every step of both ramps.
+// items, the last segment is where you are and takes the label, and the
+// segments before it are the way back and take the link. The goldens carry
+// real labels and so do show the two foregrounds apart, but only as pixels;
+// this pure-Go test guards the rule itself, in both recorded sets.
 func TestLabelColorRule(t *testing.T) {
-	for _, c := range []tokens.ColorTokens{tokens.DefaultLight, tokens.DefaultDark} {
+	for _, c := range []struct {
+		name string
+		p    tokens.PlatformColors
+	}{
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
+	} {
 		const n = 3
 		for i := 0; i < n; i++ {
-			got := labelColor(i, n, c)
-			want := c.Ramps.Neutral.Step(700)
+			got := labelColor(i, n, c.p)
+			want := c.p.Link
 			if i == n-1 {
-				want = c.Text
+				want = c.p.Label
 			}
 			if got != want {
-				t.Errorf("idx %d of %d (Surface=%v): got %v, want %v", i, n, c.Surface, got, want)
+				t.Errorf("idx %d of %d (%s): got %v, want %v", i, n, c.name, got, want)
 			}
 		}
 	}
 }
 
 // TestLabelColorSingleSegment confirms that with one item the lone
-// segment is treated as the current location (Text), matching the
-// "last item" rule degenerate case.
+// segment is treated as the current location and takes the label, matching
+// the "last item" rule degenerate case.
 func TestLabelColorSingleSegment(t *testing.T) {
-	c := tokens.DefaultLight
-	if got := labelColor(0, 1, c); got != c.Text {
-		t.Errorf("single segment: got %v, want Text %v", got, c.Text)
+	p := tokens.PlatformLight
+	if got := labelColor(0, 1, p); got != p.Label {
+		t.Errorf("single segment: got %v, want the label %v", got, p.Label)
 	}
 }
 
