@@ -22,7 +22,7 @@ func testContext(ops *op.Ops, size image.Point) layout.Context {
 }
 
 func TestLayoutScrollableRange(t *testing.T) {
-	style := FromTokens(tokens.PlatformLight)
+	style := FromTokens(tokens.PlatformLight, tokens.PlatformLight.ControlBackground)
 	size := image.Pt(40, 400)
 
 	cases := []struct {
@@ -50,7 +50,7 @@ func TestLayoutScrollableRange(t *testing.T) {
 }
 
 func TestLayoutUnscrollableRange(t *testing.T) {
-	style := FromTokens(tokens.PlatformLight)
+	style := FromTokens(tokens.PlatformLight, tokens.PlatformLight.ControlBackground)
 	state := NewState()
 	var ops op.Ops
 	gtx := testContext(&ops, image.Pt(40, 400))

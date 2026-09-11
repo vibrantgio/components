@@ -24,10 +24,12 @@ import (
 	"gioui.org/unit"
 
 	vglayout "github.com/vibrantgio/components/layout"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
 
 	"github.com/vibrantgio/components/internal/focus"
+	"github.com/vibrantgio/components/internal/surface"
 )
 
 // edgeDp is the rim's width — one hair at every density, the width every
@@ -117,40 +119,44 @@ func (s State) state() tokens.State {
 
 // Fill is what the control lays over the chrome it stands on: nothing at
 // rest, the platform's hover overlay under the pointer, its press overlay
-// while it is held.
+// while it is held, each flattened over chrome and opaque.
 //
 // A toolbar button is the one control on this platform that tints under the
 // pointer — a push button, a list row and a sidebar row do not, which is the
 // reading control-hover-{light,dark}.png records — so the overlay is applied
-// here and nowhere else in this library. Both overlays carry their own
-// coverage and are painted over whatever the chrome is filled with, so the
-// control needs to know nothing about the surface beneath it.
+// here and nowhere else in this library.
 //
 // At rest the return is the zero value, which is no colour at all: the
-// chrome shows through untouched.
-func Fill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
+// chrome shows through untouched rather than being repainted as itself.
+func Fill(p tokens.PlatformColors, state tokens.State, chrome color.NRGBA) color.NRGBA {
 	switch state {
 	case tokens.StatePressed:
-		return p.PressOverlay
+		return vgcolor.Flatten(p.PressOverlay, chrome)
 	case tokens.StateHover:
-		return p.HoverOverlay
+		return vgcolor.Flatten(p.HoverOverlay, chrome)
 	}
 	return color.NRGBA{}
 }
 
-// Rim is the hairline around the control: the platform's separator, laid
-// over whatever is beneath it, which is how the platform draws every
-// hairline it draws.
-func Rim(p tokens.PlatformColors) color.NRGBA { return p.Separator }
+// Rim is the hairline around the control: the platform's separator flattened
+// over beneath — the control's own tint where it carries one and the chrome
+// otherwise — which is how the platform draws every hairline it draws.
+func Rim(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
+	return vgcolor.Flatten(p.Separator, beneath)
+}
 
 // Label is the colour the control's own wording reads in: the platform's
-// control text.
-func Label(p tokens.PlatformColors) color.NRGBA { return p.ControlText }
+// control text, flattened over the fill the wording stands on.
+func Label(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
+	return vgcolor.Flatten(p.ControlText, beneath)
+}
 
 // Mark is the colour the chevron reads in: the platform's secondary label,
 // which is what it draws a control's own marks in beside that control's
-// wording.
-func Mark(p tokens.PlatformColors) color.NRGBA { return p.SecondaryLabel }
+// wording, flattened over the fill the mark stands on.
+func Mark(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
+	return vgcolor.Flatten(p.SecondaryLabel, beneath)
+}
 
 // Pin is the edge of the offered box that a drawn shape is pinned to.
 //
@@ -219,15 +225,24 @@ func Draw(
 	shaper *text.Shaper,
 	label string,
 	p tokens.PlatformColors,
+	chrome color.NRGBA,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
 	labelStyle tokens.TextStyle,
 	d tokens.Density,
 	s State,
 ) layout.Dimensions {
-	fill := Fill(p, s.state())
-	labelForeground := Label(p)
-	glyphForeground := Mark(p)
+	// Every one of the platform's names this control draws carries a
+	// coverage, so each is flattened over the fill it actually lands on: the
+	// chrome at rest, and the control's own tint once it has one.
+	chrome = surface.Or(chrome, p.SidebarMaterial)
+	fill := Fill(p, s.state(), chrome)
+	beneath := chrome
+	if fill.A != 0 {
+		beneath = fill
+	}
+	labelForeground := Label(p, beneath)
+	glyphForeground := Mark(p, beneath)
 
 	padH := gtx.Dp(unit.Dp(d.PaddingX))
 	padV := gtx.Dp(unit.Dp(d.PaddingY))
@@ -288,9 +303,9 @@ func Draw(
 	// the button's. Reading the stop rather than naming a number is what keeps
 	// the two in step if the scale ever moves.
 	radius := gtx.Dp(unit.Dp(rad.Md))
-	band, edgeColor := max(gtx.Dp(edgeDp), 1), Rim(p)
+	band, edgeColor := max(gtx.Dp(edgeDp), 1), Rim(p, beneath)
 	if s.Focused {
-		band, edgeColor = gtx.Dp(focus.Width), focus.Ring(p)
+		band, edgeColor = gtx.Dp(focus.Width), focus.Ring(p, beneath)
 	}
 	if maxRad := min(box.Dx(), box.Dy()) / 2; radius > maxRad {
 		radius = maxRad
@@ -300,10 +315,10 @@ func Draw(
 		inner, innerRad = in, max(radius-band, 0)
 	}
 	// The fill inside the edge's shape, and the edge as a band laid ON that
-	// shape rather than as a shape beneath it. Both carry their own
-	// coverage, so a shape painted in the edge's colour with the fill over
-	// it would carry the edge's colour across the whole interior instead of
-	// leaving it a hairline — and at rest there is no fill over it at all.
+	// shape rather than as a shape beneath it: at rest there is no fill to
+	// lay over the edge's shape at all, so a shape painted in the edge's
+	// colour would carry that colour across the whole interior instead of
+	// leaving it a hairline.
 	//
 	// The band is a stroke of twice the edge's width centred on the shape's
 	// outline and clipped to that shape, which puts every pixel of it inside

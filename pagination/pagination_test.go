@@ -151,13 +151,13 @@ func TestTheCurrentPageIsTheAccentAndTheRestAreLabels(t *testing.T) {
 		{"dark", tokens.PlatformDark, color.NRGBA{R: 20, G: 20, B: 20, A: 255}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			props := pagination.Props{Page: page, PageCount: pageCount, Shaper: shaper}
+			props := pagination.Props{Page: page, PageCount: pageCount, Shaper: shaper, Surface: tc.bg}
 			w := pagination.Render(shaper, props, tc.p, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
 			img := golden.Capture(t, frameSize, scene(w, tc.bg))
 
 			current := cellAt(page)
 			accent := tc.p.ControlAccent
-			digit := vgcolor.Over(tc.p.AlternateSelectedControlText, accent)
+			digit := vgcolor.Flatten(tc.p.AlternateSelectedControlText, accent)
 			if out, moved := spanOf(img, current, accent, digit); !moved {
 				t.Errorf("the current page cell is the accent %v and nothing else; no pixel carries its digit %v", accent, digit)
 			} else if out != nil {
@@ -166,7 +166,7 @@ func TestTheCurrentPageIsTheAccentAndTheRestAreLabels(t *testing.T) {
 			}
 
 			resting := cellAt(page - 1)
-			label := vgcolor.Over(tc.p.Label, tc.bg)
+			label := vgcolor.Flatten(tc.p.Label, tc.bg)
 			if out, moved := spanOf(img, resting, tc.bg, label); !moved {
 				t.Errorf("the resting page cell carries no digit; want the label %v over the surface %v", label, tc.bg)
 			} else if out != nil {

@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"testing"
 
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -19,27 +20,28 @@ func TestTheTriggerTakesThePlatformsNames(t *testing.T) {
 		{"dark", tokens.PlatformDark},
 	} {
 		p := sc.p
+		chrome := p.SidebarMaterial
 		for _, tc := range []struct {
 			state tokens.State
 			want  color.NRGBA
 		}{
 			{tokens.StateNormal, color.NRGBA{}},
 			{tokens.StateFocus, color.NRGBA{}},
-			{tokens.StateHover, p.HoverOverlay},
-			{tokens.StatePressed, p.PressOverlay},
+			{tokens.StateHover, vgcolor.Flatten(p.HoverOverlay, chrome)},
+			{tokens.StatePressed, vgcolor.Flatten(p.PressOverlay, chrome)},
 		} {
-			if got := Fill(p, tc.state); got != tc.want {
+			if got := Fill(p, tc.state, chrome); got != tc.want {
 				t.Errorf("%s: Fill(%v) = %v, want %v", sc.name, tc.state, got, tc.want)
 			}
 		}
-		if got, want := Rim(p), p.Separator; got != want {
-			t.Errorf("%s: Rim = %v, want the platform's separator %v", sc.name, got, want)
+		if got, want := Rim(p, chrome), vgcolor.Flatten(p.Separator, chrome); got != want {
+			t.Errorf("%s: Rim = %v, want the platform's separator over the chrome %v", sc.name, got, want)
 		}
-		if got, want := Label(p), p.ControlText; got != want {
-			t.Errorf("%s: Label = %v, want the platform's control text %v", sc.name, got, want)
+		if got, want := Label(p, chrome), vgcolor.Flatten(p.ControlText, chrome); got != want {
+			t.Errorf("%s: Label = %v, want the platform's control text over the chrome %v", sc.name, got, want)
 		}
-		if got, want := Mark(p), p.SecondaryLabel; got != want {
-			t.Errorf("%s: Mark = %v, want the platform's secondary label %v", sc.name, got, want)
+		if got, want := Mark(p, chrome), vgcolor.Flatten(p.SecondaryLabel, chrome); got != want {
+			t.Errorf("%s: Mark = %v, want the platform's secondary label over the chrome %v", sc.name, got, want)
 		}
 	}
 }
@@ -48,7 +50,7 @@ func TestTheTriggerTakesThePlatformsNames(t *testing.T) {
 // composites as a no-op, so the chrome survives it untouched.
 func TestRestingFillIsFullyTransparent(t *testing.T) {
 	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
-		if a := Fill(p, tokens.StateNormal).A; a != 0 {
+		if a := Fill(p, tokens.StateNormal, p.SidebarMaterial).A; a != 0 {
 			t.Errorf("resting fill alpha = %d, want 0", a)
 		}
 	}
@@ -58,23 +60,31 @@ func TestRestingFillIsFullyTransparent(t *testing.T) {
 // must not look like one merely under the pointer.
 func TestPressLiesBeyondHover(t *testing.T) {
 	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
-		hover, press := Fill(p, tokens.StateHover), Fill(p, tokens.StatePressed)
+		hover, press := Fill(p, tokens.StateHover, p.SidebarMaterial), Fill(p, tokens.StatePressed, p.SidebarMaterial)
 		if hover == press {
 			t.Errorf("hover and press are one colour %v", hover)
 		}
-		if press.A <= hover.A {
-			t.Errorf("press coverage %d does not exceed hover's %d", press.A, hover.A)
+		if p.PressOverlay.A <= p.HoverOverlay.A {
+			t.Errorf("press coverage %d does not exceed hover's %d", p.PressOverlay.A, p.HoverOverlay.A)
 		}
 	}
 }
 
-// Both overlays are the platform's own black or white at a coverage, so the
-// control needs to know nothing about the chrome beneath it.
-func TestBothOverlaysCarryACoverage(t *testing.T) {
+// Both overlays are the platform's own black or white at a coverage, and
+// what the control paints is that coverage resolved against the chrome: an
+// opaque fill, because the platform composites in encoded sRGB and Gio's
+// rasterizer would not.
+func TestBothOverlaysResolveAgainstTheChrome(t *testing.T) {
 	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
 		for _, st := range []tokens.State{tokens.StateHover, tokens.StatePressed} {
-			if a := Fill(p, st).A; a == 0 || a == 0xff {
-				t.Errorf("%v overlay alpha = %d, want the platform's partial coverage", st, a)
+			if a := p.HoverOverlay.A; a == 0 || a == 0xff {
+				t.Errorf("hover overlay alpha = %d, want the platform's partial coverage", a)
+			}
+			if a := Fill(p, st, p.SidebarMaterial).A; a != 0xff {
+				t.Errorf("%v fill alpha = %d, want an opaque answer", st, a)
+			}
+			if onChrome, onButton := Fill(p, st, p.SidebarMaterial), Fill(p, st, p.PushButtonFill); onChrome == onButton {
+				t.Errorf("%v reads the same on the chrome and on a push button's fill (%v)", st, onChrome)
 			}
 		}
 	}

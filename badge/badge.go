@@ -19,7 +19,9 @@ import (
 
 	"github.com/reactivego/rx"
 
+	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/mvu"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
@@ -110,12 +112,13 @@ func Style(t tokens.Typography, d tokens.Density) tokens.TextStyle {
 // stands without a fill. A worded or counted badge reads in [Foreground]
 // against the fill it wears instead.
 //
-// It takes no surface: the platform's system colours are read on every fill
-// a window carries, which is what a system colour is for. Nothing here is
-// derived against what the badge stands on.
-func BareForeground(p tokens.PlatformColors, status Status) color.NRGBA {
+// The platform's system colours are read on every fill a window carries,
+// which is what a system colour is for, so nothing here is derived against
+// standsOn: it is the surface the sign is drawn on, and the only colour that
+// needs it is Neutral's secondary label, which carries a coverage.
+func BareForeground(p tokens.PlatformColors, status Status, standsOn color.NRGBA) color.NRGBA {
 	if status == Neutral {
-		return p.SecondaryLabel
+		return vgcolor.Flatten(p.SecondaryLabel, standsOn)
 	}
 	return status.systemColor(p)
 }
@@ -197,19 +200,25 @@ type RenderState struct {
 	// The bare sign is the default, so the zero value leaves every badge
 	// drawn today untouched.
 	Disc bool
+
+	// Surface is the opaque fill the badge stands on. A bare badge wears no
+	// fill of its own, so its sign, its close mark and the mark's hover and
+	// press overlays all land on this, and the platform's secondary label and
+	// its overlays carry a coverage rather than a colour. The zero value — no
+	// colour — is the window's own plane.
+	Surface color.NRGBA
 }
 
-// overlay is what the close mark's region lays over whatever is beneath it:
-// the platform's press overlay while the mark is held, its hover overlay
-// under the pointer, and nothing at rest. Both carry a coverage, so each
-// composites over the fill or over the surface the badge stands on without
-// the badge knowing which it is.
-func (s RenderState) overlay(p tokens.PlatformColors) color.NRGBA {
+// overlay is what the close mark's region lays over beneath — the fill on a
+// badge that wears one, the surface it stands on when it stands bare: the
+// platform's press overlay while the mark is held, its hover overlay under
+// the pointer, and nothing at rest.
+func (s RenderState) overlay(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
 	switch {
 	case s.DismissPressed:
-		return p.PressOverlay
+		return vgcolor.Flatten(p.PressOverlay, beneath)
 	case s.DismissHovered:
-		return p.HoverOverlay
+		return vgcolor.Flatten(p.HoverOverlay, beneath)
 	}
 	return color.NRGBA{}
 }
@@ -230,6 +239,11 @@ type Props struct {
 	// sign centred in it and drawn smaller to fit. Copied straight into
 	// [RenderState.Disc]. A badge with a label ignores it.
 	Disc bool
+
+	// Surface is the opaque fill the badge stands on, copied straight into
+	// RenderState on every frame. Set it where the badge does not stand on
+	// the window's own plane. See RenderState.Surface.
+	Surface color.NRGBA
 
 	// Status is the status the badge indicates. The zero value is [Neutral]:
 	// a badge given no status is Neutral.
@@ -371,7 +385,7 @@ func Badge(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 			}
 
 			return func(gtx layout.Context) layout.Dimensions {
-				s := RenderState{Disc: props.Disc}
+				s := RenderState{Disc: props.Disc, Surface: props.Surface}
 				if props.OnDismiss == nil {
 					return draw(gtx, shaper, props.Label, props.Glyph, props.Status,
 						tok, s, desc, false, nil)
@@ -488,11 +502,12 @@ func draw(
 	// one structure branch here.
 	worded := label != ""
 	disc := !worded && glyph != nil && s.Disc
+	standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
 	var fill, fg color.NRGBA
 	if worded || disc {
 		fill, fg = Fill(tok.platform, status), Foreground(tok.platform)
 	} else {
-		fg = BareForeground(tok.platform, status)
+		fg = BareForeground(tok.platform, status, standsOn)
 	}
 
 	// The line box is the whole height: no vertical padding, no floor, no
@@ -632,8 +647,9 @@ func draw(
 	if !worded {
 		// A bare sign's mark is not on the sign's own colour: it is an
 		// affordance on a piece of text, so it takes the platform's
-		// secondary label like every other small mark beside a word.
-		markFg = tok.platform.SecondaryLabel
+		// secondary label like every other small mark beside a word,
+		// flattened onto the surface the badge stands on.
+		markFg = vgcolor.Flatten(tok.platform.SecondaryLabel, standsOn)
 	}
 
 	// The close mark's REGION is what answers the pointer, not the 8 dp x
@@ -642,9 +658,13 @@ func draw(
 	// the middle of the gap that separates the mark from the label out to
 	// the fill's own edge and corner; on a bare badge it is the mark's own
 	// square. The platform's hover and press overlays carry a coverage, so
-	// the same paint reads over the status fill and over whatever surface a
-	// bare badge stands on.
-	if overlay := s.overlay(tok.platform); overlay.A != 0 {
+	// each is flattened onto what it actually lands on: the status fill on a
+	// worded badge, the surface a bare one stands on.
+	overlayOn := standsOn
+	if worded {
+		overlayOn = fill
+	}
+	if overlay := s.overlay(tok.platform, overlayOn); overlay.A != 0 {
 		if worded {
 			left := origin.X - markGap/2
 			paint.FillShape(gtx.Ops, overlay, clip.RRect{

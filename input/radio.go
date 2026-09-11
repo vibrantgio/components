@@ -2,6 +2,7 @@ package input
 
 import (
 	"image"
+	"image/color"
 
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
@@ -14,7 +15,9 @@ import (
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/hit"
+	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/mvu"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -37,6 +40,13 @@ type RadioRenderState struct {
 	Selected bool
 	Focused  bool
 	Disabled bool
+
+	// Surface is the opaque fill the control stands on. Its focus ring rides
+	// in the slack around the glyph, so the platform's keyboard focus
+	// indicator — a coverage rather than a colour — lands on this, and so
+	// does the glyph's own edge, which is drawn as a shape the fill is inset
+	// inside. The zero value — no colour — is the window's own plane.
+	Surface color.NRGBA
 }
 
 // RadioProps configures a Radio instance.
@@ -183,12 +193,17 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	// foreground that colour is named against. Nested fills throughout:
 	// clip.Stroke's anti-aliasing varies between GPU context initialisations
 	// and these are golden-tested.
+	// Every name the glyph draws that carries a coverage is flattened onto
+	// what lies under it: the surface for the edge and the ring, which are
+	// shapes the fill is inset inside, and the fill for the dot.
+	standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
+
 	if s.Selected {
 		fill := tok.platform.ControlAccent
 		dot := tok.platform.AlternateSelectedControlText
 		if s.Disabled {
-			fill = tokens.Disabled(fill)
-			dot = tok.platform.DisabledControlText
+			fill = vgcolor.Flatten(tokens.Disabled(fill), standsOn)
+			dot = vgcolor.Flatten(tok.platform.DisabledControlText, fill)
 		}
 		paint.FillShape(gtx.Ops, fill, clip.Ellipse(outerRect).Op(gtx.Ops))
 
@@ -201,7 +216,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	} else {
 		edge := control.Border(tok.platform)
 		if s.Disabled {
-			edge = tok.platform.DisabledControlText
+			edge = vgcolor.Flatten(tok.platform.DisabledControlText, standsOn)
 		}
 		paint.FillShape(gtx.Ops, edge, clip.Ellipse(outerRect).Op(gtx.Ops))
 		paint.FillShape(gtx.Ops, control.Fill(tok.platform), clip.Ellipse(innerRect).Op(gtx.Ops))
@@ -224,7 +239,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 			Min: outerRect.Min.Sub(image.Pt(out, out)),
 			Max: outerRect.Max.Add(image.Pt(out, out)),
 		}
-		paint.FillShape(gtx.Ops, focus.Ring(tok.platform), clip.Stroke{
+		paint.FillShape(gtx.Ops, focus.Ring(tok.platform, standsOn), clip.Stroke{
 			Path:  clip.Ellipse(ring).Path(gtx.Ops),
 			Width: float32(w),
 		}.Op())

@@ -40,7 +40,9 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/icon"
+	"github.com/vibrantgio/components/internal/surface"
 	complayout "github.com/vibrantgio/components/layout"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
@@ -66,6 +68,13 @@ type Props struct {
 	// layout.Widget out on the one goroutine that runs the event loop,
 	// which is what makes sharing it correct. See theme/tokens.Typography.Shaper.
 	Shaper *text.Shaper
+
+	// Surface is the opaque fill the row stands on. Only the current page
+	// carries a fill of its own, so every other digit and both chevrons are
+	// drawn straight on this, and the platform's label and disabled control
+	// text carry a coverage rather than a colour. The zero value — no
+	// colour — is the window's own plane.
+	Surface color.NRGBA
 }
 
 // Pagination returns an rx.Observable[layout.Widget] that emits a new one
@@ -183,17 +192,18 @@ func drawPagination(
 
 	gap := layout.Rigid(complayout.HSpacer(tok.spacing.S2))
 	children := make([]layout.FlexChild, 0, 2*props.PageCount+5)
-	children = append(children, layout.Rigid(chevronCellWidget(false, prevClick, props.Page > 1, tok)))
+	standsOn := surface.Or(props.Surface, tok.platform.WindowBackground)
+	children = append(children, layout.Rigid(chevronCellWidget(false, prevClick, props.Page > 1, tok, standsOn)))
 	children = append(children, gap)
 	for i := 1; i <= props.PageCount; i++ {
 		click := clickFor(pageClicks, i-1)
-		children = append(children, layout.Rigid(pageCellWidget(shaper, i, i == props.Page, click != nil && props.OnSelect != nil, click, tok)))
+		children = append(children, layout.Rigid(pageCellWidget(shaper, i, i == props.Page, click != nil && props.OnSelect != nil, click, tok, standsOn)))
 		if i < props.PageCount {
 			children = append(children, gap)
 		}
 	}
 	children = append(children, gap)
-	children = append(children, layout.Rigid(chevronCellWidget(true, nextClick, props.Page < props.PageCount, tok)))
+	children = append(children, layout.Rigid(chevronCellWidget(true, nextClick, props.Page < props.PageCount, tok, standsOn)))
 	return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx, children...)
 }
 
@@ -208,23 +218,24 @@ func clickFor(clicks []widget.Clickable, i int) *widget.Clickable {
 // is on is the accent fill with the text that reads on an accent fill; a page
 // the control can take the reader to is a link; any other page number is a
 // label. A zero fill is no fill at all: only the current page carries one, so
-// the rest of the row stands on whatever the row stands on.
-func pageCellColors(current, navigable bool, p tokens.PlatformColors) (fill, fg color.NRGBA) {
+// the rest of the row stands on standsOn, which is what each foreground that
+// carries a coverage is flattened onto.
+func pageCellColors(current, navigable bool, p tokens.PlatformColors, standsOn color.NRGBA) (fill, fg color.NRGBA) {
 	switch {
 	case current:
-		return p.ControlAccent, p.AlternateSelectedControlText
+		return p.ControlAccent, vgcolor.Flatten(p.AlternateSelectedControlText, p.ControlAccent)
 	case navigable:
-		return color.NRGBA{}, p.Link
+		return color.NRGBA{}, vgcolor.Flatten(p.Link, standsOn)
 	default:
-		return color.NRGBA{}, p.Label
+		return color.NRGBA{}, vgcolor.Flatten(p.Label, standsOn)
 	}
 }
 
 // pageCellWidget returns a clickable ControlHeight-square cell rendering
 // page n natively. navigable says a click on this cell goes to page n, which
 // is what makes the digit a link rather than a label.
-func pageCellWidget(shaper *text.Shaper, n int, current, navigable bool, click *widget.Clickable, tok resolvedTokens) layout.Widget {
-	bg, fg := pageCellColors(current, navigable, tok.platform)
+func pageCellWidget(shaper *text.Shaper, n int, current, navigable bool, click *widget.Clickable, tok resolvedTokens, standsOn color.NRGBA) layout.Widget {
+	bg, fg := pageCellColors(current, navigable, tok.platform, standsOn)
 	label := strconv.Itoa(n)
 
 	return func(gtx layout.Context) layout.Dimensions {
@@ -298,10 +309,10 @@ func drawPageCell(gtx layout.Context, shaper *text.Shaper, label string, bg, fg 
 // edge it cannot step, and takes the platform's disabled control text and
 // registers no click — matching the disabled-control convention used by
 // components/button.
-func chevronCellWidget(pointsRight bool, click *widget.Clickable, enabled bool, tok resolvedTokens) layout.Widget {
-	fg := tok.platform.Label
+func chevronCellWidget(pointsRight bool, click *widget.Clickable, enabled bool, tok resolvedTokens, standsOn color.NRGBA) layout.Widget {
+	fg := vgcolor.Flatten(tok.platform.Label, standsOn)
 	if !enabled {
-		fg = tok.platform.DisabledControlText
+		fg = vgcolor.Flatten(tok.platform.DisabledControlText, standsOn)
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		side := gtx.Dp(unit.Dp(tok.density.ControlHeight))

@@ -19,12 +19,14 @@ import (
 	"github.com/reactivego/rx"
 
 	"github.com/vibrantgio/mvu"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
 
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/hit"
+	"github.com/vibrantgio/components/internal/surface"
 )
 
 // Purpose is what a chip is for, and it is the whole of what one chip differs
@@ -147,6 +149,13 @@ type RenderState struct {
 	// chip drops its rim, fills, and leads with a checkmark.
 	Selected bool
 
+	// Surface is the opaque fill the chip stands on. The chip's rim and its
+	// focus ring are painted as a shape the body is then inset inside, so
+	// both land on this rather than on the chip's own fill, and the
+	// platform's seam and focus indicator carry a coverage rather than a
+	// colour. The zero value — no colour — is the window's own plane.
+	Surface color.NRGBA
+
 	// Hovered moves no colour: see [Resolve]. It is carried so a caller can
 	// hand the whole pointer state in one value.
 	Hovered bool
@@ -161,19 +170,16 @@ type RenderState struct {
 // the answers the chip drew with, and re-deriving them at the call site is how
 // two answers appear.
 type Colors struct {
-	// Fill is what the chip's body is painted in; Overlay is what is laid
-	// over it while the chip is held, at the platform's own coverage. The two
-	// are separate because Fill itself may be translucent, and a coverage
-	// blended into a translucent fill is not the pixel the platform draws.
-	// A zero-alpha Overlay draws nothing.
-	Fill    color.NRGBA
-	Overlay color.NRGBA
+	// Fill is what the chip's body is painted in, the platform's press
+	// overlay already laid into it while the chip is held.
+	Fill color.NRGBA
 
 	// Outline is the rim the body wears, and Outlined is whether it is drawn
 	// at all. A selected chip has no rim: the fill has arrived and the edge is
-	// not needed twice.
+	// not needed twice. Ring is what a focused chip wears in the rim's place.
 	Outline  color.NRGBA
 	Outlined bool
+	Ring     color.NRGBA
 
 	// Label is the colour the words are set in. Mark is the leading glyph's
 	// and the selected filter's checkmark's, which is the same colour: a mark
@@ -198,6 +204,11 @@ type Colors struct {
 //	held      PressOverlay over whichever body the chip started from
 //	dismiss   SecondaryLabel, in every state
 //
+// Every colour that carries a coverage is flattened here onto the fill it
+// lands on — the rim and the ring onto [RenderState.Surface], because the
+// body is inset inside them; the words and the marks onto the body — so the
+// answers are opaque and the chip hands Gio no coverage to composite.
+//
 // The four purposes do not differ in colour. They differ in behaviour and in
 // structure — which of them selects, which carries the trailing mark, what
 // stands in its leading slot — and a selected [Filter] chip is the one
@@ -208,24 +219,26 @@ type Colors struct {
 // A focused chip wears [focus.Ring] in place of its rim, which the draw
 // applies rather than this.
 func Resolve(p tokens.PlatformColors, i Purpose, s RenderState) Colors {
-	col := Colors{
-		Fill:     p.PushButtonFill,
-		Outline:  p.Separator,
-		Outlined: true,
-		Label:    p.ControlText,
-		Mark:     p.ControlText,
-		Dismiss:  p.SecondaryLabel,
-	}
+	standsOn := surface.Or(s.Surface, p.WindowBackground)
+
+	fill, outlined := p.PushButtonFill, true
+	label, mark := p.ControlText, p.ControlText
 	if s.Selected && i.Selectable() {
-		col.Fill = p.SelectedContentBackground
-		col.Outlined = false
-		col.Label = p.AlternateSelectedControlText
-		col.Mark = p.AlternateSelectedControlText
+		fill, outlined = p.SelectedContentBackground, false
+		label, mark = p.AlternateSelectedControlText, p.AlternateSelectedControlText
 	}
 	if s.Pressed {
-		col.Overlay = p.PressOverlay
+		fill = vgcolor.Flatten(p.PressOverlay, fill)
 	}
-	return col
+	return Colors{
+		Fill:     fill,
+		Outline:  vgcolor.Flatten(p.Separator, standsOn),
+		Outlined: outlined,
+		Ring:     focus.Ring(p, standsOn),
+		Label:    vgcolor.Flatten(label, fill),
+		Mark:     vgcolor.Flatten(mark, fill),
+		Dismiss:  vgcolor.Flatten(p.SecondaryLabel, fill),
+	}
 }
 
 // Pin is the edge of the box a chip is offered that its body is pinned to.
@@ -378,6 +391,11 @@ type Props struct {
 	// every component reading that typography. Set it only when this chip must
 	// shape with a different one — a golden test pinning its faces.
 	Shaper *text.Shaper
+
+	// Surface is the opaque fill the chip stands on, copied straight into
+	// RenderState on every frame. Set it where the chip does not stand on the
+	// window's own plane. See RenderState.Surface.
+	Surface color.NRGBA
 }
 
 // resolvedTokens is the concrete per-emission snapshot the layout.Widget
@@ -512,6 +530,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 
 				s := RenderState{
 					Selected: selected,
+					Surface:  props.Surface,
 					// The dismiss mark's area lies over the body's and takes
 					// the pointer from it, so the body reads both: a chip
 					// whose mark is under the finger is a chip under the
@@ -683,7 +702,7 @@ func draw(
 	radius := min(gtx.Dp(unit.Dp(tok.radius.Lg)), h/2)
 	edgeColor, edged := col.Outline, col.Outlined
 	if s.Focused {
-		band, edgeColor, edged = gtx.Dp(focus.Width), focus.Ring(tok.platform), true
+		band, edgeColor, edged = gtx.Dp(focus.Width), col.Ring, true
 	}
 	inner, innerRad := box, radius
 	if edged {
@@ -693,9 +712,6 @@ func draw(
 		}
 	}
 	paint.FillShape(gtx.Ops, col.Fill, rrect(gtx.Ops, inner, innerRad))
-	if col.Overlay.A > 0 {
-		paint.FillShape(gtx.Ops, col.Overlay, rrect(gtx.Ops, inner, innerRad))
-	}
 
 	// One row, leading edge to trailing: mark, label, dismiss mark. The row is
 	// laid from the leading padding rather than centred in the box, because

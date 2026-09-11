@@ -2,6 +2,7 @@ package input
 
 import (
 	"image"
+	"image/color"
 
 	"gioui.org/f32"
 	"gioui.org/io/semantic"
@@ -15,7 +16,9 @@ import (
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/hit"
+	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/mvu"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -66,6 +69,13 @@ type CheckboxRenderState struct {
 	Checked  bool
 	Focused  bool
 	Disabled bool
+
+	// Surface is the opaque fill the control stands on. Its focus ring rides
+	// in the slack around the glyph, so the platform's keyboard focus
+	// indicator — a coverage rather than a colour — lands on this, and so
+	// does the glyph's own edge, which is drawn as a shape the fill is inset
+	// inside. The zero value — no colour — is the window's own plane.
+	Surface color.NRGBA
 }
 
 // CheckboxProps configures a Checkbox instance.
@@ -218,6 +228,11 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	}
 	rrectInner := clip.RRect{Rect: innerRect, SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad}
 
+	// Every name the box draws that carries a coverage is flattened onto
+	// what lies under it: the surface for the edge and the ring, which are
+	// shapes the fill is inset inside, and the fill for the check.
+	standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
+
 	if s.Checked {
 		// The fill says a value has been set; the check says what setting it
 		// means. Without the mark the checked state is a swatch, and a list
@@ -228,8 +243,8 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		fill := tok.platform.ControlAccent
 		foreground := tok.platform.AlternateSelectedControlText
 		if s.Disabled {
-			fill = tokens.Disabled(fill)
-			foreground = tok.platform.DisabledControlText
+			fill = vgcolor.Flatten(tokens.Disabled(fill), standsOn)
+			foreground = vgcolor.Flatten(tok.platform.DisabledControlText, fill)
 		}
 		paint.FillShape(gtx.Ops, fill, rrectOuter.Op(gtx.Ops))
 
@@ -252,7 +267,7 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	} else {
 		edge := control.Border(tok.platform)
 		if s.Disabled {
-			edge = tok.platform.DisabledControlText
+			edge = vgcolor.Flatten(tok.platform.DisabledControlText, standsOn)
 		}
 		paint.FillShape(gtx.Ops, edge, rrectOuter.Op(gtx.Ops))
 		paint.FillShape(gtx.Ops, control.Fill(tok.platform), rrectInner.Op(gtx.Ops))
@@ -279,7 +294,7 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 			},
 			SE: r, SW: r, NE: r, NW: r,
 		}
-		paint.FillShape(gtx.Ops, focus.Ring(tok.platform), clip.Stroke{
+		paint.FillShape(gtx.Ops, focus.Ring(tok.platform, standsOn), clip.Stroke{
 			Path:  ring.Path(gtx.Ops),
 			Width: float32(w),
 		}.Op())

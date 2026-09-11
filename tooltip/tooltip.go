@@ -40,6 +40,7 @@ package tooltip
 
 import (
 	"image"
+	"image/color"
 	"time"
 
 	"gioui.org/font"
@@ -54,6 +55,8 @@ import (
 	"gioui.org/unit"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/internal/surface"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
@@ -95,6 +98,13 @@ type Props struct {
 	// layout.Widget out on the one goroutine that runs the event loop,
 	// which is what makes sharing it correct. See theme/tokens.Typography.Shaper.
 	Shaper *text.Shaper
+
+	// Surface is the opaque fill the bubble's own hairline lands on: the
+	// hairline is painted as a shape the bubble's fill is inset inside, and
+	// the platform's separator carries a coverage rather than a colour. The
+	// zero value — no colour — is the window's own plane, which is what a
+	// floating surface stands over on this platform.
+	Surface color.NRGBA
 
 	// Arbiter is the set of tooltips this one arbitrates within: showing it
 	// hides whichever tooltip of the same set was up. Give each window its
@@ -379,7 +389,7 @@ func drawSurface(
 	// Pre-record the label with its material so we can replay it inside
 	// the surface at a known offset after measuring it.
 	mColor := op.Record(gtx.Ops)
-	paint.ColorOp{Color: tok.platform.Label}.Add(gtx.Ops)
+	paint.ColorOp{Color: vgcolor.Flatten(tok.platform.Label, tok.platform.WindowBackground)}.Add(gtx.Ops)
 	material := mColor.Stop()
 	labelGtx := gtx
 	labelGtx.Constraints = layout.Constraints{Max: image.Pt(frame.X*3/4, frame.Y/4)}
@@ -432,7 +442,7 @@ func drawSurface(
 		Rect: image.Rectangle{Min: image.Pt(edgePx, edgePx), Max: image.Pt(surfW-edgePx, surfH-edgePx)},
 		SE:   innerR, SW: innerR, NE: innerR, NW: innerR,
 	}
-	paint.FillShape(gtx.Ops, tok.platform.Separator, rect.Op(gtx.Ops))
+	paint.FillShape(gtx.Ops, vgcolor.Flatten(tok.platform.Separator, surface.Or(props.Surface, tok.platform.WindowBackground)), rect.Op(gtx.Ops))
 	paint.FillShape(gtx.Ops, tok.platform.WindowBackground, inner.Op(gtx.Ops))
 	labelOff := op.Offset(image.Pt(padH, padV)).Push(gtx.Ops)
 	labelCall.Add(gtx.Ops)

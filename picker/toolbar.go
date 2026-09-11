@@ -11,6 +11,7 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/internal/hit"
+	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/components/internal/toolbarface"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/theme/theme"
@@ -102,6 +103,13 @@ type ToolbarProps struct {
 	// every component reading that typography. Set it only when this trigger
 	// must shape with a different one — a golden test pinning its faces.
 	Shaper *text.Shaper
+
+	// Surface is the opaque fill the trigger stands on. The platform's
+	// overlays, seam, control text and secondary label all carry a coverage,
+	// so what they land as depends on it and the trigger flattens each onto
+	// it. The zero value — no colour — is the chrome material, which is what
+	// a toolbar trigger stands on unless a caller put something between.
+	Surface color.NRGBA
 }
 
 // Toolbar returns an rx.Observable[layout.Widget] emitting the chrome
@@ -203,7 +211,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 							semantic.DescriptionOp(desc).Add(gtx.Ops)
 							semantic.EnabledOp(true).Add(gtx.Ops)
 							return toolbarface.Draw(gtx, shaper, props.Value, tok.platform,
-								tok.spacing, tok.radius, tok.label, tok.density, s)
+								props.Surface, tok.spacing, tok.radius, tok.label, tok.density, s)
 						})
 				})
 			}
@@ -234,6 +242,7 @@ func RenderToolbar(
 	shaper *text.Shaper,
 	value string,
 	p tokens.PlatformColors,
+	chrome color.NRGBA,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
 	labelStyle tokens.TextStyle,
@@ -241,7 +250,7 @@ func RenderToolbar(
 	s ToolbarState,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return toolbarface.Draw(gtx, shaper, value, p, sp, rad, labelStyle, d,
+		return toolbarface.Draw(gtx, shaper, value, p, chrome, sp, rad, labelStyle, d,
 			toolbarface.State(s))
 	}
 }
@@ -252,14 +261,15 @@ func RenderToolbar(
 // held. A toolbar button is the one control on this platform that tints under
 // the pointer.
 //
-// The returned colour carries its own coverage and composites over whatever
-// the trigger was put on, so a caller that needs the opaque colour the control
-// lands as lays it over that surface itself. At rest the return is the zero
+// chrome is the opaque fill the trigger stands on — the chrome material
+// unless the caller put something between — and the overlay is flattened
+// onto it, so the return is the colour the control actually lands as and not
+// something the caller has left to composite. At rest the return is the zero
 // value, which is no colour at all: the chrome shows through untouched.
 //
 // It is exported because a window deciding what its own chrome must clear
 // needs the answer the trigger drew with, and re-deriving it at the call site
 // is how two answers appear.
-func ToolbarFill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
-	return toolbarface.Fill(p, state)
+func ToolbarFill(p tokens.PlatformColors, state tokens.State, chrome color.NRGBA) color.NRGBA {
+	return toolbarface.Fill(p, state, surface.Or(chrome, p.SidebarMaterial))
 }

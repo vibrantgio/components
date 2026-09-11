@@ -9,6 +9,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/vibrantgio/components/golden"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -191,7 +192,7 @@ func TestEveryStatusIsThePlatformsColourForIt(t *testing.T) {
 
 // TestTheFillAndTheMessageAreThePlatformsOwn pins the other two names: a
 // toast is filled with the window's own plane and its message reads in the
-// platform's label colour, in both appearances.
+// platform's label colour over that plane, in both appearances.
 func TestTheFillAndTheMessageAreThePlatformsOwn(t *testing.T) {
 	for _, sc := range []struct {
 		name string
@@ -200,8 +201,8 @@ func TestTheFillAndTheMessageAreThePlatformsOwn(t *testing.T) {
 		if got := Fill(sc.p); got != sc.p.WindowBackground {
 			t.Errorf("%s: Fill = %v, want WindowBackground %v", sc.name, got, sc.p.WindowBackground)
 		}
-		if got := Foreground(sc.p); got != sc.p.Label {
-			t.Errorf("%s: Foreground = %v, want Label %v", sc.name, got, sc.p.Label)
+		if want := vgcolor.Flatten(sc.p.Label, Fill(sc.p)); Foreground(sc.p) != want {
+			t.Errorf("%s: Foreground = %v, want Label over the fill %v", sc.name, Foreground(sc.p), want)
 		}
 	}
 }

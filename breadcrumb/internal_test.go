@@ -5,6 +5,7 @@ import (
 
 	"gioui.org/layout"
 
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -23,10 +24,10 @@ func TestLabelColorRule(t *testing.T) {
 	} {
 		const n = 3
 		for i := 0; i < n; i++ {
-			got := labelColor(i, n, c.p)
-			want := c.p.Link
+			got := labelColor(i, n, c.p, c.p.WindowBackground)
+			want := vgcolor.Flatten(c.p.Link, c.p.WindowBackground)
 			if i == n-1 {
-				want = c.p.Label
+				want = vgcolor.Flatten(c.p.Label, c.p.WindowBackground)
 			}
 			if got != want {
 				t.Errorf("idx %d of %d (%s): got %v, want %v", i, n, c.name, got, want)
@@ -40,8 +41,9 @@ func TestLabelColorRule(t *testing.T) {
 // the "last item" rule degenerate case.
 func TestLabelColorSingleSegment(t *testing.T) {
 	p := tokens.PlatformLight
-	if got := labelColor(0, 1, p); got != p.Label {
-		t.Errorf("single segment: got %v, want the label %v", got, p.Label)
+	want := vgcolor.Flatten(p.Label, p.WindowBackground)
+	if got := labelColor(0, 1, p, p.WindowBackground); got != want {
+		t.Errorf("single segment: got %v, want the label %v", got, want)
 	}
 }
 

@@ -42,6 +42,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/reactivego/rx"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
@@ -254,8 +255,12 @@ func draw(gtx layout.Context, shaper *text.Shaper, props Props, tok resolvedToke
 func Fill(p tokens.PlatformColors) color.NRGBA { return p.WindowBackground }
 
 // Foreground is the colour a toast's message reads in: the platform's label
-// colour, black or white at a coverage that composites over the fill.
-func Foreground(p tokens.PlatformColors) color.NRGBA { return p.Label }
+// colour — black or white at a coverage — flattened onto [Fill], which is
+// what the message stands on. The answer is opaque; the toast's own fade
+// scales it from there.
+func Foreground(p tokens.PlatformColors) color.NRGBA {
+	return vgcolor.Flatten(p.Label, Fill(p))
+}
 
 // Edge is the platform's system colour for the status, worn by the toast's
 // leading edge — the only place on a toast that says which status this is.

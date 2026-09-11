@@ -11,6 +11,7 @@ import (
 	"gioui.org/unit"
 
 	golden "github.com/vibrantgio/components/golden"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -35,7 +36,7 @@ func TestScrollbarGolden(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			state := NewState()
-			style := FromTokens(tc.p)
+			style := FromTokens(tc.p, tc.p.ControlBackground)
 			surface := tc.p.ControlBackground
 			start, end := tc.start, tc.end
 			golden.Render(t, tc.name, size, func(gtx layout.Context) layout.Dimensions {
@@ -59,13 +60,17 @@ func TestFromTokens(t *testing.T) {
 		{"PlatformDark", tokens.PlatformDark},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			s := FromTokens(tc.p)
+			s := FromTokens(tc.p, tc.p.ControlBackground)
 
-			if s.ThumbColor != tc.p.ScrollbarThumb {
-				t.Errorf("ThumbColor = %v, want ScrollbarThumb %v", s.ThumbColor, tc.p.ScrollbarThumb)
+			rides := tc.p.ControlBackground
+			// Each of the three is the platform's name at its coverage,
+			// resolved against what the bar rides: the platform composites
+			// in encoded sRGB, so the bar paints opaque.
+			if want := vgcolor.Flatten(tc.p.ScrollbarThumb, rides); s.ThumbColor != want {
+				t.Errorf("ThumbColor = %v, want ScrollbarThumb over the content, %v", s.ThumbColor, want)
 			}
-			if s.ThumbColor.A == 0xff {
-				t.Errorf("ThumbColor = %v is opaque; an overlay thumb composites over what it rides", s.ThumbColor)
+			if s.ThumbColor.A != 0xff {
+				t.Errorf("ThumbColor = %v carries a coverage; only the fade makes the thumb translucent", s.ThumbColor)
 			}
 			if s.TrackColor != (color.NRGBA{}) {
 				t.Errorf("TrackColor = %v, want transparent zero value", s.TrackColor)
@@ -73,17 +78,20 @@ func TestFromTokens(t *testing.T) {
 
 			wantMatch := tc.p.FindHighlight
 			wantMatch.A = matchCoverage
-			if s.MatchFill != wantMatch {
-				t.Errorf("MatchFill = %v, want FindHighlight at %#x, %v", s.MatchFill, matchCoverage, wantMatch)
+			if want := vgcolor.Flatten(wantMatch, rides); s.MatchFill != want {
+				t.Errorf("MatchFill = %v, want FindHighlight at %#x over the content, %v", s.MatchFill, matchCoverage, want)
 			}
 			wantCurrent := tc.p.FindHighlight
 			wantCurrent.A = currentMatchCoverage
-			if s.CurrentMatchFill != wantCurrent {
-				t.Errorf("CurrentMatchFill = %v, want FindHighlight at %#x, %v", s.CurrentMatchFill, currentMatchCoverage, wantCurrent)
+			if want := vgcolor.Flatten(wantCurrent, rides); s.CurrentMatchFill != want {
+				t.Errorf("CurrentMatchFill = %v, want FindHighlight at %#x over the content, %v", s.CurrentMatchFill, currentMatchCoverage, want)
 			}
-			if s.MatchFill.A >= s.CurrentMatchFill.A {
+			if matchCoverage >= currentMatchCoverage {
 				t.Errorf("the current match at %#x is not laid on more strongly than the rest at %#x",
-					s.CurrentMatchFill.A, s.MatchFill.A)
+					currentMatchCoverage, matchCoverage)
+			}
+			if s.MatchFill == s.CurrentMatchFill {
+				t.Errorf("both match fills land on %v; the reader cannot tell the current one", s.MatchFill)
 			}
 
 			metrics := []struct {

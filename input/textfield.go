@@ -20,7 +20,9 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
+	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/mvu"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
@@ -33,6 +35,13 @@ import (
 type RenderState struct {
 	Focused  bool
 	Disabled bool
+
+	// Surface is the opaque fill the field stands on. The field's edge is
+	// drawn as a shape the fill is inset inside, so the focus ring — the
+	// platform's keyboard focus indicator, which carries a coverage rather
+	// than a colour — lands on this rather than on the field's own fill. The
+	// zero value — no colour — is the window's own plane.
+	Surface color.NRGBA
 
 	// Text, when non-empty, is rendered in place of the placeholder using the
 	// text colour. It models a field that holds user input for the static
@@ -568,13 +577,13 @@ func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, 
 	fill = control.Fill(p)
 	foreground = p.Text
 	edge = control.Border(p)
-	placeholder = control.Placeholder(p)
+	placeholder = control.Placeholder(p, fill)
 	switch {
 	case s.Disabled:
-		foreground = p.DisabledControlText
-		placeholder = p.DisabledControlText
+		foreground = vgcolor.Flatten(p.DisabledControlText, fill)
+		placeholder = foreground
 	case s.Focused:
-		edge = focus.Ring(p)
+		edge = focus.Ring(p, surface.Or(s.Surface, p.WindowBackground))
 	}
 	return
 }

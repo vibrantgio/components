@@ -38,7 +38,7 @@ func newBarredList(n int, size image.Point, anchor list.Anchor) *barredList {
 	return &barredList{
 		state:  list.NewState(),
 		items:  makeItems(n),
-		bar:    scrollbar.FromTokens(tokens.PlatformLight),
+		bar:    scrollbar.FromTokens(tokens.PlatformLight, tokens.PlatformLight.ControlBackground),
 		anchor: anchor,
 		r:      new(gioinput.Router),
 		ops:    new(op.Ops),
@@ -162,7 +162,7 @@ func TestSelectableScrollbarMovesTheBarWithTheSelection(t *testing.T) {
 // nothing either.
 func TestSelectableScrollbarDrawsNothingExtraWhenEverythingFits(t *testing.T) {
 	size := image.Pt(viewW, 300) // three 30 px rows in a 300 px viewport
-	bar := scrollbar.FromTokens(tokens.PlatformLight)
+	bar := scrollbar.FromTokens(tokens.PlatformLight, tokens.PlatformLight.ControlBackground)
 	rowFn := func(gtx layout.Context, item int, _ bool) layout.Dimensions {
 		return colorRowFn(gtx, item)
 	}

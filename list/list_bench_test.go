@@ -60,7 +60,7 @@ func BenchmarkLayoutScrollbar(b *testing.B) {
 	} {
 		b.Run(tc.name, func(b *testing.B) {
 			state := list.NewState()
-			bar := scrollbar.FromTokens(tokens.PlatformLight)
+			bar := scrollbar.FromTokens(tokens.PlatformLight, tokens.PlatformLight.ControlBackground)
 			w := func(gtx layout.Context) layout.Dimensions {
 				return list.LayoutScrollbar(gtx, state, bar, tc.anchor, items, colorRowFn)
 			}

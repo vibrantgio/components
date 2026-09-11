@@ -230,7 +230,7 @@ func TestFittingContentIsTransparentToThePointer(t *testing.T) {
 // on the area's trailing edge, so the drag runs along the bottom strip.
 func TestScrollbarDragScrolls(t *testing.T) {
 	style := FromTokens(tokens.PlatformLight)
-	bar := scrollbar.FromTokens(tokens.PlatformLight)
+	bar := scrollbar.FromTokens(tokens.PlatformLight, tokens.PlatformLight.ControlBackground)
 	state := NewState()
 
 	r := new(gioinput.Router)

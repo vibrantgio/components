@@ -3,6 +3,7 @@ package chip_test
 import (
 	"testing"
 
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 
 	"github.com/vibrantgio/components/chip"
@@ -33,18 +34,25 @@ var chipPurposes = []struct {
 // make now that nothing is measured: a resting chip is the platform's small
 // control, a selected filter is its emphasized selection, and a held chip
 // wears the press coverage over whichever body it started from.
+//
+// Every name that carries a coverage comes back resolved against the fill it
+// lands on — the rim and the ring against the surface the chip stands on, the
+// words and the marks against the body — because the platform composites in
+// encoded sRGB and Gio's rasterizer would not.
 func TestResolveNamesThePlatformColors(t *testing.T) {
 	for _, sc := range chipSchemes {
 		p := sc.p
 		t.Run(sc.name, func(t *testing.T) {
+			on := p.WindowBackground
 			rest := chip.Resolve(p, chip.Filter, chip.RenderState{})
 			want := chip.Colors{
 				Fill:     p.PushButtonFill,
-				Outline:  p.Separator,
+				Outline:  vgcolor.Flatten(p.Separator, on),
 				Outlined: true,
-				Label:    p.ControlText,
-				Mark:     p.ControlText,
-				Dismiss:  p.SecondaryLabel,
+				Ring:     vgcolor.Flatten(p.KeyboardFocusIndicator, on),
+				Label:    vgcolor.Flatten(p.ControlText, p.PushButtonFill),
+				Mark:     vgcolor.Flatten(p.ControlText, p.PushButtonFill),
+				Dismiss:  vgcolor.Flatten(p.SecondaryLabel, p.PushButtonFill),
 			}
 			if rest != want {
 				t.Errorf("a resting chip resolved %+v, want %+v", rest, want)
@@ -54,11 +62,12 @@ func TestResolveNamesThePlatformColors(t *testing.T) {
 				Fill: p.SelectedContentBackground,
 				// The rim's colour stands and is not drawn: a selected chip
 				// has the fill instead.
-				Outline:  p.Separator,
+				Outline:  vgcolor.Flatten(p.Separator, on),
 				Outlined: false,
-				Label:    p.AlternateSelectedControlText,
-				Mark:     p.AlternateSelectedControlText,
-				Dismiss:  p.SecondaryLabel,
+				Ring:     vgcolor.Flatten(p.KeyboardFocusIndicator, on),
+				Label:    vgcolor.Flatten(p.AlternateSelectedControlText, p.SelectedContentBackground),
+				Mark:     vgcolor.Flatten(p.AlternateSelectedControlText, p.SelectedContentBackground),
+				Dismiss:  vgcolor.Flatten(p.SecondaryLabel, p.SelectedContentBackground),
 			}
 			if picked != wantPicked {
 				t.Errorf("a selected filter chip resolved %+v, want %+v", picked, wantPicked)
@@ -71,14 +80,14 @@ func TestResolveNamesThePlatformColors(t *testing.T) {
 				{"selected", chip.RenderState{Selected: true, Pressed: true}},
 			} {
 				held := chip.Resolve(p, chip.Filter, tc.s)
-				if held.Overlay != p.PressOverlay {
-					t.Errorf("a held %s chip lays %v over its body, want PressOverlay %v",
-						tc.name, held.Overlay, p.PressOverlay)
-				}
 				tc.s.Pressed = false
-				if got, want := held.Fill, chip.Resolve(p, chip.Filter, tc.s).Fill; got != want {
-					t.Errorf("a held %s chip changed its body to %v from %v; the press is an overlay",
-						tc.name, got, want)
+				resting := chip.Resolve(p, chip.Filter, tc.s).Fill
+				if want := vgcolor.Flatten(p.PressOverlay, resting); held.Fill != want {
+					t.Errorf("a held %s chip's body is %v, want the press overlay over its resting body, %v",
+						tc.name, held.Fill, want)
+				}
+				if held.Fill.A != 0xff {
+					t.Errorf("a held %s chip's body alpha is %d, want an opaque fill", tc.name, held.Fill.A)
 				}
 			}
 		})

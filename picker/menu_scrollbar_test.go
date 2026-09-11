@@ -133,7 +133,7 @@ func TestCappedOverflowingMenuDrawsTheBarOnlyInTheGutter(t *testing.T) {
 		t.Fatal("a capped, overflowing menu drew identically to the same menu with the bar suppressed; the bar never rendered")
 	}
 
-	barPx := unit.Metric{PxPerDp: 1, PxPerSp: 1}.Dp(scrollbar.FromTokens(tok.platform).Width())
+	barPx := unit.Metric{PxPerDp: 1, PxPerSp: 1}.Dp(scrollbar.FromTokens(tok.platform, tok.platform.ControlBackground).Width())
 	gutter := size.X - barPx
 	bounds := withBar.Bounds()
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {

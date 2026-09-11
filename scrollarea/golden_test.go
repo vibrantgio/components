@@ -39,7 +39,7 @@ func TestFadeGolden(t *testing.T) {
 	const viewport, content, band = 280, 900, 60
 	p := tokens.PlatformLight
 	style := FromTokens(p)
-	bar := scrollbar.FromTokens(p)
+	bar := scrollbar.FromTokens(p, p.ControlBackground)
 
 	bands := []struct {
 		width  int

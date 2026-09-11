@@ -6,6 +6,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/vibrantgio/components/internal/focus"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -21,19 +22,28 @@ func TestRingIsThePlatformsFocusIndicator(t *testing.T) {
 		{"light", tokens.PlatformLight},
 		{"dark", tokens.PlatformDark},
 	} {
-		if got, want := focus.Ring(sc.p), sc.p.KeyboardFocusIndicator; got != want {
-			t.Errorf("%s: Ring = %v, want the platform's keyboard focus indicator %v", sc.name, got, want)
+		beneath := sc.p.WindowBackground
+		want := vgcolor.Flatten(sc.p.KeyboardFocusIndicator, beneath)
+		if got := focus.Ring(sc.p, beneath); got != want {
+			t.Errorf("%s: Ring = %v, want the platform's keyboard focus indicator over the plane, %v", sc.name, got, want)
 		}
 	}
 }
 
 // The indicator carries a coverage of its own, which is what lets one value
-// read on every fill a control can put under it. A ring the platform made
-// opaque would have to be measured against each of them instead.
-func TestTheRingCarriesTheCoverageThePlatformGaveIt(t *testing.T) {
+// read on every fill a control can put under it — and what the ring hands
+// back is that coverage resolved against one of them, opaque, because the
+// platform composites it in encoded sRGB and Gio's rasterizer would not.
+func TestTheRingResolvesTheCoverageAgainstWhatIsBeneathIt(t *testing.T) {
 	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
-		if a := focus.Ring(p).A; a == 0 || a == 0xff {
-			t.Errorf("Ring alpha = %d, want the platform's partial coverage", a)
+		if p.KeyboardFocusIndicator.A == 0 || p.KeyboardFocusIndicator.A == 0xff {
+			t.Errorf("keyboardFocusIndicatorColor alpha = %d, want the platform's partial coverage", p.KeyboardFocusIndicator.A)
+		}
+		if a := focus.Ring(p, p.WindowBackground).A; a != 0xff {
+			t.Errorf("Ring alpha = %d, want an opaque answer", a)
+		}
+		if onPlane, onButton := focus.Ring(p, p.WindowBackground), focus.Ring(p, p.PushButtonFill); onPlane == onButton {
+			t.Errorf("the ring reads the same on the plane and on a push button's fill (%v); the coverage is not being resolved", onPlane)
 		}
 	}
 }

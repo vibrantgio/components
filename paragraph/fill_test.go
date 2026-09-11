@@ -50,7 +50,7 @@ func captureFill(t *testing.T, spans []paragraph.SpanStyle, width int) (*image.R
 	t.Helper()
 	shaper := defaultShaper(t)
 	p := tokens.PlatformLight
-	style := paragraph.FromTokens(p, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(p, tokens.DefaultTypography.BodyLarge, p.WindowBackground)
 	var got []image.Rectangle
 	style.OnFill = func(span, fill int, r image.Rectangle) { got = append(got, r) }
 	img := golden.Capture(t, image.Pt(width, 90), func(gtx layout.Context) layout.Dimensions {
@@ -95,7 +95,7 @@ func TestSpanFillPaintsBehindItsOwnRun(t *testing.T) {
 // paragraph unmarked does, so marking a word moves no glyph.
 func TestSpanFillLeavesTheShapingAlone(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
 	const content = "The quick brown fox jumps over the lazy dog and keeps running"
 	measure := func(spans []paragraph.SpanStyle) layout.Dimensions {
 		var dims layout.Dimensions

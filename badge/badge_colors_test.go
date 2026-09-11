@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/vibrantgio/components/badge"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -60,9 +61,9 @@ func TestABareSignIsTheSystemColourItself(t *testing.T) {
 		for _, st := range goldenStatuses {
 			want := badge.Fill(sc.p, st.status)
 			if st.status == badge.Neutral {
-				want = sc.p.SecondaryLabel
+				want = vgcolor.Flatten(sc.p.SecondaryLabel, sc.p.WindowBackground)
 			}
-			if got := badge.BareForeground(sc.p, st.status); got != want {
+			if got := badge.BareForeground(sc.p, st.status, sc.p.WindowBackground); got != want {
 				t.Errorf("%s %s: BareForeground = %v, want %v", sc.name, st.label, got, want)
 			}
 		}
@@ -80,7 +81,9 @@ func TestTheFiveStayFive(t *testing.T) {
 			fn   func(tokens.PlatformColors, badge.Status) color.NRGBA
 		}{
 			{"Fill", badge.Fill},
-			{"BareForeground", badge.BareForeground},
+			{"BareForeground", func(p tokens.PlatformColors, st badge.Status) color.NRGBA {
+				return badge.BareForeground(p, st, p.WindowBackground)
+			}},
 		} {
 			seen := map[color.NRGBA]string{}
 			for _, st := range goldenStatuses {

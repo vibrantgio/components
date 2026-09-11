@@ -22,7 +22,6 @@ import (
 	"github.com/vibrantgio/components/button"
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/internal/focus"
-	tcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -372,9 +371,10 @@ func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
 		{"light", tokens.PlatformLight},
 		{"dark", tokens.PlatformDark},
 	} {
-		// The platform's focus indicator carries a coverage, so the pixel
-		// on the band is that indicator over the pin it lies on.
-		ring := tcolor.Over(focus.Ring(scheme.colors), pinnedFill)
+		// The platform's focus indicator carries a coverage, and the ring
+		// resolves it against the pin it lies on, so the pixel on the band
+		// is exactly what focus.Ring answers for that pair.
+		ring := focus.Ring(scheme.colors, pinnedFill)
 		img := golden.Capture(t, size, onWindowSurface(scheme.colors, button.RenderIcon(
 			crossIcon, scheme.colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
 			button.RenderState{Fill: pinnedFill, OnFill: pinnedForeground, Focused: true},
@@ -397,16 +397,16 @@ func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
 // written independently of the code that painted it. Focus keeps the resting
 // fill in every variant, so the fill under the band is the resting one.
 //
-// The platform's focus indicator carries a coverage, so every one of these
-// is a composite rather than a value straight off the set.
+// Every one of these is opaque, so the plane under it does not reach the
+// pixel; the ring's own coverage is resolved against them by focus.Ring.
 func beneathTheRing(p tokens.PlatformColors, e button.Emphasis) color.NRGBA {
 	switch e {
 	case button.Tonal:
-		return tcolor.Over(p.PushButtonFill, p.WindowBackground)
+		return p.PushButtonFill
 	case button.Ghost:
 		return p.WindowBackground // a ghost paints none; the plane shows through
 	default:
-		return tcolor.Over(p.ControlAccent, p.WindowBackground)
+		return p.ControlAccent
 	}
 }
 
@@ -461,7 +461,7 @@ func TestFocusRingIsTheSameRingInEveryEmphasis(t *testing.T) {
 	} {
 		colors := scheme.colors
 		for _, e := range []button.Emphasis{button.Filled, button.Tonal, button.Ghost} {
-			ring := tcolor.Over(focus.Ring(colors), beneathTheRing(colors, e))
+			ring := focus.Ring(colors, beneathTheRing(colors, e))
 
 			// No glyph: at the platform's control height the padding is
 			// 2 dp and the ring is 2 dp wide, so a glyph inset by the

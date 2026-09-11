@@ -47,7 +47,9 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/internal/surface"
 	complayout "github.com/vibrantgio/components/layout"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
@@ -91,6 +93,12 @@ type Props struct {
 	// layout.Widget out on the one goroutine that runs the event loop,
 	// which is what makes sharing it correct. See theme/tokens.Typography.Shaper.
 	Shaper *text.Shaper
+
+	// Surface is the opaque fill the trail stands on. It draws no fill of
+	// its own, so its labels and separators are drawn straight on this, and
+	// the platform's label and secondary label carry a coverage rather than
+	// a colour. The zero value — no colour — is the window's own plane.
+	Surface color.NRGBA
 }
 
 // Breadcrumb returns an rx.Observable[layout.Widget] that emits a new one
@@ -123,7 +131,7 @@ func Breadcrumb(th rx.Observable[theme.Theme], props Props) rx.Observable[layout
 						props.Items[i].OnClick(gtx)
 					}
 				}
-				return drawBreadcrumb(gtx, shaper, props.Items, clicks, tok.platform, tok.spacing, tok.label, props.Chevron)
+				return drawBreadcrumb(gtx, shaper, props.Items, clicks, tok.platform, props.Surface, tok.spacing, tok.label, props.Chevron)
 			}
 		})
 	})
@@ -147,7 +155,7 @@ func Render(
 	label tokens.TextStyle,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return drawBreadcrumb(gtx, shaper, props.Items, nil, p, sp, label, props.Chevron)
+		return drawBreadcrumb(gtx, shaper, props.Items, nil, p, props.Surface, sp, label, props.Chevron)
 	}
 }
 
@@ -199,6 +207,7 @@ func drawBreadcrumb(
 	items []Item,
 	clicks []*widget.Clickable,
 	p tokens.PlatformColors,
+	standsOn color.NRGBA,
 	sp tokens.SpacingScale,
 	style tokens.TextStyle,
 	chevron unit.Dp,
@@ -207,13 +216,18 @@ func drawBreadcrumb(
 		return layout.Dimensions{}
 	}
 
+	// The trail draws no fill, so every foreground it draws is flattened
+	// onto the surface it stands on.
+	standsOn = surface.Or(standsOn, p.WindowBackground)
+	chevronCol := vgcolor.Flatten(p.SecondaryLabel, standsOn)
+
 	children := make([]layout.FlexChild, 0, 2*len(items)-1)
 	for i, item := range items {
-		fg := labelColor(i, len(items), p)
+		fg := labelColor(i, len(items), p, standsOn)
 		if i > 0 {
 			children = append(children,
 				layout.Rigid(complayout.HSpacer(sp.S2)),
-				layout.Rigid(chevronWidget(chevronSize(chevron), p.SecondaryLabel)),
+				layout.Rigid(chevronWidget(chevronSize(chevron), chevronCol)),
 				layout.Rigid(complayout.HSpacer(sp.S2)),
 			)
 		}
@@ -227,11 +241,11 @@ func drawBreadcrumb(
 // label; the segments before it are the way back and take the link. The
 // separator between them is the secondary label, the row's one piece of text
 // that is neither.
-func labelColor(i, n int, p tokens.PlatformColors) color.NRGBA {
+func labelColor(i, n int, p tokens.PlatformColors, standsOn color.NRGBA) color.NRGBA {
 	if i == n-1 {
-		return p.Label
+		return vgcolor.Flatten(p.Label, standsOn)
 	}
-	return p.Link
+	return vgcolor.Flatten(p.Link, standsOn)
 }
 
 // clickFor returns the clickable drawing segment i, or nil when the caller

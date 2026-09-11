@@ -5,6 +5,7 @@ import (
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
+	"image/color"
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/theme/theme"
@@ -61,6 +62,10 @@ type TrailProps struct {
 	// Chevron is the square each separator is drawn in, exactly as
 	// Props.Chevron describes it. Zero takes DefaultChevron.
 	Chevron unit.Dp
+
+	// Surface is the opaque fill the trail stands on, exactly as
+	// Props.Surface describes it. Zero is the window's own plane.
+	Surface color.NRGBA
 }
 
 // Trail returns an rx.Observable[TrailLayout] that emits a new layout function
@@ -86,7 +91,7 @@ func Trail(th rx.Observable[theme.Theme], props TrailProps) rx.Observable[TrailL
 				shaper = tok.shaper
 			}
 			return func(gtx layout.Context, segments []Segment) layout.Dimensions {
-				return st.layout(gtx, shaper, segments, tok.platform, tok.spacing, tok.label, props.Chevron)
+				return st.layout(gtx, shaper, segments, tok.platform, props.Surface, tok.spacing, tok.label, props.Chevron)
 			}
 		})
 	})
@@ -113,7 +118,7 @@ func NewTrail(
 ) TrailLayout {
 	st := new(trailState)
 	return func(gtx layout.Context, segments []Segment) layout.Dimensions {
-		return st.layout(gtx, shaper, segments, p, sp, label, props.Chevron)
+		return st.layout(gtx, shaper, segments, p, props.Surface, sp, label, props.Chevron)
 	}
 }
 
@@ -173,13 +178,14 @@ func (s *trailState) layout(
 	shaper *text.Shaper,
 	segments []Segment,
 	p tokens.PlatformColors,
+	standsOn color.NRGBA,
 	sp tokens.SpacingScale,
 	style tokens.TextStyle,
 	chevron unit.Dp,
 ) layout.Dimensions {
 	s.fire(gtx)
 	items, clicks := s.adopt(segments)
-	return drawBreadcrumb(gtx, shaper, items, clicks, p, sp, style, chevron)
+	return drawBreadcrumb(gtx, shaper, items, clicks, p, standsOn, sp, style, chevron)
 }
 
 // fire reports the clicks queued against the identities the previous frame

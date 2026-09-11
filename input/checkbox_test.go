@@ -16,7 +16,6 @@ import (
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/input"
 	"github.com/vibrantgio/components/internal/focus"
-	themecolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -239,11 +238,11 @@ func TestCheckboxFocusRingIsVisuallyDistinct(t *testing.T) {
 // the resting and focused renders.
 //
 // It counts the colour the ring lands as rather than the value the platform
-// publishes. The keyboard focus indicator carries a coverage of its own, so
-// what a capture holds is the ring composited over whatever was under it —
-// here the harness's window, which is cleared to black at zero coverage. That
-// composite is what [themecolor.Over] returns, blended in linear light, which
-// is where Gio blends.
+// publishes. The keyboard focus indicator carries a coverage of its own, and
+// focus.Ring resolves it against what lies under the band before anything is
+// painted — for a checkbox and a radio, the surface the control stands on,
+// which is the window's plane unless the caller says otherwise — so what a
+// capture holds is that opaque answer.
 func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 	size := image.Pt(44, 44)
 	shaper := defaultShaper(t)
@@ -256,9 +255,13 @@ func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 		{"dark", tokens.PlatformDark},
 	} {
 		p := scheme.platform
-		ring := themecolor.Over(focus.Ring(p), stdcolor.NRGBA{})
+		// A control rings on what the band actually lies on: the surface
+		// for a glyph whose ring rides in the slack beside it, the
+		// control's own fill for a trigger whose edge IS the ring.
+		onPlane := focus.Ring(p, p.WindowBackground)
+		onTrigger := focus.Ring(p, p.PushButtonFill)
 
-		count := func(sz image.Point, w layout.Widget) int {
+		count := func(sz image.Point, w layout.Widget, ring stdcolor.NRGBA) int {
 			img := golden.Capture(t, sz, w)
 			n := 0
 			b := img.Bounds()
@@ -277,44 +280,45 @@ func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 			size  image.Point
 			idle  layout.Widget
 			focus layout.Widget
+			ring  stdcolor.NRGBA
 		}{
 			{"checkbox unchecked", size,
 				input.RenderCheckbox(p, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{}),
-				input.RenderCheckbox(p, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Focused: true})},
+				input.RenderCheckbox(p, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Focused: true}), onPlane},
 			{"checkbox checked", size,
 				input.RenderCheckbox(p, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Checked: true}),
-				input.RenderCheckbox(p, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Checked: true, Focused: true})},
+				input.RenderCheckbox(p, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Checked: true, Focused: true}), onPlane},
 			{"radio unselected", size,
 				input.RenderRadio(p, tokens.Spacing, tokens.Radius, input.RadioRenderState{}),
-				input.RenderRadio(p, tokens.Spacing, tokens.Radius, input.RadioRenderState{Focused: true})},
+				input.RenderRadio(p, tokens.Spacing, tokens.Radius, input.RadioRenderState{Focused: true}), onPlane},
 			{"radio selected", size,
 				input.RenderRadio(p, tokens.Spacing, tokens.Radius, input.RadioRenderState{Selected: true}),
-				input.RenderRadio(p, tokens.Spacing, tokens.Radius, input.RadioRenderState{Selected: true, Focused: true})},
+				input.RenderRadio(p, tokens.Spacing, tokens.Radius, input.RadioRenderState{Selected: true, Focused: true}), onPlane},
 			{"text field", image.Pt(300, 60),
 				input.Render(shaper, "you@example.com", p, tokens.Spacing, tokens.Radius,
 					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{}),
 				input.Render(shaper, "you@example.com", p, tokens.Spacing, tokens.Radius,
-					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{Focused: true})},
+					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{Focused: true}), onPlane},
 			{"search field", image.Pt(300, 60),
 				input.RenderSearch(shaper, "Search", p, tokens.Spacing, tokens.Radius,
 					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{}),
 				input.RenderSearch(shaper, "Search", p, tokens.Spacing, tokens.Radius,
-					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{Focused: true})},
+					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{Focused: true}), onPlane},
 			{"dropdown trigger", image.Pt(200, 44),
 				input.RenderDropdown(shaper, p, tokens.Spacing, tokens.Radius,
 					tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 					input.DropdownRenderState{Options: []string{"One", "Two"}}),
 				input.RenderDropdown(shaper, p, tokens.Spacing, tokens.Radius,
 					tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
-					input.DropdownRenderState{Focused: true, Options: []string{"One", "Two"}})},
+					input.DropdownRenderState{Focused: true, Options: []string{"One", "Two"}}), onTrigger},
 		} {
-			if n := count(control.size, control.idle); n != 0 {
+			if n := count(control.size, control.idle, control.ring); n != 0 {
 				t.Errorf("%s %s: %d pixels of the ring colour %v with nothing focused",
-					scheme.name, control.name, n, ring)
+					scheme.name, control.name, n, control.ring)
 			}
-			if n := count(control.size, control.focus); n == 0 {
+			if n := count(control.size, control.focus, control.ring); n == 0 {
 				t.Errorf("%s %s: focused, and not one pixel of the ring colour %v",
-					scheme.name, control.name, ring)
+					scheme.name, control.name, control.ring)
 			}
 		}
 	}

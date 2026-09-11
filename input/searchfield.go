@@ -16,7 +16,9 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/icon"
 	"github.com/vibrantgio/components/icons"
+	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/mvu"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -324,10 +326,13 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 	if !a.search && !a.clear {
 		return
 	}
+	// Both marks stand inside the field, so both are flattened onto the
+	// field's own fill: the platform's names carry a coverage.
 	slot := a.slotPx(gtx, tok)
-	col := tok.platform.SecondaryLabel
+	fill := control.Fill(tok.platform)
+	col := vgcolor.Flatten(tok.platform.SecondaryLabel, fill)
 	if s.Disabled {
-		col = tok.platform.DisabledControlText
+		col = vgcolor.Flatten(tok.platform.DisabledControlText, fill)
 	}
 
 	if a.search {

@@ -14,6 +14,7 @@ import (
 
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/picker"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -139,7 +140,7 @@ func TestOpenFieldFloatsTheSharedMenuUnderItsTrigger(t *testing.T) {
 // comparing it to two of them. It is the line the field draws, spelled once
 // here: the platform's seam, one dp inside the box on all four sides.
 func planeEdge(gtx layout.Context, size image.Point) {
-	edge := tokens.PlatformLight.Separator
+	edge := vgcolor.Flatten(tokens.PlatformLight.Separator, tokens.PlatformLight.ControlBackground)
 	w := gtx.Dp(1)
 	for _, r := range []image.Rectangle{
 		{Max: image.Pt(size.X, w)},
@@ -453,6 +454,7 @@ func TestMenuSelectedRowIsDrawnApartFromTheRest(t *testing.T) {
 // height.
 func TestToolbarIsSizedToItsValue(t *testing.T) {
 	w := picker.RenderToolbar(defaultShaper(t), "Anthropic · Opus 5", tokens.PlatformLight,
+		tokens.PlatformLight.SidebarMaterial,
 		tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
 		tokens.Comfortable, picker.ToolbarState{})
 	dims := measure(t, image.Pt(400, 200), w)

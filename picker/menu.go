@@ -17,6 +17,7 @@ import (
 	"github.com/vibrantgio/components/list"
 	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/mvu"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
@@ -347,7 +348,7 @@ func stackRows(gtx layout.Context, rows *list.State, n, capPx int, tok resolvedT
 	for i := range idx {
 		idx[i] = i
 	}
-	bar := scrollbar.FromTokens(tok.platform)
+	bar := scrollbar.FromTokens(tok.platform, tok.platform.ControlBackground)
 	return list.LayoutSelectableScrollbar(viewGtx, rows, bar, list.Overlay, idx, func(gtx layout.Context, i int, _ bool) layout.Dimensions {
 		return row(gtx, i)
 	})
@@ -378,7 +379,8 @@ func rowHeights(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s M
 // never picked apart: they are returned as a pair.
 //
 // THE MENU'S OWN PLANE. A resting row is it: the platform's control
-// background, which is what it fills a menu with, under the platform's label.
+// background, which is what it fills a menu with, under the platform's label
+// flattened onto it.
 //
 // THE SELECTED ROW is the platform's emphasized selection — the fill it draws
 // behind the chosen row of a menu — under the foreground it names for text
@@ -392,7 +394,7 @@ func optionRowColors(p tokens.PlatformColors, selected, hovered bool) (fill, for
 	if selected || hovered {
 		return p.SelectedContentBackground, p.AlternateSelectedControlText
 	}
-	return p.ControlBackground, p.Label
+	return p.ControlBackground, vgcolor.Flatten(p.Label, p.ControlBackground)
 }
 
 // drawOptionRow renders a single option row.

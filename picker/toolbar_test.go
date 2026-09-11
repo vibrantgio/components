@@ -12,6 +12,7 @@ import (
 
 	"github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/picker"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -66,9 +67,9 @@ const toolbarValue = "OpenAI · gpt-5.5"
 
 // toolbar is RenderToolbar at the default spacing, radius and comfortable
 // density — the resolved tokens every measurement and image below draws with.
-func toolbar(t *testing.T, p tokens.PlatformColors, s picker.ToolbarState) layout.Widget {
+func toolbar(t *testing.T, p tokens.PlatformColors, chrome color.NRGBA, s picker.ToolbarState) layout.Widget {
 	t.Helper()
-	return picker.RenderToolbar(defaultShaper(t), toolbarValue, p,
+	return picker.RenderToolbar(defaultShaper(t), toolbarValue, p, chrome,
 		tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
 		tokens.Comfortable, s)
 }
@@ -82,7 +83,7 @@ func TestToolbarGoldenOnEverySurface(t *testing.T) {
 		for _, g := range goldenSurfaces {
 			name := "toolbar-" + sc.name + "-" + g.name
 			t.Run(name, func(t *testing.T) {
-				w := toolbar(t, sc.p, picker.ToolbarState{})
+				w := toolbar(t, sc.p, g.fill(sc.p), picker.ToolbarState{})
 				golden.Render(t, name, goldenSize, onSurface(g.fill(sc.p), w))
 			})
 		}
@@ -107,7 +108,7 @@ func TestToolbarStateGolden(t *testing.T) {
 		for _, st := range states {
 			name := "toolbar-" + sc.name + "-" + st.name
 			t.Run(name, func(t *testing.T) {
-				w := toolbar(t, sc.p, st.s)
+				w := toolbar(t, sc.p, sc.p.SidebarMaterial, st.s)
 				golden.Render(t, name, goldenSize, onSurface(sc.p.SidebarMaterial, w))
 			})
 		}
@@ -133,6 +134,7 @@ func TestToolbarDrawsAtTheDensityTable(t *testing.T) {
 	} {
 		t.Run(d.name, func(t *testing.T) {
 			trigger := measure(t, box, picker.RenderToolbar(shaper, "Model", tokens.PlatformLight,
+				tokens.PlatformLight.SidebarMaterial,
 				tokens.Spacing, tokens.Radius, d.ts, d.d, picker.ToolbarState{})).Size
 			if trigger.Y != d.want {
 				t.Errorf("toolbar height %d, want %d — max(ControlHeight %g, %g + 2×%g)",
@@ -155,7 +157,7 @@ func TestToolbarDrawsAtTheDensityTable(t *testing.T) {
 func TestToolbarMarkIsSteadyAcrossTheWalk(t *testing.T) {
 	box := image.Pt(1000, 1000)
 	size := func(s picker.ToolbarState) image.Point {
-		return measure(t, box, toolbar(t, tokens.PlatformDark, s)).Size
+		return measure(t, box, toolbar(t, tokens.PlatformDark, tokens.PlatformDark.SidebarMaterial, s)).Size
 	}
 	rest := size(picker.ToolbarState{})
 	for _, tc := range []struct {
@@ -176,20 +178,23 @@ func TestToolbarMarkIsSteadyAcrossTheWalk(t *testing.T) {
 // TestToolbarFillIsThePlatformsOverlay pins the passthrough by name: a toolbar
 // button is the one control on this platform that tints under the pointer, so
 // the trigger lays nothing at all over the chrome at rest and the platform's
-// own two overlays over it under the pointer and while it is held.
+// own two overlays over it under the pointer and while it is held — each
+// resolved against the chrome, because the platform composites a coverage in
+// encoded sRGB and Gio's rasterizer would not.
 func TestToolbarFillIsThePlatformsOverlay(t *testing.T) {
 	for _, sc := range goldenSchemes {
 		t.Run(sc.name, func(t *testing.T) {
+			chrome := sc.p.SidebarMaterial
 			for _, tc := range []struct {
 				name  string
 				state tokens.State
 				want  color.NRGBA
 			}{
 				{"at rest", tokens.StateNormal, color.NRGBA{}},
-				{"hovered", tokens.StateHover, sc.p.HoverOverlay},
-				{"pressed", tokens.StatePressed, sc.p.PressOverlay},
+				{"hovered", tokens.StateHover, vgcolor.Flatten(sc.p.HoverOverlay, chrome)},
+				{"pressed", tokens.StatePressed, vgcolor.Flatten(sc.p.PressOverlay, chrome)},
 			} {
-				if got := picker.ToolbarFill(sc.p, tc.state); got != tc.want {
+				if got := picker.ToolbarFill(sc.p, tc.state, chrome); got != tc.want {
 					t.Errorf("%s: ToolbarFill = %v, want %v", tc.name, got, tc.want)
 				}
 			}

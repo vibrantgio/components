@@ -11,7 +11,7 @@
 // The colour is the platform's and nothing is derived from it. The platform
 // publishes keyboardFocusIndicatorColor as the accent at half coverage, so
 // the ring composites over whatever lies under it and reads there without
-// being measured against it.
+// being measured against it. The caller says what that is; see [Ring].
 //
 // # Where the ring goes, and what lies inside it
 //
@@ -30,6 +30,7 @@ import (
 
 	"gioui.org/unit"
 
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -38,11 +39,14 @@ import (
 // it does not thin out when the controls around it tighten.
 const Width = unit.Dp(2)
 
-// Ring is the colour every focused control in this library draws its ring
-// in: the platform's keyboard focus indicator, taken by name.
+// Ring is the colour a focused control draws its ring in: the platform's
+// keyboard focus indicator, flattened over beneath — the opaque fill the
+// ring's band lies on, which is the control's own fill where the band is
+// inside it and the surface the control stands on where it is not.
 //
-// One colour for every control on every surface. The platform's own value
-// carries its coverage, so the ring composites over the fill it lies on and
-// needs no second answer for a control that fills its box and one that does
-// not.
-func Ring(p tokens.PlatformColors) color.NRGBA { return p.KeyboardFocusIndicator }
+// One name for every control on every surface. The platform's value carries
+// its coverage, so what the ring lands as is the coverage and the fill under
+// it, and nothing else: no control needs a second answer.
+func Ring(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
+	return vgcolor.Flatten(p.KeyboardFocusIndicator, beneath)
+}

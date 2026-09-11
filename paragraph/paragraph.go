@@ -47,6 +47,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/vibrantgio/components/internal/focus"
+	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -162,8 +163,10 @@ type Style struct {
 	// FocusColor is the focus-ring colour drawn around the focused link.
 	FocusColor color.NRGBA
 	// HoverColor is laid over a link's own colour while the pointer is on
-	// it. It carries its own coverage, so one value moves a link of any
-	// colour in the direction the appearance calls for.
+	// it, in the space the platform composites in. It carries its own
+	// coverage, so one value moves a link of any colour in the direction the
+	// appearance calls for; it is never painted, only blended, so nothing
+	// downstream is handed a coverage.
 	HoverColor color.NRGBA
 	// Size is the text size for spans with a zero Size.
 	Size unit.Sp
@@ -208,6 +211,10 @@ type Style struct {
 // element with, and the role's own size and line height. Pass
 // tokens.DefaultTypography.BodyLarge for the default desktop look.
 //
+// standsOn is the opaque fill the paragraph is drawn on. The focus ring
+// carries a coverage rather than a colour, so what it lands as depends on
+// what is under it; the zero value — no colour — is the window's own plane.
+//
 // Of the role's style Size and LineHeight land in [Style]: a paragraph's
 // typeface, weight and slant are per-span properties, carried by each
 // [SpanStyle], while the size and the line box belong to the paragraph as a
@@ -216,11 +223,11 @@ type Style struct {
 // FromTokens takes the whole [tokens.TextStyle] anyway so the role stays one
 // value from theme to paragraph — and takes no [tokens.Density], which sizes
 // controls and so has nothing to say about a paragraph.
-func FromTokens(p tokens.PlatformColors, body tokens.TextStyle) Style {
+func FromTokens(p tokens.PlatformColors, body tokens.TextStyle, standsOn color.NRGBA) Style {
 	return Style{
 		Color:      p.Text,
 		LinkColor:  p.Link,
-		FocusColor: focus.Ring(p),
+		FocusColor: focus.Ring(p, surface.Or(standsOn, p.WindowBackground)),
 		HoverColor: p.HoverOverlay,
 		Size:       unit.Sp(body.Size),
 		LineHeight: unit.Sp(body.LineHeight),

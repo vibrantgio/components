@@ -220,8 +220,9 @@ func shiftFills(fills []spanFill, n int) []spanFill {
 }
 
 // hoverBlend is the hover treatment for link text: the platform's hover
-// overlay composited onto the link's own colour, keeping that colour's own
-// coverage. An overlay of alpha zero leaves the link where it was.
+// overlay flattened onto the link's own colour in the space the platform
+// composites in, keeping that colour's own coverage. An overlay of alpha
+// zero leaves the link where it was.
 //
 // The composite is taken here rather than painted as a second pass because
 // what moves is the colour of a run of glyphs, not a fill behind them: two
@@ -230,7 +231,7 @@ func hoverBlend(base, overlay color.NRGBA) color.NRGBA {
 	if overlay.A == 0 {
 		return base
 	}
-	out := vgcolor.Over(overlay, base)
+	out := vgcolor.Flatten(overlay, base)
 	out.A = base.A
 	return out
 }

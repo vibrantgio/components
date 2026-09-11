@@ -48,7 +48,9 @@ import (
 	"gioui.org/unit"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/internal/surface"
 	complayout "github.com/vibrantgio/components/layout"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
@@ -84,6 +86,12 @@ type Props struct {
 	// layout.Widget out on the one goroutine that runs the event loop,
 	// which is what makes sharing it correct. See theme/tokens.Typography.Shaper.
 	Shaper *text.Shaper
+
+	// Surface is the opaque fill the box stands on. Its hairline is painted
+	// as a shape the box's own fill is inset inside, so the platform's
+	// separator — a coverage rather than a colour — lands on this. The zero
+	// value — no colour — is the window's own plane.
+	Surface color.NRGBA
 }
 
 // Alert returns an rx.Observable[layout.Widget] that emits a new one
@@ -160,6 +168,10 @@ func drawAlert(gtx layout.Context, shaper *text.Shaper, props Props, colors toke
 
 	mark := Mark(colors, props.Status)
 	bg := colors.ControlBackground
+	// The hairline lands on the surface the box stands on and the title on
+	// the box's own fill, so each of the platform's names is flattened onto
+	// what is actually under it.
+	edge := vgcolor.Flatten(colors.Separator, surface.Or(props.Surface, colors.WindowBackground))
 
 	// The content is measured before the box is filled, so the fill can
 	// be laid under the depth the words actually took. Recording it keeps
@@ -183,7 +195,7 @@ func drawAlert(gtx layout.Context, shaper *text.Shaper, props Props, colors toke
 	// components/input draws a field's edge by. A stroke is centred on its
 	// path, so a one-dp line laid on the box's own edge spends half its
 	// coverage outside the box: the separator, black at a tenth, reached a
-	// white page as two rows near #f9f9f9 where one row of #e6e6e6 was owed,
+	// white page as two rows of half coverage where one whole row was owed,
 	// and the box read as having no edge at all. Filling the box in the
 	// separator and the inset box in the fill lands the hairline on whole
 	// pixels at the coverage the platform recorded.
@@ -194,7 +206,7 @@ func drawAlert(gtx layout.Context, shaper *text.Shaper, props Props, colors toke
 		Rect: image.Rectangle{Min: image.Pt(edgePx, edgePx), Max: size.Sub(image.Pt(edgePx, edgePx))},
 		SE:   innerR, SW: innerR, NE: innerR, NW: innerR,
 	}
-	paint.FillShape(gtx.Ops, colors.Separator, rrect.Op(gtx.Ops))
+	paint.FillShape(gtx.Ops, edge, rrect.Op(gtx.Ops))
 	paint.FillShape(gtx.Ops, bg, innerBox.Op(gtx.Ops))
 	content.Add(gtx.Ops)
 
@@ -216,7 +228,7 @@ func contentColumn(shaper *text.Shaper, props Props, colors tokens.PlatformColor
 	return func(gtx layout.Context) layout.Dimensions {
 		var ws []layout.Widget
 		if props.Title != "" {
-			ws = append(ws, titleWidget(shaper, props.Title, colors.Label, title))
+			ws = append(ws, titleWidget(shaper, props.Title, vgcolor.Flatten(colors.Label, colors.ControlBackground), title))
 		}
 		if props.Body != nil {
 			if len(ws) > 0 {

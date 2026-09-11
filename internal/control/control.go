@@ -12,6 +12,7 @@ package control
 import (
 	"image/color"
 
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -30,5 +31,8 @@ func Fill(p tokens.PlatformColors) color.NRGBA { return p.TextBackground }
 // Placeholder is the foreground a control's prompt is drawn in: the wording
 // a text field or a picker's field trigger shows in the space its value will
 // occupy, while there is no value there yet. It is the platform's
-// placeholder text, which composites over the field's fill.
-func Placeholder(p tokens.PlatformColors) color.NRGBA { return p.PlaceholderText }
+// placeholder text flattened over beneath — the control's own fill, which is
+// [Fill] for a text field and the push button's for a picker's trigger.
+func Placeholder(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
+	return vgcolor.Flatten(p.PlaceholderText, beneath)
+}

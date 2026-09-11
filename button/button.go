@@ -19,7 +19,9 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/hit"
+	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/mvu"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
@@ -112,6 +114,15 @@ type RenderState struct {
 	Fill   color.NRGBA
 	OnFill color.NRGBA
 
+	// Surface is the opaque fill the button stands on. The platform's press
+	// overlay, its seam, its control text and its disabled text all carry a
+	// coverage rather than a colour, so what each lands as depends on what is
+	// under it; the button flattens them and hands Gio opaque fills. It
+	// matters wherever the button carries no fill of its own — a Ghost
+	// button's label and a held Ghost button's tint stand straight on it. The
+	// zero value — no colour — is the window's own plane.
+	Surface color.NRGBA
+
 	Hovered  bool
 	Focused  bool
 	Pressed  bool
@@ -143,6 +154,13 @@ type Props struct {
 	// way. See RenderState.Fill.
 	Fill   color.NRGBA
 	OnFill color.NRGBA
+
+	// Surface is the opaque fill the button stands on, copied straight into
+	// RenderState on every frame. Set it where the button does not stand on
+	// the window's own plane — on a card, a selected row, a coloured fill —
+	// so that the platform's press overlay, seam and text land as they do
+	// there. See RenderState.Surface.
+	Surface color.NRGBA
 
 	// Icon, when non-nil and Label is empty, renders the button as a compact
 	// icon-only affordance: a square the density's control height on a side
@@ -298,6 +316,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 						Emphasis: props.Emphasis,
 						Fill:     props.Fill,
 						OnFill:   props.OnFill,
+						Surface:  props.Surface,
 						Hovered:  hov,
 						Focused:  foc,
 						Pressed:  prs,
@@ -393,7 +412,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	rad := gtx.Dp(unit.Dp(tok.radius.Md)) // 6 dp corner radius
 
-	bg, overlay, edge, fg := buttonColors(tok.platform, s)
+	bg, edge, fg, ring := buttonColors(tok.platform, s)
 
 	// Record the label's paint material — replayed inside the label layout.
 	mColor := op.Record(gtx.Ops)
@@ -432,17 +451,13 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	btnSize := image.Pt(btnW, btnH)
 
 	// The fill, then the hairline the platform draws around an ordinary
-	// button, then the overlay the platform lays over a held one. Each is
-	// painted rather than composited: the platform's own values carry their
-	// coverage, so what lies beneath the button shows through exactly as
-	// far as it should.
+	// button. Both are opaque: buttonColors has already laid the platform's
+	// press overlay into the fill and the seam onto that, so nothing here
+	// asks Gio to composite a coverage.
 	rrect := clip.RRect{Rect: image.Rectangle{Max: btnSize}, SE: rad, SW: rad, NE: rad, NW: rad}
 	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
 	if edge.A != 0 {
 		strokeRRect(gtx, btnSize, rad, edge)
-	}
-	if overlay.A != 0 {
-		paint.FillShape(gtx.Ops, overlay, rrect.Op(gtx.Ops))
 	}
 
 	// Focus ring: the button's outermost 2 dp, inset in its own background.
@@ -450,7 +465,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	// visibility is not a prominence property, so a ghost button's ring is
 	// exactly a filled one's.
 	if s.Focused {
-		drawFocusRing(gtx, btnSize, rad, focus.Ring(tok.platform))
+		drawFocusRing(gtx, btnSize, rad, ring)
 	}
 
 	// Replay the label centered within the button.
@@ -485,20 +500,17 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 	rad := gtx.Dp(unit.Dp(tok.radius.Md)) // 6 dp corner radius
 	sz := image.Pt(side, side)
 
-	bg, overlay, edge, fg := buttonColors(tok.platform, s)
+	bg, edge, fg, ring := buttonColors(tok.platform, s)
 
 	rrect := clip.RRect{Rect: image.Rectangle{Max: sz}, SE: rad, SW: rad, NE: rad, NW: rad}
 	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
 	if edge.A != 0 {
 		strokeRRect(gtx, sz, rad, edge)
 	}
-	if overlay.A != 0 {
-		paint.FillShape(gtx.Ops, overlay, rrect.Op(gtx.Ops))
-	}
 
 	// Focus ring, matching drawButton.
 	if s.Focused {
-		drawFocusRing(gtx, sz, rad, focus.Ring(tok.platform))
+		drawFocusRing(gtx, sz, rad, ring)
 	}
 
 	// Glyph, centred within the padded square.
@@ -583,9 +595,16 @@ func strokeRRect(gtx layout.Context, size image.Point, rad int, col color.NRGBA)
 }
 
 // buttonColors returns what the button paints for the given variant and
-// interaction state: the fill, the overlay laid over that fill, the hairline
-// around it, and the foreground of the label or glyph. An unused part comes
+// interaction state: the fill, the hairline around it, the foreground of the
+// label or glyph, and the ring a focused button wears. An unused part comes
 // back at alpha zero, which is no colour a fill could use.
+//
+// Every one of them is opaque. The platform's press overlay, seam, control
+// text and disabled text each carry a coverage, and the platform composites
+// those in encoded sRGB where Gio's rasterizer would composite them in
+// linear light, so each is flattened here onto the fill it actually lands
+// on — the button's own where it has one and RenderState.Surface where it
+// does not — and Gio is handed a colour rather than a coverage.
 //
 // Every one of them is a platform name:
 //
@@ -615,14 +634,13 @@ func strokeRRect(gtx layout.Context, size image.Point, rad int, col color.NRGBA)
 //
 // Focus is a persistent state and not a treatment that replaces another: in
 // every variant it keeps the resting fill and adds the ring.
-func buttonColors(p tokens.PlatformColors, s RenderState) (bg, overlay, edge, fg color.NRGBA) {
-	if s.Pressed && !s.Disabled {
-		overlay = p.PressOverlay
-	}
+func buttonColors(p tokens.PlatformColors, s RenderState) (bg, edge, fg, ring color.NRGBA) {
+	standsOn := surface.Or(s.Surface, p.WindowBackground)
 
+	var edged bool
 	switch s.Emphasis {
 	case Tonal:
-		bg, edge, fg = p.PushButtonFill, p.Separator, p.ControlText
+		bg, edged, fg = p.PushButtonFill, true, p.ControlText
 
 	case Ghost:
 		fg = p.ControlText
@@ -636,13 +654,35 @@ func buttonColors(p tokens.PlatformColors, s RenderState) (bg, overlay, edge, fg
 	}
 
 	if s.Disabled {
-		overlay = color.NRGBA{}
 		fg = p.DisabledControlText
 		if s.Emphasis != Ghost {
-			bg, edge = p.PushButtonFill, p.Separator
+			bg, edged = p.PushButtonFill, true
 		}
 	}
-	return
+
+	// The press overlay goes onto whatever fill the variant carries, and
+	// straight onto the surface where it carries none — which is how a held
+	// Ghost button gets a fill at all. Everything the button draws over that
+	// result is then flattened onto it, hairline included: the platform's
+	// seam over a held button is over the held fill.
+	if s.Pressed && !s.Disabled {
+		bg = vgcolor.Flatten(p.PressOverlay, fillOr(bg, standsOn))
+	}
+	beneath := fillOr(bg, standsOn)
+	if edged {
+		edge = vgcolor.Flatten(p.Separator, beneath)
+	}
+	return bg, edge, vgcolor.Flatten(fg, beneath), focus.Ring(p, beneath)
+}
+
+// fillOr returns the button's own fill, or what it stands on where it has
+// none: alpha zero is no fill, so the surface is what lies under the part
+// being drawn.
+func fillOr(bg, standsOn color.NRGBA) color.NRGBA {
+	if bg.A == 0 {
+		return standsOn
+	}
+	return bg
 }
 
 // pinnedFill reports whether the state carries a fill pin the Filled

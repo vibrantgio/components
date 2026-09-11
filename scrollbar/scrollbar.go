@@ -14,6 +14,8 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 
+	"github.com/vibrantgio/components/internal/surface"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -49,8 +51,9 @@ func NewState() *State {
 // in the content. Derive defaults with FromTokens and override fields as
 // needed.
 type Style struct {
-	// ThumbColor fills the thumb. It is translucent, so it composites over
-	// whatever the bar rides.
+	// ThumbColor fills the thumb. FromTokens flattens the platform's knob
+	// onto what the bar rides, so this is opaque; its alpha is what the fade
+	// scales, and nothing but the fade makes the bar translucent.
 	ThumbColor color.NRGBA
 	// TrackColor fills the track gutter. The zero value draws nothing.
 	TrackColor color.NRGBA
@@ -83,7 +86,7 @@ type Style struct {
 	//
 	// FromTokens takes the platform's find highlight at a coverage, so what
 	// the bar paints and what the content itself is highlighted with are the
-	// same fill. It composites over whatever the track shows.
+	// same fill, and flattens it onto what the bar rides.
 	MatchFill color.NRGBA
 	// CurrentMatchFill paints the match named by Current, so the reader can
 	// tell it from the others while stepping through them.
@@ -125,9 +128,14 @@ const (
 // FromTokens derives the default scrollbar look from the platform's colour
 // set.
 //
-// The thumb is the platform's own knob colour, and it is translucent: content
-// shows through an overlay bar. Nothing is composited here — the thumb is
-// painted over whatever the bar rides and mixes there.
+// rides is the opaque fill the bar rides — the content's own, unless the
+// caller put the bar on something else. The platform's knob is its label's
+// black or white at a measured coverage, and the platform composites that in
+// encoded sRGB where Gio's rasterizer would composite it in linear light, so
+// the coverage is flattened onto rides here and the bar paints an opaque
+// thumb. What shows through an overlay bar is therefore the fill the caller
+// named and not the glyphs under it; only the fade makes the thumb
+// translucent again.
 //
 // The bar fades: it is fully present while the content scrolls or the pointer
 // is on the gutter, then fades out a second after the last of either, which is
@@ -141,22 +149,21 @@ const (
 // What the bar paints for a search query does not fade with the thumb: the
 // places of the matches stay in the track for as long as the query does, and a
 // reader who has just searched is looking for exactly them. Both fills are
-// laid over what the track shows — this track is transparent, so what they
-// land on is the content the bar rides, and a Style that gives the track a
-// fill of its own lays them over that instead.
-func FromTokens(p tokens.PlatformColors) Style {
+// flattened onto rides, for the same reason the thumb is.
+func FromTokens(p tokens.PlatformColors, rides color.NRGBA) Style {
+	rides = surface.Or(rides, p.ControlBackground)
 	match, currentMatch := p.FindHighlight, p.FindHighlight
 	match.A, currentMatch.A = matchCoverage, currentMatchCoverage
 	return Style{
-		ThumbColor:        p.ScrollbarThumb,
+		ThumbColor:        vgcolor.Flatten(p.ScrollbarThumb, rides),
 		TrackColor:        color.NRGBA{}, // transparent: the content shows through
 		ThumbMinorWidth:   6,
 		TrackPadding:      2,
 		ThumbCornerRadius: 3,
 		ThumbMinLen:       16,
 		Current:           -1,
-		MatchFill:         match,
-		CurrentMatchFill:  currentMatch,
+		MatchFill:         vgcolor.Flatten(match, rides),
+		CurrentMatchFill:  vgcolor.Flatten(currentMatch, rides),
 		MatchLen:          3,
 		FadeDelay:         time.Second,
 		FadeDuration:      tokens.Motion.DurSlow,

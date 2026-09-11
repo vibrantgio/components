@@ -13,7 +13,6 @@ import (
 	"gioui.org/unit"
 
 	golden "github.com/vibrantgio/components/golden"
-	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -53,24 +52,18 @@ func at(img *image.RGBA, x, y int) color.NRGBA {
 	return color.NRGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
 }
 
-// Every fill the bar paints carries a coverage — the thumb and both match
-// fills are translucent by design — so a pixel gate reads the composite the
-// rasterizer wrote and not the fill it was handed. vgcolor.Over blends in
-// linear light, which is where Gio blends.
-//
-// onSurface is what one fill lands as directly on the plane behind the bar;
-// onThumb is what it lands as where the thumb is under it.
-func onSurface(fill color.NRGBA, p tokens.PlatformColors) color.NRGBA {
-	return vgcolor.Over(fill, p.ControlBackground)
-}
+// Every fill the bar paints is opaque: FromTokens flattens the platform's
+// knob and both match fills onto what the bar rides, in encoded sRGB, which
+// is where the platform composites. So a pixel gate reads the fill the bar
+// was handed, whichever of the two it is drawn over, and a match painted
+// over the thumb is the match and not a blend with it.
+func onSurface(fill color.NRGBA, _ tokens.PlatformColors) color.NRGBA { return fill }
 
-func onThumb(fill color.NRGBA, p tokens.PlatformColors) color.NRGBA {
-	return vgcolor.Over(fill, vgcolor.Over(p.ScrollbarThumb, p.ControlBackground))
-}
+func onThumb(fill color.NRGBA, _ tokens.PlatformColors) color.NRGBA { return fill }
 
 // near reports whether two pixels agree to within one 255th per channel:
-// the rasterizer and vgcolor.Over both blend in linear light but quantize
-// independently.
+// the rasterizer antialiases the edges of what it is handed, so a sample
+// beside one lands a level away.
 func near(got, want color.NRGBA) bool {
 	diff := func(a, b uint8) int {
 		if a > b {
@@ -107,7 +100,7 @@ func TestMatchesPaintWhereTheyLieInTheTrack(t *testing.T) {
 		p    tokens.PlatformColors
 	}{{"light", tokens.PlatformLight}, {"dark", tokens.PlatformDark}} {
 		t.Run(scheme.name, func(t *testing.T) {
-			style := FromTokens(scheme.p)
+			style := FromTokens(scheme.p, scheme.p.ControlBackground)
 			style.Current = current
 			for _, r := range rows {
 				style.Matches = append(style.Matches, r.fraction)
@@ -168,13 +161,16 @@ func TestTheThumbNeverHidesAMatch(t *testing.T) {
 		p    tokens.PlatformColors
 	}{{"light", tokens.PlatformLight}, {"dark", tokens.PlatformDark}} {
 		t.Run(scheme.name, func(t *testing.T) {
-			style := FromTokens(scheme.p)
+			style := FromTokens(scheme.p, scheme.p.ControlBackground)
 			style.Matches = []float32{0.5}
 			img := barPixels(t, scheme.p, style, NewState(), time.Time{}, 0.4, 0.6)
 			// The match over the thumb, and the same match had it been
 			// drawn under the thumb instead.
 			want := onThumb(style.MatchFill, scheme.p)
-			under := vgcolor.Over(scheme.p.ScrollbarThumb, onSurface(style.MatchFill, scheme.p))
+			// Had the match been drawn UNDER the thumb, the thumb — opaque
+			// since it is the platform's coverage already resolved — would
+			// have covered it entirely.
+			under := style.ThumbColor
 			if near(want, under) {
 				t.Fatalf("the two drawing orders land on the same pixel %v; this test cannot tell them apart", want)
 			}
@@ -201,7 +197,7 @@ func TestNothingIsPaintedWithoutMatches(t *testing.T) {
 		p    tokens.PlatformColors
 	}{{"light", tokens.PlatformLight}, {"dark", tokens.PlatformDark}} {
 		t.Run(scheme.name, func(t *testing.T) {
-			style := FromTokens(scheme.p)
+			style := FromTokens(scheme.p, scheme.p.ControlBackground)
 			img := barPixels(t, scheme.p, style, NewState(), time.Time{}, 0.4, 0.6)
 			bounds := img.Bounds()
 			for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
@@ -223,7 +219,7 @@ func TestNothingIsPaintedWithoutMatches(t *testing.T) {
 // lie stays for as long as the query does.
 func TestTheMatchesStayWhileTheThumbFades(t *testing.T) {
 	p := tokens.PlatformLight
-	style := FromTokens(p)
+	style := FromTokens(p, p.ControlBackground)
 	style.Matches = []float32{0.25}
 	state := NewState()
 	t0 := time.Unix(1700000000, 0)

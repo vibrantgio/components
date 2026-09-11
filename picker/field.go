@@ -22,6 +22,7 @@ import (
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/hit"
 	"github.com/vibrantgio/components/list"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
@@ -595,8 +596,9 @@ func floatMenu(gtx layout.Context, d Drop, tok resolvedTokens, trigger op.CallOp
 // it running into text on the other reads as corruption rather than as two
 // surfaces.
 //
-// The line is the platform's seam, laid over whatever is beneath it, one dp
-// wide. The geometry is patterns/popover's, because they are the same surface.
+// The line is the platform's seam flattened over the menu's own plane — it is
+// drawn inside the box, so that plane is what lies under it — one dp wide.
+// The geometry is patterns/popover's, because they are the same surface.
 //
 // It is drawn INSIDE the box the menu reported, on all four sides, so the edge
 // costs the plane no height and the two drop directions are one drawing.
@@ -608,7 +610,7 @@ func planeEdge(gtx layout.Context, size image.Point, p tokens.PlatformColors) {
 	if w < 1 {
 		w = 1
 	}
-	border := p.Separator
+	border := vgcolor.Flatten(p.Separator, p.ControlBackground)
 	for _, r := range [...]image.Rectangle{
 		{Max: image.Pt(size.X, w)},
 		{Min: image.Pt(0, size.Y-w), Max: size},
@@ -675,12 +677,18 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 		label = s.Placeholder
 	}
 
-	textCol := tok.platform.ControlText
+	// The trigger is the platform's ordinary button, so its fill is the push
+	// button's own measured fill, and every name the trigger draws over that
+	// fill is flattened onto it. A disabled trigger keeps the fill: the
+	// platform fades the wording and leaves the control.
+	bg := tok.platform.PushButtonFill
+
+	textCol := vgcolor.Flatten(tok.platform.ControlText, bg)
 	if prompt {
-		textCol = control.Placeholder(tok.platform)
+		textCol = control.Placeholder(tok.platform, bg)
 	}
 	if s.Disabled {
-		textCol = tok.platform.DisabledControlText
+		textCol = vgcolor.Flatten(tok.platform.DisabledControlText, bg)
 	}
 
 	// Reserve space for chevron: padH on the right side plus chevron width.
@@ -708,18 +716,14 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	}
 	triggerSize := image.Pt(fieldW, triggerH)
 
-	// The trigger is the platform's ordinary button, so its fill is the push
-	// button's own measured fill. A disabled trigger keeps it: the platform
-	// fades the wording and leaves the control.
-	bg := tok.platform.PushButtonFill
-	// At rest the edge is the platform's seam, laid over whatever is beneath
-	// it. Focus replaces it with the ring, the one idiom every control in the
-	// library wears, so a focused trigger in a dialog draws the same pixel as
-	// a focused control on the content behind it.
-	borderCol := tok.platform.Separator
+	// At rest the edge is the platform's seam over the fill it is banded
+	// onto. Focus replaces it with the ring, the one idiom every control in
+	// the library wears, so a focused trigger in a dialog draws the same
+	// pixel as a focused control on the content behind it.
+	borderCol := vgcolor.Flatten(tok.platform.Separator, bg)
 	borderPx := gtx.Dp(1)
 	if s.Focused {
-		borderCol = focus.Ring(tok.platform)
+		borderCol = focus.Ring(tok.platform, bg)
 		borderPx = gtx.Dp(focus.Width)
 	}
 	innerRad := rad - borderPx
@@ -728,9 +732,8 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	}
 
 	// The fill inside the edge's shape, and the edge as a band laid ON it
-	// rather than as a shape beneath it. Both carry their own coverage, so a
-	// fill painted over the whole of the edge's shape would carry the edge's
-	// colour across the entire interior instead of leaving it a hairline.
+	// rather than as a shape beneath it, so that the edge stays a hairline
+	// instead of showing wherever the fill does not cover it exactly.
 	//
 	// The band is a stroke of twice the edge's width centred on the shape's
 	// outline and clipped to that shape, which puts every pixel of it inside
@@ -761,9 +764,9 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	// menu opens, which is the whole of what it has to say. See [Drop].
 	cx := fieldW - padH - chevronSz/2
 	cy := triggerH / 2
-	chevronCol := tok.platform.SecondaryLabel
+	chevronCol := vgcolor.Flatten(tok.platform.SecondaryLabel, bg)
 	if s.Disabled {
-		chevronCol = tok.platform.DisabledControlText
+		chevronCol = vgcolor.Flatten(tok.platform.DisabledControlText, bg)
 	}
 	drawChevron(gtx, cx, cy, chevronSz, chevronCol, s.Drop == DropUp)
 
