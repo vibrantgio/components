@@ -40,10 +40,10 @@ func intTrigger() layout.Widget {
 
 func intTok() resolvedTokens {
 	return resolvedTokens{
-		color:   tokens.DefaultLight,
-		spacing: tokens.Spacing,
-		radius:  tokens.RadiusScale{},
-		style:   tokens.DefaultTypography.LabelSmall,
+		platform: tokens.PlatformLight,
+		spacing:  tokens.Spacing,
+		radius:   tokens.RadiusScale{},
+		style:    tokens.DefaultTypography.LabelSmall,
 	}
 }
 

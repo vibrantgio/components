@@ -44,12 +44,12 @@ func TestEmphasisTakesThePlatformsNames(t *testing.T) {
 			{"filled hovered", RenderState{Hovered: true}, p.ControlAccent, transparent, transparent, p.AlternateSelectedControlText},
 			{"filled focused", RenderState{Focused: true}, p.ControlAccent, transparent, transparent, p.AlternateSelectedControlText},
 			{"filled pressed", RenderState{Pressed: true}, p.ControlAccent, p.PressOverlay, transparent, p.AlternateSelectedControlText},
-			{"filled disabled", RenderState{Disabled: true}, p.Control, transparent, p.Separator, p.DisabledControlText},
+			{"filled disabled", RenderState{Disabled: true}, p.PushButtonFill, transparent, p.Separator, p.DisabledControlText},
 
-			{"tonal rest", RenderState{Emphasis: Tonal}, p.Control, transparent, p.Separator, p.ControlText},
-			{"tonal hovered", RenderState{Emphasis: Tonal, Hovered: true}, p.Control, transparent, p.Separator, p.ControlText},
-			{"tonal pressed", RenderState{Emphasis: Tonal, Pressed: true}, p.Control, p.PressOverlay, p.Separator, p.ControlText},
-			{"tonal disabled", RenderState{Emphasis: Tonal, Disabled: true}, p.Control, transparent, p.Separator, p.DisabledControlText},
+			{"tonal rest", RenderState{Emphasis: Tonal}, p.PushButtonFill, transparent, p.Separator, p.ControlText},
+			{"tonal hovered", RenderState{Emphasis: Tonal, Hovered: true}, p.PushButtonFill, transparent, p.Separator, p.ControlText},
+			{"tonal pressed", RenderState{Emphasis: Tonal, Pressed: true}, p.PushButtonFill, p.PressOverlay, p.Separator, p.ControlText},
+			{"tonal disabled", RenderState{Emphasis: Tonal, Disabled: true}, p.PushButtonFill, transparent, p.Separator, p.DisabledControlText},
 
 			{"ghost rest", RenderState{Emphasis: Ghost}, transparent, transparent, transparent, p.ControlText},
 			{"ghost hovered", RenderState{Emphasis: Ghost, Hovered: true}, transparent, transparent, transparent, p.ControlText},

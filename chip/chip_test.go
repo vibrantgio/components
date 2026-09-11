@@ -67,9 +67,9 @@ func defaultShaper(t *testing.T) *text.Shaper {
 // onPage paints the whole frame in the platform's window fill and draws w
 // inset inside it, and it has to do both.
 //
-// The page, because the chip's own fill is the platform's control fill, which
-// is that same white in the light appearance: against the headless window's
-// clear colour a correct chip and one that painted nothing look identical.
+// The page, because a chip drawn on the headless window's clear colour is a
+// chip on no plane at all: the light appearance's window fill and the chip's
+// own are both near-white, and the image has to show that they differ.
 // The inset, because a chip drawn at the image origin has the page on two
 // sides and the image edge on the other two, and an image framed that way
 // cannot show whether anything — a ring, a stray half-pixel of rim — spills

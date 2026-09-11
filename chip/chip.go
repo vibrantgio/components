@@ -191,7 +191,8 @@ type Colors struct {
 // A chip is an ordinary small control on this platform, and every colour here
 // is one of the platform's own names:
 //
-//	resting   body Control, rim Separator, words and leading mark ControlText
+//	resting   body PushButtonFill, rim Separator, words and leading mark
+//	          ControlText
 //	selected  body SelectedContentBackground, no rim, words and checkmark
 //	          AlternateSelectedControlText
 //	held      PressOverlay over whichever body the chip started from
@@ -208,7 +209,7 @@ type Colors struct {
 // applies rather than this.
 func Resolve(p tokens.PlatformColors, i Purpose, s RenderState) Colors {
 	col := Colors{
-		Fill:     p.Control,
+		Fill:     p.PushButtonFill,
 		Outline:  p.Separator,
 		Outlined: true,
 		Label:    p.ControlText,

@@ -13,12 +13,16 @@
 // layout.Widget. The source is intentionally short and free of opaque
 // configuration — copy it into your own app and modify as needed.
 //
-// Level 3 is where a tooltip is placed, not what it is filled with:
-// nothing stands on a tooltip, so it takes no surface's fill and is
-// filled inverse — InverseSurface under OnInverseSurface, the other
-// scheme's surface and foreground — so it reads as speech about the
-// thing rather than as a panel. The tooltip and the toast are the
-// inverse pair's two adoptions.
+// Colour: the platform's own names. A tooltip on this platform is the
+// window's own plane — windowBackgroundColor — inside a separatorColor
+// hairline, with its text in labelColor, and it is the same in both
+// appearances. It carries no colour role of its own.
+//
+// No stored capture in the organization's macOS reference holds a tooltip,
+// so the fill, the edge and the text here are the Language's mapping of
+// what a floating annotation is on this platform rather than three numbers
+// read off a capture; the hairline is what a still tooltip is told from its
+// surroundings by, since the cast shadow belongs to whatever places it.
 //
 // THE FLOATING SURFACE PAINTS LAST. The trigger is drawn where the caller
 // put it; the annotation goes through op.Defer. patterns/popover's package
@@ -100,11 +104,11 @@ type Props struct {
 }
 
 type resolvedTokens struct {
-	color   tokens.ColorTokens
-	spacing tokens.SpacingScale
-	radius  tokens.RadiusScale
-	style   tokens.TextStyle // the LabelSmall role: typeface, weight, size, line height
-	shaper  *text.Shaper     // the theme's shaper; nil in the Render path
+	platform tokens.PlatformColors
+	spacing  tokens.SpacingScale
+	radius   tokens.RadiusScale
+	style    tokens.TextStyle // the LabelSmall role: typeface, weight, size, line height
+	shaper   *text.Shaper     // the theme's shaper; nil in the Render path
 	// delay is the show-after-entry delay, the motion scale's DurXSlow
 	// stop. Props.Delay overrides it per instance.
 	delay time.Duration
@@ -120,16 +124,16 @@ func Tooltip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wi
 	// theme's cached shaper; the motion emission supplies the show delay.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest5(t.Color, t.Spacing, t.Radius, t.Typography, t.Motion),
-			func(n rx.Tuple5[tokens.ColorTokens, tokens.SpacingScale, tokens.RadiusScale, tokens.Typography, tokens.MotionScale]) resolvedTokens {
+			rx.CombineLatest5(t.Platform, t.Spacing, t.Radius, t.Typography, t.Motion),
+			func(n rx.Tuple5[tokens.PlatformColors, tokens.SpacingScale, tokens.RadiusScale, tokens.Typography, tokens.MotionScale]) resolvedTokens {
 				typ := n.Fourth
 				return resolvedTokens{
-					color:   n.First,
-					spacing: n.Second,
-					radius:  n.Third,
-					style:   typ.LabelSmall,
-					shaper:  typ.Shaper(),
-					delay:   n.Fifth.DurXSlow,
+					platform: n.First,
+					spacing:  n.Second,
+					radius:   n.Third,
+					style:    typ.LabelSmall,
+					shaper:   typ.Shaper(),
+					delay:    n.Fifth.DurXSlow,
 				}
 			},
 		)
@@ -172,12 +176,12 @@ func Render(
 	shaper *text.Shaper,
 	props Props,
 	shown bool,
-	colors tokens.ColorTokens,
+	colors tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
 	label tokens.TextStyle,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, style: label}
+	tok := resolvedTokens{platform: colors, spacing: sp, radius: rad, style: label}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawStatic(gtx, shaper, props, tok, shown)
 	}
@@ -352,7 +356,7 @@ func drawStatic(
 
 // drawSurface paints the rounded tooltip bubble with the label inside,
 // positioned adjacent to triggerRect per props.Placement. The bubble is
-// filled inverse: InverseSurface under OnInverseSurface.
+// filled with the window's own plane inside a separator hairline.
 //
 // Everything it draws is recorded and handed to op.Defer, so the annotation
 // paints above every sibling the window lays out after the trigger's slot
@@ -375,7 +379,7 @@ func drawSurface(
 	// Pre-record the label with its material so we can replay it inside
 	// the surface at a known offset after measuring it.
 	mColor := op.Record(gtx.Ops)
-	paint.ColorOp{Color: tok.color.OnInverseSurface}.Add(gtx.Ops)
+	paint.ColorOp{Color: tok.platform.Label}.Add(gtx.Ops)
 	material := mColor.Stop()
 	labelGtx := gtx
 	labelGtx.Constraints = layout.Constraints{Max: image.Pt(frame.X*3/4, frame.Y/4)}
@@ -417,7 +421,19 @@ func drawSurface(
 
 	surfOff := op.Offset(pos).Push(gtx.Ops)
 	rect := clip.RRect{Rect: image.Rectangle{Max: image.Pt(surfW, surfH)}, SE: r, SW: r, NE: r, NW: r}
-	paint.FillShape(gtx.Ops, tok.color.InverseSurface, rect.Op(gtx.Ops))
+	// The hairline is the whole of a still tooltip's edge: the fill is the
+	// window's own plane and the shadow belongs to whatever places it. Two
+	// fills rather than a stroke, because a stroke is centred on its path
+	// and spends half its coverage outside the shape; the inset fill lands
+	// the separator on whole pixels at the coverage the platform recorded.
+	edgePx := max(gtx.Dp(1), 1)
+	innerR := max(r-edgePx, 0)
+	inner := clip.RRect{
+		Rect: image.Rectangle{Min: image.Pt(edgePx, edgePx), Max: image.Pt(surfW-edgePx, surfH-edgePx)},
+		SE:   innerR, SW: innerR, NE: innerR, NW: innerR,
+	}
+	paint.FillShape(gtx.Ops, tok.platform.Separator, rect.Op(gtx.Ops))
+	paint.FillShape(gtx.Ops, tok.platform.WindowBackground, inner.Op(gtx.Ops))
 	labelOff := op.Offset(image.Pt(padH, padV)).Push(gtx.Ops)
 	labelCall.Add(gtx.Ops)
 	labelOff.Pop()

@@ -89,17 +89,17 @@ func TestAlertGolden(t *testing.T) {
 	cases := []struct {
 		name   string
 		status alert.Status
-		colors tokens.ColorTokens
+		colors tokens.PlatformColors
 		bg     color.NRGBA
 	}{
-		{"info-light", alert.Info, tokens.DefaultLight, lightBG},
-		{"info-dark", alert.Info, tokens.DefaultDark, darkBG},
-		{"success-light", alert.Success, tokens.DefaultLight, lightBG},
-		{"success-dark", alert.Success, tokens.DefaultDark, darkBG},
-		{"warning-light", alert.Warning, tokens.DefaultLight, lightBG},
-		{"warning-dark", alert.Warning, tokens.DefaultDark, darkBG},
-		{"error-light", alert.Error, tokens.DefaultLight, lightBG},
-		{"error-dark", alert.Error, tokens.DefaultDark, darkBG},
+		{"info-light", alert.Info, tokens.PlatformLight, lightBG},
+		{"info-dark", alert.Info, tokens.PlatformDark, darkBG},
+		{"success-light", alert.Success, tokens.PlatformLight, lightBG},
+		{"success-dark", alert.Success, tokens.PlatformDark, darkBG},
+		{"warning-light", alert.Warning, tokens.PlatformLight, lightBG},
+		{"warning-dark", alert.Warning, tokens.PlatformDark, darkBG},
+		{"error-light", alert.Error, tokens.PlatformLight, lightBG},
+		{"error-dark", alert.Error, tokens.PlatformDark, darkBG},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -116,8 +116,9 @@ func TestAlertGolden(t *testing.T) {
 }
 
 // TestAlertStatusesDiffer confirms each status produces visibly distinct
-// pixels in the same theme. Catches regressions where the Status field
-// silently no-ops.
+// pixels in the same appearance. The status is carried by the glyph alone
+// now, so this is also the gate on that: four alerts whose only coloured
+// part is a 20 dp chevron still have to be four.
 func TestAlertStatusesDiffer(t *testing.T) {
 	shaper := defaultShaper(t)
 	body := fillRect(color.NRGBA{R: 200, G: 200, B: 200, A: 255}, 32)
@@ -125,7 +126,7 @@ func TestAlertStatusesDiffer(t *testing.T) {
 
 	render := func(status alert.Status) *image.RGBA {
 		props := alert.Props{Status: status, Title: statusTitle(status), Body: body, Shaper: shaper}
-		w := alert.Render(shaper, props, tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)
+		w := alert.Render(shaper, props, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)
 		return golden.Capture(t, frameSize, scene(w, bg))
 	}
 
@@ -145,14 +146,14 @@ func TestAlertStatusesDiffer(t *testing.T) {
 	for i := range statuses {
 		for j := i + 1; j < len(statuses); j++ {
 			if n := golden.PixelDiff(imgs[i], imgs[j]); n == 0 {
-				t.Errorf("%s and %s render identically; expected a status-specific accent", statuses[i].name, statuses[j].name)
+				t.Errorf("%s and %s render identically; each status owes its own system colour on the mark", statuses[i].name, statuses[j].name)
 			}
 		}
 	}
 }
 
-// TestAlertLightDarkDiffer confirms swapping the colour token set changes
-// the rendered output.
+// TestAlertLightDarkDiffer confirms swapping the appearance changes the
+// rendered output.
 func TestAlertLightDarkDiffer(t *testing.T) {
 	shaper := defaultShaper(t)
 	body := fillRect(color.NRGBA{R: 200, G: 200, B: 200, A: 255}, 32)
@@ -161,8 +162,8 @@ func TestAlertLightDarkDiffer(t *testing.T) {
 	for _, status := range []alert.Status{alert.Info, alert.Success, alert.Warning, alert.Error} {
 		propsL := alert.Props{Status: status, Title: statusTitle(status), Body: body, Shaper: shaper}
 		propsD := alert.Props{Status: status, Title: statusTitle(status), Body: body, Shaper: shaper}
-		light := alert.Render(shaper, propsL, tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)
-		dark := alert.Render(shaper, propsD, tokens.DefaultDark, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)
+		light := alert.Render(shaper, propsL, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)
+		dark := alert.Render(shaper, propsD, tokens.PlatformDark, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)
 
 		imgLight := golden.Capture(t, frameSize, scene(light, bg))
 		imgDark := golden.Capture(t, frameSize, scene(dark, bg))
@@ -194,7 +195,7 @@ func TestAlertTakesItsContentsDepth(t *testing.T) {
 			Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
 			Ops:         &ops,
 		}
-		return alert.Render(shaper, p, tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)(gtx)
+		return alert.Render(shaper, p, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)(gtx)
 	}
 
 	free := layout.Constraints{Max: image.Pt(frameW, 1000)}

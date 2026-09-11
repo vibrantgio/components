@@ -12,17 +12,21 @@
 // free of opaque configuration — copy it into your own app and modify as
 // needed.
 //
-// Colour: level 2 is where a toast is placed, not what it is filled with.
-// Nothing stands on a toast, so it is filled inverse — the token set's
-// InverseSurface under its OnInverseSurface, the pair built from the
-// counterpart scheme — which reads as speech and is found over any content
-// in either scheme by construction rather than by out-raising it. The
-// status is indicated through the leading edge, never through the fill.
+// Colour: every one of the platform's own names. A toast is a floating
+// surface, so it is filled with the window's own plane —
+// windowBackgroundColor — and its message reads in labelColor. The status
+// is indicated through the leading edge, in the platform's system colour
+// for it: systemGreen, systemOrange, systemRed, systemBlue. Never through
+// the fill, and never inverse: the platform has no inverted surface, and a
+// floating thing is told from what it covers by its shadow.
 //
-// The cast shadow that says a toast floats and can leave is not drawn here:
-// it belongs to whatever places the toast, because only the placement knows
-// where the surface lands. patterns/notifications draws it under every
-// toast it stands in its column.
+// That shadow — the platform's floatingShadow, measured into the
+// organization's macOS reference — is not drawn here: it belongs to
+// whatever places the toast, because only the placement knows where the
+// surface lands. patterns/notifications draws it under every toast it
+// stands in its column. A toast rendered on its own therefore shows its
+// fill, its edge and its words and nothing that says it floats, which is
+// the division of labour and not an omission.
 package toast
 
 import (
@@ -93,11 +97,11 @@ type Props struct {
 }
 
 type resolvedTokens struct {
-	color   tokens.ColorTokens
-	spacing tokens.SpacingScale
-	radius  tokens.RadiusScale
-	style   tokens.TextStyle // the LabelMedium role: typeface, weight, size, line height
-	shaper  *text.Shaper     // the theme's shaper; nil in the Render path
+	platform tokens.PlatformColors
+	spacing  tokens.SpacingScale
+	radius   tokens.RadiusScale
+	style    tokens.TextStyle // the LabelMedium role: typeface, weight, size, line height
+	shaper   *text.Shaper     // the theme's shaper; nil in the Render path
 }
 
 // Toast returns an rx.Observable[layout.Widget] that emits a new one
@@ -108,15 +112,15 @@ func Toast(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 	// theme's cached shaper: the theme owns the typeface.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest4(t.Color, t.Spacing, t.Radius, t.Typography),
-			func(n rx.Tuple4[tokens.ColorTokens, tokens.SpacingScale, tokens.RadiusScale, tokens.Typography]) resolvedTokens {
+			rx.CombineLatest4(t.Platform, t.Spacing, t.Radius, t.Typography),
+			func(n rx.Tuple4[tokens.PlatformColors, tokens.SpacingScale, tokens.RadiusScale, tokens.Typography]) resolvedTokens {
 				typ := n.Fourth
 				return resolvedTokens{
-					color:   n.First,
-					spacing: n.Second,
-					radius:  n.Third,
-					style:   typ.LabelMedium,
-					shaper:  typ.Shaper(),
+					platform: n.First,
+					spacing:  n.Second,
+					radius:   n.Third,
+					style:    typ.LabelMedium,
+					shaper:   typ.Shaper(),
 				}
 			},
 		)
@@ -148,21 +152,21 @@ func Toast(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 func Render(
 	shaper *text.Shaper,
 	props Props,
-	colors tokens.ColorTokens,
+	colors tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
 	label tokens.TextStyle,
 ) layout.Widget {
-	tok := resolvedTokens{color: colors, spacing: sp, radius: rad, style: label}
+	tok := resolvedTokens{platform: colors, spacing: sp, radius: rad, style: label}
 	return func(gtx layout.Context) layout.Dimensions {
 		return draw(gtx, shaper, props, tok)
 	}
 }
 
-// draw paints one toast sized to its message: a flat InverseSurface fill,
-// the message in OnInverseSurface, and a leading edge two spacing stops
-// wide in the status role's own ramp. Props.Alpha is applied to the fill,
-// the edge and the text colour alike.
+// draw paints one toast sized to its message: a flat window-background fill,
+// the message in the platform's label colour, and a leading edge two spacing
+// stops wide in the platform's system colour for the status. Props.Alpha is
+// applied to the fill, the edge and the text colour alike.
 //
 // The leading edge is the only place on the toast that identifies the
 // status role, so its width has to clear the desktop's hairline band (the
@@ -192,9 +196,9 @@ func draw(gtx layout.Context, shaper *text.Shaper, props Props, tok resolvedToke
 		w = 0
 	}
 
-	fill := withAlpha(Fill(tok.color), alpha)
-	edge := withAlpha(Edge(tok.color, props.Status), alpha)
-	fg := withAlpha(Foreground(tok.color), alpha)
+	fill := withAlpha(Fill(tok.platform), alpha)
+	edge := withAlpha(Edge(tok.platform, props.Status), alpha)
+	fg := withAlpha(Foreground(tok.platform), alpha)
 
 	// Pre-record the label so we can size the surface around its dims. The
 	// leading edge takes its width off the label's, so the trailing margin
@@ -244,55 +248,32 @@ func draw(gtx layout.Context, shaper *text.Shaper, props Props, tok resolvedToke
 }
 
 // Fill is the colour a toast's surface is filled with, whatever its status:
-// the token set's InverseSurface. Level 2 is where a toast is placed,
-// not what it is filled with, so the fill tells no two toasts apart.
-func Fill(c tokens.ColorTokens) color.NRGBA { return c.InverseSurface }
+// the window's own plane, windowBackgroundColor, which is what every
+// floating surface on this platform is filled with. The fill tells no two
+// toasts apart.
+func Fill(p tokens.PlatformColors) color.NRGBA { return p.WindowBackground }
 
-// Foreground is the colour a toast's message reads in: the token set's
-// OnInverseSurface, the counterpart of Fill.
-func Foreground(c tokens.ColorTokens) color.NRGBA { return c.OnInverseSurface }
+// Foreground is the colour a toast's message reads in: the platform's label
+// colour, black or white at a coverage that composites over the fill.
+func Foreground(p tokens.PlatformColors) color.NRGBA { return p.Label }
 
-// edgeFloor is the contrast the leading edge owes the inverse surface it
-// sits on. The edge is a graphic and not text, so [tokens.GraphicFloor] would
-// satisfy the mark level, but it is also the only thing on a toast that says
-// which status this is, so it is held to the body-text floor instead.
-const edgeFloor = tokens.TextFloor
-
-// Edge maps a status to the colour of the toast's leading edge: the step of
-// that status's role ramp nearest the ramp's mid-value step that still clears
-// edgeFloor over the inverse surface (tokens.MarkOn), so the edge flips
-// with light/dark and follows whatever seed, palette or high-contrast
-// variant the theme is emitting.
+// Edge is the platform's system colour for the status, worn by the toast's
+// leading edge — the only place on a toast that says which status this is.
 //
-// It reads a ramp rather than a pinned base: the pins are tuned to be
-// filled and written on, chosen against the scheme's own surfaces, and are
-// on the wrong side of an inverse surface — a dark scheme's pins sit at
-// L* 82, most of the way to that scheme's own light surface.
-//
-// It asks for a step near the ramp's middle rather than naming a fixed
-// one, because a single step cannot read over both schemes' surfaces at
-// every hue without losing chroma: a light scheme lands on step 500 at
-// all four roles — the step where each role holds its anchor's full
-// chroma — and a dark scheme is forced to step 400, the nearest-to-middle
-// step that still reads over its own light surface at all.
-//
-// Info reads the Info ramp rather than the accent one, so an informational
-// toast's colour says "info" regardless of the brand's own hue; the Info
-// role is anchored on a blue of its own, so the four stay four whatever the
-// seed.
-func Edge(c tokens.ColorTokens, status Status) color.NRGBA {
-	var role tokens.Role
+// Info is systemBlue and not the accent, so an informational toast says
+// "info" whatever colour the user has chosen in System Settings; the four
+// system colours are four in both appearances.
+func Edge(p tokens.PlatformColors, status Status) color.NRGBA {
 	switch status {
 	case Error:
-		role = tokens.RoleError
+		return p.SystemRed
 	case Success:
-		role = tokens.RoleSuccess
+		return p.SystemGreen
 	case Warning:
-		role = tokens.RoleWarning
+		return p.SystemOrange
 	default:
-		role = tokens.RoleInfo
+		return p.SystemBlue
 	}
-	return c.MarkOn(role, Fill(c), edgeFloor)
 }
 
 func withAlpha(c color.NRGBA, a float64) color.NRGBA {

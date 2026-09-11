@@ -1,9 +1,9 @@
 // Package alert provides the alert: the status signal for a situation — a
-// tinted-Surface rounded banner with a leading status icon, a Title, and
-// an arbitrary Body layout.Widget, standing in the page flow until the
-// situation resolves. It holds words about the situation, never a control:
-// an action on the situation stands beside the alert. The statuses are
-// Info, Success, Warning and Error; an alert given no status is Info.
+// rounded box with a leading status icon, a Title, and an arbitrary Body
+// layout.Widget, standing in the page flow until the situation resolves. It
+// holds words about the situation, never a control: an action on the
+// situation stands beside the alert. The statuses are Info, Success, Warning
+// and Error; an alert given no status is Info.
 //
 // Alert is a callable Go function consuming a components theme observable,
 // returning a stream of layout.Widget. Source is intentionally short and
@@ -13,12 +13,19 @@
 // All four statuses draw the same right-pointing chevron glyph, differing
 // only in colour; the per-status icon set arrives with components/icon.
 //
-// Colour: the banner is the status's role tonal container with that role's
-// own mark on it — StatusContainer and OnStatusContainer, both realized at
-// a tone by the theme rather than mixed here. Info is the Info role, not
-// the accent: an informational banner that wore the brand said whatever
-// the brand happened to say, and under a red-heavy brand it said "error"
-// more loudly than an alert indicating Error did.
+// Colour: every one of the platform's own names. The box stands on the
+// content's fill — controlBackgroundColor — inside a separatorColor
+// hairline, its title in labelColor, and the status is carried by the
+// glyph alone, in the platform's system colour for it: systemGreen,
+// systemOrange, systemRed, systemBlue. There is no tinted box and no
+// knocked-out foreground: an in-flow box on this platform is the fill it
+// stands on with a hairline around it, and the colour that says which
+// status this is belongs to the mark, not to the field behind the words.
+//
+// Info is systemBlue and not the accent: an informational box that wore the
+// accent would say whatever colour the user had chosen in System Settings,
+// and under a red accent it would say "error" more loudly than an alert
+// indicating Error does.
 //
 // The banner takes the width it is given and the height its content
 // needs, clamped into the height its slot allows: an alert standing in a
@@ -87,15 +94,15 @@ func Alert(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 	// theme's cached shaper: the theme owns the typeface.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest4(t.Color, t.Spacing, t.Radius, t.Typography),
-			func(n rx.Tuple4[tokens.ColorTokens, tokens.SpacingScale, tokens.RadiusScale, tokens.Typography]) resolvedTokens {
+			rx.CombineLatest4(t.Platform, t.Spacing, t.Radius, t.Typography),
+			func(n rx.Tuple4[tokens.PlatformColors, tokens.SpacingScale, tokens.RadiusScale, tokens.Typography]) resolvedTokens {
 				typ := n.Fourth
 				return resolvedTokens{
-					color:   n.First,
-					spacing: n.Second,
-					radius:  n.Third,
-					title:   typ.TitleMedium,
-					shaper:  typ.Shaper(),
+					platform: n.First,
+					spacing:  n.Second,
+					radius:   n.Third,
+					title:    typ.TitleMedium,
+					shaper:   typ.Shaper(),
 				}
 			},
 		)
@@ -109,7 +116,7 @@ func Alert(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 				shaper = tok.shaper
 			}
 			return func(gtx layout.Context) layout.Dimensions {
-				return drawAlert(gtx, shaper, props, tok.color, tok.spacing, tok.radius, tok.title)
+				return drawAlert(gtx, shaper, props, tok.platform, tok.spacing, tok.radius, tok.title)
 			}
 		})
 	})
@@ -128,7 +135,7 @@ func Alert(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 func Render(
 	shaper *text.Shaper,
 	props Props,
-	colors tokens.ColorTokens,
+	colors tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
 	title tokens.TextStyle,
@@ -139,29 +146,28 @@ func Render(
 }
 
 type resolvedTokens struct {
-	color   tokens.ColorTokens
-	spacing tokens.SpacingScale
-	radius  tokens.RadiusScale
-	title   tokens.TextStyle // the TitleMedium role: typeface, weight, size, line height
-	shaper  *text.Shaper     // the theme's shaper; nil in the Render path
+	platform tokens.PlatformColors
+	spacing  tokens.SpacingScale
+	radius   tokens.RadiusScale
+	title    tokens.TextStyle // the TitleMedium role: typeface, weight, size, line height
+	shaper   *text.Shaper     // the theme's shaper; nil in the Render path
 }
 
 const iconDp = 20
 
-func drawAlert(gtx layout.Context, shaper *text.Shaper, props Props, colors tokens.ColorTokens, sp tokens.SpacingScale, rad tokens.RadiusScale, title tokens.TextStyle) layout.Dimensions {
+func drawAlert(gtx layout.Context, shaper *text.Shaper, props Props, colors tokens.PlatformColors, sp tokens.SpacingScale, rad tokens.RadiusScale, title tokens.TextStyle) layout.Dimensions {
 	r := gtx.Dp(unit.Dp(rad.Lg))
 
-	role := roleOf(props.Status)
-	accent := colors.OnStatusContainer(role)
-	bg := colors.StatusContainer(role)
+	mark := Mark(colors, props.Status)
+	bg := colors.ControlBackground
 
-	// The content is measured before the banner is filled, so the fill can
+	// The content is measured before the box is filled, so the fill can
 	// be laid under the depth the words actually took. Recording it keeps
 	// the paint order the reader sees: fill first, words over it.
 	rec := op.Record(gtx.Ops)
 	inner := layout.UniformInset(unit.Dp(sp.S4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Start}.Layout(gtx,
-			layout.Rigid(iconWidget(iconDp, accent)),
+			layout.Rigid(iconWidget(iconDp, mark)),
 			layout.Rigid(complayout.HSpacer(sp.S3)),
 			layout.Flexed(1, contentColumn(shaper, props, colors, sp, title)),
 		)
@@ -169,8 +175,27 @@ func drawAlert(gtx layout.Context, shaper *text.Shaper, props Props, colors toke
 	content := rec.Stop()
 
 	size := image.Pt(gtx.Constraints.Max.X, min(max(inner.Size.Y, gtx.Constraints.Min.Y), gtx.Constraints.Max.Y))
+	// The hairline is what separates the box from the page: the box stands on
+	// the same fill the content does, which is the platform's answer for
+	// something set in the flow rather than floating over it.
+	//
+	// Drawn as two fills rather than as a stroke, which is the idiom
+	// components/input draws a field's edge by. A stroke is centred on its
+	// path, so a one-dp line laid on the box's own edge spends half its
+	// coverage outside the box: the separator, black at a tenth, reached a
+	// white page as two rows near #f9f9f9 where one row of #e6e6e6 was owed,
+	// and the box read as having no edge at all. Filling the box in the
+	// separator and the inset box in the fill lands the hairline on whole
+	// pixels at the coverage the platform recorded.
+	edgePx := max(gtx.Dp(1), 1)
 	rrect := clip.RRect{Rect: image.Rectangle{Max: size}, SE: r, SW: r, NE: r, NW: r}
-	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
+	innerR := max(r-edgePx, 0)
+	innerBox := clip.RRect{
+		Rect: image.Rectangle{Min: image.Pt(edgePx, edgePx), Max: size.Sub(image.Pt(edgePx, edgePx))},
+		SE:   innerR, SW: innerR, NE: innerR, NW: innerR,
+	}
+	paint.FillShape(gtx.Ops, colors.Separator, rrect.Op(gtx.Ops))
+	paint.FillShape(gtx.Ops, bg, innerBox.Op(gtx.Ops))
 	content.Add(gtx.Ops)
 
 	return layout.Dimensions{Size: size}
@@ -187,11 +212,11 @@ func iconWidget(sizeDp float32, col color.NRGBA) layout.Widget {
 	}
 }
 
-func contentColumn(shaper *text.Shaper, props Props, colors tokens.ColorTokens, sp tokens.SpacingScale, title tokens.TextStyle) layout.Widget {
+func contentColumn(shaper *text.Shaper, props Props, colors tokens.PlatformColors, sp tokens.SpacingScale, title tokens.TextStyle) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		var ws []layout.Widget
 		if props.Title != "" {
-			ws = append(ws, titleWidget(shaper, props.Title, colors.Text, title))
+			ws = append(ws, titleWidget(shaper, props.Title, colors.Label, title))
 		}
 		if props.Body != nil {
 			if len(ws) > 0 {
@@ -236,19 +261,23 @@ func drawChevron(gtx layout.Context, cx, cy, sz int, col color.NRGBA) {
 	paint.FillShape(gtx.Ops, col, clip.Outline{Path: p.End()}.Op())
 }
 
-// roleOf maps a status to its colour role in the token set. All four are
-// status roles — Info included — so all four flip with light/dark and
-// follow whatever seed, palette or high-contrast variant the theme is
-// emitting, and none of them wears the accent.
-func roleOf(s Status) tokens.Role {
+// Mark is the colour of the alert's leading glyph: the platform's system
+// colour for the status, which is the only place on an alert the status is
+// carried. All four are system colours — Info included — so all four flip
+// with the appearance and none of them follows the accent.
+//
+// It is exported because what is set beside an alert — a test measuring the
+// pairing, a host drawing its own mark to match — needs the answer the alert
+// drew with, and re-deriving it at the call site is how two answers appear.
+func Mark(p tokens.PlatformColors, s Status) color.NRGBA {
 	switch s {
 	case Error:
-		return tokens.RoleError
+		return p.SystemRed
 	case Success:
-		return tokens.RoleSuccess
+		return p.SystemGreen
 	case Warning:
-		return tokens.RoleWarning
+		return p.SystemOrange
 	default:
-		return tokens.RoleInfo
+		return p.SystemBlue
 	}
 }

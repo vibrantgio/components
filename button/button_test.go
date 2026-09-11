@@ -397,13 +397,12 @@ func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
 // written independently of the code that painted it. Focus keeps the resting
 // fill in every variant, so the fill under the band is the resting one.
 //
-// Both the platform's control fill and its focus indicator carry a coverage,
-// so every one of these is a composite rather than a value straight off the
-// set.
+// The platform's focus indicator carries a coverage, so every one of these
+// is a composite rather than a value straight off the set.
 func beneathTheRing(p tokens.PlatformColors, e button.Emphasis) color.NRGBA {
 	switch e {
 	case button.Tonal:
-		return tcolor.Over(p.Control, p.WindowBackground)
+		return tcolor.Over(p.PushButtonFill, p.WindowBackground)
 	case button.Ghost:
 		return p.WindowBackground // a ghost paints none; the plane shows through
 	default:

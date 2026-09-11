@@ -73,19 +73,23 @@ func scene(w layout.Widget, bg color.NRGBA) layout.Widget {
 }
 
 // TestToastGolden records or diffs one stored scene per status in each
-// scheme. The status's leading edge is the load-bearing visual signal — the
-// fill is the same inverse surface at every status — and the message carries
-// the LabelMedium role. The scenes composite over a real pane background
-// (SurfaceAt(LevelChrome)), so a fill that stops separating from real app
-// backgrounds fails the diff instead of hiding behind an arbitrary grey.
+// appearance. The status's leading edge is the load-bearing visual signal —
+// the fill is the window's own plane at every status — and the message
+// carries the LabelMedium role. The scenes composite over the platform's
+// chrome material, which is what a toast is placed over in an application
+// window, so a toast that stopped separating from a real pane fails the diff
+// instead of hiding behind an arbitrary grey.
+//
+// Nothing here draws the shadow: that belongs to the placement, so a stored
+// toast is its fill, its edge and its words.
 func TestToastGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	schemes := []struct {
 		name   string
-		colors tokens.ColorTokens
+		colors tokens.PlatformColors
 	}{
-		{"light", tokens.DefaultLight},
-		{"dark", tokens.DefaultDark},
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
 	}
 	statuses := []struct {
 		name   string
@@ -102,7 +106,7 @@ func TestToastGolden(t *testing.T) {
 			t.Run(name, func(t *testing.T) {
 				w := toast.Render(shaper, toast.Props{Status: st.status, Text: statusText(st.status), Shaper: shaper},
 					sc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelMedium)
-				golden.Render(t, name, frameSize, scene(w, sc.colors.SurfaceAt(tokens.LevelChrome)))
+				golden.Render(t, name, frameSize, scene(w, sc.colors.SidebarMaterial))
 			})
 		}
 	}
@@ -118,7 +122,7 @@ func TestAlphaFadesTheWholeToast(t *testing.T) {
 	bg := color.NRGBA{R: 128, G: 128, B: 128, A: 255}
 	render := func(alpha float64) *image.RGBA {
 		w := toast.Render(shaper, toast.Props{Status: toast.Warning, Text: statusText(toast.Warning), Alpha: alpha, Shaper: shaper},
-			tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelMedium)
+			tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelMedium)
 		return golden.Capture(t, frameSize, scene(w, bg))
 	}
 	opaque, defaulted, half := render(1), render(0), render(0.5)
@@ -140,7 +144,7 @@ func TestToastHugsItsMessage(t *testing.T) {
 	golden.Capture(t, frameSize, func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints = layout.Constraints{Max: frameSize}
 		dims = toast.Render(shaper, toast.Props{Status: toast.Info, Text: statusText(toast.Info), Shaper: shaper},
-			tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelMedium)(gtx)
+			tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelMedium)(gtx)
 		return dims
 	})
 	if dims.Size.X != toast.WidthDp {

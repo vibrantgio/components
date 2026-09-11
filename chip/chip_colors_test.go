@@ -39,7 +39,7 @@ func TestResolveNamesThePlatformColors(t *testing.T) {
 		t.Run(sc.name, func(t *testing.T) {
 			rest := chip.Resolve(p, chip.Filter, chip.RenderState{})
 			want := chip.Colors{
-				Fill:     p.Control,
+				Fill:     p.PushButtonFill,
 				Outline:  p.Separator,
 				Outlined: true,
 				Label:    p.ControlText,

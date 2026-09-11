@@ -60,9 +60,9 @@ func scene(w layout.Widget, bg color.NRGBA) layout.Widget {
 
 // TestTooltipGolden records or diffs the two Measurable goldens —
 // light-shown-top and dark-shown-bottom. The trigger is a small solid
-// rectangle and the surface contains a short label rendered in
-// OnInverseSurface against the InverseSurface-filled bubble. Text is part of
-// the component's contract, so every case rasterises real glyphs and must
+// rectangle and the surface contains a short label in the platform's label
+// colour on the window's own plane, inside a separator hairline. Text is part
+// of the component's contract, so every case rasterises real glyphs and must
 // pass Props.Shaper to keep the rendered face pinned and deterministic.
 func TestTooltipGolden(t *testing.T) {
 	shaper := defaultShaper(t)
@@ -74,11 +74,11 @@ func TestTooltipGolden(t *testing.T) {
 	cases := []struct {
 		name      string
 		placement tooltip.Placement
-		colors    tokens.ColorTokens
+		colors    tokens.PlatformColors
 		bg        color.NRGBA
 	}{
-		{"light-shown-top", tooltip.Top, tokens.DefaultLight, lightBG},
-		{"dark-shown-bottom", tooltip.Bottom, tokens.DefaultDark, darkBG},
+		{"light-shown-top", tooltip.Top, tokens.PlatformLight, lightBG},
+		{"dark-shown-bottom", tooltip.Bottom, tokens.PlatformDark, darkBG},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -103,8 +103,8 @@ func TestTooltipShownAndHiddenDiffer(t *testing.T) {
 	bg := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
 	props := tooltip.Props{Text: "Save", Trigger: trigger, Placement: tooltip.Top, Shaper: shaper}
 
-	shown := tooltip.Render(shaper, props, true, tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelSmall)
-	hidden := tooltip.Render(shaper, props, false, tokens.DefaultLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelSmall)
+	shown := tooltip.Render(shaper, props, true, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelSmall)
+	hidden := tooltip.Render(shaper, props, false, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelSmall)
 
 	imgShown := golden.Capture(t, frameSize, scene(shown, bg))
 	imgHidden := golden.Capture(t, frameSize, scene(hidden, bg))
@@ -185,7 +185,7 @@ func fillBounds(img *image.RGBA, c color.NRGBA) (image.Rectangle, bool) {
 // all.
 func TestAnnotationIsWholeOverALaterSibling(t *testing.T) {
 	shaper := defaultShaper(t)
-	colors := tokens.DefaultLight
+	colors := tokens.PlatformLight
 	props := tooltip.Props{
 		Text:      "Save",
 		Trigger:   fixedRect(color.NRGBA{R: 80, G: 160, B: 220, A: 255}, 60, 28),
@@ -198,9 +198,9 @@ func TestAnnotationIsWholeOverALaterSibling(t *testing.T) {
 	bare := golden.Capture(t, frameSize, stripScene(w, bg, false))
 	covered := golden.Capture(t, frameSize, stripScene(w, bg, true))
 
-	box, ok := fillBounds(bare, colors.InverseSurface)
+	box, ok := fillBounds(bare, colors.WindowBackground)
 	if !ok {
-		t.Fatalf("no pixel of the annotation's fill %v was drawn at all", colors.InverseSurface)
+		t.Fatalf("no pixel of the annotation's fill %v was drawn at all", colors.WindowBackground)
 	}
 	if box.Max.Y <= stripH {
 		t.Fatalf("the annotation ends at y=%d, inside the strip; nothing covers it and the test proves nothing", box.Max.Y)

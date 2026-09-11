@@ -22,7 +22,7 @@
 // and each variant is one of the three buttons the platform draws: filled is
 // the platform's default action, its accent under the foreground the platform
 // pairs with an accent fill; tonal is the platform's ordinary button, its
-// control fill under its control text inside its hairline; ghost is the
+// measured fill under its control text inside its hairline; ghost is the
 // platform's borderless kind, no fill and no hairline under the same control
 // text. The drawn size and the 44 dp pointer floor are identical in all
 // three, and so is the focus ring's shape, width, place and colour. Focus is
@@ -36,7 +36,8 @@
 // the platform's own overlay laid over whatever fill the variant has.
 // Disabled is the platform's answer rather than a fading of the resting pair:
 // the platform draws a disabled default action as an ordinary disabled
-// button, so a fill falls back to the control fill and the foreground becomes
+// button, so a fill falls back to the push button's fill and the foreground
+// becomes
 // the disabled control text.
 //
 // Emphasis says how important an action is on the surface it sits on, and

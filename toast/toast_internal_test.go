@@ -9,7 +9,6 @@ import (
 	"gioui.org/unit"
 
 	"github.com/vibrantgio/components/golden"
-	vcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -19,10 +18,10 @@ var intFrame = image.Pt(intFrameW, intFrameH)
 
 func intTok() resolvedTokens {
 	return resolvedTokens{
-		color:   tokens.DefaultLight,
-		spacing: tokens.Spacing,
-		radius:  tokens.RadiusScale{},
-		style:   tokens.DefaultTypography.LabelMedium,
+		platform: tokens.PlatformLight,
+		spacing:  tokens.Spacing,
+		radius:   tokens.RadiusScale{},
+		style:    tokens.DefaultTypography.LabelMedium,
 	}
 }
 
@@ -40,18 +39,18 @@ func paint1(t *testing.T, props Props, tok resolvedTokens) *image.RGBA {
 	})
 }
 
-// surfaceFill is the flat, opaque colour draw fills every toast with,
-// whatever its status: the inverse surface. It cannot tell two toasts
-// apart — that is what statusEdge is for.
+// surfaceFill is the flat colour draw fills every toast with, whatever its
+// status: the window's own plane. It cannot tell two toasts apart — that is
+// what statusEdge is for.
 func surfaceFill(tok resolvedTokens) color.NRGBA {
-	return Fill(tok.color)
+	return Fill(tok.platform)
 }
 
 // statusEdge is the colour of the leading edge a toast of the given status
 // paints — the one place on an otherwise identical surface that says which
 // status the toast indicates.
 func statusEdge(status Status, tok resolvedTokens) color.NRGBA {
-	return Edge(tok.color, status)
+	return Edge(tok.platform, status)
 }
 
 // toastBounds returns the rectangle enclosing every pixel img paints in
@@ -63,9 +62,9 @@ func statusEdge(status Status, tok resolvedTokens) color.NRGBA {
 // The match carries a tolerance of one step per channel, because the fill
 // reaches the framebuffer through a rasteriser and demanding the exact byte
 // would be asserting its arithmetic rather than the geometry. Nothing is
-// grown back: the surface carries no outline since the inverse fill
-// separates it, so the fill and the edge reach the outermost row and column
-// themselves.
+// grown back: the surface carries no outline — what separates a toast from
+// what it covers is the shadow its placement lays under it — so the fill and
+// the edge reach the outermost row and column themselves.
 func toastBounds(img *image.RGBA, cs ...color.NRGBA) image.Rectangle {
 	var box image.Rectangle
 	r := img.Bounds()
@@ -164,33 +163,52 @@ func TestLeadingEdgeIsWiderThanTheHairlineBandAndNarrowerThanItsOwnAir(t *testin
 	}
 }
 
-// TestLeadingEdgeReadsOnTheSurfaceInBothSchemes is the colour half of the
-// same claim: the edge is the only thing on a toast that says which status
-// this is, so it owes the inverse surface the floor edgeFloor names, in
-// both schemes and at every status. The step each scheme lands on is logged
-// rather than asserted — which step answers is the ramp's business, not this
-// package's — but the contrast it reaches is this package's, because it is
-// what the component asked for.
-func TestLeadingEdgeReadsOnTheSurfaceInBothSchemes(t *testing.T) {
+// TestEveryStatusIsThePlatformsColourForIt is the colour half of the same
+// claim, read off both recorded appearances: the edge is the only thing on a
+// toast that says which status this is, so it is the platform's system
+// colour for that status and nothing derived from one.
+func TestEveryStatusIsThePlatformsColourForIt(t *testing.T) {
 	for _, sc := range []struct {
 		name string
-		c    tokens.ColorTokens
-	}{{"light", tokens.DefaultLight}, {"dark", tokens.DefaultDark}} {
-		for _, status := range []Status{Info, Success, Warning, Error} {
-			edge := Edge(sc.c, status)
-			got := vcolor.Magnitude(edge, sc.c.InverseSurface)
-			if got < edgeFloor {
-				t.Errorf("%s scheme, status %d: edge %v on the surface measures |Lc| %.2f; want at least |Lc| %.1f",
-					sc.name, status, edge, got, edgeFloor)
+		p    tokens.PlatformColors
+	}{{"light", tokens.PlatformLight}, {"dark", tokens.PlatformDark}} {
+		for _, tc := range []struct {
+			status Status
+			name   string
+			want   color.NRGBA
+		}{
+			{Success, "SystemGreen", sc.p.SystemGreen},
+			{Warning, "SystemOrange", sc.p.SystemOrange},
+			{Error, "SystemRed", sc.p.SystemRed},
+			{Info, "SystemBlue", sc.p.SystemBlue},
+		} {
+			if got := Edge(sc.p, tc.status); got != tc.want {
+				t.Errorf("%s, status %d: edge = %v, want %s %v", sc.name, tc.status, got, tc.name, tc.want)
 			}
-			t.Logf("%s scheme, status %d: edge %v at |Lc| %.2f", sc.name, status, edge, got)
+		}
+	}
+}
+
+// TestTheFillAndTheMessageAreThePlatformsOwn pins the other two names: a
+// toast is filled with the window's own plane and its message reads in the
+// platform's label colour, in both appearances.
+func TestTheFillAndTheMessageAreThePlatformsOwn(t *testing.T) {
+	for _, sc := range []struct {
+		name string
+		p    tokens.PlatformColors
+	}{{"light", tokens.PlatformLight}, {"dark", tokens.PlatformDark}} {
+		if got := Fill(sc.p); got != sc.p.WindowBackground {
+			t.Errorf("%s: Fill = %v, want WindowBackground %v", sc.name, got, sc.p.WindowBackground)
+		}
+		if got := Foreground(sc.p); got != sc.p.Label {
+			t.Errorf("%s: Foreground = %v, want Label %v", sc.name, got, sc.p.Label)
 		}
 	}
 }
 
 // TestTheFillSaysNothingAboutTheStatus pins the half of the Language the
-// fill carries: level 2 is where a toast is placed, not what it is filled
-// with, so every status fills identically and only the leading edge differs.
+// fill carries: a toast is filled with the window's own plane whatever it
+// says, so every status fills identically and only the leading edge differs.
 func TestTheFillSaysNothingAboutTheStatus(t *testing.T) {
 	tok := intTok()
 	fill := surfaceFill(tok)
@@ -198,7 +216,7 @@ func TestTheFillSaysNothingAboutTheStatus(t *testing.T) {
 	for i, status := range []Status{Info, Success, Warning, Error} {
 		box := toastBounds(paint1(t, Props{Status: status, Text: "Rescanned: 2 notes"}, tok), fill)
 		if box.Empty() {
-			t.Fatalf("status %d painted no inverse fill", status)
+			t.Fatalf("status %d painted no fill", status)
 		}
 		if i == 0 {
 			first = box

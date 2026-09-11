@@ -43,10 +43,10 @@ const (
 	// the action the screen is about.
 	Filled Emphasis = iota
 
-	// Tonal is the middle variant: the platform's ordinary button — its
-	// control fill under its control text, inside the platform's hairline.
-	// The variant for a secondary action, and the one a row of equals
-	// wears.
+	// Tonal is the middle variant: the platform's ordinary button — the
+	// push button's own measured fill under the platform's control text,
+	// inside the platform's hairline. The variant for a secondary action,
+	// and the one a row of equals wears.
 	Tonal
 
 	// Ghost is the least pronounced variant: the platform's borderless
@@ -590,7 +590,8 @@ func strokeRRect(gtx layout.Context, size image.Point, rad int, col color.NRGBA)
 // Every one of them is a platform name:
 //
 //	Filled   the accent fill under the foreground the platform pairs with it
-//	Tonal    the platform's control fill and control text, inside its hairline
+//	Tonal    the push button's measured fill and the platform's control
+//	         text, inside its hairline
 //	Ghost    no fill and no hairline, the platform's control text
 //
 // A push button does not tint under the pointer on this platform — measured
@@ -602,7 +603,8 @@ func strokeRRect(gtx layout.Context, size image.Point, rad int, col color.NRGBA)
 // Disabled is the platform's own answer and not a fading of the resting
 // pair: the platform draws a disabled default action as an ordinary
 // disabled button, so every variant that carries a fill falls back to the
-// control fill and every foreground becomes the disabled control text.
+// push button's fill and every foreground becomes the disabled control
+// text.
 //
 // Filled is the one variant that takes a pin from the caller. A RenderState
 // carrying both halves of a fill pair (RenderState.Fill and OnFill) wears
@@ -620,7 +622,7 @@ func buttonColors(p tokens.PlatformColors, s RenderState) (bg, overlay, edge, fg
 
 	switch s.Emphasis {
 	case Tonal:
-		bg, edge, fg = p.Control, p.Separator, p.ControlText
+		bg, edge, fg = p.PushButtonFill, p.Separator, p.ControlText
 
 	case Ghost:
 		fg = p.ControlText
@@ -637,7 +639,7 @@ func buttonColors(p tokens.PlatformColors, s RenderState) (bg, overlay, edge, fg
 		overlay = color.NRGBA{}
 		fg = p.DisabledControlText
 		if s.Emphasis != Ghost {
-			bg, edge = p.Control, p.Separator
+			bg, edge = p.PushButtonFill, p.Separator
 		}
 	}
 	return

@@ -708,11 +708,10 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	}
 	triggerSize := image.Pt(fieldW, triggerH)
 
-	// The trigger is the platform's ordinary button, so its fill is the
-	// platform's control fill — translucent in the dark scheme, where it
-	// composites over whatever the trigger was put on. A disabled trigger
-	// keeps it: the platform fades the wording and leaves the control.
-	bg := tok.platform.Control
+	// The trigger is the platform's ordinary button, so its fill is the push
+	// button's own measured fill. A disabled trigger keeps it: the platform
+	// fades the wording and leaves the control.
+	bg := tok.platform.PushButtonFill
 	// At rest the edge is the platform's seam, laid over whatever is beneath
 	// it. Focus replaces it with the ring, the one idiom every control in the
 	// library wears, so a focused trigger in a dialog draws the same pixel as

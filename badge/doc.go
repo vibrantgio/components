@@ -1,11 +1,12 @@
 // Package badge provides the Vibrant Gio badge: the system's own word about a
-// thing, set inline at the size of its type and coloured in its status's
-// role. The developer gives a badge one of the four statuses — [Error],
+// thing, set inline at the size of its type and coloured in the platform's
+// system colour for its status. The developer gives a badge one of the four
+// statuses — [Error],
 // [Success], [Warning], [Info] — or no status; a badge given no status is
 // [Neutral].
 //
-// [Render] is the pure path: resolved tokens plus a [RenderState] naming the
-// level the badge stands on, one frame out, no event handling.
+// [Render] is the pure path: resolved tokens plus a [RenderState], one frame
+// out, no event handling.
 // [RenderDismissible] is the same badge carrying its close mark, for a caller
 // that owns the clickable. [Badge] is the live path — a theme observable and
 // [Props] in, a layout.Widget out on every theme emission, with the close mark's
@@ -19,13 +20,12 @@
 // height and is meant to be. It draws no boundary, takes no pointer state on
 // its body, and never grows to the width it is offered.
 //
-// It does wear a container, and the container is what says it is not a
-// control: a pale fill, the role's hue tinted down until it is a field, with
-// the same hue at reading strength on top of it. A saturated fill under
-// knocked-out white content is the emphasis interaction is drawn in — the filled
-// button's — and a badge that borrowed it would be claiming to do something.
-// One hue, two strengths, and the more pronounced pairing is not available
-// here.
+// It does wear a fill, and the fill is the platform's own answer for a badge:
+// the status colour solid with its content knocked out in white, which is how
+// the platform draws the count badge on an icon. What says it is not a
+// control is not the colour but the size and the box — it is a fraction of a
+// control's height, it draws no hairline, and it never grows to the width it
+// is offered.
 //
 // The one thing that answers a pointer is the close mark, and what it removes
 // is the label. A badge that switched something off would be a control wearing
@@ -46,7 +46,7 @@
 //	a glyph   a check, a cross, a key — the sign that stands for the verdict
 //
 // and there is one structure underneath all three: the type's line box tall,
-// sized to what it says, in the colours its role resolves to. A count is a
+// sized to what it says, in the platform's colours for its status. A count is a
 // [Props.Label] of digits and needs no field of its own. A glyph is
 // [Props.Glyph] with no label, drawn in the line box's own square. A glyph set
 // beside a label leads it across the spacing scale's S1 stop — the sign comes
@@ -54,7 +54,7 @@
 // reading as a chip, whose mark trails its label.
 //
 // The utterance picks the structure in one place, and it is the only branch in
-// the component: anything with words in it wears the container, and a sign on
+// the component: anything with words in it wears the fill, and a sign on
 // its own stands bare. See [Fill] for why — and for the obligation that
 // carries, which is that a set of glyph badges must differ in shape, because
 // a sign repeated under two statuses is two hues and nothing else.
@@ -62,24 +62,26 @@
 // # The disc
 //
 // A glyph badge may be asked to stand on its status's fill instead of bare:
-// [RenderState.Disc], or [Props.Disc] on the live path. The fill is the same
-// one a word wears ([Fill]) and the sign reads in the same [Foreground] over
-// it, drawn as a circle inscribed in the glyph's own line-box square:
+// [RenderState.Disc], or [Props.Disc] on the live path. The disc wears the
+// system colour itself — systemGreen under a white check — and never a tint
+// of it: it is the same [Fill] a word wears and the sign reads in the same
+// [Foreground] over it, drawn as a circle inscribed in the glyph's own
+// line-box square:
 //
 //	diameter = style.LineHeight
 //
 // which is the box a labelled badge's line already reserves at that density.
 // So the disc costs the badge nothing — same reported size, same baseline of
 // none — and a row that held a bare sign holds a disc without moving. The
-// [Neutral] disc takes the badge's Neutral fill, depth alone, like every
-// other Neutral fill in this package.
+// [Neutral] disc takes the badge's Neutral fill, systemGray, like every other
+// Neutral fill in this package.
 //
 // The bare sign is the default and stays it. A verdict standing beside a
 // field reads as a report on that field precisely because it has no box of
 // its own; the disc is for where a sign has to hold its own against what is
 // set around it, and it is asked for rather than assumed.
 //
-// A label ignores the disc. The container a worded badge already wears IS the
+// A label ignores the disc. The fill a worded badge already wears IS the
 // fill the disc would add, so there is still exactly one structure branch,
 // and a labelled badge that also asked for a disc would be a badge inside a
 // badge.
@@ -100,42 +102,35 @@
 // A caller passes the same [Glyph] either way: the sign is smaller inside a
 // disc than standing bare, and the badge's box is the same size in both.
 //
-// # Colour: one hue at two strengths
+// # Colour: the platform's system colours
 //
 // Five values and they differ in hue alone: [Neutral] for a plain category
 // label carrying no status, [Success], [Warning], [Error] and [Info] for the
 // four statuses. There is no emphasis axis and there will not be one —
 // emphasis belongs where interaction does, and nothing here is interactive.
 //
-// A worded or counted badge draws two colours of one hue:
+// Every colour is one of the platform's own names:
 //
-//	fill         a pale tint of the role's hue, relative to the level the
-//	             badge stands on: the container chroma, at whatever depth
-//	             separates it from that level ([Fill])
-//	foreground   the role's pinned base while that base clears the text floor
-//	             over that fill, and otherwise the step of the role's own
-//	             ramp nearest the mid-value 500 that does ([Foreground])
+//	status     fill and bare sign
+//	------     ------------------
+//	Success    systemGreen
+//	Warning    systemOrange
+//	Error      systemRed
+//	Info       systemBlue
+//	Neutral    systemGray filled, secondaryLabelColor bare
 //
-// [Neutral] has no pinned base — the neutral ramp carries no pin — so its
-// foreground takes the walk directly ([tokens.ColorTokens.MarkOn]), and its
-// fill comes back as depth alone, the neutral ramp carrying no chroma to tint
-// with. Which is why a Neutral badge measures its own floor rather than
-// inheriting a caption token's, and why it is a badge rather than prose.
+// A worded or counted badge is that colour filled, with its content in
+// alternateSelectedControlTextColor — white in both appearances, the
+// foreground the platform pairs with a fill it paints in a system colour
+// ([Fill], [Foreground]). A glyph badge standing bare draws its sign in the
+// system colour itself ([BareForeground]); [Neutral] has no system colour of
+// its own, so bare it reads in the platform's secondary label, the strength
+// the platform gives a word that is not the subject.
 //
-// A glyph badge has no container, so its foreground is derived against the
-// level instead ([BareForeground]) — a disc puts the container back, and with
-// it [Fill] and [Foreground]. Both derivations are one function over
-// two surfaces — [ForegroundOver] — and that is deliberate: the three
-// utterances read at one weight only if they are floored the same way over
-// whatever each of them actually stands on.
-//
-// The floor is WCAG 1.4.3's 4.5:1 ([tokens.TextFloor]) for all three
-// utterances. A badge that says its word as a sign instead is the same
-// utterance at the same weight, so it is derived at the same floor;
-// 1.4.11's 3:1 ([tokens.GraphicFloor]) governs a mark that must be resolved as
-// a shape, and neither the fill nor the word on it is one. The fill's own seam
-// against the level is gated at [tokens.ContainerFloor], the threshold for
-// seeing a field at all.
+// Nothing is derived and nothing is measured against what the badge stands
+// on. A system colour is the platform's one answer for a hue that must read
+// on every fill a window carries, and the white on it is the platform's one
+// answer for what stands on such a fill.
 //
 // # Geometry
 //
@@ -154,13 +149,16 @@
 // the padding, each present only when it has something to draw. S2 rather than
 // S1 because the gap inside the utterance and the gap to its edge must not be
 // the same number, or the sign and the word stop reading as one thing in one
-// box. A glyph badge, wearing no container, has no padding either: its whole
+// box. A glyph badge, wearing no fill, has no padding either: its whole
 // box is the line box square.
 //
 // The corner is the radius scale's Base stop, clamped to half the height.
 // Deliberately not Full: the pill is components/chip's shape, and a chip is
 // the thing a badge must not be confused with — same rough size, same inline
-// placement, opposite originator.
+// placement, opposite originator. The platform draws its own count badge as
+// a full capsule; here the silhouette is doing work the platform's badge does
+// not have to do, since nothing sits beside a Dock icon's badge that could be
+// mistaken for it.
 //
 // The badge reports its label's baseline, so a row carrying a badge beside
 // words in a larger role can be set on one line with layout.Baseline. A glyph
@@ -173,7 +171,7 @@
 //	Comfortable  LabelMedium   12 sp  16 dp      16
 //	Compact      LabelSmall    11 sp  16 dp      16
 //
-// [Style] is that choice, stated once so a container reserving room for a
+// [Style] is that choice, stated once so a caller reserving room for a
 // badge asks the same question the badge answers. The two roles share a line
 // box, so density moves the type's size and not the badge's height; that is a
 // property of the type scale, and the badge reports what it draws either way.
@@ -194,24 +192,21 @@
 // target: it reports the text it drew, so a row of badges is laid out at the
 // scale of the words in it and the slop overhangs the air around them.
 //
-// What answers the pointer is the fill's right cap: from the middle of the gap
-// that separates the mark from the label out to the fill's own edge and
-// corner, walked one step on hover and two on press
-// ([tokens.ColorTokens.PinnedStateColor]) toward the ramp's 900 end, which is
-// away from a light surface and away from a dark one alike. At rest it is the
-// fill and cannot be told from it; under the pointer the badge grows a visibly
-// deeper end. A region rather than the mark's own colour, because an 8 dp x
-// changing colour is the smallest possible answer to a 24 dp target — the
-// affordance was there and nothing showed where.
+// What answers the pointer is a region and not the 8 dp x inside it: on a
+// badge that wears a fill, that fill's trailing cap — from the middle of the
+// gap that separates the mark from the label out to the fill's own edge and
+// corner; on a bare badge, the mark's own square. Under the pointer the
+// region takes the platform's hover overlay and held it takes the press
+// overlay, each a coverage of black in the light appearance and white in the
+// dark one, laid over whatever is beneath. A region rather than the mark's
+// own colour, because an 8 dp x changing colour is the smallest possible
+// answer to a 24 dp target — the affordance was there and nothing showed
+// where.
 //
-// The mark re-derives its foreground against the walked cap rather than
-// holding the resting one, which is the same rule as everywhere else in this
-// package: a colour is derived against what is actually under it. Holding it
-// measured 4.5:1 at rest and 2.3:1 pressed, the state making the affordance
-// harder to see the more the reader committed to it.
-//
-// A bare glyph badge has no cap to walk, so there the mark's own colour walks
-// instead.
+// The mark itself is [Foreground] on a filled badge and the platform's
+// secondary label on a bare one, and it does not move with the pointer: an
+// overlay composites, so the white on a filled cap and the grey on a bare
+// square both keep reading through it.
 //
 // 24 dp is WCAG 2.5.8 Target Size (Minimum), the criterion that governs at AA,
 // and deliberately not the 44 dp of [tokens.MinHitTarget]: 44 is this system's
