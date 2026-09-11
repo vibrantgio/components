@@ -430,8 +430,8 @@ func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
 		{"dark", tokens.DefaultDark},
 	} {
 		ring := focus.RingOn(scheme.colors, pinnedFill)
-		if got := tcolor.ContrastRatio(ring, pinnedFill); got < focus.Floor {
-			t.Errorf("%s: ring %v measures %.2f:1 against the pinned fill %v",
+		if got := tcolor.Magnitude(ring, pinnedFill); got < focus.Floor {
+			t.Errorf("%s: ring %v measures |Lc| %.2f against the pinned fill %v",
 				scheme.name, ring, got, pinnedFill)
 		}
 		img := golden.Capture(t, size, onWindowSurface(scheme.colors, button.RenderIcon(
@@ -542,8 +542,8 @@ func TestFocusRingIsTheSameRingInEveryEmphasis(t *testing.T) {
 			// against the surface it circles.
 			surface := ringSurface(colors, e)
 			ring := focus.RingOn(colors, surface)
-			if got := tcolor.ContrastRatio(ring, surface); got < focus.Floor {
-				t.Errorf("%s %s: ring %v measures %.2f:1 against the surface it circles %v",
+			if got := tcolor.Magnitude(ring, surface); got < focus.Floor {
+				t.Errorf("%s %s: ring %v measures |Lc| %.2f against the surface it circles %v",
 					scheme.name, e, ring, got, surface)
 			}
 

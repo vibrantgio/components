@@ -237,8 +237,8 @@ type Colors struct {
 // is actually wearing.
 //
 // The words take the text floor and the marks the graphic one, which is the
-// split those two floors are for: WCAG 1.4.3's 4.5:1 is what a run of words
-// owes, and 1.4.11's 3:1 is what a shape that must be resolved owes.
+// split those two floors are for: [tokens.TextFloor] is what a run of words
+// owes, and [tokens.GraphicFloor] is what a shape that must be resolved owes.
 func Resolve(c tokens.ColorTokens, i Purpose, s RenderState) Colors {
 	st := s.state()
 	surface := c.SurfaceAt(s.Level)
@@ -247,8 +247,8 @@ func Resolve(c tokens.ColorTokens, i Purpose, s RenderState) Colors {
 			// A selected chip carries no outline, so its fill is the whole of
 			// what separates it from the page as well as the surface its own
 			// words are read on.
-			return vgcolor.ContrastRatio(fill, surface) >= tokens.ContainerFloor &&
-				vgcolor.ContrastRatio(c.ForegroundOnAtFloor(tokens.RoleSecondary, fill, tokens.TextFloor), fill) >= tokens.TextFloor
+			return vgcolor.LuminanceRatio(fill, surface) >= tokens.ContainerFloor &&
+				vgcolor.Magnitude(c.ForegroundOnAtFloor(tokens.RoleSecondary, fill, tokens.TextFloor), fill) >= tokens.TextFloor
 		})
 		return Colors{
 			Fill:  fill,
@@ -315,7 +315,7 @@ func walk(c tokens.ColorTokens, rest color.NRGBA, st tokens.State, good func(col
 // depended on which purpose stood on it would put two chips in one row at two
 // different depths under one pointer.
 func writable(c tokens.ColorTokens, fill color.NRGBA) bool {
-	return vgcolor.ContrastRatio(neutralForeground(c, c.OnSurfaceVariant(), fill, tokens.TextFloor), fill) >= tokens.TextFloor
+	return vgcolor.Magnitude(neutralForeground(c, c.OnSurfaceVariant(), fill, tokens.TextFloor), fill) >= tokens.TextFloor
 }
 
 // outlineOver is the unselected chip's edge: the boundary token while it holds
@@ -344,7 +344,7 @@ func outlineOver(c tokens.ColorTokens, surface, fill color.NRGBA) color.NRGBA {
 		c.MarkOn(tokens.RoleNeutral, fill, tokens.GraphicFloor),
 	}
 	clears := func(cand, over color.NRGBA) bool {
-		return vgcolor.ContrastRatio(cand, over) >= tokens.GraphicFloor
+		return vgcolor.Magnitude(cand, over) >= tokens.GraphicFloor
 	}
 	for _, cand := range cands {
 		if clears(cand, surface) && clears(cand, fill) {
@@ -367,7 +367,7 @@ func outlineOver(c tokens.ColorTokens, surface, fill color.NRGBA) color.NRGBA {
 // RoleNeutral has none, so the rule is spelled out here rather than
 // reinvented: pin first, walk only when the pin stops reading.
 func neutralForeground(c tokens.ColorTokens, pin, surface color.NRGBA, floor float64) color.NRGBA {
-	if vgcolor.ContrastRatio(pin, surface) >= floor {
+	if vgcolor.Magnitude(pin, surface) >= floor {
 		return pin
 	}
 	return c.MarkOn(tokens.RoleNeutral, surface, floor)

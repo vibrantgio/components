@@ -116,18 +116,18 @@ func (s Style) Width() unit.Dp {
 	return s.ThumbMinorWidth + 2*s.TrackPadding
 }
 
-// Contrast floors the thumb is derived against.
+// Contrast floors the thumb is derived against, both the theme's own.
 //
 // At rest the thumb is a graphic that carries meaning without being text —
 // nothing about the position it reports is spelled out anywhere — so it owes
-// the page WCAG 1.4.11's 3:1 and no more. Under the pointer it owes more: a
-// hovered or dragged thumb has stopped reporting a position and become a
+// the page [tokens.GraphicFloor] and no more. Under the pointer it owes more:
+// a hovered or dragged thumb has stopped reporting a position and become a
 // target, something the reader is aiming at rather than glancing at, so that
-// state takes WCAG 1.4.3's 4.5:1 text floor instead. One derivation, two
-// floors, and that difference is the whole of what separates the two states.
+// state takes the body-text floor instead. One derivation, two floors, and
+// that difference is the whole of what separates the two states.
 const (
-	restFloor   = 3.0
-	activeFloor = 4.5
+	restFloor   = tokens.GraphicFloor
+	activeFloor = tokens.TextFloor
 )
 
 // The coverage the overlay intends: 39% at rest, 67% while hovered or dragged.
@@ -170,10 +170,8 @@ const foregroundStep = 700
 // a foreground at the ramp's end is far from both of them.
 //
 // The measurement is taken over the composite, not over the colour itself: a
-// translucent colour has no contrast of its own, and its own ratio off the
-// ramp says nothing about what a reader sees — the low-contrast-text step at
-// 39% coverage measures 6.19:1 on its own and 1.49:1 composited over the
-// light page.
+// translucent colour has no contrast of its own, and its own reading off the
+// ramp says nothing about what a reader sees.
 //
 // A floor no colour at any coverage reaches is answered with the ramp's end
 // step, opaque, so a caller always has a colour: a thumb too weak for its
@@ -186,7 +184,7 @@ func thumbForeground(c tokens.ColorTokens, floor float64, coverage uint8) color.
 	}
 	clears := func(foreground color.NRGBA) bool {
 		for _, surface := range surfaces {
-			if tcolor.ContrastRatio(tcolor.Over(foreground, surface), surface) < floor {
+			if tcolor.Magnitude(tcolor.Over(foreground, surface), surface) < floor {
 				return false
 			}
 		}

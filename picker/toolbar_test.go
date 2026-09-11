@@ -224,14 +224,14 @@ func TestToolbarChevronReachesTheGraphicFloor(t *testing.T) {
 						for x := max(x0, 0); x < min(x1, img.Bounds().Dx()); x++ {
 							r, gg, b, _ := img.At(x, y).RGBA()
 							px := color.NRGBA{R: uint8(r >> 8), G: uint8(gg >> 8), B: uint8(b >> 8), A: 255}
-							if v := vgcolor.ContrastRatio(px, fill); v > best {
+							if v := vgcolor.Magnitude(px, fill); v > best {
 								best = v
 							}
 						}
 					}
-					t.Logf("%s: the mark's heaviest pixel reaches %.2f:1 on the fill", name, best)
+					t.Logf("%s: the mark's heaviest pixel reaches |Lc| %.2f on the fill", name, best)
 					if best < tokens.GraphicFloor {
-						t.Errorf("%s: the chevron's heaviest drawn pixel reaches only %.2f:1 on the fill, want at least %.1f:1",
+						t.Errorf("%s: the chevron's heaviest drawn pixel reaches only |Lc| %.2f on the fill, want at least |Lc| %.1f",
 							name, best, tokens.GraphicFloor)
 					}
 				})

@@ -239,11 +239,11 @@ func TestTheSchemeControlIsAControl(t *testing.T) {
 						sc.name, dims.Size.Y, schemeDrawnFloor)
 				}
 				foreground, fill := schemeSegmentColors(sc.c, selected)
-				ratio := themecolor.ContrastRatio(foreground, fill)
-				t.Logf("%s scheme, %s segment, selected=%v: glyph %.2f:1 on the fill behind it",
+				ratio := themecolor.Magnitude(foreground, fill)
+				t.Logf("%s scheme, %s segment, selected=%v: glyph |Lc| %.2f on the fill behind it",
 					sc.name, map[bool]string{false: "sun", true: "moon"}[dark], selected, ratio)
 				if ratio < schemeGlyphFloor {
-					t.Errorf("%s: a glyph on a segment with selected=%v measures %.2f:1, want at least %.1f:1",
+					t.Errorf("%s: a glyph on a segment with selected=%v measures |Lc| %.2f, want at least |Lc| %.1f",
 						sc.name, selected, ratio, schemeGlyphFloor)
 				}
 			}
@@ -254,11 +254,11 @@ func TestTheSchemeControlIsAControl(t *testing.T) {
 		}
 		// The track has to be findable on the page before either glyph on it
 		// can say anything, and the page under it is the scheme's background.
-		if r := themecolor.ContrastRatio(schemeTrack(sc.c), sc.c.Background); r < schemeTrackFloor {
+		if r := themecolor.LuminanceRatio(schemeTrack(sc.c), sc.c.Background); r < schemeTrackFloor {
 			t.Errorf("%s: the control's track measures %.2f:1 against the page, want at least %.2f:1",
 				sc.name, r, schemeTrackFloor)
 		} else {
-			t.Logf("%s scheme: track %.2f:1 against the page", sc.name, r)
+			t.Logf("%s scheme: track |Lc| %.2f against the page", sc.name, r)
 		}
 	}
 }
@@ -372,7 +372,7 @@ const (
 	// schemeGlyphFloor is the contrast a glyph needs against what is behind
 	// it. A glyph is a graphic and not a line of text, which is the lower of
 	// the two standing floors.
-	schemeGlyphFloor = 3.0
+	schemeGlyphFloor = tokens.GraphicFloor
 	// schemeTrackFloor is how far the control as a whole has to stand off the
 	// page. It is a shape rather than a mark, so the floor is set where a flat
 	// fill stops being mistakable for the surface it stands on and not at the

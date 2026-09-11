@@ -253,18 +253,10 @@ func Fill(c tokens.ColorTokens) color.NRGBA { return c.InverseSurface }
 func Foreground(c tokens.ColorTokens) color.NRGBA { return c.OnInverseSurface }
 
 // edgeFloor is the contrast the leading edge owes the inverse surface it
-// sits on. The edge is a graphic and not text, so 3:1 would satisfy WCAG,
-// but it is also the only thing on a toast that says which status this is,
-// so it is held to the body-text floor instead.
-//
-// The number does not bind, which is worth knowing before anyone tunes it.
-// Over the whole seed sweep, both derivations, all four roles and both
-// schemes, asking for 3.0 picks exactly the steps asking for 4.5 does: step
-// 500 in a light scheme, never worse than 5.52:1 over the dark surface, and
-// step 400 in a dark scheme, never worse than 7.58:1 over the light one.
-// What chooses the step is the shape of the role's ramp against a surface
-// built out of the counterpart scheme — see edgeColor — and not this floor.
-const edgeFloor = 4.5
+// sits on. The edge is a graphic and not text, so [tokens.GraphicFloor] would
+// satisfy the mark level, but it is also the only thing on a toast that says
+// which status this is, so it is held to the body-text floor instead.
+const edgeFloor = tokens.TextFloor
 
 // Edge maps a status to the colour of the toast's leading edge: the step of
 // that status's role ramp nearest the ramp's mid-value step that still clears

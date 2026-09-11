@@ -66,12 +66,12 @@ func TestTheThumbClearsItsFloorOnEverySurfaceItRides(t *testing.T) {
 			for _, g := range thumbSurfaces {
 				surface := scheme.c.SurfaceAt(g.level)
 				composite := tcolor.Over(st.foreground, surface)
-				got := tcolor.ContrastRatio(composite, surface)
+				got := tcolor.Magnitude(composite, surface)
 				if got < st.floor {
-					t.Errorf("%s %s: %v over %s composites to %v and measures %.2f:1, under the %.1f:1 floor",
+					t.Errorf("%s %s: %v over %s composites to %v and measures |Lc| %.2f, under the |Lc| %.1f floor",
 						scheme.name, st.name, st.foreground, g.name, composite, got, st.floor)
 				}
-				t.Logf("%s %s: %v over %s -> %v, %.2f:1", scheme.name, st.name, st.foreground, g.name, composite, got)
+				t.Logf("%s %s: %v over %s -> %v, |Lc| %.2f", scheme.name, st.name, st.foreground, g.name, composite, got)
 			}
 		}
 	}
@@ -105,9 +105,9 @@ func TestTheThumbClearsItsFloorForEverySeed(t *testing.T) {
 			} {
 				for _, g := range thumbSurfaces {
 					surface := scheme.c.SurfaceAt(g.level)
-					got := tcolor.ContrastRatio(tcolor.Over(st.foreground, surface), surface)
+					got := tcolor.Magnitude(tcolor.Over(st.foreground, surface), surface)
 					if got < st.floor {
-						t.Errorf("seed %v %s %s: %v over %s measures %.2f:1, under the %.1f:1 floor",
+						t.Errorf("seed %v %s %s: %v over %s measures |Lc| %.2f, under the |Lc| %.1f floor",
 							seed, scheme.name, st.name, st.foreground, g.name, got, st.floor)
 					}
 					if got < *st.worst {
@@ -117,7 +117,7 @@ func TestTheThumbClearsItsFloorForEverySeed(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("over %d seeds in four schemes: worst resting thumb %.2f:1, worst hovered %.2f:1",
+	t.Logf("over %d seeds in four schemes: worst resting thumb |Lc| %.2f, worst hovered |Lc| %.2f",
 		len(thumbSeeds), worstRest, worstActive)
 }
 
@@ -131,7 +131,7 @@ func TestTheThumbIsAsTranslucentAsItsFloorAllows(t *testing.T) {
 	clears := func(c tokens.ColorTokens, foreground color.NRGBA, floor float64) bool {
 		for _, g := range thumbSurfaces {
 			surface := c.SurfaceAt(g.level)
-			if tcolor.ContrastRatio(tcolor.Over(foreground, surface), surface) < floor {
+			if tcolor.Magnitude(tcolor.Over(foreground, surface), surface) < floor {
 				return false
 			}
 		}
@@ -195,10 +195,10 @@ func TestTheTwoStatesComeFromOneRecipe(t *testing.T) {
 		}
 		for _, g := range thumbSurfaces {
 			surface := scheme.c.SurfaceAt(g.level)
-			rest := tcolor.ContrastRatio(tcolor.Over(s.ThumbColor, surface), surface)
-			active := tcolor.ContrastRatio(tcolor.Over(s.ThumbHoverColor, surface), surface)
+			rest := tcolor.Magnitude(tcolor.Over(s.ThumbColor, surface), surface)
+			active := tcolor.Magnitude(tcolor.Over(s.ThumbHoverColor, surface), surface)
 			if active <= rest {
-				t.Errorf("%s on %s: the hovered thumb measures %.2f:1 against the resting thumb's %.2f:1",
+				t.Errorf("%s on %s: the hovered thumb measures |Lc| %.2f against the resting thumb's |Lc| %.2f",
 					scheme.name, g.name, active, rest)
 			}
 		}

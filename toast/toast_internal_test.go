@@ -178,12 +178,12 @@ func TestLeadingEdgeReadsOnTheSurfaceInBothSchemes(t *testing.T) {
 	}{{"light", tokens.DefaultLight}, {"dark", tokens.DefaultDark}} {
 		for _, status := range []Status{Info, Success, Warning, Error} {
 			edge := Edge(sc.c, status)
-			got := vcolor.ContrastRatio(edge, sc.c.InverseSurface)
+			got := vcolor.Magnitude(edge, sc.c.InverseSurface)
 			if got < edgeFloor {
-				t.Errorf("%s scheme, status %d: edge %v on the surface measures %.2f:1; want at least %.1f:1",
+				t.Errorf("%s scheme, status %d: edge %v on the surface measures |Lc| %.2f; want at least |Lc| %.1f",
 					sc.name, status, edge, got, edgeFloor)
 			}
-			t.Logf("%s scheme, status %d: edge %v at %.2f:1", sc.name, status, edge, got)
+			t.Logf("%s scheme, status %d: edge %v at |Lc| %.2f", sc.name, status, edge, got)
 		}
 	}
 }

@@ -1084,19 +1084,14 @@ func markStep(gtx layout.Context, cell image.Rectangle, step stdcolor.NRGBA) {
 //
 // Measured, and not decided by asking whether the step is dark. Half-way up
 // the luminance scale is the answer to "which side of a scheme is this", and
-// it is the wrong question here: a step at a luminance of a third is called
-// dark by that test and carries white at under three to one, while black on
-// the same step reads at nearly eight. That band is where the mid steps of a
-// saturated hue live — a light red, a mid amber — and this section puts marks
-// on them the moment a status role's container names its mark. So the two
-// candidates are tried and the better one kept, which is what the derivation
-// itself does when it picks an on-colour, and the mark is doing the same job
-// on the same fill.
+// it is the wrong question here: the mid steps of a saturated hue — a light
+// red, a mid amber — sit in a band where a lightness test and the eye
+// disagree, and this section puts marks on them the moment a status role's
+// container names its mark. So the two candidates are handed to
+// [vgcolor.BestOn], which is what the derivation itself does when it picks an
+// on-colour, and the mark is doing the same job on the same fill.
 func MarkForegroundOn(step stdcolor.NRGBA) stdcolor.NRGBA {
-	if vgcolor.ContrastRatio(tokens.White, step) > vgcolor.ContrastRatio(tokens.Black, step) {
-		return tokens.White
-	}
-	return tokens.Black
+	return vgcolor.BestOn(step, tokens.Black, tokens.White)
 }
 
 // EdgeIn is the frame every swatch of this section wears: the inverse of the

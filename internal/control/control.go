@@ -13,13 +13,17 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// GraphicFloor is WCAG 1.4.11's contrast floor for a graphic that carries
-// meaning without being text — 3:1. A control that says what it is with an
-// edge is entirely such a graphic: nothing about its state is spelled out, so
-// its edge owes the page this much and its mark owes the fill it is drawn on
-// the same. One floor serves the whole family — the box, the radio, the text
-// field, the picker's field trigger.
-const GraphicFloor = 3.0
+// GraphicFloor is the contrast floor for a graphic that carries meaning
+// without being text. A control that says what it is with an edge is entirely
+// such a graphic: nothing about its state is spelled out, so its edge owes the
+// page this much and its mark owes the fill it is drawn on the same. One floor
+// serves the whole family — the box, the radio, the text field, the picker's
+// field trigger.
+//
+// It is the theme's own [tokens.GraphicFloor] and not a number of this
+// package's: one measure, one level, read by the derivation and by the
+// consumer alike.
+const GraphicFloor = tokens.GraphicFloor
 
 // Border is the colour a control's resting edge is drawn in — the unchecked
 // box, the unselected radio, the text field, the picker's field trigger: the
@@ -57,8 +61,8 @@ func Border(c tokens.ColorTokens, level tokens.ElevationLevel) color.NRGBA {
 		against,
 		c.MarkOn(tokens.RoleNeutral, inside, GraphicFloor),
 	} {
-		if vgcolor.ContrastRatio(cand, outside) >= GraphicFloor &&
-			vgcolor.ContrastRatio(cand, inside) >= GraphicFloor {
+		if vgcolor.Magnitude(cand, outside) >= GraphicFloor &&
+			vgcolor.Magnitude(cand, inside) >= GraphicFloor {
 			return cand
 		}
 	}

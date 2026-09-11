@@ -247,8 +247,8 @@ func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 	} {
 		c := scheme.colors
 		ring := focus.Ring(c)
-		if got := tcolor.ContrastRatio(ring, c.Surface); got < focus.Floor {
-			t.Errorf("%s: ring %v measures %.2f:1 against the surface it lies on %v",
+		if got := tcolor.Magnitude(ring, c.Surface); got < focus.Floor {
+			t.Errorf("%s: ring %v measures |Lc| %.2f against the surface it lies on %v",
 				scheme.name, ring, got, c.Surface)
 		}
 
@@ -351,8 +351,8 @@ func TestFocusRingIsOneColourOnEveryLevelAndControl(t *testing.T) {
 			tokens.Level0, tokens.Level1, tokens.Level2, tokens.Level3,
 		} {
 			ring := focus.Ring(c)
-			if got := tcolor.ContrastRatio(ring, c.SurfaceAt(level)); got < focus.Floor {
-				t.Errorf("%s level %d: ring %v measures %.2f:1 against the surface it stands on %v",
+			if got := tcolor.Magnitude(ring, c.SurfaceAt(level)); got < focus.Floor {
+				t.Errorf("%s level %d: ring %v measures |Lc| %.2f against the surface it stands on %v",
 					scheme.name, level, ring, got, c.SurfaceAt(level))
 			}
 			for _, ctl := range []struct {

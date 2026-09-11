@@ -15,11 +15,11 @@ import (
 
 // wcagText is WCAG 1.4.3's AA floor for text below 18 pt: an option row's
 // label is BodyLarge, so it owes this over whatever fill its row paints.
-const wcagText = 4.5
+const wcagText = tokens.TextFloor
 
 // wcagIndicator is WCAG 1.4.11's floor for a non-text indicator — here the
 // difference in fill that says which row is the selected one.
-const wcagIndicator = 3.0
+const wcagIndicator = tokens.GraphicFloor
 
 func hex(c color.NRGBA) string {
 	return fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B)
@@ -59,10 +59,10 @@ func TestMenuOptionRowContrast(t *testing.T) {
 				{"hovered", hovFill, hovForeground},
 				{"selected", selFill, selForeground},
 			} {
-				got := themecolor.ContrastRatio(row.foreground, row.fill)
-				t.Logf("%s label on its own row %.2f:1 (fill %s, foreground %s)", row.name, got, hex(row.fill), hex(row.foreground))
+				got := themecolor.Magnitude(row.foreground, row.fill)
+				t.Logf("%s label on its own row |Lc| %.2f (fill %s, foreground %s)", row.name, got, hex(row.fill), hex(row.foreground))
 				if got < wcagText {
-					t.Errorf("%s label on its own row = %.2f:1, want at least %.1f:1", row.name, got, wcagText)
+					t.Errorf("%s label on its own row = |Lc| %.2f, want at least |Lc| %.1f", row.name, got, wcagText)
 				}
 			}
 
@@ -78,10 +78,10 @@ func TestMenuOptionRowContrast(t *testing.T) {
 				{"the menu's own fill", restFill},
 				{"a hovered row", hovFill},
 			} {
-				got := themecolor.ContrastRatio(selFill, sep.fill)
-				t.Logf("selected fill against %s %.2f:1", sep.name, got)
+				got := themecolor.Magnitude(selFill, sep.fill)
+				t.Logf("selected fill against %s |Lc| %.2f", sep.name, got)
 				if got < wcagIndicator {
-					t.Errorf("selected fill against %s = %.2f:1, want at least %.1f:1", sep.name, got, wcagIndicator)
+					t.Errorf("selected fill against %s = |Lc| %.2f, want at least |Lc| %.1f", sep.name, got, wcagIndicator)
 				}
 			}
 
@@ -89,8 +89,8 @@ func TestMenuOptionRowContrast(t *testing.T) {
 			// it says nothing the pointer does not already say, and it is
 			// gone the moment the pointer is. The number is logged because
 			// a state fill nobody can see is still worth knowing about.
-			t.Logf("hovered fill against the menu's own fill %.2f:1 (no floor: hover is not a mark)",
-				themecolor.ContrastRatio(hovFill, restFill))
+			t.Logf("hovered fill against the menu's own fill |Lc| %.2f (no floor: hover is not a mark)",
+				themecolor.Magnitude(hovFill, restFill))
 		})
 	}
 }
@@ -133,12 +133,12 @@ func TestMenuOptionRowContrastHoldsForEverySeed(t *testing.T) {
 				{"hovered", hovFill, hovForeground},
 				{"selected", selFill, selForeground},
 			} {
-				got := themecolor.ContrastRatio(row.foreground, row.fill)
+				got := themecolor.Magnitude(row.foreground, row.fill)
 				if got < worstText {
 					worstText = got
 				}
 				if got < wcagText {
-					t.Errorf("seed %s %s: %s label on its own row = %.2f:1, want at least %.1f:1",
+					t.Errorf("seed %s %s: %s label on its own row = |Lc| %.2f, want at least |Lc| %.1f",
 						hex(seed), sc.name, row.name, got, wcagText)
 				}
 			}
@@ -149,16 +149,16 @@ func TestMenuOptionRowContrastHoldsForEverySeed(t *testing.T) {
 				{"the menu's own fill", restFill},
 				{"a hovered row", hovFill},
 			} {
-				got := themecolor.ContrastRatio(selFill, sep.fill)
+				got := themecolor.Magnitude(selFill, sep.fill)
 				if got < worstSep {
 					worstSep = got
 				}
 				if got < wcagIndicator {
-					t.Errorf("seed %s %s: selected fill against %s = %.2f:1, want at least %.1f:1",
+					t.Errorf("seed %s %s: selected fill against %s = |Lc| %.2f, want at least |Lc| %.1f",
 						hex(seed), sc.name, sep.name, got, wcagIndicator)
 				}
 			}
 		}
 	}
-	t.Logf("worst label over its row %.2f:1; worst selected fill against what it stands beside %.2f:1", worstText, worstSep)
+	t.Logf("worst label over its row |Lc| %.2f; worst selected fill against what it stands beside |Lc| %.2f", worstText, worstSep)
 }

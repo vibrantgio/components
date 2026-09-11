@@ -42,11 +42,11 @@ func TestSearchMarksClearTheGraphicFloor(t *testing.T) {
 				fill := controlFill(c, level.level)
 				for _, m := range []string{"the looking glass", "the clear mark"} {
 					mark := control.Placeholder(c)
-					got := themecolor.ContrastRatio(mark, fill)
-					t.Logf("%s %s %s against the %s field's fill %s: %.2f:1",
+					got := themecolor.Magnitude(mark, fill)
+					t.Logf("%s %s %s against the %s field's fill %s: |Lc| %.2f",
 						level.name, m, hex(mark), level.name, hex(fill), got)
 					if got < graphicFloor {
-						t.Errorf("%s %s %s against the %s field's fill %s = %.2f:1, want at least %.1f:1",
+						t.Errorf("%s %s %s against the %s field's fill %s = |Lc| %.2f, want at least |Lc| %.1f",
 							level.name, m, hex(mark), level.name, hex(fill), got, graphicFloor)
 					}
 				}

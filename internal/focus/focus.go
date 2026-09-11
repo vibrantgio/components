@@ -87,6 +87,7 @@ package focus
 
 import (
 	"image/color"
+	"math"
 
 	"gioui.org/unit"
 
@@ -100,9 +101,10 @@ import (
 const Width = unit.Dp(2)
 
 // Floor is the contrast the ring must reach against the surface it is drawn
-// on: 3:1, WCAG 1.4.11's floor for a graphic that carries meaning without
-// being text. It is the same floor the status marks are measured to.
-const Floor = 3.0
+// on: the theme's floor for a graphic that carries meaning without being
+// text. It is the same floor the status marks are measured to, and it is the
+// theme's own number rather than one of this package's.
+const Floor = tokens.GraphicFloor
 
 // BorderSeparation is the least luminance separation the ring owes the neutral
 // resting border of a control standing on the same level — the line a text
@@ -184,12 +186,12 @@ func Ring(c tokens.ColorTokens) color.NRGBA {
 	pick, dist := -1, len(c.Ramps.Primary)
 	widest, widestAt := -1.0, 0
 	for i, step := range c.Ramps.Primary {
-		worst, worstBorder := 99.0, 99.0
+		worst, worstBorder := math.Inf(1), math.Inf(1)
 		for _, level := range levels {
-			if got := vgcolor.ContrastRatio(step, c.SurfaceAt(level)); got < worst {
+			if got := vgcolor.Magnitude(step, c.SurfaceAt(level)); got < worst {
 				worst = got
 			}
-			if got := vgcolor.ContrastRatio(step, restingBorder(c, level)); got < worstBorder {
+			if got := vgcolor.LuminanceRatio(step, restingBorder(c, level)); got < worstBorder {
 				worstBorder = got
 			}
 		}
@@ -232,7 +234,7 @@ func Ring(c tokens.ColorTokens) color.NRGBA {
 // level is what [Ring] already answers.
 func RingOn(c tokens.ColorTokens, fill color.NRGBA) color.NRGBA {
 	ring := Ring(c)
-	if fill.A == 0 || vgcolor.ContrastRatio(ring, fill) >= Floor {
+	if fill.A == 0 || vgcolor.Magnitude(ring, fill) >= Floor {
 		return ring
 	}
 	return c.MarkOn(tokens.RolePrimary, fill, Floor)

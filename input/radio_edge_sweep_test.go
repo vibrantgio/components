@@ -87,9 +87,9 @@ func TestSelectedRadioEdgeClearsTheGraphicFloorForEverySeed(t *testing.T) {
 			for _, level := range radioEdgeLevels {
 				host := s.tok.SurfaceAt(level)
 				edge := selectedRadioEdge(s.tok, level)
-				got := color.ContrastRatio(edge, host)
+				got := color.Magnitude(edge, host)
 				if got < tokens.GraphicFloor {
-					t.Errorf("seed %s: %s: level %v: selected edge %s on host %s measures %.2f:1, under the %.1f:1 graphic floor",
+					t.Errorf("seed %s: %s: level %v: selected edge %s on host %s measures |Lc| %.2f, under the |Lc| %.1f graphic floor",
 						radioEdgeHex(seed), s.name, level, radioEdgeHex(edge), radioEdgeHex(host), got, tokens.GraphicFloor)
 				}
 				if s.light && got < worstLight {
@@ -101,7 +101,7 @@ func TestSelectedRadioEdgeClearsTheGraphicFloorForEverySeed(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("over %d seeds: worst light selected edge %.2f:1 (%s), worst dark selected edge %.2f:1 (%s)",
+	t.Logf("over %d seeds: worst light selected edge |Lc| %.2f (%s), worst dark selected edge |Lc| %.2f (%s)",
 		len(radioEdgeSweepSeeds()), worstLight, worstLightAt, worstDark, worstDarkAt)
 }
 
@@ -136,8 +136,8 @@ func TestAPastelSeedsSelectedRadioEdgeLeavesThePin(t *testing.T) {
 	light, dark := tokens.FromSeed(seed)
 
 	lightHost := light.SurfaceAt(tokens.Level0)
-	if bare := color.ContrastRatio(light.Primary, lightHost); bare >= tokens.GraphicFloor {
-		t.Fatalf("this seed's bare light pin now measures %.2f:1 on the window level — the test no longer reads the shape it was written for", bare)
+	if bare := color.Magnitude(light.Primary, lightHost); bare >= tokens.GraphicFloor {
+		t.Fatalf("this seed's bare light pin now measures |Lc| %.2f on the window level — the test no longer reads the shape it was written for", bare)
 	}
 	lightEdge := selectedRadioEdge(light, tokens.Level0)
 	if lightEdge == light.Primary {

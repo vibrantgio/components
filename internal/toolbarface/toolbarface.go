@@ -259,7 +259,7 @@ func legible(c tokens.ColorTokens, rest, walked color.NRGBA) color.NRGBA {
 // `Foreground` hands back the best-reading step when no step reaches the
 // floor at all.
 func writable(c tokens.ColorTokens, fill color.NRGBA) bool {
-	return vgcolor.ContrastRatio(Foreground(c, fill, tokens.TextFloor), fill) >= tokens.TextFloor
+	return vgcolor.Magnitude(Foreground(c, fill, tokens.TextFloor), fill) >= tokens.TextFloor
 }
 
 // Rim is the edge, and whether there is one: the step of the neutral ramp
@@ -292,8 +292,8 @@ func Rim(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) 
 		c.MarkOn(tokens.RoleNeutral, below, tokens.GraphicFloor),
 		c.MarkOn(tokens.RoleNeutral, above, tokens.GraphicFloor),
 	} {
-		if vgcolor.ContrastRatio(cand, below) >= tokens.GraphicFloor &&
-			vgcolor.ContrastRatio(cand, above) >= tokens.GraphicFloor {
+		if vgcolor.Magnitude(cand, below) >= tokens.GraphicFloor &&
+			vgcolor.Magnitude(cand, above) >= tokens.GraphicFloor {
 			return cand, true
 		}
 	}
@@ -313,7 +313,7 @@ func Rim(c tokens.ColorTokens, level tokens.ElevationLevel, state tokens.State) 
 //
 // Pass tokens.TextFloor for a label and tokens.GraphicFloor for a mark.
 func Foreground(c tokens.ColorTokens, fill color.NRGBA, floor float64) color.NRGBA {
-	if vgcolor.ContrastRatio(c.Text, fill) >= floor {
+	if vgcolor.Magnitude(c.Text, fill) >= floor {
 		return c.Text
 	}
 	return c.MarkOn(tokens.RoleNeutral, fill, floor)

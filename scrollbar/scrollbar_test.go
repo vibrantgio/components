@@ -52,15 +52,15 @@ func TestFromTokens(t *testing.T) {
 		name string
 		c    tokens.ColorTokens
 		// The step and coverage the derivation answers for this scheme,
-		// spelled out rather than recomputed: the dark scheme keeps the
-		// low-contrast-text step at the intended coverage, and the light
-		// scheme spends the colour to the ramp's end and buys the rest with
-		// coverage. See FromTokens for why they differ.
+		// spelled out rather than recomputed: both schemes spend the
+		// foreground to the ramp's end and buy the rest with coverage, and
+		// the dark scheme buys less of it. See FromTokens for why they
+		// differ.
 		thumbStep, thumbAlpha int
 		hoverStep, hoverAlpha int
 	}{
-		{"DefaultLight", tokens.DefaultLight, 900, 184, 900, 214},
-		{"DefaultDark", tokens.DefaultDark, 700, 100, 700, 170},
+		{"DefaultLight", tokens.DefaultLight, 900, 171, 900, 237},
+		{"DefaultDark", tokens.DefaultDark, 900, 100, 900, 181},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

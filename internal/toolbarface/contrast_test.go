@@ -90,20 +90,20 @@ func edgeHolds(t *testing.T, label string, c tokens.ColorTokens, level tokens.El
 	fill := Fill(c, level, state)
 	rim, rimmed := Rim(c, level, state)
 	if !rimmed {
-		got := vgcolor.ContrastRatio(fill, below)
+		got := vgcolor.Magnitude(fill, below)
 		if got < tokens.GraphicFloor {
-			t.Errorf("%s: no rim and the fill %s only reaches %.2f:1 against the surface %s, want at least %.1f:1",
+			t.Errorf("%s: no rim and the fill %s only reaches |Lc| %.2f against the surface %s, want at least |Lc| %.1f",
 				label, hex(fill), got, hex(below), tokens.GraphicFloor)
 		}
 		return got
 	}
-	worst := vgcolor.ContrastRatio(rim, below)
+	worst := vgcolor.Magnitude(rim, below)
 	if worst < tokens.GraphicFloor {
-		t.Errorf("%s: rim %s against the surface %s = %.2f:1, want at least %.1f:1",
+		t.Errorf("%s: rim %s against the surface %s = |Lc| %.2f, want at least |Lc| %.1f",
 			label, hex(rim), hex(below), worst, tokens.GraphicFloor)
 	}
-	if got := vgcolor.ContrastRatio(rim, fill); got < tokens.GraphicFloor {
-		t.Errorf("%s: rim %s against its own fill %s = %.2f:1, want at least %.1f:1",
+	if got := vgcolor.Magnitude(rim, fill); got < tokens.GraphicFloor {
+		t.Errorf("%s: rim %s against its own fill %s = |Lc| %.2f, want at least |Lc| %.1f",
 			label, hex(rim), hex(fill), got, tokens.GraphicFloor)
 	} else if got < worst {
 		worst = got
@@ -128,10 +128,10 @@ func TestEdgeHoldsOnEveryLevelAndState(t *testing.T) {
 					name := lv.name + " " + st.name
 					got := edgeHolds(t, name, c, lv.level, st.state)
 					if rim, rimmed := Rim(c, lv.level, st.state); rimmed {
-						t.Logf("%s: rim %s on %s over %s, worst side %.2f:1", name, hex(rim),
+						t.Logf("%s: rim %s on %s over %s, worst side |Lc| %.2f", name, hex(rim),
 							hex(Fill(c, lv.level, st.state)), hex(c.SurfaceAt(lv.level)), got)
 					} else {
-						t.Logf("%s: no rim — the fill %s carries its own edge over %s at %.2f:1", name,
+						t.Logf("%s: no rim — the fill %s carries its own edge over %s at |Lc| %.2f", name,
 							hex(Fill(c, lv.level, st.state)), hex(c.SurfaceAt(lv.level)), got)
 					}
 				}
@@ -166,11 +166,11 @@ func TestForegroundsClearTheirFloors(t *testing.T) {
 						{"label", Foreground(c, fill, tokens.TextFloor), tokens.TextFloor},
 						{"glyph", Foreground(c, fill, tokens.GraphicFloor), tokens.GraphicFloor},
 					} {
-						got := vgcolor.ContrastRatio(foreground.col, fill)
-						t.Logf("%s %s %s %s on the fill %s: %.2f:1",
+						got := vgcolor.Magnitude(foreground.col, fill)
+						t.Logf("%s %s %s %s on the fill %s: |Lc| %.2f",
 							lv.name, st.name, foreground.name, hex(foreground.col), hex(fill), got)
 						if got < foreground.floor {
-							t.Errorf("%s %s %s %s on the fill %s = %.2f:1, want at least %.1f:1",
+							t.Errorf("%s %s %s %s on the fill %s = |Lc| %.2f, want at least |Lc| %.1f",
 								lv.name, st.name, foreground.name, hex(foreground.col), hex(fill), got, foreground.floor)
 						}
 					}
@@ -206,18 +206,18 @@ func TestPairingsHoldForEverySeed(t *testing.T) {
 						worstRim = got
 					}
 					labelForeground := Foreground(c, fill, tokens.TextFloor)
-					if got := vgcolor.ContrastRatio(labelForeground, fill); got < worstLabel {
+					if got := vgcolor.Magnitude(labelForeground, fill); got < worstLabel {
 						worstLabel = got
 						if got < tokens.TextFloor {
-							t.Errorf("seed %s %s: %s %s label %s on its fill = %.2f:1, want at least %.1f:1",
+							t.Errorf("seed %s %s: %s %s label %s on its fill = |Lc| %.2f, want at least |Lc| %.1f",
 								hex(seed), sc.name, lv.name, st.name, hex(labelForeground), got, tokens.TextFloor)
 						}
 					}
 					glyphForeground := Foreground(c, fill, tokens.GraphicFloor)
-					if got := vgcolor.ContrastRatio(glyphForeground, fill); got < worstGlyph {
+					if got := vgcolor.Magnitude(glyphForeground, fill); got < worstGlyph {
 						worstGlyph = got
 						if got < tokens.GraphicFloor {
-							t.Errorf("seed %s %s: %s %s glyph %s on its fill = %.2f:1, want at least %.1f:1",
+							t.Errorf("seed %s %s: %s %s glyph %s on its fill = |Lc| %.2f, want at least |Lc| %.1f",
 								hex(seed), sc.name, lv.name, st.name, hex(glyphForeground), got, tokens.GraphicFloor)
 						}
 					}
@@ -225,7 +225,7 @@ func TestPairingsHoldForEverySeed(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("worst over the sweep: edge %.2f:1, label %.2f:1, glyph %.2f:1", worstRim, worstLabel, worstGlyph)
+	t.Logf("worst over the sweep: edge |Lc| %.2f, label |Lc| %.2f, glyph |Lc| %.2f", worstRim, worstLabel, worstGlyph)
 }
 
 // TestFocusRingClearsItsFloor measures the ring against the side of the band
@@ -248,15 +248,15 @@ func TestFocusRingClearsItsFloor(t *testing.T) {
 			ring := focus.Ring(c)
 			for _, lv := range levels {
 				surface := c.SurfaceAt(lv.level)
-				if got := vgcolor.ContrastRatio(ring, surface); got < worst {
+				if got := vgcolor.Magnitude(ring, surface); got < worst {
 					worst = got
 					if got < focusFloor {
-						t.Errorf("seed %s: %s focus ring %s on the surface %s = %.2f:1, want at least %.1f:1",
+						t.Errorf("seed %s: %s focus ring %s on the surface %s = |Lc| %.2f, want at least |Lc| %.1f",
 							hex(seed), lv.name, hex(ring), hex(surface), got, focusFloor)
 					}
 				}
 			}
 		}
 	}
-	t.Logf("worst focus-ring pairing over the sweep: %.2f:1", worst)
+	t.Logf("worst focus-ring pairing over the sweep: |Lc| %.2f", worst)
 }

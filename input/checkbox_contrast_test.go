@@ -72,10 +72,10 @@ func TestControlBorderClearsTheGraphicFloor(t *testing.T) {
 					{"the " + level.name + " surface it stands on", c.SurfaceAt(level.level)},
 					{"its own raised interior", controlFill(c, level.level)},
 				} {
-					got := themecolor.ContrastRatio(border, g.surface)
-					t.Logf("%s border %s against %s %s: %.2f:1", level.name, hex(border), g.name, hex(g.surface), got)
+					got := themecolor.Magnitude(border, g.surface)
+					t.Logf("%s border %s against %s %s: |Lc| %.2f", level.name, hex(border), g.name, hex(g.surface), got)
 					if got < graphicFloor {
-						t.Errorf("%s border %s against %s %s = %.2f:1, want at least %.1f:1",
+						t.Errorf("%s border %s against %s %s = |Lc| %.2f, want at least |Lc| %.1f",
 							level.name, hex(border), g.name, hex(g.surface), got, graphicFloor)
 					}
 				}
@@ -127,19 +127,19 @@ func TestControlBorderClearsTheFloorForEverySeed(t *testing.T) {
 					{level.name + " surface", c.SurfaceAt(level.level)},
 					{"raised interior", controlFill(c, level.level)},
 				} {
-					got := themecolor.ContrastRatio(border, g.surface)
+					got := themecolor.Magnitude(border, g.surface)
 					if got < worst {
 						worst = got
 					}
 					if got < graphicFloor {
-						t.Errorf("seed %s %s: %s border %s against the %s %s = %.2f:1, want at least %.1f:1",
+						t.Errorf("seed %s %s: %s border %s against the %s %s = |Lc| %.2f, want at least |Lc| %.1f",
 							hex(seed), sc.name, level.name, hex(border), g.name, hex(g.surface), got, graphicFloor)
 					}
 				}
 			}
 		}
 	}
-	t.Logf("worst border pairing over the sweep: %.2f:1", worst)
+	t.Logf("worst border pairing over the sweep: |Lc| %.2f", worst)
 }
 
 // TestCheckboxCheckClearsTheGraphicFloor measures the other pairing: the
@@ -157,10 +157,10 @@ func TestCheckboxCheckClearsTheGraphicFloor(t *testing.T) {
 	} {
 		t.Run(sc.name, func(t *testing.T) {
 			c := sc.colors
-			got := themecolor.ContrastRatio(c.OnPrimary, c.Primary)
-			t.Logf("check %s on the fill %s: %.2f:1", hex(c.OnPrimary), hex(c.Primary), got)
+			got := themecolor.Magnitude(c.OnPrimary, c.Primary)
+			t.Logf("check %s on the fill %s: |Lc| %.2f", hex(c.OnPrimary), hex(c.Primary), got)
 			if got < graphicFloor {
-				t.Errorf("check %s on the fill %s = %.2f:1, want at least %.1f:1",
+				t.Errorf("check %s on the fill %s = |Lc| %.2f, want at least |Lc| %.1f",
 					hex(c.OnPrimary), hex(c.Primary), got, graphicFloor)
 			}
 		})
@@ -171,15 +171,15 @@ func TestCheckboxCheckClearsTheGraphicFloor(t *testing.T) {
 		light, dark := tokens.FromSeed(seed)
 		lightHC, darkHC := tokens.FromSeedHighContrast(seed)
 		for _, c := range []tokens.ColorTokens{light, dark, lightHC, darkHC} {
-			got := themecolor.ContrastRatio(c.OnPrimary, c.Primary)
+			got := themecolor.Magnitude(c.OnPrimary, c.Primary)
 			if got < worst {
 				worst = got
 			}
 			if got < graphicFloor {
-				t.Errorf("seed %s: check %s on the fill %s = %.2f:1, want at least %.1f:1",
+				t.Errorf("seed %s: check %s on the fill %s = |Lc| %.2f, want at least |Lc| %.1f",
 					hex(seed), hex(c.OnPrimary), hex(c.Primary), got, graphicFloor)
 			}
 		}
 	}
-	t.Logf("worst check pairing over the sweep: %.2f:1", worst)
+	t.Logf("worst check pairing over the sweep: |Lc| %.2f", worst)
 }
