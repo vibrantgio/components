@@ -3,23 +3,24 @@
 // of labelled sections.
 //
 // It exists to be looked at whole, because that is the only way a theme can
-// be judged: a seed that flatters a button in isolation can still leave the
+// be judged: a fill that flatters a button in isolation can still leave the
 // tag row muddy against the card it sits on, and nothing but the two side by
 // side will say so.
 //
-// Every section is a pure function of the [tokens.ColorTokens] it is handed.
-// Nothing here reads a default palette, so the same code draws the whole
-// surface in either scheme, a caller can push a generated palette through it
-// and see the result on the next frame, and a test can capture a section
-// without a window. What the sections keep across frames — scroll positions,
-// the parsed reading sample, the rasterised icon — hangs off the [Inventory]
-// value, which is built once and outlives any number of palettes.
+// Every section is a pure function of the [tokens.PlatformColors] it is
+// handed. Nothing here reads a default set, so the same code draws the whole
+// surface in either appearance, a caller can push another set through it and
+// see the result on the next frame, and a test can capture a section without
+// a window. What the sections keep across frames — scroll positions, the
+// parsed reading sample, the rasterised icon — hangs off the [Inventory]
+// value, which is built once and outlives any number of sets.
 package inventory
 
 import (
 	"fmt"
 	"image"
 	"image/color"
+	"reflect"
 	"runtime"
 
 	"gioui.org/f32"
@@ -47,6 +48,7 @@ import (
 	"github.com/vibrantgio/components/tooltip"
 	"github.com/vibrantgio/markdown"
 	"github.com/vibrantgio/markdown/highlight"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 
 	"github.com/vibrantgio/components/alert"
@@ -86,12 +88,12 @@ type Group struct {
 }
 
 // Inventory owns everything the sections need to survive across frames and
-// builds the sections from it. Build one and keep it: a palette change is a
-// new set of section values, never a new Inventory.
+// builds the sections from it. Build one and keep it: a change of set is a
+// new slice of section values, never a new Inventory.
 //
 // The reading sample is parsed once here and never per frame — and never per
-// palette. The document is content, not colour: its style comes in at layout
-// time, so a new palette re-styles the parsed form rather than re-reading the
+// set. The document is content, not colour: its style comes in at layout
+// time, so a new set re-styles the parsed form rather than re-reading the
 // source. Re-parsing would also silently orphan every scroll and hover
 // position the document holds, which it keys on block pointers.
 type Inventory struct {
@@ -115,7 +117,7 @@ type Inventory struct {
 	// carries its own palette, which on a dark surface would be a black disc
 	// on black, so each colour gets it recoloured — and rasterising is not
 	// something to redo every frame. Keying on the colour rather than clearing
-	// the cache is what lets a palette change cost one raster instead of one
+	// the cache is what lets a change of set cost one raster instead of one
 	// per frame afterwards.
 	ivg map[color.NRGBA]layout.Widget
 
@@ -216,7 +218,7 @@ func (inv *Inventory) vectorIcon(foreground color.NRGBA) layout.Widget {
 // Groups returns the whole inventory in the given scheme, in the order the
 // column shows it: what a theme is made of first, then the components built on
 // it, then the compositions, then prose.
-func (inv *Inventory) Groups(c tokens.ColorTokens) []Group {
+func (inv *Inventory) Groups(c tokens.PlatformColors) []Group {
 	return []Group{
 		{Name: "Foundations", Sections: inv.Foundations(c)},
 		{Name: "Components", Sections: inv.Components(c)},
@@ -225,19 +227,46 @@ func (inv *Inventory) Groups(c tokens.ColorTokens) []Group {
 	}
 }
 
+// ── The surfaces the column draws on ──────────────────────────────────────────
+
+// SectionSurface is the opaque fill every section body is laid out on: the
+// platform's content plane, which is what this column is a page of. It is
+// stated rather than left implicit because the platform's labels, seams and
+// overlays carry a coverage and not a colour, so anything drawn here has to
+// name what it is composited onto.
+func SectionSurface(c tokens.PlatformColors) color.NRGBA { return c.ControlBackground }
+
+// ChromeSurface is the fill the column's own chrome rows carry — a group's
+// banner, a section's heading, the closing line: the platform's chrome
+// material, which every sidebar, toolbar and status bar on this platform
+// wears. On macOS 26 it is the content's fill exactly in the light
+// appearance, so those rows are told apart by their seams there and by the
+// fill in the dark one.
+func ChromeSurface(c tokens.PlatformColors) color.NRGBA { return c.SidebarMaterial }
+
+// sectionText and sectionMuted are the two foregrounds a section body writes in: the
+// platform's label and its secondary label, flattened onto the fill the
+// section stands on in encoded sRGB, which is where the platform composites
+// a coverage.
+func sectionText(c tokens.PlatformColors) color.NRGBA {
+	return vgcolor.Flatten(c.Label, SectionSurface(c))
+}
+
+func sectionMuted(c tokens.PlatformColors) color.NRGBA {
+	return vgcolor.Flatten(c.SecondaryLabel, SectionSurface(c))
+}
+
 // ── Foundations ───────────────────────────────────────────────────────────────
 
-// Foundations returns the sections a theme is made of: the semantic roles,
-// the functional ramps and the whole type scale.
-func (inv *Inventory) Foundations(c tokens.ColorTokens) []Section {
+// Foundations returns the sections a theme is made of: the platform's colour
+// set, and the whole type scale.
+func (inv *Inventory) Foundations(c tokens.PlatformColors) []Section {
 	return []Section{
 		{
-			Name: "foundations-roles", Title: "Palette — the scheme's semantic roles", Height: 60,
-			Body: inv.roleSwatches(c),
-		},
-		{
-			Name: "foundations-ramps", Title: "Palette — the functional ramps, nine steps each", Height: 218,
-			Body: inv.rampSwatches(c),
+			Name:   "foundations-platform",
+			Title:  "Palette — the platform's colour set, every name in both appearances",
+			Height: platformBlockH,
+			Body:   inv.platformSet(c),
 		},
 		{
 			Name: "foundations-type", Title: "Typography — every role a surface reads in", Height: 442,
@@ -246,106 +275,134 @@ func (inv *Inventory) Foundations(c tokens.ColorTokens) []Section {
 	}
 }
 
-func (inv *Inventory) roleSwatches(c tokens.ColorTokens) layout.Widget {
-	type swatch struct {
-		name  string
-		fill  color.NRGBA
-		on    color.NRGBA
-		label string
-	}
-	sw := []swatch{
-		{"Primary", c.Primary, c.OnPrimary, "Aa"},
-		{"Secondary", c.Secondary, c.OnSecondary, "Aa"},
-		{"Tertiary", c.Tertiary, c.OnTertiary, "Aa"},
-		{"Info", c.Info, c.OnInfo, "Aa"},
-		{"Success", c.Success, c.OnSuccess, "Aa"},
-		{"Warning", c.Warning, c.OnWarning, "Aa"},
-		{"Error", c.Error, c.OnError, "Aa"},
-		{"Background", c.Background, c.Text, "Aa"},
-		{"Surface", c.Surface, c.Text, "Aa"},
-		{"Seam", c.Seam, c.Text, "Aa"},
-		{"Inverse", c.InverseSurface, c.OnInverseSurface, "Aa"},
-	}
-	return func(gtx layout.Context) layout.Dimensions {
-		cs := make([]layout.FlexChild, 0, 2*len(sw))
-		for i, s := range sw {
-			if i > 0 {
-				cs = append(cs, layout.Rigid(complayout.HSpacer(8)))
-			}
-			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						sz := image.Pt(gtx.Dp(56), gtx.Dp(40))
-						paint.FillShape(gtx.Ops, s.fill, clip.Rect{Max: sz}.Op())
-						swatchBorder(gtx, c.Ramps.Neutral.Step(400), sz, 1)
-						gtx.Constraints = layout.Exact(sz)
-						return complayout.InsetXY(8, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-							return LabelAt(gtx, inv.shaper, s.label, s.on, 13, font.Font{})
-						})
-					}),
-					layout.Rigid(complayout.VSpacer(6)),
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return LabelAt(gtx, inv.shaper, s.name, c.Text, 11, font.Font{})
-					}),
-				)
-			}))
-		}
-		return layout.Flex{}.Layout(gtx, cs...)
-	}
+// PlatformRow is one field of the platform's colour set: the name AppKit
+// knows it by, in the set's own Go casing, and the value it carries in each
+// appearance.
+type PlatformRow struct {
+	Name  string
+	Light color.NRGBA
+	Dark  color.NRGBA
 }
 
-func (inv *Inventory) rampSwatches(c tokens.ColorTokens) layout.Widget {
-	ramps := []struct {
-		name string
-		ramp tokens.Ramp
-	}{
-		{"Neutral", c.Ramps.Neutral},
-		{"Primary", c.Ramps.Primary},
-		{"Secondary", c.Ramps.Secondary},
-		{"Tertiary", c.Ramps.Tertiary},
-		{"Info", c.Ramps.Info},
-		{"Success", c.Ramps.Success},
-		{"Warning", c.Ramps.Warning},
-		{"Error", c.Ramps.Error},
+// PlatformRows returns the platform's colour set field by field, in the order
+// the set declares them.
+//
+// The fields are read by reflection rather than listed, so a name added to
+// the set appears on this page without an edit here. A name the gallery
+// forgot to list would be a name nobody ever judges, which is the one failure
+// a page like this cannot afford.
+func PlatformRows() []PlatformRow {
+	t := reflect.TypeOf(tokens.PlatformColors{})
+	light := reflect.ValueOf(tokens.PlatformLight)
+	dark := reflect.ValueOf(tokens.PlatformDark)
+	rows := make([]PlatformRow, 0, t.NumField())
+	for i := range t.NumField() {
+		rows = append(rows, PlatformRow{
+			Name:  t.Field(i).Name,
+			Light: light.Field(i).Interface().(color.NRGBA),
+			Dark:  dark.Field(i).Interface().(color.NRGBA),
+		})
 	}
+	return rows
+}
+
+// Hex writes a colour the way the reference records it: six digits, and the
+// coverage after them when the value carries one. A name that is a coverage
+// rather than a colour — a label, a seam, an overlay — reads correctly only
+// over what is beneath it, and the page says so by showing the coverage
+// rather than hiding it in a swatch.
+func Hex(v color.NRGBA) string {
+	out := fmt.Sprintf("#%02x%02x%02x", v.R, v.G, v.B)
+	if v.A != 0xff {
+		out += fmt.Sprintf(" · %d%%", int(float64(v.A)/255*100+0.5))
+	}
+	return out
+}
+
+// The platform-set section's measurements. The name column is as wide as the
+// longest field name in the set, the two appearance columns hold a swatch and
+// the value beside it, and the row pitch is the caption's line box.
+const (
+	platformNameW  unit.Dp = 226
+	platformValueW unit.Dp = 136
+	platformSwatch unit.Dp = 22
+	platformRowH   unit.Dp = 22
+	platformColGap unit.Dp = 16
+)
+
+// platformBlockH is the section's slot: a heading row and one row per field
+// of the set, derived from the set rather than written down, so a field added
+// to it does not have to be counted by hand.
+var platformBlockH = unit.Dp(len(PlatformRows())+1) * platformRowH
+
+// platformSet draws the platform's colour set: every name the set carries, in
+// the order it carries them, with the value each name has in both
+// appearances.
+//
+// Both appearances on one row rather than one page per scheme. The set IS the
+// pair — a name whose light and dark values cannot be read against each other
+// is a name nobody can judge — and the alpha-carrying names in particular are
+// only legible as a pair: labelColor is black at 0.85 in one and white at
+// 0.85 in the other, which a page showing one appearance at a time never
+// says.
+//
+// A coverage is shown over ITS OWN appearance's content plane, not over the
+// surface this section happens to stand on: white at 0.85 is what a dark
+// label is, and over the light page it would read as very nearly nothing.
+// So the two columns carry the same two swatches in either appearance, and
+// the value beside each is the recorded one, coverage and all.
+func (inv *Inventory) platformSet(c tokens.PlatformColors) layout.Widget {
+	rows := PlatformRows()
+	head := sectionMuted(c)
+	body := sectionText(c)
+	edge := vgcolor.Flatten(c.Separator, SectionSurface(c))
 	return func(gtx layout.Context) layout.Dimensions {
-		cs := make([]layout.FlexChild, 0, 2*len(ramps))
-		for i, r := range ramps {
-			if i > 0 {
-				cs = append(cs, layout.Rigid(complayout.VSpacer(6)))
-			}
-			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						gtx.Constraints.Min.X = gtx.Dp(80)
-						gtx.Constraints.Max.X = gtx.Dp(80)
-						return LabelAt(gtx, inv.shaper, r.name, c.Text, 12, font.Font{})
-					}),
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						w := gtx.Dp(40)
-						h := gtx.Dp(22)
-						for n := 0; n < 9; n++ {
-							off := op.Offset(image.Pt(n*w, 0)).Push(gtx.Ops)
-							paint.FillShape(gtx.Ops, r.ramp.Step((n+1)*100),
-								clip.Rect{Max: image.Pt(w, h)}.Op())
-							// Every step gets its own hairline: the first one
-							// or two sit within a shade of the page itself,
-							// and unbordered they read as a ramp that starts
-							// short rather than as steps that are nearly the
-							// page itself.
-							swatchBorder(gtx, c.Ramps.Neutral.Step(400), image.Pt(w, h), 1)
-							off.Pop()
-						}
-						return layout.Dimensions{Size: image.Pt(9*w, h)}
-					}),
-				)
-			}))
+		cell := func(label string, w unit.Dp, col color.NRGBA) layout.FlexChild {
+			return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Min.X = gtx.Dp(w)
+				gtx.Constraints.Max.X = gtx.Dp(w)
+				return LabelAt(gtx, inv.shaper, label, col, 11, font.Font{})
+			})
+		}
+		swatchCell := func(v, plane color.NRGBA) layout.FlexChild {
+			return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				sz := image.Pt(gtx.Dp(platformSwatch), gtx.Dp(platformSwatch)-2)
+				paint.FillShape(gtx.Ops, vgcolor.Flatten(v, plane), clip.Rect{Max: sz}.Op())
+				swatchBorder(gtx, edge, sz, 1)
+				return layout.Dimensions{Size: sz}
+			})
+		}
+		line := func(children ...layout.FlexChild) layout.FlexChild {
+			return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Min.Y = gtx.Dp(platformRowH)
+				return layout.Flex{Alignment: layout.Middle}.Layout(gtx, children...)
+			})
+		}
+		gap := func() layout.FlexChild { return layout.Rigid(complayout.HSpacer(float32(platformColGap))) }
+
+		cs := make([]layout.FlexChild, 0, len(rows)+1)
+		cs = append(cs, line(
+			cell("Platform name", platformNameW, head), gap(),
+			cell("", platformSwatch, head), gap(),
+			cell("Light", platformValueW, head), gap(),
+			cell("", platformSwatch, head), gap(),
+			cell("Dark", platformValueW, head),
+		))
+		for _, r := range rows {
+			r := r
+			cs = append(cs, line(
+				cell(r.Name, platformNameW, body), gap(),
+				swatchCell(r.Light, tokens.PlatformLight.ControlBackground), gap(),
+				cell(Hex(r.Light), platformValueW, body), gap(),
+				swatchCell(r.Dark, tokens.PlatformDark.ControlBackground), gap(),
+				cell(Hex(r.Dark), platformValueW, body),
+			))
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
 	}
 }
 
-func (inv *Inventory) typeScale(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) typeScale(c tokens.PlatformColors) layout.Widget {
 	typo := inv.typography()
 	// The whole scale, not a sample of it: a role that is not on the page
 	// is a role nobody judges the theme on.
@@ -380,7 +437,7 @@ func (inv *Inventory) typeScale(c tokens.ColorTokens) layout.Widget {
 						gtx.Constraints.Max.X = gtx.Dp(170)
 						return LabelAt(gtx, inv.shaper,
 							fmt.Sprintf("%s · %gsp", r.name, r.style.Size),
-							c.Ramps.Neutral.Step(600), 11, font.Font{})
+							sectionMuted(c), 11, font.Font{})
 					}),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						// The token scale numbers weights the way CSS does —
@@ -391,7 +448,7 @@ func (inv *Inventory) typeScale(c tokens.ColorTokens) layout.Widget {
 							Typeface: font.Typeface(r.style.Typeface),
 							Weight:   tokens.FontWeight(r.style.Weight),
 						}
-						return LabelAt(gtx, inv.shaper, "Vibrant Gio", c.Text, unit.Sp(r.style.Size), f)
+						return LabelAt(gtx, inv.shaper, "Vibrant Gio", sectionText(c), unit.Sp(r.style.Size), f)
 					}),
 				)
 			}))
@@ -404,24 +461,24 @@ func (inv *Inventory) typeScale(c tokens.ColorTokens) layout.Widget {
 
 // Components returns one section per component family, each showing the
 // family in every state it has.
-func (inv *Inventory) Components(c tokens.ColorTokens) []Section {
+func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 	return []Section{
 		{Name: "components-button", Title: "Button — rest, hover, focus, press, disabled", Height: 36,
 			Body: inv.buttonRow(c)},
 		{Name: "components-button-emphasis", Title: "Button — the three emphases at rest, and the icon-only face", Height: 36,
 			Body: inv.emphasisButtonRow(c)},
-		{Name: "components-button-pinned", Title: "Button — the theme's own fill, and one pinned from outside the palette", Height: 36,
+		{Name: "components-button-pinned", Title: "Button — the theme's own fill, and one pinned from outside the set", Height: 36,
 			Body: inv.pinnedButtonRow(c)},
-		{Name: "components-chip", Title: "Chip — the four purposes on three levels, then rest, hover, press and focus", Height: chipBlockH,
+		{Name: "components-chip", Title: "Chip — the four purposes on three surfaces, then rest, hover, press and focus", Height: chipBlockH,
 			Body: inv.chipBlock(c)},
-		{Name: "components-badge", Title: "Badge — the five variants on three levels, the three utterances, the disc, and the close mark", Height: badgeBlockH,
+		{Name: "components-badge", Title: "Badge — the five statuses, the three utterances, the disc, and the close mark", Height: badgeBlockH,
 			Body: inv.badgeBlock(c)},
 		{Name: "components-alert", Title: "Alert — info, success, warning, error", Height: 248,
 			Body: inv.alerts(c)},
 		// The toast is drawn here as the signal alone. The cast shadow that
 		// says it floats belongs to whatever places it, so it shows up in
 		// the notifications specimen and not in this one.
-		{Name: "components-toast", Title: "Toast — the transient message at every status role", Height: 168,
+		{Name: "components-toast", Title: "Toast — the transient message at every status role, over the surface it floats on", Height: 192,
 			Body: inv.toasts(c)},
 		// The slot stands the trigger in the middle and hangs the bubble
 		// above it, so it has to hold the trigger's whole square plus what
@@ -480,7 +537,7 @@ const (
 	ButtonCellGap unit.Dp = 12
 )
 
-func (inv *Inventory) buttonRow(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) buttonRow(c tokens.PlatformColors) layout.Widget {
 	return inv.buttonCells(c, []buttonCell{
 		{label: "Rest", st: button.RenderState{}},
 		{label: "Hover", st: button.RenderState{Hovered: true}},
@@ -510,7 +567,7 @@ func (inv *Inventory) buttonRow(c tokens.ColorTokens) layout.Widget {
 // is how its square sits beside the rectangles it is cut from. It is drawn at
 // Filled emphasis so the square itself is visible; the ghost cell to its left
 // already shows what a button with no fill at rest looks like.
-func (inv *Inventory) emphasisButtonRow(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) emphasisButtonRow(c tokens.PlatformColors) layout.Widget {
 	return inv.buttonCells(c, []buttonCell{
 		{label: "Filled", st: button.RenderState{Emphasis: button.Filled}},
 		{label: "Tonal", st: button.RenderState{Emphasis: button.Tonal}},
@@ -519,7 +576,7 @@ func (inv *Inventory) emphasisButtonRow(c tokens.ColorTokens) layout.Widget {
 	})
 }
 
-func (inv *Inventory) buttonCells(c tokens.ColorTokens, cells []buttonCell) layout.Widget {
+func (inv *Inventory) buttonCells(c tokens.PlatformColors, cells []buttonCell) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(cells))
 		for i, s := range cells {
@@ -547,7 +604,7 @@ func (inv *Inventory) buttonCells(c tokens.ColorTokens, cells []buttonCell) layo
 // PinnedFill and PinnedForeground are the pair the pinned specimen wears: a fixed
 // red, and the foreground that reads over it. They are ordinary colour values
 // and not tokens, which is the whole of what this row has to say — an action
-// whose colour is chosen by its meaning rather than by the palette hands the
+// whose colour is chosen by its meaning rather than by the set hands the
 // button its fill, and it wears that colour in both schemes while everything
 // around it inverts. They are exported so the assertion that this row holds
 // still can name the very colour it is looking for.
@@ -558,11 +615,11 @@ var (
 
 // pinnedButtonRow puts the theme's own Filled pair beside a pinned one, at
 // rest, so the two can be read against each other in one glance and in both
-// schemes: the left cell is the palette's answer and moves with it, the right
+// appearances: the left cell is the set's answer and follows it, the right
 // cell is the caller's and does not. Only the colours differ — the pinned
 // button keeps Filled emphasis' hover, press, focus and disabled treatments,
 // which the button package's own goldens carry state by state.
-func (inv *Inventory) pinnedButtonRow(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) pinnedButtonRow(c tokens.PlatformColors) layout.Widget {
 	return inv.buttonCells(c, []buttonCell{
 		{label: "Filled", st: button.RenderState{}},
 		{label: "Pinned", st: button.RenderState{Fill: PinnedFill, OnFill: PinnedForeground}},
@@ -573,8 +630,8 @@ func (inv *Inventory) pinnedButtonRow(c tokens.ColorTokens) layout.Widget {
 // and the surface it stands on has to show all round it — a chip captured
 // flush with the edge of that surface is a chip nobody can judge the rim of,
 // which is the whole of what the light scheme has to carry it with. So each
-// level is drawn as a panel with the chips inset inside it, and the state rows
-// stand on the page below them.
+// surface is drawn as a panel with the chips inset inside it, and the state
+// rows stand on the page below them.
 const (
 	chipPanelPadX unit.Dp = 16
 	chipPanelPadY unit.Dp = 12
@@ -592,19 +649,29 @@ var (
 	chipBlockH = 3*chipPanelH + 2*chipH + 4*chipRowGap
 )
 
-// chipLevels are the surfaces the section shows the chip on, in the order they
-// stack: the content a page is written on, a card raised over it,
-// and a dialog floating above that. Three rather than one because the chip's
-// whole colour model is relative — every colour it draws is derived against
-// the surface it was handed — so a specimen on one level says nothing about
-// what the component does on another.
-var chipLevels = []struct {
-	name  string
-	level tokens.ElevationLevel
-}{
-	{"On the content", tokens.Level0},
-	{"On a card", tokens.Level1},
-	{"In a dialog", tokens.Level2},
+// chipSurfaces are the fills the section shows the chip on: the content a
+// page is written on, the platform's grouped box, and the chrome material a
+// sidebar or a toolbar wears. Three rather than one because the chip's rim,
+// its focus ring and its press tint each carry a coverage rather than a
+// colour, so each lands as whatever it is composited onto and a specimen on
+// one fill says nothing about the others.
+//
+// On macOS 26 the content and the chrome material are one white in the light
+// appearance, so two of the three panels read as one there; in the dark
+// appearance the three are #1e1e1e, #2a3034 and #232a2e. That is the
+// platform's own answer and not a fault of the specimen.
+func chipSurfaces(c tokens.PlatformColors) []struct {
+	name string
+	fill color.NRGBA
+} {
+	return []struct {
+		name string
+		fill color.NRGBA
+	}{
+		{"On the content", c.ControlBackground},
+		{"On a card", c.CardFill},
+		{"In the chrome", c.SidebarMaterial},
+	}
 }
 
 // chipPurposes are the four purposes a chip can be given, each drawn doing its
@@ -682,19 +749,19 @@ func chipAvatar(gtx layout.Context, sizePx int, col color.NRGBA) {
 }
 
 // chipBlock shows the four purposes in one row and the states under them: the
-// purposes once per level, then the same chip through what the pointer and the
-// keyboard put it in, unselected and selected.
+// purposes once per surface, then the same chip through what the pointer and
+// the keyboard put it in, unselected and selected.
 //
-// The purposes are drawn once per level, because every colour a chip draws is
-// derived against the surface it stands on and a specimen on one level says
-// nothing about the others. The state rows below stand on the page: what they
+// The purposes are drawn once per surface, because the chip's rim, ring and
+// press tint each carry a coverage and land as whatever they are composited
+// onto, so a specimen on one fill says nothing about the others. The state rows below stand on the page: what they
 // ask a reader to judge — whether the body that arrives under the pointer
 // still holds its label, and whether the focus ring reads as the edge — is the
-// same question on every level, and asking it three times would bury the two
-// rows that are not the same. Both rests are there because the two walk from
+// same question on every surface, and asking it three times would bury the
+// two rows that are not the same. Both rests are there because the two walk from
 // different places: an unselected chip walks from the surface it stands on, a
 // selected one from the container it wears.
-func (inv *Inventory) chipBlock(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) chipBlock(c tokens.PlatformColors) layout.Widget {
 	specimen := func(label string, purpose chip.Purpose, icon chip.Glyph, st chip.RenderState) layout.Widget {
 		return chip.Render(inv.shaper, label, purpose, icon, c,
 			tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
@@ -731,23 +798,24 @@ func (inv *Inventory) chipBlock(c tokens.ColorTokens) layout.Widget {
 	// a surface while sitting on a different one is a label about the row and
 	// not about the surface.
 	panel := func(lv struct {
-		name  string
-		level tokens.ElevationLevel
+		name string
+		fill color.NRGBA
 	}) layout.Widget {
 		cells := make([]layout.Widget, 0, len(chipPurposes))
 		for _, p := range chipPurposes {
 			cells = append(cells, specimen(p.label, p.purpose, p.icon,
-				chip.RenderState{Level: lv.level, Selected: p.selected}))
+				chip.RenderState{Surface: lv.fill, Selected: p.selected}))
 		}
 		band := func(gtx layout.Context) layout.Dimensions {
 			return complayout.InsetXY(float32(chipPanelPadX), float32(chipPanelPadY)).Layout(gtx,
 				chipLine(inv, c, lv.name, cells))
 		}
-		return levelPanel(c.SurfaceAt(lv.level), band)
+		return surfacePanel(lv.fill, band)
 	}
+	surfaces := chipSurfaces(c)
 	return func(gtx layout.Context) layout.Dimensions {
-		cs := make([]layout.FlexChild, 0, 2*(len(chipLevels)+len(rows)))
-		for _, lv := range chipLevels {
+		cs := make([]layout.FlexChild, 0, 2*(len(surfaces)+len(rows)))
+		for _, lv := range surfaces {
 			if len(cs) > 0 {
 				cs = append(cs, layout.Rigid(complayout.VSpacer(float32(chipRowGap))))
 			}
@@ -769,13 +837,13 @@ func (inv *Inventory) chipBlock(c tokens.ColorTokens) layout.Widget {
 // chipLine lays a captioned row of chips out: the caption in a fixed column so
 // every row in the section starts at one x, then the cells across the
 // section's own gap.
-func chipLine(inv *Inventory, c tokens.ColorTokens, caption string, cells []layout.Widget) layout.Widget {
+func chipLine(inv *Inventory, c tokens.PlatformColors, caption string, cells []layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(cells)+1)
 		cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			gtx.Constraints.Min.X = gtx.Dp(chipCaptionW)
 			gtx.Constraints.Max.X = gtx.Dp(chipCaptionW)
-			return LabelAt(gtx, inv.shaper, caption, c.Ramps.Neutral.Step(600), 11, font.Font{})
+			return LabelAt(gtx, inv.shaper, caption, sectionMuted(c), 11, font.Font{})
 		}))
 		for i, cell := range cells {
 			if i > 0 {
@@ -787,11 +855,11 @@ func chipLine(inv *Inventory, c tokens.ColorTokens, caption string, cells []layo
 	}
 }
 
-// levelPanel draws content over a fill of its own, sized to what the
+// surfacePanel draws content over a fill of its own, sized to what the
 // content measured. The fill is painted after the content is recorded and
 // replayed over it, because the panel's size is the content's and there is no
 // way to know it before laying the content out.
-func levelPanel(fill color.NRGBA, content layout.Widget) layout.Widget {
+func surfacePanel(fill color.NRGBA, content layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		m := op.Record(gtx.Ops)
 		dims := content(gtx)
@@ -805,14 +873,15 @@ func levelPanel(fill color.NRGBA, content layout.Widget) layout.Widget {
 // The badge section's measurements. A badge pads its own content but nothing
 // outside itself, so every number here belongs to the section rather than to
 // the component: what separates two badges, what separates the rows, how much
-// room the row's caption is given, and how much air a level panel holds
-// around the badges standing on it.
+// room the row's caption is given, how far in from the section's own margin
+// the rows start, and the air the block keeps above the first row and below
+// the last.
 const (
-	badgeRowGap    unit.Dp = 14
-	badgeGap       unit.Dp = 20
-	badgeCaptionW  unit.Dp = 108
-	badgePanelPadX unit.Dp = 16
-	badgePanelPadY unit.Dp = 10
+	badgeRowGap   unit.Dp = 14
+	badgeGap      unit.Dp = 20
+	badgeCaptionW unit.Dp = 108
+	badgeIndent   unit.Dp = 16
+	badgeBandPad  unit.Dp = 10
 )
 
 // The section's own height, derived from the badge rather than chosen: the
@@ -820,24 +889,15 @@ const (
 // a number would have to be re-guessed the day the type scale moved.
 var (
 	badgeLineBox = unit.Dp(badge.Style(tokens.DefaultTypography, tokens.Comfortable).LineHeight)
-	badgePanelH  = badgeLineBox + 2*badgePanelPadY
-	badgeBlockH  = 3*badgePanelH + 4*badgeLineBox + 6*badgeRowGap
+	badgeBlockH  = 5*badgeLineBox + 4*badgeRowGap + 2*badgeBandPad
 )
 
-// badgeLevels are the surfaces the section shows the vocabulary on, in the
-// order they stack. Three rather than one because a badge's fill is derived
-// against the surface it is put on and not against a fixed depth: the levels
-// walk through the depth a fixed fill would sit at, so a specimen on one
-// surface cannot say whether the fill on another is a field or a
-// coincidence.
-var badgeLevels = []struct {
-	name  string
-	level tokens.ElevationLevel
-}{
-	{"On the content", tokens.Level0},
-	{"On a card", tokens.Level1},
-	{"In a dialog", tokens.Level2},
-}
+// The badge section shows the vocabulary on the same three fills the chip
+// section does — see [chipSurfaces]. Three rather than one because a bare
+// badge wears no fill of its own: its sign, its close mark and that mark's
+// hover and press overlays all carry a coverage and land as whatever they
+// are composited onto, so a specimen on one fill says nothing about the
+// others.
 
 // badgeCheck is the verdict sign the badge specimens draw, as a vector rather
 // than a font or SVG rasterisation so the stored images hold still. Its stroke
@@ -888,19 +948,20 @@ func (inv *Inventory) badgeStyle() tokens.TextStyle {
 	return badge.Style(inv.typography(), tokens.Comfortable)
 }
 
-// badgeBlock shows the vocabulary in one column and the structure under it: the
-// four statuses and Neutral as the words they name, then the three utterances
-// a badge can make, then the same five as discs under two signs, then the
-// close mark through the states the pointer puts it in.
+// badgeBlock shows the vocabulary in one column: the four statuses and
+// Neutral as the words they name, then the three utterances a badge can make,
+// then the same five as discs under two signs, then the close mark through
+// the states the pointer puts it in.
 //
-// The vocabulary is drawn once per level, exactly as the chip's is, because
-// a badge's fill is derived against the surface it is put on and a specimen on
-// one surface says nothing about the others. The structure rows below stand on
-// the page: what they ask a reader to judge — whether a word, a count and a
-// sign read at one weight, and whether the close mark answers the pointer —
-// is the same question on every surface, and asking it three times would bury
-// the one question that is not.
-func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
+// Every row stands on the page, and no row is repeated on a second surface.
+// On this platform a badge with a label wears its status's own colour, which
+// is one value whatever is beneath it, and a bare sign is that colour read
+// for the surface rather than derived from it — so a second panel of the same
+// five comes out the same byte and promises an adaptation that is not there.
+// A sheet labelling three rows with three surfaces and drawing one row three
+// times is worse than one that draws the row once (fresh-eyes review,
+// CE2.4b).
+func (inv *Inventory) badgeBlock(c tokens.PlatformColors) layout.Widget {
 	style := inv.badgeStyle()
 	statuses := []struct {
 		label  string
@@ -932,11 +993,10 @@ func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 
 	// Each row varies one thing and each row varies a DIFFERENT thing, which
 	// is what makes the dials readable as separate ones: hue across the
-	// panels above at one utterance, utterance across the first row here at
-	// one hue, hue again across the two disc rows at one sign each, the close
-	// mark's states across the last at a third hue. Drawing every row at one
-	// status would leave a reader unable to tell whether the utterances and
-	// the close mark belong to that status or to the component.
+	// statuses, utterance across the row under them at one hue, hue again
+	// across the two disc rows at one sign each. Drawing every row at one
+	// status would leave a reader unable to tell whether the utterances
+	// belong to that status or to the component.
 	//
 	// Exactly three cells stand in the utterance row, because there are
 	// exactly three utterances. A sign set beside a word is a composition of
@@ -946,6 +1006,13 @@ func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 		caption string
 		cells   []layout.Widget
 	}{
+		{caption: "Statuses", cells: func() []layout.Widget {
+			cells := make([]layout.Widget, 0, len(statuses))
+			for _, bs := range statuses {
+				cells = append(cells, plain(bs.label, nil, bs.status))
+			}
+			return cells
+		}()},
 		{caption: "Utterances", cells: []layout.Widget{
 			plain("Popular", nil, badge.Success),
 			plain("128", nil, badge.Success),
@@ -958,10 +1025,10 @@ func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 		{caption: "Disc, a check", cells: discs(badgeCheck)},
 		{caption: "Disc, a cross", cells: discs(badgeCross)},
 		{caption: "Dismissible", cells: []layout.Widget{
-			// Real targets rather than drawings of a mark: the specimen is
-			// one a pointer can reach. Their clicks are drained and dropped —
-			// an inventory that let a specimen dismiss itself would leave a
-			// hole where the family it demonstrates used to be.
+			// Real targets rather than drawings of a mark: the specimen is one
+			// a pointer can reach. Their clicks are drained and dropped — an
+			// inventory that let a specimen dismiss itself would leave a hole
+			// where the family it demonstrates used to be.
 			badge.RenderDismissible(inv.shaper, "Filtered by owner", nil, badge.Info,
 				&inv.badgeDismiss[0], c, tokens.Spacing, tokens.Radius, style, badge.RenderState{}),
 			badge.RenderDismissible(inv.shaper, "Hover", nil, badge.Info,
@@ -972,40 +1039,16 @@ func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 				badge.RenderState{DismissPressed: true}),
 		}},
 	}
-	// One panel per level, the caption standing inside the band rather than
-	// beside it: a label naming a surface while sitting on a different one is a
-	// label about the row and not about the surface.
-	panel := func(st struct {
-		name  string
-		level tokens.ElevationLevel
-	}) layout.Widget {
-		cells := make([]layout.Widget, 0, len(statuses))
-		for _, bs := range statuses {
-			cells = append(cells, badge.Render(inv.shaper, bs.label, nil, bs.status, c,
-				tokens.Spacing, tokens.Radius, style, badge.RenderState{Level: st.level}))
-		}
-		band := func(gtx layout.Context) layout.Dimensions {
-			return complayout.InsetXY(float32(badgePanelPadX), float32(badgePanelPadY)).Layout(gtx,
-				badgeLine(inv, c, st.name, cells))
-		}
-		return levelPanel(c.SurfaceAt(st.level), band)
-	}
-
 	return func(gtx layout.Context) layout.Dimensions {
-		cs := make([]layout.FlexChild, 0, 2*(len(badgeLevels)+len(rows)))
-		for _, st := range badgeLevels {
+		cs := make([]layout.FlexChild, 0, 2*len(rows))
+		for _, r := range rows {
+			line := badgeLine(inv, c, r.caption, r.cells)
 			if len(cs) > 0 {
 				cs = append(cs, layout.Rigid(complayout.VSpacer(float32(badgeRowGap))))
 			}
-			cs = append(cs, layout.Rigid(panel(st)))
-		}
-		for _, r := range rows {
-			line := badgeLine(inv, c, r.caption, r.cells)
-			cs = append(cs, layout.Rigid(complayout.VSpacer(float32(badgeRowGap))))
 			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				// Indented by the panel's own padding so every caption in the
-				// section starts at one x, panel or page.
-				return complayout.InsetXY(float32(badgePanelPadX), 0).Layout(gtx, line)
+				// Indented so every caption in the section starts at one x.
+				return complayout.InsetXY(float32(badgeIndent), 0).Layout(gtx, line)
 			}))
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
@@ -1015,13 +1058,13 @@ func (inv *Inventory) badgeBlock(c tokens.ColorTokens) layout.Widget {
 // badgeLine lays a captioned row of specimens out: the caption in a fixed
 // column so every row's badges start at one x, then the cells across the
 // section's own gap.
-func badgeLine(inv *Inventory, c tokens.ColorTokens, caption string, cells []layout.Widget) layout.Widget {
+func badgeLine(inv *Inventory, c tokens.PlatformColors, caption string, cells []layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(cells)+1)
 		cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			gtx.Constraints.Min.X = gtx.Dp(badgeCaptionW)
 			gtx.Constraints.Max.X = gtx.Dp(badgeCaptionW)
-			return LabelAt(gtx, inv.shaper, caption, c.Ramps.Neutral.Step(600), 11, font.Font{})
+			return LabelAt(gtx, inv.shaper, caption, sectionMuted(c), 11, font.Font{})
 		}))
 		for i, cell := range cells {
 			if i > 0 {
@@ -1033,7 +1076,7 @@ func badgeLine(inv *Inventory, c tokens.ColorTokens, caption string, cells []lay
 	}
 }
 
-func (inv *Inventory) alerts(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) alerts(c tokens.PlatformColors) layout.Widget {
 	statuses := []struct {
 		title  string
 		status alert.Status
@@ -1065,20 +1108,28 @@ func (inv *Inventory) alerts(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-// toasts draws one toast at every status. All four fill with the same
-// inverse surface — level 2 is where a toast is placed, not what it is
+// toasts draws one toast at every status. All four carry the same fill — the
+// window's own plane, which is what every floating surface on this platform is
 // filled with — so the leading edge is the only thing between them.
-func (inv *Inventory) toasts(c tokens.ColorTokens) layout.Widget {
+//
+// They stand on a band of the platform's box fill rather than on the section's
+// own plane. A toast IS the window's plane, and the content it floats over is
+// that plane too, so a specimen laid straight on the page has no body at all:
+// a coloured stripe and some text on nothing, in both appearances. The band is
+// what a toast floats over standing in for itself; the shadow that does the
+// same job in a running window belongs to whatever places the toast, so it
+// shows in the notifications specimen and not in this one.
+func (inv *Inventory) toasts(c tokens.PlatformColors) layout.Widget {
 	statuses := []struct {
 		status toast.Status
 		text   string
 	}{
 		{toast.Info, "Info — the theme was reloaded."},
-		{toast.Success, "Success — the seed was saved."},
+		{toast.Success, "Success — the theme was saved."},
 		{toast.Warning, "Warning — contrast is below target."},
 		{toast.Error, "Error — that image could not be read."},
 	}
-	return func(gtx layout.Context) layout.Dimensions {
+	column := func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(statuses))
 		for i, st := range statuses {
 			st := st
@@ -1098,9 +1149,22 @@ func (inv *Inventory) toasts(c tokens.ColorTokens) layout.Widget {
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
 	}
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(toastBandW))
+		return surfacePanel(c.CardFill, func(gtx layout.Context) layout.Dimensions {
+			return complayout.InsetXY(float32(toastBandPad), float32(toastBandPad)).Layout(gtx, column)
+		})(gtx)
+	}
 }
 
-func (inv *Inventory) textFieldRow(c tokens.ColorTokens) layout.Widget {
+// The toast band's measurements: how wide the surface under the toasts runs
+// and how much of it shows around them.
+const (
+	toastBandW   unit.Dp = toast.WidthDp + 2*toastBandPad
+	toastBandPad unit.Dp = 12
+)
+
+func (inv *Inventory) textFieldRow(c tokens.PlatformColors) layout.Widget {
 	states := []struct {
 		label string
 		st    input.RenderState
@@ -1120,7 +1184,7 @@ func (inv *Inventory) textFieldRow(c tokens.ColorTokens) layout.Widget {
 				gtx.Constraints.Max.X = gtx.Dp(200)
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return LabelAt(gtx, inv.shaper, s.label, c.Ramps.Neutral.Step(600), 11, font.Font{})
+						return LabelAt(gtx, inv.shaper, s.label, sectionMuted(c), 11, font.Font{})
 					}),
 					layout.Rigid(complayout.VSpacer(6)),
 					layout.Rigid(input.Render(inv.shaper, "Placeholder…", c, tokens.Spacing, tokens.Radius,
@@ -1135,7 +1199,7 @@ func (inv *Inventory) textFieldRow(c tokens.ColorTokens) layout.Widget {
 // searchFieldRow is the search field in the two states that separate it from
 // the text field above it: empty, where the looking glass is all there is to
 // see, and holding a query, where the clear mark has appeared beside it.
-func (inv *Inventory) searchFieldRow(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) searchFieldRow(c tokens.PlatformColors) layout.Widget {
 	states := []struct {
 		label string
 		st    input.RenderState
@@ -1155,7 +1219,7 @@ func (inv *Inventory) searchFieldRow(c tokens.ColorTokens) layout.Widget {
 				gtx.Constraints.Max.X = gtx.Dp(200)
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return LabelAt(gtx, inv.shaper, s.label, c.Ramps.Neutral.Step(600), 11, font.Font{})
+						return LabelAt(gtx, inv.shaper, s.label, sectionMuted(c), 11, font.Font{})
 					}),
 					layout.Rigid(complayout.VSpacer(6)),
 					layout.Rigid(input.RenderSearch(inv.shaper, "Search", c, tokens.Spacing, tokens.Radius,
@@ -1167,7 +1231,7 @@ func (inv *Inventory) searchFieldRow(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) toggleRow(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) toggleRow(c tokens.PlatformColors) layout.Widget {
 	cells := []struct {
 		label string
 		w     layout.Widget
@@ -1194,7 +1258,7 @@ func (inv *Inventory) toggleRow(c tokens.ColorTokens) layout.Widget {
 					layout.Rigid(cell.w),
 					layout.Rigid(complayout.VSpacer(6)),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return LabelAt(gtx, inv.shaper, cell.label, c.Ramps.Neutral.Step(600), 11, font.Font{})
+						return LabelAt(gtx, inv.shaper, cell.label, sectionMuted(c), 11, font.Font{})
 					}),
 				)
 			}))
@@ -1231,7 +1295,7 @@ const (
 // width. It is the platform's pop-up control, which is as wide as what it
 // says; stretched to a form field's width it would be reporting a geometry
 // the component does not have.
-func (inv *Inventory) pickerRow(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) pickerRow(c tokens.PlatformColors) layout.Widget {
 	opts := []string{"Apple", "Banana", "Cherry"}
 	fields := []struct {
 		label string
@@ -1246,7 +1310,7 @@ func (inv *Inventory) pickerRow(c tokens.ColorTokens) layout.Widget {
 		return func(gtx layout.Context) layout.Dimensions {
 			return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return LabelAt(gtx, inv.shaper, label, c.Ramps.Neutral.Step(600), 11, font.Font{})
+					return LabelAt(gtx, inv.shaper, label, sectionMuted(c), 11, font.Font{})
 				}),
 				layout.Rigid(complayout.VSpacer(pickerCaptionGap)),
 				layout.Rigid(body),
@@ -1274,8 +1338,9 @@ func (inv *Inventory) pickerRow(c tokens.ColorTokens) layout.Widget {
 		return layout.Flex{}.Layout(gtx, append(cs,
 			layout.Rigid(complayout.HSpacer(pickerCellGap)),
 			layout.Rigid(cell("Toolbar", picker.RenderToolbar(inv.shaper, opts[0], c,
-				tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
-				tokens.Comfortable, picker.ToolbarState{}))))...)
+				c.SidebarMaterial, tokens.Spacing, tokens.Radius,
+				tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+				picker.ToolbarState{}))))...)
 	}
 }
 
@@ -1289,7 +1354,7 @@ func (inv *Inventory) pickerRow(c tokens.ColorTokens) layout.Widget {
 // section below it, which is another family's row. The padding is the menu's
 // measured height rather than a number, so the cell follows the density and
 // the option list.
-func (inv *Inventory) padByMenu(c tokens.ColorTokens, st picker.FieldState, body layout.Widget) layout.Widget {
+func (inv *Inventory) padByMenu(c tokens.PlatformColors, st picker.FieldState, body layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		dims := body(gtx)
 		measure := op.Record(gtx.Ops)
@@ -1309,17 +1374,17 @@ func (inv *Inventory) padByMenu(c tokens.ColorTokens, st picker.FieldState, body
 const rowHeight = unit.Dp(36)
 
 // textRow draws s centred in a row of exactly [rowHeight].
-func (inv *Inventory) textRow(gtx layout.Context, s string, c tokens.ColorTokens) layout.Dimensions {
+func (inv *Inventory) textRow(gtx layout.Context, s string, c tokens.PlatformColors) layout.Dimensions {
 	h := gtx.Dp(rowHeight)
 	gtx.Constraints.Min.Y, gtx.Constraints.Max.Y = h, h
 	complayout.InsetXY(0, 9).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return LabelAt(gtx, inv.shaper, s, c.Text, 14, font.Font{})
+		return LabelAt(gtx, inv.shaper, s, sectionText(c), 14, font.Font{})
 	})
 	return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, h)}
 }
 
-func (inv *Inventory) listBlock(c tokens.ColorTokens) layout.Widget {
-	bar := scrollbar.FromTokens(c)
+func (inv *Inventory) listBlock(c tokens.PlatformColors) layout.Widget {
+	bar := scrollbar.FromTokens(c, SectionSurface(c))
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(520))
 		gtx.Constraints.Min = gtx.Constraints.Max
@@ -1330,8 +1395,8 @@ func (inv *Inventory) listBlock(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) scrollbarBlock(c tokens.ColorTokens) layout.Widget {
-	style := scrollbar.FromTokens(c)
+func (inv *Inventory) scrollbarBlock(c tokens.PlatformColors) layout.Widget {
+	style := scrollbar.FromTokens(c, SectionSurface(c))
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(520))
 		gtx.Constraints.Min = gtx.Constraints.Max
@@ -1365,8 +1430,8 @@ func (inv *Inventory) scrollbarBlock(c tokens.ColorTokens) layout.Widget {
 // start, so the pair the section is for is visible at once — a match the
 // thumb sits on is painted over it, and a match far below the viewport is
 // painted all the same.
-func (inv *Inventory) scrollbarSearchBlock(c tokens.ColorTokens) layout.Widget {
-	style := scrollbar.FromTokens(c)
+func (inv *Inventory) scrollbarSearchBlock(c tokens.PlatformColors) layout.Widget {
+	style := scrollbar.FromTokens(c, SectionSurface(c))
 	style.Matches = []float32{0.04, 0.23, 0.5, 0.71, 0.96}
 	style.Current = 2
 	return func(gtx layout.Context) layout.Dimensions {
@@ -1394,9 +1459,9 @@ func (inv *Inventory) scrollbarSearchBlock(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) scrollAreaBlock(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) scrollAreaBlock(c tokens.PlatformColors) layout.Widget {
 	style := scrollarea.FromTokens(c)
-	bar := scrollbar.FromTokens(c)
+	bar := scrollbar.FromTokens(c, SectionSurface(c))
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(520))
 		// The area rests mid-content rather than at its start, so both
@@ -1409,7 +1474,7 @@ func (inv *Inventory) scrollAreaBlock(c tokens.ColorTokens) layout.Widget {
 			const pitch, mark = 26, 18
 			width := gtx.Dp(1100)
 			for x := 0; x < width; x += gtx.Dp(pitch) {
-				paint.FillShape(gtx.Ops, c.Primary,
+				paint.FillShape(gtx.Ops, c.SystemBlue,
 					clip.Rect(image.Rect(x, gtx.Dp(8), min(x+gtx.Dp(mark), width), gtx.Dp(48))).Op())
 			}
 			return layout.Dimensions{Size: image.Pt(width, gtx.Dp(56))}
@@ -1417,8 +1482,8 @@ func (inv *Inventory) scrollAreaBlock(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) paragraphBlock(c tokens.ColorTokens) layout.Widget {
-	style := paragraph.FromTokens(c, tokens.DefaultTypography.BodyLarge)
+func (inv *Inventory) paragraphBlock(c tokens.PlatformColors) layout.Widget {
+	style := paragraph.FromTokens(c, tokens.DefaultTypography.BodyLarge, SectionSurface(c))
 	spans := []paragraph.SpanStyle{
 		{Content: "A paragraph lays out "},
 		{Content: "bold", Weight: font.Bold},
@@ -1427,7 +1492,7 @@ func (inv *Inventory) paragraphBlock(c tokens.ColorTokens) layout.Widget {
 		{Content: ", "},
 		{Content: "monospace", Typeface: "Roboto Mono"},
 		{Content: ", "},
-		{Content: "coloured", Color: c.Error},
+		{Content: "coloured", Color: c.SystemRed},
 		{Content: " and "},
 		{Content: "resized", Size: 22},
 		{Content: " runs in one wrapped paragraph, with links to "},
@@ -1442,7 +1507,7 @@ func (inv *Inventory) paragraphBlock(c tokens.ColorTokens) layout.Widget {
 			layout.Rigid(paragraph.Render(inv.shaper, style, spans, paragraph.Idle())),
 			layout.Rigid(complayout.VSpacer(10)),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return LabelAt(gtx, inv.shaper, "Link states: idle, hovered, focused.", c.Ramps.Neutral.Step(600), 11, font.Font{})
+				return LabelAt(gtx, inv.shaper, "Link states: idle, hovered, focused.", sectionMuted(c), 11, font.Font{})
 			}),
 			layout.Rigid(complayout.VSpacer(4)),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -1467,7 +1532,7 @@ func (inv *Inventory) paragraphBlock(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) iconBlock(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) iconBlock(c tokens.PlatformColors) layout.Widget {
 	marks := []struct {
 		name  string
 		which icons.Name
@@ -1486,17 +1551,17 @@ func (inv *Inventory) iconBlock(c tokens.ColorTokens) layout.Widget {
 					layout.Rigid(w),
 					layout.Rigid(complayout.VSpacer(8)),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return LabelAt(gtx, inv.shaper, name, c.Ramps.Neutral.Step(600), 11, font.Font{})
+						return LabelAt(gtx, inv.shaper, name, sectionMuted(c), 11, font.Font{})
 					}),
 				)
 			})
 		}
-		cs := []layout.FlexChild{cell("vector icon", inv.vectorIcon(c.Text))}
+		cs := []layout.FlexChild{cell("vector icon", inv.vectorIcon(sectionText(c)))}
 		for _, m := range marks {
 			cs = append(cs, cell(m.name, func(gtx layout.Context) layout.Dimensions {
 				size := gtx.Dp(20)
 				off := op.Offset(image.Pt(0, gtx.Dp(10))).Push(gtx.Ops)
-				inv.marks.Mark(m.which)(gtx, size, c.Text)
+				inv.marks.Mark(m.which)(gtx, size, sectionText(c))
 				off.Pop()
 				return layout.Dimensions{Size: image.Pt(size, gtx.Dp(40))}
 			}))
@@ -1505,7 +1570,7 @@ func (inv *Inventory) iconBlock(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) layoutBlock(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) layoutBlock(c tokens.PlatformColors) layout.Widget {
 	box := func(fill color.NRGBA, dp float32) layout.Widget {
 		return func(gtx layout.Context) layout.Dimensions {
 			sz := image.Pt(gtx.Dp(unit.Dp(dp)), gtx.Dp(unit.Dp(dp)))
@@ -1522,7 +1587,7 @@ func (inv *Inventory) layoutBlock(c tokens.ColorTokens) layout.Widget {
 				layout.Rigid(w),
 				layout.Rigid(complayout.VSpacer(8)),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					return LabelAt(gtx, inv.shaper, caption, c.Ramps.Neutral.Step(600), 11, font.Font{})
+					return LabelAt(gtx, inv.shaper, caption, sectionMuted(c), 11, font.Font{})
 				}),
 			)
 		})
@@ -1531,36 +1596,36 @@ func (inv *Inventory) layoutBlock(c tokens.ColorTokens) layout.Widget {
 		return layout.Flex{Alignment: layout.End}.Layout(gtx,
 			cluster("Row + HSpacer(8)", func(gtx layout.Context) layout.Dimensions {
 				return complayout.Row(gtx,
-					box(c.Primary, 40), complayout.HSpacer(8),
-					box(c.Secondary, 40), complayout.HSpacer(8),
-					box(c.Tertiary, 40),
+					box(c.SystemBlue, 40), complayout.HSpacer(8),
+					box(c.SystemIndigo, 40), complayout.HSpacer(8),
+					box(c.SystemTeal, 40),
 				)
 			}),
 			layout.Rigid(complayout.HSpacer(32)),
 			cluster("Col + VSpacer(6)", func(gtx layout.Context) layout.Dimensions {
 				return complayout.Col(gtx,
-					box(c.Success, 24), complayout.VSpacer(6),
-					box(c.Warning, 24), complayout.VSpacer(6),
-					box(c.Error, 24),
+					box(c.SystemGreen, 24), complayout.VSpacer(6),
+					box(c.SystemOrange, 24), complayout.VSpacer(6),
+					box(c.SystemRed, 24),
 				)
 			}),
 			layout.Rigid(complayout.HSpacer(32)),
 			cluster("Inset(16)", func(gtx layout.Context) layout.Dimensions {
 				return complayout.Inset(16).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return box(c.Ramps.Primary.Step(400), 40)(gtx)
+					return box(c.SystemPurple, 40)(gtx)
 				})
 			}),
 			layout.Rigid(complayout.HSpacer(16)),
 			cluster("InsetXY(24, 8)", func(gtx layout.Context) layout.Dimensions {
 				return complayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return box(c.Ramps.Secondary.Step(400), 40)(gtx)
+					return box(c.SystemPink, 40)(gtx)
 				})
 			}),
 		)
 	}
 }
 
-func (inv *Inventory) tooltip(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) tooltip(c tokens.PlatformColors) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(320))
 		gtx.Constraints.Min = gtx.Constraints.Max
@@ -1575,7 +1640,7 @@ func (inv *Inventory) tooltip(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) breadcrumb(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) breadcrumb(c tokens.PlatformColors) layout.Widget {
 	props := breadcrumb.Props{
 		Items: []breadcrumb.Item{
 			{Label: "Design system"},
@@ -1587,7 +1652,7 @@ func (inv *Inventory) breadcrumb(c tokens.ColorTokens) layout.Widget {
 	return breadcrumb.Render(inv.shaper, props, c, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
 }
 
-func (inv *Inventory) pagination(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) pagination(c tokens.PlatformColors) layout.Widget {
 	props := pagination.Props{Page: 4, PageCount: 9, Shaper: inv.shaper}
 	return pagination.Render(inv.shaper, props, c, tokens.Spacing, tokens.Radius,
 		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
@@ -1636,7 +1701,7 @@ const specimenName = "Show the sidebar"
 //
 // The name is emitted as a semantic description because the label is empty by
 // construction, and an icon-only button has no label to fall back on.
-func (inv *Inventory) specimenControl(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) specimenControl(c tokens.PlatformColors) layout.Widget {
 	w := button.RenderIcon(inv.marks.Mark(icons.Sidebar), c, tokens.Spacing,
 		tokens.Radius, tokens.Comfortable,
 		button.RenderState{Emphasis: button.Ghost, Hovered: true})

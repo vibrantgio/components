@@ -19,6 +19,7 @@ import (
 	"github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/input"
 	"github.com/vibrantgio/components/picker"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -27,41 +28,48 @@ import (
 // around it.
 const (
 	focusSheetW            = 760 // the capture's width in px, at 1 px per dp
-	focusPanelPadX unit.Dp = 16  // air a level panel holds left and right
-	focusPanelPadY unit.Dp = 14  // air a level panel holds above and below
-	focusCaptionW  unit.Dp = 92  // the column the level's name is set in
+	focusPanelPadX unit.Dp = 16  // air a surface panel holds left and right
+	focusPanelPadY unit.Dp = 14  // air a surface panel holds above and below
+	focusCaptionW  unit.Dp = 92  // the column the surface's name is set in
 	focusCellGap   unit.Dp = 14  // space between two specimens
 	focusFieldW    unit.Dp = 150 // the width the text field is laid out at
 	focusButtonW   unit.Dp = 108 // the width the button is laid out at
 	focusTriggerW  unit.Dp = 150 // the width the dropdown trigger is bounded to
 )
 
-// focusLevels are the levels the sheet shows a focused control on, in the
-// order they stack. Three rather than one because the claim under review is
-// that the ring does not move with the level, and a specimen on one surface
-// cannot carry a claim about two.
-var focusLevels = []struct {
-	name  string
-	level tokens.ElevationLevel
-}{
-	{"On the content", tokens.Level0},
-	{"On a card", tokens.Level1},
-	{"In a dialog", tokens.Level2},
+// focusSurfaces are the fills the sheet shows a focused control on. Three
+// rather than one because the claim under review is that the ring does not
+// move with the surface, and a specimen on one fill cannot carry a claim
+// about three. The focus ring carries a coverage rather than a colour, so
+// every cell has to say what it is composited onto or the ring lands on the
+// window's plane whatever the panel under it is painted in.
+func focusSurfaces(c tokens.PlatformColors) []struct {
+	name string
+	fill stdcolor.NRGBA
+} {
+	return []struct {
+		name string
+		fill stdcolor.NRGBA
+	}{
+		{"On the content", c.ControlBackground},
+		{"On a card", c.CardFill},
+		{"In the chrome", c.SidebarMaterial},
+	}
 }
 
-// TestFocusedSpecimensGolden stores one image per scheme of every focusable
-// family in this library, focused, standing side by side on each of three
-// levels. It is the image the single-colour rule is reviewed against: fifteen
-// cells whose rings either agree or visibly do not.
+// TestFocusedSpecimensGolden stores one image per appearance of every
+// focusable family in this library, focused, standing side by side on each of
+// three surfaces. It is the image the single-colour rule is reviewed against:
+// fifteen cells whose rings either agree or visibly do not.
 //
-// The button is the one cell that may disagree, and only at Filled emphasis:
-// its band lies inside a solid primary fill, where no step of the primary ramp
-// reads, so it is walked against that fill instead (components/internal/focus,
-// RingOn). Every other cell draws the scheme's ring.
+// The ring is the platform's own keyboardFocusIndicator, which carries a
+// coverage, so each cell flattens it onto the fill it stands on; what the
+// sheet shows is that one name lands consistently on three fills rather than
+// three names being chosen.
 //
-// One image per scheme rather than one per level, because the claim is about
-// what the rows share; a per-level image would show each row agreeing with
-// itself and say nothing about the next.
+// One image per appearance rather than one per surface, because the claim is
+// about what the rows share; a per-surface image would show each row agreeing
+// with itself and say nothing about the next.
 func TestFocusedSpecimensGolden(t *testing.T) {
 	for _, sc := range schemes() {
 		sheet := focusSheet(t, sc.colors)
@@ -70,51 +78,54 @@ func TestFocusedSpecimensGolden(t *testing.T) {
 	}
 }
 
-// focusSheet builds the sheet: one level panel per row, each carrying its own
+// focusSheet builds the sheet: one surface panel per row, each carrying its own
 // name and one focused specimen of every family that can take the keyboard.
-func focusSheet(t *testing.T, c tokens.ColorTokens) layout.Widget {
+func focusSheet(t *testing.T, c tokens.PlatformColors) layout.Widget {
 	t.Helper()
 	shaper := tokens.DefaultTypography.DeterministicShaper()
-	rows := make([]layout.Widget, 0, len(focusLevels))
-	for _, lv := range focusLevels {
-		rows = append(rows, focusPanel(c, lv.name, lv.level, shaper))
+	surfaces := focusSurfaces(c)
+	rows := make([]layout.Widget, 0, len(surfaces))
+	for _, lv := range surfaces {
+		rows = append(rows, focusPanel(c, lv.name, lv.fill, shaper))
 	}
 	return inventory.Column(rows)
 }
 
-// focusPanel is one level's row: that level's own fill behind a caption and
-// the specimens standing on it. The caption stands inside the panel rather
-// than beside it — a label naming a surface while sitting on a different one is
-// a label about the row and not about the surface.
-func focusPanel(c tokens.ColorTokens, name string, level tokens.ElevationLevel, shaper *text.Shaper) layout.Widget {
+// focusPanel is one surface's row: that fill behind a caption and the
+// specimens standing on it. The caption stands inside the panel rather than
+// beside it — a label naming a surface while sitting on a different one is a
+// label about the row and not about the surface.
+func focusPanel(c tokens.PlatformColors, name string, fill stdcolor.NRGBA, shaper *text.Shaper) layout.Widget {
 	specimens := []layout.Widget{
 		fixedWidth(focusButtonW, button.Render(shaper, "Button", c, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
-			button.RenderState{Focused: true, Level: level})),
+			button.RenderState{Focused: true, Surface: fill})),
 		fixedWidth(focusFieldW, input.Render(shaper, "Field", c, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
-			input.RenderState{Focused: true, Level: level})),
+			input.RenderState{Focused: true, Surface: fill})),
 		input.RenderCheckbox(c, tokens.Spacing, tokens.Radius,
-			input.CheckboxRenderState{Focused: true, Level: level}),
+			input.CheckboxRenderState{Focused: true, Surface: fill}),
 		bounded(120, chip.Render(shaper, "Chip", chip.Assist, nil, c, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
-			chip.RenderState{Focused: true, Level: level})),
+			chip.RenderState{Focused: true, Surface: fill})),
+		// The trigger states no surface: it carries a fill of its own, so
+		// its ring composites onto that rather than onto the panel.
 		fixedWidth(focusTriggerW, picker.RenderField(shaper, c, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
-			picker.FieldState{Focused: true, Level: level, Options: []string{"Apple", "Banana"}})),
+			picker.FieldState{Focused: true, Options: []string{"Apple", "Banana"}})),
 	}
 	body := func(gtx layout.Context) layout.Dimensions {
 		cs := []layout.FlexChild{layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			gtx.Constraints.Min.X = gtx.Dp(focusCaptionW)
 			gtx.Constraints.Max.X = gtx.Dp(focusCaptionW)
-			return inventory.LabelAt(gtx, shaper, name, c.Ramps.Neutral.Step(600), 11, font.Font{})
+			return inventory.LabelAt(gtx, shaper, name, vgcolor.Flatten(c.SecondaryLabel, fill), 11, font.Font{})
 		})}
 		for _, w := range specimens {
 			cs = append(cs, layout.Rigid(hspace(focusCellGap)), layout.Rigid(w))
 		}
 		return layout.Flex{Alignment: layout.Middle}.Layout(gtx, cs...)
 	}
-	return panelOn(c.SurfaceAt(level), inset(focusPanelPadX, focusPanelPadY, body))
+	return panelOn(fill, inset(focusPanelPadX, focusPanelPadY, body))
 }
 
 // panelOn paints fill behind w, sized to what w draws.

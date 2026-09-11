@@ -39,22 +39,24 @@ import (
 	"github.com/vibrantgio/patterns/table"
 	"github.com/vibrantgio/patterns/tabs"
 	"github.com/vibrantgio/patterns/testimonial"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
 // Patterns returns one section per composition, each drawn from static state
 // in a slot of its own.
-func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
+func (inv *Inventory) Patterns(c tokens.PlatformColors) []Section {
 	return []Section{
 		// The column's slot is the four toasts and the gaps between them,
-		// plus the reach of the cast shadow under the last of them: a slot
-		// cut to the toasts alone would leave the shadow to fall across the
-		// heading of the section below.
-		{Name: "patterns-notifications", Title: "Notifications — the column, one toast at every status role", Height: 177,
+		// plus the reach of the platform's shadow above the first and under
+		// the last: a slot cut to the toasts alone would leave the shadow to
+		// fall across the heading of the section below. The platform's
+		// shadow reaches 24 px, which is what the slot grew to hold.
+		{Name: "patterns-notifications", Title: "Notifications — the column, one toast at every status role", Height: 205,
 			Body: inv.notifications(c)},
 		{Name: "patterns-card", Title: "Card — one thing singled out, raised on the page it stands on", Height: 150,
 			Body: inv.cards(c)},
-		{Name: "patterns-group", Title: "Group — the page divided, a hairline at the surface's own level", Height: 150,
+		{Name: "patterns-group", Title: "Group — the page divided, a hairline on the surface it stands on", Height: 150,
 			Body: inv.groups(c)},
 		{Name: "patterns-accordion", Title: "Accordion — one section open, the rest closed", Height: 240,
 			Body: inv.accordion(c)},
@@ -74,7 +76,7 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 		// it, so it has to hold the control's whole square plus what hangs:
 		// a slot cut to the panel alone shears the surface off at the
 		// band's edge.
-		{Name: "patterns-popover", Title: "Popover — a floating panel tied to its anchor", Height: 190,
+		{Name: "patterns-popover", Title: "Popover — a floating panel tied to its anchor", Height: 196,
 			Body: inv.popover(c)},
 		{Name: "patterns-hero", Title: "Hero — eyebrow, headline, subtitle and a pair of calls to action", Height: 208,
 			Body: inv.hero(c)},
@@ -94,7 +96,7 @@ func (inv *Inventory) Patterns(c tokens.ColorTokens) []Section {
 // prose returns a layout.Widget that draws a few lines of body text, so a
 // pattern's content slot holds something with a shape rather than a
 // placeholder block.
-func (inv *Inventory) prose(c tokens.ColorTokens, lines ...string) layout.Widget {
+func (inv *Inventory) prose(c tokens.PlatformColors, lines ...string) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(lines))
 		for i, line := range lines {
@@ -103,7 +105,7 @@ func (inv *Inventory) prose(c tokens.ColorTokens, lines ...string) layout.Widget
 				cs = append(cs, layout.Rigid(complayout.VSpacer(4)))
 			}
 			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return LabelAt(gtx, inv.shaper, line, c.Text, 13, font.Font{})
+				return LabelAt(gtx, inv.shaper, line, sectionText(c), 13, font.Font{})
 			}))
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
@@ -137,10 +139,10 @@ func dot(fill color.NRGBA, size unit.Dp) layout.Widget {
 // notification with a zero At does no fading, so the column stands still
 // without a timer driving it — which is how the pattern's own stored images
 // are made.
-func (inv *Inventory) notifications(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) notifications(c tokens.PlatformColors) layout.Widget {
 	items := []notifications.Notification{
 		{ID: 1, Status: toast.Info, Text: "Info — the theme was reloaded."},
-		{ID: 2, Status: toast.Success, Text: "Success — the seed was saved."},
+		{ID: 2, Status: toast.Success, Text: "Success — the theme was saved."},
 		{ID: 3, Status: toast.Warning, Text: "Warning — contrast is below target."},
 		{ID: 4, Status: toast.Error, Text: "Error — that image could not be read."},
 	}
@@ -148,16 +150,18 @@ func (inv *Inventory) notifications(c tokens.ColorTokens) layout.Widget {
 		// The column gathers in a corner of the frame it is handed, one edge
 		// margin in from it. A section's slot is not that frame: its own
 		// margin already holds the specimen that distance off the page, so a
-		// frame the size of the slot would indent the toasts by two margins
-		// and drop them the same distance below the heading.
+		// frame the size of the slot would indent the toasts by a second
+		// margin.
 		//
 		// So the frame is handed out one edge margin past the slot on the
-		// leading and top sides, and the column drawn back into it. The
-		// corner the toasts gather in is then the slot's own corner, and the
-		// specimen lines up with the ones above and below it.
+		// leading side and the column drawn back into it, and the leading
+		// edge of the specimen lines up with the ones above and below it.
+		// The top is NOT pulled back the same way: the platform's shadow
+		// reaches 24 px above the first toast, and a column started level
+		// with the slot would cast that across the heading over it.
 		edge := gtx.Dp(unit.Dp(tokens.Spacing.S4))
-		defer op.Offset(image.Pt(-edge, -edge)).Push(gtx.Ops).Pop()
-		gtx.Constraints.Max = gtx.Constraints.Max.Add(image.Pt(2*edge, 2*edge))
+		defer op.Offset(image.Pt(-edge, 0)).Push(gtx.Ops).Pop()
+		gtx.Constraints.Max = gtx.Constraints.Max.Add(image.Pt(2*edge, edge))
 		gtx.Constraints.Min = gtx.Constraints.Max
 		return notifications.Render(inv.shaper, notifications.Props{
 			Position: notifications.TopLeft,
@@ -166,14 +170,14 @@ func (inv *Inventory) notifications(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) cards(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) cards(c tokens.PlatformColors) layout.Widget {
 	header := func(gtx layout.Context) layout.Dimensions {
-		return LabelAt(gtx, inv.shaper, "Recommended", c.Text, 15, font.Font{Weight: font.Bold})
+		return LabelAt(gtx, inv.shaper, "Recommended", sectionText(c), 15, font.Font{Weight: font.Bold})
 	}
 	body := inv.prose(c,
-		"A card is raised one step",
-		"on the surface it is in, and",
-		"the raise is what singles it out.",
+		"A card wears the platform's box",
+		"fill on the surface it is in, and",
+		"that step is what singles it out.",
 	)
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(260))
@@ -181,11 +185,11 @@ func (inv *Inventory) cards(c tokens.ColorTokens) layout.Widget {
 		return card.Render(card.Props{
 			Header: header,
 			Body:   body,
-			// The badge's fill is derived against the card's own level
-			// rather than the page's: the card stands at level 1, and the
+			// The badge stands on the card's own fill rather than on the
+			// page's: the platform's box carries a fill of its own, and the
 			// developer's word about a card is a badge it carries.
 			Footer: badge.Render(inv.shaper, "Popular", nil, badge.Neutral, c, tokens.Spacing,
-				tokens.Radius, inv.badgeStyle(), badge.RenderState{Level: tokens.Level1}),
+				tokens.Radius, inv.badgeStyle(), badge.RenderState{Surface: c.CardFill}),
 		}, c, tokens.Spacing, tokens.Radius)(gtx)
 	}
 }
@@ -196,11 +200,11 @@ func (inv *Inventory) cards(c tokens.ColorTokens) layout.Widget {
 // holds two things rather than one, because what a group is for is
 // gathering related components, and a specimen holding one would not show
 // the gap between them.
-func (inv *Inventory) groups(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) groups(c tokens.PlatformColors) layout.Widget {
 	first := inv.prose(c,
-		"A group draws a hairline at",
-		"the level of the surface it is",
-		"in, and raises nothing.",
+		"A group draws a hairline on",
+		"the surface it stands on, and",
+		"raises nothing.",
 	)
 	second := inv.prose(c,
 		"It holds related components.",
@@ -215,7 +219,7 @@ func (inv *Inventory) groups(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) accordion(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) accordion(c tokens.PlatformColors) layout.Widget {
 	props := accordion.Props{
 		Sections: []accordion.Section{
 			{Title: "What the gallery shows", Body: inv.prose(c, "Every published family, in the current scheme.")},
@@ -232,7 +236,7 @@ func (inv *Inventory) accordion(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) tabs(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) tabs(c tokens.PlatformColors) layout.Widget {
 	props := tabs.Props{
 		Tabs: []tabs.Tab{
 			{Label: "Overview", Content: inv.prose(c, "The first tab's content.")},
@@ -240,12 +244,6 @@ func (inv *Inventory) tabs(c tokens.ColorTokens) layout.Widget {
 			{Label: "History", Content: inv.prose(c, "The third tab's content.")},
 		},
 		Shaper: inv.shaper,
-		// A specimen lifted off the page, like the table beside it: the
-		// section body under it is the Background pin, so a panel taking the
-		// pattern's default level would dissolve into the page and leave a
-		// strip floating on nothing. On Level1 the panel keeps the Surface it
-		// has always drawn and the strip stands one step over it.
-		Level: tokens.Level1,
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(460))
@@ -254,7 +252,7 @@ func (inv *Inventory) tabs(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) navbarProps(c tokens.ColorTokens) navbar.Props {
+func (inv *Inventory) navbarProps(c tokens.PlatformColors) navbar.Props {
 	return navbar.Props{
 		Brand: inv.prose(c, "Vibrant Gio"),
 		Links: []navbar.Link{
@@ -263,16 +261,16 @@ func (inv *Inventory) navbarProps(c tokens.ColorTokens) navbar.Props {
 			{Label: "Patterns"},
 		},
 		Actions: []layout.Widget{
-			// The bar fills at the chrome level, and a badge with no fill of
-			// its own is derived against whatever it stands on.
+			// The bar wears the chrome material, and a badge with no fill of
+			// its own composites onto whatever it stands on.
 			badge.Render(inv.shaper, "v1", nil, badge.Neutral, c, tokens.Spacing,
-				tokens.Radius, inv.badgeStyle(), badge.RenderState{Level: tokens.LevelChrome}),
+				tokens.Radius, inv.badgeStyle(), badge.RenderState{Surface: c.SidebarMaterial}),
 		},
 		Shaper: inv.shaper,
 	}
 }
 
-func (inv *Inventory) navbar(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) navbar(c tokens.PlatformColors) layout.Widget {
 	props := inv.navbarProps(c)
 	return func(gtx layout.Context) layout.Dimensions {
 		// The bar fills the height it is given, so it is pinned to the
@@ -284,19 +282,19 @@ func (inv *Inventory) navbar(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) sidebarProps(c tokens.ColorTokens) patsidebar.Props {
+func (inv *Inventory) sidebarProps(c tokens.PlatformColors) patsidebar.Props {
 	return patsidebar.Props{
 		Items: []patsidebar.Item{
-			{Icon: dot(c.Primary, 16), Label: "Everything", Active: true},
-			{Icon: dot(c.Secondary, 16), Label: "Components"},
-			{Icon: dot(c.Tertiary, 16), Label: "Patterns"},
-			{Icon: dot(c.Success, 16), Label: "Markdown"},
+			{Icon: dot(c.SystemBlue, 16), Label: "Everything", Active: true},
+			{Icon: dot(c.SystemIndigo, 16), Label: "Components"},
+			{Icon: dot(c.SystemTeal, 16), Label: "Patterns"},
+			{Icon: dot(c.SystemGreen, 16), Label: "Markdown"},
 		},
 		Shaper: inv.shaper,
 	}
 }
 
-func (inv *Inventory) sidebar(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) sidebar(c tokens.PlatformColors) layout.Widget {
 	props := inv.sidebarProps(c)
 	return func(gtx layout.Context) layout.Dimensions {
 		one := func(collapsed bool) layout.Widget {
@@ -341,7 +339,7 @@ const (
 // in a box shows a rounded rectangle; a pane with a document reflowed against
 // it shows the one thing the pattern is for — that the pane is an object
 // standing on the window's own plane rather than an edge of it.
-func (inv *Inventory) pane(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) pane(c tokens.PlatformColors) layout.Widget {
 	contents := func(gtx layout.Context) layout.Dimensions {
 		// The strip at the top of the pane is the window buttons' band. This
 		// specimen draws no window buttons — they belong to the window and
@@ -364,9 +362,12 @@ func (inv *Inventory) pane(c tokens.ColorTokens) layout.Widget {
 		// narrower than that, the way every other bounded specimen here is.
 		size := image.Pt(min(gtx.Constraints.Max.X, gtx.Dp(paneSpecimenW)), gtx.Dp(paneSpecimenH))
 		gtx.Constraints = layout.Exact(size)
-		// The window's plane, which is what an inset pane stands on: nothing
-		// is drawn at the backdrop and it shows wherever nothing stands.
-		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelBackdrop), clip.Rect{Max: size}.Op())
+		// The backdrop, which is what an inset pane stands on: nothing is
+		// drawn there and it shows wherever nothing stands. It carries a
+		// coverage in the light appearance, so it is flattened onto the
+		// section's own fill before the rasterizer sees it.
+		paint.FillShape(gtx.Ops, vgcolor.Flatten(c.UnderPageBackground, SectionSurface(c)),
+			clip.Rect{Max: size}.Op())
 
 		b := pane.Bounds(gtx, size, paneColumnW, false)
 		pane.Layout(gtx, c, b, contents)
@@ -385,9 +386,9 @@ func (inv *Inventory) pane(c tokens.ColorTokens) layout.Widget {
 			"window's leading, top and bottom edges,",
 			"with the backdrop showing round it.",
 			"",
-			"It is at the chrome level, a step darker",
-			"than the content: a pane is read through",
-			"its edges and not through its lightness.",
+			"It wears the chrome material: a pane is",
+			"read through its edges and not through",
+			"its lightness.",
 		)(doc)
 		off.Pop()
 
@@ -403,7 +404,7 @@ type tableRow struct {
 	count  string
 }
 
-func (inv *Inventory) table(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) table(c tokens.PlatformColors) layout.Widget {
 	cell := func(s string) layout.Widget {
 		return table.RenderTextCell(inv.shaper, c, tokens.DefaultTypography.BodyMedium, s)
 	}
@@ -430,7 +431,7 @@ func (inv *Inventory) table(c tokens.ColorTokens) layout.Widget {
 // with two dialogs standing on it, and no wider: the pair is one specimen.
 const modalGap = 24
 
-func (inv *Inventory) modal(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) modal(c tokens.PlatformColors) layout.Widget {
 	// Two archetypes, side by side, because they are told apart by their
 	// affordances and one of them alone shows only half of that. The
 	// decision answers from its footer and carries no mark at its corner;
@@ -446,7 +447,7 @@ func (inv *Inventory) modal(c tokens.ColorTokens) layout.Widget {
 	decision := modal.Props{
 		Title: "Discard this theme?",
 		Body: inv.prose(c,
-			"The seed you extracted has not been saved.",
+			"The colour you picked has not been saved.",
 			"Discarding restores the default theme.",
 		),
 		Decision: &modal.Decision{Destructive: true},
@@ -493,7 +494,7 @@ func (inv *Inventory) modal(c tokens.ColorTokens) layout.Widget {
 // the section: a scrim that stops short of the bottom reads as a stray
 // rectangle, not as a window under a dialog. A flexed child is handed no
 // height of its own, so the height is taken here.
-func (inv *Inventory) modalScrim(c tokens.ColorTokens, props modal.Props) layout.Widget {
+func (inv *Inventory) modalScrim(c tokens.PlatformColors, props modal.Props) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Min = gtx.Constraints.Max
 		return modal.Render(inv.shaper, props, true, c, tokens.Spacing, tokens.Radius,
@@ -501,7 +502,7 @@ func (inv *Inventory) modalScrim(c tokens.ColorTokens, props modal.Props) layout
 	}
 }
 
-func (inv *Inventory) popover(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) popover(c tokens.PlatformColors) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(320))
 		gtx.Constraints.Min = gtx.Constraints.Max
@@ -517,12 +518,12 @@ func (inv *Inventory) popover(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) hero(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) hero(c tokens.PlatformColors) layout.Widget {
 	props := hero.Props{
 		Eyebrow:      "The design system",
 		Title:        "Judge a theme whole",
 		Subtitle:     "Every family on one page, re-rendered on the theme you are trying.",
-		PrimaryCTA:   &hero.CTA{Label: "Try a seed"},
+		PrimaryCTA:   &hero.CTA{Label: "Try a colour"},
 		SecondaryCTA: &hero.CTA{Label: "Read the docs"},
 		Shaper:       inv.shaper,
 	}
@@ -533,13 +534,13 @@ func (inv *Inventory) hero(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) feature(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) feature(c tokens.PlatformColors) layout.Widget {
 	props := feature.Props{
 		Columns: 3,
 		Items: []feature.Item{
-			{Icon: dot(c.Primary, 24), Title: "One scale", Body: "Every ramp is generated from a single seed."},
-			{Icon: dot(c.Secondary, 24), Title: "Two schemes", Body: "Light and dark come out of the same derivation."},
-			{Icon: dot(c.Tertiary, 24), Title: "Measured contrast", Body: "Every reading pair is checked, not guessed."},
+			{Icon: dot(c.SystemBlue, 24), Title: "One set", Body: "Every fill the platform paints, by name."},
+			{Icon: dot(c.SystemIndigo, 24), Title: "Two appearances", Body: "Light and dark are recorded, not derived."},
+			{Icon: dot(c.SystemTeal, 24), Title: "Measured materials", Body: "What AppKit does not name is measured."},
 		},
 		Shaper: inv.shaper,
 	}
@@ -549,13 +550,13 @@ func (inv *Inventory) feature(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) pricing(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) pricing(c tokens.PlatformColors) layout.Widget {
 	props := pricing.Props{
 		Tiers: []pricing.Tier{
 			{Name: "Sketch", Price: "Free", Cadence: "forever",
-				Features: []string{"One seed", "Both schemes"}, CTA: &pricing.CTA{Label: "Start"}},
+				Features: []string{"One theme", "Both appearances"}, CTA: &pricing.CTA{Label: "Start"}},
 			{Name: "Studio", Price: "$12", Cadence: "per month", Recommended: true,
-				Features: []string{"Unlimited seeds", "Both schemes", "Export"}, CTA: &pricing.CTA{Label: "Choose"}},
+				Features: []string{"Unlimited themes", "Both appearances", "Export"}, CTA: &pricing.CTA{Label: "Choose"}},
 			{Name: "Team", Price: "$40", Cadence: "per month",
 				Features: []string{"Everything in Studio", "Shared themes"}, CTA: &pricing.CTA{Label: "Contact"}},
 		},
@@ -568,7 +569,7 @@ func (inv *Inventory) pricing(c tokens.ColorTokens) layout.Widget {
 	}
 }
 
-func (inv *Inventory) testimonial(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) testimonial(c tokens.PlatformColors) layout.Widget {
 	props := testimonial.Props{
 		Variant: testimonial.Single,
 		Items: []testimonial.Item{
@@ -576,7 +577,7 @@ func (inv *Inventory) testimonial(c tokens.ColorTokens) layout.Widget {
 				Quote:        "Seeing the whole inventory at once is what made the grey cast obvious.",
 				AuthorName:   "A reviewer",
 				AuthorRole:   "Fresh eyes",
-				AuthorAvatar: dot(c.Primary, 40),
+				AuthorAvatar: dot(c.SystemBlue, 40),
 			},
 		},
 		Shaper: inv.shaper,
@@ -590,7 +591,7 @@ func (inv *Inventory) testimonial(c tokens.ColorTokens) layout.Widget {
 
 // shell draws the three-column frame with its aside occupied, which is the
 // only place the aside's own frame shows.
-func (inv *Inventory) shell(c tokens.ColorTokens) layout.Widget {
+func (inv *Inventory) shell(c tokens.PlatformColors) layout.Widget {
 	props := shell.Props{
 		Layout: shell.ThreeColumn,
 		Navbar: inv.navbarProps(c),
@@ -608,17 +609,17 @@ func (inv *Inventory) shell(c tokens.ColorTokens) layout.Widget {
 		},
 		Footer: func(gtx layout.Context) layout.Dimensions {
 			return complayout.InsetXY(16, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return LabelAt(gtx, inv.shaper, "Footer — status and counts", c.Ramps.Neutral.Step(600), 11, font.Font{})
+				return LabelAt(gtx, inv.shaper, "Footer — status and counts", sectionMuted(c), 11, font.Font{})
 			})
 		},
 	}
 	sidebarW := patsidebar.Render(inv.shaper, inv.sidebarProps(c), false, c, tokens.Spacing,
 		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
 	asideW := func(gtx layout.Context) layout.Dimensions {
-		// An aside is an inspector, which is a chrome region: it
-		// fills at the chrome level, the same level the frame around it
-		// paints, rather than at the c.Surface ramp alias.
-		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelChrome), clip.Rect{Max: gtx.Constraints.Max}.Op())
+		// An aside is an inspector, which is a chrome region: it wears the
+		// platform's chrome material, the same fill the frame around it
+		// paints.
+		paint.FillShape(gtx.Ops, c.SidebarMaterial, clip.Rect{Max: gtx.Constraints.Max}.Op())
 		return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return inv.prose(c, "Aside", "", "Inspector, outline", "or details.")(gtx)
 		})

@@ -136,7 +136,7 @@ const codeSample = "" +
 // still the whole specimen, reached by whoever went looking for it; and a
 // caller with a reason to put it in front of somebody has [ItemIndex] to scroll
 // there, which costs one call and no reordering.
-func (inv *Inventory) Reading(c tokens.ColorTokens) []Section {
+func (inv *Inventory) Reading(c tokens.PlatformColors) []Section {
 	return []Section{{
 		Name:   "markdown-reading",
 		Title:  "Markdown — headings, links, chips, lists, tasks, a table, a quote and a code fence",
@@ -160,8 +160,8 @@ const codeSectionName = "markdown-code"
 // them to scroll to it.
 func CodeSectionName() string { return codeSectionName }
 
-func (inv *Inventory) codeBody(c tokens.ColorTokens) layout.Widget {
-	style := markdown.FromTokens(c, inv.typography())
+func (inv *Inventory) codeBody(c tokens.PlatformColors) layout.Widget {
+	style := markdown.FromTokens(c, inv.typography(), SectionSurface(c))
 	inv.wear(&style, c)
 	// No measure cap, unlike the prose sample. Prose is capped because a long
 	// line of it is hard to read; code is not prose — a line wrapped or
@@ -195,19 +195,19 @@ func (inv *Inventory) SetCodeBase(name string) {
 // default for that appearance, as does one it does not recognise.
 func (inv *Inventory) SetCodeBases(p highlight.BasePair) { inv.codeBases = p }
 
-// wear puts the chosen palette on st's fenced code: the appearance c describes
-// picks the member, and that member's own fill, its syntax colours and its
+// wear puts the chosen palette on st's fenced code: the appearance c is a
+// recording of picks the member, and that member's own fill, its syntax colours and its
 // body colour are what a block is drawn with. A name that no longer resolves
 // falls back to the default for its appearance rather than failing the page.
-func (inv *Inventory) wear(st *markdown.Style, c tokens.ColorTokens) {
+func (inv *Inventory) wear(st *markdown.Style, c tokens.PlatformColors) {
 	highlight.WearPair(st, highlight.BasePair{
 		Light: highlight.BaseOrDefault(inv.codeBases.Light),
 		Dark:  highlight.BaseOrDefault(inv.codeBases.Dark),
 	}, c)
 }
 
-func (inv *Inventory) readingBody(c tokens.ColorTokens) layout.Widget {
-	style := markdown.FromTokens(c, inv.typography())
+func (inv *Inventory) readingBody(c tokens.PlatformColors) layout.Widget {
+	style := markdown.FromTokens(c, inv.typography(), SectionSurface(c))
 	// The chosen base, worn whole: the fence takes the fill its author drew
 	// their colours on, and those colours as they were drawn. Everything
 	// around it — the page, the prose, the chip an inline span sits on — stays

@@ -37,7 +37,15 @@ const pageWidth = 900
 // tileHeight bounds one captured image. The whole page is several times a
 // screen tall and past what a headless window will allocate in one piece, so
 // the dump comes out in tiles.
-const tileHeight = 4000
+//
+// It is set well clear of every group rather than close to one. A group that
+// crosses the bound is stored as two files instead of one, so a group sitting
+// a few pixels under it has its whole stored image renamed and re-cut the day
+// a section grows by a row — a diff that says nothing about what changed. The
+// tallest group measures 4319 px at [pageWidth]; 8000 leaves every group in
+// one tile with most of a tile to spare, and stays far under what a headless
+// window will allocate in one piece.
+const tileHeight = 8000
 
 // testInventory builds the inventory a test draws from.
 //
@@ -66,13 +74,13 @@ func testGallery(t *testing.T) *gallery {
 
 type scheme struct {
 	name   string
-	colors tokens.ColorTokens
+	colors tokens.PlatformColors
 }
 
 func schemes() []scheme {
 	return []scheme{
-		{"light", tokens.DefaultLight},
-		{"dark", tokens.DefaultDark},
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
 	}
 }
 
@@ -179,7 +187,7 @@ func TestFrameDraws(t *testing.T) {
 func TestSectionNamesUnique(t *testing.T) {
 	inv := testInventory(t)
 	seen := map[string]bool{}
-	for _, grp := range inv.Groups(tokens.DefaultLight) {
+	for _, grp := range inv.Groups(tokens.PlatformLight) {
 		for _, s := range grp.Sections {
 			if s.Name == "" {
 				t.Errorf("group %q: a section has no name", grp.Name)
@@ -230,11 +238,12 @@ func TestEverythingDump(t *testing.T) {
 
 // ── Test-side layout helpers ──────────────────────────────────────────────────
 
-// `onBackground` paints the scheme's background under w, so a captured image shows
-// what the page shows rather than whatever the framebuffer held.
-func onBackground(c tokens.ColorTokens, w layout.Widget) layout.Widget {
+// `onBackground` paints the appearance's own window plane under w, so a
+// captured image shows what the page shows rather than whatever the
+// framebuffer held.
+func onBackground(c tokens.PlatformColors, w layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		paint.FillShape(gtx.Ops, c.Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		paint.FillShape(gtx.Ops, c.WindowBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
 		return w(gtx)
 	}
 }

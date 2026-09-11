@@ -91,7 +91,7 @@ func TestSectionSeams(t *testing.T) {
 // measureSeam captures one section on its own — the group banner the column
 // puts above it, its heading, its slot, and a run of the bare page under it —
 // and reads the seams off the pixels rather than off what the layout claimed.
-func measureSeam(t *testing.T, inv *inventory.Inventory, c tokens.ColorTokens, s inventory.Section) seamMeasure {
+func measureSeam(t *testing.T, inv *inventory.Inventory, c tokens.PlatformColors, s inventory.Section) seamMeasure {
 	t.Helper()
 	items := inv.GroupItems(c, inventory.Group{Name: "Probe", Sections: []inventory.Section{s}})
 	// The probe occupies its run without painting it: the page's own fill is

@@ -35,6 +35,7 @@ import (
 	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/mvu/stream"
 	"github.com/vibrantgio/theme/a11y"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 
@@ -102,7 +103,7 @@ type gallery struct {
 	rbBLive       layout.Widget
 	ddLive        layout.Widget
 
-	// Chip page: one live chip per level, each on its own surface.
+	// Chip page: one live chip per surface.
 	chipLive   []layout.Widget
 	chipClicks []int
 
@@ -227,18 +228,18 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 		log.Printf("springbutton: %v", err)
 	}
 
-	// One live chip per level. Each is a real component with its own
+	// One live chip per surface. Each is a real component with its own
 	// clickable, so the page answers the pointer and the Tab key rather than
 	// showing a drawing of a chip that does.
-	g.chipLive = make([]layout.Widget, len(chipLevels))
-	g.chipClicks = make([]int, len(chipLevels))
-	for i, lv := range chipLevels {
+	g.chipLive = make([]layout.Widget, len(chipSpecimens))
+	g.chipClicks = make([]int, len(chipSpecimens))
+	for i, lv := range chipSpecimens {
 		i, lv := i, lv
 		g.chipLive[i], err = chip.Chip(th, chip.Props{
 			Label:       lv.label,
 			Icon:        chip.Glyph(icons.Mark(icons.Disclosure)),
 			Description: lv.desc,
-			Level:       lv.level,
+			Surface:     lv.fill,
 			OnClick:     func(_ layout.Context) { g.chipClicks[i]++; w.Invalidate() },
 		}).First()
 		if err != nil {
@@ -310,7 +311,7 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 
 	// Paragraph: live link state; OnLinkClick carries gtx.
 	g.paraState = paragraph.NewState()
-	g.paraStyle = paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+	g.paraStyle = paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, pagePlane)
 	g.paraStyle.OnLinkClick = func(_ layout.Context, url string) {
 		g.paraLastURL = url
 		g.paraClicks++
@@ -370,7 +371,7 @@ func (g *gallery) cleanup() {
 // ── Frame layout ──────────────────────────────────────────────────────────────
 
 func (g *gallery) frame(gtx layout.Context) layout.Dimensions {
-	paint.FillShape(gtx.Ops, g.chrome().Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
+	paint.FillShape(gtx.Ops, g.chrome().WindowBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
 	return layout.Flex{}.Layout(gtx,
 		layout.Rigid(g.sidebar),
 		layout.Flexed(1, g.content),
@@ -383,15 +384,17 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints = layout.Exact(image.Pt(w, gtx.Constraints.Max.Y))
 	c := g.chrome()
 
-	// The gallery's own rail is the window's chrome, so it fills at the
-	// chrome level. This coincides with the Neutral 200 ramp alias in the
-	// light scheme only.
-	paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelChrome), clip.Rect{Max: gtx.Constraints.Max}.Op())
+	// The gallery's own rail is a sidebar, so it wears the platform's chrome
+	// material — which in the light appearance is the window's own plane
+	// exactly, and is told apart from it by the seam alone.
+	paint.FillShape(gtx.Ops, c.SidebarMaterial, clip.Rect{Max: gtx.Constraints.Max}.Op())
+	paint.FillShape(gtx.Ops, vgcolor.Flatten(c.Separator, c.SidebarMaterial),
+		clip.Rect(image.Rect(w-1, 0, w, gtx.Constraints.Max.Y)).Op())
 
 	cs := make([]layout.FlexChild, 0, 1+len(pageNames))
 	cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return complayout.Inset(16).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return g.label(gtx, "Components Gallery", c.Text, unit.Sp(13), font.Font{Weight: font.Bold})
+			return g.label(gtx, "Components Gallery", vgcolor.Flatten(c.Label, c.SidebarMaterial), unit.Sp(13), font.Font{Weight: font.Bold})
 		})
 	}))
 	for i, name := range pageNames {
@@ -401,16 +404,19 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 				g.page = i
 			}
 			active := g.page == i
-			fg := c.Text
+			// A sidebar row on this platform is the emphasized selection
+			// fill under the foreground the platform pairs with it; an
+			// unselected row carries no fill and the sidebar's own label.
+			fg := vgcolor.Flatten(c.Label, c.SidebarMaterial)
 			if active {
-				fg = c.OnPrimary
+				fg = c.AlternateSelectedControlText
 			}
 			return g.nav[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				sz := image.Pt(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(40)))
 				// Only the selected entry carries a fill of its own, so an
 				// unselected entry lets the rail's own fill show through.
 				if active {
-					paint.FillShape(gtx.Ops, c.Primary, clip.Rect{Max: sz}.Op())
+					paint.FillShape(gtx.Ops, c.SelectedContentBackground, clip.Rect{Max: sz}.Op())
 				}
 				return complayout.InsetXY(16, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return g.label(gtx, name, fg, unit.Sp(14), font.Font{})
@@ -422,7 +428,7 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 }
 
 func (g *gallery) content(gtx layout.Context) layout.Dimensions {
-	paint.FillShape(gtx.Ops, g.chrome().Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
+	paint.FillShape(gtx.Ops, g.chrome().WindowBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
 	switch g.page {
 	case pageEverything:
 		return g.pageEverything(gtx)
@@ -476,7 +482,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(complayout.HSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, fmt.Sprintf("Clicks: %d", g.btnClicks),
-								tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
+								pageText, unit.Sp(14), font.Font{})
 						}),
 					)
 				})
@@ -490,7 +496,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									gtx.Constraints.Min.X = gtx.Dp(unit.Dp(80))
 									gtx.Constraints.Max.X = gtx.Dp(unit.Dp(80))
-									return g.label(gtx, "Static", tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
+									return g.label(gtx, "Static", pageMuted, unit.Sp(13), font.Font{})
 								}),
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									gtx.Constraints.Max.X = gtx.Dp(unit.Dp(200))
@@ -503,7 +509,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 								layout.Rigid(complayout.HSpacer(16)),
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									return g.label(gtx, fmt.Sprintf("Clicks: %d", g.btnCompareClicks),
-										tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
+										pageText, unit.Sp(14), font.Font{})
 								}),
 							)
 						}),
@@ -513,7 +519,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									gtx.Constraints.Min.X = gtx.Dp(unit.Dp(80))
 									gtx.Constraints.Max.X = gtx.Dp(unit.Dp(80))
-									return g.label(gtx, "Spring", tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
+									return g.label(gtx, "Spring", pageMuted, unit.Sp(13), font.Font{})
 								}),
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									gtx.Constraints.Max.X = gtx.Dp(unit.Dp(200))
@@ -526,7 +532,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 								layout.Rigid(complayout.HSpacer(16)),
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									return g.label(gtx, fmt.Sprintf("Clicks: %d", g.springBtnClicks),
-										tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
+										pageText, unit.Sp(14), font.Font{})
 								}),
 							)
 						}),
@@ -534,7 +540,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"effects.SpringButton(theme, button.Props{...}, springbutton.Options{}) — DESIGN §Phase 3 — Composition mechanism.",
-								tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
+								pageMuted, unit.Sp(13), font.Font{})
 						}),
 					)
 				})
@@ -548,19 +554,19 @@ func (g *gallery) buttonVariantRows() []layout.FlexChild {
 	type row struct {
 		label  string
 		state  button.RenderState
-		colors tokens.ColorTokens
+		colors tokens.PlatformColors
 		rowBg  color.NRGBA
 	}
 	rows := []row{
-		{"Normal (light)", button.RenderState{}, tokens.DefaultLight, tokens.DefaultLight.Background},
-		{"Hovered (light)", button.RenderState{Hovered: true}, tokens.DefaultLight, tokens.DefaultLight.Background},
-		{"Focused (light)", button.RenderState{Focused: true}, tokens.DefaultLight, tokens.DefaultLight.Background},
-		{"Pressed (light)", button.RenderState{Pressed: true}, tokens.DefaultLight, tokens.DefaultLight.Background},
-		{"Disabled (light)", button.RenderState{Disabled: true}, tokens.DefaultLight, tokens.DefaultLight.Background},
-		{"Normal (dark)", button.RenderState{}, tokens.DefaultDark, tokens.DefaultDark.Background},
-		{"Focused (dark)", button.RenderState{Focused: true}, tokens.DefaultDark, tokens.DefaultDark.Background},
-		{"Pressed (dark)", button.RenderState{Pressed: true}, tokens.DefaultDark, tokens.DefaultDark.Background},
-		{"Disabled (dark)", button.RenderState{Disabled: true}, tokens.DefaultDark, tokens.DefaultDark.Background},
+		{"Normal (light)", button.RenderState{}, tokens.PlatformLight, tokens.PlatformLight.WindowBackground},
+		{"Hovered (light)", button.RenderState{Hovered: true}, tokens.PlatformLight, tokens.PlatformLight.WindowBackground},
+		{"Focused (light)", button.RenderState{Focused: true}, tokens.PlatformLight, tokens.PlatformLight.WindowBackground},
+		{"Pressed (light)", button.RenderState{Pressed: true}, tokens.PlatformLight, tokens.PlatformLight.WindowBackground},
+		{"Disabled (light)", button.RenderState{Disabled: true}, tokens.PlatformLight, tokens.PlatformLight.WindowBackground},
+		{"Normal (dark)", button.RenderState{}, tokens.PlatformDark, tokens.PlatformDark.WindowBackground},
+		{"Focused (dark)", button.RenderState{Focused: true}, tokens.PlatformDark, tokens.PlatformDark.WindowBackground},
+		{"Pressed (dark)", button.RenderState{Pressed: true}, tokens.PlatformDark, tokens.PlatformDark.WindowBackground},
+		{"Disabled (dark)", button.RenderState{Disabled: true}, tokens.PlatformDark, tokens.PlatformDark.WindowBackground},
 	}
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
@@ -575,34 +581,35 @@ func (g *gallery) buttonVariantRows() []layout.FlexChild {
 
 // ── Chip page ─────────────────────────────────────────────────────────────────
 
-// chipLevels are the surfaces the chip page puts a live chip on: the content, a
-// card raised over it, and a dialog floating above that. The chip derives
-// every colour it draws from the surface it was handed — fill, rim, foreground
-// and ring alike — so one specimen on one surface demonstrates nothing about
-// the component. Three do. The label on each is a summary rather than a verb,
-// which is the whole of what separates a chip from a button: what a pane is
-// showing, what a list is filtered by, which model a conversation is on.
-var chipLevels = []struct {
+// chipSpecimens are the fills the chip page puts a live chip on: the content
+// plane, the platform's grouped box, and the chrome material. The chip's rim,
+// its focus ring and its press tint each carry a coverage rather than a
+// colour, so each lands as whatever it is composited onto and one specimen on
+// one fill demonstrates nothing about the component. Three do. The label on
+// each is a summary rather than a verb, which is the whole of what separates a
+// chip from a button: what a pane is showing, what a list is filtered by,
+// which model a conversation is on.
+var chipSpecimens = []struct {
 	label string
 	desc  string
-	level tokens.ElevationLevel
+	fill  color.NRGBA
 	title string
 }{
-	{"Claude Opus 5", "Choose a model", tokens.Level0, "Level 0 — the content surface"},
-	{"main", "Switch branch", tokens.Level1, "Level 1 — a raised inset"},
-	{"3 filters", "Edit filters", tokens.Level2, "Level 2 — floating"},
+	{"Claude Opus 5", "Choose a model", tokens.PlatformLight.ControlBackground, "The content plane"},
+	{"main", "Switch branch", tokens.PlatformLight.CardFill, "The platform's box"},
+	{"3 filters", "Edit filters", tokens.PlatformLight.SidebarMaterial, "The chrome material"},
 }
 
 func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
-	if len(g.chipLive) != len(chipLevels) {
+	if len(g.chipLive) != len(chipSpecimens) {
 		// The live components are built against a window; a gallery assembled
 		// without one draws nothing here rather than indexing past its state.
 		return layout.Dimensions{}
 	}
 	return g.scrollPage(gtx, g.scrollSt[pageChip], func(gtx layout.Context) layout.Dimensions {
-		c := tokens.DefaultLight
-		cs := []layout.FlexChild{g.sectionHeader("Chip — live, on each level (click it, or Tab to it and press Space)")}
-		for i, lv := range chipLevels {
+		c := tokens.PlatformLight
+		cs := []layout.FlexChild{g.sectionHeader("Chip — live, on each surface (click it, or Tab to it and press Space)")}
+		for i, lv := range chipSpecimens {
 			i, lv := i, lv
 			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return complayout.InsetXY(24, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -610,9 +617,9 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Min.X = gtx.Dp(unit.Dp(180))
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(180))
-							return g.label(gtx, lv.title, c.Ramps.Neutral.Step(600), unit.Sp(12), font.Font{})
+							return g.label(gtx, lv.title, pageMuted, unit.Sp(12), font.Font{})
 						}),
-						layout.Rigid(g.levelPanel(c.SurfaceAt(lv.level), func(gtx layout.Context) layout.Dimensions {
+						layout.Rigid(g.surfacePanel(lv.fill, func(gtx layout.Context) layout.Dimensions {
 							return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								if g.chipLive[i] == nil {
 									return layout.Dimensions{}
@@ -632,18 +639,18 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 		cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return complayout.InsetXY(24, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return g.label(gtx,
-					"The chip walks its fill under the pointer and wears the focus ring in place of its rim.",
-					c.Ramps.Neutral.Step(600), unit.Sp(13), font.Font{})
+					"The chip lays the platform's press overlay over its own fill and wears the focus ring in place of its rim.",
+					pageMuted, unit.Sp(13), font.Font{})
 			})
 		}))
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
 	})
 }
 
-// levelPanel draws content over a fill of its own, sized to what the
+// surfacePanel draws content over a fill of its own, sized to what the
 // content measured — the fill goes down after the content is recorded,
 // because the panel's size is the content's and nothing knows it sooner.
-func (g *gallery) levelPanel(fill color.NRGBA, content layout.Widget) layout.Widget {
+func (g *gallery) surfacePanel(fill color.NRGBA, content layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		m := op.Record(gtx.Ops)
 		dims := content(gtx)
@@ -716,7 +723,7 @@ func (g *gallery) pageInputs(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(complayout.HSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "Option A", tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
+							return g.label(gtx, "Option A", pageText, unit.Sp(14), font.Font{})
 						}),
 						layout.Rigid(complayout.HSpacer(32)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -727,7 +734,7 @@ func (g *gallery) pageInputs(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(complayout.HSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "Option B", tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
+							return g.label(gtx, "Option B", pageText, unit.Sp(14), font.Font{})
 						}),
 					)
 				})
@@ -756,22 +763,22 @@ func (g *gallery) textFieldVariantRows() []layout.FlexChild {
 	type row struct {
 		label  string
 		state  input.RenderState
-		colors tokens.ColorTokens
+		colors tokens.PlatformColors
 	}
 	rows := []row{
-		{"Normal (light)", input.RenderState{}, tokens.DefaultLight},
-		{"Focused (light)", input.RenderState{Focused: true}, tokens.DefaultLight},
-		{"Disabled (light)", input.RenderState{Disabled: true}, tokens.DefaultLight},
-		{"Normal (dark)", input.RenderState{}, tokens.DefaultDark},
-		{"Focused (dark)", input.RenderState{Focused: true}, tokens.DefaultDark},
-		{"Disabled (dark)", input.RenderState{Disabled: true}, tokens.DefaultDark},
+		{"Normal (light)", input.RenderState{}, tokens.PlatformLight},
+		{"Focused (light)", input.RenderState{Focused: true}, tokens.PlatformLight},
+		{"Disabled (light)", input.RenderState{Disabled: true}, tokens.PlatformLight},
+		{"Normal (dark)", input.RenderState{}, tokens.PlatformDark},
+		{"Focused (dark)", input.RenderState{Focused: true}, tokens.PlatformDark},
+		{"Disabled (dark)", input.RenderState{Disabled: true}, tokens.PlatformDark},
 	}
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
 		w := input.Render(g.shaper, "Placeholder…", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.Text, w)
+			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
 		})
 	}
 	return cs
@@ -781,22 +788,22 @@ func (g *gallery) searchFieldVariantRows() []layout.FlexChild {
 	type row struct {
 		label  string
 		state  input.RenderState
-		colors tokens.ColorTokens
+		colors tokens.PlatformColors
 	}
 	rows := []row{
-		{"Rest (light)", input.RenderState{}, tokens.DefaultLight},
-		{"Typed (light)", input.RenderState{Text: "meeting notes"}, tokens.DefaultLight},
-		{"Focused (light)", input.RenderState{Focused: true, Text: "meeting notes"}, tokens.DefaultLight},
-		{"Rest (dark)", input.RenderState{}, tokens.DefaultDark},
-		{"Typed (dark)", input.RenderState{Text: "meeting notes"}, tokens.DefaultDark},
-		{"Disabled (dark)", input.RenderState{Disabled: true}, tokens.DefaultDark},
+		{"Rest (light)", input.RenderState{}, tokens.PlatformLight},
+		{"Typed (light)", input.RenderState{Text: "meeting notes"}, tokens.PlatformLight},
+		{"Focused (light)", input.RenderState{Focused: true, Text: "meeting notes"}, tokens.PlatformLight},
+		{"Rest (dark)", input.RenderState{}, tokens.PlatformDark},
+		{"Typed (dark)", input.RenderState{Text: "meeting notes"}, tokens.PlatformDark},
+		{"Disabled (dark)", input.RenderState{Disabled: true}, tokens.PlatformDark},
 	}
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
 		w := input.RenderSearch(g.shaper, "Search", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.Text, w)
+			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
 		})
 	}
 	return cs
@@ -806,22 +813,22 @@ func (g *gallery) checkboxVariantRows() []layout.FlexChild {
 	type row struct {
 		label  string
 		state  input.CheckboxRenderState
-		colors tokens.ColorTokens
+		colors tokens.PlatformColors
 	}
 	rows := []row{
-		{"Unchecked (light)", input.CheckboxRenderState{}, tokens.DefaultLight},
-		{"Checked (light)", input.CheckboxRenderState{Checked: true}, tokens.DefaultLight},
-		{"Focused (light)", input.CheckboxRenderState{Focused: true}, tokens.DefaultLight},
-		{"Disabled (light)", input.CheckboxRenderState{Disabled: true}, tokens.DefaultLight},
-		{"Unchecked (dark)", input.CheckboxRenderState{}, tokens.DefaultDark},
-		{"Checked (dark)", input.CheckboxRenderState{Checked: true}, tokens.DefaultDark},
+		{"Unchecked (light)", input.CheckboxRenderState{}, tokens.PlatformLight},
+		{"Checked (light)", input.CheckboxRenderState{Checked: true}, tokens.PlatformLight},
+		{"Focused (light)", input.CheckboxRenderState{Focused: true}, tokens.PlatformLight},
+		{"Disabled (light)", input.CheckboxRenderState{Disabled: true}, tokens.PlatformLight},
+		{"Unchecked (dark)", input.CheckboxRenderState{}, tokens.PlatformDark},
+		{"Checked (dark)", input.CheckboxRenderState{Checked: true}, tokens.PlatformDark},
 	}
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
 		w := input.RenderCheckbox(r.colors, tokens.Spacing, tokens.Radius, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.Text, w)
+			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
 		})
 	}
 	return cs
@@ -831,22 +838,22 @@ func (g *gallery) radioVariantRows() []layout.FlexChild {
 	type row struct {
 		label  string
 		state  input.RadioRenderState
-		colors tokens.ColorTokens
+		colors tokens.PlatformColors
 	}
 	rows := []row{
-		{"Unselected (light)", input.RadioRenderState{}, tokens.DefaultLight},
-		{"Selected (light)", input.RadioRenderState{Selected: true}, tokens.DefaultLight},
-		{"Focused (light)", input.RadioRenderState{Focused: true}, tokens.DefaultLight},
-		{"Disabled (light)", input.RadioRenderState{Disabled: true}, tokens.DefaultLight},
-		{"Unselected (dark)", input.RadioRenderState{}, tokens.DefaultDark},
-		{"Selected (dark)", input.RadioRenderState{Selected: true}, tokens.DefaultDark},
+		{"Unselected (light)", input.RadioRenderState{}, tokens.PlatformLight},
+		{"Selected (light)", input.RadioRenderState{Selected: true}, tokens.PlatformLight},
+		{"Focused (light)", input.RadioRenderState{Focused: true}, tokens.PlatformLight},
+		{"Disabled (light)", input.RadioRenderState{Disabled: true}, tokens.PlatformLight},
+		{"Unselected (dark)", input.RadioRenderState{}, tokens.PlatformDark},
+		{"Selected (dark)", input.RadioRenderState{Selected: true}, tokens.PlatformDark},
 	}
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
 		w := input.RenderRadio(r.colors, tokens.Spacing, tokens.Radius, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.Text, w)
+			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
 		})
 	}
 	return cs
@@ -857,22 +864,22 @@ func (g *gallery) dropdownVariantRows() []layout.FlexChild {
 	type row struct {
 		label  string
 		state  input.DropdownRenderState
-		colors tokens.ColorTokens
+		colors tokens.PlatformColors
 	}
 	rows := []row{
-		{"Closed (light)", input.DropdownRenderState{Options: opts, Selected: 0}, tokens.DefaultLight},
-		{"Focused (light)", input.DropdownRenderState{Options: opts, Focused: true}, tokens.DefaultLight},
-		{"Open (light)", input.DropdownRenderState{Options: opts, Open: true, Selected: 1}, tokens.DefaultLight},
-		{"Disabled (light)", input.DropdownRenderState{Options: opts, Disabled: true}, tokens.DefaultLight},
-		{"Closed (dark)", input.DropdownRenderState{Options: opts}, tokens.DefaultDark},
-		{"Open (dark)", input.DropdownRenderState{Options: opts, Open: true, Selected: 0}, tokens.DefaultDark},
+		{"Closed (light)", input.DropdownRenderState{Options: opts, Selected: 0}, tokens.PlatformLight},
+		{"Focused (light)", input.DropdownRenderState{Options: opts, Focused: true}, tokens.PlatformLight},
+		{"Open (light)", input.DropdownRenderState{Options: opts, Open: true, Selected: 1}, tokens.PlatformLight},
+		{"Disabled (light)", input.DropdownRenderState{Options: opts, Disabled: true}, tokens.PlatformLight},
+		{"Closed (dark)", input.DropdownRenderState{Options: opts}, tokens.PlatformDark},
+		{"Open (dark)", input.DropdownRenderState{Options: opts, Open: true, Selected: 0}, tokens.PlatformDark},
 	}
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
 		w := input.RenderDropdown(g.shaper, r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return g.variantRow(gtx, r.label, r.colors.Background, r.colors.Text, w)
+			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
 		})
 	}
 	return cs
@@ -889,7 +896,7 @@ func (g *gallery) pageList(gtx layout.Context) layout.Dimensions {
 				return complayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return g.label(gtx,
 						"list.LayoutScrollbar(..., Occupy, ...) reserves a gutter; Overlay floats the bar over the rows. Wheel, thumb-drag, and track-click all scroll.",
-						tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
+						pageMuted, unit.Sp(13), font.Font{})
 				})
 			}),
 			g.sectionHeader("Scrollbar — standalone bar beside tall fake content (drag the thumb, click the track, hover)"),
@@ -898,7 +905,7 @@ func (g *gallery) pageList(gtx layout.Context) layout.Dimensions {
 				return complayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return g.label(gtx,
 						"scrollbar.FromTokens(...).Layout with fractions from scrollbar.FromListPosition; drags feed back via ScrollDistance.",
-						tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
+						pageMuted, unit.Sp(13), font.Font{})
 				})
 			}),
 		}
@@ -915,17 +922,17 @@ func (g *gallery) listScrollbarDemo(gtx layout.Context) layout.Dimensions {
 	return complayout.InsetXY(24, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		h := gtx.Dp(unit.Dp(400))
 		gtx.Constraints.Max.Y = h
-		bar := scrollbar.FromTokens(tokens.DefaultLight)
+		bar := scrollbar.FromTokens(tokens.PlatformLight, pagePlane)
 		row := func(gtx layout.Context, item string) layout.Dimensions {
 			return complayout.InsetXY(0, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return g.label(gtx, item, tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
+				return g.label(gtx, item, pageText, unit.Sp(14), font.Font{})
 			})
 		}
 		column := func(title string, st *list.State, anchor list.Anchor) layout.Widget {
 			return func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return g.label(gtx, title, tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{Weight: font.Bold})
+						return g.label(gtx, title, pageMuted, unit.Sp(13), font.Font{Weight: font.Bold})
 					}),
 					layout.Rigid(complayout.VSpacer(8)),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
@@ -952,7 +959,7 @@ func (g *gallery) scrollbarDemo(gtx layout.Context) layout.Dimensions {
 		h := gtx.Dp(unit.Dp(300))
 		gtx.Constraints.Max.Y = h
 		gtx.Constraints.Min.Y = h
-		style := scrollbar.FromTokens(tokens.DefaultLight)
+		style := scrollbar.FromTokens(tokens.PlatformLight, pagePlane)
 		barW := gtx.Dp(style.Width())
 		// Both children are Rigid so the list lays out first: the bar then
 		// reads this frame's scroll position instead of lagging one frame.
@@ -962,7 +969,7 @@ func (g *gallery) scrollbarDemo(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min = gtx.Constraints.Max
 				return g.sbList.Layout(gtx, len(g.sbItems), func(gtx layout.Context, i int) layout.Dimensions {
 					return complayout.InsetXY(0, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return g.label(gtx, g.sbItems[i], tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
+						return g.label(gtx, g.sbItems[i], pageText, unit.Sp(14), font.Font{})
 					})
 				})
 			}),
@@ -992,7 +999,7 @@ func paragraphSpans() []paragraph.SpanStyle {
 		{Content: ", "},
 		{Content: "monospace", Typeface: "Go Mono, monospace"},
 		{Content: ", "},
-		{Content: "coloured", Color: tokens.Red.C600},
+		{Content: "coloured", Color: tokens.PlatformLight.SystemRed},
 		{Content: ", and "},
 		{Content: "resized", Size: 22},
 		{Content: " spans in one wrapped paragraph, with inline links to "},
@@ -1005,7 +1012,7 @@ func paragraphSpans() []paragraph.SpanStyle {
 
 func (g *gallery) pageParagraph(gtx layout.Context) layout.Dimensions {
 	return g.scrollPage(gtx, g.scrollSt[pageParagraph], func(gtx layout.Context) layout.Dimensions {
-		staticStyle := paragraph.FromTokens(tokens.DefaultLight, tokens.DefaultTypography.BodyLarge)
+		staticStyle := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, pagePlane)
 		linkStates := []struct {
 			label string
 			state paragraph.RenderState
@@ -1033,7 +1040,7 @@ func (g *gallery) pageParagraph(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Min.X = gtx.Dp(unit.Dp(160))
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(160))
-							return g.label(gtx, ls.label, tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
+							return g.label(gtx, ls.label, pageMuted, unit.Sp(13), font.Font{})
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(400))
@@ -1063,13 +1070,13 @@ func (g *gallery) pageParagraph(gtx layout.Context) layout.Dimensions {
 							if g.paraLastURL != "" {
 								status = fmt.Sprintf("Activated %d×, last: %s", g.paraClicks, g.paraLastURL)
 							}
-							return g.label(gtx, status, tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
+							return g.label(gtx, status, pageText, unit.Sp(14), font.Font{})
 						}),
 						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"paragraph.Layout(gtx, state, shaper, style, spans) — OnLinkClick(gtx, url) carries gtx per GX.8.",
-								tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
+								pageMuted, unit.Sp(13), font.Font{})
 						}),
 					)
 				})
@@ -1096,7 +1103,7 @@ func (g *gallery) pageIcon(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(complayout.HSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "icon.FromIVG(data) + ivg/raster/gio", tokens.DefaultLight.Text, unit.Sp(13), font.Font{})
+							return g.label(gtx, "icon.FromIVG(data) + ivg/raster/gio", pageText, unit.Sp(13), font.Font{})
 						}),
 					)
 				})
@@ -1108,11 +1115,11 @@ func (g *gallery) pageIcon(gtx layout.Context) layout.Dimensions {
 					status := fmt.Sprintf(`Registry has "info": %v  (kind=IVG, from icon.FromIVG)`, registered)
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, status, tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
+							return g.label(gtx, status, pageText, unit.Sp(14), font.Font{})
 						}),
 						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "SVG icons: icon.FromSVG(parsed *svg.Icon) for the KindSVG path.", tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
+							return g.label(gtx, "SVG icons: icon.FromSVG(parsed *svg.Icon) for the KindSVG path.", pageMuted, unit.Sp(13), font.Font{})
 						}),
 					)
 				})
@@ -1191,14 +1198,13 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 	prefs := g.prefs
 	g.prefsMu.Unlock()
 
-	hc := tokens.ColorTokens{
-		Background: color.NRGBA{0xff, 0xff, 0xff, 0xff},
-		Text:       color.NRGBA{0x00, 0x00, 0x00, 0xff},
-		Primary:    color.NRGBA{0x00, 0x00, 0x00, 0xff},
-		OnPrimary:  color.NRGBA{0xff, 0xff, 0xff, 0xff},
-		Surface:    color.NRGBA{0xff, 0xff, 0xff, 0xff},
-		Seam:       color.NRGBA{0x00, 0x00, 0x00, 0xff},
-	}
+	// The platform set with every foreground driven to full strength: the
+	// accent, the label, the control text and the seam opaque black on the
+	// white planes the light appearance already carries. It is what a caller
+	// may hand a component, not a set this library ships.
+	hc := tokens.PlatformLight
+	black := color.NRGBA{A: 0xff}
+	hc.ControlAccent, hc.Label, hc.Text, hc.ControlText, hc.Separator = black, black, black, black, black
 
 	return g.scrollPage(gtx, g.scrollSt[pageA11y], func(gtx layout.Context) layout.Dimensions {
 		cs := []layout.FlexChild{
@@ -1219,12 +1225,12 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(complayout.VSpacer(12)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "Toggle Reduce Motion in System Settings > Accessibility > Display.", tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
+							return g.label(gtx, "Toggle Reduce Motion in System Settings > Accessibility > Display.", pageMuted, unit.Sp(13), font.Font{})
 						}),
 					)
 				})
 			}),
-			g.sectionHeader("A11y — high-contrast mode: swapped ColorTokens"),
+			g.sectionHeader("A11y — high contrast: the platform set with every foreground at full strength"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
@@ -1235,7 +1241,7 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(complayout.HSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "ColorTokens with maximum contrast ratios.", tokens.DefaultLight.Text, unit.Sp(13), font.Font{})
+							return g.label(gtx, "The platform set, every foreground at full strength.", pageText, unit.Sp(13), font.Font{})
 						}),
 					)
 				})
@@ -1247,7 +1253,7 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 					if prefs.ReduceMotion {
 						status = "reduced motion: skip animations"
 					}
-					return g.label(gtx, status, tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
+					return g.label(gtx, status, pageText, unit.Sp(14), font.Font{})
 				})
 			}),
 		}
@@ -1256,14 +1262,14 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 }
 
 func (g *gallery) prefRow(gtx layout.Context, name string, value bool) layout.Dimensions {
-	indicator, col := "◯ off", tokens.DefaultLight.Secondary
+	indicator, col := "◯ off", pageMuted
 	if value {
-		indicator, col = "● on", tokens.DefaultLight.Primary
+		indicator, col = "● on", tokens.PlatformLight.ControlAccent
 	}
 	return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			gtx.Constraints.Min.X = gtx.Dp(unit.Dp(200))
-			return g.label(gtx, name, tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
+			return g.label(gtx, name, pageText, unit.Sp(14), font.Font{})
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.label(gtx, indicator, col, unit.Sp(14), font.Font{Weight: font.Bold})
@@ -1285,24 +1291,24 @@ func (g *gallery) pageInitial(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								fmt.Sprintf("Gallery opened at: %s", firstFrame.Format("15:04:05.000")),
-								tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
+								pageText, unit.Sp(14), font.Font{})
 						}),
 						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"initial.Value[T].GetOrSet(fn) calls fn once on the first invocation",
-								tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
+								pageMuted, unit.Sp(13), font.Font{})
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"and returns the cached result on every subsequent frame.",
-								tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
+								pageMuted, unit.Sp(13), font.Font{})
 						}),
 						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"Use inside rx.Defer closures to replace ad-hoc -1 sentinels.",
-								tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
+								pageMuted, unit.Sp(13), font.Font{})
 						}),
 					)
 				})
@@ -1335,24 +1341,24 @@ func (g *gallery) pageStream(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.streamSend.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return button.Render(g.shaper, "Send ping", tokens.DefaultLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, button.RenderState{})(gtx)
+								return button.Render(g.shaper, "Send ping", tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, button.RenderState{})(gtx)
 							})
 						}),
 						layout.Rigid(complayout.VSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, "Consumer received: "+received,
-								tokens.DefaultLight.Text, unit.Sp(14), font.Font{})
+								pageText, unit.Sp(14), font.Font{})
 						}),
 						layout.Rigid(complayout.VSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"observer.Next(msg) sends via mvu/stream.Value[string](\"\") — ADR-008's",
-								tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
+								pageMuted, unit.Sp(13), font.Font{})
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"Consumer goroutine calls w.Invalidate() to schedule the next frame.",
-								tokens.DefaultLight.Secondary, unit.Sp(13), font.Font{})
+								pageMuted, unit.Sp(13), font.Font{})
 						}),
 					)
 				})
@@ -1373,11 +1379,11 @@ func (g *gallery) scrollPage(gtx layout.Context, st *list.State, body func(layou
 
 func (g *gallery) sectionHeader(title string) layout.FlexChild {
 	return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-		bg := color.NRGBA{R: 0xe2, G: 0xe8, B: 0xf0, A: 0xff}
+		bg := tokens.PlatformLight.CardFill
 		h := gtx.Dp(unit.Dp(36))
 		paint.FillShape(gtx.Ops, bg, clip.Rect{Max: image.Pt(gtx.Constraints.Max.X, h)}.Op())
 		return complayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return g.label(gtx, title, tokens.DefaultLight.Text, unit.Sp(13), font.Font{Weight: font.Bold})
+			return g.label(gtx, title, pageText, unit.Sp(13), font.Font{Weight: font.Bold})
 		})
 	})
 }
@@ -1399,6 +1405,16 @@ func (g *gallery) variantRow(gtx layout.Context, lbl string, bg, fg color.NRGBA,
 		)
 	})
 }
+
+// The fill the per-family pages stand on and the two foregrounds they write
+// in. Those pages draw the light appearance whatever the everything page's
+// control says, so the surface is one value and the platform's label
+// coverages are flattened onto it once rather than per frame.
+var (
+	pagePlane = tokens.PlatformLight.ControlBackground
+	pageText  = vgcolor.Flatten(tokens.PlatformLight.Label, pagePlane)
+	pageMuted = vgcolor.Flatten(tokens.PlatformLight.SecondaryLabel, pagePlane)
+)
 
 func (g *gallery) label(gtx layout.Context, s string, col color.NRGBA, size unit.Sp, f font.Font) layout.Dimensions {
 	m := op.Record(gtx.Ops)

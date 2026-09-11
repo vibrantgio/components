@@ -23,6 +23,7 @@ import (
 
 	complayout "github.com/vibrantgio/components/layout"
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -31,10 +32,10 @@ import (
 // of them. The rows are ordinary layout.Widget values, so a caller can put
 // them in a scrolling list, print them into one tall column, or take a slice.
 //
-// The rows are a function of the palette alone, so re-theming is calling this
-// again with other tokens. Nothing that survives across frames is rebuilt by
+// The rows are a function of the set alone, so re-theming is calling this
+// again with another set. Nothing that survives across frames is rebuilt by
 // doing so.
-func (inv *Inventory) Items(c tokens.ColorTokens) []layout.Widget {
+func (inv *Inventory) Items(c tokens.PlatformColors) []layout.Widget {
 	groups := inv.Groups(c)
 	items := make([]layout.Widget, 0, 8*len(groups))
 	total := 0
@@ -52,7 +53,7 @@ func (inv *Inventory) Items(c tokens.ColorTokens) []layout.Widget {
 //
 // The heading rather than the body, because a body arriving with its label
 // off the top of the viewport reads as a fragment of whatever was above it.
-func (inv *Inventory) ItemIndex(c tokens.ColorTokens, name string) int {
+func (inv *Inventory) ItemIndex(c tokens.PlatformColors, name string) int {
 	row := 0
 	for _, grp := range inv.Groups(c) {
 		row++ // the group's banner
@@ -68,7 +69,7 @@ func (inv *Inventory) ItemIndex(c tokens.ColorTokens, name string) int {
 
 // GroupItems turns one group into the rows a column shows: a banner for the
 // group, then a header and a bounded body for each section.
-func (inv *Inventory) GroupItems(c tokens.ColorTokens, grp Group) []layout.Widget {
+func (inv *Inventory) GroupItems(c tokens.PlatformColors, grp Group) []layout.Widget {
 	items := make([]layout.Widget, 0, 1+2*len(grp.Sections))
 	items = append(items, groupBanner(inv.shaper, c, grp.Name))
 	for _, s := range grp.Sections {
@@ -95,7 +96,7 @@ func (inv *Inventory) GroupItems(c tokens.ColorTokens, grp Group) []layout.Widge
 // nil: that is a wiring fault, not an empty catalogue, and it is meant to be
 // caught by a caller's test rather than smoothed over — a surface quietly
 // showing a blank column is exactly what a fallback would hide.
-func (inv *Inventory) TabItems(c tokens.ColorTokens, group string) []layout.Widget {
+func (inv *Inventory) TabItems(c tokens.PlatformColors, group string) []layout.Widget {
 	for _, grp := range inv.Groups(c) {
 		if grp.Name != group {
 			continue
@@ -109,54 +110,69 @@ func (inv *Inventory) TabItems(c tokens.ColorTokens, group string) []layout.Widg
 // PageEnd closes the column. A column this tall that simply stops reads as a
 // render that gave out; a line saying how much of the surface has just gone
 // past says it ended on purpose.
-func (inv *Inventory) PageEnd(c tokens.ColorTokens, sections int) layout.Widget {
+func (inv *Inventory) PageEnd(c tokens.PlatformColors, sections int) layout.Widget {
 	return pageEnd(inv.shaper, c, sections)
 }
 
-func pageEnd(shaper *text.Shaper, c tokens.ColorTokens, sections int) layout.Widget {
+func pageEnd(shaper *text.Shaper, c tokens.PlatformColors, sections int) layout.Widget {
+	fill := ChromeSurface(c)
 	return func(gtx layout.Context) layout.Dimensions {
 		h := gtx.Dp(64)
 		sz := image.Pt(gtx.Constraints.Max.X, h)
-		// The closing strip stands at the chrome level, under the
-		// specimens rather than raised over them.
-		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelChrome), clip.Rect{Max: sz}.Op())
-		paint.FillShape(gtx.Ops, c.Seam, clip.Rect(image.Rect(0, 0, sz.X, 1)).Op())
+		// The closing strip wears the chrome material, under the specimens
+		// rather than raised over them, and the platform's seam closes the
+		// column off above it.
+		paint.FillShape(gtx.Ops, fill, clip.Rect{Max: sz}.Op())
+		paint.FillShape(gtx.Ops, vgcolor.Flatten(c.Separator, fill),
+			clip.Rect(image.Rect(0, 0, sz.X, 1)).Op())
 		gtx.Constraints = layout.Exact(sz)
 		return complayout.InsetXY(24, 24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return LabelAt(gtx, shaper,
-				fmt.Sprintf("End of the inventory — %d sections in the current theme.", sections),
-				c.Ramps.Neutral.Step(600), 12, font.Font{})
+				fmt.Sprintf("End of the inventory — %d sections in the current set.", sections),
+				vgcolor.Flatten(c.SecondaryLabel, fill), 12, font.Font{})
 		})
 	}
 }
 
-// groupBanner separates one module's families from the next.
-func groupBanner(shaper *text.Shaper, c tokens.ColorTokens, name string) layout.Widget {
+// groupBanner separates one module's families from the next. It wears the
+// platform's box fill — a small step off the plane, darker in the light
+// appearance and lighter in the dark one — with the seam under it, which is
+// how the platform bands a run of groups. It is the one row on the column
+// carrying a fill of its own, so a reader can find where one module's
+// families end without a colour the platform does not paint.
+func groupBanner(shaper *text.Shaper, c tokens.PlatformColors, name string) layout.Widget {
+	fill := c.CardFill
 	return func(gtx layout.Context) layout.Dimensions {
 		h := gtx.Dp(44)
 		sz := image.Pt(gtx.Constraints.Max.X, h)
-		paint.FillShape(gtx.Ops, c.Primary, clip.Rect{Max: sz}.Op())
+		paint.FillShape(gtx.Ops, fill, clip.Rect{Max: sz}.Op())
+		paint.FillShape(gtx.Ops, vgcolor.Flatten(c.Separator, fill),
+			clip.Rect(image.Rect(0, h-1, sz.X, h)).Op())
 		gtx.Constraints = layout.Exact(sz)
 		return complayout.InsetXY(24, 13).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return LabelAt(gtx, shaper, name, c.OnPrimary, 15, font.Font{Weight: font.Bold})
+			return LabelAt(gtx, shaper, name, vgcolor.Flatten(c.Label, fill), 15, font.Font{Weight: font.Bold})
 		})
 	}
 }
 
 // sectionHeaderRow labels one family. Every section carries one: an
 // unlabelled swatch is a puzzle, not an inventory.
-func sectionHeaderRow(shaper *text.Shaper, c tokens.ColorTokens, title string) layout.Widget {
+func sectionHeaderRow(shaper *text.Shaper, c tokens.PlatformColors, title string) layout.Widget {
+	fill := ChromeSurface(c)
 	return func(gtx layout.Context) layout.Dimensions {
 		h := gtx.Dp(32)
 		sz := image.Pt(gtx.Constraints.Max.X, h)
-		// A section header bands the inventory, so it fills at the chrome
-		// level rather than at the ramp.
-		paint.FillShape(gtx.Ops, c.SurfaceAt(tokens.LevelChrome), clip.Rect{Max: sz}.Op())
-		paint.FillShape(gtx.Ops, c.Seam,
-			clip.Rect(image.Rect(0, h-1, sz.X, h)).Op())
+		// A section header bands the inventory, so it wears the chrome
+		// material. In the light appearance that is the content's own fill,
+		// so the seam is what the row is read by; one above it as well as
+		// below is what closes it off from the family over it.
+		paint.FillShape(gtx.Ops, fill, clip.Rect{Max: sz}.Op())
+		seam := vgcolor.Flatten(c.Separator, fill)
+		paint.FillShape(gtx.Ops, seam, clip.Rect(image.Rect(0, 0, sz.X, 1)).Op())
+		paint.FillShape(gtx.Ops, seam, clip.Rect(image.Rect(0, h-1, sz.X, h)).Op())
 		gtx.Constraints = layout.Exact(sz)
 		return complayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return LabelAt(gtx, shaper, title, c.Text, 13, font.Font{Weight: font.Bold})
+			return LabelAt(gtx, shaper, title, vgcolor.Flatten(c.Label, fill), 13, font.Font{Weight: font.Bold})
 		})
 	}
 }
@@ -176,11 +192,11 @@ const (
 // section's, not the content's: several patterns expand into whatever
 // constraints they are handed, and one of those left unbounded would swallow
 // the rest of the column.
-func sectionBody(c tokens.ColorTokens, s Section) layout.Widget {
+func sectionBody(c tokens.PlatformColors, s Section) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		h := gtx.Dp(s.Height) + gtx.Dp(2*SectionPadY)
 		full := image.Pt(gtx.Constraints.Max.X, h)
-		paint.FillShape(gtx.Ops, c.Background, clip.Rect{Max: full}.Op())
+		paint.FillShape(gtx.Ops, SectionSurface(c), clip.Rect{Max: full}.Op())
 		gtx.Constraints = layout.Exact(full)
 		return complayout.InsetXY(float32(SectionPadX), float32(SectionPadY)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			gtx.Constraints.Max.Y = gtx.Dp(s.Height)
@@ -267,7 +283,7 @@ const (
 // the pair — see [SchemeSegment]. Two targets are what make the control mean
 // what it looks like: pointing at the moon asks for dark, whatever is on
 // screen, and pointing at the segment already filled asks for nothing.
-func SchemeSwitch(c tokens.ColorTokens, dark bool) layout.Widget {
+func SchemeSwitch(c tokens.PlatformColors, dark bool) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{}.Layout(gtx,
 			layout.Rigid(SchemeSegment(c, false, !dark)),
@@ -287,7 +303,7 @@ func SchemeSwitch(c tokens.ColorTokens, dark bool) layout.Widget {
 // control that names a scheme on either side, rather than a toggle that
 // happens to be drawn as two. What it puts that area over is the target
 // [SchemeTarget] hands it and not the track, which is smaller.
-func SchemeSegment(c tokens.ColorTokens, dark, selected bool) layout.Widget {
+func SchemeSegment(c tokens.PlatformColors, dark, selected bool) layout.Widget {
 	foreground, fill := schemeSegmentColors(c, selected)
 	glyph := schemeGlyph(dark, foreground)
 	return func(gtx layout.Context) layout.Dimensions {
@@ -354,31 +370,33 @@ func SchemeTarget(gtx layout.Context, lay func(layout.Context, layout.Widget) la
 	return drawn
 }
 
-// schemeTrack is the fill both segments sit on: three steps up the neutral
-// ramp from the page, which is enough to read as a control against a page that
-// is otherwise flat, and not so much that a control changed twice an hour
-// competes with what it changes.
-func schemeTrack(c tokens.ColorTokens) color.NRGBA { return c.Ramps.Neutral.Step(300) }
+// schemeTrack is the fill both segments sit on: the platform's push button,
+// which is what a segmented control is made of. It reads eight percent off
+// the white behind it in the light appearance and lighter than the plane in
+// the dark one — the platform's own separation and no more, which is all a
+// control changed twice an hour is owed.
+func schemeTrack(c tokens.PlatformColors) color.NRGBA { return c.PushButtonFill }
 
 // schemeSegmentColors returns the glyph's colour and the fill it is read
 // against, for a segment that is or is not the current one. Both come out of
 // here rather than being written at the point they are painted, so what a
 // contrast measurement reads is what the control draws.
 //
-// The current segment carries the theme's own primary pair, which is the one
-// pairing in a palette guaranteed legible; the other is a less pronounced
-// neutral on the track, dark enough to be read as a glyph and light enough not
-// to be mistaken for the choice that is in force.
-func schemeSegmentColors(c tokens.ColorTokens, selected bool) (foreground, fill color.NRGBA) {
+// The current segment is the platform's selection: the emphasized selection
+// fill under the foreground the platform pairs with it. The other is the
+// platform's control text over the track — the same foreground a push
+// button's own label wears, which is not mistakable for the choice in force.
+func schemeSegmentColors(c tokens.PlatformColors, selected bool) (foreground, fill color.NRGBA) {
 	if selected {
-		return c.OnPrimary, c.Primary
+		return c.AlternateSelectedControlText, c.SelectedContentBackground
 	}
-	return c.Ramps.Neutral.Step(700), schemeTrack(c)
+	track := schemeTrack(c)
+	return vgcolor.Flatten(c.ControlText, track), track
 }
 
-// schemeGlyph returns the sun or the moon drawn in `foreground`, from the Material
-// set. The vector carries its own colours, which on the wrong fill would be a
-// dark disc on a dark segment, so the colour is substituted on the way in.
+// schemeGlyph returns the sun or the moon drawn in `foreground`. The vector
+// carries its own colours, which on the wrong fill would be a dark disc on a
+// dark segment, so the colour is substituted on the way in.
 //
 // It is built where it is drawn rather than kept. Deciding a glyph this small
 // costs a few microseconds against a frame budget of several thousand, and a

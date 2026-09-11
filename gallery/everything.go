@@ -3,14 +3,14 @@
 // The per-family pages beside it are for close-up work on one component at a
 // time — they carry the live interactions, the variant grids and the running
 // commentary. This page carries none of that. It exists to be looked at whole,
-// because that is the only way a theme can be judged: a seed that flatters a
+// because that is the only way a theme can be judged: a fill that flatters a
 // button in isolation can still leave the tag row muddy against the card it
 // sits on, and nothing but the two side by side will say so.
 //
-// The sections themselves live in the inventory package, which draws them from
-// the colour tokens it is handed and nothing else. What is here is the page
-// around them: the content plane, the viewport, and the banner with the
-// control that redraws the lot in the other scheme.
+// The sections themselves live in the inventory package, which draws them
+// from the platform's colour set it is handed and nothing else. What is here
+// is the page around them: the window's plane, the viewport, and the banner
+// with the control that redraws the lot in the other appearance.
 package main
 
 import (
@@ -22,6 +22,7 @@ import (
 	"github.com/vibrantgio/components/gallery/inventory"
 	complayout "github.com/vibrantgio/components/layout"
 	"github.com/vibrantgio/components/list"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -29,11 +30,11 @@ import (
 // are drawn in. The per-family pages predate the control and stay on the light
 // scheme; theirs is close-up work on one component, and the whole-surface
 // judgment this control serves is what the everything page is for.
-func (g *gallery) colors() tokens.ColorTokens {
+func (g *gallery) colors() tokens.PlatformColors {
 	if g.dark {
-		return tokens.DefaultDark
+		return tokens.PlatformDark
 	}
-	return tokens.DefaultLight
+	return tokens.PlatformLight
 }
 
 // chrome returns the tokens the window's own chrome — the surface under a
@@ -41,12 +42,12 @@ func (g *gallery) colors() tokens.ColorTokens {
 // inventory page takes the scheme its control is set to, and a per-family
 // page, which draws light-scheme components whatever the control says, keeps
 // the chrome on the light scheme with them.
-func (g *gallery) chrome() tokens.ColorTokens {
+func (g *gallery) chrome() tokens.PlatformColors {
 	switch g.page {
 	case pageEverything, pagePatterns, pageMarkdown:
 		return g.colors()
 	}
-	return tokens.DefaultLight
+	return tokens.PlatformLight
 }
 
 // pageEverything lays out every group of the inventory, one after the other,
@@ -81,8 +82,8 @@ func (g *gallery) pageMarkdown(gtx layout.Context) layout.Dimensions {
 // scrollItems shows items in one scrolling column on the scheme's content
 // plane. Only the rows that show are laid out, which is what keeps a page of
 // three dozen sections cheap.
-func (g *gallery) scrollItems(gtx layout.Context, st *list.State, c tokens.ColorTokens, items []layout.Widget) layout.Dimensions {
-	paint.FillShape(gtx.Ops, c.Background, clip.Rect{Max: gtx.Constraints.Max}.Op())
+func (g *gallery) scrollItems(gtx layout.Context, st *list.State, c tokens.PlatformColors, items []layout.Widget) layout.Dimensions {
+	paint.FillShape(gtx.Ops, c.WindowBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
 	return list.Layout(gtx, st, items, func(gtx layout.Context, w layout.Widget) layout.Dimensions {
 		return w(gtx)
 	})
@@ -90,7 +91,8 @@ func (g *gallery) scrollItems(gtx layout.Context, st *list.State, c tokens.Color
 
 // pageBanner is the row at the top of an inventory page: what the page is,
 // and the control that says which scheme it is in.
-func (g *gallery) pageBanner(c tokens.ColorTokens, title, subtitle string) layout.Widget {
+func (g *gallery) pageBanner(c tokens.PlatformColors, title, subtitle string) layout.Widget {
+	plane := c.WindowBackground
 	return func(gtx layout.Context) layout.Dimensions {
 		// A segment per scheme, each naming the side it moves to. Pressing the
 		// one already filled asks for the scheme that is on screen, which is
@@ -105,11 +107,11 @@ func (g *gallery) pageBanner(c tokens.ColorTokens, title, subtitle string) layou
 				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return inventory.LabelAt(gtx, g.shaper, title, c.Text, 22, font.Font{Weight: font.Bold})
+							return inventory.LabelAt(gtx, g.shaper, title, vgcolor.Flatten(c.Label, plane), 22, font.Font{Weight: font.Bold})
 						}),
 						layout.Rigid(complayout.VSpacer(6)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return inventory.LabelAt(gtx, g.shaper, subtitle, c.Ramps.Neutral.Step(600), 13, font.Font{})
+							return inventory.LabelAt(gtx, g.shaper, subtitle, vgcolor.Flatten(c.SecondaryLabel, plane), 13, font.Font{})
 						}),
 					)
 				}),
