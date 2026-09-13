@@ -202,8 +202,8 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		fill := tok.platform.ControlAccent
 		dot := tok.platform.AlternateSelectedControlText
 		if s.Disabled {
-			fill = vgcolor.Flatten(tokens.Disabled(fill), standsOn)
-			dot = vgcolor.Flatten(tok.platform.DisabledControlText, fill)
+			fill = control.DisabledFill(tok.platform, standsOn)
+			dot = control.DisabledMark(tok.platform, fill)
 		}
 		paint.FillShape(gtx.Ops, fill, clip.Ellipse(outerRect).Op(gtx.Ops))
 

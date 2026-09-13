@@ -243,8 +243,8 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		fill := tok.platform.ControlAccent
 		foreground := tok.platform.AlternateSelectedControlText
 		if s.Disabled {
-			fill = vgcolor.Flatten(tokens.Disabled(fill), standsOn)
-			foreground = vgcolor.Flatten(tok.platform.DisabledControlText, fill)
+			fill = control.DisabledFill(tok.platform, standsOn)
+			foreground = control.DisabledMark(tok.platform, fill)
 		}
 		paint.FillShape(gtx.Ops, fill, rrectOuter.Op(gtx.Ops))
 

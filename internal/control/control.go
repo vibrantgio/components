@@ -36,3 +36,27 @@ func Fill(p tokens.PlatformColors) color.NRGBA { return p.TextBackground }
 func Placeholder(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
 	return vgcolor.Flatten(p.PlaceholderText, beneath)
 }
+
+// DisabledFill is the interior of a control that is switched off and still
+// carries a value — the checked box, the selected radio. The accent drains:
+// the platform's disabled coverage is laid over what the control stands on,
+// and beneath is that surface.
+//
+// The platform draws no accent on a disabled control. The Save dialog's two
+// switched-off checkboxes carry none (save-dialog-light.png and -dark.png,
+// the "Options:" rows), and their wording reads at that same coverage —
+// #bdbdbd on the light sheet's white and #595f62 on the dark sheet's
+// #232a2f, which DisabledControlText's black and white reproduce to the byte
+// in dark and within three 255ths in light.
+func DisabledFill(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
+	return vgcolor.Flatten(p.DisabledControlText, beneath)
+}
+
+// DisabledMark is the foreground of the mark a switched-off control still
+// shows — the check, the radio's dot — over [DisabledFill]. It is the
+// platform's own control text flattened onto that fill, so the mark stays
+// readable in both appearances where white would be lost on the light
+// fill's grey.
+func DisabledMark(p tokens.PlatformColors, fill color.NRGBA) color.NRGBA {
+	return vgcolor.Flatten(p.ControlText, fill)
+}
