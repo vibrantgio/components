@@ -11,8 +11,7 @@ import (
 // (24 − 2·2), 19 dp at tokens.Compact (19 − 2·0).
 //
 // shadcn/ui draws 16 px icons ([&_svg]:size-4) inside its h-9 py-2 buttons,
-// whose content box is 36 − 2·8 = 20 px; MD3 draws 24 dp icons inside its
-// 40 dp buttons. Sizing the glyph to the content box keeps the icon in
+// whose content box is 36 − 2·8 = 20 px. Sizing the glyph to the content box keeps the icon in
 // lockstep with the control across densities, and it is exactly the glyph
 // size components/button gives an icon-only button (side ControlHeight,
 // inset PaddingY).

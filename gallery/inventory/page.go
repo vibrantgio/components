@@ -162,8 +162,8 @@ func sectionHeaderRow(shaper *text.Shaper, c tokens.PlatformColors, title string
 	return func(gtx layout.Context) layout.Dimensions {
 		h := gtx.Dp(32)
 		sz := image.Pt(gtx.Constraints.Max.X, h)
-		// A section header bands the inventory, so it wears the chrome
-		// material. In the light appearance that is the content's own fill,
+		// A section header bands the inventory, so it wears the
+		// chrome material; in the light appearance that is the content's own fill,
 		// so the seam is what the row is read by; one above it as well as
 		// below is what closes it off from the family over it.
 		paint.FillShape(gtx.Ops, fill, clip.Rect{Max: sz}.Op())

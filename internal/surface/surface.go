@@ -20,8 +20,8 @@ import "image/color"
 //
 // A surface is an opaque fill, so alpha zero is no answer rather than a
 // transparent one, and alpha zero is the zero value a Surface property is
-// left at. On macOS 26 the window's plane, the content's fill and the chrome
-// material carry one value in the light appearance, so an unstated surface
+// left at. On macOS 26 the window's plane, the content's fill and the
+// chrome material carry one value in the light appearance, so an unstated surface
 // is wrong only where something was deliberately put between.
 func Or(stated, plane color.NRGBA) color.NRGBA {
 	if stated.A == 0 {

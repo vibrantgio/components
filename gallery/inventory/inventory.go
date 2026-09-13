@@ -622,7 +622,7 @@ var (
 func (inv *Inventory) pinnedButtonRow(c tokens.PlatformColors) layout.Widget {
 	return inv.buttonCells(c, []buttonCell{
 		{label: "Filled", st: button.RenderState{}},
-		{label: "Pinned", st: button.RenderState{Fill: PinnedFill, OnFill: PinnedForeground}},
+		{label: "Pinned", st: button.RenderState{Fill: PinnedFill, Foreground: PinnedForeground}},
 	})
 }
 
@@ -1660,7 +1660,7 @@ func (inv *Inventory) pagination(c tokens.PlatformColors) layout.Widget {
 
 // ── Shared drawing helpers ────────────────────────────────────────────────────
 
-// ActionInfoIVG is the vector icon the icon section draws — the Material
+// ActionInfoIVG is the vector icon the icon section draws — the Material Symbols
 // action-info glyph, in IVG. It is exported because a surface showing the
 // icon family close up wants the same glyph the inventory shows, and two
 // copies of one blob would be two things to keep in step.

@@ -384,8 +384,8 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints = layout.Exact(image.Pt(w, gtx.Constraints.Max.Y))
 	c := g.chrome()
 
-	// The gallery's own rail is a sidebar, so it wears the platform's chrome
-	// material — which in the light appearance is the window's own plane
+	// The gallery's own rail is a sidebar, so it wears the
+	// chrome material — which in the light appearance is the window's own plane
 	// exactly, and is told apart from it by the seam alone.
 	paint.FillShape(gtx.Ops, c.SidebarMaterial, clip.Rect{Max: gtx.Constraints.Max}.Op())
 	paint.FillShape(gtx.Ops, vgcolor.Flatten(c.Separator, c.SidebarMaterial),
@@ -1091,7 +1091,7 @@ func (g *gallery) pageParagraph(gtx layout.Context) layout.Dimensions {
 func (g *gallery) pageIcon(gtx layout.Context) layout.Dimensions {
 	return g.scrollPage(gtx, g.scrollSt[pageIcon], func(gtx layout.Context) layout.Dimensions {
 		cs := []layout.FlexChild{
-			g.sectionHeader("Icon — IVG render (material action-info, 64×64 px)"),
+			g.sectionHeader("Icon — IVG render (Material Symbols action-info, 64×64 px)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,

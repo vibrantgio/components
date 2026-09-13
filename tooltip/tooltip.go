@@ -64,7 +64,7 @@ import (
 
 // DefaultDelay is the show-after-entry delay applied when Props.Delay is
 // zero or negative. It resolves from the motion scale's slowest stop
-// (DurXSlow, MD3 long2 = 500 ms); the live path reads the same stop from
+// (DurXSlow, 500 ms); the live path reads the same stop from
 // its Theme.Motion snapshot, so a themed motion scale retimes the delay.
 var DefaultDelay = tokens.Motion.DurXSlow
 
@@ -386,7 +386,7 @@ func drawSurface(
 	padV := gtx.Dp(unit.Dp(tok.spacing.S1))
 	gap := gtx.Dp(unit.Dp(tok.spacing.S1))
 
-	// Pre-record the label with its material so we can replay it inside
+	// Pre-record the label with its paint material so we can replay it inside
 	// the surface at a known offset after measuring it.
 	mColor := op.Record(gtx.Ops)
 	paint.ColorOp{Color: vgcolor.Flatten(tok.platform.Label, tok.platform.WindowBackground)}.Add(gtx.Ops)

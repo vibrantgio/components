@@ -80,7 +80,7 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 | `keyed` | `Deferred`, a key→state registry that keeps per-row state attached to its item across list reorders, inserts and deletes. |
 | `layout` | Spacing, inset and spacer helpers, row/column wrappers, a pill clip, and `FocusGroup` for keyboard focus across a fixed set of items. |
 | `list` | Virtual-scrolling list — only the visible rows lay out. `Layout` for the bare list, `LayoutScrollbar` to draw a bar in a reserved gutter or overlaid. |
-| `pagination` | The control for moving between numbered pages of content: a row of numbered page cells flanked by prev/next chevrons. Every cell is one tinted-fill pair — a ramp's step 300 as fill, the same ramp's step 700 as label — and the only thing the current page changes is which ramp the pair comes off, Primary for the page the reader is on and neutral for the pages they are not, so the row says "this one" in hue and in nothing else. The cells are drawn natively rather than through `button`, whose Comfortable padding would truncate a page digit inside a density-sized square. `Props.Page` and `PageCount` are plain ints, so a page change rebuilds the stream; every page in `[1, PageCount]` renders, with no ellipsis collapse. |
+| `pagination` | The control for moving between numbered pages of content: a row of numbered page cells flanked by prev/next chevrons. Only the current page carries a fill: the platform's accent under the text that reads on it. Every other cell is unfilled — a page the control can take the reader to is drawn in the platform's link colour, any other page number in its label colour — so the row says "this one" with the one filled cell and in nothing else. The cells are drawn natively rather than through `button`, whose Comfortable padding would truncate a page digit inside a density-sized square. `Props.Page` and `PageCount` are plain ints, so a page change rebuilds the stream; every page in `[1, PageCount]` renders, with no ellipsis collapse. |
 | `paragraph` | Content as a run of styled text wrapped into lines: styled spans, spans set on a rounded chip, and hyperlink spans with hover, focus ring and Tab traversal. Built directly on Gio's shaper. |
 | `scrollarea` | A horizontally scrolling viewport for content that must not be reflowed to fit — a preformatted block, an over-wide diagram. The child lays out at its natural width; the cut edge dissolves into the surface while there is more past it, and an optional bar floats on the trailing edge. It claims the horizontal axis only, so it nests inside a vertical `list` without fighting it. |
 | `scrollbar` | The standalone scrollbar for any scrollable region — track, draggable thumb, click-the-track scrolling — styled from tokens. Absent while the content fits, and faded out a second after it stops moving, as the desktop platforms' overlay bars are. `list.LayoutScrollbar` draws this one. |
@@ -179,7 +179,7 @@ Honest about what does not work yet:
   `tokens.TextStyle`. Old call: `…, tokens.Radius, tokens.DefaultTypeScale,
   state)`. New call: `…, tokens.Radius, tokens.DefaultTypography.LabelLarge,
   tokens.Comfortable, state)`.
-- **`icon.Registry` ships empty.** Nothing populates it yet. For Material
+- **`icon.Registry` ships empty.** Nothing populates it yet. For Material Symbols
   icons today, render `golang.org/x/exp/shiny/materialdesign/icons` data
   through `ivg/raster/gio`; `button.Props.Icon` wants a `clip.Path` painter,
   not a `layout.Widget`.

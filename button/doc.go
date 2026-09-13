@@ -49,7 +49,7 @@
 // # A pinned fill
 //
 // The filled variant alone will take a fill from its caller. Set both halves
-// of Props.Fill and Props.OnFill — RenderState.Fill and OnFill on the pure
+// of Props.Fill and Props.Foreground — RenderState.Fill and Foreground on the pure
 // path — and the button wears that fill under that foreground in place of the
 // platform's accent pair, keeping every treatment the variant has: the press
 // overlay, the platform's disabled pair, and the focus ring, which carries a

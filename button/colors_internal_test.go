@@ -76,8 +76,8 @@ func TestEmphasisTakesThePlatformsNames(t *testing.T) {
 			{"ghost pressed", RenderState{Emphasis: Ghost, Pressed: true}, ghostHit, transparent, on(p.ControlText, ghostHit), on(p.KeyboardFocusIndicator, ghostHit)},
 			{"ghost disabled", RenderState{Emphasis: Ghost, Disabled: true}, transparent, transparent, on(p.DisabledControlText, plane), on(p.KeyboardFocusIndicator, plane)},
 
-			{"pinned rest", RenderState{Fill: pinFill, OnFill: pinForeground}, pinFill, transparent, pinForeground, on(p.KeyboardFocusIndicator, pinFill)},
-			{"pinned pressed", RenderState{Fill: pinFill, OnFill: pinForeground, Pressed: true}, pinHit, transparent, pinForeground, on(p.KeyboardFocusIndicator, pinHit)},
+			{"pinned rest", RenderState{Fill: pinFill, Foreground: pinForeground}, pinFill, transparent, pinForeground, on(p.KeyboardFocusIndicator, pinFill)},
+			{"pinned pressed", RenderState{Fill: pinFill, Foreground: pinForeground, Pressed: true}, pinHit, transparent, pinForeground, on(p.KeyboardFocusIndicator, pinHit)},
 		} {
 			bg, edge, fg, ring := buttonColors(p, tc.state)
 			if bg != tc.bg || edge != tc.edge || fg != tc.fg || ring != tc.ring {
@@ -151,7 +151,7 @@ func TestGhostRestingFillIsFullyTransparent(t *testing.T) {
 // caller whose colour is fixed from outside the platform's set needs it to
 // stay put.
 func TestPinnedFillIsAppearanceStableWhereTheAccentPairIsNot(t *testing.T) {
-	pinned := RenderState{Fill: pinFill, OnFill: pinForeground}
+	pinned := RenderState{Fill: pinFill, Foreground: pinForeground}
 	lightBG, _, lightFG, _ := buttonColors(tokens.PlatformLight, pinned)
 	darkBG, _, darkFG, _ := buttonColors(tokens.PlatformDark, pinned)
 	if lightBG != darkBG || lightFG != darkFG {
@@ -170,7 +170,7 @@ func TestHalfAPinIsNoPin(t *testing.T) {
 	p := tokens.PlatformLight
 	for _, s := range []RenderState{
 		{Fill: pinFill},
-		{OnFill: pinForeground},
+		{Foreground: pinForeground},
 	} {
 		bg, _, fg, _ := buttonColors(p, s)
 		if want := on(p.AlternateSelectedControlText, p.ControlAccent); bg != p.ControlAccent || fg != want {

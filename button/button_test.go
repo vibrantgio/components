@@ -301,7 +301,7 @@ func TestPinnedFillGolden(t *testing.T) {
 	} {
 		for _, st := range emphasisStates {
 			state := st.s
-			state.Fill, state.OnFill = pinnedFill, pinnedForeground
+			state.Fill, state.Foreground = pinnedFill, pinnedForeground
 			name := "pin-" + sc.name + "-" + st.name
 			t.Run(name, func(t *testing.T) {
 				w := button.Render(
@@ -341,8 +341,8 @@ func TestUnpinnedFillDrawsTheStockButton(t *testing.T) {
 		s    button.RenderState
 	}{
 		{"a fill with no foreground", button.RenderState{Fill: pinnedFill}},
-		{"a foreground with no fill", button.RenderState{OnFill: pinnedForeground}},
-		{"a transparent pair", button.RenderState{Fill: color.NRGBA{R: 0xb3}, OnFill: color.NRGBA{R: 0xff}}},
+		{"a foreground with no fill", button.RenderState{Foreground: pinnedForeground}},
+		{"a transparent pair", button.RenderState{Fill: color.NRGBA{R: 0xb3}, Foreground: color.NRGBA{R: 0xff}}},
 	} {
 		if n := golden.PixelDiff(stock, shot(c.s)); n != 0 {
 			t.Errorf("%s moved %d pixels; an unset pair must leave the emphasis exactly where it was", c.name, n)
@@ -350,7 +350,7 @@ func TestUnpinnedFillDrawsTheStockButton(t *testing.T) {
 	}
 	// The control: a whole pair does move the picture, so the assertions
 	// above are about the pair being unset rather than about it being inert.
-	if n := golden.PixelDiff(stock, shot(button.RenderState{Fill: pinnedFill, OnFill: pinnedForeground})); n == 0 {
+	if n := golden.PixelDiff(stock, shot(button.RenderState{Fill: pinnedFill, Foreground: pinnedForeground})); n == 0 {
 		t.Error("a pinned pair rendered the stock button; the pin reached nothing")
 	}
 }
@@ -377,7 +377,7 @@ func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
 		ring := focus.Ring(scheme.colors, pinnedFill)
 		img := golden.Capture(t, size, onWindowSurface(scheme.colors, button.RenderIcon(
 			crossIcon, scheme.colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
-			button.RenderState{Fill: pinnedFill, OnFill: pinnedForeground, Focused: true},
+			button.RenderState{Fill: pinnedFill, Foreground: pinnedForeground, Focused: true},
 		)))
 		if img == nil {
 			return // headless unavailable; Capture called t.Skip

@@ -90,7 +90,7 @@ type RenderState struct {
 	// this is it. Zero is Filled.
 	Emphasis Emphasis
 
-	// Fill and OnFill pin the Filled emphasis' fill and the foreground over
+	// Fill and Foreground pin the Filled emphasis' fill and the foreground over
 	// it to a pair the scheme does not carry: a colour fixed from outside the
 	// palette, which a change of scheme must not move. The case they exist
 	// for is an action whose colour is not the theme's to choose — a
@@ -111,8 +111,8 @@ type RenderState struct {
 	// half-written pin renders the stock button rather than an invisible
 	// label. Tonal and Ghost
 	// ignore both: neither carries a fill of its own to pin.
-	Fill   color.NRGBA
-	OnFill color.NRGBA
+	Fill       color.NRGBA
+	Foreground color.NRGBA
 
 	// Surface is the opaque fill the button stands on. The platform's press
 	// overlay, its seam, its control text and its disabled text all carry a
@@ -145,15 +145,15 @@ type Props struct {
 	// icon button is a less pronounced glyph over a full 44 dp square.
 	Emphasis Emphasis
 
-	// Fill and OnFill pin the Filled emphasis' fill and its foreground to a
+	// Fill and Foreground pin the Filled emphasis' fill and its foreground to a
 	// pair the scheme does not carry, copied straight into RenderState on
 	// every frame — for the action whose colour is not the theme's to
 	// choose. They are one pin: set both or neither, and the zero value
 	// keeps exactly the colours the emphasis has always had. The hover,
 	// press, focus and disabled treatments are the emphasis' own either
 	// way. See RenderState.Fill.
-	Fill   color.NRGBA
-	OnFill color.NRGBA
+	Fill       color.NRGBA
+	Foreground color.NRGBA
 
 	// Surface is the opaque fill the button stands on, copied straight into
 	// RenderState on every frame. Set it where the button does not stand on
@@ -313,14 +313,14 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 					semantic.DescriptionOp(desc).Add(gtx.Ops)
 					semantic.EnabledOp(!dis).Add(gtx.Ops)
 					state := RenderState{
-						Emphasis: props.Emphasis,
-						Fill:     props.Fill,
-						OnFill:   props.OnFill,
-						Surface:  props.Surface,
-						Hovered:  hov,
-						Focused:  foc,
-						Pressed:  prs,
-						Disabled: dis,
+						Emphasis:   props.Emphasis,
+						Fill:       props.Fill,
+						Foreground: props.Foreground,
+						Surface:    props.Surface,
+						Hovered:    hov,
+						Focused:    foc,
+						Pressed:    prs,
+						Disabled:   dis,
 					}
 					if iconOnly {
 						return drawIconButton(gtx, props.Icon, tok, state)
@@ -626,7 +626,7 @@ func strokeRRect(gtx layout.Context, size image.Point, rad int, col color.NRGBA)
 // text.
 //
 // Filled is the one variant that takes a pin from the caller. A RenderState
-// carrying both halves of a fill pair (RenderState.Fill and OnFill) wears
+// carrying both halves of a fill pair (RenderState.Fill and Foreground) wears
 // that pair in place of the accent's and keeps everything else: the same
 // press overlay, the same disabled pair, and the same ring, which carries
 // its own coverage and composites over whatever fill is there. Half a pair
@@ -647,7 +647,7 @@ func buttonColors(p tokens.PlatformColors, s RenderState) (bg, edge, fg, ring co
 
 	default: // Filled
 		if pinnedFill(s) {
-			bg, fg = s.Fill, s.OnFill
+			bg, fg = s.Fill, s.Foreground
 		} else {
 			bg, fg = p.ControlAccent, p.AlternateSelectedControlText
 		}
@@ -690,5 +690,5 @@ func fillOr(bg, standsOn color.NRGBA) color.NRGBA {
 // must be there: a fill is no fill at alpha zero, and a foreground at alpha
 // zero would draw a label nobody can read, so a half-written pin is no pin.
 func pinnedFill(s RenderState) bool {
-	return s.Fill.A != 0 && s.OnFill.A != 0
+	return s.Fill.A != 0 && s.Foreground.A != 0
 }
