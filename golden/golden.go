@@ -67,6 +67,8 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
+
+	"github.com/vibrantgio/components/composite"
 )
 
 var update = flag.Bool("golden.update", false, "overwrite golden images with current output")
@@ -172,6 +174,9 @@ func Capture(t *testing.T, size image.Point, draw layout.Widget) *image.RGBA {
 		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
 		Ops:         &ops,
 	}
+	// The plane this frame draws, so that an overlay covering it composites
+	// against what is beneath rather than against Gio's blend.
+	composite.Frame(gtx)
 	draw(gtx)
 
 	if err := w.Frame(&ops); err != nil {

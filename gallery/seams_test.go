@@ -22,9 +22,14 @@ import (
 // A shadow or an antialiased edge lands a few pixels into that run, which is
 // what a shadow is for; seamBleed is how much of it may go that way before the
 // section is touching what is next to it rather than sitting clear of it.
+//
+// It is five because the platform's floating shadow reaches 24 px and the
+// margin is 20: a section whose body floats — the notifications column, the
+// popover — spends the difference on its shadow, and does so at every
+// coverage the ramp can still be told from the page at.
 const (
 	seamGap   = int(inventory.SectionPadY)
-	seamBleed = 3
+	seamBleed = 5
 )
 
 // seamProbe is the run of the page's own fill laid out under a section so that
