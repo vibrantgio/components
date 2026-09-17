@@ -120,7 +120,7 @@ type MenuProps struct {
 //
 // Uncapped, the menu is not virtualised: it walks every option, so while it
 // stands every option row exists in the op tree with its own widget.Clickable
-// focus tag, and Tab plus Enter/Space reaches all of them. There is no
+// focus tag, and Tab plus Enter/Space operates all of them. There is no
 // unreachable option because there is no offscreen option.
 //
 // That guarantee is bounded by the option count, and [MenuProps.MaxHeight] is
