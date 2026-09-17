@@ -3,6 +3,7 @@ package input
 import (
 	"image"
 	"image/color"
+	"math"
 
 	"gioui.org/f32"
 	"gioui.org/io/event"
@@ -384,12 +385,21 @@ func (a adorn) trailGapPx(gtx layout.Context, tok resolvedTokens) int {
 
 // insets report where the text starts and how much the field holds at its
 // trailing end, both measured from the field's own edges. A field carrying
-// neither mark spends its horizontal padding at each end and nothing more,
-// which is what keeps one drawing serving the text field as well.
+// no looking glass starts its text at the measured [textLeadDp] inside its
+// own edge, which is what keeps one drawing serving the text field as well.
+//
+// The gap is spent from the last pixel column the looking glass covers, not
+// from the fraction of a column its drawing ends on: the glyph is placed at a
+// fraction of a pixel so its lens lands where the platform draws it, and a
+// drawing ending mid-column still covers that column. Rounding the end down
+// would spend one of the gap's columns on the drawing and leave the
+// platform's measured clear space a column short.
 func (a adorn) insets(gtx layout.Context, tok resolvedTokens, s RenderState, padH int) (lead, trail int) {
-	lead, trail = padH, padH
+	lead = gtx.Dp(hairlineDp) + gtx.Dp(textLeadDp)
+	trail = padH
 	if a.search {
-		lead = int(a.glyphX(gtx, s)+a.drawingPx(gtx)) + a.promptGapPx(gtx, s)
+		end := int(math.Ceil(float64(a.glyphX(gtx, s) + a.drawingPx(gtx))))
+		lead = end + a.promptGapPx(gtx, s)
 	}
 	if a.clear {
 		trail = padH + a.markPx(gtx) + a.trailGapPx(gtx, tok)

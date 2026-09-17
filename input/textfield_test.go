@@ -71,6 +71,66 @@ func TestTextFieldGolden(t *testing.T) {
 	}
 }
 
+// TestTextFieldLeadingInsetIsMeasured reads off the drawn pixels the number
+// that places the text in a field carrying no looking glass: the field's
+// inner edge to the first pixel of the text standing in it. The prompt and a
+// typed value are read the same way, because the two are drawn at one inset.
+//
+// MEASURED, save-dialog-{light,dark}.png, the "Save As:" field at 1x: the
+// field's box runs x 264–495, the columns the unfocused "Tags:" field below
+// it runs, so its fill begins at x=265; the value's first pixel column is
+// x=272. Seven columns in, in both appearances.
+//
+// The inset places the text's origin and the face adds its first glyph's left
+// side bearing to it, so the first pixel stands one column further in than
+// the inset — the faces are pinned by DeterministicShaper, so that column is
+// the same on every machine. The platform's capture carries a bearing of its
+// own: the selection behind "Untitled" fills from x=271 and the U's first
+// pixel is at x=272.
+func TestTextFieldLeadingInsetIsMeasured(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 40)
+	// The field wears its hairline at rest, so its inner edge is one column
+	// in from its outer one.
+	const innerEdge, inset, bearing = 1, 7, 1
+	for _, tc := range []struct {
+		name  string
+		state input.RenderState
+	}{
+		{"prompt", input.RenderState{}},
+		{"value", input.RenderState{Text: "Email address"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p := tokens.PlatformLight
+			w := input.Render(
+				shaper, "Email address",
+				p, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				tc.state,
+			)
+			img := golden.Capture(t, size, onChrome(p.WindowBackground, w))
+			// x=200 is clear of the text; rows 6 to 22 hold it and stay clear
+			// of the field's corners.
+			fill := img.RGBAAt(200, 14)
+			first := -1
+			for x := 3; x < 200 && first < 0; x++ {
+				for y := 6; y <= 22; y++ {
+					if img.RGBAAt(x, y) != fill {
+						first = x
+						break
+					}
+				}
+			}
+			if first < 0 {
+				t.Fatal("no text found inside the field; this measures nothing")
+			}
+			if got, want := first-innerEdge, inset+bearing; got != want {
+				t.Errorf("the text's first pixel is %d px in from the field's inner edge, want %d: the measured %d inset and the face's %d px side bearing",
+					got, want, inset, bearing)
+			}
+		})
+	}
+}
+
 // ---- Accessibility tests ----
 
 // TestTextFieldHeightIsItsLineBoxOverTheFloor checks the drawn field is

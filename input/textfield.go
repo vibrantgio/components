@@ -315,7 +315,8 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 //
 // body is the BodyLarge role's whole text style — typeface, weight, size and
 // line height all reach the shaper — and d is the density the field draws at
-// (control height and vertical padding; horizontal padding stays spacing.S3).
+// (control height and vertical padding; the leading inset is the measured
+// [textLeadDp] and the trailing one spacing.S3, neither following density).
 // Pass tokens.DefaultTypography.BodyLarge and tokens.Comfortable for the
 // default desktop look.
 func Render(
@@ -350,6 +351,21 @@ func fieldFill(p tokens.PlatformColors, s RenderState) color.NRGBA {
 // that field's outer edge to its inner one. A field standing on chrome wears
 // no edge, so there the two are the same edge.
 const hairlineDp unit.Dp = 1
+
+// textLeadDp is a plain text field's leading inset: its inner edge to the
+// first pixel of the text standing in it, the prompt and a typed value alike.
+//
+// MEASURED, save-dialog-{light,dark}.png, the "Save As:" field at 1x: the
+// field's box runs x 264–495, the same columns the unfocused "Tags:" field
+// below it runs, so its fill begins at x=265; the value's first pixel column
+// is x=272. Seven columns in, in both appearances. The field is focused in the
+// capture and its ring is drawn two columns outside the box, over x 262–266,
+// which is why the box is read off the pair rather than off the ring.
+//
+// It is spent at the hairline's width whatever the field's state, so focus —
+// which replaces the hairline with a wider ring — does not move the text; the
+// rule the looking glass is placed by.
+const textLeadDp unit.Dp = 7
 
 // drawFieldBox paints the box the field is drawn as, at the size the field
 // measured itself to: the platform's hairline around the surface beneath it
@@ -448,7 +464,8 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	// Density.ControlHeight — the platform draws a field shorter than the
 	// button beside it, which is why the density carries the two separately
 	// — and the drawn height is max(that floor, line box + 2×PaddingY).
-	// Horizontal padding stays spacing.S3 and does not follow density.
+	// padH is the field's trailing padding and does not follow density; the
+	// leading inset is measured, and adorn.insets carries it.
 	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := gtx.Dp(unit.Dp(tok.density.FieldHeight))

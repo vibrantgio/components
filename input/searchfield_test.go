@@ -372,20 +372,23 @@ func TestPromptCapBandIsOnTheFieldsCentreRow(t *testing.T) {
 	}
 }
 
-// TestLeadingInsetIsMeasuredPerVariant reads off the drawn pixels the number
-// that places the looking glass, per variant: the field's inner edge to the
-// glyph's first pixel.
+// TestLeadingInsetIsMeasuredPerVariant reads off the drawn pixels the two
+// numbers that place the looking glass and the prompt after it, per variant:
+// the field's inner edge to the glyph's first pixel, and the clear columns
+// between the glyph's last pixel and the prompt's first.
 //
 // MEASURED, system-settings-grouped-box-{light,dark}.png: the recess carries
 // no edge, so its inner edge is its own at x=18, and the glyph's first pixel
-// is at x=27 — 9 px in. MEASURED, mail-window.png: the toolbar field's stroke
-// is at x=867 and its fill begins at x=868, with the glyph's first pixel at
-// x=878 — 10 px in.
+// is at x=27 — 9 px in; the glyph's last pixel is at x=41 and the prompt's
+// first at x=47, five clear columns. MEASURED, mail-window.png: the toolbar
+// field's stroke is at x=867 and its fill begins at x=868, with the glyph's
+// first pixel at x=878 — 10 px in; the glyph's last pixel is at x=890 and the
+// prompt's first at x=899, eight clear columns.
 //
-// The gap after the glyph is not read here. Both captures measure it from the
-// glyph's last pixel, and this library draws that glyph a third of a column
-// wider than either capture holds, so the count of clear columns is not the
-// same measurement on both sides. The goldens hold the drawn result.
+// The gap is a count of clear columns, not a distance, which is what lets it
+// be read on both sides: this library draws the glyph a third of a column
+// wider than either capture holds, and a column the drawing ends inside is a
+// column it covers.
 func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 40)
@@ -394,9 +397,10 @@ func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
 		variant   input.Variant
 		innerEdge int // the field's outer edge to its inner one
 		inset     int
+		gap       int
 	}{
-		{"form", input.Form, 1, 10},
-		{"chrome", input.Chrome, 0, 9},
+		{"form", input.Form, 1, 10, 8},
+		{"chrome", input.Chrome, 0, 9, 5},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			p := tokens.PlatformLight
@@ -415,20 +419,43 @@ func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
 			// x=200 is clear of the prompt and both marks; rows 6 to 22 hold
 			// the glyph and stay clear of the field's corners.
 			fill := img.RGBAAt(200, 14)
-			first := -1
-			for x := 5; x < 200 && first < 0; x++ {
+			covered := func(x int) bool {
 				for y := 6; y <= 22; y++ {
 					if img.RGBAAt(x, y) != fill {
+						return true
+					}
+				}
+				return false
+			}
+			first, clear, prompt := -1, -1, -1
+			for x := 5; x < 200; x++ {
+				switch {
+				case first < 0:
+					if covered(x) {
 						first = x
-						break
+					}
+				case clear < 0:
+					if !covered(x) {
+						clear = x
+					}
+				case prompt < 0:
+					if covered(x) {
+						prompt = x
 					}
 				}
 			}
 			if first < 0 {
 				t.Fatal("no looking glass found inside the field; this measures nothing")
 			}
+			if prompt < 0 {
+				t.Fatal("no prompt found past the looking glass; the gap measures nothing")
+			}
 			if got := first - tc.innerEdge; got != tc.inset {
 				t.Errorf("the glyph's first pixel is %d px in from the field's inner edge, want the measured %d", got, tc.inset)
+			}
+			if got := prompt - clear; got != tc.gap {
+				t.Errorf("the glyph's last pixel is at x=%d and the prompt's first at x=%d, %d clear columns; want the measured %d",
+					clear-1, prompt, got, tc.gap)
 			}
 		})
 	}
