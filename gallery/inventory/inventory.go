@@ -488,7 +488,7 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 			Body: inv.tooltip(c)},
 		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 60,
 			Body: inv.textFieldRow(c)},
-		{Name: "components-searchfield", Title: "Search field — at rest, and holding a query with its clear mark", Height: 60,
+		{Name: "components-searchfield", Title: "Search field — at rest, holding a query with its clear mark, and the recess it takes on chrome", Height: 60,
 			Body: inv.searchFieldRow(c)},
 		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 56,
 			Body: inv.toggleRow(c)},
@@ -1196,9 +1196,13 @@ func (inv *Inventory) textFieldRow(c tokens.PlatformColors) layout.Widget {
 	}
 }
 
-// searchFieldRow is the search field in the two states that separate it from
-// the text field above it: empty, where the looking glass is all there is to
-// see, and holding a query, where the clear mark has appeared beside it.
+// searchFieldRow is the search field in the three states that separate it
+// from the text field above it — empty, where the looking glass is all there
+// is to see, holding a query, where the clear mark has appeared beside it,
+// and focused — and then the variant it takes on chrome, which is a control
+// of a different shape: the platform's flat recess, no edge, its ends fully
+// rounded. That cell paints the chrome material behind the field, because a
+// recess only reads as one against the chrome material it is cut into.
 func (inv *Inventory) searchFieldRow(c tokens.PlatformColors) layout.Widget {
 	states := []struct {
 		label string
@@ -1207,6 +1211,7 @@ func (inv *Inventory) searchFieldRow(c tokens.PlatformColors) layout.Widget {
 		{"Rest", input.RenderState{}},
 		{"Typed", input.RenderState{Text: "meeting notes"}},
 		{"Focused", input.RenderState{Focused: true, Text: "meeting notes"}},
+		{"On chrome", input.RenderState{Variant: input.Chrome, Surface: c.SidebarMaterial}},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(states))
@@ -1222,8 +1227,19 @@ func (inv *Inventory) searchFieldRow(c tokens.PlatformColors) layout.Widget {
 						return LabelAt(gtx, inv.shaper, s.label, sectionMuted(c), 11, font.Font{})
 					}),
 					layout.Rigid(complayout.VSpacer(6)),
-					layout.Rigid(input.RenderSearch(inv.shaper, "Search", c, tokens.Spacing, tokens.Radius,
-						tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s.st)),
+					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+						w := input.RenderSearch(inv.shaper, "Search", c, tokens.Spacing, tokens.Radius,
+							tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s.st)
+						if s.st.Variant != input.Chrome {
+							return w(gtx)
+						}
+						rec := op.Record(gtx.Ops)
+						dims := w(gtx)
+						call := rec.Stop()
+						paint.FillShape(gtx.Ops, c.SidebarMaterial, clip.Rect{Max: dims.Size}.Op())
+						call.Add(gtx.Ops)
+						return dims
+					}),
 				)
 			}))
 		}

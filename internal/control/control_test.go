@@ -1,6 +1,7 @@
 package control_test
 
 import (
+	"image/color"
 	"testing"
 
 	"github.com/vibrantgio/components/internal/control"
@@ -9,8 +10,8 @@ import (
 )
 
 // One control family, one set of names: the text field, the checkbox, the
-// radio and the picker's field trigger all draw their box from these three,
-// and each is the platform's own name for that part of a field.
+// radio and the picker's field trigger all draw their box from these, and
+// each is the platform's own name for that part of a field.
 func TestTheBoxTakesThePlatformsNames(t *testing.T) {
 	for _, sc := range []struct {
 		name string
@@ -25,6 +26,12 @@ func TestTheBoxTakesThePlatformsNames(t *testing.T) {
 		}
 		if got, want := control.Fill(p), p.TextBackground; got != want {
 			t.Errorf("%s: Fill = %v, want the platform's text background %v", sc.name, got, want)
+		}
+		if got, want := control.Recess(p), p.SidebarSearchFill; got != want {
+			t.Errorf("%s: Recess = %v, want the platform's sidebar search fill %v", sc.name, got, want)
+		}
+		if got := control.Recess(p); got == control.FieldFill(p, color.NRGBA{}) {
+			t.Errorf("%s: Recess = %v, the same as a form field's interior: a recess on chrome is a fill of its own", sc.name, got)
 		}
 		if got, want := control.Placeholder(p, control.Fill(p)), vgcolor.Flatten(p.PlaceholderText, control.Fill(p)); got != want {
 			t.Errorf("%s: Placeholder = %v, want the platform's placeholder text over the fill %v", sc.name, got, want)

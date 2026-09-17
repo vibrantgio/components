@@ -17,7 +17,6 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/icon"
 	"github.com/vibrantgio/components/icons"
-	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/mvu"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
@@ -43,6 +42,15 @@ const ClearHitDp = 24
 type SearchFieldProps struct {
 	// Placeholder is shown when the field is empty and unfocused.
 	Placeholder string
+
+	// Variant is where this field stands: [Form] on the content's plane,
+	// [Chrome] on a sidebar or a toolbar, where the platform draws the field
+	// as a flat recess instead of a bordered box. The zero value is Form.
+	//
+	// State Surface with it: the recess is opaque, but the focus ring and
+	// the marks around it still composite onto the chrome material the
+	// field stands on.
+	Variant Variant
 
 	// Surface answers the opaque fill this field stands on, for the scheme
 	// the field is drawing in: what its interior is filled with, and what
@@ -239,6 +247,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 					Focused:  foc,
 					Disabled: dis,
 					Surface:  standsOn(props.Surface, tok.platform),
+					Variant:  props.Variant,
 				}, showPh, adorn{
 					search:    true,
 					clear:     true,
@@ -256,9 +265,10 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 // golden-image testing and static demonstrations; production code should use
 // [SearchField].
 //
-// The parameters are [Render]'s, and mean the same things. The clear mark is
-// drawn whenever RenderState.Text is non-empty, which is the state the live
-// field draws it in.
+// The parameters are [Render]'s, and mean the same things.
+// RenderState.Variant picks the variant here as SearchFieldProps.Variant
+// does on the live path. The clear mark is drawn whenever RenderState.Text is
+// non-empty, which is the state the live field draws it in.
 func RenderSearch(
 	shaper *text.Shaper,
 	placeholder string,
@@ -334,7 +344,10 @@ func (a adorn) slots(gtx layout.Context, tok resolvedTokens) (lead, trail int) {
 //
 // Both are drawn in the platform's secondary label: they say what the control
 // is and what it offers, not what it holds, and a mark drawn in the text
-// colour reads as content the reader put there. A disabled field offers no
+// colour reads as content the reader put there. MEASURED,
+// system-settings-grouped-box-{light,dark}.png: the looking glass and the
+// prompt in the sidebar's recess are one colour, and it is that coverage over
+// the recess — #747474 on the light #e8e8e8, to the byte. A disabled field offers no
 // clear, so both take the platform's disabled control text with the rest of
 // the field's foregrounds.
 func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, field image.Point, padH int) {
@@ -344,7 +357,7 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 	// Both marks stand inside the field, so both are flattened onto the
 	// field's own fill: the platform's names carry a coverage.
 	slot := a.slotPx(gtx, tok)
-	fill := control.FieldFill(tok.platform, s.Surface)
+	fill := fieldFill(tok.platform, s)
 	col := vgcolor.Flatten(tok.platform.SecondaryLabel, fill)
 	if s.Disabled {
 		col = vgcolor.Flatten(tok.platform.DisabledControlText, fill)

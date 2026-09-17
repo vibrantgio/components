@@ -797,13 +797,21 @@ func (g *gallery) searchFieldVariantRows() []layout.FlexChild {
 		{"Rest (dark)", input.RenderState{}, tokens.PlatformDark},
 		{"Typed (dark)", input.RenderState{Text: "meeting notes"}, tokens.PlatformDark},
 		{"Disabled (dark)", input.RenderState{Disabled: true}, tokens.PlatformDark},
+		// The chrome variant stands on the chrome material, which is the
+		// only surface a recess with no edge reads as a recess against.
+		{"On chrome (light)", input.RenderState{Variant: input.Chrome, Surface: tokens.PlatformLight.SidebarMaterial}, tokens.PlatformLight},
+		{"On chrome (dark)", input.RenderState{Variant: input.Chrome, Surface: tokens.PlatformDark.SidebarMaterial}, tokens.PlatformDark},
 	}
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
 		w := input.RenderSearch(g.shaper, "Search", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, r.state)
+		plane := r.colors.WindowBackground
+		if r.state.Variant == input.Chrome {
+			plane = r.colors.SidebarMaterial
+		}
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
+			return g.variantRow(gtx, r.label, plane, vgcolor.Flatten(r.colors.Label, plane), w)
 		})
 	}
 	return cs

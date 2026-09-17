@@ -2,6 +2,7 @@ package input_test
 
 import (
 	"image"
+	"image/color"
 	"testing"
 
 	"gioui.org/f32"
@@ -9,6 +10,8 @@ import (
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
+	"gioui.org/op/paint"
 	"gioui.org/unit"
 
 	"github.com/reactivego/rx"
@@ -209,5 +212,88 @@ func TestSearchFieldClearsFromOutside(t *testing.T) {
 	driveTextFieldFrame(w, ops, r, size)
 	if len(changes) != emptied {
 		t.Errorf("a press where the mark stood reported %v; the field was already empty and the mark is not drawn there", changes[emptied:])
+	}
+}
+
+// onChrome paints the chrome material over the whole capture and lays w on
+// it, which is the surface the chrome variant is measured against: a recess
+// with no edge only reads as one against the chrome material it is cut into.
+func onChrome(fill color.NRGBA, w layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, fill, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		return w(gtx)
+	}
+}
+
+// TestSearchFieldChromeVariantGolden records the variant a search field takes
+// on chrome — a sidebar, a toolbar: the platform's flat recess, no edge, its
+// ends fully rounded, standing on the chrome material rather than on a fill
+// of the surface beneath it.
+func TestSearchFieldChromeVariantGolden(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 60)
+
+	cases := []struct {
+		name     string
+		platform tokens.PlatformColors
+		state    input.RenderState
+	}{
+		{"searchfield-chrome-light-normal", tokens.PlatformLight, input.RenderState{}},
+		{"searchfield-chrome-dark-normal", tokens.PlatformDark, input.RenderState{}},
+		{"searchfield-chrome-light-typed", tokens.PlatformLight, input.RenderState{Text: "meeting notes"}},
+		{"searchfield-chrome-dark-typed", tokens.PlatformDark, input.RenderState{Text: "meeting notes"}},
+		{"searchfield-chrome-light-focused", tokens.PlatformLight, input.RenderState{Focused: true}},
+		{"searchfield-chrome-dark-focused", tokens.PlatformDark, input.RenderState{Focused: true}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			st := tc.state
+			st.Variant = input.Chrome
+			st.Surface = tc.platform.SidebarMaterial
+			w := input.RenderSearch(
+				shaper, "Search",
+				tc.platform, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				st,
+			)
+			golden.Render(t, tc.name, size, onChrome(tc.platform.SidebarMaterial, w))
+		})
+	}
+}
+
+// TestSearchFieldChromeVariantIsTheMeasuredRecess reads the three things the
+// measurement settles off the drawn pixels: the recess carries the platform's
+// measured fill, it carries no edge — the row above its middle is the chrome
+// it stands on and not a hairline — and its ends are fully rounded, so the
+// corner a half-height radius cuts away leaves the chrome showing.
+func TestSearchFieldChromeVariantIsTheMeasuredRecess(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 40)
+	for _, p := range []struct {
+		name string
+		col  tokens.PlatformColors
+	}{{"light", tokens.PlatformLight}, {"dark", tokens.PlatformDark}} {
+		t.Run(p.name, func(t *testing.T) {
+			w := input.RenderSearch(
+				shaper, "Search",
+				p.col, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				input.RenderState{Variant: input.Chrome, Surface: p.col.SidebarMaterial},
+			)
+			img := golden.Capture(t, size, onChrome(p.col.SidebarMaterial, w))
+			at := func(x, y int) color.NRGBA {
+				r, g, b, a := img.At(x, y).RGBA()
+				return color.NRGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
+			}
+			// The field is drawn at the top of the capture, 28 px tall at
+			// this density; x=200 is clear of the prompt and both marks.
+			if got, want := at(200, 14), p.col.SidebarSearchFill; got != want {
+				t.Errorf("the recess's fill = %v, want the measured %v", got, want)
+			}
+			if got, want := at(200, 0), p.col.SidebarSearchFill; got != want {
+				t.Errorf("the recess's first row = %v, want the fill %v: the chrome variant draws no edge", got, want)
+			}
+			if got, want := at(0, 0), p.col.SidebarMaterial; got != want {
+				t.Errorf("the recess's top-left corner = %v, want the chrome %v: the ends are fully rounded", got, want)
+			}
+		})
 	}
 }

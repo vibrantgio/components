@@ -46,6 +46,18 @@ func FieldFill(p tokens.PlatformColors, standsOn color.NRGBA) color.NRGBA {
 	return surface.Or(standsOn, p.TextBackground)
 }
 
+// Recess is the interior of a search field standing on chrome — a sidebar, a
+// toolbar: the platform's flat recess, a fill of its own rather than the
+// chrome material showing through the way [FieldFill] has a form field
+// show it.
+//
+// MEASURED, system-settings-grouped-box-light.png and -dark.png, the field at
+// the top of System Settings' sidebar: #e8e8e8 over a #fafaf9 sidebar light
+// and #2f3234 over a #1c2124 one dark. The light value stands unchanged on
+// Voice Memos' #ffffff toolbar band, so it is a colour and not a coverage
+// over what the field stands on.
+func Recess(p tokens.PlatformColors) color.NRGBA { return p.SidebarSearchFill }
+
 // Placeholder is the foreground a control's prompt is drawn in: the wording
 // a text field or a picker's field trigger shows in the space its value will
 // occupy, while there is no value there yet. It is the platform's

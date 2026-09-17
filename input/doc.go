@@ -42,6 +42,15 @@
 // with is the platform's find highlight, which leaves the text it covers its
 // own colour.
 //
+// A search field has two variants, and which one it draws is the region it
+// stands in rather than a choice about prominence. On a form — a dialog, a
+// panel, a grouped box — it is the platform's bordered field, the hairline
+// around the surface beneath it that the Save dialog measures. On chrome — a
+// sidebar, a toolbar — it is the platform's flat recess: a fill of its own,
+// no edge, its ends fully rounded, measured off the field at the top of
+// System Settings' sidebar. A text field that is not a search field wears
+// the edge wherever it stands.
+//
 // The text field is uncontrolled. Props.Seed pre-fills a newly created
 // instance so an existing value can be edited rather than retyped, but a later
 // Seed does not touch a live instance — rebuild the field, keyed on an epoch,

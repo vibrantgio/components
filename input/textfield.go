@@ -50,7 +50,32 @@ type RenderState struct {
 	// render path; it has no effect on the live TextField, whose text is held
 	// by the inner widget.Editor.
 	Text string
+
+	// Variant is where the field stands. It is read by the search field
+	// alone: a text field that is not a search field wears the platform's
+	// edge wherever it stands, which is what the Save dialog's field
+	// measures. The zero value is [Form].
+	Variant Variant
 }
+
+// Variant is where a search field stands, and it is the whole of what one
+// search field differs from another by.
+//
+// The platform draws two different controls under one name: a bordered field
+// on a form, and a flat recess on chrome. Which one is drawn is the region
+// the field is in, not a choice about prominence.
+type Variant uint8
+
+const (
+	// Form is the field on the content's plane — in a dialog, a panel, a
+	// grouped box: the platform's hairline around the surface the field
+	// stands on, measured off the Save dialog's unfocused field.
+	Form Variant = iota
+	// Chrome is the field standing on chrome — a sidebar, a toolbar: the
+	// platform's flat recess, no edge, its ends fully rounded, measured off
+	// the field at the top of System Settings' sidebar.
+	Chrome
+)
 
 // TextFieldProps configures a TextField instance.
 type TextFieldProps struct {
@@ -307,6 +332,64 @@ func Render(
 	}
 }
 
+// fieldFill is the interior the field's box is drawn with, and what every
+// coverage inside it — the prompt, the marks, a disabled foreground —
+// composites over. On chrome that is the platform's recess, a fill of the
+// field's own; everywhere else it is the surface the field stands on, which
+// is what the platform shows through a form field's hairline.
+func fieldFill(p tokens.PlatformColors, s RenderState) color.NRGBA {
+	if s.Variant == Chrome {
+		return control.Recess(p)
+	}
+	return control.FieldFill(p, s.Surface)
+}
+
+// drawFieldBox paints the box the field is drawn as, at the size the field
+// measured itself to: the platform's hairline around the surface beneath it
+// on a form, and on chrome the flat recess — no edge, its ends fully
+// rounded.
+//
+// MEASURED, system-settings-grouped-box-{light,dark}.png: the recess's
+// corner is half its height, a circular fit to its left end giving 14.7
+// against a 28 px height, the excess being the platform's continuous curve.
+//
+// Focus replaces the edge in both variants: the ring is the one keyboard
+// focus indicator every control in this library wears, and a recess with no
+// edge at rest still says where the keyboard is.
+//
+// The box is two nested fills rather than a stroke, which keeps the corner's
+// antialiasing out of the golden images.
+func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size image.Point, fill, edge color.NRGBA) {
+	rad := gtx.Dp(unit.Dp(tok.radius.Md))
+	if s.Variant == Chrome {
+		rad = size.Y / 2
+	}
+	borderPx := 0
+	switch {
+	case s.Focused:
+		borderPx = gtx.Dp(focus.Width)
+	case s.Variant != Chrome:
+		borderPx = gtx.Dp(1)
+	}
+	if borderPx > 0 {
+		paint.FillShape(gtx.Ops, edge, clip.RRect{
+			Rect: image.Rectangle{Max: size},
+			SE:   rad, SW: rad, NE: rad, NW: rad,
+		}.Op(gtx.Ops))
+	}
+	innerRad := rad - borderPx
+	if innerRad < 0 {
+		innerRad = 0
+	}
+	paint.FillShape(gtx.Ops, fill, clip.RRect{
+		Rect: image.Rectangle{
+			Min: image.Pt(borderPx, borderPx),
+			Max: image.Pt(size.X-borderPx, size.Y-borderPx),
+		},
+		SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad,
+	}.Op(gtx.Ops))
+}
+
 // standsOn answers the surface a live field was told it stands on, resolved
 // against the colour set of the frame being drawn. A nil answer is no answer
 // — the field then stands on the level it belongs to, which
@@ -328,7 +411,6 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := gtx.Dp(unit.Dp(tok.density.FieldHeight))
-	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
 
@@ -369,26 +451,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	}
 	fieldSize := image.Pt(fieldW, fieldH)
 
-	// The edge as nested fills: outer rect in the edge colour, inner rect in
-	// the field's own fill. Avoids clip.Stroke anti-aliasing variance in tests.
-	borderPx := gtx.Dp(1)
-	if s.Focused {
-		borderPx = gtx.Dp(focus.Width)
-	}
-	innerRad := rad - borderPx
-	if innerRad < 0 {
-		innerRad = 0
-	}
-	rrectOuter := clip.RRect{Rect: image.Rectangle{Max: fieldSize}, SE: rad, SW: rad, NE: rad, NW: rad}
-	paint.FillShape(gtx.Ops, edgeColor, rrectOuter.Op(gtx.Ops))
-	rrectInner := clip.RRect{
-		Rect: image.Rectangle{
-			Min: image.Pt(borderPx, borderPx),
-			Max: image.Pt(fieldSize.X-borderPx, fieldSize.Y-borderPx),
-		},
-		SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad,
-	}
-	paint.FillShape(gtx.Ops, fillColor, rrectInner.Op(gtx.Ops))
+	drawFieldBox(gtx, tok, s, fieldSize, fillColor, edgeColor)
 
 	offY := (fieldH - contentDims.Size.Y) / 2
 
@@ -509,7 +572,6 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := gtx.Dp(unit.Dp(tok.density.FieldHeight))
-	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
 
@@ -553,26 +615,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	}
 	fieldSize := image.Pt(fieldW, fieldH)
 
-	// The edge as nested fills: outer rect in the edge colour, inner rect in
-	// the field's own fill. Avoids clip.Stroke anti-aliasing variance in tests.
-	borderPx := gtx.Dp(1)
-	if s.Focused {
-		borderPx = gtx.Dp(focus.Width)
-	}
-	innerRad := rad - borderPx
-	if innerRad < 0 {
-		innerRad = 0
-	}
-	rrectOuter := clip.RRect{Rect: image.Rectangle{Max: fieldSize}, SE: rad, SW: rad, NE: rad, NW: rad}
-	paint.FillShape(gtx.Ops, edgeColor, rrectOuter.Op(gtx.Ops))
-	rrectInner := clip.RRect{
-		Rect: image.Rectangle{
-			Min: image.Pt(borderPx, borderPx),
-			Max: image.Pt(fieldSize.X-borderPx, fieldSize.Y-borderPx),
-		},
-		SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad,
-	}
-	paint.FillShape(gtx.Ops, fillColor, rrectInner.Op(gtx.Ops))
+	drawFieldBox(gtx, tok, s, fieldSize, fillColor, edgeColor)
 
 	// Placeholder label centered vertically.
 	offY := (fieldH - labelDims.Size.Y) / 2
@@ -606,7 +649,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // indicator, the one ring every control in this library wears — drawn at
 // focus.Width instead of the hairline's single pixel.
 func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, edge, placeholder color.NRGBA) {
-	fill = control.FieldFill(p, s.Surface)
+	fill = fieldFill(p, s)
 	foreground = p.Text
 	edge = control.Border(p)
 	placeholder = control.Placeholder(p, fill)
