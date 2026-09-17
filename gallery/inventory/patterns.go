@@ -2,10 +2,10 @@
 // components, each drawn from static state in a bounded slot.
 //
 // Every pattern here has a live twin that takes an observable theme and
-// returns an observable layout.Widget. The gallery deliberately uses the
-// static twin instead: it performs no input handling and schedules no
-// invalidation, so a page can show all sixteen at once without sixteen event
-// loops, and a golden test can capture one without a window.
+// returns an observable layout.Widget. The gallery deliberately renders
+// without interaction instead: it performs no input handling and schedules
+// no invalidation, so a page can show all sixteen at once without sixteen
+// event loops, and a golden test can capture one without a window.
 package inventory
 
 import (
@@ -223,7 +223,7 @@ func (inv *Inventory) accordion(c tokens.PlatformColors) layout.Widget {
 		Sections: []accordion.Section{
 			{Title: "What the gallery shows", Body: inv.prose(c, "Every published family, in the current scheme.")},
 			{Title: "How a section is bounded", Body: inv.prose(c, "Each one is laid out in a slot of its own.")},
-			{Title: "Why the static twin", Body: inv.prose(c, "It handles no input and needs no event loop.")},
+			{Title: "Why the render takes no input", Body: inv.prose(c, "It handles no input and needs no event loop.")},
 		},
 		Shaper: inv.shaper,
 	}

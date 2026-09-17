@@ -252,7 +252,7 @@ func Body(c tokens.PlatformColors, body func(gtx layout.Context, width int) int)
 // value beside each is the recorded one, coverage and all — which is the only
 // place a coverage and an opaque colour can be told apart.
 func setBoard(p Chrome, c tokens.PlatformColors, ty Type) func(gtx layout.Context, width int) int {
-	rows := inventory.PlatformRows()
+	rows := inventory.PlatformColorRows()
 	return func(gtx layout.Context, width int) int {
 		rowH := gtx.Dp(SetRowH)
 		gap := gtx.Dp(SetColGap)

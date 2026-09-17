@@ -264,9 +264,9 @@ func (inv *Inventory) Foundations(c tokens.PlatformColors) []Section {
 	return []Section{
 		{
 			Name:   "foundations-platform",
-			Title:  "Palette — the platform's colour set, every name in both appearances",
+			Title:  "Colours — the platform's colours, every name in both appearances",
 			Height: platformBlockH,
-			Body:   inv.platformSet(c),
+			Body:   inv.platformColors(c),
 		},
 		{
 			Name: "foundations-type", Title: "Typography — every typography role, its name and size beside a line set in it", Height: 442,
@@ -284,14 +284,14 @@ type PlatformRow struct {
 	Dark  color.NRGBA
 }
 
-// PlatformRows returns the platform's colour set field by field, in the order
+// PlatformColorRows returns the platform's colour set field by field, in the order
 // the set declares them.
 //
 // The fields are read by reflection rather than listed, so a name added to
 // the set appears on this page without an edit here. A name the gallery
 // forgot to list would be a name nobody ever judges, which is the one failure
 // a page like this cannot afford.
-func PlatformRows() []PlatformRow {
+func PlatformColorRows() []PlatformRow {
 	t := reflect.TypeOf(tokens.PlatformColors{})
 	light := reflect.ValueOf(tokens.PlatformLight)
 	dark := reflect.ValueOf(tokens.PlatformDark)
@@ -333,9 +333,9 @@ const (
 // platformBlockH is the section's slot: a heading row and one row per field
 // of the set, derived from the set rather than written down, so a field added
 // to it does not have to be counted by hand.
-var platformBlockH = unit.Dp(len(PlatformRows())+1) * platformRowH
+var platformBlockH = unit.Dp(len(PlatformColorRows())+1) * platformRowH
 
-// platformSet draws the platform's colour set: every name the set carries, in
+// platformColors draws the platform's colour set: every name the set carries, in
 // the order it carries them, with the value each name has in both
 // appearances.
 //
@@ -351,8 +351,8 @@ var platformBlockH = unit.Dp(len(PlatformRows())+1) * platformRowH
 // label is, and over the light page it would read as very nearly nothing.
 // So the two columns carry the same two swatches in either appearance, and
 // the value beside each is the recorded one, coverage and all.
-func (inv *Inventory) platformSet(c tokens.PlatformColors) layout.Widget {
-	rows := PlatformRows()
+func (inv *Inventory) platformColors(c tokens.PlatformColors) layout.Widget {
+	rows := PlatformColorRows()
 	head := sectionMuted(c)
 	body := sectionText(c)
 	edge := vgcolor.Flatten(c.Separator, SectionSurface(c))
