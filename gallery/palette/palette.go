@@ -300,7 +300,7 @@ func setBoard(p Chrome, c tokens.PlatformColors, ty Type) func(gtx layout.Contex
 }
 
 // typeSection is the inventory section a page borrows to close the story: the
-// whole type stack, every role a surface reads in.
+// whole type stack, every typography role with its name and size.
 const typeSection = "foundations-type"
 
 // sectionTitleSep is the seam an inventory section's title is written with:

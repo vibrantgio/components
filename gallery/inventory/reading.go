@@ -144,7 +144,7 @@ func (inv *Inventory) Reading(c tokens.PlatformColors) []Section {
 		Body:   inv.readingBody(c),
 	}, {
 		Name:   codeSectionName,
-		Title:  "Markdown — a fenced code block, in the chosen syntax palette as its author drew it",
+		Title:  "Markdown — a fenced code block in the chosen syntax base",
 		Height: 613,
 		Body:   inv.codeBody(c),
 	}}

@@ -269,7 +269,7 @@ func (inv *Inventory) Foundations(c tokens.PlatformColors) []Section {
 			Body:   inv.platformSet(c),
 		},
 		{
-			Name: "foundations-type", Title: "Typography — every role a surface reads in", Height: 442,
+			Name: "foundations-type", Title: "Typography — every typography role, its name and size beside a line set in it", Height: 442,
 			Body: inv.typeScale(c),
 		},
 	}
@@ -494,7 +494,7 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 			Body: inv.toggleRow(c)},
 		{Name: "components-picker", Title: "Picker — the field closed, focused, open under its menu and disabled, then the chrome toolbar", Height: 180,
 			Body: inv.pickerRow(c)},
-		{Name: "components-breadcrumb", Title: "Breadcrumb — a trail back to the root", Height: 20,
+		{Name: "components-breadcrumb", Title: "Breadcrumb — three segments, the earlier ones links and the last the current location", Height: 20,
 			Body: inv.breadcrumb(c)},
 		{Name: "components-pagination", Title: "Pagination — page four of nine", Height: 36,
 			Body: inv.pagination(c)},
