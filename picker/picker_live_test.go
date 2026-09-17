@@ -77,9 +77,9 @@ func click(r *gioinput.Router, drive func() layout.Dimensions, pos f32.Point) la
 //
 // It CONSUMES what it reports on — picking closes the menu — so a caller that
 // must carry on opens again.
-func standing(r *gioinput.Router, drive func() layout.Dimensions, row, index int, picked *[]int) bool {
+func standing(r *gioinput.Router, drive func() layout.Dimensions, trig, row, index int, picked *[]int) bool {
 	before := len(*picked)
-	click(r, drive, f32.Pt(100, float32((1+index)*row)+float32(row)/2))
+	click(r, drive, f32.Pt(100, float32(trig+index*row)+float32(row)/2))
 	return len(*picked) > before
 }
 
@@ -106,26 +106,26 @@ func TestFieldOpensItsMenuAndSelectsFromIt(t *testing.T) {
 
 	r := new(gioinput.Router)
 	drive := driver(w, r, image.Pt(200, 400))
-	row := rowHeight(tokens.Comfortable)
+	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
 
-	if dims := drive(); dims.Size.Y != row {
-		t.Fatalf("closed field measured %d px tall, want the trigger's %d px", dims.Size.Y, row)
+	if dims := drive(); dims.Size.Y != trig {
+		t.Fatalf("closed field measured %d px tall, want the trigger's %d px", dims.Size.Y, trig)
 	}
 
 	// The trigger's own band, well inside it on both axes.
-	dims := click(r, drive, f32.Pt(100, float32(row)/2))
-	if dims.Size.Y != row {
-		t.Fatalf("with its menu open the field measured %d px tall, want the trigger's %d px: the menu floats and takes no room", dims.Size.Y, row)
+	dims := click(r, drive, f32.Pt(100, float32(trig)/2))
+	if dims.Size.Y != trig {
+		t.Fatalf("with its menu open the field measured %d px tall, want the trigger's %d px: the menu floats and takes no room", dims.Size.Y, trig)
 	}
 
 	// The second option's row: the rows float directly under the trigger, each
-	// one row tall, so row index i occupies [ (1+i)*row, (2+i)*row ).
-	dims = click(r, drive, f32.Pt(100, float32(2*row)+float32(row)/2))
+	// one row tall, so row index i occupies [ trig+i*row, trig+(1+i)*row ).
+	dims = click(r, drive, f32.Pt(100, float32(trig+row)+float32(row)/2))
 	if len(picked) != 1 || picked[0] != 1 {
 		t.Fatalf("OnSelect fired with %v, want exactly one call carrying index 1", picked)
 	}
-	if dims.Size.Y != row {
-		t.Errorf("after picking, the field measured %d px tall, want the closed %d px: choosing closes the menu", dims.Size.Y, row)
+	if dims.Size.Y != trig {
+		t.Errorf("after picking, the field measured %d px tall, want the closed %d px: choosing closes the menu", dims.Size.Y, trig)
 	}
 }
 
@@ -148,7 +148,7 @@ func TestUpwardFieldSelectsFromTheMenuAboveItsTrigger(t *testing.T) {
 		OnSelect:    func(_ layout.Context, i int) { picked = append(picked, i) },
 	}))
 
-	row := rowHeight(tokens.Comfortable)
+	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
 	top := row * len(options)
 	scene := func(gtx layout.Context) layout.Dimensions {
 		off := op.Offset(image.Pt(0, top)).Push(gtx.Ops)
@@ -159,14 +159,14 @@ func TestUpwardFieldSelectsFromTheMenuAboveItsTrigger(t *testing.T) {
 	r := new(gioinput.Router)
 	drive := driver(scene, r, image.Pt(200, 400))
 
-	if dims := drive(); dims.Size.Y != row {
-		t.Fatalf("closed upward field measured %d px tall, want the trigger's %d px", dims.Size.Y, row)
+	if dims := drive(); dims.Size.Y != trig {
+		t.Fatalf("closed upward field measured %d px tall, want the trigger's %d px", dims.Size.Y, trig)
 	}
 
 	// The trigger's own band, which the direction does not move.
-	dims := click(r, drive, f32.Pt(100, float32(top)+float32(row)/2))
-	if dims.Size.Y != row {
-		t.Fatalf("with its menu open the upward field measured %d px tall, want the trigger's %d px: the menu floats and takes no room", dims.Size.Y, row)
+	dims := click(r, drive, f32.Pt(100, float32(top)+float32(trig)/2))
+	if dims.Size.Y != trig {
+		t.Fatalf("with its menu open the upward field measured %d px tall, want the trigger's %d px: the menu floats and takes no room", dims.Size.Y, trig)
 	}
 
 	// Open, the rows float above the trigger: index i occupies
@@ -175,8 +175,8 @@ func TestUpwardFieldSelectsFromTheMenuAboveItsTrigger(t *testing.T) {
 	if len(picked) != 1 || picked[0] != 1 {
 		t.Fatalf("OnSelect fired with %v, want exactly one call carrying index 1", picked)
 	}
-	if dims.Size.Y != row {
-		t.Errorf("after picking, the field measured %d px tall, want the trigger's %d px", dims.Size.Y, row)
+	if dims.Size.Y != trig {
+		t.Errorf("after picking, the field measured %d px tall, want the trigger's %d px", dims.Size.Y, trig)
 	}
 }
 
@@ -193,15 +193,15 @@ func TestFieldTriggerTargetIsItsBar(t *testing.T) {
 
 	r := new(gioinput.Router)
 	drive := driver(w, r, image.Pt(200, 400))
-	row := rowHeight(tokens.Comfortable)
+	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
 	drive() // register the input area
 
 	// A press inside the drawn bar, a pixel clear of its foot.
-	dims := click(r, drive, f32.Pt(100, float32(row)-1.5))
-	if dims.Size.Y != row {
-		t.Errorf("a click inside the trigger left the field %d px tall, want the trigger's %d px", dims.Size.Y, row)
+	dims := click(r, drive, f32.Pt(100, float32(trig)-1.5))
+	if dims.Size.Y != trig {
+		t.Errorf("a click inside the trigger left the field %d px tall, want the trigger's %d px", dims.Size.Y, trig)
 	}
-	if !standing(r, drive, row, 1, &picked) {
+	if !standing(r, drive, trig, row, 1, &picked) {
 		t.Error("a click inside the trigger opened no menu")
 	}
 }
@@ -306,10 +306,10 @@ func TestOpenFieldClosesOnAPressLandingElsewhere(t *testing.T) {
 
 	r := new(gioinput.Router)
 	drive := driver(w, r, image.Pt(200, 400))
-	row := rowHeight(tokens.Comfortable)
+	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
 
 	drive()
-	click(r, drive, f32.Pt(100, float32(row)/2))
+	click(r, drive, f32.Pt(100, float32(trig)/2))
 	// The absorber registers its event filters with the open menu, one frame
 	// behind.
 	drive()
@@ -318,7 +318,7 @@ func TestOpenFieldClosesOnAPressLandingElsewhere(t *testing.T) {
 	if len(picked) != 0 {
 		t.Errorf("a press that dismissed the menu also selected %v; dismissal is not a choice", picked)
 	}
-	if standing(r, drive, row, 1, &picked) {
+	if standing(r, drive, trig, row, 1, &picked) {
 		t.Error("a press below the menu left it standing; while a menu is up the next press anywhere is spent on putting it away")
 	}
 }
@@ -394,7 +394,7 @@ func TestCappedMenuOpensOnTheSelectedRow(t *testing.T) {
 		long[i] = "Option " + string(rune('A'+i%26))
 	}
 	var picked []int
-	row := rowHeight(tokens.Comfortable)
+	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
 	w := materialize(t, picker.Field(rx.Of(liveTheme()), picker.FieldProps{
 		Options:   long,
 		Selected:  30,
@@ -407,14 +407,14 @@ func TestCappedMenuOpensOnTheSelectedRow(t *testing.T) {
 	drive := driver(w, r, image.Pt(200, 600))
 
 	drive()
-	dims := click(r, drive, f32.Pt(100, float32(row)/2))
-	if dims.Size.Y != row {
-		t.Fatalf("the open capped field measured %d px tall, want the trigger's %d px: the capped plane floats and takes no room", dims.Size.Y, row)
+	dims := click(r, drive, f32.Pt(100, float32(trig)/2))
+	if dims.Size.Y != trig {
+		t.Fatalf("the open capped field measured %d px tall, want the trigger's %d px: the capped plane floats and takes no room", dims.Size.Y, trig)
 	}
 
 	// The first row of the viewport, which is the selected row's own band
 	// once the viewport has been scrolled to it.
-	click(r, drive, f32.Pt(100, float32(row)+float32(row)/2))
+	click(r, drive, f32.Pt(100, float32(trig)+float32(row)/2))
 	if len(picked) != 1 {
 		t.Fatalf("clicking the first visible row selected %v, want exactly one option", picked)
 	}
@@ -534,7 +534,7 @@ func TestScrollingTheFieldAwayClosesItsMenu(t *testing.T) {
 		OnSelect:    func(_ layout.Context, i int) { picked = append(picked, i) },
 	}))
 
-	row := rowHeight(tokens.Comfortable)
+	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
 	size := image.Pt(200, 400)
 	var scrollTag int
 	var scrolled float32
@@ -543,7 +543,7 @@ func TestScrollingTheFieldAwayClosesItsMenu(t *testing.T) {
 	r := new(gioinput.Router)
 	drive := driver(scene, r, size)
 	drive()
-	click(r, drive, f32.Pt(100, float32(row)/2))
+	click(r, drive, f32.Pt(100, float32(trig)/2))
 	// The absorber registers its event filters with the open menu, one frame
 	// behind.
 	drive()
@@ -557,7 +557,7 @@ func TestScrollingTheFieldAwayClosesItsMenu(t *testing.T) {
 		Source:   pointer.Mouse,
 	})
 	drive()
-	if standing(r, drive, row, 1, &picked) {
+	if standing(r, drive, trig, row, 1, &picked) {
 		t.Error("after a scroll the menu was still standing: it did not go with its trigger")
 	}
 	if scrolled != 40 {

@@ -97,13 +97,14 @@ func TestDropdownGolden(t *testing.T) {
 
 // ---- Accessibility tests ----
 
-// TestDropdownTriggerHeightIsItsLineBoxOverTheFloor checks the closed trigger
-// draws at max(ControlHeight, BodyLarge's line box + 2×PaddingY) — 40 dp
-// Comfortable, over the 36 dp floor — the same rule and the same arithmetic as
-// the text field it is styled to match. The drawn trigger is the pointer
-// target, and an option row is its own row, so neither claims a neighbour's
-// pixels.
-func TestDropdownTriggerHeightIsItsLineBoxOverTheFloor(t *testing.T) {
+// TestDropdownTriggerDrawsThePopUpsHeight checks that the deprecated forwarder
+// carries components/picker's own answer: the trigger is the platform's pop-up
+// button and draws the density's control height, MEASURED at 24 px off the
+// save dialog's "File Format:" pop-up. It is not the text field's height —
+// that control measures 27 in the same capture — so the forwarder must not be
+// asserting the field's arithmetic. The drawn trigger is the pointer target,
+// and an option row is its own row, so neither claims a neighbour's pixels.
+func TestDropdownTriggerDrawsThePopUpsHeight(t *testing.T) {
 	shaper := defaultShaper(t)
 	var ops op.Ops
 	gtx := layout.Context{
@@ -121,19 +122,13 @@ func TestDropdownTriggerHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 		input.DropdownRenderState{Options: []string{"Option A"}},
 	)(gtx)
 
-	body := tokens.DefaultTypography.BodyLarge
-	want := int(body.LineHeight + 2*tokens.Comfortable.PaddingY)
-	if floor := int(tokens.Comfortable.ControlHeight); want < floor {
-		want = floor
-	}
-	if dims.Size.Y != want {
-		t.Errorf("dropdown trigger height = %d px, want %d px (BodyLarge line box %v + 2\u00d7PaddingY %v, floored at ControlHeight %v)",
-			dims.Size.Y, want, body.LineHeight, tokens.Comfortable.PaddingY, tokens.Comfortable.ControlHeight)
+	if want := int(tokens.Comfortable.ControlHeight); dims.Size.Y != want {
+		t.Errorf("dropdown trigger height = %d px, want the density's control height %d px", dims.Size.Y, want)
 	}
 }
 
 // TestDropdownCompactGolden records or diffs the closed dropdown at
-// tokens.Compact through the live pipeline: a 28 dp trigger bar.
+// tokens.Compact through the live pipeline: the compact control height.
 func TestDropdownCompactGolden(t *testing.T) {
 	w := materialize(t, input.Dropdown(rx.Of(densityTheme(tokens.Compact)), input.DropdownProps{
 		Description: "choose",

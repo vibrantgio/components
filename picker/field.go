@@ -3,6 +3,7 @@ package picker
 import (
 	"image"
 	"image/color"
+	"math"
 
 	"gioui.org/f32"
 	"gioui.org/io/event"
@@ -27,18 +28,41 @@ import (
 	"github.com/vibrantgio/theme/typeset"
 )
 
-// fieldChevron is the box the field trigger's mark is drawn in: a solid
-// triangle, the form variant's own mark rather than the chrome variant's
-// stroked chevron. It is a fixed size because the trigger's other numbers come
-// from the density and the mark is what tells the two variants apart at a
-// glance.
-const fieldChevron = unit.Dp(16)
+// The form trigger's mark is the platform's pop-up mark: two chevrons stacked
+// point to point, the upper pointing up and the lower down. Its proportions
+// are MEASURED off save-dialog-{light,dark}.png at 1x, both appearances
+// agreeing to the pixel — the "File Format:" pop-up runs y 336–359, 24 px
+// tall, and the pair it draws spans x 435–442 and y 343–353: eight columns
+// wide, the upper chevron y 343–347 and the lower y 349–353, five rows each,
+// with one clear row between them.
+//
+// The Finder toolbar draws the same glyph at the same size in a control 36 px
+// tall (finder-window-light.png, x 726–733, upper y 21–25, lower y 27–31), so
+// the platform sizes this mark by its point size and not by the control. The
+// ratios below are the dialog reading, which is the control this trigger is
+// drawn as; expressing them as ratios of the control's height is what keeps
+// the proportion at a density the platform has not been captured at.
+//
+//	markWidthRatio  the pair's column, 8 of the control's 24
+//	markAspect      one chevron's height, 5 of the pair's own 8
+//	markGapRatio    the clear row between the two, 1 of the control's 24
+const (
+	markWidthRatio = 8.0 / 24.0
+	markAspect     = 5.0 / 8.0
+	markGapRatio   = 1.0 / 24.0
+)
 
-// edgeDp is the hairline the field trigger and the dropped menu's plane are
-// each drawn with, and so the distance from either's outer edge to its inner
-// one. The insets spent inside are spent from that inner edge at this width
-// whatever the control's state, so focus — which draws a wider ring in the
-// hairline's place — does not move the text.
+// markStroke is the pair's line weight. MEASURED off the same capture: an arm
+// crossing a row covers about 2.1 columns — the light capture's row y=346
+// reads 108, 37 and 156 against a 236 fill and a 36 foreground, which is
+// 0.64 + 0.99 + 0.40 of a column — and the arm runs at 45°, so perpendicular
+// it is 2.1 × sin 45° ≈ 1.5 px. The same weight the chrome variant's single
+// chevron is drawn at.
+const markStroke = unit.Dp(1.5)
+
+// edgeDp is the hairline the dropped menu's plane is drawn with, and so the
+// distance from the plane's outer edge to its inner one. The trigger draws no
+// edge at all — see [drawTrigger].
 const edgeDp = unit.Dp(1)
 
 // dismissReach is how far the outside-press absorber reaches beyond the box
@@ -58,8 +82,8 @@ const dismissReach = unit.Dp(8192)
 // It is a preference and not an instruction. A caller that reports the
 // available room ([FieldProps.AvailableRoom]) is telling the field how much
 // there is on each side, and a menu that cannot be seen whole on the preferred
-// side while the other side holds more of it flips to that other side, mark
-// and all. With no room reported the preference is simply obeyed.
+// side while the other side holds more of it flips to that other side. With
+// no room reported the preference is simply obeyed.
 //
 // Either way the open field reports its TRIGGER and nothing else. The menu is
 // a floating surface deferred to the end of the frame, and a floating surface
@@ -67,9 +91,11 @@ const dismissReach = unit.Dp(8192)
 // exactly where a closed one is, and the direction changes what the menu
 // covers, never the box the field reports.
 //
-// It is also what the trigger's own mark says, open or closed: the triangle
-// points the way the menu will go. A mark that pointed down over a menu that
-// stands above it would be announcing a motion the control does not have.
+// The trigger's mark says nothing about it. The platform's pop-up mark is a
+// pair of chevrons pointing opposite ways — it says the choice can move
+// either way and cannot say a direction — so a field that drops upwards draws
+// the same trigger as one that drops down, and the direction is read off the
+// menu itself. See [drawMark].
 type Drop uint8
 
 const (
@@ -435,8 +461,8 @@ func RenderField(
 // layoutFieldLive lays out the interactive field with Clickable hit areas.
 func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Clickable, optClicks []widget.Clickable, rows *list.State, outside *int, tok resolvedTokens, desc string, s FieldState) layout.Dimensions {
 	// The side and the cap are settled before anything is drawn, because the
-	// mark on the trigger announces the side: a trigger recorded pointing one
-	// way over a menu that flipped the other would be a defect.
+	// menu is laid out against the side it lands on and the cap is the height
+	// that side leaves.
 	drop, capPx := fitMenu(gtx, shaper, tok, s)
 	marked := s
 	marked.Drop = drop
@@ -652,21 +678,28 @@ func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fi
 }
 
 // drawTrigger renders the field trigger bar (the closed face).
+//
+// The trigger is the platform's pop-up button, and it is measured as that
+// control rather than as the text field beside it: MEASURED,
+// save-dialog-{light,dark}.png at 1x, the "File Format:" pop-up is 24 px tall
+// — the control height, not the field's 28 — its fill runs x 264–451 with no
+// edge column of any kind, and both of its insets are spent from that fill's
+// own edge: [control.PopupLeadDp] for the label and
+// [control.PopupMarkTrailDp] for the mark. The rows of the menu it drops are
+// not pop-ups and keep the field's insets.
 func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s FieldState) layout.Dimensions {
-	// The trigger is a button and takes the button's sizing rule — height =
-	// Density.ControlHeight, vertical padding = Density.PaddingY — and the
-	// text field's own two insets at its two ends, spent from its inner
-	// edge: a picker standing beside a text field starts its value on the
-	// same column as the field's.
-	lead := gtx.Dp(edgeDp) + gtx.Dp(control.TextLeadDp)
-	trail := gtx.Dp(edgeDp) + gtx.Dp(control.TextTrailDp)
-	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
+	// No edge column stands between the fill and the surface, so there is no
+	// inner edge for an inset to start from and both are spent from the
+	// fill's own. That holds in every state: focus draws its ring in the
+	// fill's outermost pixels rather than outside them, so nothing moves.
+	lead := gtx.Dp(control.PopupLeadDp)
+	trail := gtx.Dp(control.PopupMarkTrailDp)
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	fieldW := gtx.Constraints.Max.X
-	chevronSz := gtx.Dp(fieldChevron)
+	markW := gtx.Dp(unit.Dp(tok.density.ControlHeight * markWidthRatio))
 
 	// A trigger says one of three things, and which foreground it says it in
 	// is the difference between a value and a prompt: an unanswered field
@@ -702,7 +735,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	// between it and the value is the trigger's own gap rather than one of
 	// its two ends: it is what stops a long value running into the mark.
 	gap := gtx.Dp(unit.Dp(tok.spacing.S3))
-	innerW := fieldW - lead - gap - chevronSz - trail
+	innerW := fieldW - lead - gap - markW - trail
 	if innerW < 1 {
 		innerW = 1
 	}
@@ -720,49 +753,38 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	labelDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, label, textMat)
 	labelCall := mLabel.Stop()
 
-	triggerH := labelDims.Size.Y + 2*padV
-	if triggerH < minH {
-		triggerH = minH
-	}
+	// The pop-up's height is the control height and nothing else: MEASURED,
+	// 24 px in both appearances of the save dialog, which is the same number
+	// the push button beside it draws and the same the chrome variant draws.
+	// A pop-up is not sized by the line box it carries — the text field above
+	// it in that capture is the control that is, and it measures 27.
+	triggerH := minH
 	triggerSize := image.Pt(fieldW, triggerH)
 
-	// At rest the edge is the platform's seam over the fill it is banded
-	// onto. Focus replaces it with the ring, the one idiom every control in
-	// the library wears, so a focused trigger in a dialog draws the same
-	// pixel as a focused control on the content behind it.
-	borderCol := vgcolor.Flatten(tok.platform.Separator, bg)
-	borderPx := gtx.Dp(edgeDp)
-	if s.Focused {
-		borderCol = focus.Ring(tok.platform, bg)
-		borderPx = gtx.Dp(focus.Width)
-	}
-	innerRad := rad - borderPx
-	if innerRad < 0 {
-		innerRad = 0
-	}
-
-	// The fill inside the edge's shape, and the edge as a band laid ON it
-	// rather than as a shape beneath it, so that the edge stays a hairline
-	// instead of showing wherever the fill does not cover it exactly.
+	// The fill meets the surface directly. MEASURED, the same capture: a run
+	// down x=350 through the "File Format:" pop-up gives the fill's own
+	// #ececec light and #333a3f dark from the control's first row to its
+	// last, with no darker column at either end — the platform draws this
+	// control's fill as its whole shape and puts no seam around it.
 	//
-	// The band is a stroke of twice the edge's width centred on the shape's
-	// outline and clipped to that shape, which puts every pixel of it inside
-	// the box the trigger reports: a stroke of the edge's own width would fall
-	// half outside it. Drawn that way both of the band's sides follow the
-	// corner, which four rectangles could not.
+	// Focus is the exception, because a focus ring is not an edge the control
+	// wears but the one idiom every control in the library wears while it
+	// holds the keyboard. It is a band laid ON the shape's outline rather
+	// than a shape beneath it: a stroke of twice the ring's width, centred on
+	// that outline and clipped to it, puts every pixel inside the box the
+	// trigger reports where a stroke of the ring's own width would fall half
+	// outside. Drawn that way both of the band's sides follow the corner,
+	// which four rectangles could not.
 	rrectOuter := clip.RRect{Rect: image.Rectangle{Max: triggerSize}, SE: rad, SW: rad, NE: rad, NW: rad}
-	rrectInner := clip.RRect{
-		Rect: image.Rectangle{
-			Min: image.Pt(borderPx, borderPx),
-			Max: image.Pt(triggerSize.X-borderPx, triggerSize.Y-borderPx),
-		},
-		SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad,
+	paint.FillShape(gtx.Ops, bg, rrectOuter.Op(gtx.Ops))
+	if s.Focused {
+		ringPx := gtx.Dp(focus.Width)
+		edgePath := rrectOuter.Path(gtx.Ops)
+		edgeArea := rrectOuter.Push(gtx.Ops)
+		paint.FillShape(gtx.Ops, focus.Ring(tok.platform, bg),
+			clip.Stroke{Path: edgePath, Width: float32(2 * ringPx)}.Op())
+		edgeArea.Pop()
 	}
-	paint.FillShape(gtx.Ops, bg, rrectInner.Op(gtx.Ops))
-	edgePath := rrectOuter.Path(gtx.Ops)
-	edgeArea := rrectOuter.Push(gtx.Ops)
-	paint.FillShape(gtx.Ops, borderCol, clip.Stroke{Path: edgePath, Width: float32(2 * borderPx)}.Op())
-	edgeArea.Pop()
 
 	// Text label: vertically centered.
 	offY := (triggerH - labelDims.Size.Y) / 2
@@ -770,37 +792,64 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	labelCall.Add(gtx.Ops)
 	st.Pop()
 
-	// The mark, aligned to the right: the triangle points the way this field's
-	// menu opens, which is the whole of what it has to say. See [Drop].
-	cx := fieldW - trail - chevronSz/2
-	cy := triggerH / 2
-	chevronCol := vgcolor.Flatten(tok.platform.SecondaryLabel, bg)
+	// The mark: the pair's last column stands [control.PopupMarkTrailDp] clear
+	// of the fill's trailing edge, which is the trailing inset this control
+	// spends.
+	//
+	// It draws the platform's own colour for a control's own marks: MEASURED,
+	// the pair's fully covered pixels read 36 light and (224,225,226) dark
+	// against fills of #ececec and #333a3f, which is ControlText's 216 of 255
+	// flattened onto each to the byte. The secondary label's coverage would
+	// land at 118 and 163 — this mark is not drawn in it.
+	markCol := vgcolor.Flatten(tok.platform.ControlText, bg)
 	if s.Disabled {
-		chevronCol = vgcolor.Flatten(tok.platform.DisabledControlText, bg)
+		markCol = vgcolor.Flatten(tok.platform.DisabledControlText, bg)
 	}
-	drawChevron(gtx, cx, cy, chevronSz, chevronCol, s.Drop == DropUp)
+	drawMark(gtx, image.Rect(fieldW-trail-markW, 0, fieldW-trail, triggerH), tok.density, markCol)
 
 	return layout.Dimensions{Size: triggerSize}
 }
 
-// drawChevron draws a solid triangle centered at (cx, cy) with overall width
-// sz, pointing up when up is set and down otherwise.
-func drawChevron(gtx layout.Context, cx, cy, sz int, col color.NRGBA, up bool) {
-	half := float32(sz) / 2
-	quarter := float32(sz) / 4
-	fcx := float32(cx)
-	fcy := float32(cy)
-
-	base, apex := fcy-quarter, fcy+quarter
-	if up {
-		base, apex = fcy+quarter, fcy-quarter
+// drawMark paints the pop-up mark inside box: two chevrons stacked point to
+// point, the upper pointing up and the lower down, hairline strokes spanning
+// box horizontally and centred in it vertically.
+//
+// It is STATIC. The platform's pop-up mark says "this control holds one of
+// several values" and never "the menu is open" or "it opens upwards"; a pair
+// pointing both ways cannot say a direction, which is the whole reason the
+// platform draws a pair here and a single chevron on a pull-down. See [Drop]
+// for where the direction is actually settled.
+func drawMark(gtx layout.Context, box image.Rectangle, d tokens.Density, col color.NRGBA) {
+	stroke := float32(gtx.Dp(markStroke))
+	if stroke < 1 {
+		stroke = 1
 	}
+	// The measurements are of COVERAGE — the rows and columns the capture
+	// shows covered — and a stroke spreads half its width either side of the
+	// line it is drawn on, so box is that covered extent and the path is box
+	// inset by half a stroke on every side. The rasterizer puts the half back.
+	w := float32(box.Dx())
+	coveredH := w * markAspect
+	clear := float32(gtx.Dp(unit.Dp(d.ControlHeight * markGapRatio)))
+	armH := coveredH - stroke
+	sep := clear + stroke
+
+	// Centred in the control, and where the centring lands between two rows it
+	// takes the lower one: MEASURED, the pair covers y 343–353 in a control of
+	// y 336–359 — eleven rows in twenty-four, seven above them and six below,
+	// which is the exact centre of 6.5 rounded up.
+	coveredTop := float32(math.Ceil(float64(float32(box.Dy())-(2*coveredH+clear)) / 2))
+	top := float32(box.Min.Y) + coveredTop + stroke/2
+	x0, x1 := float32(box.Min.X)+stroke/2, float32(box.Max.X)-stroke/2
+	mid := (x0 + x1) / 2
 
 	var p clip.Path
 	p.Begin(gtx.Ops)
-	p.MoveTo(f32.Pt(fcx-half, base))
-	p.LineTo(f32.Pt(fcx+half, base))
-	p.LineTo(f32.Pt(fcx, apex))
-	p.Close()
-	paint.FillShape(gtx.Ops, col, clip.Outline{Path: p.End()}.Op())
+	p.MoveTo(f32.Pt(x0, top+armH))
+	p.LineTo(f32.Pt(mid, top))
+	p.LineTo(f32.Pt(x1, top+armH))
+	p.MoveTo(f32.Pt(x0, top+armH+sep))
+	p.LineTo(f32.Pt(mid, top+2*armH+sep))
+	p.LineTo(f32.Pt(x1, top+armH+sep))
+	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: stroke}.Op())
 }

@@ -31,9 +31,8 @@ func defaultShaper(t *testing.T) *text.Shaper {
 // renderings pixel for pixel.
 var sharpRadius = tokens.RadiusScale{}
 
-// rowHeight is the height a trigger and an option row each draw at: one
-// BodyLarge line box plus the density's vertical padding, floored at the
-// density's control height.
+// rowHeight is the height an option row draws at: one BodyLarge line box plus
+// the density's vertical padding, floored at the density's control height.
 func rowHeight(d tokens.Density) int {
 	h := int(tokens.DefaultTypography.BodyLarge.LineHeight + 2*d.PaddingY)
 	if floor := int(d.ControlHeight); h < floor {
@@ -41,6 +40,12 @@ func rowHeight(d tokens.Density) int {
 	}
 	return h
 }
+
+// triggerHeight is the height the form trigger draws at: the control height
+// and nothing else, because the trigger is the platform's pop-up button and a
+// pop-up is not sized by the line box it carries. It is shorter than a menu
+// row, which is why the two are named apart here.
+func triggerHeight(d tokens.Density) int { return int(d.ControlHeight) }
 
 // measure lays w out at an exact size and reports what it said it used.
 func measure(t *testing.T, size image.Point, w layout.Widget) layout.Dimensions {
@@ -82,12 +87,15 @@ func TestFieldTriggerShowsTheValue(t *testing.T) {
 	}
 }
 
-// TestFieldTriggerHeightIsItsLineBoxOverTheFloor holds the trigger to the
-// sizing rule every control in the system takes: a control height is a floor,
-// not a height, so the trigger draws max(ControlHeight, line box + 2×PaddingY)
-// — 28 dp comfortable, over the control-height floor. That drawn bar is the
+// TestFieldTriggerDrawsThePopUpsHeight holds the trigger to the control it is
+// drawn as. MEASURED, save-dialog-{light,dark}.png at 1x: the "File Format:"
+// pop-up runs y 336–359, 24 px, the same number the push button beside it
+// draws — a pop-up takes the control height and is not sized by the line box
+// it carries, which is what the 27 px text field above it in that capture is.
+// So the trigger draws 24 comfortable and 19 compact, the chrome variant's
+// number in both cases, and the two variants agree. That drawn bar is the
 // pointer target, which picker_live_test.go measures.
-func TestFieldTriggerHeightIsItsLineBoxOverTheFloor(t *testing.T) {
+func TestFieldTriggerDrawsThePopUpsHeight(t *testing.T) {
 	for _, d := range []struct {
 		name string
 		d    tokens.Density
@@ -97,8 +105,8 @@ func TestFieldTriggerHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 				tokens.Radius, tokens.DefaultTypography.BodyLarge, d.d,
 				picker.FieldState{Options: options})
 			dims := measure(t, image.Pt(200, 200), w)
-			if want := rowHeight(d.d); dims.Size.Y != want {
-				t.Errorf("trigger height = %d px, want %d px", dims.Size.Y, want)
+			if want := triggerHeight(d.d); dims.Size.Y != want {
+				t.Errorf("trigger height = %d px, want the density's control height %d px", dims.Size.Y, want)
 			}
 		})
 	}
@@ -164,10 +172,10 @@ func planeEdge(gtx layout.Context, size image.Point) {
 // with the field's own plane edge around it, pixel for pixel. The menu still
 // paints whole where the reported box no longer reaches.
 func TestOpenFieldReportsTheTriggerAlone(t *testing.T) {
-	row := rowHeight(tokens.Comfortable)
+	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
 	closed := measure(t, image.Pt(200, 400), field(t, picker.FieldState{Options: options}))
-	if closed.Size != (image.Pt(200, row)) {
-		t.Fatalf("closed field measured %v, want the trigger's %v", closed.Size, image.Pt(200, row))
+	if closed.Size != (image.Pt(200, trig)) {
+		t.Fatalf("closed field measured %v, want the trigger's %v", closed.Size, image.Pt(200, trig))
 	}
 	for _, d := range []struct {
 		name string
@@ -182,7 +190,7 @@ func TestOpenFieldReportsTheTriggerAlone(t *testing.T) {
 		}
 	}
 
-	size := image.Pt(200, row*(1+len(options)))
+	size := image.Pt(200, trig+row*len(options))
 	bg := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
 	onBg := func(w layout.Widget) layout.Widget {
 		return func(gtx layout.Context) layout.Dimensions {
@@ -195,14 +203,14 @@ func TestOpenFieldReportsTheTriggerAlone(t *testing.T) {
 		Open: true, Options: options, Selected: 1,
 	})))
 	plane := golden.Capture(t, size, onBg(func(gtx layout.Context) layout.Dimensions {
-		off := op.Offset(image.Pt(0, row)).Push(gtx.Ops)
+		off := op.Offset(image.Pt(0, trig)).Push(gtx.Ops)
 		rows := menu(t, picker.MenuState{Options: options, Selected: 1})(gtx)
 		planeEdge(gtx, rows.Size)
 		off.Pop()
 		return rows
 	}))
 	painted := false
-	for y := row; y < size.Y; y++ {
+	for y := trig; y < size.Y; y++ {
 		for x := 0; x < size.X; x++ {
 			if a, b := px(open, x, y), px(plane, x, y); a != b {
 				t.Fatalf("(%d,%d), below the box the open field reported, is %v and the menu's own drawing is %v", x, y, a, b)
@@ -258,15 +266,15 @@ func TestOpenFieldFloatsTheSharedMenuOverItsTrigger(t *testing.T) {
 // is the only thing the field adds to the composite, and the composite without
 // it must differ, in both directions, by a count that is the same.
 func TestOpenFieldDrawsItsPlaneEdgeBothWaysUp(t *testing.T) {
-	row := rowHeight(tokens.Comfortable)
-	size := image.Pt(200, row*(1+len(options)))
+	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
+	size := image.Pt(200, trig+row*len(options))
 	counts := map[string]int{}
 
 	for _, d := range []struct {
 		name string
 		drop picker.Drop
 	}{{"down", picker.DropDown}, {"up", picker.DropUp}} {
-		triggerY, menuY := 0, row
+		triggerY, menuY := 0, trig
 		if d.drop == picker.DropUp {
 			triggerY, menuY = row*len(options), 0
 		}
@@ -332,7 +340,7 @@ func TestCappedMenuIsTheCapAndScrolls(t *testing.T) {
 // The extent is read off the pixels, which is where a floating plane's height
 // is now visible at all.
 func TestCappedFieldFloatsExactlyTheCap(t *testing.T) {
-	row := rowHeight(tokens.Comfortable)
+	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
 	long := make([]string, 40)
 	for i := range long {
 		long[i] = "Option " + string(rune('A'+i%26))
@@ -341,19 +349,19 @@ func TestCappedFieldFloatsExactlyTheCap(t *testing.T) {
 	dims := measure(t, image.Pt(200, 2000), field(t, picker.FieldState{
 		Open: true, Options: long, MaxHeight: cap,
 	}))
-	if dims.Size.Y != row {
-		t.Errorf("an open capped field measured %d px tall, want the trigger's %d px", dims.Size.Y, row)
+	if dims.Size.Y != trig {
+		t.Errorf("an open capped field measured %d px tall, want the trigger's %d px", dims.Size.Y, trig)
 	}
 
-	size := image.Pt(200, row*8)
+	size := image.Pt(200, trig+row*7)
 	img := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, menuCover, clip.Rect{Max: gtx.Constraints.Max}.Op())
 		return field(t, picker.FieldState{Open: true, Options: long, MaxHeight: cap})(gtx)
 	})
-	if last := row*6 - 1; px(img, 100, last) == menuCover {
+	if last := trig + row*5 - 1; px(img, 100, last) == menuCover {
 		t.Errorf("y=%d, the last row inside the cap, was left unpainted; the plane is shorter than the cap it was given", last)
 	}
-	if past := row * 6; px(img, 100, past) != menuCover {
+	if past := trig + row*5; px(img, 100, past) != menuCover {
 		t.Errorf("y=%d, one pixel past the trigger plus the cap, is %v and not the %v behind it; the plane is taller than its cap",
 			past, px(img, 100, past), menuCover)
 	}
@@ -392,35 +400,20 @@ func TestTriggerDrawsItsPromptApartFromItsValue(t *testing.T) {
 	}
 }
 
-// TestTheTriggersMarkPointsTheWayItsMenuOpens: the triangle announces the
-// motion the control has, so an upward field's trigger is not the downward
-// one's — closed or open, since the direction is a property of the field and
-// not of its open state. And the announcement is the mark's alone: every pixel
-// the direction moves lies in the trailing quarter of the control, where the
-// mark is drawn, so nothing else about the trigger turns over with it.
-func TestTheTriggersMarkPointsTheWayItsMenuOpens(t *testing.T) {
+// TestTheTriggersMarkIsSteadyWhicheverWayItsMenuOpens is the platform's mark
+// written down where a future change cannot silently undo it. A pop-up
+// button's mark is a pair of chevrons pointing opposite ways — MEASURED,
+// save-dialog-{light,dark}.png, the "File Format:" pop-up's x 435–442, upper
+// y 343–347 and lower y 349–353 — and a pair pointing both ways cannot say a
+// direction. So a field that drops upwards draws the downward field's trigger
+// pixel for pixel, and the reader learns the direction from the menu rather
+// than from the closed control.
+func TestTheTriggersMarkIsSteadyWhicheverWayItsMenuOpens(t *testing.T) {
 	size := image.Pt(200, 44)
 	down := golden.Capture(t, size, field(t, picker.FieldState{Options: options, Selected: 1}))
 	up := golden.Capture(t, size, field(t, picker.FieldState{Options: options, Selected: 1, Drop: picker.DropUp}))
-
-	moved, leading := 0, 0
-	for y := 0; y < size.Y; y++ {
-		for x := 0; x < size.X; x++ {
-			if down.At(x, y) == up.At(x, y) {
-				continue
-			}
-			moved++
-			if x < size.X-size.X/4 {
-				leading++
-			}
-		}
-	}
-	if moved == 0 {
-		t.Error("an upward field's closed trigger draws the downward one's image: the mark says nothing about where the menu goes")
-	}
-	if leading != 0 {
-		t.Errorf("the drop direction moved %d pixels outside the mark's own column (%d in all); the triangle turns over and nothing else does",
-			leading, moved)
+	if n := golden.PixelDiff(down, up); n != 0 {
+		t.Errorf("an upward field's closed trigger differs from a downward one's in %d pixels; the pop-up's mark says nothing about the direction and nothing else on the trigger may either", n)
 	}
 }
 
@@ -522,18 +515,18 @@ func coveredField(w layout.Widget, bg color.NRGBA, triggerH int, covered bool) l
 // dropped menu stands above the sibling laid out after the field, so every
 // pixel of it is the one it draws with nothing over it at all.
 func TestOpenMenuIsWholeOverALaterSibling(t *testing.T) {
-	row := rowHeight(tokens.Comfortable)
-	size := image.Pt(200, row*(1+len(options))+40)
+	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
+	size := image.Pt(200, trig+row*len(options)+40)
 	w := field(t, picker.FieldState{Open: true, Selected: 1, Options: options})
 	bg := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
 
-	bare := golden.Capture(t, size, coveredField(w, bg, row, false))
-	covered := golden.Capture(t, size, coveredField(w, bg, row, true))
+	bare := golden.Capture(t, size, coveredField(w, bg, trig, false))
+	covered := golden.Capture(t, size, coveredField(w, bg, trig, true))
 
 	if got := px(covered, size.X-1, size.Y-1); got != menuCover {
 		t.Fatalf("the covering sibling did not paint: (%d,%d) is %v, want %v", size.X-1, size.Y-1, got, menuCover)
 	}
-	for y := row; y < row*(1+len(options)); y++ {
+	for y := trig; y < trig+row*len(options); y++ {
 		for x := 0; x < size.X; x++ {
 			if a, b := px(bare, x, y), px(covered, x, y); a != b {
 				t.Fatalf("(%d,%d) inside the menu is %v with a later sibling painted and %v without it", x, y, b, a)
@@ -600,10 +593,10 @@ func TestUpwardMenuStaysInTheRoomAbove(t *testing.T) {
 // there is nothing above it and six rows below it drops DOWNWARD however it
 // was asked. Nothing is painted over the container above the trigger, the
 // plane below is the room below exactly, and the trigger is the downward
-// trigger pixel for pixel — the mark travels with the menu, because a mark
-// announcing a direction the menu does not take is a defect.
+// trigger pixel for pixel — the pop-up's mark says no direction, so the
+// trigger is one drawing whichever side the menu lands on.
 func TestFieldWithNoRoomFlipsToTheSideThatHasIt(t *testing.T) {
-	row := rowHeight(tokens.Comfortable)
+	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
 	long := catalogue(40)
 	below := row * 6
 	triggerY := row
@@ -623,10 +616,10 @@ func TestFieldWithNoRoomFlipsToTheSideThatHasIt(t *testing.T) {
 			t.Fatalf("y=%d, above a trigger with no room above it, is %v and not the %v behind it; the menu did not flip", y, got, menuCover)
 		}
 	}
-	if last := triggerY + row + below - 1; px(flipped, 100, last) == menuCover {
+	if last := triggerY + trig + below - 1; px(flipped, 100, last) == menuCover {
 		t.Errorf("y=%d, the last pixel of the room below the trigger, was left unpainted; the flipped menu is shorter than the room it flipped into", last)
 	}
-	if past := triggerY + row + below; px(flipped, 100, past) != menuCover {
+	if past := triggerY + trig + below; px(flipped, 100, past) != menuCover {
 		t.Errorf("y=%d, one pixel past the room below the trigger, is %v and not the %v behind it; the flipped menu is taller than the room it flipped into",
 			past, px(flipped, 100, past), menuCover)
 	}
@@ -637,55 +630,62 @@ func TestFieldWithNoRoomFlipsToTheSideThatHasIt(t *testing.T) {
 		defer off.Pop()
 		return field(t, picker.FieldState{Options: long})(gtx)
 	})
-	for y := triggerY; y < triggerY+row; y++ {
+	for y := triggerY; y < triggerY+trig; y++ {
 		for x := 0; x < size.X; x++ {
 			if a, b := px(flipped, x, y), px(downward, x, y); a != b {
-				t.Fatalf("(%d,%d) of the flipped field's trigger is %v and the downward trigger's is %v; the mark does not point the way the menu went", x, y, a, b)
+				t.Fatalf("(%d,%d) of the flipped field's trigger is %v and the downward trigger's is %v; the trigger is one drawing whichever side the menu lands on", x, y, a, b)
 			}
 		}
 	}
 }
 
-// TestTriggerAndItsRowsStandOnTheFieldsColumn reads off the drawn pixels the
-// column a picker starts its text on, at the trigger and in the menu that
-// trigger drops. Both spend [control.TextLeadDp] from their own inner edge,
-// which is what a text field beside them spends, so the three start their
-// text on one column.
+// TestTheTriggerStandsOnThePopUpsColumnAndItsRowsOnTheFields reads off the
+// drawn pixels the column a picker starts its text on, at the trigger and in
+// the menu that trigger drops. They are two columns because they are two
+// controls.
 //
-// MEASURED, save-dialog-{light,dark}.png at 1x: the "Save As:" field's fill
-// begins at x=265 and the first covered pixel of its value at x=272 — seven
-// columns in. What is spent is the origin, six, and the face adds its first
-// glyph's left side bearing to reach the seventh; the faces are pinned by
-// DeterministicShaper, so the column is the same on every machine.
+// THE TRIGGER is the platform's pop-up button. MEASURED,
+// save-dialog-{light,dark}.png at 1x: the "File Format:" pop-up's fill runs
+// x 264–451 with no edge column of any kind, and the first covered pixel of
+// its label is x=276 — twelve columns in from the fill's own edge, five
+// further than the field beside it. What is spent is the origin,
+// [control.PopupLeadDp]'s eleven, and the face adds its first glyph's left
+// side bearing to reach the twelfth.
 //
-// The platform sets a pop-up's own label further in than that — MEASURED,
-// the same pair: the File Format pop-up's fill runs x 264–451 with no edge
-// column, and the first covered pixel of its label is at x=276, twelve
-// columns in. A picker in this library is drawn as the field beside it and
-// not as that pop-up, which is the difference this test pins.
-func TestTriggerAndItsRowsStandOnTheFieldsColumn(t *testing.T) {
-	// The trigger and the menu's plane each wear a one-pixel edge, so each
-	// inner edge is one column in from its outer one; the face bears one
-	// column on this word, as input's own reading of the same inset does.
-	const innerEdge, bearing = 1, 1
-	want := int(control.TextLeadDp) + bearing
-
-	size := image.Pt(200, rowHeight(tokens.Comfortable))
+// THE MENU'S ROWS are not pop-ups: they take the field's own inset,
+// [control.TextLeadDp], spent from the inner edge of the plane's hairline, so
+// a value in the menu stands on the same column as the value of a text field
+// beside the picker. The menu's own measurement is owed and the rows keep
+// this until it is taken.
+//
+// The faces are pinned by DeterministicShaper, so both columns are the same on
+// every machine.
+func TestTheTriggerStandsOnThePopUpsColumnAndItsRowsOnTheFields(t *testing.T) {
+	// The face bears one column on this word, as input's own reading of the
+	// same inset does. The trigger draws no edge at all; the menu's plane
+	// wears a one-pixel one, so a row's inset starts one column in from the
+	// box.
+	const bearing = 1
 	for _, tc := range []struct {
-		name string
-		w    layout.Widget
+		name      string
+		innerEdge int
+		want      int
+		w         layout.Widget
 	}{
-		{"trigger", field(t, picker.FieldState{Options: []string{"Email address"}})},
-		{"row", menu(t, picker.MenuState{Options: []string{"Email address"}, Selected: -1})},
+		{"trigger", 0, int(control.PopupLeadDp) + bearing,
+			field(t, picker.FieldState{Options: []string{"Email address"}})},
+		{"row", 1, int(control.TextLeadDp) + bearing,
+			menu(t, picker.MenuState{Options: []string{"Email address"}, Selected: -1})},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			size := image.Pt(200, rowHeight(tokens.Comfortable))
 			img := golden.Capture(t, size, tc.w)
 			// A row clear of the top and bottom edges, and of the corners
 			// the trigger rounds, holds the text; x=150 is clear of it and
 			// of the trigger's mark.
 			fill := img.RGBAAt(150, size.Y/2)
 			first := -1
-			for x := innerEdge + 1; x < 150 && first < 0; x++ {
+			for x := tc.innerEdge + 1; x < 150 && first < 0; x++ {
 				for y := 4; y <= size.Y-5; y++ {
 					if img.RGBAAt(x, y) != fill {
 						first = x
@@ -696,9 +696,9 @@ func TestTriggerAndItsRowsStandOnTheFieldsColumn(t *testing.T) {
 			if first < 0 {
 				t.Fatal("no text found inside the control; this measures nothing")
 			}
-			if got := first - innerEdge; got != want {
-				t.Errorf("the text's first covered pixel is %d px in from the inner edge, want %d: the %d dp origin and the face's %d px side bearing",
-					got, want, int(control.TextLeadDp), bearing)
+			if got := first - tc.innerEdge; got != tc.want {
+				t.Errorf("the text's first covered pixel is %d px in from the inner edge, want %d: the origin and the face's %d px side bearing",
+					got, tc.want, bearing)
 			}
 		})
 	}

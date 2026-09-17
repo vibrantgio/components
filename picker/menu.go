@@ -397,11 +397,14 @@ func optionRowColors(p tokens.PlatformColors, selected, hovered bool) (fill, for
 
 // drawOptionRow renders a single option row.
 func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, selected, hovered bool, label string) layout.Dimensions {
-	// Option rows are list rows — row height = Density.ControlHeight exactly
-	// (components/list's RowHeight rule: 36 dp Comfortable, 28 dp Compact) —
-	// with the same two insets the field trigger spends, from the same inner
-	// edge: the menu's plane wears the trigger's hairline, so a row's label
-	// stands on the column the trigger's value stands on.
+	// An option row draws max(the density's control height, its line box plus
+	// twice the density's vertical padding), the sizing rule every stacked row
+	// in the system takes, and it takes the TEXT FIELD's two insets —
+	// [control.TextLeadDp] and [control.TextTrailDp] — spent from the inner
+	// edge of the plane's own hairline, so a row's label stands on the column
+	// a text field's value beside the picker stands on. Not the trigger's:
+	// that control is the platform's pop-up and sets its label deeper. The
+	// menu's own reading is owed and the rows keep these until it is taken.
 	lead := gtx.Dp(edgeDp) + gtx.Dp(control.TextLeadDp)
 	trail := gtx.Dp(edgeDp) + gtx.Dp(control.TextTrailDp)
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))

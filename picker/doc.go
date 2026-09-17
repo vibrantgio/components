@@ -6,7 +6,8 @@
 //
 //	[Field]    the FORM variant — the platform's pop-up button, standing in a
 //	           form beside a text field and a checkbox at the same control
-//	           height, with the same focus ring
+//	           height, with the same focus ring and the platform's stacked
+//	           chevron pair as its mark
 //	[Toolbar]  the CHROME variant — the platform's pull-down control, at the
 //	           button's rounded-rect corner with a single down chevron, for a
 //	           toolbar, a header row or any other chrome region
@@ -34,8 +35,8 @@
 // select does and what its [FieldState.Open] draws — beneath by default, and
 // above it when the caller says [DropUp] because the room below is somebody
 // else's. Either way the box the field reports is the trigger's alone, so an
-// open field is placed exactly where a closed one is, with its trigger's
-// triangle pointing the way its menu goes. [Toolbar] does not:
+// open field is placed exactly where a closed one is, and the trigger draws
+// the same mark either way — see [Drop]. [Toolbar] does not:
 // a chrome-variant menu is a floating surface placed against the window, and
 // placing it is patterns/popover's job — a component may not reach up into a
 // pattern. So a toolbar trigger's caller hands the trigger to the popover as
@@ -58,8 +59,8 @@
 // because Gio hands a component its constraints and nothing about where its
 // ancestors put it. Given the room, [Drop] becomes a preference: a menu that
 // cannot be seen whole on the preferred side while the other side holds more
-// of it flips to that other side, mark and all, and either way the plane is
-// capped to what the chosen side leaves and the rows scroll inside the cap.
+// of it flips to that other side, and either way the plane is capped to what
+// the chosen side leaves and the rows scroll inside the cap.
 // [FieldProps.MaxHeight] is a preference of the same kind — the room may
 // tighten it and can never loosen it. A caller that reports no room is
 // bounded by the window alone, which is what a floating surface is bounded by
@@ -109,20 +110,21 @@
 // mark and its menu are one component, and the toolbar's menu is somewhere else on
 // the window.
 //
-// THE PAIRED CHEVRONS, and what they would take. The platform's OTHER
-// menu-bearing control is the pop-up button: its menu stands OVER the trigger
-// with the selected row aligned on it, and it wears an up chevron over a down
-// one to say the choice can move either way. That is a different control, so
-// it is a different face rather than a flag on this one, and it may only be
-// drawn once something places a menu that way — no caller does. Two things are
-// owed before it can be: a placement that stands the menu over the trigger with
-// the selected row on it, and a macOS pop-up-button capture in the platform
-// reference. The stored reference holds only single-chevron pull-downs, so the
-// air between the pair's halves — whether the platform narrows or flattens
-// each half rather than spacing them — is a number nothing here can answer.
+// THE PAIRED CHEVRONS are the OTHER control's, and [Field] is that control.
+// The platform's pop-up button wears an up chevron over a down one to say the
+// choice can move either way, and the form trigger draws that pair off the
+// save dialog's own pop-up — field.go's markWidthRatio and its neighbours
+// carry the capture and the figures. A pull-down wears the single chevron and
+// keeps it: two marks for two controls, not a flag on one.
 //
-// The chevron's proportions are measured off that stored reference; the
-// constants in components/internal/toolbarface carry the capture and the figures.
+// What the pop-up still owes is its PLACEMENT. On the platform a pop-up's
+// menu stands OVER the trigger with the selected row aligned on it, and this
+// field drops its menu beneath or above instead. That is a placement nothing
+// here offers yet and no caller asks for.
+//
+// The pull-down chevron's proportions are measured off the stored reference;
+// the constants in components/internal/toolbarface carry the capture and the
+// figures.
 //
 // # Uncontrolled
 //
