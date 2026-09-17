@@ -102,9 +102,8 @@ no-gofont lint in this repository fails `go test` on any
 `gioui.org/font/gofont` import, so the old fallback practice no longer merely
 looks wrong — it fails the build.
 
-Condensed from `list.go` in
-[workbench/todos](https://github.com/vibrantgio/workbench/tree/master/todos) —
-the smallest complete Vibrant Gio application — one row's checkbox:
+Condensed from `list.go` in the smallest complete Vibrant Gio application —
+one row's checkbox:
 
 ```go
 // Row is one todo line: a components checkbox toggling completion, the todo text,
@@ -157,11 +156,8 @@ needs.
 
 ## For coding assistants
 
-Read the canonical guide before writing code against this module — the module
-inventory with current tags, the application skeleton, MVU and rx semantics,
-typography, and the pitfalls that are not guessable:
-
-<https://raw.githubusercontent.com/vibrantgio/workbench/master/llms.txt>
+Read the org guide before you write code against this module: the plan
+root's [`AGENTS.md`](https://github.com/vibrantgio/.github/blob/master/AGENTS.md).
 
 [`AGENTS.md`](./AGENTS.md) in this repository has the build, test and
 golden-image commands.
