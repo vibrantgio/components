@@ -196,8 +196,8 @@ const (
 	// content plane. It is what keeps the loosened area floor from letting a
 	// pinned surface hide. White and near-black occur legitimately — the
 	// foreground the platform pairs with an accent fill is white, and a
-	// syntax palette may name either — so the floor stands above what glyphs
-	// and marks account for and far below what a panel would put there.
+	// syntax highlighter style may name either — so the floor stands above what
+	// glyphs and marks account for and far below what a panel would put there.
 	planeFloor = 2.0
 )
 

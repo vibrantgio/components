@@ -7,10 +7,10 @@
 // to put every one of those on screen at once.
 //
 // Code gets a sample of its own, for the same reason and one more: a syntax
-// palette is a dozen decisions — keyword against string against number
-// against comment — and a fence with two statements in it shows one of them.
-// The specimen below shows all of them at once, so the question "does this
-// palette work" has an answer that can be read off one screen rather than
+// highlighter style is a dozen decisions — keyword against string against
+// number against comment — and a fence with two statements in it shows one of
+// them. The specimen below shows all of them at once, so the question "does
+// this style work" has an answer that can be read off one screen rather than
 // assembled from several.
 package inventory
 
@@ -70,7 +70,7 @@ const readingSample = "" +
 	"```\n"
 
 // codeSample is the syntax specimen: one excerpt carrying every kind of run a
-// palette colours differently, so the whole set of decisions is legible at a
+// style colours differently, so the whole set of decisions is legible at a
 // glance rather than a fence at a time.
 //
 // Line comments and a doc comment; the keywords a body is built from and the
@@ -81,14 +81,14 @@ const readingSample = "" +
 // the type it returns.
 //
 // It is a real excerpt rather than a list of token types on purpose. What a
-// syntax palette has to survive is code as it is actually shaped — a run of
-// keywords at the head of a line, a string wedged between two calls — and a
-// specimen arranged for the palette's convenience would flatter it.
+// highlighter style has to survive is code as it is actually shaped — a run
+// of keywords at the head of a line, a string wedged between two calls — and
+// a specimen arranged for the style's convenience would flatter it.
 //
 // The comments are kept short and few, which is the one way this excerpt is
 // unlike the code it stands for. A comment is the widest run on any line it is
 // on, and a specimen written with the doc comments real code deserves puts the
-// comment colour over most of the plate — leaving the reader judging a palette
+// comment colour over most of the plate — leaving the reader judging a style
 // by the one colour it spends least effort on, with the keywords and strings
 // the choice actually turns on crowded into the margins.
 const codeSample = "" +
@@ -131,7 +131,7 @@ const codeSample = "" +
 //
 // The code specimen comes last, and last on the whole column with it. This
 // surface is for judging a theme, and a plate of syntax at the top of it takes
-// the attention the palette, the components and the compositions are there to
+// the attention the colours, the components and the compositions are there to
 // get — a page that opens on code is a page about code. Put at the end it is
 // still the whole specimen, reached by whoever went looking for it; and a
 // caller with a reason to put it in front of somebody has [ItemIndex] to scroll
@@ -144,7 +144,7 @@ func (inv *Inventory) Reading(c tokens.PlatformColors) []Section {
 		Body:   inv.readingBody(c),
 	}, {
 		Name:   codeSectionName,
-		Title:  "Markdown — a fenced code block in the chosen syntax base",
+		Title:  "Markdown — a fenced code block in the chosen syntax highlighter style",
 		Height: 613,
 		Body:   inv.codeBody(c),
 	}}
@@ -165,7 +165,7 @@ func (inv *Inventory) codeBody(c tokens.PlatformColors) layout.Widget {
 	inv.wear(&style, c)
 	// No measure cap, unlike the prose sample. Prose is capped because a long
 	// line of it is hard to read; code is not prose — a line wrapped or
-	// scrolled out of sight is a line the palette cannot be judged on — and a
+	// scrolled out of sight is a line the style cannot be judged on — and a
 	// capped plate leaves its own section's heading running past it on one
 	// side, which reads as a panel that failed to fill rather than as a
 	// measure somebody chose.
@@ -174,41 +174,42 @@ func (inv *Inventory) codeBody(c tokens.PlatformColors) layout.Widget {
 	}
 }
 
-// SetCodeBase names one syntax palette the code in these sections is drawn
-// in, under both appearances — one of the highlighting package's base names.
-// The empty string, which is the value an [Inventory] starts with, means that
-// package's own default; so does a name it does not recognise.
+// SetCodeStyle names one syntax highlighter style the code in these sections
+// is drawn in, under both appearances — one of the highlighting package's own
+// style names. The empty string, which is the value an [Inventory] starts
+// with, means that package's own default; so does a name it does not
+// recognise.
 //
 // It is a setting on the inventory rather than an argument to a section
-// because it is not a fact about a palette: which member of a base's pair
+// because it is not a fact about a style: which member of a style's pair
 // reaches the fence is the appearance's to say, and the tokens are what a
 // section is a function of.
-func (inv *Inventory) SetCodeBase(name string) {
-	inv.SetCodeBases(highlight.BasePair{Light: name, Dark: name})
+func (inv *Inventory) SetCodeStyle(name string) {
+	inv.SetCodeStyles(highlight.StylePair{Light: name, Dark: name})
 }
 
-// SetCodeBases names a syntax palette per appearance, for a caller whose
+// SetCodeStyles names a highlighter style per appearance, for a caller whose
 // person has chosen one for each: the light member draws the code while the
 // tokens are the light ones and the dark member while they are the dark ones,
-// so a change of appearance is a change of palette rather than a counterpart
+// so a change of appearance is a change of style rather than a counterpart
 // somebody never picked. An unset member means the highlighting package's own
 // default for that appearance, as does one it does not recognise.
-func (inv *Inventory) SetCodeBases(p highlight.BasePair) { inv.codeBases = p }
+func (inv *Inventory) SetCodeStyles(p highlight.StylePair) { inv.codeStyles = p }
 
-// wear puts the chosen palette on st's fenced code: the appearance c is a
+// wear puts the chosen style on st's fenced code: the appearance c is a
 // recording of picks the member, and that member's own fill, its syntax colours and its
 // body colour are what a block is drawn with. A name that no longer resolves
 // falls back to the default for its appearance rather than failing the page.
 func (inv *Inventory) wear(st *markdown.Style, c tokens.PlatformColors) {
-	highlight.WearPair(st, highlight.BasePair{
-		Light: highlight.BaseOrDefault(inv.codeBases.Light),
-		Dark:  highlight.BaseOrDefault(inv.codeBases.Dark),
+	highlight.WearPair(st, highlight.StylePair{
+		Light: highlight.StyleOrDefault(inv.codeStyles.Light),
+		Dark:  highlight.StyleOrDefault(inv.codeStyles.Dark),
 	}, c)
 }
 
 func (inv *Inventory) readingBody(c tokens.PlatformColors) layout.Widget {
 	style := markdown.FromTokens(c, inv.typography(), SectionSurface(c))
-	// The chosen base, worn whole: the fence takes the fill its author drew
+	// The chosen style, worn whole: the fence takes the fill its author drew
 	// their colours on, and those colours as they were drawn. Everything
 	// around it — the page, the prose, the chip an inline span sits on — stays
 	// the theme's, which is what makes the two judgeable side by side on one

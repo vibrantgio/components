@@ -124,10 +124,10 @@ type Inventory struct {
 	doc  *markdown.Document
 	code *markdown.Document
 
-	// The syntax palettes the code sections are drawn in — one per
+	// The syntax highlighter styles the code sections are drawn in — one per
 	// appearance. Which member reaches the fence is the appearance's to say;
 	// see Inventory.wear.
-	codeBases highlight.BasePair
+	codeStyles highlight.StylePair
 
 	// typo is the type roles the reading and code sections draw through.
 	// Empty is DefaultTypography. A caller that names a code face calls
