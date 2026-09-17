@@ -84,8 +84,8 @@ func TestFieldTriggerShowsTheValue(t *testing.T) {
 // TestFieldTriggerHeightIsItsLineBoxOverTheFloor holds the trigger to the
 // sizing rule every control in the system takes: a control height is a floor,
 // not a height, so the trigger draws max(ControlHeight, line box + 2×PaddingY)
-// — 40 dp comfortable, over the 36 dp floor. The 44 dp pointer floor is the
-// live path's and is measured in picker_live_test.go.
+// — 28 dp comfortable, over the control-height floor. That drawn bar is the
+// pointer target, which picker_live_test.go measures.
 func TestFieldTriggerHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 	for _, d := range []struct {
 		name string

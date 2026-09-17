@@ -26,18 +26,17 @@ import (
 // ClearHitDp is the side of the pointer target the clear mark claims, in dp,
 // centred on the mark and free to overhang the field.
 //
-// It is WCAG 2.5.8 Target Size (Minimum), the AA criterion, and not the 44 dp
-// of [tokens.Density.MinHitTarget]: 44 is this system's floor for a
-// standalone control with space around it, and a 44 dp target centred on a
-// mark inside the field would reach past the field's own top and bottom. It
-// is the same reading, and the same number, the dismissible chip's mark takes.
+// It is larger than the mark is drawn, because a mark a few dp across is not
+// something a pointer can be asked to land on, and small enough not to reach
+// past the field's own top and bottom. It is the same number, for the same
+// reason, the dismissible chip's mark takes.
 const ClearHitDp = 24
 
 // SearchFieldProps configures a SearchField instance.
 //
 // The search field is the text field's structure with two slots added — the
 // looking glass leading, the clear mark trailing — so everything the text
-// field settles about density, focus, the hit target and the surface it
+// field settles about density, focus, the pointer target and the surface it
 // stands on is settled here too and is not restated.
 type SearchFieldProps struct {
 	// Placeholder is shown when the field is empty and unfocused.

@@ -20,7 +20,6 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
-	"github.com/vibrantgio/components/internal/hit"
 	"github.com/vibrantgio/components/list"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
@@ -435,12 +434,10 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 	marked := s
 	marked.Drop = drop
 
-	// The trigger's pointer area is at least MinHitTarget (44 dp) on each
-	// axis, centred on the visual bar: density shrinks the drawn trigger,
-	// never the hit target. The menu's rows are not extended — see
-	// layoutMenuLive.
+	// The trigger's pointer area is the drawn bar: a control's target is the
+	// control. The menu's rows are their own targets — see layoutMenuLive.
 	triggerMacro := op.Record(gtx.Ops)
-	triggerDims := hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), trigger.Layout, func(gtx layout.Context) layout.Dimensions {
+	triggerDims := trigger.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		semantic.Button.Add(gtx.Ops)
 		if desc != "" {
 			semantic.DescriptionOp(desc).Add(gtx.Ops)

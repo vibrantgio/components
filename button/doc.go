@@ -1,9 +1,8 @@
 // Package button provides the Vibrant Gio button: a text or icon-only
 // affordance carrying focus, press and disabled treatments, activation
 // by click or by Space and Enter, a screen-reader label, and a pointer target
-// of at least 44 dp on each axis regardless of density (the drawn control is
-// the theme Density's control height; the hit area extends beyond it when the
-// control is smaller).
+// that is the drawn control itself — the theme Density's control height, so
+// the target moves with the pixels when density changes.
 //
 // Button is the observable path — an rx.Observable[theme.Theme] and a Props
 // in, an rx.Observable[layout.Widget] out, rebuilt whenever the theme changes
@@ -24,7 +23,7 @@
 // pairs with an accent fill; tonal is the platform's ordinary button, its
 // measured fill under its control text inside its hairline; ghost is the
 // platform's borderless kind, no fill and no hairline under the same control
-// text. The drawn size and the 44 dp pointer floor are identical in all
+// text. The drawn size, and with it the pointer target, are identical in all
 // three, and so is the focus ring's shape, width, place and colour. Focus is
 // a persistent state in every variant: the resting fill stays and the ring is
 // added to it. The least pronounced variant is not the smallest one and is no

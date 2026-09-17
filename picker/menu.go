@@ -260,14 +260,11 @@ func menuTokens(th rx.Observable[theme.Theme]) rx.Observable[resolvedTokens] {
 
 // layoutMenuLive stacks the option rows with their Clickable hit areas.
 //
-// The rows are not extended to the density's minimum pointer target: they
-// stack directly against each other, so a ≥44 dp slop per row would overlap
-// the neighbouring rows' targets. They rely on their full-row width instead.
-// What they measure, at 1:1, is 40 dp Comfortable and 36 dp Compact —
-// BodyLarge's 24 dp line box plus 2×PaddingY, which wins over the ControlHeight
-// floor in both densities — so both clear WCAG 2.5.8 Target Size (Minimum),
-// the 24 dp AA criterion these rows are held to. See tokens.MinHitTarget for
-// why 2.5.5's 44 dp is not that criterion.
+// A row's pointer target is the row: they stack directly against each other,
+// so anything added to one would be taken off its neighbour, and the full row
+// width is what makes a row easy to land on. What they measure, at 1:1, is
+// 28 dp Comfortable and 24 dp Compact — BodyLarge's 24 dp line box plus
+// 2×PaddingY, which wins over the ControlHeight floor in both densities.
 func layoutMenuLive(gtx layout.Context, shaper *text.Shaper, optClicks []widget.Clickable, rows *list.State, tok resolvedTokens, s MenuState, capPx int) layout.Dimensions {
 	return stackRows(gtx, rows, len(s.Options), capPx, tok, func(gtx layout.Context, i int) layout.Dimensions {
 		return optClicks[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {

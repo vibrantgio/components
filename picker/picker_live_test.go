@@ -180,12 +180,10 @@ func TestUpwardFieldSelectsFromTheMenuAboveItsTrigger(t *testing.T) {
 	}
 }
 
-// TestFieldTriggerHitsTheFloorBelowItsBar is the pointer-target contract for
-// the form variant: the component measures the bar it drew, while what the
-// pointer may land on is the density's 44 dp floor centred on it. The click
-// below is outside the drawn bar and inside the slop, which is the only place
-// the two can be told apart.
-func TestFieldTriggerHitsTheFloorBelowItsBar(t *testing.T) {
+// TestFieldTriggerTargetIsItsBar is the pointer-target contract for the form
+// variant: the component measures the bar it drew and that bar is what the
+// pointer lands on. A click inside it opens the menu; one below it does not.
+func TestFieldTriggerTargetIsItsBar(t *testing.T) {
 	var picked []int
 	w := materialize(t, picker.Field(rx.Of(liveTheme()), picker.FieldProps{
 		Options:  options,
@@ -198,13 +196,13 @@ func TestFieldTriggerHitsTheFloorBelowItsBar(t *testing.T) {
 	row := rowHeight(tokens.Comfortable)
 	drive() // register the input area
 
-	// The hit rect is 44 px centred on the 40 px bar: −2..42 on the y axis.
-	dims := click(r, drive, f32.Pt(100, float32(row)+1.5))
+	// A press inside the drawn bar, a pixel clear of its foot.
+	dims := click(r, drive, f32.Pt(100, float32(row)-1.5))
 	if dims.Size.Y != row {
-		t.Errorf("a click in the slop below the trigger left the field %d px tall, want the trigger's %d px", dims.Size.Y, row)
+		t.Errorf("a click inside the trigger left the field %d px tall, want the trigger's %d px", dims.Size.Y, row)
 	}
 	if !standing(r, drive, row, 1, &picked) {
-		t.Error("a click in the slop below the trigger opened no menu; the pointer target is the density's floor, not the drawn bar")
+		t.Error("a click inside the trigger opened no menu")
 	}
 }
 
@@ -232,12 +230,10 @@ func TestMenuSelectsWithoutATriggerOfItsOwn(t *testing.T) {
 	}
 }
 
-// TestToolbarActivatesAndKeepsItsPointerFloor: the chrome variant's trigger
-// reports the control it drew — it is sized to its value, and a row of chrome
-// laid out at 44 dp apiece would be a row of gaps — while the pointer floor is
-// centred on it, exactly as components/button and the chip extend
-// theirs.
-func TestToolbarActivatesAndKeepsItsPointerFloor(t *testing.T) {
+// TestToolbarActivatesOverTheControlItDrew: the chrome variant's trigger
+// reports the control it drew — it is sized to its value — and that control is
+// the pointer target, exactly as components/button's and the chip's are.
+func TestToolbarActivatesOverTheControlItDrew(t *testing.T) {
 	var clicks int
 	w := materialize(t, picker.Toolbar(rx.Of(liveTheme()), picker.ToolbarProps{
 		Value:   "Anthropic · Opus 5",
@@ -255,13 +251,15 @@ func TestToolbarActivatesAndKeepsItsPointerFloor(t *testing.T) {
 		t.Fatalf("toolbar measured %d px wide at a 400 px constraint: it is sized to its value", dims.Size.X)
 	}
 
-	// The pointer target is MinHitTarget centred on the control, so the slop
-	// reaches half their difference past the control's own foot. The press
-	// lands in the middle of that slop, below everything the trigger drew.
-	slop := (int(tokens.Comfortable.MinHitTarget()) - dims.Size.Y) / 2
-	click(r, drive, f32.Pt(float32(dims.Size.X)/2, float32(dims.Size.Y+slop/2)))
+	// The pointer target is the control: a press inside it activates, a press
+	// below it belongs to whatever is laid out there.
+	click(r, drive, f32.Pt(float32(dims.Size.X)/2, float32(dims.Size.Y-1)))
 	if clicks != 1 {
-		t.Errorf("click in the slop below the toolbar: OnClick fired %d times, want 1", clicks)
+		t.Errorf("click inside the toolbar: OnClick fired %d times, want 1", clicks)
+	}
+	click(r, drive, f32.Pt(float32(dims.Size.X)/2, float32(dims.Size.Y+4)))
+	if clicks != 1 {
+		t.Errorf("click below the toolbar: OnClick fired %d times in total, want 1 — the target is the control", clicks)
 	}
 }
 

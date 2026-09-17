@@ -208,10 +208,9 @@
 // overlay composites, so the white on a filled cap and the grey on a bare
 // square both keep reading through it.
 //
-// 24 dp is WCAG 2.5.8 Target Size (Minimum), the criterion that governs at AA,
-// and deliberately not the 44 dp of [tokens.MinHitTarget]: 44 is this system's
-// floor for a standalone control with space around it, and a 44 dp target on a
-// 16 dp badge would reach into whatever is set beside it.
+// 24 dp is larger than the mark is drawn, because a mark a few dp across is
+// not something a pointer can be asked to land on, and small enough not to
+// reach into whatever is set beside a 16 dp badge.
 //
 // Shaper is not optional. Pass the theme's — tokens.Typography.Shaper() — or,
 // in a golden test, its DeterministicShaper.

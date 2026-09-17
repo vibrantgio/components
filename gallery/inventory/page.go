@@ -224,40 +224,23 @@ func Column(items []layout.Widget) layout.Widget {
 // The light/dark control's measurements.
 const (
 	// SchemeSegmentW is one segment's width and SchemeSwitchH the control's
-	// height. A segment is what somebody has to hit while looking at the page
-	// rather than at the control, so its width is a target's and not the
-	// glyph's.
+	// height. Both are what a pointer lands on: this control's target is the
+	// control, so a segment is pressed where it is drawn.
 	//
-	// The height is not, and that is deliberate. This control is as much at
-	// home in a window's top strip as on a page, and a strip is dressed at a
-	// scale of its own: the platform's own title bar is a 32 px band whose
-	// controls are 14 px across, and its floating toolbar draws a control row
-	// 18 px tall. A track at the height of a control on a page — the desktop
-	// control height, 36 dp — is taller than the whole of that band, which is
-	// what makes it read as an object dropped into a strip rather than part of
-	// one. So the track is cut to the smallest height that still dresses the
-	// glyph — the fill inside it clears [schemeIconSize] by a point at each
-	// edge — and it leaves room for a band around itself at the scale the
-	// platform gives one.
-	//
-	// What does not shrink with it is the target — see [SchemeTargetH].
+	// The height is a chrome scale rather than a page one. This control is as
+	// much at home in a window's top strip as on a page, and a strip is
+	// dressed at a scale of its own: the platform's own title bar is a 32 px
+	// band whose controls are 14 px across, and its floating toolbar draws a
+	// control row 18 px tall. A track at the height of a control on a page is
+	// taller than the whole of that band, which is what makes it read as an
+	// object dropped into a strip rather than part of one. So the track is cut
+	// to the smallest height that still dresses the glyph — the fill inside it
+	// clears [schemeIconSize] by a point at each edge — and it leaves room for
+	// a band around itself at the scale the platform gives one.
 	SchemeSegmentW unit.Dp = 44
 	SchemeSwitchH  unit.Dp = 28
 	// SchemeSwitchW is the whole control, both segments.
 	SchemeSwitchW = 2 * SchemeSegmentW
-
-	// SchemeTargetH is how tall the press area over one segment is, which is
-	// taller than the segment draws. A control cut to the scale of the strip
-	// it stands in must not take the pointer target down with it, so the
-	// height the track gives up is handed back as slop: [SchemeTarget] is the
-	// wrapper that spends it, above and below the drawn control, leaving the
-	// layout at chrome scale.
-	//
-	// It is tokens.MinHitTarget, the standalone-control floor — which this
-	// control may take because it is standalone, with air above and below it,
-	// rather than a row in a stack whose neighbour the slop would be stolen
-	// from. The width needs none: a segment already draws at the floor.
-	SchemeTargetH = unit.Dp(tokens.MinHitTarget)
 
 	// schemeIconSize is the glyph in a segment. It does not follow the track
 	// down: at chrome scale the same mark is dressed in less, rather than a
@@ -301,8 +284,8 @@ func SchemeSwitch(c tokens.PlatformColors, dark bool) layout.Widget {
 // It is exported because the press belongs to the segment and not to the
 // control: a caller puts its own click area around each half and gets a
 // control that names a scheme on either side, rather than a toggle that
-// happens to be drawn as two. What it puts that area over is the target
-// [SchemeTarget] hands it and not the track, which is smaller.
+// happens to be drawn as two. The area goes over the segment as drawn — the
+// track is the target.
 func SchemeSegment(c tokens.PlatformColors, dark, selected bool) layout.Widget {
 	foreground, fill := schemeSegmentColors(c, selected)
 	glyph := schemeGlyph(dark, foreground)
@@ -330,44 +313,6 @@ func SchemeSegment(c tokens.PlatformColors, dark, selected bool) layout.Widget {
 		off.Pop()
 		return layout.Dimensions{Size: image.Pt(w, h)}
 	}
-}
-
-// SchemeTarget lays seg — one segment — inside the press area it is owed,
-// through lay: the caller's own event wrapper, which is anything shaped like a
-// [gioui.org/widget.Clickable]'s Layout, a gesture area of the caller's own
-// making included.
-//
-// The wrapper is handed a block [SchemeTargetH] tall with the segment drawn
-// centred in it, and what comes back out is the segment's own size — so the
-// row the control stands in is laid out at the track's height and the slop
-// overhangs the air above and below it. That split is the whole point: the
-// track is chrome scale (see [SchemeSwitchH]) and the thing a pointer has to
-// land on is not.
-//
-// The slop is vertical only. The two halves of the control tile side by side,
-// so width taken here would be taken off the other half rather than added to
-// anything, and a segment is already as wide as the floor asks.
-func SchemeTarget(gtx layout.Context, lay func(layout.Context, layout.Widget) layout.Dimensions, seg layout.Widget) layout.Dimensions {
-	var drawn layout.Dimensions
-	macro := op.Record(gtx.Ops)
-	target := lay(gtx, func(gtx layout.Context) layout.Dimensions {
-		inner := op.Record(gtx.Ops)
-		drawn = seg(gtx)
-		call := inner.Stop()
-		size := drawn.Size
-		size.Y = max(size.Y, gtx.Dp(SchemeTargetH))
-		off := op.Offset(image.Pt(0, (size.Y-drawn.Size.Y)/2)).Push(gtx.Ops)
-		call.Add(gtx.Ops)
-		off.Pop()
-		return layout.Dimensions{Size: size}
-	})
-	call := macro.Stop()
-	// Shift the whole thing back up, so the segment draws where a caller that
-	// asked for no target at all would have drawn it.
-	off := op.Offset(image.Pt(0, -(target.Size.Y-drawn.Size.Y)/2)).Push(gtx.Ops)
-	call.Add(gtx.Ops)
-	off.Pop()
-	return drawn
 }
 
 // schemeTrack is the fill both segments sit on: the platform's push button,

@@ -15,7 +15,6 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
-	"github.com/vibrantgio/components/internal/hit"
 	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/mvu"
 	vgcolor "github.com/vibrantgio/theme/color"
@@ -155,10 +154,10 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 
 				foc := !dis && gtx.Focused(&b)
 
-				// The pointer area is at least MinHitTarget (44 dp) on
-				// each axis, centred on the visual footprint: density
-				// shrinks the drawn control, never the hit target.
-				return hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), b.Layout, func(gtx layout.Context) layout.Dimensions {
+				// The pointer area is the footprint the glyph is
+				// centred in — the checkbox's row, not its 16 dp
+				// glyph, which is what the platform gives a pointer.
+				return b.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					semantic.CheckBox.Add(gtx.Ops)
 					if props.Description != "" {
 						semantic.DescriptionOp(props.Description).Add(gtx.Ops)
@@ -196,9 +195,8 @@ func RenderCheckbox(
 func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState) layout.Dimensions {
 	// Sizing rule: the visual glyph keeps its measured 16 dp box at every
 	// density; the footprint (the row the glyph is centred in) is the
-	// density's control height. The glyph's box is never the pointer target:
-	// the live path extends the hit area to at least 44 dp around this
-	// footprint via hit.Extend.
+	// density's control height, and the footprint is the pointer target —
+	// the platform gives a pointer the checkbox's row, never its glyph.
 	boxSz := gtx.Dp(checkboxBoxSize)
 	ctlSz := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	if ctlSz < boxSz {

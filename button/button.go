@@ -18,7 +18,6 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/internal/focus"
-	"github.com/vibrantgio/components/internal/hit"
 	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/mvu"
 	vgcolor "github.com/vibrantgio/theme/color"
@@ -30,7 +29,7 @@ import (
 // Emphasis is how pronounced a button is — how strongly it competes for
 // attention on the surface it sits on. It is a colour property and nothing
 // else: the drawn control keeps the density's size, the pointer target keeps
-// its 44 dp floor, and the focus ring keeps its shape, width and place in
+// that size with it, and the focus ring keeps its shape, width and place in
 // every variant. Keyboard visibility is not an emphasis property.
 //
 // The three variants are the three buttons the platform draws: the default
@@ -55,8 +54,9 @@ const (
 	// button — no fill and no hairline, the label or glyph in the
 	// platform's control text. For affordances that must be present without
 	// being the subject — a dialog's close X, a toolbar of icons, a "Learn
-	// more". A ghost is less pronounced, not small: it keeps the full
-	// pointer target and the full focus ring.
+	// more". A ghost is less pronounced, not small: it draws the same square
+	// as a filled button, so it offers the same pointer target, and it keeps
+	// the full focus ring.
 	Ghost
 )
 
@@ -142,7 +142,7 @@ type Props struct {
 	// Ghost for an affordance that must be present without being the
 	// subject. It changes colour only — never the drawn size, never the
 	// pointer target, never the focus ring. Composes with Icon: a ghost
-	// icon button is a less pronounced glyph over a full 44 dp square.
+	// icon button is a less pronounced glyph over the same square.
 	Emphasis Emphasis
 
 	// Fill and Foreground pin the Filled emphasis' fill and its foreground to a
@@ -164,8 +164,8 @@ type Props struct {
 
 	// Icon, when non-nil and Label is empty, renders the button as a compact
 	// icon-only affordance: a square the density's control height on a side
-	// with the glyph centred, instead of a fill-width text label (the pointer
-	// target stays at least the 44 dp square). The painter draws into
+	// with the glyph centred, instead of a fill-width text label; that square
+	// is the pointer target. The painter draws into
 	// a sizePx×sizePx box at the current origin in colour col, via
 	// clip.Path / clip.Stroke, so output stays golden-deterministic (no font or
 	// SVG rasterisation). components/icon is the registry for named glyphs;
@@ -304,10 +304,10 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 
 				iconOnly := props.Icon != nil && props.Label == ""
 
-				// The clickable's pointer area is at least MinHitTarget
-				// (44 dp) on each axis, centred on the visual control:
-				// density shrinks the drawn button, never the hit target.
-				return hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), click.Layout, func(gtx layout.Context) layout.Dimensions {
+				// The clickable covers the drawn button exactly: a
+				// control's pointer target is the control, so density
+				// moves the target with the pixels.
+				return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					semantic.ClassOp(semantic.Button).Add(gtx.Ops)
 					semantic.LabelOp(props.Label).Add(gtx.Ops)
 					semantic.DescriptionOp(desc).Add(gtx.Ops)
@@ -377,7 +377,7 @@ func Render(
 // is drawn by icon into a square d.ControlHeight on a side, inset by
 // d.PaddingY, in the emphasis s carries — a ghost icon button is the less
 // pronounced glyph patterns/modal's close affordance wants, over the same
-// square and the same pointer target as a filled one.
+// square as a filled one, which is the pointer target in both.
 // Pass tokens.Comfortable for the default desktop look. Intended
 // for golden-image testing and static demonstrations; production code should
 // use Button with Props.Icon (and, when a container drives focus,
@@ -404,9 +404,9 @@ func RenderIcon(
 func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resolvedTokens, s RenderState) layout.Dimensions {
 	// Sizing rule: button height = Density.ControlHeight (24 dp
 	// Comfortable, 19 dp Compact — the platform's regular and small push
-	// button), inner padding = Density.PaddingX/PaddingY. 44 dp is
-	// WCAG 2.5.5's pointer-target floor, not a control height; the pointer
-	// target keeps it via hit.Extend in the live path.
+	// button), inner padding = Density.PaddingX/PaddingY. The drawn box is
+	// also the pointer target: the live path's clickable covers it and
+	// nothing more.
 	padH := gtx.Dp(unit.Dp(tok.density.PaddingX))
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
@@ -491,9 +491,9 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int, col color.NRGBA), tok resolvedTokens, s RenderState) layout.Dimensions {
 	// Sizing rule: side = Density.ControlHeight, glyph inset =
 	// Density.PaddingY, so the glyph gets ControlHeight − 2·PaddingY — the
-	// same content-box rule icon.Size documents. The pointer target stays the 44 dp square via hit.Extend in
-	// the live path — in every emphasis. Emphasis reaches the colours and
-	// stops there: the glyph grows less pronounced, the square does not
+	// same content-box rule icon.Size documents. That square is the pointer
+	// target in every emphasis: emphasis reaches the colours and stops
+	// there, so the glyph grows less pronounced and the square does not
 	// shrink.
 	pad := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	side := gtx.Dp(unit.Dp(tok.density.ControlHeight))

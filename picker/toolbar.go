@@ -6,11 +6,9 @@ import (
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
 	"gioui.org/text"
-	"gioui.org/unit"
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/components/internal/hit"
 	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/components/internal/toolbarface"
 	"github.com/vibrantgio/mvu"
@@ -125,13 +123,10 @@ type ToolbarProps struct {
 // BELOW this control, so the popover it is handed to must place the menu below
 // it. See the package doc for what a trigger the menu stands over would need.
 //
-// The pointer target is extended to the density's tokens.Density.MinHitTarget
-// (44 dp, WCAG 2.5.5) on both axes, centred on the drawn control, exactly as
-// components/button extends its own: the trigger draws at the density's control
-// height and what the pointer may land on does not shrink with it. The
-// component still reports the control's size — unless [ToolbarProps.Pin] asks
-// for the box instead, in which case the slop travels with the control it was
-// centred on.
+// The pointer target is the drawn control, exactly as components/button's is:
+// the trigger draws at the density's control height and that is what a pointer
+// has to land on. [ToolbarProps.Pin] asks for the offered box instead, in
+// which case the control and its target travel together.
 //
 // Keyboard activation is gioui.org/widget.Clickable's: the trigger is
 // focusable, Space and Enter activate it, and gtx.Focused drives
@@ -204,7 +199,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 				}
 
 				return toolbarface.Pin(props.Pin).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), click.Layout,
+					return click.Layout(gtx,
 						func(gtx layout.Context) layout.Dimensions {
 							semantic.ClassOp(semantic.Button).Add(gtx.Ops)
 							semantic.LabelOp(props.Value).Add(gtx.Ops)
@@ -236,8 +231,8 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 // labelStyle is the whole text style the value is set in; pass
 // tokens.DefaultTypography.LabelLarge with tokens.Comfortable for the default
 // desktop control. The trigger is sized to its content, clamped to the
-// constraints it is handed, and asks for the pointer cursor. Extending its
-// pointer area to tokens.MinHitTarget is the live path's job — see [Toolbar].
+// constraints it is handed, and asks for the pointer cursor. Registering its
+// pointer area over that control is the live path's job — see [Toolbar].
 func RenderToolbar(
 	shaper *text.Shaper,
 	value string,

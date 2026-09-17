@@ -66,10 +66,9 @@ func (status Status) systemColor(p tokens.PlatformColors) color.NRGBA {
 // CloseHitDp is the side of the pointer target the close mark claims, in
 // dp, centred on the mark and free to overhang the badge.
 //
-// It is WCAG 2.5.8 Target Size (Minimum), the AA criterion, and not the 44 dp
-// of [tokens.MinHitTarget]: 44 is this system's floor for a standalone control
-// with space around it, and a 44 dp target centred on a 16 dp badge would
-// reach into whatever is set beside it.
+// It is larger than the mark is drawn, because a mark a few dp across is not
+// something a pointer can be asked to land on, and small enough not to reach
+// into whatever is set beside a 16 dp badge.
 const CloseHitDp = 24
 
 // closeStrokeDp is the width of each of the close mark's two strokes, in dp.

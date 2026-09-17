@@ -25,8 +25,8 @@
 // across them, and the focused link draws a visible focus ring. Space or
 // Enter on a focused link fires OnLinkClick, which carries the frame's live
 // layout.Context so consumers can emit mvu.MessageOp{Message: ...}.Add(gtx.Ops)
-// inside the callback. Inline links are text-sized: the 44 dp hit-target rule does not
-// apply to inline text links (WCAG 2.5.5 inline exception).
+// inside the callback. An inline link is text-sized: its pointer target is the
+// run of text it marks, which is what the platform gives a link in prose.
 //
 // # Zero dependencies
 //

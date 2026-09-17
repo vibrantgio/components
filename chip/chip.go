@@ -25,7 +25,6 @@ import (
 	"github.com/vibrantgio/theme/typeset"
 
 	"github.com/vibrantgio/components/internal/focus"
-	"github.com/vibrantgio/components/internal/hit"
 	"github.com/vibrantgio/components/internal/surface"
 )
 
@@ -99,9 +98,8 @@ const AvatarDp = 24
 // DismissHitDp is the side of the pointer target the dismiss mark claims,
 // in dp, centred on the mark and free to overhang the chip.
 //
-// It is WCAG 2.5.8 Target Size (Minimum), the AA criterion, and not the 44 dp
-// of [tokens.MinHitTarget]: 44 is this system's floor for a standalone control
-// with space around it, and a 44 dp target centred on the mark would reach
+// It is larger than the mark is drawn, because a mark a few dp across is not
+// something a pointer can be asked to land on, and small enough not to reach
 // past both ends of the chip carrying it.
 const DismissHitDp = 24
 
@@ -279,8 +277,8 @@ const (
 // where it asked for it. PinNone lays w out untouched, so a chip that pins
 // nothing pays nothing.
 //
-// The whole of w is offset, slop and all, so the pointer target stays
-// centred on the chip it was extended around.
+// The whole of w is offset, the dismiss mark's own target included, so every
+// pointer area stays where the chip it belongs to went.
 func (p Pin) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	if p == PinNone {
 		return w(gtx)
@@ -415,14 +413,11 @@ type resolvedTokens struct {
 // pure path cannot carry — the pointer areas, the keyboard, the [Filter]
 // chip's own selection, and the dispatch.
 //
-// The pointer target is extended to the density's [tokens.Density.MinHitTarget]
-// (44 dp, WCAG 2.5.5) on both axes, centred on the drawn chip, exactly as
-// components/button extends its own: the chip draws at the density's chip
-// height and what the pointer may land on does not shrink with it. The
-// component still reports the chip's size, so a row of chips is laid out at their own
-// scale and the slop overhangs the air around them — unless [Props.Pin] asks
-// for the box instead, in which case the slop travels with the chip it was
-// centred on.
+// The pointer target is the drawn chip, exactly as components/button's is the
+// drawn button: the chip draws at the density's chip height and that is what a
+// pointer has to land on, so a row of chips claims no more room than it shows.
+// [Props.Pin] asks for the offered box instead, in which case the chip and its
+// target travel together.
 //
 // An [Input] chip's dismiss mark registers a second, smaller target
 // ([DismissHitDp]) over the body's, and the body keeps the pointer while it is
@@ -541,7 +536,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 				}
 
 				return props.Pin.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return hit.Extend(gtx, gtx.Dp(unit.Dp(tok.density.MinHitTarget())), click.Layout,
+					return click.Layout(gtx,
 						func(gtx layout.Context) layout.Dimensions {
 							return draw(gtx, shaper, props.Label, props.Purpose, props.Icon,
 								tok, s, desc, &dismiss)
@@ -564,8 +559,8 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 // either density.
 //
 // The chip is sized to its content, clamped to the constraints it is handed,
-// and asks for the pointer cursor. Registering pointer areas — the body's 44 dp
-// floor and the dismiss mark's own — is the live path's job; see [Chip].
+// and asks for the pointer cursor. Registering pointer areas — the chip's own
+// box and the dismiss mark's target — is the live path's job; see [Chip].
 func Render(
 	shaper *text.Shaper,
 	label string,

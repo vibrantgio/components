@@ -128,18 +128,15 @@
 //
 // # The pointer targets
 //
-// The drawn chip is the density's chip height and a standalone control owes
-// its pointer 44 dp on each axis ([tokens.MinHitTarget], WCAG 2.5.5). The pure
-// path draws and does not register pointer areas, so the extension belongs to
-// the live path, exactly as it does for components/button: [Render] reports
-// the chip's own size and the caller that wires input extends it. [Chip] is
-// that caller — it spends the difference as slop centred on the chip, so the
-// row the chip stands in is laid out at the chip's size and the target
-// overhangs the air around it.
+// The drawn chip is the density's chip height, and that is the target: a
+// chip's pointer area is the chip. The pure path draws and does not register
+// pointer areas, so the area belongs to the live path, exactly as it does for
+// components/button: [Render] reports the chip's own size and [Chip] is the
+// caller that lays a clickable over it.
 //
-// The dismiss mark registers a second target of its own, [DismissHitDp] —
-// WCAG 2.5.8's AA minimum rather than 44 dp, because a 44 dp target centred
-// on the mark would reach past both ends of the chip carrying it. It lies over
+// The dismiss mark registers a second target of its own, [DismissHitDp],
+// larger than the mark is drawn because a mark a few dp across is not
+// something a pointer can be asked to land on. It lies over
 // the body's target and takes the pointer where they overlap, so the body
 // reads the mark's hover as its own: a chip whose mark is under the finger is
 // a chip under the finger.

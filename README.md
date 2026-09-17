@@ -9,7 +9,7 @@ styled against the `tokens` and `theme` contract that lives one tier down in
 
 Gio gives you drawing primitives and an event loop, not a component set. A
 button is yours to write, and so are its hover, focus, press and disabled
-states, its 44 dp pointer target, its Space/Enter activation and its
+states, its pointer target, its Space/Enter activation and its
 screen-reader label. components writes them once. There are two API shapes, and
 which one a package uses follows from what it owns:
 
@@ -21,9 +21,9 @@ which one a package uses follows from what it owns:
   `rx.Defer` scope, which is what keeps press and focus alive across the view
   rebuilds an MVU loop drives. The theme carries the whole look: colour,
   typography (the theme's shaper — see below), and `Density` — the drawn
-  control is 36 dp Comfortable or 28 dp Compact, while the pointer target keeps
-  the 44 dp floor of WCAG 2.5.5 Target Size (Enhanced) by extending beyond the
-  drawn bounds, so Compact shrinks the pixels, never the clickable area.
+  control is the platform's regular control at 24 dp Comfortable and its small
+  one at 19 dp Compact, and the drawn control is also the pointer target, so
+  Compact moves what a pointer lands on with the pixels.
 - **Immediate-mode primitives** — `list`, `paragraph`, `scrollbar`, `layout` —
   take the frame's `layout.Context`, a `State` you allocate once and reuse
   across frames, and a per-frame `Style` resolved from tokens
@@ -70,7 +70,7 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 | `badge` | The inline annotation: the system's own word about a thing, set at the size of its own type and off the control-height scale entirely. It speaks as a word, a count or a glyph — a word or a count filled with the platform's system colour for the status under white, the platform's own count badge; a glyph standing bare in that system colour, or on a disc of it under a white sign. Five values differing in hue alone (`Neutral`, which has no system colour of its own and wears systemGray filled and the secondary label bare, and `Success`/`Warning`/`Error`/`Info` for the four statuses) and no emphasis axis, because a badge is read rather than used. `Props.OnDismiss` grows the close mark, whose invisible target is 24 dp on an 8 dp drawing; what it removes is the label and never the behaviour. |
 | `breadcrumb` | The control for going back up the hierarchy: a chevron-separated row of location segments — each step a link, the last where you are. The current location renders in `Text`, the steps before it in the low-contrast neutral step, and a segment is clickable exactly when its own `OnClick` is set. `Breadcrumb` takes the trail when the stream is built; `Trail` takes it per frame, for a path that changes as the user navigates, and routes each click by the segment's own key rather than by the position it stood in. No overflow behaviour: every segment renders, on one row, and a trail deeper than its constraint is clipped rather than collapsed. |
 | `bench` | `BenchFrame`, the shared per-frame benchmark harness every component's benchmarks run through. |
-| `button` | The button: text or icon-only, in three emphases (filled, tonal, ghost — the filled one able to wear a fill and foreground pinned by its caller), hover/focus/press/disabled, keyboard activation, density-sized with a 44 dp pointer target; clicks arrive as a callback or as an MVU message. |
+| `button` | The button: text or icon-only, in three emphases (filled, tonal, ghost — the filled one able to wear a fill and foreground pinned by its caller), hover/focus/press/disabled, keyboard activation, density-sized, the drawn control its own pointer target; clicks arrive as a callback or as an MVU message. |
 | `cache` | `FrameCache`, an op-recording cache that replays a component's recorded draw commands on frames where its inputs have not changed. |
 | `coordination` | **Deprecated** — use [`mvu/stream`](https://github.com/vibrantgio/mvu)`.Value`. `Subject`, the typed broadcast channel for cross-component signals. ADR-008 retired the concerns it was built for: drag, modal and tooltip arbitration are frame state now, toasts are messages, and the one genuine stream left (`theme/preferences`) is a tier below and could never import it. It has no users left in the organization; it is removed at **v1.0.0**, with ADR-001's and ADR-003's alias shims, so that every removal lands on one version boundary. |
 | `golden` | The organization's headless-Gio golden-image harness: `Capture`, `Render` and `PixelDiff`. Exported so callers outside components drive one capture path instead of inlining their own. |
@@ -139,9 +139,9 @@ is the MVU path — the component adds `mvu.MessageOp{Message: …}` to the
 frame's ops and the runtime delivers it to `Update`. FRP-style applications
 use `OnClick` instead, and are handed the frame's `layout.Context` so they can
 still emit a message from inside the callback. Components buttons fill the width
-they are given and draw at the theme's `Density.ControlHeight`; the pointer
-area extends past the drawn control to the 44 dp floor, so neighbouring
-Compact controls' slop overlapping is by design (the topmost input area wins).
+they are given and draw at the theme's `Density.ControlHeight`, which is the
+pointer target too: a control claims the pixels it shows and no more, so two
+controls side by side never contend for the same press.
 
 The **gallery** shows every component in every visual state, with live
 interaction:

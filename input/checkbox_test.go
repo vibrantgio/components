@@ -56,9 +56,8 @@ func TestCheckboxGolden(t *testing.T) {
 
 // TestCheckboxFootprintIsControlHeight checks the checkbox's visual footprint
 // is the density's control-height square with the measured 16 dp glyph centred
-// in it. The 44 dp WCAG 2.5.5 floor applies to the pointer target, not the
-// footprint: the live Checkbox extends its hit area via internal/hit,
-// exercised by TestCheckboxHitSlopToggles.
+// in it. That footprint is the pointer target too — the checkbox's row, not
+// its glyph — which TestCheckboxTargetIsItsRow exercises.
 func TestCheckboxFootprintIsControlHeight(t *testing.T) {
 	var ops op.Ops
 	gtx := layout.Context{
@@ -80,10 +79,11 @@ func TestCheckboxFootprintIsControlHeight(t *testing.T) {
 	}
 }
 
-// TestCheckboxHitSlopToggles checks the live checkbox's pointer target
-// extends to the 44 dp floor: a click outside the 36 dp visual footprint but
-// inside the 44 dp hit rectangle toggles the value.
-func TestCheckboxHitSlopToggles(t *testing.T) {
+// TestCheckboxTargetIsItsRow checks the live checkbox's pointer target is the
+// footprint the glyph is centred in and not the 16 dp glyph: a click in the
+// footprint's corner, clear of the glyph, toggles the value, and a click
+// outside the footprint does not.
+func TestCheckboxTargetIsItsRow(t *testing.T) {
 	var toggled int
 	w := materialize(t, input.Checkbox(rx.Of(theme.Default()), input.CheckboxProps{
 		Description: "opt-in",
@@ -106,18 +106,26 @@ func TestCheckboxHitSlopToggles(t *testing.T) {
 
 	drive() // register the input area
 
-	// The hit rect is the 44 px floor centred on the ControlHeight footprint,
-	// so it reaches (44-ControlHeight)/2 px past each edge. Click one px
-	// outside the footprint's far corner — outside the glyph's row, inside
-	// the slop.
-	pos := f32.Pt(float32(tokens.Comfortable.ControlHeight)+1, float32(tokens.Comfortable.ControlHeight)+1)
+	// The footprint's far corner: inside the row, outside the 16 dp glyph
+	// centred in it, which is the only place the two can be told apart.
+	pos := f32.Pt(float32(tokens.Comfortable.ControlHeight)-1, float32(tokens.Comfortable.ControlHeight)-1)
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 	)
 	drive()
 	if toggled != 1 {
-		t.Errorf("click in the hit slop: OnChange fired %d times, want 1", toggled)
+		t.Errorf("click in the footprint's corner, clear of the glyph: OnChange fired %d times, want 1", toggled)
+	}
+
+	outside := f32.Pt(float32(tokens.Comfortable.ControlHeight)+4, float32(tokens.Comfortable.ControlHeight)+4)
+	r.Queue(
+		pointer.Event{Kind: pointer.Press, Position: outside, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+		pointer.Event{Kind: pointer.Release, Position: outside, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+	)
+	drive()
+	if toggled != 1 {
+		t.Errorf("click outside the footprint: OnChange fired %d times in total, want 1 — the target is the row", toggled)
 	}
 }
 

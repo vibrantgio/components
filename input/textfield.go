@@ -221,9 +221,9 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 		// Allocated once per subscription — survives all theme and disabled
 		// emissions for the lifetime of this TextField instance.
 		editor := &widget.Editor{SingleLine: true, Submit: props.Submit, Mask: props.Mask}
-		// hitTag identifies the extended pointer-target area: the
-		// visual field is the density's control height tall, but a press
-		// anywhere in the ≥44 dp hit rectangle focuses the editor.
+		// hitTag identifies the field's own pointer area: the editor's
+		// area covers the text line, and a press anywhere else in the
+		// drawn field focuses the editor.
 		hitTag := new(int)
 		if props.Seed != "" {
 			editor.SetText(props.Seed)
@@ -273,11 +273,10 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 					}
 				}
 
-				// A press in the extended hit area (beyond the visual
-				// field but inside the ≥44 dp pointer target) focuses
-				// the editor; presses on the text line itself are also
-				// seen by the editor's own area, which handles caret
-				// placement.
+				// A press anywhere in the field outside the text
+				// line focuses the editor; presses on the line
+				// itself are also seen by the editor's own area,
+				// which handles caret placement.
 				for {
 					ev, ok := gtx.Event(pointer.Filter{Target: hitTag, Kinds: pointer.Press})
 					if !ok {
@@ -507,23 +506,12 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	// fill and outside the editor's box, so neither can be typed over.
 	ad.paint(gtx, tok, s, fieldSize, padH)
 
-	// Pointer-target extension: the drawn field may be shorter than
-	// the WCAG 2.5.5 floor, but the pointer target never is. Register a
-	// pass-through input area over the hit rectangle — max(field, 44 dp) per
-	// axis, centred on the field, extending beyond its bounds — whose press
-	// events the TextField component turns into a FocusCmd for the editor. The
-	// pass op keeps the editor's own area receiving the presses that land on
-	// the text line.
-	hitPx := gtx.Dp(unit.Dp(tok.density.MinHitTarget()))
-	hitW, hitH := fieldW, fieldH
-	if hitW < hitPx {
-		hitW = hitPx
-	}
-	if hitH < hitPx {
-		hitH = hitPx
-	}
-	hitRect := image.Rect(-(hitW-fieldW)/2, -(hitH-fieldH)/2, fieldW+(hitW-fieldW+1)/2, fieldH+(hitH-fieldH+1)/2)
-	cl := clip.Rect(hitRect).Push(gtx.Ops)
+	// The field's pointer target is the field: the platform's measured field
+	// height, which Density.FieldHeight carries. Register a pass-through
+	// input area over the drawn field whose press events the TextField
+	// component turns into a FocusCmd for the editor. The pass op keeps the
+	// editor's own area receiving the presses that land on the text line.
+	cl := clip.Rect(image.Rect(0, 0, fieldW, fieldH)).Push(gtx.Ops)
 	pass := pointer.PassOp{}.Push(gtx.Ops)
 	event.Op(gtx.Ops, hitTag)
 	pass.Pop()

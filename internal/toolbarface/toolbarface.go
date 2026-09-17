@@ -195,8 +195,8 @@ const (
 // is what lets a caller upstream find the pinned edge where it asked for it.
 // PinNone lays w out untouched, so pinning nothing costs nothing.
 //
-// The whole of w is offset, slop and all, so the pointer target stays
-// centred on the shape it was extended around.
+// The whole of w is offset, so the pointer area registered over it travels
+// with the shape it belongs to.
 func (p Pin) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	if p == PinNone {
 		return w(gtx)

@@ -84,7 +84,7 @@
 // untouched at rest and tinted by the platform's own overlays under the
 // pointer and while held, the rim of its seam, the value in its control text,
 // the chevron in its secondary label, the focus ring that replaces that rim,
-// the density's height and padding, the 44 dp pointer target, the pin.
+// the density's height and padding, the pointer target that control is, the pin.
 // [ToolbarFill] is what the trigger lays over the chrome, for a caller that
 // must know. Two things are the toolbar trigger's own.
 //

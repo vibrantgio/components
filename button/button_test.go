@@ -514,11 +514,11 @@ func nearlyEqual(got color.RGBA, want color.NRGBA) bool {
 	return !off(got.R, want.R) && !off(got.G, want.G) && !off(got.B, want.B) && got.A == want.A
 }
 
-// TestGhostIconButtonKeepsFullHitTarget is the rule the modal's close button
-// depends on next: making a button's colours less pronounced must not shrink what the
-// pointer can hit. A ghost icon button draws a 36 dp square and still accepts
-// a click at y=38, inside the 44 dp floor and outside the visual.
-func TestGhostIconButtonKeepsFullHitTarget(t *testing.T) {
+// TestGhostIconButtonKeepsFullTarget is the rule the modal's close button
+// depends on next: making a button's colours less pronounced must not shrink
+// what the pointer can land on. A ghost icon button draws the density's
+// control-height square and accepts a click anywhere inside it.
+func TestGhostIconButtonKeepsFullTarget(t *testing.T) {
 	var clicked int
 	w := materialize(t, button.Button(rx.Of(theme.Default()), button.Props{
 		Icon:        crossIcon,
@@ -549,17 +549,28 @@ func TestGhostIconButtonKeepsFullHitTarget(t *testing.T) {
 		t.Fatalf("ghost icon button visual = %v, want %dx%d (the emphasis must not resize the control)", dims.Size, side, side)
 	}
 
-	// The hit rect is MinHitTarget px centred on the ControlHeight square:
-	// -10..34 on both axes at Comfortable. Click below the visual, inside
-	// the slop.
-	pos := f32.Pt(float32(side)/2, float32(side)+6)
+	// The pointer target is the drawn square. Click just inside its bottom
+	// edge, where a shrunken target would already have ended.
+	pos := f32.Pt(float32(side)/2, float32(side)-1)
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 	)
 	drive()
 	if clicked != 1 {
-		t.Errorf("click in the hit slop below a ghost icon button: OnClick fired %d times, want 1", clicked)
+		t.Errorf("click at the bottom edge of a ghost icon button: OnClick fired %d times, want 1", clicked)
+	}
+
+	// And nothing outside it: a control claims the pixels it draws and no
+	// more, so the air below the square belongs to whatever is laid out there.
+	outside := f32.Pt(float32(side)/2, float32(side)+6)
+	r.Queue(
+		pointer.Event{Kind: pointer.Press, Position: outside, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+		pointer.Event{Kind: pointer.Release, Position: outside, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+	)
+	drive()
+	if clicked != 1 {
+		t.Errorf("click below the drawn square: OnClick fired %d times in total, want 1 — the target is the control", clicked)
 	}
 }
 
@@ -610,12 +621,11 @@ func TestButtonCompactGolden(t *testing.T) {
 // ---- Accessibility tests ----
 
 // TestButtonVisualHeightIsControlHeight checks the drawn button is exactly
-// the density's control height (36 dp Comfortable) — distinct from the 44 dp
-// pointer-target floor, verified separately below.
+// the density's control height, which is also its pointer target.
 //
 // Comfortable is the density where the floor and the content box agree:
-// LabelLarge's 20 dp line box plus 2×8 dp of padding is 36, which is
-// ComfortableControlHeight exactly. The two readings are pulled apart at
+// LabelLarge's 20 dp line box plus 2×PaddingY is exactly
+// ComfortableControlHeight. The two readings are pulled apart at
 // Compact by TestCompactButtonClearsTheControlHeightFloor.
 func TestButtonVisualHeightIsControlHeight(t *testing.T) {
 	shaper := defaultShaper(t)
@@ -681,11 +691,10 @@ func TestCompactButtonClearsTheControlHeightFloor(t *testing.T) {
 	}
 }
 
-// TestButtonMinHitTarget checks the live button's pointer target extends to
-// the 44 dp WCAG 2.5.5 floor even though the visual control is only the
-// density's control height: a click below the visual bounds, inside the hit
-// slop, activates it.
-func TestButtonMinHitTarget(t *testing.T) {
+// TestButtonTargetIsTheControl checks the live button's pointer target is the
+// drawn control and nothing else: a click inside the drawn bounds activates
+// it, a click below them does not.
+func TestButtonTargetIsTheControl(t *testing.T) {
 	var clicked int
 	w := materialize(t, button.Button(rx.Of(theme.Default()), button.Props{
 		Label:   "OK",
@@ -714,16 +723,26 @@ func TestButtonMinHitTarget(t *testing.T) {
 		t.Fatalf("visual height = %d px, want %d", dims.Size.Y, int(tokens.Comfortable.ControlHeight))
 	}
 
-	// The hit rect is MinHitTarget px centred on the ControlHeight visual.
-	// Click below the visual, inside the slop.
-	pos := f32.Pt(150, float32(tokens.Comfortable.ControlHeight)+6)
+	// The pointer target is the drawn control. Click just inside its bottom
+	// edge.
+	pos := f32.Pt(150, float32(tokens.Comfortable.ControlHeight)-1)
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 	)
 	drive()
 	if clicked != 1 {
-		t.Errorf("click in the hit slop below the visual: OnClick fired %d times, want 1", clicked)
+		t.Errorf("click at the control's bottom edge: OnClick fired %d times, want 1", clicked)
+	}
+
+	outside := f32.Pt(150, float32(tokens.Comfortable.ControlHeight)+6)
+	r.Queue(
+		pointer.Event{Kind: pointer.Press, Position: outside, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+		pointer.Event{Kind: pointer.Release, Position: outside, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+	)
+	drive()
+	if clicked != 1 {
+		t.Errorf("click below the drawn control: OnClick fired %d times in total, want 1 — the target is the control", clicked)
 	}
 }
 
@@ -831,9 +850,8 @@ func TestIconButtonGolden(t *testing.T) {
 }
 
 // TestIconButtonVisualIsControlHeightSquare checks the icon-only button draws
-// as a square the density's control height on a side (36 dp
-// Comfortable). The 44 dp pointer-target floor is enforced by the live path's
-// hit extension, exercised by TestButtonMinHitTarget and internal/hit.
+// as a square the density's control height on a side. That square is the
+// pointer target too, which TestButtonTargetIsTheControl exercises.
 func TestIconButtonVisualIsControlHeightSquare(t *testing.T) {
 	var ops op.Ops
 	gtx := layout.Context{

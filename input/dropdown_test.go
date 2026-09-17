@@ -100,10 +100,9 @@ func TestDropdownGolden(t *testing.T) {
 // TestDropdownTriggerHeightIsItsLineBoxOverTheFloor checks the closed trigger
 // draws at max(ControlHeight, BodyLarge's line box + 2×PaddingY) — 40 dp
 // Comfortable, over the 36 dp floor — the same rule and the same arithmetic as
-// the text field it is styled to match. The 44 dp WCAG 2.5.5 floor applies to
-// the pointer target: the live Dropdown extends the trigger's hit area via
-// internal/hit (option rows stack against each other and keep their row bounds
-// as their target).
+// the text field it is styled to match. The drawn trigger is the pointer
+// target, and an option row is its own row, so neither claims a neighbour's
+// pixels.
 func TestDropdownTriggerHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 	shaper := defaultShaper(t)
 	var ops op.Ops

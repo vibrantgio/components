@@ -43,9 +43,9 @@ func TestRadioGolden(t *testing.T) {
 // TestRadioFootprintIsControlHeight checks the radio's visual footprint is
 // the density's control-height square with the 16 dp glyph centred in it —
 // the checkbox's measured side length, which the radio's circle follows so
-// the two read as one row. The 44 dp WCAG 2.5.5 floor applies to the pointer
-// target, not the footprint: the live Radio extends its hit area via
-// internal/hit (same mechanism TestCheckboxHitSlopToggles exercises).
+// the two read as one row. That footprint is the pointer target too — the
+// button's row, not its circle — the same rule TestCheckboxTargetIsItsRow
+// exercises.
 func TestRadioFootprintIsControlHeight(t *testing.T) {
 	var ops op.Ops
 	gtx := layout.Context{

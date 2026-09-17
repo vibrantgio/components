@@ -82,8 +82,8 @@ func TestTextFieldGolden(t *testing.T) {
 // field that took the button's floor would be the wrong height wherever the
 // type role left the floor binding.
 //
-// The 44 dp WCAG 2.5.5 floor applies to the pointer target, verified by
-// TestTextFieldHitSlopFocusesEditor.
+// The drawn field is also the pointer target, verified by
+// TestTextFieldTargetIsTheField.
 func TestTextFieldHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 	shaper := defaultShaper(t)
 
@@ -111,10 +111,9 @@ func TestTextFieldHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 	}
 }
 
-// TestTextFieldHitSlopFocusesEditor checks the live field's pointer target
-// extends to the 44 dp floor: a press below the drawn field, inside the hit
-// slop, focuses the editor.
-func TestTextFieldHitSlopFocusesEditor(t *testing.T) {
+// TestTextFieldTargetIsTheField checks the live field's pointer target is the
+// drawn field: a press inside it, clear of the text line, focuses the editor.
+func TestTextFieldTargetIsTheField(t *testing.T) {
 	var tag event.Tag
 	w := materialize(t, input.TextField(rx.Of(theme.Default()), input.TextFieldProps{
 		Placeholder: "Email",
@@ -135,10 +134,9 @@ func TestTextFieldHitSlopFocusesEditor(t *testing.T) {
 		t.Fatalf("field height = %d px, want %d", dims.Size.Y, fieldH)
 	}
 
-	// The hit rect is the 44 px floor centred on the drawn field, so it
-	// reaches (44-fieldH)/2 px below it. Press two px under the field's own
-	// bottom edge — outside the field, inside the slop.
-	pos := f32.Pt(150, float32(fieldH+2))
+	// Press a pixel above the field's own bottom edge, below the text line:
+	// inside the field's area, outside the editor's own.
+	pos := f32.Pt(150, float32(fieldH-1))
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
@@ -154,7 +152,7 @@ func TestTextFieldHitSlopFocusesEditor(t *testing.T) {
 		Source:      r.Source(),
 	}
 	if tag == nil || !probe.Focused(tag) {
-		t.Error("press in the hit slop below the field did not focus the editor")
+		t.Error("press inside the field, below the text line, did not focus the editor")
 	}
 }
 

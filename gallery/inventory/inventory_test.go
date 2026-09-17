@@ -256,14 +256,6 @@ func TestTheSchemeControlIsAControl(t *testing.T) {
 				if want := image.Pt(int(SchemeSegmentW), int(SchemeSwitchH)); dims.Size != want {
 					t.Errorf("%s: a segment measured %v, want %v", sc.name, dims.Size, want)
 				}
-				if dims.Size.X < int(schemeTargetFloor) {
-					t.Errorf("%s: a segment is %v wide, under the %v target floor",
-						sc.name, dims.Size.X, schemeTargetFloor)
-				}
-				if dims.Size.Y < int(schemeDrawnFloor) {
-					t.Errorf("%s: a segment draws %v tall, under the %v a target owes before any slop is spent on it",
-						sc.name, dims.Size.Y, schemeDrawnFloor)
-				}
 				foreground, fill := schemeSegmentColors(sc.c, selected)
 				ratio := themecolor.Magnitude(foreground, fill)
 				t.Logf("%s scheme, %s segment, selected=%v: glyph |Lc| %.2f on the fill behind it",
@@ -293,15 +285,12 @@ func TestTheSchemeControlIsAControl(t *testing.T) {
 	}
 }
 
-// TestTheSchemeTargetOutlivesTheTrack is the other half of the control's size.
-// The track is cut to the scale of the strip it stands in; what somebody has
-// to land a pointer on is not cut with it, and a press in the slop above or
-// below the track is a press on the control.
-//
-// It also holds the layout to the track: a target that reported its own height
-// to the row around it would push that row back open and undo the cut.
-func TestTheSchemeTargetOutlivesTheTrack(t *testing.T) {
-	// The control stands away from the origin, so the slop above it is at
+// TestTheSchemeSegmentIsItsOwnTarget: this control's pointer target is the
+// track it draws. A press on the track reaches it and a press in the air above
+// it does not, so the row the control stands in is laid out at the track's own
+// height with nothing claimed beyond it.
+func TestTheSchemeSegmentIsItsOwnTarget(t *testing.T) {
+	// The control stands away from the origin, so the air above it is at
 	// coordinates a pointer can be put on.
 	const at = 20
 	btn := new(widget.Clickable)
@@ -323,30 +312,24 @@ func TestTheSchemeTargetOutlivesTheTrack(t *testing.T) {
 			clicked++
 		}
 		off := op.Offset(image.Pt(at, at)).Push(gtx.Ops)
-		drawn = SchemeTarget(gtx, btn.Layout, SchemeSegment(tokens.PlatformLight, false, true))
+		drawn = btn.Layout(gtx, SchemeSegment(tokens.PlatformLight, false, true))
 		off.Pop()
 		r.Frame(ops)
 	}
 	drive() // register the press area
 
 	if want := image.Pt(int(SchemeSegmentW), int(SchemeSwitchH)); drawn.Size != want {
-		t.Fatalf("the target reports %v to the row it stands in, want the track's own %v — a row laid out on that is not at the scale the track was cut to",
-			drawn.Size, want)
+		t.Fatalf("the segment reports %v to the row it stands in, want the track's own %v", drawn.Size, want)
 	}
-	slop := (int(SchemeTargetH) - int(SchemeSwitchH)) / 2
-	if slop < 1 {
-		t.Fatalf("a %v track under a %v target leaves no slop to press in", SchemeSwitchH, SchemeTargetH)
-	}
-	t.Logf("the track draws %v tall, the target is %v, so the slop is %d px above and below", SchemeSwitchH, SchemeTargetH, slop)
 
 	x := float32(at + int(SchemeSegmentW)/2)
 	for _, p := range []struct {
 		where string
 		pos   f32.Point
 	}{
-		{"above the track", f32.Pt(x, float32(at-slop)+0.5)},
+		{"at the track's top edge", f32.Pt(x, float32(at)+0.5)},
 		{"on the track", f32.Pt(x, float32(at+int(SchemeSwitchH)/2))},
-		{"below the track", f32.Pt(x, float32(at+int(SchemeSwitchH)+slop)-0.5)},
+		{"at the track's foot", f32.Pt(x, float32(at+int(SchemeSwitchH))-0.5)},
 	} {
 		before := clicked
 		r.Queue(
@@ -355,20 +338,20 @@ func TestTheSchemeTargetOutlivesTheTrack(t *testing.T) {
 		)
 		drive()
 		if clicked == before {
-			t.Errorf("a press %s, at %v, reached nothing — the control's target does not cover it", p.where, p.pos)
+			t.Errorf("a press %s, at %v, reached nothing — the control's target does not cover what it draws", p.where, p.pos)
 		}
 	}
-	// And it stops where the target does: a press a whole target away is a
-	// press on whatever else is there.
+	// And it stops where the track does: a press above it is a press on
+	// whatever else is there.
 	before := clicked
-	pos := f32.Pt(x, float32(at-int(SchemeTargetH)))
+	pos := f32.Pt(x, float32(at)-4)
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 	)
 	drive()
 	if clicked != before {
-		t.Errorf("a press at %v, a whole target above the control, reached it — the slop does not end", pos)
+		t.Errorf("a press at %v, above the control, reached it — the target is larger than the track", pos)
 	}
 }
 
@@ -386,19 +369,8 @@ func TestTheSchemeFillHoldsItsGlyph(t *testing.T) {
 		SchemeSwitchH, schemeThumbInset, fill, schemeIconSize, (fill-schemeIconSize)/2)
 }
 
-// The floors the control is held to.
+// The floor the control's glyph is held to.
 const (
-	// schemeTargetFloor is the smallest press area either side of the control
-	// may offer. It is the standing minimum for a standalone control —
-	// something pointed at rather than aimed at — and it is what a segment is
-	// held to whether it draws that tall or has the difference handed to it as
-	// slop.
-	schemeTargetFloor unit.Dp = 44
-	// schemeDrawnFloor is the smallest the drawn track may get. A control cut
-	// to the scale of a strip still owes the minimum any target owes before a
-	// point of slop is added to it, so the track clears that on its own and
-	// the slop is what carries it the rest of the way to schemeTargetFloor.
-	schemeDrawnFloor unit.Dp = 24
 	// schemeGlyphFloor is the contrast a glyph needs against what is behind
 	// it. A glyph is a graphic and not a line of text, which is the lower of
 	// the two standing floors.
