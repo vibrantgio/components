@@ -36,11 +36,13 @@ type RenderState struct {
 	Focused  bool
 	Disabled bool
 
-	// Surface is the opaque fill the field stands on. The field's edge is
-	// drawn as a shape the fill is inset inside, so the focus ring — the
-	// platform's keyboard focus indicator, which carries a coverage rather
-	// than a colour — lands on this rather than on the field's own fill. The
-	// zero value — no colour — is the window's own plane.
+	// Surface is the opaque fill the field stands on, and it is what the
+	// field's interior is filled with: the platform draws a field as a
+	// hairline around the surface beneath it rather than as a box of its
+	// own, which the Save dialog's field measures in both appearances. The
+	// focus ring — the platform's keyboard focus indicator, which carries a
+	// coverage rather than a colour — composites over it too. The zero value
+	// — no colour — is the window's own plane.
 	Surface color.NRGBA
 
 	// Text, when non-empty, is rendered in place of the placeholder using the
@@ -54,6 +56,19 @@ type RenderState struct {
 type TextFieldProps struct {
 	// Placeholder is shown when the field is empty and unfocused.
 	Placeholder string
+
+	// Surface answers the opaque fill this field stands on, for the scheme
+	// the field is drawing in: what its interior is filled with, and what
+	// the platform's coverages composite over. It is a function of the
+	// colour set rather than a colour because a live field outlives a change
+	// of scheme, and the fill it stands on is a different colour on the
+	// other side of one — patterns/pane.Surface is the same shape for the
+	// same reason.
+	//
+	// Leave it nil where the field stands on the window's own plane; state
+	// it where the field stands on something else — a chrome rail's
+	// material, a card.
+	Surface func(tokens.PlatformColors) color.NRGBA
 
 	// Description is the screen-reader label. Falls back to Placeholder when empty.
 	Description string
@@ -259,6 +274,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 				return drawTextFieldLive(gtx, shaper, editor, hitTag, props.Placeholder, desc, tok, RenderState{
 					Focused:  foc,
 					Disabled: dis,
+					Surface:  standsOn(props.Surface, tok.platform),
 				}, showPh, adorn{})
 			}
 		})
@@ -289,6 +305,17 @@ func Render(
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawTextFieldStatic(gtx, shaper, placeholder, tok, s, adorn{})
 	}
+}
+
+// standsOn answers the surface a live field was told it stands on, resolved
+// against the colour set of the frame being drawn. A nil answer is no answer
+// — the field then stands on the level it belongs to, which
+// control.FieldFill names.
+func standsOn(f func(tokens.PlatformColors) color.NRGBA, p tokens.PlatformColors) color.NRGBA {
+	if f == nil {
+		return color.NRGBA{}
+	}
+	return f(p)
 }
 
 // drawTextFieldLive renders a live text field containing a widget.Editor.
@@ -565,6 +592,11 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // (control.Placeholder — the same name components/picker's field trigger
 // draws its prompt in, named once so the two cannot drift).
 //
+// The interior is the surface the field stands on and not a fill of the
+// field's own — control.FieldFill carries the measurement — so a field on a
+// sidebar material is that material inside its hairline rather than a white
+// box on it.
+//
 // Disabled moves the foregrounds and nothing else: the platform keeps the
 // field's own fill under a field that cannot be typed into, so what says it
 // is unavailable is the text, in the colour the platform publishes for a
@@ -574,7 +606,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // indicator, the one ring every control in this library wears — drawn at
 // focus.Width instead of the hairline's single pixel.
 func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, edge, placeholder color.NRGBA) {
-	fill = control.Fill(p)
+	fill = control.FieldFill(p, s.Surface)
 	foreground = p.Text
 	edge = control.Border(p)
 	placeholder = control.Placeholder(p, fill)

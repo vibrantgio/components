@@ -2,6 +2,7 @@ package input
 
 import (
 	"image"
+	"image/color"
 
 	"gioui.org/io/event"
 	"gioui.org/io/key"
@@ -42,6 +43,19 @@ const ClearHitDp = 24
 type SearchFieldProps struct {
 	// Placeholder is shown when the field is empty and unfocused.
 	Placeholder string
+
+	// Surface answers the opaque fill this field stands on, for the scheme
+	// the field is drawing in: what its interior is filled with, and what
+	// the platform's coverages composite over. It is a function of the
+	// colour set rather than a colour because a live field outlives a change
+	// of scheme, and the fill it stands on is a different colour on the
+	// other side of one — patterns/pane.Surface is the same shape for the
+	// same reason.
+	//
+	// Leave it nil where the field stands on the window's own plane; state
+	// it where the field stands on something else — a chrome rail's
+	// material, a card.
+	Surface func(tokens.PlatformColors) color.NRGBA
 
 	// Description is the screen-reader label. Falls back to Placeholder when empty.
 	Description string
@@ -224,6 +238,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 				return drawTextFieldLive(gtx, shaper, editor, hitTag, props.Placeholder, desc, tok, RenderState{
 					Focused:  foc,
 					Disabled: dis,
+					Surface:  standsOn(props.Surface, tok.platform),
 				}, showPh, adorn{
 					search:    true,
 					clear:     true,
@@ -329,7 +344,7 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 	// Both marks stand inside the field, so both are flattened onto the
 	// field's own fill: the platform's names carry a coverage.
 	slot := a.slotPx(gtx, tok)
-	fill := control.Fill(tok.platform)
+	fill := control.FieldFill(tok.platform, s.Surface)
 	col := vgcolor.Flatten(tok.platform.SecondaryLabel, fill)
 	if s.Disabled {
 		col = vgcolor.Flatten(tok.platform.DisabledControlText, fill)

@@ -12,6 +12,7 @@ package control
 import (
 	"image/color"
 
+	"github.com/vibrantgio/components/internal/surface"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -23,10 +24,27 @@ import (
 func Border(p tokens.PlatformColors) color.NRGBA { return p.FieldEdge }
 
 // Fill is the interior of a control that paints a box of its own — the
-// unchecked box, the unselected radio's gap ring, the text field, the
-// picker's field trigger: the platform's text background, which is what it
-// fills a field with.
+// unchecked box, the unselected radio's gap ring: the platform's text
+// background, which is what it fills a box with.
 func Fill(p tokens.PlatformColors) color.NRGBA { return p.TextBackground }
+
+// FieldFill is the interior of a text field: the surface the field stands
+// on, with [Border] the only thing the field draws of its own.
+//
+// MEASURED, save-dialog-light.png and save-dialog-dark.png, the unfocused
+// "Tags:" field: its interior reads its sheet's own fill in both
+// appearances — #ffffff light and #232a2f dark — where the platform's text
+// background is #1e1e1e dark. The dark reading is what settles it: a field
+// filling itself with the text background could not land on #232a2f. So a
+// field on a sidebar material is that material inside its hairline, not a
+// white box standing on it.
+//
+// standsOn is the caller's stated surface; alpha zero is no answer, and the
+// platform's text background stands in — which is the window's own plane and
+// the content's fill alike on this platform.
+func FieldFill(p tokens.PlatformColors, standsOn color.NRGBA) color.NRGBA {
+	return surface.Or(standsOn, p.TextBackground)
+}
 
 // Placeholder is the foreground a control's prompt is drawn in: the wording
 // a text field or a picker's field trigger shows in the space its value will
