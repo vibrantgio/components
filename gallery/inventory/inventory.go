@@ -1712,8 +1712,9 @@ const specimenName = "Show the sidebar"
 //
 // Drawn hovered. That is the state each cell is frozen in — a tooltip stands
 // only while the pointer rests on its trigger — and it is what gives the
-// popover's beak a fill to seat on: Ghost emphasis draws none at rest, and an
-// apex aimed at a square with no fill points at empty air.
+// popover's beak a fill to seat on: Ghost emphasis draws no fill at rest and
+// takes the platform's hover overlay over the surface it stands on under the
+// pointer, and an apex aimed at a square with no fill points at empty air.
 //
 // The name is emitted as a semantic description because the label is empty by
 // construction, and an icon-only button has no label to fall back on.

@@ -674,10 +674,11 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // sidebar material is that material inside its hairline rather than a white
 // box on it.
 //
-// Disabled moves the foregrounds and nothing else: the platform keeps the
-// field's own fill under a field that cannot be typed into, so what says it
-// is unavailable is the text, in the colour the platform publishes for a
-// control's disabled text.
+// Disabled fades the edge toward the surface it stands on at the platform's
+// measured disabled coverage (control.Faded) and drops the foregrounds to the
+// platform's disabled control text. The interior does not move: it is that
+// same surface already, not a fill of the field's own, so there is nothing
+// there to fade.
 //
 // Focus replaces the edge with focus.Ring — the platform's keyboard focus
 // indicator, the one ring every control in this library wears — drawn at
@@ -691,6 +692,7 @@ func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, 
 	case s.Disabled:
 		foreground = vgcolor.Flatten(p.DisabledControlText, fill)
 		placeholder = foreground
+		edge = control.Faded(edge, surface.Or(s.Surface, p.WindowBackground))
 	case s.Focused:
 		edge = focus.Ring(p, surface.Or(s.Surface, p.WindowBackground))
 	}

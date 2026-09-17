@@ -119,6 +119,12 @@ type FieldState struct {
 	Selected int
 	Options  []string
 
+	// Hovered lays the platform's hover overlay over the trigger's fill;
+	// Pressed lays its press overlay there instead, a press winning over a
+	// hover. See [drawTrigger].
+	Hovered bool
+	Pressed bool
+
 	// Drop is the side the open menu floats on. The zero value is
 	// [DropDown], beneath the trigger. See [Drop].
 	Drop Drop
@@ -466,6 +472,10 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 	drop, capPx := fitMenu(gtx, shaper, tok, s)
 	marked := s
 	marked.Drop = drop
+	// The trigger's own pointer state, read off the clickable that covers
+	// exactly the drawn bar. The menu's rows carry theirs separately.
+	marked.Hovered = trigger.Hovered()
+	marked.Pressed = trigger.Pressed()
 
 	// The trigger's pointer area is the drawn bar: a control's target is the
 	// control. The menu's rows are their own targets — see layoutMenuLive.
@@ -719,9 +729,32 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 
 	// The trigger is the platform's ordinary button, so its fill is the push
 	// button's own measured fill, and every name the trigger draws over that
-	// fill is flattened onto it. A disabled trigger keeps the fill: the
-	// platform fades the wording and leaves the control.
+	// fill is flattened onto it.
+	//
+	// Under the pointer it takes the platform's hover overlay and held down
+	// its press overlay, a press winning over a hover: the two are one answer
+	// and not two laid on each other. MEASURED,
+	// control-hover-{light,dark}.png — the Finder toolbar's VIEW POP-UP, the
+	// control drawing this very mark, under the pointer: #f2f2f2 on the
+	// #ffffff band light and #384146 on the #242d32 band dark, which is the
+	// hover overlay over what the control stands on. No capture holds a
+	// pressed pop-up, so the press is the push button's, MEASURED off
+	// control-pressed-{light,dark}.png: #d5d5d5 and #474d52 over the push
+	// button's own fill. The pressed pop-up is on the capture list.
+	//
+	// A disabled trigger fades toward the surface it stands on at the
+	// platform's measured disabled coverage, and every name drawn over it is
+	// flattened onto the faded fill. The form trigger reports no surface of
+	// its own, so the fade lands on the window's plane.
 	bg := tok.platform.PushButtonFill
+	switch {
+	case s.Disabled:
+		bg = control.Faded(bg, tok.platform.WindowBackground)
+	case s.Pressed:
+		bg = vgcolor.Flatten(tok.platform.PressOverlay, bg)
+	case s.Hovered:
+		bg = vgcolor.Flatten(tok.platform.HoverOverlay, bg)
+	}
 
 	textCol := vgcolor.Flatten(tok.platform.ControlText, bg)
 	if prompt {

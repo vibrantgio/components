@@ -703,3 +703,84 @@ func TestTheTriggerStandsOnThePopUpsColumnAndItsRowsOnTheFields(t *testing.T) {
 		})
 	}
 }
+
+// TestFieldStateGolden records the form trigger's states in both schemes, on
+// the plane a form field stands on.
+//
+// The trigger is the platform's pop-up button and takes the platform's own
+// pointer overlays: MEASURED, control-hover-{light,dark}.png, where the
+// Finder toolbar's view pop-up under the pointer reads #f2f2f2 on the white
+// band and #384146 on the #242d32 one. No capture holds a pressed pop-up, so
+// the held image is the push button's press overlay
+// (control-pressed-{light,dark}.png) until one is taken. Switched off, the
+// whole control fades toward the plane at the platform's measured disabled
+// coverage, which is what parts these four images from one another.
+func TestFieldStateGolden(t *testing.T) {
+	opts := []string{"Alpha", "Beta", "Gamma"}
+	states := []struct {
+		name string
+		s    picker.FieldState
+	}{
+		{"rest", picker.FieldState{Options: opts, Selected: 1}},
+		{"hovered", picker.FieldState{Options: opts, Selected: 1, Hovered: true}},
+		{"pressed", picker.FieldState{Options: opts, Selected: 1, Pressed: true}},
+		{"disabled", picker.FieldState{Options: opts, Selected: 1, Disabled: true}},
+	}
+	for _, sc := range goldenSchemes {
+		for _, st := range states {
+			name := "field-" + sc.name + "-" + st.name
+			t.Run(name, func(t *testing.T) {
+				w := picker.RenderField(defaultShaper(t), sc.p, tokens.Spacing,
+					sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, st.s)
+				golden.Render(t, name, goldenSize, onSurface(sc.p.WindowBackground, w))
+			})
+		}
+	}
+}
+
+// The four state images are four images: a trigger that answered the same
+// pixels under the pointer, held, and switched off would be reporting states
+// it does not draw.
+func TestTheFormTriggersStatesAreApart(t *testing.T) {
+	opts := []string{"Alpha", "Beta", "Gamma"}
+	frame := func(s picker.FieldState) *image.RGBA {
+		return golden.Capture(t, goldenSize, onSurface(tokens.PlatformLight.WindowBackground,
+			picker.RenderField(defaultShaper(t), tokens.PlatformLight, tokens.Spacing,
+				sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s)))
+	}
+	rest := frame(picker.FieldState{Options: opts, Selected: 1})
+	if rest == nil {
+		return // headless unavailable; Capture called t.Skip
+	}
+	for _, st := range []struct {
+		name string
+		s    picker.FieldState
+	}{
+		{"hovered", picker.FieldState{Options: opts, Selected: 1, Hovered: true}},
+		{"pressed", picker.FieldState{Options: opts, Selected: 1, Pressed: true}},
+		{"disabled", picker.FieldState{Options: opts, Selected: 1, Disabled: true}},
+	} {
+		if n := golden.PixelDiff(rest, frame(st.s)); n == 0 {
+			t.Errorf("a %s trigger is pixel-identical to a resting one", st.name)
+		}
+	}
+}
+
+// A press wins over a hover on the trigger too: the two overlays are one
+// answer and are never laid on each other.
+func TestTheTriggersPressWinsOverItsHover(t *testing.T) {
+	opts := []string{"Alpha", "Beta", "Gamma"}
+	frame := func(s picker.FieldState) *image.RGBA {
+		return golden.Capture(t, goldenSize, onSurface(tokens.PlatformLight.WindowBackground,
+			picker.RenderField(defaultShaper(t), tokens.PlatformLight, tokens.Spacing,
+				sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s)))
+	}
+	held := frame(picker.FieldState{Options: opts, Selected: 1, Pressed: true})
+	if held == nil {
+		return // headless unavailable; Capture called t.Skip
+	}
+	both := frame(picker.FieldState{Options: opts, Selected: 1, Pressed: true, Hovered: true})
+	if n := golden.PixelDiff(held, both); n != 0 {
+		t.Errorf("a held trigger under the pointer moved %d pixels off the held one", n)
+	}
+}

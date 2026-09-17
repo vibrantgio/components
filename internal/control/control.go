@@ -69,6 +69,25 @@ func Placeholder(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
 	return vgcolor.Flatten(p.PlaceholderText, beneath)
 }
 
+// Faded is what a switched-off control paints one part of itself in: that
+// part's own colour at the platform's measured disabled coverage
+// ([tokens.DisabledCoverage]), landed on the surface the control stands on.
+//
+// One call covers a fill and an edge alike. An opaque fill — the push
+// button's — comes back as that fill mixed toward the surface; a part that
+// already carries a coverage — the seam a button's hairline is drawn in —
+// comes back at that coverage scaled down and then landed, which is the same
+// arithmetic. beneath is what the part is drawn on: the surface for the
+// control's own fill, and the faded fill itself for anything drawn over it.
+//
+// Text does not go through here. A switched-off control's wording is
+// [tokens.PlatformColors.DisabledControlText], the platform's own reduced
+// coverage, which the Save dialog's two switched-off checkboxes read at
+// without any further fading.
+func Faded(part, beneath color.NRGBA) color.NRGBA {
+	return vgcolor.Flatten(vgcolor.Fade(part, tokens.DisabledCoverage), beneath)
+}
+
 // DisabledFill is the interior of a control that is switched off and still
 // carries a value — the checked box, the selected radio. The accent drains:
 // the platform's disabled coverage is laid over what the control stands on,

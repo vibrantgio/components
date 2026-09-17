@@ -29,15 +29,15 @@
 // added to it. The least pronounced variant is not the smallest one and is no
 // harder to see with a keyboard. The zero value is Filled.
 //
-// No variant tints under the pointer. A push button does not on this platform
-// — the reference records a Finder toolbar button that does and a Save
-// dialog's push button that does not — so hover changes nothing and press is
-// the platform's own overlay laid over whatever fill the variant has.
-// Disabled is the platform's answer rather than a fading of the resting pair:
-// the platform draws a disabled default action as an ordinary disabled
-// button, so a fill falls back to the push button's fill and the foreground
-// becomes
-// the disabled control text.
+// Under the pointer every variant takes the platform's hover overlay over
+// whatever fill it carries, and held down its press overlay over that same
+// fill; a press wins, the two not being states that stack. The overlays are
+// the platform's own, each read off the state captures in the organization's
+// macOS reference. Disabled fades the control toward the surface it stands
+// on: the fill and the hairline at the platform's measured disabled
+// coverage, the foreground at its disabled control text. A fill falls back to
+// the push button's fill first and fades from there, because the platform
+// draws a disabled default action as an ordinary disabled button.
 //
 // Emphasis says how important an action is on the surface it sits on, and
 // nothing more. Marking a choice is never a button's job, whatever its

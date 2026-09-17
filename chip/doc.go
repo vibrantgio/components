@@ -70,12 +70,11 @@
 // structure — which one selects, which carries the trailing mark, what stands
 // in the leading slot — and the platform draws all four alike.
 //
-// The pointer moves no colour at rest. A push-button-shaped control does not
-// change colour under the pointer on macOS 26, measured against the stored
-// captures, so hover is the cursor and nothing else; press is the only pointer
-// state that paints. The overlay is laid over the body as a second fill rather than
-// blended into it, because the body itself is translucent in the dark scheme
-// and a coverage folded into a translucent fill is not the pixel the platform
+// Under the pointer the body takes the platform's hover overlay, and held
+// down its press overlay; a press wins, the two not being states that stack.
+// Either overlay is laid over the body as a second fill rather than blended
+// into it, because the body itself is translucent in the dark scheme and a
+// coverage folded into a translucent fill is not the pixel the platform
 // draws.
 //
 // The focus ring is components/internal/focus's, the platform's keyboard

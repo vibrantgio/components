@@ -176,9 +176,9 @@ func stateRow(shaper *text.Shaper, p tokens.PlatformColors, selected bool) layou
 }
 
 // TestChipStateGolden records or diffs the interaction states in both
-// appearances and at both rests. Hover is in the row on purpose: the platform
-// moves no colour on a control of this shape under the pointer, so that tile
-// is the resting tile and the image says so.
+// appearances and at both rests. Hover and press are two tiles because they
+// are two answers: the platform's hover overlay over the body, and its press
+// overlay over that same body, never one over the other.
 func TestChipStateGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	for _, sc := range goldenSchemes {
@@ -357,11 +357,9 @@ func TestASelectedFilterLeadsWithTheCheckmark(t *testing.T) {
 	}
 }
 
-// TestTheDrawnStatesAreTheResolvedOnes is the state table stated in pixels. A
-// press and a focus must move pixels, or the feedback is not there at all; a
-// hover must move none, because the platform moves no colour on a control of
-// this shape under the pointer and a chip that did would be the only thing in
-// the window doing it.
+// TestTheDrawnStatesAreTheResolvedOnes is the state table stated in pixels.
+// A hover, a press and a focus must each move pixels, or the feedback is not
+// there at all.
 func TestTheDrawnStatesAreTheResolvedOnes(t *testing.T) {
 	shaper := defaultShaper(t)
 	frame := func(w layout.Widget) *image.RGBA {
@@ -387,7 +385,7 @@ func TestTheDrawnStatesAreTheResolvedOnes(t *testing.T) {
 			s     chip.RenderState
 			apart bool
 		}{
-			{"hovered", chip.RenderState{Hovered: true}, false},
+			{"hovered", chip.RenderState{Hovered: true}, true},
 			{"pressed", chip.RenderState{Pressed: true}, true},
 			{"focused", chip.RenderState{Focused: true}, true},
 		} {

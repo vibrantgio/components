@@ -154,8 +154,9 @@ type RenderState struct {
 	// colour. The zero value — no colour — is the window's own plane.
 	Surface color.NRGBA
 
-	// Hovered moves no colour: see [Resolve]. It is carried so a caller can
-	// hand the whole pointer state in one value.
+	// Hovered lays the platform's hover overlay over the body; Pressed lays
+	// its press overlay there instead, a press winning over a hover. See
+	// [Resolve].
 	Hovered bool
 	Pressed bool
 	Focused bool
@@ -199,7 +200,8 @@ type Colors struct {
 //	          ControlText
 //	selected  body SelectedContentBackground, no rim, words and checkmark
 //	          AlternateSelectedControlText
-//	held      PressOverlay over whichever body the chip started from
+//	hovered   HoverOverlay over whichever body the chip started from
+//	held      PressOverlay over that same body, a press winning over a hover
 //	dismiss   SecondaryLabel, in every state
 //
 // Every colour that carries a coverage is flattened here onto the fill it
@@ -212,8 +214,14 @@ type Colors struct {
 // stands in its leading slot — and a selected [Filter] chip is the one
 // variation the colours carry.
 //
-// There is no hover answer: a push-button-shaped control does not change
-// colour under the pointer on macOS 26, measured against the stored captures.
+// The pointer's two overlays are the platform's own and do not stack: a held
+// chip takes the press overlay over its resting body and not over a hovered
+// one. MEASURED, the organization's macOS reference: control-hover-{light,
+// dark}.png reads #f2f2f2 on a #ffffff band light and #384146 on a #242d32
+// band dark for a toolbar control under the pointer, and
+// control-pressed-{light,dark}.png reads #d5d5d5 and #474d52 for a held push
+// button over the push button's own fill, with no hover under it.
+//
 // A focused chip wears [focus.Ring] in place of its rim, which the draw
 // applies rather than this.
 func Resolve(p tokens.PlatformColors, i Purpose, s RenderState) Colors {
@@ -225,8 +233,11 @@ func Resolve(p tokens.PlatformColors, i Purpose, s RenderState) Colors {
 		fill, outlined = p.SelectedContentBackground, false
 		label, mark = p.AlternateSelectedControlText, p.AlternateSelectedControlText
 	}
-	if s.Pressed {
+	switch {
+	case s.Pressed:
 		fill = vgcolor.Flatten(p.PressOverlay, fill)
+	case s.Hovered:
+		fill = vgcolor.Flatten(p.HoverOverlay, fill)
 	}
 	return Colors{
 		Fill:     fill,

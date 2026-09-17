@@ -17,6 +17,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/mvu"
@@ -613,17 +614,29 @@ func strokeRRect(gtx layout.Context, size image.Point, rad int, col color.NRGBA)
 //	         text, inside its hairline
 //	Ghost    no fill and no hairline, the platform's control text
 //
-// A push button does not tint under the pointer on this platform — measured
-// off a Save dialog's push button and a Finder toolbar button in
-// reference/macos, where only the toolbar button tints — so hover changes
-// nothing here. Held down, the button takes the platform's press overlay
-// over whatever fill it has.
+// Under the pointer the button takes the platform's hover overlay over
+// whatever fill it carries, and held down its press overlay over that same
+// fill; a press wins, because the two do not stack. MEASURED,
+// control-hover-{light,dark}.png: a Finder toolbar pop-up, which carries no
+// fill of its own at rest, reads #f2f2f2 on the #ffffff band light and
+// #384146 on the #242d32 band dark — the overlay landing on the surface the
+// control stands on, which is what a Ghost button does here. MEASURED,
+// control-pressed-{light,dark}.png: a held push button reads #d5d5d5 and
+// #474d52, the press overlay straight over the push button's fill with no
+// hover beneath it. No capture holds a push button under the pointer and not
+// held, so nothing measures one as exempt and the overlay is applied here
+// like everywhere else.
 //
-// Disabled is the platform's own answer and not a fading of the resting
-// pair: the platform draws a disabled default action as an ordinary
-// disabled button, so every variant that carries a fill falls back to the
-// push button's fill and every foreground becomes the disabled control
-// text.
+// Disabled fades the control toward the surface it stands on: the fill and
+// the hairline at the platform's measured disabled coverage (control.Faded),
+// the foreground at the platform's disabled control text. The platform draws
+// a disabled default action as an ordinary disabled button, so every variant
+// that carries a fill falls back to the push button's fill first and fades
+// from there — which is what parts a disabled button from an enabled Tonal
+// one, the two having been the same pixel before. MEASURED,
+// save-dialog-{light,dark}.png: the switched-off "Options:" checkbox reads
+// #f2f2f2 and #2e3439 against the enabled pop-up's #ececec and #333a3f
+// seventeen rows above it on the same sheet.
 //
 // Filled is the one variant that takes a pin from the caller. A RenderState
 // carrying both halves of a fill pair (RenderState.Fill and Foreground) wears
@@ -656,21 +669,31 @@ func buttonColors(p tokens.PlatformColors, s RenderState) (bg, edge, fg, ring co
 	if s.Disabled {
 		fg = p.DisabledControlText
 		if s.Emphasis != Ghost {
-			bg, edged = p.PushButtonFill, true
+			bg, edged = control.Faded(p.PushButtonFill, standsOn), true
 		}
 	}
 
-	// The press overlay goes onto whatever fill the variant carries, and
+	// The pointer overlays go onto whatever fill the variant carries, and
 	// straight onto the surface where it carries none — which is how a held
-	// Ghost button gets a fill at all. Everything the button draws over that
-	// result is then flattened onto it, hairline included: the platform's
-	// seam over a held button is over the held fill.
-	if s.Pressed && !s.Disabled {
-		bg = vgcolor.Flatten(p.PressOverlay, fillOr(bg, standsOn))
+	// or hovered Ghost button gets a fill at all. A press wins over a hover:
+	// the two are one answer and not two laid on each other. Everything the
+	// button draws over that result is then flattened onto it, hairline
+	// included: the platform's seam over a held button is over the held fill.
+	if !s.Disabled {
+		switch {
+		case s.Pressed:
+			bg = vgcolor.Flatten(p.PressOverlay, fillOr(bg, standsOn))
+		case s.Hovered:
+			bg = vgcolor.Flatten(p.HoverOverlay, fillOr(bg, standsOn))
+		}
 	}
 	beneath := fillOr(bg, standsOn)
 	if edged {
-		edge = vgcolor.Flatten(p.Separator, beneath)
+		seam := p.Separator
+		if s.Disabled {
+			seam = vgcolor.Fade(seam, tokens.DisabledCoverage)
+		}
+		edge = vgcolor.Flatten(seam, beneath)
 	}
 	return bg, edge, vgcolor.Flatten(fg, beneath), focus.Ring(p, beneath)
 }

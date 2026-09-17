@@ -94,19 +94,44 @@ func TestResolveNamesThePlatformColors(t *testing.T) {
 	}
 }
 
-// TestHoverMovesNoColour is the measured platform fact stated as a claim on
-// the component: a push-button-shaped control does not change colour under the
-// pointer on macOS 26, so hover resolves to the resting colours exactly.
-func TestHoverMovesNoColour(t *testing.T) {
+// TestHoverIsThePlatformsOverlay is the measured platform fact stated as a
+// claim on the component: a control under the pointer takes the platform's
+// hover overlay over its own body, and nothing else about the chip moves.
+func TestHoverIsThePlatformsOverlay(t *testing.T) {
 	for _, sc := range chipSchemes {
 		for _, in := range chipPurposes {
 			for _, selected := range []bool{false, true} {
 				rest := chip.Resolve(sc.p, in.i, chip.RenderState{Selected: selected})
 				hovered := chip.Resolve(sc.p, in.i, chip.RenderState{Selected: selected, Hovered: true})
-				if rest != hovered {
-					t.Errorf("%s %s (selected %v): hover resolved %+v, want the resting %+v",
+				want := rest
+				want.Fill = vgcolor.Flatten(sc.p.HoverOverlay, rest.Fill)
+				if hovered.Fill == rest.Fill {
+					t.Errorf("%s %s (selected %v): a hovered chip's body is the resting %v",
+						sc.name, in.name, selected, hovered.Fill)
+				}
+				if hovered.Fill != want.Fill {
+					t.Errorf("%s %s (selected %v): a hovered chip's body is %v, want the platform's hover overlay over the resting body, %v",
+						sc.name, in.name, selected, hovered.Fill, want.Fill)
+				}
+				if hovered.Outline != rest.Outline || hovered.Outlined != rest.Outlined || hovered.Ring != rest.Ring {
+					t.Errorf("%s %s (selected %v): hover moved the rim or the ring: %+v against %+v",
 						sc.name, in.name, selected, hovered, rest)
 				}
+			}
+		}
+	}
+}
+
+// A press wins over a hover: the two overlays are one answer and are never
+// laid on each other, so a held chip under the pointer is the held chip.
+func TestAPressWinsOverAHover(t *testing.T) {
+	for _, sc := range chipSchemes {
+		for _, in := range chipPurposes {
+			held := chip.Resolve(sc.p, in.i, chip.RenderState{Pressed: true})
+			both := chip.Resolve(sc.p, in.i, chip.RenderState{Pressed: true, Hovered: true})
+			if held != both {
+				t.Errorf("%s %s: a held chip under the pointer resolved %+v, want the held %+v",
+					sc.name, in.name, both, held)
 			}
 		}
 	}
