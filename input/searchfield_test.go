@@ -18,9 +18,15 @@ import (
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/icon"
 	"github.com/vibrantgio/components/input"
+	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
+
+// clearTrail is where the clear mark's trailing edge stands: the field's
+// outer edge less its trailing inset, which is the hairline the field is
+// drawn with plus the measured [control.TextTrailDp] inside it.
+const clearTrail = float32(1 + control.TextTrailDp)
 
 // TestSearchFieldGolden records or diffs the search field's three states in
 // both schemes: resting with its prompt, holding a query with the clear mark
@@ -131,9 +137,10 @@ func TestSearchFieldClearMarkEmptiesTheField(t *testing.T) {
 
 	dims := driveTextFieldFrame(w, ops, r, size)
 
-	// The mark stands in the trailing slot, one horizontal pad in from the
-	// field's own edge and centred on its height.
-	pos := f32.Pt(float32(dims.Size.X)-tokens.Spacing.S3-float32(icon.Size(tokens.Comfortable))/2,
+	// The mark stands in the trailing slot, the field's trailing inset in
+	// from its own edge — the hairline plus the measured
+	// [control.TextTrailDp] — and centred on its height.
+	pos := f32.Pt(float32(dims.Size.X)-clearTrail-float32(icon.Size(tokens.Comfortable))/2,
 		float32(dims.Size.Y)/2)
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
@@ -203,7 +210,7 @@ func TestSearchFieldClearsFromOutside(t *testing.T) {
 
 	// And the field is empty, read off the mark: an emptied field draws no
 	// clear mark, so a press where it stood takes nothing back.
-	pos := f32.Pt(float32(dims.Size.X)-tokens.Spacing.S3-float32(icon.Size(tokens.Comfortable))/2,
+	pos := f32.Pt(float32(dims.Size.X)-clearTrail-float32(icon.Size(tokens.Comfortable))/2,
 		float32(dims.Size.Y)/2)
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},

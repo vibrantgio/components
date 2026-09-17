@@ -13,6 +13,7 @@ import (
 	"gioui.org/unit"
 
 	golden "github.com/vibrantgio/components/golden"
+	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/picker"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
@@ -642,5 +643,63 @@ func TestFieldWithNoRoomFlipsToTheSideThatHasIt(t *testing.T) {
 				t.Fatalf("(%d,%d) of the flipped field's trigger is %v and the downward trigger's is %v; the mark does not point the way the menu went", x, y, a, b)
 			}
 		}
+	}
+}
+
+// TestTriggerAndItsRowsStandOnTheFieldsColumn reads off the drawn pixels the
+// column a picker starts its text on, at the trigger and in the menu that
+// trigger drops. Both spend [control.TextLeadDp] from their own inner edge,
+// which is what a text field beside them spends, so the three start their
+// text on one column.
+//
+// MEASURED, save-dialog-{light,dark}.png at 1x: the "Save As:" field's fill
+// begins at x=265 and the first covered pixel of its value at x=272 — seven
+// columns in. What is spent is the origin, six, and the face adds its first
+// glyph's left side bearing to reach the seventh; the faces are pinned by
+// DeterministicShaper, so the column is the same on every machine.
+//
+// The platform sets a pop-up's own label further in than that — MEASURED,
+// the same pair: the File Format pop-up's fill runs x 264–451 with no edge
+// column, and the first covered pixel of its label is at x=276, twelve
+// columns in. A picker in this library is drawn as the field beside it and
+// not as that pop-up, which is the difference this test pins.
+func TestTriggerAndItsRowsStandOnTheFieldsColumn(t *testing.T) {
+	// The trigger and the menu's plane each wear a one-pixel edge, so each
+	// inner edge is one column in from its outer one; the face bears one
+	// column on this word, as input's own reading of the same inset does.
+	const innerEdge, bearing = 1, 1
+	want := int(control.TextLeadDp) + bearing
+
+	size := image.Pt(200, rowHeight(tokens.Comfortable))
+	for _, tc := range []struct {
+		name string
+		w    layout.Widget
+	}{
+		{"trigger", field(t, picker.FieldState{Options: []string{"Email address"}})},
+		{"row", menu(t, picker.MenuState{Options: []string{"Email address"}, Selected: -1})},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			img := golden.Capture(t, size, tc.w)
+			// A row clear of the top and bottom edges, and of the corners
+			// the trigger rounds, holds the text; x=150 is clear of it and
+			// of the trigger's mark.
+			fill := img.RGBAAt(150, size.Y/2)
+			first := -1
+			for x := innerEdge + 1; x < 150 && first < 0; x++ {
+				for y := 4; y <= size.Y-5; y++ {
+					if img.RGBAAt(x, y) != fill {
+						first = x
+						break
+					}
+				}
+			}
+			if first < 0 {
+				t.Fatal("no text found inside the control; this measures nothing")
+			}
+			if got := first - innerEdge; got != want {
+				t.Errorf("the text's first covered pixel is %d px in from the inner edge, want %d: the %d dp origin and the face's %d px side bearing",
+					got, want, int(control.TextLeadDp), bearing)
+			}
+		})
 	}
 }

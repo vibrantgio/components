@@ -18,6 +18,7 @@ import (
 	"github.com/reactivego/rx"
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/input"
+	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -78,21 +79,25 @@ func TestTextFieldGolden(t *testing.T) {
 //
 // MEASURED, save-dialog-{light,dark}.png, the "Save As:" field at 1x: the
 // field's box runs x 264–495, the columns the unfocused "Tags:" field below
-// it runs, so its fill begins at x=265; the value's first pixel column is
-// x=272. Seven columns in, in both appearances.
+// it runs, so its fill begins at x=265; the value's first covered pixel
+// column is x=272. Seven columns in, in both appearances.
 //
-// The inset places the text's origin and the face adds its first glyph's left
-// side bearing to it, so the first pixel stands one column further in than
-// the inset — the faces are pinned by DeterministicShaper, so that column is
-// the same on every machine. The platform's capture carries a bearing of its
-// own: the selection behind "Untitled" fills from x=271 and the U's first
-// pixel is at x=272.
+// What the field spends is the origin, and the face adds its first glyph's
+// left side bearing to it, so the first covered pixel stands one column
+// further in than [control.TextLeadDp] — the faces are pinned by
+// DeterministicShaper, so that column is the same on every machine. The
+// platform's capture carries a bearing of its own, which is why the inset it
+// is read from is the measured seven less that bearing: the selection
+// standing behind "Untitled" fills from x=271 and the U's first covered
+// pixel is at x=272, one column of bearing in the face the platform sets
+// the field in.
 func TestTextFieldLeadingInsetIsMeasured(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 40)
 	// The field wears its hairline at rest, so its inner edge is one column
-	// in from its outer one.
-	const innerEdge, inset, bearing = 1, 7, 1
+	// in from its outer one; the platform's first covered pixel stands seven
+	// columns in from that edge.
+	const innerEdge, bearing, platform = 1, 1, 7
 	for _, tc := range []struct {
 		name  string
 		state input.RenderState
@@ -123,9 +128,13 @@ func TestTextFieldLeadingInsetIsMeasured(t *testing.T) {
 			if first < 0 {
 				t.Fatal("no text found inside the field; this measures nothing")
 			}
-			if got, want := first-innerEdge, inset+bearing; got != want {
-				t.Errorf("the text's first pixel is %d px in from the field's inner edge, want %d: the measured %d inset and the face's %d px side bearing",
-					got, want, inset, bearing)
+			if got, want := first-innerEdge, int(control.TextLeadDp)+bearing; got != want {
+				t.Errorf("the text's first covered pixel is %d px in from the field's inner edge, want %d: the %d dp origin and the face's %d px side bearing",
+					got, want, int(control.TextLeadDp), bearing)
+			}
+			if want := int(control.TextLeadDp) + bearing; want != platform {
+				t.Errorf("the first covered pixel lands %d px in where the platform's lands %d: the origin is the platform's column less the bearing its own first letter carries",
+					want, platform)
 			}
 		})
 	}

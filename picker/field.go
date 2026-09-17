@@ -34,6 +34,13 @@ import (
 // glance.
 const fieldChevron = unit.Dp(16)
 
+// edgeDp is the hairline the field trigger and the dropped menu's plane are
+// each drawn with, and so the distance from either's outer edge to its inner
+// one. The insets spent inside are spent from that inner edge at this width
+// whatever the control's state, so focus — which draws a wider ring in the
+// hairline's place — does not move the text.
+const edgeDp = unit.Dp(1)
+
 // dismissReach is how far the outside-press absorber reaches beyond the box
 // the open field was offered, on every side. A component cannot see the
 // window from inside its own layout, so the reach is simply larger than any
@@ -603,7 +610,7 @@ func planeEdge(gtx layout.Context, size image.Point, p tokens.PlatformColors) {
 	if size.X <= 0 || size.Y <= 0 {
 		return
 	}
-	w := gtx.Dp(1)
+	w := gtx.Dp(edgeDp)
 	if w < 1 {
 		w = 1
 	}
@@ -647,9 +654,12 @@ func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fi
 // drawTrigger renders the field trigger bar (the closed face).
 func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s FieldState) layout.Dimensions {
 	// The trigger is a button and takes the button's sizing rule — height =
-	// Density.ControlHeight, vertical padding = Density.PaddingY, horizontal
-	// padding a static spacing.S3 (12 dp).
-	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
+	// Density.ControlHeight, vertical padding = Density.PaddingY — and the
+	// text field's own two insets at its two ends, spent from its inner
+	// edge: a picker standing beside a text field starts its value on the
+	// same column as the field's.
+	lead := gtx.Dp(edgeDp) + gtx.Dp(control.TextLeadDp)
+	trail := gtx.Dp(edgeDp) + gtx.Dp(control.TextTrailDp)
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
@@ -688,8 +698,11 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 		textCol = vgcolor.Flatten(tok.platform.DisabledControlText, bg)
 	}
 
-	// Reserve space for chevron: padH on the right side plus chevron width.
-	innerW := fieldW - 2*padH - chevronSz - padH
+	// The mark stands in the trailing inset's slot, and the room held
+	// between it and the value is the trigger's own gap rather than one of
+	// its two ends: it is what stops a long value running into the mark.
+	gap := gtx.Dp(unit.Dp(tok.spacing.S3))
+	innerW := fieldW - lead - gap - chevronSz - trail
 	if innerW < 1 {
 		innerW = 1
 	}
@@ -718,7 +731,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	// the library wears, so a focused trigger in a dialog draws the same
 	// pixel as a focused control on the content behind it.
 	borderCol := vgcolor.Flatten(tok.platform.Separator, bg)
-	borderPx := gtx.Dp(1)
+	borderPx := gtx.Dp(edgeDp)
 	if s.Focused {
 		borderCol = focus.Ring(tok.platform, bg)
 		borderPx = gtx.Dp(focus.Width)
@@ -753,13 +766,13 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 
 	// Text label: vertically centered.
 	offY := (triggerH - labelDims.Size.Y) / 2
-	st := op.Offset(image.Pt(padH, offY)).Push(gtx.Ops)
+	st := op.Offset(image.Pt(lead, offY)).Push(gtx.Ops)
 	labelCall.Add(gtx.Ops)
 	st.Pop()
 
 	// The mark, aligned to the right: the triangle points the way this field's
 	// menu opens, which is the whole of what it has to say. See [Drop].
-	cx := fieldW - padH - chevronSz/2
+	cx := fieldW - trail - chevronSz/2
 	cy := triggerH / 2
 	chevronCol := vgcolor.Flatten(tok.platform.SecondaryLabel, bg)
 	if s.Disabled {

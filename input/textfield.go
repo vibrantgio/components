@@ -315,8 +315,8 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 //
 // body is the BodyLarge role's whole text style — typeface, weight, size and
 // line height all reach the shaper — and d is the density the field draws at
-// (control height and vertical padding; the leading inset is the measured
-// [textLeadDp] and the trailing one spacing.S3, neither following density).
+// (control height and vertical padding; the two insets are the measured
+// [control.TextLeadDp] and [control.TextTrailDp], neither following density).
 // Pass tokens.DefaultTypography.BodyLarge and tokens.Comfortable for the
 // default desktop look.
 func Render(
@@ -351,21 +351,6 @@ func fieldFill(p tokens.PlatformColors, s RenderState) color.NRGBA {
 // that field's outer edge to its inner one. A field standing on chrome wears
 // no edge, so there the two are the same edge.
 const hairlineDp unit.Dp = 1
-
-// textLeadDp is a plain text field's leading inset: its inner edge to the
-// first pixel of the text standing in it, the prompt and a typed value alike.
-//
-// MEASURED, save-dialog-{light,dark}.png, the "Save As:" field at 1x: the
-// field's box runs x 264–495, the same columns the unfocused "Tags:" field
-// below it runs, so its fill begins at x=265; the value's first pixel column
-// is x=272. Seven columns in, in both appearances. The field is focused in the
-// capture and its ring is drawn two columns outside the box, over x 262–266,
-// which is why the box is read off the pair rather than off the ring.
-//
-// It is spent at the hairline's width whatever the field's state, so focus —
-// which replaces the hairline with a wider ring — does not move the text; the
-// rule the looking glass is placed by.
-const textLeadDp unit.Dp = 7
 
 // drawFieldBox paints the box the field is drawn as, at the size the field
 // measured itself to: the platform's hairline around the surface beneath it
@@ -464,9 +449,11 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	// Density.ControlHeight — the platform draws a field shorter than the
 	// button beside it, which is why the density carries the two separately
 	// — and the drawn height is max(that floor, line box + 2×PaddingY).
-	// padH is the field's trailing padding and does not follow density; the
-	// leading inset is measured, and adorn.insets carries it.
-	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
+	// padH is the field's trailing inset, spent from the field's outer edge:
+	// the hairline that edge is drawn at plus the measured
+	// [control.TextTrailDp] inside it. It does not follow density, and
+	// neither does the leading inset adorn.insets carries.
+	padH := gtx.Dp(hairlineDp) + gtx.Dp(control.TextTrailDp)
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := gtx.Dp(unit.Dp(tok.density.FieldHeight))
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
@@ -615,8 +602,9 @@ func editorTextShift(gtx layout.Context, sh *text.Shaper, lbl widget.Label, f fo
 // It always shows the placeholder text; there is no live editor.
 func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder string, tok resolvedTokens, s RenderState, ad adorn) layout.Dimensions {
 	// Same sizing rules as drawTextFieldLive: the floor is
-	// Density.FieldHeight, the field's own, not the button's.
-	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
+	// Density.FieldHeight, the field's own, not the button's, and padH is
+	// the same trailing inset.
+	padH := gtx.Dp(hairlineDp) + gtx.Dp(control.TextTrailDp)
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := gtx.Dp(unit.Dp(tok.density.FieldHeight))
 	// Shape with the BodyLarge role's typeface, weight, size and line height.

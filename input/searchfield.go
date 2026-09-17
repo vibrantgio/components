@@ -18,6 +18,7 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/icons"
+	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/mvu"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
@@ -385,8 +386,9 @@ func (a adorn) trailGapPx(gtx layout.Context, tok resolvedTokens) int {
 
 // insets report where the text starts and how much the field holds at its
 // trailing end, both measured from the field's own edges. A field carrying
-// no looking glass starts its text at the measured [textLeadDp] inside its
-// own edge, which is what keeps one drawing serving the text field as well.
+// no looking glass starts its text at the measured [control.TextLeadDp]
+// inside its inner edge, which is what keeps one drawing serving the text
+// field as well.
 //
 // The gap is spent from the last pixel column the looking glass covers, not
 // from the fraction of a column its drawing ends on: the glyph is placed at a
@@ -395,7 +397,7 @@ func (a adorn) trailGapPx(gtx layout.Context, tok resolvedTokens) int {
 // would spend one of the gap's columns on the drawing and leave the
 // platform's measured clear space a column short.
 func (a adorn) insets(gtx layout.Context, tok resolvedTokens, s RenderState, padH int) (lead, trail int) {
-	lead = gtx.Dp(hairlineDp) + gtx.Dp(textLeadDp)
+	lead = gtx.Dp(hairlineDp) + gtx.Dp(control.TextLeadDp)
 	trail = padH
 	if a.search {
 		end := int(math.Ceil(float64(a.glyphX(gtx, s) + a.drawingPx(gtx))))

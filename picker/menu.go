@@ -14,6 +14,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/list"
 	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/mvu"
@@ -398,15 +399,18 @@ func optionRowColors(p tokens.PlatformColors, selected, hovered bool) (fill, for
 func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, selected, hovered bool, label string) layout.Dimensions {
 	// Option rows are list rows — row height = Density.ControlHeight exactly
 	// (components/list's RowHeight rule: 36 dp Comfortable, 28 dp Compact) —
-	// with the same static S3 side padding the field trigger takes.
-	padH := gtx.Dp(unit.Dp(tok.spacing.S3))
+	// with the same two insets the field trigger spends, from the same inner
+	// edge: the menu's plane wears the trigger's hairline, so a row's label
+	// stands on the column the trigger's value stands on.
+	lead := gtx.Dp(edgeDp) + gtx.Dp(control.TextLeadDp)
+	trail := gtx.Dp(edgeDp) + gtx.Dp(control.TextTrailDp)
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	f, wl, textSize := bodyLabel(tok)
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	fieldW := gtx.Constraints.Max.X
 
 	bg, textCol := optionRowColors(tok.platform, selected, hovered)
-	innerW := fieldW - 2*padH
+	innerW := fieldW - lead - trail
 	if innerW < 1 {
 		innerW = 1
 	}
@@ -433,7 +437,7 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	paint.FillShape(gtx.Ops, bg, clip.Rect{Max: rowSize}.Op())
 
 	offY := (rowH - labelDims.Size.Y) / 2
-	st := op.Offset(image.Pt(padH, offY)).Push(gtx.Ops)
+	st := op.Offset(image.Pt(lead, offY)).Push(gtx.Ops)
 	labelCall.Add(gtx.Ops)
 	st.Pop()
 
