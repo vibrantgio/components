@@ -32,14 +32,16 @@ import (
 // reason, the dismissible chip's mark takes.
 const ClearHitDp = 24
 
-// markDp is the square the search field draws each of its marks in, and
-// chromeLeadDp and chromeGapDp place the leading glyph and the text after it
-// on the chrome variant. Each is measured; the provenance is on the method
-// that spends it.
+// markDp is the square the search field draws each of its marks in, and the
+// lead and gap pairs place the leading glyph and the text after it, one pair
+// per variant. Each is measured; the provenance is on the method that spends
+// it.
 const (
 	markDp       unit.Dp = 16
 	chromeLeadDp unit.Dp = 9
 	chromeGapDp  unit.Dp = 5
+	formLeadDp   unit.Dp = 10
+	formGapDp    unit.Dp = 8
 )
 
 // SearchFieldProps configures a SearchField instance.
@@ -151,6 +153,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 				return resolvedTokens{
 					platform: n.First,
 					body:     typ.BodyLarge,
+					capBand:  typ.FaceMetrics(typ.BodyLarge).CapHeight,
 					spacing:  n.Third,
 					radius:   n.Fourth,
 					density:  n.Fifth,
@@ -288,7 +291,7 @@ func RenderSearch(
 	d tokens.Density,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, body: body, density: d}
+	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, body: body, capBand: body.FaceMetrics().CapHeight, density: d}
 	ad := adorn{search: true, clear: true, showClear: !s.Disabled && s.Text != ""}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawTextFieldStatic(gtx, shaper, placeholder, tok, s, ad)
@@ -339,29 +342,39 @@ func (a adorn) drawingPx(gtx layout.Context) float32 {
 
 // glyphX is the field's leading edge to the looking glass's first pixel.
 //
-// MEASURED, system-settings-grouped-box-{light,dark}.png: the recess's edge
-// is at x=18 and the glyph's first pixel at x=27, so a field standing on
-// chrome sets its glyph 9 px in. Elsewhere the field's own horizontal
-// padding holds the mark's square and the drawing starts where the set's
-// keyline puts it inside that square; the toolbar's 10 px and the capsule's
-// 13 are those places' own and are not this variant's to take.
-func (a adorn) glyphX(gtx layout.Context, s RenderState, padH int) float32 {
+// Both variants are measured from the field's inner edge, which is where the
+// platform reads them. MEASURED,
+// system-settings-grouped-box-{light,dark}.png: the recess carries no edge,
+// so its inner edge is its own at x=18, and the glyph's first pixel is at
+// x=27 — 9 px in. MEASURED, mail-window.png: the toolbar field's stroke is at
+// x=867 and its fill begins at x=868, with the glyph's first pixel at x=878 —
+// 10 px in from that inner edge.
+//
+// The form field's own inner edge is [hairlineDp] in, and it is spent at the
+// hairline's width whatever the field's state, so focus — which replaces the
+// hairline with a wider ring — does not move the glyph.
+//
+// Voice Memos' capsule sets its glyph 13 px in; that is a third place's
+// number and is neither variant's to take.
+func (a adorn) glyphX(gtx layout.Context, s RenderState) float32 {
 	if s.Variant == Chrome {
 		return float32(gtx.Dp(chromeLeadDp))
 	}
-	return float32(padH) + icons.SearchDrawingOrigin*float32(a.markPx(gtx))
+	return float32(gtx.Dp(hairlineDp) + gtx.Dp(formLeadDp))
 }
 
 // promptGapPx is the clear space between the looking glass's last pixel and
 // the first of the text beside it.
 //
-// MEASURED, the same pair: the glyph's last pixel is at x=41 and the
-// prompt's first at x=47, five clear columns between them.
-func (a adorn) promptGapPx(gtx layout.Context, tok resolvedTokens, s RenderState) int {
+// MEASURED, system-settings-grouped-box-{light,dark}.png: the glyph's last
+// pixel is at x=41 and the prompt's first at x=47, five clear columns between
+// them. MEASURED, mail-window.png the same way: the glyph's last pixel is at
+// x=890 and the prompt's first at x=899, eight clear columns.
+func (a adorn) promptGapPx(gtx layout.Context, s RenderState) int {
 	if s.Variant == Chrome {
 		return gtx.Dp(chromeGapDp)
 	}
-	return gtx.Dp(unit.Dp(tok.spacing.S2))
+	return gtx.Dp(formGapDp)
 }
 
 // trailGapPx is the clear space held between the text and the clear mark.
@@ -376,7 +389,7 @@ func (a adorn) trailGapPx(gtx layout.Context, tok resolvedTokens) int {
 func (a adorn) insets(gtx layout.Context, tok resolvedTokens, s RenderState, padH int) (lead, trail int) {
 	lead, trail = padH, padH
 	if a.search {
-		lead = int(a.glyphX(gtx, s, padH)+a.drawingPx(gtx)) + a.promptGapPx(gtx, tok, s)
+		lead = int(a.glyphX(gtx, s)+a.drawingPx(gtx)) + a.promptGapPx(gtx, s)
 	}
 	if a.clear {
 		trail = padH + a.markPx(gtx) + a.trailGapPx(gtx, tok)
@@ -416,7 +429,7 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 			// in, and its lens — not its bounding box — on the field's centre
 			// row. Rounding the square to whole pixels instead would split
 			// the lens's band across two columns and draw it grey.
-			x := a.glyphX(gtx, s, padH) - icons.SearchDrawingOrigin*float32(slot)
+			x := a.glyphX(gtx, s) - icons.SearchDrawingOrigin*float32(slot)
 			y := float32(field.Y)/2 - icons.SearchLensCentre*float32(slot)
 			st := op.Affine(f32.Affine2D{}.Offset(f32.Pt(x, y))).Push(gtx.Ops)
 			g(gtx, slot, col)

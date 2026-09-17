@@ -298,3 +298,138 @@ func TestSearchFieldChromeVariantIsTheMeasuredRecess(t *testing.T) {
 		})
 	}
 }
+
+// TestPromptCapBandIsOnTheFieldsCentreRow reads off the drawn pixels what the
+// goldens lock but do not explain: the band the prompt's letters occupy is
+// centred on the field's centre row, in both variants and in both schemes.
+//
+// The platform's own relation, measured the same way: in `mail-window.png`
+// "Search" occupies y 21–31 in a field of y 8–43, a band centre of 26.5
+// against the field's 26.0; in `system-settings-grouped-box-{light,dark}.png`
+// it occupies y 70–80 in a field of y 61–88, 75.5 against 75.0. Both sit half
+// a pixel low, which is where the rounding falls, and that is what this
+// asserts of ours.
+//
+// The scan starts past the looking glass — the glyph's last pixel is at x=21
+// on chrome and x=23 on a form — and runs to well beyond the prompt's last.
+func TestPromptCapBandIsOnTheFieldsCentreRow(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 40)
+	// The field draws at the top of the capture, and Comfortable draws it
+	// 28 px tall.
+	const fieldH = 28
+	for _, tc := range []struct {
+		name    string
+		colors  tokens.PlatformColors
+		variant input.Variant
+	}{
+		{"form-light", tokens.PlatformLight, input.Form},
+		{"form-dark", tokens.PlatformDark, input.Form},
+		{"chrome-light", tokens.PlatformLight, input.Chrome},
+		{"chrome-dark", tokens.PlatformDark, input.Chrome},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			st := input.RenderState{Variant: tc.variant}
+			stands := tc.colors.WindowBackground
+			if tc.variant == input.Chrome {
+				st.Surface = tc.colors.SidebarMaterial
+				stands = tc.colors.SidebarMaterial
+			}
+			w := input.RenderSearch(
+				shaper, "Search",
+				tc.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				st,
+			)
+			img := golden.Capture(t, size, onChrome(stands, w))
+			// x=200 is clear of the prompt and both marks, so it reads the
+			// field's own fill; the prompt is what leaves it.
+			fill := img.RGBAAt(200, fieldH/2)
+			top, bottom := -1, -1
+			for x := 25; x < 200; x++ {
+				for y := 1; y < fieldH-1; y++ {
+					if img.RGBAAt(x, y) == fill {
+						continue
+					}
+					if top < 0 || y < top {
+						top = y
+					}
+					if y > bottom {
+						bottom = y
+					}
+				}
+			}
+			if top < 0 {
+				t.Fatal("no prompt found past the looking glass; this measures nothing")
+			}
+			// Both centres in half pixels: the band's is top+bottom+1 and the
+			// field's is fieldH, so the platform's half-pixel-low relation is
+			// a difference of exactly one.
+			if got := (top + bottom + 1) - fieldH; got != 1 {
+				t.Errorf("the prompt's band is rows %d–%d in a %d px field, which is %v half pixels off the centre row; the platform's is one low",
+					top, bottom, fieldH, got)
+			}
+		})
+	}
+}
+
+// TestLeadingInsetIsMeasuredPerVariant reads off the drawn pixels the number
+// that places the looking glass, per variant: the field's inner edge to the
+// glyph's first pixel.
+//
+// MEASURED, system-settings-grouped-box-{light,dark}.png: the recess carries
+// no edge, so its inner edge is its own at x=18, and the glyph's first pixel
+// is at x=27 — 9 px in. MEASURED, mail-window.png: the toolbar field's stroke
+// is at x=867 and its fill begins at x=868, with the glyph's first pixel at
+// x=878 — 10 px in.
+//
+// The gap after the glyph is not read here. Both captures measure it from the
+// glyph's last pixel, and this library draws that glyph a third of a column
+// wider than either capture holds, so the count of clear columns is not the
+// same measurement on both sides. The goldens hold the drawn result.
+func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 40)
+	for _, tc := range []struct {
+		name      string
+		variant   input.Variant
+		innerEdge int // the field's outer edge to its inner one
+		inset     int
+	}{
+		{"form", input.Form, 1, 10},
+		{"chrome", input.Chrome, 0, 9},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p := tokens.PlatformLight
+			st := input.RenderState{Variant: tc.variant}
+			stands := p.WindowBackground
+			if tc.variant == input.Chrome {
+				st.Surface = p.SidebarMaterial
+				stands = p.SidebarMaterial
+			}
+			w := input.RenderSearch(
+				shaper, "Search",
+				p, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				st,
+			)
+			img := golden.Capture(t, size, onChrome(stands, w))
+			// x=200 is clear of the prompt and both marks; rows 6 to 22 hold
+			// the glyph and stay clear of the field's corners.
+			fill := img.RGBAAt(200, 14)
+			first := -1
+			for x := 5; x < 200 && first < 0; x++ {
+				for y := 6; y <= 22; y++ {
+					if img.RGBAAt(x, y) != fill {
+						first = x
+						break
+					}
+				}
+			}
+			if first < 0 {
+				t.Fatal("no looking glass found inside the field; this measures nothing")
+			}
+			if got := first - tc.innerEdge; got != tc.inset {
+				t.Errorf("the glyph's first pixel is %d px in from the field's inner edge, want the measured %d", got, tc.inset)
+			}
+		})
+	}
+}

@@ -3,6 +3,7 @@ package input
 import (
 	"image"
 	"image/color"
+	"math"
 
 	"gioui.org/font"
 	"gioui.org/io/event"
@@ -166,6 +167,7 @@ type TextFieldProps struct {
 type resolvedTokens struct {
 	platform tokens.PlatformColors
 	body     tokens.TextStyle // the BodyLarge role: typeface, weight, size, line height
+	capBand  float32          // the prompt's cap height in dp, read off the face that role names
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
 	density  tokens.Density // control height, field height and inner padding
@@ -206,6 +208,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 				return resolvedTokens{
 					platform: n.First,
 					body:     typ.BodyLarge,
+					capBand:  typ.FaceMetrics(typ.BodyLarge).CapHeight,
 					spacing:  n.Third,
 					radius:   n.Fourth,
 					density:  n.Fifth,
@@ -325,7 +328,7 @@ func Render(
 	d tokens.Density,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, body: body, density: d}
+	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, body: body, capBand: body.FaceMetrics().CapHeight, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawTextFieldStatic(gtx, shaper, placeholder, tok, s, adorn{})
 	}
@@ -342,6 +345,11 @@ func fieldFill(p tokens.PlatformColors, s RenderState) color.NRGBA {
 	}
 	return control.FieldFill(p, s.Surface)
 }
+
+// hairlineDp is the edge a form field wears at rest, and so the distance from
+// that field's outer edge to its inner one. A field standing on chrome wears
+// no edge, so there the two are the same edge.
+const hairlineDp unit.Dp = 1
 
 // drawFieldBox paints the box the field is drawn as, at the size the field
 // measured itself to: the platform's hairline around the surface beneath it
@@ -368,7 +376,7 @@ func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size im
 	case s.Focused:
 		borderPx = gtx.Dp(focus.Width)
 	case s.Variant != Chrome:
-		borderPx = gtx.Dp(1)
+		borderPx = gtx.Dp(hairlineDp)
 	}
 	if borderPx > 0 {
 		paint.FillShape(gtx.Ops, edge, clip.RRect{
@@ -398,6 +406,40 @@ func standsOn(f func(tokens.PlatformColors) color.NRGBA, p tokens.PlatformColors
 		return color.NRGBA{}
 	}
 	return f(p)
+}
+
+// promptOffset answers how far below the field's top edge the prompt's line
+// box is drawn: far enough that the band from the baseline up to the cap
+// height is centred on the field's centre row. Every field in this package
+// draws its prompt through it, so the text field, the search field and both
+// variants take the same centring.
+//
+// MEASURED, mail-window.png: the toolbar search field's prompt occupies
+// y 21–31 in a field of y 8–43, so the cap band's centre is the field's own
+// centre row and a half pixel below it where the rounding falls that way.
+// MEASURED, system-settings-grouped-box-{light,dark}.png: the sidebar field's
+// prompt occupies y 70–80 in a field of y 61–88, the same relation.
+//
+// Centring the line box instead leaves the baseline half a descender high,
+// because the box the glyphs are centred in runs from the ascender to the
+// descender while the band the reader sees runs from the cap height to the
+// baseline. That drew every prompt in this library 1 px above the platform's.
+//
+// dims is the line box typeset.Layout reported, whose Baseline is measured up
+// from its bottom edge. The offset is never negative: a line box taller than
+// the field it is drawn in stays anchored to the field's top.
+func promptOffset(gtx layout.Context, tok resolvedTokens, fieldH int, dims layout.Dimensions) int {
+	scale := gtx.Metric.PxPerDp
+	if scale == 0 {
+		// A zero Metric is a 1-to-1 scale, which is how gtx.Dp reads it;
+		// reading it the same way here keeps the two in step.
+		scale = 1
+	}
+	baseline := int(math.Round(float64(float32(fieldH)+tok.capBand*scale) / 2))
+	if off := baseline - (dims.Size.Y - dims.Baseline); off > 0 {
+		return off
+	}
+	return 0
 }
 
 // drawTextFieldLive renders a live text field containing a widget.Editor.
@@ -452,7 +494,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 
 	drawFieldBox(gtx, tok, s, fieldSize, fillColor, edgeColor)
 
-	offY := (fieldH - contentDims.Size.Y) / 2
+	offY := promptOffset(gtx, tok, fieldH, contentDims)
 
 	// Placeholder overlay (only when empty and unfocused).
 	if showPlaceholder {
@@ -605,8 +647,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 
 	drawFieldBox(gtx, tok, s, fieldSize, fillColor, edgeColor)
 
-	// Placeholder label centered vertically.
-	offY := (fieldH - labelDims.Size.Y) / 2
+	offY := promptOffset(gtx, tok, fieldH, labelDims)
 	st := op.Offset(image.Pt(textX, offY)).Push(gtx.Ops)
 	labelCall.Add(gtx.Ops)
 	st.Pop()
