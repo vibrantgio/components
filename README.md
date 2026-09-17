@@ -21,9 +21,9 @@ which one a package uses follows from what it owns:
   `rx.Defer` scope, which is what keeps press and focus alive across the view
   rebuilds an MVU loop drives. The theme carries the whole look: colour,
   typography (the theme's shaper — see below), and `Density` — the drawn
-  control is 36 dp Comfortable or 28 dp Compact, while the pointer target
-  keeps the 44 dp WCAG floor by extending beyond the drawn bounds, so Compact
-  shrinks the pixels, never the clickable area.
+  control is 36 dp Comfortable or 28 dp Compact, while the pointer target keeps
+  the 44 dp floor of WCAG 2.5.5 Target Size (Enhanced) by extending beyond the
+  drawn bounds, so Compact shrinks the pixels, never the clickable area.
 - **Immediate-mode primitives** — `list`, `paragraph`, `scrollbar`, `layout` —
   take the frame's `layout.Context`, a `State` you allocate once and reuse
   across frames, and a per-frame `Style` resolved from tokens

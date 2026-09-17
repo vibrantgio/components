@@ -137,12 +137,12 @@
 // row the chip stands in is laid out at the chip's size and the target
 // overhangs the air around it.
 //
-// The dismiss mark registers a second target of its own, [DismissHitDp] — WCAG
-// 2.5.8's AA minimum rather than 44 dp, because a 44 dp target centred on the
-// mark would reach past both ends of the chip carrying it. It lies over the
-// body's target and takes the pointer where they overlap, so the body reads
-// the mark's hover as its own: a chip whose mark is under the finger is a chip
-// under the finger.
+// The dismiss mark registers a second target of its own, [DismissHitDp] —
+// WCAG 2.5.8's AA minimum rather than 44 dp, because a 44 dp target centred
+// on the mark would reach past both ends of the chip carrying it. It lies over
+// the body's target and takes the pointer where they overlap, so the body
+// reads the mark's hover as its own: a chip whose mark is under the finger is
+// a chip under the finger.
 //
 // Shaper is not optional in the pure path. Pass the theme's —
 // tokens.Typography.Shaper() — or, in a golden test, its DeterministicShaper.

@@ -404,9 +404,9 @@ func RenderIcon(
 func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resolvedTokens, s RenderState) layout.Dimensions {
 	// Sizing rule: button height = Density.ControlHeight (24 dp
 	// Comfortable, 19 dp Compact — the platform's regular and small push
-	// button), inner padding = Density.PaddingX/PaddingY. 44 dp is the WCAG
-	// hit floor, not a control height; the pointer target keeps it via
-	// hit.Extend in the live path.
+	// button), inner padding = Density.PaddingX/PaddingY. 44 dp is
+	// WCAG 2.5.5's pointer-target floor, not a control height; the pointer
+	// target keeps it via hit.Extend in the live path.
 	padH := gtx.Dp(unit.Dp(tok.density.PaddingX))
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
