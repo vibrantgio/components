@@ -185,7 +185,7 @@ func Layout[T any](
 }
 
 // LayoutSelectable lays out items exactly like [Layout] and additionally makes
-// the whole list reachable from the keyboard. rowFn is told whether the row it
+// the whole list operable from the keyboard. rowFn is told whether the row it
 // is drawing is the selected one, so the caller renders selection its own way;
 // the list draws nothing extra — a scrollbar included, for which see
 // [LayoutSelectableScrollbar].

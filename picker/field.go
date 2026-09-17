@@ -304,7 +304,7 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 					if open {
 						// An open menu holds the keyboard, which is both
 						// what the platform does and what makes Escape
-						// reachable: a key filter is bound to a focus, and
+						// operable: a key filter is bound to a focus, and
 						// a pointer press moves focus nowhere on its own.
 						// The ring the trigger then wears is the truth —
 						// the control is the one the keys are going to.
