@@ -65,6 +65,28 @@ const (
 	Clear Name = "clear"
 )
 
+// The search mark's drawing, as fractions of the square it is drawn in. A
+// control placing the looking glass by the platform's own numbers needs two
+// things the square does not tell it: where the drawing starts inside the
+// square, and where the lens's centre falls in it.
+//
+// They are stated rather than measured off the parsed file because they are
+// that file's contract. search.svg fills the set's 20-unit allowance exactly
+// — drawn from unit 2 to unit 22 on both axes — and carries its lens centred
+// on unit 10, which is not the drawing's own centre and cannot be: the lens
+// stands leading and high and the handle runs to the lower trailing corner.
+// TestSearchMarkIsDrawnWhereAFieldExpectsIt holds the drawing to all three.
+const (
+	// SearchDrawingOrigin is the square's leading and top edge to the
+	// drawing's first pixel.
+	SearchDrawingOrigin = 2.0 / 24.0
+	// SearchDrawingSize is the side of the drawing inside the square.
+	SearchDrawingSize = 20.0 / 24.0
+	// SearchLensCentre is the square's leading and top edge to the centre of
+	// the lens, which is the point a field aligns on its centre row.
+	SearchLensCentre = 10.0 / 24.0
+)
+
 // Painter draws a mark into a square of sizePx at the current origin, in col.
 // It is the shape this library's controls take for an icon slot.
 type Painter func(gtx layout.Context, sizePx int, col color.NRGBA)

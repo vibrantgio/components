@@ -51,6 +51,13 @@
 // System Settings' sidebar. A text field that is not a search field wears
 // the edge wherever it stands.
 //
+// On chrome the leading cluster is the sidebar's own too: the looking glass
+// stands 9 px in from the field's edge with the prompt 5 px after its last
+// pixel, and the glyph is the platform's — a round lens on a hairline band,
+// its centre on the field's centre row rather than its bounding box centred
+// there. The toolbar's inset and the capsule's are those places' own and are
+// not what a sidebar takes.
+//
 // The text field is uncontrolled. Props.Seed pre-fills a newly created
 // instance so an existing value can be edited rather than retyped, but a later
 // Seed does not touch a live instance — rebuild the field, keyed on an epoch,

@@ -59,9 +59,10 @@ func TestSearchFieldGolden(t *testing.T) {
 		})
 	}
 
-	// And the compact density, where both marks shrink with the control they
-	// stand in: the slot is the density's icon size, so a field that lost
-	// height has not kept full-size marks inside it.
+	// And the compact density, where the field loses height and the marks
+	// inside it do not: the looking glass is drawn at the size the platform
+	// draws it, which is the field's own number and not the density's icon
+	// size.
 	t.Run("searchfield-light-compact", func(t *testing.T) {
 		w := input.RenderSearch(
 			shaper, "Search",

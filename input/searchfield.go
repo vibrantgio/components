@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 
+	"gioui.org/f32"
 	"gioui.org/io/event"
 	"gioui.org/io/key"
 	"gioui.org/io/pointer"
@@ -15,7 +16,6 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/components/icon"
 	"github.com/vibrantgio/components/icons"
 	"github.com/vibrantgio/mvu"
 	vgcolor "github.com/vibrantgio/theme/color"
@@ -31,6 +31,16 @@ import (
 // past the field's own top and bottom. It is the same number, for the same
 // reason, the dismissible chip's mark takes.
 const ClearHitDp = 24
+
+// markDp is the square the search field draws each of its marks in, and
+// chromeLeadDp and chromeGapDp place the leading glyph and the text after it
+// on the chrome variant. Each is measured; the provenance is on the method
+// that spends it.
+const (
+	markDp       unit.Dp = 16
+	chromeLeadDp unit.Dp = 9
+	chromeGapDp  unit.Dp = 5
+)
 
 // SearchFieldProps configures a SearchField instance.
 //
@@ -306,34 +316,70 @@ type adorn struct {
 	clearDesc string
 }
 
-// slotPx is the square each of the two slots is cut to, and the square the
-// mark in it is drawn at: the control icon size the density gives, which is
-// the same square components/button gives an icon beside a label and the
-// same one every other mark in this library is drawn at. Both ends take one
-// square, so the field is even end to end and neither mark outweighs the
-// other.
-func (a adorn) slotPx(gtx layout.Context, tok resolvedTokens) int {
-	return gtx.Dp(icon.Size(tok.density))
+// markPx is the square each of the two slots is cut to, and the square the
+// mark in it is drawn at. Both ends take one square, so the field is even end
+// to end and neither mark outweighs the other.
+//
+// It is the field's own number, not the density's control icon size, because
+// the platform draws this glyph at a size of its own and that size is
+// measured: MEASURED, mail-window.png and voicememos-window.png — the
+// magnifier is drawn 12.9 px square in both, its lens 10.25 px across
+// outside and its band 1.25 px. The set draws a mark to 20 of its 24
+// grid units, so the square that comes out at the platform's size is
+// 12.9 × 24/20 = 15.5, and 16 dp draws the glyph 13.3 px across with a
+// 10.7 px lens and a 1.33 px band. Density does not move it: no stored
+// capture holds a search field at the platform's small size, and the
+// checkbox carries its own side length for the same reason.
+func (a adorn) markPx(gtx layout.Context) int { return gtx.Dp(markDp) }
+
+// drawingPx is how much of that square the looking glass actually covers.
+func (a adorn) drawingPx(gtx layout.Context) float32 {
+	return icons.SearchDrawingSize * float32(a.markPx(gtx))
 }
 
-// gapPx is the air between a mark and the text beside it.
-func (a adorn) gapPx(gtx layout.Context, tok resolvedTokens) int {
+// glyphX is the field's leading edge to the looking glass's first pixel.
+//
+// MEASURED, system-settings-grouped-box-{light,dark}.png: the recess's edge
+// is at x=18 and the glyph's first pixel at x=27, so a field standing on
+// chrome sets its glyph 9 px in. Elsewhere the field's own horizontal
+// padding holds the mark's square and the drawing starts where the set's
+// keyline puts it inside that square; the toolbar's 10 px and the capsule's
+// 13 are those places' own and are not this variant's to take.
+func (a adorn) glyphX(gtx layout.Context, s RenderState, padH int) float32 {
+	if s.Variant == Chrome {
+		return float32(gtx.Dp(chromeLeadDp))
+	}
+	return float32(padH) + icons.SearchDrawingOrigin*float32(a.markPx(gtx))
+}
+
+// promptGapPx is the clear space between the looking glass's last pixel and
+// the first of the text beside it.
+//
+// MEASURED, the same pair: the glyph's last pixel is at x=41 and the
+// prompt's first at x=47, five clear columns between them.
+func (a adorn) promptGapPx(gtx layout.Context, tok resolvedTokens, s RenderState) int {
+	if s.Variant == Chrome {
+		return gtx.Dp(chromeGapDp)
+	}
 	return gtx.Dp(unit.Dp(tok.spacing.S2))
 }
 
-// slots reports the width, in pixels, the field spends at each end on the
-// marks — the mark's square plus the gap after it, and zero for a slot this
-// field does not carry.
-func (a adorn) slots(gtx layout.Context, tok resolvedTokens) (lead, trail int) {
-	if !a.search && !a.clear {
-		return 0, 0
-	}
-	w := a.slotPx(gtx, tok) + a.gapPx(gtx, tok)
+// trailGapPx is the clear space held between the text and the clear mark.
+func (a adorn) trailGapPx(gtx layout.Context, tok resolvedTokens) int {
+	return gtx.Dp(unit.Dp(tok.spacing.S2))
+}
+
+// insets report where the text starts and how much the field holds at its
+// trailing end, both measured from the field's own edges. A field carrying
+// neither mark spends its horizontal padding at each end and nothing more,
+// which is what keeps one drawing serving the text field as well.
+func (a adorn) insets(gtx layout.Context, tok resolvedTokens, s RenderState, padH int) (lead, trail int) {
+	lead, trail = padH, padH
 	if a.search {
-		lead = w
+		lead = int(a.glyphX(gtx, s, padH)+a.drawingPx(gtx)) + a.promptGapPx(gtx, tok, s)
 	}
 	if a.clear {
-		trail = w
+		trail = padH + a.markPx(gtx) + a.trailGapPx(gtx, tok)
 	}
 	return lead, trail
 }
@@ -355,7 +401,7 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 	}
 	// Both marks stand inside the field, so both are flattened onto the
 	// field's own fill: the platform's names carry a coverage.
-	slot := a.slotPx(gtx, tok)
+	slot := a.markPx(gtx)
 	fill := fieldFill(tok.platform, s)
 	col := vgcolor.Flatten(tok.platform.SecondaryLabel, fill)
 	if s.Disabled {
@@ -364,7 +410,15 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 
 	if a.search {
 		if g := icons.Mark(icons.Search); g != nil {
-			st := op.Offset(image.Pt(padH, (field.Y-slot)/2)).Push(gtx.Ops)
+			// The square is placed off the drawing inside it rather than off
+			// its own edges, and at a fraction of a pixel, because both
+			// numbers the platform gives are the glyph's: its first pixel 9
+			// in, and its lens — not its bounding box — on the field's centre
+			// row. Rounding the square to whole pixels instead would split
+			// the lens's band across two columns and draw it grey.
+			x := a.glyphX(gtx, s, padH) - icons.SearchDrawingOrigin*float32(slot)
+			y := float32(field.Y)/2 - icons.SearchLensCentre*float32(slot)
+			st := op.Affine(f32.Affine2D{}.Offset(f32.Pt(x, y))).Push(gtx.Ops)
 			g(gtx, slot, col)
 			st.Pop()
 		}

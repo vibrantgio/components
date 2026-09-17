@@ -352,3 +352,97 @@ func painted(img *image.RGBA) int {
 	}
 	return n
 }
+
+// TestSearchMarkIsDrawnWhereAFieldExpectsIt holds search.svg to the three
+// numbers a search field places it by: the drawing fills the set's 20-unit
+// allowance exactly, so it starts [icons.SearchDrawingOrigin] into the square
+// and is [icons.SearchDrawingSize] of it, and its lens is centred on
+// [icons.SearchLensCentre] rather than on the drawing's own middle.
+//
+// The lens's centre is read off the pixels the only way a raster offers it:
+// the lens's leftmost pixel stands on the row through its centre, and its
+// topmost pixel on the column through it. A drawing that moved the lens would
+// move both, and a field aligning the mark on a field's centre row would put
+// the glyph high or low without anything else noticing.
+func TestSearchMarkIsDrawnWhereAFieldExpectsIt(t *testing.T) {
+	mark := icons.New("darwin").Mark(icons.Search)
+	if mark == nil {
+		t.Fatal("the set carries no search mark")
+	}
+	for _, px := range []int{16, 20, 24} {
+		img := shoot(t, px, func(gtx layout.Context) { mark(gtx, px, black) })
+		drawn := drawnBounds(img)
+		want := image.Rect(
+			int(icons.SearchDrawingOrigin*float64(px)),
+			int(icons.SearchDrawingOrigin*float64(px)),
+			int((icons.SearchDrawingOrigin+icons.SearchDrawingSize)*float64(px)+0.999),
+			int((icons.SearchDrawingOrigin+icons.SearchDrawingSize)*float64(px)+0.999),
+		)
+		if drawn != want {
+			t.Errorf("at %d px the drawing covered %v and the allowance it is authored to fill is %v", px, drawn, want)
+		}
+		centre := icons.SearchLensCentre * float64(px)
+		if row := leftmostDrawnRow(img); !within(float64(row)+0.5, centre, 1) {
+			t.Errorf("at %d px the lens's leftmost pixel is on row %d, and its centre is stated at %.2f", px, row, centre)
+		}
+		if col := topmostDrawnColumn(img); !within(float64(col)+0.5, centre, 1) {
+			t.Errorf("at %d px the lens's topmost pixel is in column %d, and its centre is stated at %.2f", px, col, centre)
+		}
+	}
+}
+
+// drawnBounds is the bounding box of everything the mark drew.
+func drawnBounds(img *image.RGBA) image.Rectangle {
+	out := image.Rectangle{}
+	b := img.Bounds()
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			if c := img.RGBAAt(x, y); c.R == 0xff && c.G == 0xff && c.B == 0xff {
+				continue
+			}
+			p := image.Rect(x, y, x+1, y+1)
+			if out.Empty() {
+				out = p
+				continue
+			}
+			out = out.Union(p)
+		}
+	}
+	return out
+}
+
+// leftmostDrawnRow is the row carrying the darkest pixel of the drawing's
+// leading column, which on a magnifier is the lens's left extreme.
+func leftmostDrawnRow(img *image.RGBA) int {
+	b := img.Bounds()
+	x := drawnBounds(img).Min.X
+	row, darkest := b.Min.Y, 0x100
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		if v := int(img.RGBAAt(x, y).R); v < darkest {
+			row, darkest = y, v
+		}
+	}
+	return row
+}
+
+// topmostDrawnColumn is leftmostDrawnRow's other axis: the column carrying the
+// darkest pixel of the drawing's top row, the lens's top extreme.
+func topmostDrawnColumn(img *image.RGBA) int {
+	b := img.Bounds()
+	y := drawnBounds(img).Min.Y
+	col, darkest := b.Min.X, 0x100
+	for x := b.Min.X; x < b.Max.X; x++ {
+		if v := int(img.RGBAAt(x, y).R); v < darkest {
+			col, darkest = x, v
+		}
+	}
+	return col
+}
+
+// within reports whether got is no further than slack from want. got is a
+// pixel's own centre, so a lens centred on a pixel boundary is within a pixel
+// of either neighbour.
+func within(got, want, slack float64) bool {
+	d := got - want
+	return d <= slack && -d <= slack
+}

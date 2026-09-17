@@ -3,18 +3,33 @@
        not itself a control — pressing it operates nothing — but it stands in a
        control's structure, so it is drawn to this set's grid like the rest.
 
-       Grid: a diagonal form, so it takes the 20-unit allowance rather than the
-       square keyline. The lens is a ring centred on 9.6,9.6, outer radius 7.1
-       and inner radius 5.1. Its band is curved everywhere: it runs along an
-       axis at four points and crosses the pixel grid at every other, so it
-       takes the diagonal measure of 2 rather than the axis-aligned 1.5. Outer
+       MEASURED, mail-window.png and voicememos-window.png: the platform's
+       magnifier is a round lens with the handle at 45 degrees to the lower
+       trailing corner, drawn 12.9 px square, the lens 10.25 px across
+       outside, the band 1.25 px, and the handle's far end 10.15 px from the
+       lens's centre — twice the lens's outer radius. The proportions below
+       are those readings scaled to this grid; the numbers and the method are
+       in reference/macos/controls.md under "What the sidebar search field
+       measures".
+
+       Grid: a round form, so it takes the 20-unit allowance rather than the
+       square keyline, and it fills that allowance exactly — drawn from 2 to 22
+       on both axes, which is what lets a field place the drawing by its own
+       edges. The lens is a ring centred on 10,10, outer radius 8 and inner
+       radius 6: a band of 2, the set's diagonal measure, because the band is
+       curved everywhere and runs along an axis at four points only. Outer
        contour clockwise, inner counter-clockwise, so the ring is a hole under
-       the non-zero winding rule. The handle is one band at 45 degrees, the
-       diagonal measure again, its centre line running from just inside the
-       ring's inner edge out to 21.3,21.3 so the two meet with no seam. The
-       drawing spans 2.5 to 22.0 along the diagonal, filling the allowance. -->
-  <path fill="#000000" d="M9.6 2.5 C13.5213 2.5 16.7 5.6787 16.7 9.6 C16.7 13.5213 13.5213 16.7 9.6 16.7 C5.6787 16.7 2.5 13.5213 2.5 9.6 C2.5 5.6787 5.6787 2.5 9.6 2.5 Z M9.6 4.5 C6.7833 4.5 4.5 6.7833 4.5 9.6 C4.5 12.4167 6.7833 14.7 9.6 14.7 C12.4167 14.7 14.7 12.4167 14.7 9.6 C14.7 6.7833 12.4167 4.5 9.6 4.5 Z"/>
+       the non-zero winding rule.
+
+       The lens's centre is not the drawing's centre and cannot be: the lens
+       stands leading and high, the handle runs to the lower trailing corner.
+       A field aligning this mark on its centre row aligns the lens, which is
+       where the platform puts it — see SearchLensCentre. -->
+  <path fill="#000000" d="M10 2 C14.4183 2 18 5.5817 18 10 C18 14.4183 14.4183 18 10 18 C5.5817 18 2 14.4183 2 10 C2 5.5817 5.5817 2 10 2 Z M10 4 C6.6863 4 4 6.6863 4 10 C4 13.3137 6.6863 16 10 16 C13.3137 16 16 13.3137 16 10 C16 6.6863 13.3137 4 10 4 Z"/>
   <!-- The handle, its own contour so it abuts the ring rather than winding
-       against it. -->
-  <path fill="#000000" d="M12.293 13.707 L20.593 22.007 L22.007 20.593 L13.707 12.293 Z"/>
+       against it: a band of 2 at 45 degrees, its centre line from just inside
+       the ring's inner edge out to 21.293,21.293, which puts its far corner
+       on the allowance at 22 and its far end twice the lens's outer radius
+       from the lens's centre, as the captures read it. -->
+  <path fill="#000000" d="M14.596 13.182 L22 20.586 L20.586 22 L13.182 14.596 Z"/>
 </svg>

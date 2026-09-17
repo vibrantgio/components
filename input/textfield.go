@@ -416,12 +416,12 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	fillColor, textColor, edgeColor, phColor := textFieldColors(tok.platform, s)
 
 	fieldW := gtx.Constraints.Max.X
-	lead, trail := ad.slots(gtx, tok)
-	innerW := fieldW - 2*padH - lead - trail
+	lead, trail := ad.insets(gtx, tok, s, padH)
+	innerW := fieldW - lead - trail
 	if innerW < 1 {
 		innerW = 1
 	}
-	textX := padH + lead
+	textX := lead
 
 	innerGtx := gtx
 	innerGtx.Constraints = layout.Constraints{
@@ -566,12 +566,12 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	fillColor, textColor, edgeColor, phColor := textFieldColors(tok.platform, s)
 
 	fieldW := gtx.Constraints.Max.X
-	lead, trail := ad.slots(gtx, tok)
-	innerW := fieldW - 2*padH - lead - trail
+	lead, trail := ad.insets(gtx, tok, s, padH)
+	innerW := fieldW - lead - trail
 	if innerW < 1 {
 		innerW = 1
 	}
-	textX := padH + lead
+	textX := lead
 
 	innerGtx := gtx
 	innerGtx.Constraints = layout.Constraints{
