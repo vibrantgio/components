@@ -39,7 +39,6 @@ import (
 	"github.com/vibrantgio/patterns/table"
 	"github.com/vibrantgio/patterns/tabs"
 	"github.com/vibrantgio/patterns/testimonial"
-	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -66,7 +65,7 @@ func (inv *Inventory) Patterns(c tokens.PlatformColors) []Section {
 			Body: inv.navbar(c)},
 		{Name: "patterns-sidebar", Title: "Sidebar — expanded beside its collapsed rail", Height: 210,
 			Body: inv.sidebar(c)},
-		{Name: "patterns-pane", Title: "Pane — chrome set in from the window's edges, with the backdrop on every side of it", Height: paneSpecimenH,
+		{Name: "patterns-pane", Title: "Pane — the chrome column down a window's leading edge, with one seam to the document", Height: paneSpecimenH,
 			Body: inv.pane(c)},
 		{Name: "patterns-table", Title: "Table — sortable columns, sorted ascending on the first", Height: 176,
 			Body: inv.table(c)},
@@ -331,14 +330,14 @@ const (
 	paneGutter unit.Dp = 16
 )
 
-// pane draws the pane beside the content it stands over: the backdrop
-// visible on every side of it, the rounded corners and the hairline just
-// inside its own edge, and a document column starting where the pane stops.
+// pane draws the pane beside the content it stands over: the chrome column
+// running to the window's leading, top and bottom edges, one seam down its
+// trailing edge, and a document column starting where the pane stops.
 //
 // The content beside it is what makes the specimen a specimen. A pane alone
-// in a box shows a rounded rectangle; a pane with a document reflowed against
-// it shows the one thing the pattern is for — that the pane is an object
-// standing on the window's own plane rather than an edge of it.
+// in a box shows a filled rectangle; a pane with a document flush against it
+// shows the one thing the pattern is for — one boundary, and what the reader
+// gets back when the column is sent away.
 func (inv *Inventory) pane(c tokens.PlatformColors) layout.Widget {
 	contents := func(gtx layout.Context) layout.Dimensions {
 		// The strip at the top of the pane is the window buttons' band. This
@@ -362,33 +361,31 @@ func (inv *Inventory) pane(c tokens.PlatformColors) layout.Widget {
 		// narrower than that, the way every other bounded specimen here is.
 		size := image.Pt(min(gtx.Constraints.Max.X, gtx.Dp(paneSpecimenW)), gtx.Dp(paneSpecimenH))
 		gtx.Constraints = layout.Exact(size)
-		// The backdrop, which is what an inset pane stands on: nothing is
-		// drawn there and it shows wherever nothing stands. It carries a
-		// coverage in the light appearance, so it is flattened onto the
-		// section's own fill before the rasterizer sees it.
-		paint.FillShape(gtx.Ops, vgcolor.Flatten(c.UnderPageBackground, SectionSurface(c)),
-			clip.Rect{Max: size}.Op())
+		// The document's own surface under the whole specimen: the column
+		// and the document run to the window's edges between them, and the
+		// document is what a window is.
+		paint.FillShape(gtx.Ops, c.TextBackground, clip.Rect{Max: size}.Op())
 
 		b := pane.Bounds(gtx, size, paneColumnW, false)
 		pane.Layout(gtx, c, b, contents)
 
-		// The document, starting one gutter past the pane's trailing edge —
-		// the reflow the pattern's hidden state completes by starting it at
-		// the window's own edge instead.
+		// The document, starting one gutter past the column's seam — the
+		// reflow the pattern's hidden state completes by starting it at the
+		// window's own edge instead.
 		doc := gtx
-		docW := max(0, size.X-b.Max.X-gtx.Dp(paneGutter+pane.MarginDp))
-		doc.Constraints = layout.Exact(image.Pt(docW, size.Y-2*gtx.Dp(pane.MarginDp)))
-		off := op.Offset(image.Pt(b.Max.X+gtx.Dp(paneGutter), gtx.Dp(pane.MarginDp))).Push(gtx.Ops)
+		docW := max(0, size.X-b.Max.X-2*gtx.Dp(paneGutter))
+		doc.Constraints = layout.Exact(image.Pt(docW, size.Y-2*gtx.Dp(paneGutter)))
+		off := op.Offset(image.Pt(b.Max.X+gtx.Dp(paneGutter), gtx.Dp(paneGutter))).Push(gtx.Ops)
 		inv.prose(c,
 			"The document beside it",
 			"",
-			"A pane stands one margin inside the",
-			"window's leading, top and bottom edges,",
-			"with the backdrop showing round it.",
+			"A pane runs to the window's leading, top",
+			"and bottom edges, with one seam to what",
+			"stands beside it.",
 			"",
 			"It wears the chrome material: a pane is",
-			"read through its edges and not through",
-			"its lightness.",
+			"a shade off the content and told from it",
+			"by that shade and its one line.",
 		)(doc)
 		off.Pop()
 
