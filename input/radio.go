@@ -66,7 +66,7 @@ type RadioRenderState struct {
 	// the disc alone.
 	Label string
 
-	// Surface is the opaque fill the control stands on. Its focus ring rides
+	// Surface is the opaque fill the control stands on. Its focus halo rides
 	// in the slack around the glyph, so the platform's keyboard focus
 	// indicator — a coverage rather than a colour — lands on this, and so
 	// does the glyph's own edge, which is drawn as a shape the fill is inset
@@ -305,27 +305,22 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		paint.FillShape(gtx.Ops, control.Fill(tok.platform), clip.Ellipse(innerRect).Op(gtx.Ops))
 	}
 
-	// The focus ring, drawn exactly as the checkbox draws it: focus.Width
-	// around the glyph, clear of it, in the one colour focus.Ring answers for
-	// the scheme, riding in the slack between the 16 dp circle and the
-	// density's footprint.
+	// The focus halo, drawn exactly as the checkbox draws it: the library's
+	// one band on the 16 dp glyph's own outline, riding in the slack the
+	// density's footprint holds around it.
 	//
-	// A selected radio is why the ring cannot be the circle's own edge. That
-	// edge is already the accent — it is what says the radio is chosen — so
-	// recolouring it on focus would leave a focused chosen radio looking like
-	// an unfocused one. Clear of the glyph, the ring is a mark the glyph does
-	// not already carry, in any state.
+	// The disc keeps its own edge under the halo whatever it is doing. A
+	// selected radio's edge is already the accent — it is what says the
+	// radio is chosen — and recolouring it on focus would leave a focused
+	// chosen radio looking like an unfocused one; the halo does not recolour
+	// anything, it composites over it.
 	if s.Focused && !s.Disabled {
-		w := gtx.Dp(focus.Width)
-		out := w + w/2 // stroke centreline: the band spans w..2w clear of the circle
-		ring := image.Rectangle{
-			Min: outerRect.Min.Sub(image.Pt(out, out)),
-			Max: outerRect.Max.Add(image.Pt(out, out)),
+		discEdge := control.Border(tok.platform)
+		if s.Selected {
+			discEdge = tok.platform.ControlAccent
 		}
-		paint.FillShape(gtx.Ops, focus.Ring(tok.platform, standsOn), clip.Stroke{
-			Path:  clip.Ellipse(ring).Path(gtx.Ops),
-			Width: float32(w),
-		}.Op())
+		focus.HaloEllipse(gtx, outerRect,
+			focus.Ring(tok.platform, standsOn), focus.Ring(tok.platform, discEdge))
 	}
 
 	// The label is part of the control, as it is on the platform, drawn

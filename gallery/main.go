@@ -583,7 +583,7 @@ func (g *gallery) buttonVariantRows() []layout.FlexChild {
 
 // chipSpecimens are the fills the chip page puts a live chip on: the content
 // plane, the platform's grouped box, and the chrome material. The chip's rim,
-// its focus ring and its press tint each carry a coverage rather than a
+// its focus halo and its press tint each carry a coverage rather than a
 // colour, so each lands as whatever it is composited onto and one specimen on
 // one fill demonstrates nothing about the component. Three do. The label on
 // each is a summary rather than a verb, which is the whole of what separates a
@@ -639,7 +639,7 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 		cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return complayout.InsetXY(24, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return g.label(gtx,
-					"The chip lays the platform's press overlay over its own fill and wears the focus ring in place of its rim.",
+					"The chip lays the platform's press overlay over its own fill and wears the focus halo on its own outline.",
 					pageMuted, unit.Sp(13), font.Font{})
 			})
 		}))

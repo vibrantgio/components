@@ -706,7 +706,7 @@ var (
 // chipSurfaces are the fills the section shows the chip on: the content a
 // page is written on, the platform's grouped box, and the chrome material a
 // sidebar or a toolbar wears. Three rather than one because the chip's rim,
-// its focus ring and its press tint each carry a coverage rather than a
+// its focus halo and its press tint each carry a coverage rather than a
 // colour, so each lands as whatever it is composited onto and a specimen on
 // one fill says nothing about the others.
 //
@@ -806,11 +806,11 @@ func chipAvatar(gtx layout.Context, sizePx int, col color.NRGBA) {
 // purposes once per surface, then the same chip through what the pointer and
 // the keyboard put it in, unselected and selected.
 //
-// The purposes are drawn once per surface, because the chip's rim, ring and
+// The purposes are drawn once per surface, because the chip's rim, halo and
 // press tint each carry a coverage and land as whatever they are composited
 // onto, so a specimen on one fill says nothing about the others. The state rows below stand on the page: what they
 // ask a reader to judge — whether the body that arrives under the pointer
-// still holds its label, and whether the focus ring reads as the edge — is the
+// still holds its label, and whether the focus halo reads apart from the rim — is the
 // same question on every surface, and asking it three times would bury the
 // two rows that are not the same. Both rests are there because the two walk from
 // different places: an unselected chip walks from the surface it stands on, a

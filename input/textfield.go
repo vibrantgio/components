@@ -41,7 +41,7 @@ type RenderState struct {
 	// field's interior is filled with: the platform draws a field as a
 	// hairline around the surface beneath it rather than as a box of its
 	// own, which the Save dialog's field measures in both appearances. The
-	// focus ring — the platform's keyboard focus indicator, which carries a
+	// focus halo — the platform's keyboard focus indicator, which carries a
 	// coverage rather than a colour — composites over it too. The zero value
 	// — no colour — is the window's own plane.
 	Surface color.NRGBA
@@ -430,9 +430,9 @@ const hairlineDp unit.Dp = 1
 // (control.ToolbarSearchRim). Light, the band steps straight to the fill and
 // there is no rim to draw.
 //
-// Focus replaces the edge in both variants: the ring is the one keyboard
-// focus indicator every control in this library wears, and a recess with no
-// edge at rest still says where the keyboard is.
+// Focus replaces nothing: the field keeps the edge it draws at rest — its
+// hairline, the toolbar recess's rim, or in the light appearance the recess's
+// nothing at all — and wears the library's one halo on that outline.
 //
 // The box is two nested fills rather than a stroke, which keeps the corner's
 // antialiasing out of the golden images.
@@ -443,8 +443,6 @@ func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size im
 	}
 	borderPx := 0
 	switch {
-	case s.Focused:
-		borderPx = gtx.Dp(focus.Width)
 	case s.onToolbar():
 		// The rim is drawn only where the platform draws one: it answers no
 		// colour in the light appearance, and a transparent border would
@@ -494,6 +492,14 @@ func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size im
 		},
 		SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad,
 	}.Op(gtx.Ops))
+
+	// The halo, on the box the field just drew, over what it drew there and
+	// past it onto the surface the field stands on.
+	if s.Focused && !s.Disabled {
+		standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
+		focus.Halo(gtx, image.Rectangle{Max: size}, rad,
+			focus.Ring(tok.platform, standsOn), focus.Ring(tok.platform, fill))
+	}
 }
 
 // standsOn answers the surface a live field was told it stands on, resolved
@@ -796,9 +802,8 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // same surface already, not a fill of the field's own, so there is nothing
 // there to fade.
 //
-// Focus replaces the edge with focus.Ring — the platform's keyboard focus
-// indicator, the one ring every control in this library wears — drawn at
-// focus.Width instead of the hairline's single pixel.
+// Focus reaches none of them: the halo is laid on the outline the field
+// already draws, so a focused field keeps the edge it has at rest.
 func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, edge, placeholder color.NRGBA, shadow control.ToolbarShadow) {
 	fill = fieldFill(p, s)
 	foreground = p.Text
@@ -814,8 +819,6 @@ func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, 
 		placeholder = foreground
 		edge = control.Faded(edge, surface.Or(s.Surface, p.WindowBackground))
 		shadow = shadow.Faded()
-	case s.Focused:
-		edge = focus.Ring(p, surface.Or(s.Surface, p.WindowBackground))
 	}
 	return
 }

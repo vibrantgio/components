@@ -707,7 +707,7 @@ const planeRadius = unit.Dp(8)
 // twice its width, centred on that outline and clipped to it, puts every pixel
 // of the line inside the box where a stroke of its own width would fall half
 // outside. Drawn that way both of its sides follow the corner, which four
-// rectangles could not — the same idiom the trigger's focus ring takes.
+// rectangles could not — the same idiom the trigger's edge takes.
 func planeShape(gtx layout.Context, size image.Point, p tokens.PlatformColors, rows op.CallOp) {
 	if size.X <= 0 || size.Y <= 0 {
 		return
@@ -773,8 +773,8 @@ func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fi
 func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s FieldState) layout.Dimensions {
 	// No edge column stands between the fill and the surface, so there is no
 	// inner edge for an inset to start from and both are spent from the
-	// fill's own. That holds in every state: focus draws its ring in the
-	// fill's outermost pixels rather than outside them, so nothing moves.
+	// fill's own. That holds in every state: focus is a halo laid on the
+	// shape's outline and moves nothing the trigger draws or reports.
 	lead := gtx.Dp(control.PopupLeadDp)
 	trail := gtx.Dp(control.PopupMarkTrailDp)
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
@@ -889,23 +889,15 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	// last, with no darker column at either end — the platform draws this
 	// control's fill as its whole shape and puts no seam around it.
 	//
-	// Focus is the exception, because a focus ring is not an edge the control
-	// wears but the one idiom every control in the library wears while it
-	// holds the keyboard. It is a band laid ON the shape's outline rather
-	// than a shape beneath it: a stroke of twice the ring's width, centred on
-	// that outline and clipped to it, puts every pixel inside the box the
-	// trigger reports where a stroke of the ring's own width would fall half
-	// outside. Drawn that way both of the band's sides follow the corner,
-	// which four rectangles could not.
+	// Focus adds nothing to that: the trigger keeps the fill and the
+	// edgeless shape the platform draws it with, and wears the library's one
+	// halo on that outline while it holds the keyboard.
 	rrectOuter := clip.RRect{Rect: image.Rectangle{Max: triggerSize}, SE: rad, SW: rad, NE: rad, NW: rad}
 	paint.FillShape(gtx.Ops, bg, rrectOuter.Op(gtx.Ops))
 	if s.Focused {
-		ringPx := gtx.Dp(focus.Width)
-		edgePath := rrectOuter.Path(gtx.Ops)
-		edgeArea := rrectOuter.Push(gtx.Ops)
-		paint.FillShape(gtx.Ops, focus.Ring(tok.platform, bg),
-			clip.Stroke{Path: edgePath, Width: float32(2 * ringPx)}.Op())
-		edgeArea.Pop()
+		standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
+		focus.Halo(gtx, image.Rectangle{Max: triggerSize}, rad,
+			focus.Ring(tok.platform, standsOn), focus.Ring(tok.platform, bg))
 	}
 
 	// Text label: vertically centred, and clipped to the control's own shape

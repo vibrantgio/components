@@ -62,7 +62,7 @@ type SearchFieldProps struct {
 	// [Chrome] on a sidebar or a toolbar, where the platform draws the field
 	// as a flat recess instead of a bordered box. The zero value is Form.
 	//
-	// State Surface with it: the recess is opaque, but the focus ring and
+	// State Surface with it: the recess is opaque, but the focus halo and
 	// the marks around it still composite onto the chrome material the
 	// field stands on.
 	Variant Variant

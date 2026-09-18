@@ -77,13 +77,13 @@
 // coverage folded into a translucent fill is not the pixel the platform
 // draws.
 //
-// The focus ring is components/internal/focus's, the platform's keyboard
-// focus indicator, one colour per appearance on every surface. A focused
-// chip's edge IS the ring — it takes the rim's place, two dp where the rim
-// was one, rather than being drawn inside it. Drawn inside, the two make a
-// three-line sandwich that reads as a smeared halo; it is the same reason
-// components/button holds its ring clear of its own boundary. The chip
-// measures the same box focused as at rest and the label does not shift.
+// The focus halo is components/internal/focus's, the platform's keyboard
+// focus indicator, one colour per appearance on every surface. A focused chip
+// keeps the rim it has at rest — or the rim a selected one has dropped — and
+// wears the halo on its own outline: half the band past the chip's box and
+// half over it. The chip measures the same box focused as at rest and the
+// label does not shift; the half past the box goes through op.Defer, so
+// reporting a larger box to make room for it is not needed.
 //
 // # Geometry
 //

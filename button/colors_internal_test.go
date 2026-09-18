@@ -92,7 +92,7 @@ func TestEmphasisTakesThePlatformsNames(t *testing.T) {
 			{"tonal held under the pointer", RenderState{Emphasis: Tonal, Hovered: true, Pressed: true}, pushHit, on(p.Separator, pushHit), on(p.ControlText, pushHit), on(p.KeyboardFocusIndicator, pushHit)},
 			{"tonal switched off under the pointer", RenderState{Emphasis: Tonal, Hovered: true, Disabled: true}, pushOff, seamOff, on(p.DisabledControlText, pushOff), on(p.KeyboardFocusIndicator, pushOff)},
 		} {
-			bg, edge, fg, ring := buttonColors(p, tc.state)
+			bg, edge, fg, _, ring := buttonColors(p, tc.state)
 			if bg != tc.bg || edge != tc.edge || fg != tc.fg || ring != tc.ring {
 				t.Errorf("%s/%s: got fill %v edge %v foreground %v ring %v, want %v %v %v %v",
 					sc.name, tc.name, bg, edge, fg, ring, tc.bg, tc.edge, tc.fg, tc.ring)
@@ -111,7 +111,7 @@ func TestNothingTheButtonPaintsCarriesACoverage(t *testing.T) {
 				{Emphasis: e}, {Emphasis: e, Pressed: true},
 				{Emphasis: e, Focused: true}, {Emphasis: e, Disabled: true},
 			} {
-				bg, edge, fg, ring := buttonColors(p, s)
+				bg, edge, fg, _, ring := buttonColors(p, s)
 				for _, c := range []color.NRGBA{bg, edge, fg, ring} {
 					if c.A != 0 && c.A != 0xff {
 						t.Errorf("%v %+v: %v carries a coverage; the button paints opaque", e, s, c)
@@ -129,8 +129,8 @@ func TestNothingTheButtonPaintsCarriesACoverage(t *testing.T) {
 func TestEveryVariantTintsUnderThePointer(t *testing.T) {
 	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
 		for _, e := range []Emphasis{Filled, Tonal, Ghost} {
-			restBG, _, _, _ := buttonColors(p, RenderState{Emphasis: e})
-			bg, _, _, _ := buttonColors(p, RenderState{Emphasis: e, Hovered: true})
+			restBG, _, _, _, _ := buttonColors(p, RenderState{Emphasis: e})
+			bg, _, _, _, _ := buttonColors(p, RenderState{Emphasis: e, Hovered: true})
 			if bg == restBG {
 				t.Errorf("%v hovered is still the resting fill %v", e, bg)
 			}
@@ -149,9 +149,9 @@ func TestEveryVariantTintsUnderThePointer(t *testing.T) {
 // the enabled pop-up seventeen rows above it reads #ececec.
 func TestSwitchedOffPartsFromTheEnabledTonal(t *testing.T) {
 	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
-		tonal, tonalEdge, _, _ := buttonColors(p, RenderState{Emphasis: Tonal})
+		tonal, tonalEdge, _, _, _ := buttonColors(p, RenderState{Emphasis: Tonal})
 		for _, e := range []Emphasis{Filled, Tonal} {
-			off, offEdge, _, _ := buttonColors(p, RenderState{Emphasis: e, Disabled: true})
+			off, offEdge, _, _, _ := buttonColors(p, RenderState{Emphasis: e, Disabled: true})
 			if off == tonal {
 				t.Errorf("%v switched off fills %v, the same pixel an enabled tonal does", e, off)
 			}
@@ -188,7 +188,7 @@ func TestGhostRestingFillIsFullyTransparent(t *testing.T) {
 		{Emphasis: Ghost, Focused: true},
 		{Emphasis: Ghost, Disabled: true},
 	} {
-		bg, edge, _, _ := buttonColors(tokens.PlatformLight, s)
+		bg, edge, _, _, _ := buttonColors(tokens.PlatformLight, s)
 		if bg.A != 0 {
 			t.Errorf("ghost %+v: fill alpha = %d, want 0", s, bg.A)
 		}
@@ -204,8 +204,8 @@ func TestGhostRestingFillIsFullyTransparent(t *testing.T) {
 // stay put.
 func TestPinnedFillIsAppearanceStableWhereTheAccentPairIsNot(t *testing.T) {
 	pinned := RenderState{Fill: pinFill, Foreground: pinForeground}
-	lightBG, _, lightFG, _ := buttonColors(tokens.PlatformLight, pinned)
-	darkBG, _, darkFG, _ := buttonColors(tokens.PlatformDark, pinned)
+	lightBG, _, lightFG, _, _ := buttonColors(tokens.PlatformLight, pinned)
+	darkBG, _, darkFG, _, _ := buttonColors(tokens.PlatformDark, pinned)
 	if lightBG != darkBG || lightFG != darkFG {
 		t.Errorf("pinned pair moved between appearances: light %v on %v, dark %v on %v",
 			lightFG, lightBG, darkFG, darkBG)
@@ -224,7 +224,7 @@ func TestHalfAPinIsNoPin(t *testing.T) {
 		{Fill: pinFill},
 		{Foreground: pinForeground},
 	} {
-		bg, _, fg, _ := buttonColors(p, s)
+		bg, _, fg, _, _ := buttonColors(p, s)
 		if want := on(p.AlternateSelectedControlText, p.ControlAccent); bg != p.ControlAccent || fg != want {
 			t.Errorf("%+v resolved to %v on %v, want the accent pair %v on %v",
 				s, fg, bg, want, p.ControlAccent)

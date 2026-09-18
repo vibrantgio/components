@@ -147,11 +147,12 @@ type RenderState struct {
 	// chip drops its rim, fills, and leads with a checkmark.
 	Selected bool
 
-	// Surface is the opaque fill the chip stands on. The chip's rim and its
-	// focus ring are painted as a shape the body is then inset inside, so
-	// both land on this rather than on the chip's own fill, and the
-	// platform's seam and focus indicator carry a coverage rather than a
-	// colour. The zero value — no colour — is the window's own plane.
+	// Surface is the opaque fill the chip stands on. The chip's rim is
+	// painted as a shape the body is then inset inside and its focus halo
+	// lies half out here, so both land on this rather than on the chip's own
+	// fill, and the platform's seam and focus indicator carry a coverage
+	// rather than a colour. The zero value — no colour — is the window's own
+	// plane.
 	Surface color.NRGBA
 
 	// Hovered lays the platform's hover overlay over the body; Pressed lays
@@ -175,7 +176,8 @@ type Colors struct {
 
 	// Outline is the rim the body wears, and Outlined is whether it is drawn
 	// at all. A selected chip has no rim: the fill has arrived and the edge is
-	// not needed twice. Ring is what a focused chip wears in the rim's place.
+	// not needed twice. Ring is the focus halo's colour where it lies past
+	// the chip's box, which is on the surface the chip stands on.
 	Outline  color.NRGBA
 	Outlined bool
 	Ring     color.NRGBA
@@ -222,8 +224,8 @@ type Colors struct {
 // control-pressed-{light,dark}.png reads #d5d5d5 and #474d52 for a held push
 // button over the push button's own fill, with no hover under it.
 //
-// A focused chip wears [focus.Ring] in place of its rim, which the draw
-// applies rather than this.
+// Ring is the colour the half of a focused chip's halo that lies past its box
+// takes; the draw applies it rather than this.
 func Resolve(p tokens.PlatformColors, i Purpose, s RenderState) Colors {
 	standsOn := surface.Or(s.Surface, p.WindowBackground)
 
@@ -354,7 +356,7 @@ type Props struct {
 	// The caller then owns &Clickable as the chip's focus tag — usable with
 	// key.FocusCmd, key.Filter{Focus: …} and an external Tab cycle — and may
 	// detect activation via Clickable.Clicked(gtx). This is what lets a
-	// container that drives focus itself avoid a doubled focus ring. When nil
+	// container that drives focus itself avoid a doubled focus halo. When nil
 	// the chip allocates and owns its own clickable, which survives every
 	// theme emission.
 	Clickable *widget.Clickable
@@ -437,7 +439,7 @@ type resolvedTokens struct {
 //
 // Keyboard activation is gioui.org/widget.Clickable's: the chip is focusable,
 // Space and Enter activate it, and gtx.Focused drives [RenderState.Focused] —
-// so a focused chip wears the ring the package doc describes. Both integration
+// so a focused chip wears the halo the package doc describes. Both integration
 // paths are supported and both are read off the one poll of the clickable:
 //   - FRP: set Props.OnClick, Props.OnSelect, Props.OnDismiss.
 //   - MVU: set Props.Message and Props.DismissMessage.
@@ -698,18 +700,12 @@ func draw(
 	// the box this component reports and every pixel of it would be a blend of the
 	// two colours rather than either.
 	//
-	// A focused chip's edge IS the focus ring: the ring replaces the rim
-	// rather than being drawn inside it. Drawn inside, the two make a
-	// three-line sandwich — hairline, a pixel of body, then the ring — which
-	// reads as a dirty halo, the same "a band beside a boundary reads as part
-	// of that boundary" that holds components/button's ring clear of its edge.
-	// Nothing else moves: the chip measures the same box focused as at rest,
-	// and the label does not shift.
+	// A focused chip keeps the rim it has at rest — or the rim it does not
+	// have, a selected one having dropped it — and wears the library's one
+	// halo on its outline. Nothing else moves: the chip measures the same box
+	// focused as at rest, and the label does not shift.
 	radius := min(gtx.Dp(unit.Dp(tok.radius.Lg)), h/2)
 	edgeColor, edged := col.Outline, col.Outlined
-	if s.Focused {
-		band, edgeColor, edged = gtx.Dp(focus.Width), col.Ring, true
-	}
 	inner, innerRad := box, radius
 	if edged {
 		paint.FillShape(gtx.Ops, edgeColor, rrect(gtx.Ops, box, radius))
@@ -718,6 +714,16 @@ func draw(
 		}
 	}
 	paint.FillShape(gtx.Ops, col.Fill, rrect(gtx.Ops, inner, innerRad))
+	if s.Focused {
+		// What the halo's inner half lands on: the chip's own outermost
+		// band, which is its rim where it draws one and its body where it
+		// does not.
+		over := col.Fill
+		if edged {
+			over = edgeColor
+		}
+		focus.Halo(gtx, box, radius, col.Ring, focus.Ring(tok.platform, over))
+	}
 
 	// One row, leading edge to trailing: mark, label, dismiss mark. The row is
 	// laid from the leading padding rather than centred in the box, because

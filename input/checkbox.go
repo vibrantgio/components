@@ -128,7 +128,7 @@ type CheckboxRenderState struct {
 	// the box alone.
 	Label string
 
-	// Surface is the opaque fill the control stands on. Its focus ring rides
+	// Surface is the opaque fill the control stands on. Its focus halo rides
 	// in the slack around the glyph, so the platform's keyboard focus
 	// indicator — a coverage rather than a colour — lands on this, and so
 	// does the glyph's own edge, which is drawn as a shape the fill is inset
@@ -414,31 +414,27 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		paint.FillShape(gtx.Ops, control.Fill(tok.platform), rrectInner.Op(gtx.Ops))
 	}
 
-	// The focus ring: focus.Width around the box, clear of it, in the one
-	// colour focus.Ring answers for the scheme — the same pixel the button,
-	// the chip and the field beside it draw. It rides in the slack between
-	// the 16 dp glyph and the density's footprint, so taking focus moves
-	// nothing and the ring is the same ring whatever the box is doing.
+	// The focus halo, on the 16 dp box's own outline — the same band in the
+	// same place the button, the chip and the field beside it wear. The box
+	// keeps its edge and its fill under it, whatever it is doing: a checked
+	// box has no free edge to promote, its edge being the accent fill that
+	// says it is checked, and the halo does not need one.
 	//
-	// The ring must sit outside the glyph with clear space on both sides: a
-	// ring that touches the edge it marks cannot be read separately from it,
-	// and a checked box has no free edge to promote at all — its edge is the
-	// accent fill that says it is checked.
+	// It rides in the slack the density's footprint holds around the glyph,
+	// so nothing about the control moves when it takes the keyboard. At the
+	// comfortable footprint's 22 dp that slack is 3 dp on each side and the
+	// halo spends 2 of it; tighter, the band reaches past the footprint,
+	// which is why focus.Halo defers it rather than drawing it in place.
 	if s.Focused && !s.Disabled {
-		w := gtx.Dp(focus.Width)
-		out := w + w/2 // stroke centreline: the band spans w..2w clear of the box
-		r := boxRad + out
-		ring := clip.RRect{
-			Rect: image.Rectangle{
-				Min: boxRect.Min.Sub(image.Pt(out, out)),
-				Max: boxRect.Max.Add(image.Pt(out, out)),
-			},
-			SE: r, SW: r, NE: r, NW: r,
+		// What the halo's inner half lands on: the box's own outermost
+		// band, which is the accent that says a box is checked and the
+		// platform's field edge where it is not.
+		boxEdge := control.Border(tok.platform)
+		if s.Checked {
+			boxEdge = tok.platform.ControlAccent
 		}
-		paint.FillShape(gtx.Ops, focus.Ring(tok.platform, standsOn), clip.Stroke{
-			Path:  ring.Path(gtx.Ops),
-			Width: float32(w),
-		}.Op())
+		focus.Halo(gtx, boxRect, boxRad,
+			focus.Ring(tok.platform, standsOn), focus.Ring(tok.platform, boxEdge))
 	}
 
 	// The label is part of the control, as it is on the platform: it stands

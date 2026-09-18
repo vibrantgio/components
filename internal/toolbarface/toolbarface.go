@@ -1,6 +1,6 @@
 // Package toolbarface holds the geometry components/picker's chrome-variant
 // trigger is drawn from: the fill it stands off its band with and tints under
-// the pointer, the hairline around it, the focus ring that replaces that
+// the pointer, the hairline around it, the focus halo it wears over that
 // hairline, the density's toolbar control height, the pointer target's
 // placement, and the pop-up mark that says the control holds one of several
 // values.
@@ -29,6 +29,7 @@ import (
 
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
+	"github.com/vibrantgio/components/internal/surface"
 )
 
 // edgeDp is the rim's width — one hair at every density, the width every
@@ -61,6 +62,12 @@ type State struct {
 	Hovered bool
 	Pressed bool
 	Focused bool
+
+	// StandsOn is the opaque fill the control stands on — its band. A
+	// focused control's halo lies half past its own box, so the half out
+	// there has to be flattened onto what is actually there. Alpha zero is
+	// no answer, and the halo takes the control's own fill on both halves.
+	StandsOn color.NRGBA
 
 	// Checked is the persistent state of a control that records a yes — a
 	// toolbar toggle that says whether the thing it governs stands. It is
@@ -207,7 +214,7 @@ func (p Pin) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 }
 
 // Draw paints the chrome variant's trigger: the fill it stands off its band
-// with and tints under the pointer, the hairline or the focus ring that
+// with and tints under the pointer, the hairline and the focus halo that
 // replaces it, the label, and the pop-up mark.
 func Draw(
 	gtx layout.Context,
@@ -313,9 +320,9 @@ func Draw(
 }
 
 // Capsule paints the bordered toolbar control's own box into box: its fill,
-// and the rim or the focus ring that stands in the rim's place. It reports the
-// rounded shape it drew, which a caller pushes to clip whatever stands inside
-// that box.
+// the rim around it, and the focus halo on that outline while it holds the
+// keyboard. It reports the rounded shape it drew, which a caller pushes to
+// clip whatever stands inside that box.
 //
 // Every bordered toolbar control in this library is drawn through it — the
 // picker's chrome trigger and components/button's chrome variant — so a
@@ -325,19 +332,13 @@ func Draw(
 // outside the box and so outside the clip a widget.Clickable puts around
 // whatever it wraps. [Cast] draws it, in the band's own pass.
 func Capsule(gtx layout.Context, box image.Rectangle, radius int, p tokens.PlatformColors, fill color.NRGBA, s State) clip.RRect {
-	// A focused control's edge IS the focus ring: the ring replaces the rim
-	// rather than being drawn inside it, and in the light appearance there is
-	// no rim to replace — the platform draws none there, so a resting light
-	// control is its fill and nothing else. Drawn inside, the two make a
-	// three-line sandwich — hairline, a pixel of fill, then the ring — which
-	// reads as a dirty halo around the outline, the same "a band beside a
-	// boundary reads as part of that boundary" that holds components/button's
-	// ring clear of its edge. Nothing else moves: the shape measures the same
-	// box focused as at rest, and the label does not shift.
+	// The control keeps its own rim whatever the keyboard is doing: focus is
+	// the halo laid on the outline and not a second answer to what the edge
+	// is. In the light appearance there is no rim at all — the platform
+	// draws none there, so a resting light control is its fill and nothing
+	// else — and a focused one in that appearance is its fill under the
+	// halo.
 	band, edgeColor := max(gtx.Dp(edgeDp), 1), Rim(p)
-	if s.Focused {
-		band, edgeColor = gtx.Dp(focus.Width), focus.Ring(p, fill)
-	}
 	if edgeColor.A == 0 {
 		band = 0
 	}
@@ -359,6 +360,10 @@ func Capsule(gtx layout.Context, box image.Rectangle, radius int, p tokens.Platf
 		edgeArea := outer.Push(gtx.Ops)
 		paint.FillShape(gtx.Ops, edgeColor, clip.Stroke{Path: edgePath, Width: float32(2 * band)}.Op())
 		edgeArea.Pop()
+	}
+	if s.Focused {
+		standsOn := surface.Or(s.StandsOn, fill)
+		focus.Halo(gtx, box, radius, focus.Ring(p, standsOn), focus.Ring(p, fill))
 	}
 	return outer
 }

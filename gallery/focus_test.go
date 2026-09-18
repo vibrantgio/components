@@ -40,7 +40,7 @@ const (
 // focusSurfaces are the fills the sheet shows a focused control on. Three
 // rather than one because the claim under review is that the ring does not
 // move with the surface, and a specimen on one fill cannot carry a claim
-// about three. The focus ring carries a coverage rather than a colour, so
+// about three. The focus halo carries a coverage rather than a colour, so
 // every cell has to say what it is composited onto or the ring lands on the
 // window's plane whatever the panel under it is painted in.
 func focusSurfaces(c tokens.PlatformColors) []struct {

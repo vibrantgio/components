@@ -102,7 +102,12 @@ func ChromeSegments(gtx layout.Context, p tokens.PlatformColors, d tokens.Densit
 		focused = focused || (s.State.Focused && !s.State.Disabled)
 	}
 	rest := toolbarface.Fill(p, tokens.StateNormal)
-	outer := toolbarface.Capsule(gtx, box, h/2, p, rest, toolbarface.State{Focused: focused})
+	outer := toolbarface.Capsule(gtx, box, h/2, p, rest, toolbarface.State{
+		Focused: focused,
+		// The band the pair stands on. Every segment of one control stands
+		// on one band, so the first segment's answer is the control's.
+		StandsOn: segs[0].State.Surface,
+	})
 
 	clear := min(gtx.Dp(SegmentSeamClearDp), h/2)
 	for i, s := range segs {

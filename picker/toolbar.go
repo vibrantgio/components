@@ -56,13 +56,18 @@ type ToolbarState struct {
 	Hovered bool
 	Pressed bool
 	Focused bool
+
+	// Surface is the opaque fill the trigger stands on — its band. The half
+	// of a focused trigger's halo that lies past its own box is flattened
+	// onto it; alpha zero is no answer.
+	Surface color.NRGBA
 }
 
 // face is this state as the shared toolbar geometry reads it. A pop-up holds
 // one of several values and records no yes of its own, so the checked state a
 // toolbar toggle draws is left unset here.
 func (s ToolbarState) face() toolbarface.State {
-	return toolbarface.State{Hovered: s.Hovered, Pressed: s.Pressed, Focused: s.Focused}
+	return toolbarface.State{Hovered: s.Hovered, Pressed: s.Pressed, Focused: s.Focused, StandsOn: s.Surface}
 }
 
 // ToolbarProps configures a [Toolbar] instance.
@@ -83,7 +88,7 @@ type ToolbarProps struct {
 	// key.FocusCmd, key.Filter{Focus: …} and an external Tab cycle — and may
 	// detect activation via Clickable.Clicked(gtx). This is what lets a
 	// container that drives focus itself — a popover anchored on this control
-	// — avoid a doubled focus ring. When nil the trigger allocates and owns its
+	// — avoid a doubled focus halo. When nil the trigger allocates and owns its
 	// own clickable, which survives every theme emission.
 	Clickable *widget.Clickable
 
@@ -204,6 +209,10 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 					Hovered: click.Hovered(),
 					Pressed: click.Pressed(),
 					Focused: gtx.Focused(click),
+					// The band a toolbar trigger stands on. The control
+					// is the platform's toolbar pop-up and the chrome it
+					// stands in is what a live caller puts it on.
+					StandsOn: tok.platform.SidebarMaterial,
 				}
 
 				return toolbarface.Pin(props.Pin).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -233,8 +242,8 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 // overlays under the pointer and while held, the one-dp rim of the platform's
 // seam, the drop shadow the control casts on the band it stands on, and the
 // value and the pop-up mark both in the platform's control text. When
-// s.Focused, the focus ring takes the rim's place at the control's edge, two
-// dp instead of one.
+// s.Focused, the control keeps that rim and wears the library's one focus
+// halo on its outline.
 //
 // The shadow reaches past the control on every side, so what this
 // layout.Widget paints is wider and taller than what it reports. In the light appearance

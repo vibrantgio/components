@@ -43,15 +43,24 @@ func TestTheRingResolvesTheCoverageAgainstWhatIsBeneathIt(t *testing.T) {
 			t.Errorf("Ring alpha = %d, want an opaque answer", a)
 		}
 		if onPlane, onButton := focus.Ring(p, p.WindowBackground), focus.Ring(p, p.PushButtonFill); onPlane == onButton {
-			t.Errorf("the ring reads the same on the plane and on a push button's fill (%v); the coverage is not being resolved", onPlane)
+			t.Errorf("the halo reads the same on the plane and on a push button's fill (%v); the coverage is not being resolved", onPlane)
 		}
 	}
 }
 
-// The ring is a keyboard affordance rather than an ornament, so it does not
+// The halo is a keyboard affordance rather than an ornament, so it does not
 // thin out when the controls around it tighten: one width at every density.
-func TestWidthIsOneValue(t *testing.T) {
-	if focus.Width != unit.Dp(2) {
-		t.Errorf("Width = %v, want 2 dp", focus.Width)
+//
+// MEASURED, save-dialog-{light,dark}.png, the focused "Save As:" field: four
+// px on every side of a box running x 264-495, covering x 262-265 and x
+// 494-497 across and y 205-208 and y 231-234 down, with the sheet unblended
+// one px beyond each. Half of that lies past the box, which is what Outside
+// carries.
+func TestWidthIsTheMeasuredBand(t *testing.T) {
+	if focus.Width != unit.Dp(4) {
+		t.Errorf("Width = %v, want 4 dp", focus.Width)
+	}
+	if focus.Outside != focus.Width/2 {
+		t.Errorf("Outside = %v, want half of Width (%v)", focus.Outside, focus.Width/2)
 	}
 }

@@ -94,10 +94,11 @@ func drawChromeIcon(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 
 	fill, fg := chromeColors(p, s)
 	outer := toolbarface.Capsule(gtx, box, radius, p, fill, toolbarface.State{
-		Hovered: s.Hovered && !s.Disabled,
-		Pressed: s.Pressed && !s.Disabled,
-		Focused: s.Focused && !s.Disabled,
-		Checked: s.Checked,
+		Hovered:  s.Hovered && !s.Disabled,
+		Pressed:  s.Pressed && !s.Disabled,
+		Focused:  s.Focused && !s.Disabled,
+		Checked:  s.Checked,
+		StandsOn: surface.Or(s.Surface, p.SidebarMaterial),
 	})
 
 	// The symbol centred in the box, clipped to the control's own shape so a

@@ -355,14 +355,14 @@ func TestUnpinnedFillDrawsTheStockButton(t *testing.T) {
 	}
 }
 
-// TestPinnedFillCarriesARingThatReadsOnIt holds the half of the emphasis a
-// pinned fill could silently break: the ring composites over whatever fill
+// TestPinnedFillCarriesAHaloThatReadsOnIt holds the half of the emphasis a
+// pinned fill could silently break: the halo composites over whatever fill
 // is there, so a caller's pin must show through it exactly as the accent
 // fill does.
-func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
+func TestPinnedFillCarriesAHaloThatReadsOnIt(t *testing.T) {
 	size := image.Pt(60, 60)
 	side := int(tokens.Comfortable.ControlHeight) // 1 px per dp in the harness
-	w := int(focus.Width)
+	out := int(focus.Outside)
 
 	for _, scheme := range []struct {
 		name   string
@@ -371,9 +371,10 @@ func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
 		{"light", tokens.PlatformLight},
 		{"dark", tokens.PlatformDark},
 	} {
-		// The platform's focus indicator carries a coverage, and the ring
-		// resolves it against the pin it lies on, so the pixel on the band
-		// is exactly what focus.Ring answers for that pair.
+		// The platform's focus indicator carries a coverage, and the halo
+		// resolves it against what each half lies on, so the pixel on the
+		// half over the button is exactly what focus.Ring answers for the
+		// pin.
 		ring := focus.Ring(scheme.colors, pinnedFill)
 		img := golden.Capture(t, size, onWindowSurface(scheme.colors, button.RenderIcon(
 			crossIcon, scheme.colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
@@ -382,23 +383,24 @@ func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
 		if img == nil {
 			return // headless unavailable; Capture called t.Skip
 		}
-		// A pixel on the ring's left band, clear of both corners: the band
-		// spans w to 2w inside the button's own edge.
-		if at := img.RGBAAt(w, side/2); !nearlyEqual(at, ring) {
-			t.Errorf("%s: ring pixel at (%d,%d) = %v, want the focus indicator over the pin %v",
-				scheme.name, w, side/2, at, ring)
+		// A pixel on the half of the halo that lies over the button, clear
+		// of both corners: the leading columns 0 to Outside of the button's
+		// own square.
+		if at := img.RGBAAt(out-1, side/2); !nearlyEqual(at, ring) {
+			t.Errorf("%s: halo pixel at (%d,%d) = %v, want the focus indicator over the pin %v",
+				scheme.name, out-1, side/2, at, ring)
 		}
 	}
 }
 
-// beneathTheRing is what a focused button's ring band lies on: the variant's
-// own resting fill over the window's plane. It is the test's own copy of the
+// beneathTheRing is what the half of a focused button's halo that lies over
+// the button rests on: the variant's own resting fill. It is the test's own copy of the
 // rule drawButton applies, kept here so the assertion below reads a value
 // written independently of the code that painted it. Focus keeps the resting
 // fill in every variant, so the fill under the band is the resting one.
 //
 // Every one of these is opaque, so the plane under it does not reach the
-// pixel; the ring's own coverage is resolved against them by focus.Ring.
+// pixel; the halo's own coverage is resolved against them by focus.Ring.
 func beneathTheRing(p tokens.PlatformColors, e button.Emphasis) color.NRGBA {
 	switch e {
 	case button.Tonal:
@@ -410,46 +412,56 @@ func beneathTheRing(p tokens.PlatformColors, e button.Emphasis) color.NRGBA {
 	}
 }
 
-// TestFocusRingIsTheSameRingInEveryEmphasis is the pixel proof of the rule
-// that keyboard visibility does not scale down with emphasis: the ring is the
+// TestFocusHaloIsTheSameHaloInEveryEmphasis is the pixel proof of the rule
+// that keyboard visibility does not scale down with emphasis: the halo is the
 // same shape, in the same place, at the same width in all three emphases. So
-// a ghost button's ring is neither thinner, dimmer nor smaller than a filled
+// a ghost button's halo is neither thinner, dimmer nor smaller than a filled
 // one's.
 //
-// The colour is the platform's one focus indicator in every variant. It
-// carries a coverage, so what lands on the band is that indicator over the
-// variant's own fill, and the expected pixel is composited per variant.
+// The geometry is stated here rather than compared between emphases — a band
+// straddling the button's own square, focus.Outside of it past that square
+// and focus.Outside of it over it, and nothing anywhere else — so "the same
+// halo" is a claim about a band written down once and held by all three.
 //
-// The geometry is stated here rather than compared between emphases — the
-// outermost focus.Width dp of the button's own square, and nothing outside it
-// — so "the same ring" is a claim about a band written down once and held by
-// all three, and the ring's containment in the footprint is held too. The four
-// corner pixels are excused: a stroke's corner is anti-aliased against
-// whatever is behind it, which is a different colour in every emphasis.
+// The colour is the platform's one focus indicator in every variant, and it
+// carries a coverage, so each half is that indicator over what that half
+// lands on: the variant's own resting fill inside the square, the window's
+// plane outside it. The corners of both halves are excused: a stroke's corner
+// is anti-aliased against whatever is behind it.
 //
 // Both appearances, because the platform answers the indicator per
 // appearance.
-func TestFocusRingIsTheSameRingInEveryEmphasis(t *testing.T) {
+func TestFocusHaloIsTheSameHaloInEveryEmphasis(t *testing.T) {
 	size := image.Pt(60, 60)
 	side := int(tokens.Comfortable.ControlHeight) // 1 px per dp in the harness
-	w := int(focus.Width)
+	out := int(focus.Outside)
 
-	// onBand reports whether p is in the ring's band — the square annulus
-	// spanning w to 2w inside the button's own edge, the ring held its own
-	// width clear of that edge — and whether it is one of the anti-aliased
-	// corners the colour check excuses.
-	onBand := func(p image.Point) (band, corner bool) {
-		if p.X < 0 || p.Y < 0 || p.X >= side || p.Y >= side {
-			return false, false
+	// band reports which half of the halo p falls in — inside the button's
+	// square or past it — and whether it is one of the anti-aliased corners
+	// the colour check excuses. The button is drawn at the frame's origin, so
+	// the leading and top halves that lie past the square fall outside the
+	// image and are simply not scanned.
+	band := func(p image.Point) (inside, outside, corner bool) {
+		nearX := p.X >= -out && p.X < side+out
+		nearY := p.Y >= -out && p.Y < side+out
+		if !nearX || !nearY {
+			return false, false, false
 		}
-		inX := p.X >= w && p.X < side-w
-		inY := p.Y >= w && p.Y < side-w
-		if !inX || !inY {
-			return false, false // the clear gap, or the surface beyond it
+		edgeX := p.X < out || p.X >= side-out
+		edgeY := p.Y < out || p.Y >= side-out
+		pastX := p.X < 0 || p.X >= side
+		pastY := p.Y < 0 || p.Y >= side
+		switch {
+		case pastX && pastY:
+			return false, true, true
+		case pastX || pastY:
+			return false, true, edgeX && edgeY
+		case edgeX && edgeY:
+			return true, false, true
+		case edgeX || edgeY:
+			return true, false, false
 		}
-		edgeX := p.X < 2*w || p.X >= side-2*w
-		edgeY := p.Y < 2*w || p.Y >= side-2*w
-		return edgeX || edgeY, edgeX && edgeY
+		return false, false, false
 	}
 
 	for _, scheme := range []struct {
@@ -461,38 +473,45 @@ func TestFocusRingIsTheSameRingInEveryEmphasis(t *testing.T) {
 	} {
 		colors := scheme.colors
 		for _, e := range []button.Emphasis{button.Filled, button.Tonal, button.Ghost} {
-			ring := focus.Ring(colors, beneathTheRing(colors, e))
+			over := focus.Ring(colors, beneathTheRing(colors, e))
+			past := focus.Ring(colors, colors.WindowBackground)
 
 			// No glyph: at the platform's control height the padding is
-			// 2 dp and the ring is 2 dp wide, so a glyph inset by the
+			// 2 dp and the halo reaches 2 dp in, so a glyph inset by the
 			// padding reaches into the band and a colour scan of the band
 			// would be reading the glyph. The claim here is about the band.
 			img := golden.Capture(t, size, onWindowSurface(colors, button.RenderIcon(
 				nil, colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
 				button.RenderState{Emphasis: e, Focused: true},
 			)))
+			if img == nil {
+				return // headless unavailable; Capture called t.Skip
+			}
 			missing, leaked := 0, 0
 			b := img.Bounds()
 			for y := b.Min.Y; y < b.Max.Y; y++ {
 				for x := b.Min.X; x < b.Max.X; x++ {
 					p := image.Pt(x, y)
-					band, corner := onBand(p)
-					isRing := nearlyEqual(img.RGBAAt(x, y), ring)
+					inside, outside, corner := band(p)
+					at := img.RGBAAt(x, y)
 					switch {
-					case band && !corner && !isRing:
+					case corner:
+					case inside && !nearlyEqual(at, over):
 						missing++
-					case !band && isRing:
+					case outside && !nearlyEqual(at, past):
+						missing++
+					case !inside && !outside && (nearlyEqual(at, over) || nearlyEqual(at, past)):
 						leaked++
 					}
 				}
 			}
 			if missing > 0 {
-				t.Errorf("%s %s: %d pixels of the ring's band are not the ring colour %v",
-					scheme.name, e, missing, ring)
+				t.Errorf("%s %s: %d pixels of the halo's band are not the halo colour (over the button %v, past it %v)",
+					scheme.name, e, missing, over, past)
 			}
 			if leaked > 0 {
-				t.Errorf("%s %s: %d pixels in the ring colour %v fall outside the ring's band",
-					scheme.name, e, leaked, ring)
+				t.Errorf("%s %s: %d pixels in a halo colour fall outside the halo's band",
+					scheme.name, e, leaked)
 			}
 		}
 	}

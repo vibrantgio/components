@@ -6,7 +6,7 @@
 //
 //	[Field]    the FORM variant — the platform's pop-up button, standing in a
 //	           form beside a text field and a checkbox at the same control
-//	           height, with the same focus ring and the platform's stacked
+//	           height, with the same focus halo and the platform's stacked
 //	           chevron pair as its mark
 //	[Toolbar]  the CHROME variant — the same pop-up drawn for a toolbar, a
 //	           header row or any other chrome region: a capsule carrying its
@@ -89,7 +89,7 @@
 // geometry components/internal/toolbarface holds: the platform's own toolbar
 // control fill at rest and that fill under the platform's overlays under the
 // pointer and while held, the rim of its seam, the value and the mark both in
-// its control text, the focus ring that replaces that rim, the density's
+// its control text, the focus halo it wears on that rim, the density's
 // height, the pointer target that control is, the pin. [ToolbarFill] is the
 // fill the trigger draws, for a caller that must know. Two things are the
 // toolbar trigger's own.
