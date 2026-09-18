@@ -95,22 +95,22 @@
 // THE DIAGONAL ALLOWANCE IS NOT MEASURED. No stored capture holds a bare
 // diagonal band standing alone in a toolbar band; Notes' compose covers
 // 17 × 17, the nearest reading, and it is a figure rather than a band. The
-// allowance stays 20 units, the check and the clear marks are all that take
-// it, and the capture that would settle it is on the reference's list.
+// allowance stays 20 units, the check mark is all that takes it, and the
+// capture that would settle it is on the reference's list.
 //
-// The one stored capture of a CLEAR control does not settle it either, and
-// what it holds is recorded so that the next reader does not measure it
-// twice. voicememos-multi-folder-search-2026-09-18.png draws the platform's
-// clear control at x 996-1009 as a FILLED DISC 13.06 px across with the
-// field's own fill showing through a cross knocked out of it: the cross
-// covers 5.31 by 5.32 px, its arms run at 45 degrees, and each is 1.05 px
-// across perpendicular (1.062 and 1.059 at y=62, 1.031 and 1.030 at y=66,
-// read against the disc's own plateau). That is a hole in a solid figure and
-// not a band standing on its own, and its extent is set by the disc around it
-// rather than by a grid, so neither number gives the allowance a bare
-// diagonal figure is drawn to. What the library's own clear control should be
-// drawn as — this disc, or the bare cross the set carries — is a question
-// about the control and not about the grid.
+// The one stored capture of a CLEAR control does not settle it, and what it
+// holds settles the clear mark instead. MEASURED at 1x off
+// voicememos-multi-folder-search-2026-09-18.png, a least-squares fit of the
+// figure to the capture's own coverage over the mark's whole block (rms 0.007
+// of a pixel per pixel): the platform draws its clear control at x 996-1009
+// as a FILLED DISC 13.04 px across with the field's own fill showing through
+// a cross knocked out of it, the cross's arms 1.18 px across perpendicular
+// and their centre lines 7.00 px tip to tip at 45 degrees. That is a hole in
+// a solid figure and not a band standing on its own, so it gives the diagonal
+// allowance nothing — but the DISC is a round form at 13.04, which is the
+// round and curved allowance above read a second time, off a second
+// application, at a second place. The set draws that control: clear.svg is
+// the disc and the knockout, and the bare cross it carried before is gone.
 //
 // # What a form is measured against, per place
 //
@@ -286,6 +286,15 @@
 // line. The second band is not a lighter version of the band to
 // reach for: it is what a list line, a rule inside a pane and nothing else is.
 //
+// A MARK THAT LAYS DOWN NO BAND TAKES NO WIDENING. The widening exists to
+// hold a band to a device width, and the clear mark has none: it is a solid
+// disc with a cross knocked out of it, and both the disc's extent and the
+// cross's are measured figures rather than a weight. Offsetting its edges
+// would thicken the one while closing the other — at 16 dp the cross's arms
+// would come to 0.31 px against the 0.79 the grid gives them — so the mark
+// scales with the grid and nothing else. It is the only mark in the set drawn
+// that way, and the package's own rule is one predicate: bandless.
+//
 // # A mark standing in chrome
 //
 // A mark that is the whole label of a control in a toolbar is drawn at 24 —
@@ -302,11 +311,13 @@
 // magnifier's lens is 13.06 px across outside there, so a round form drawn to
 // the set's 13 units at 24 dp covers the platform's own lens to a sixteenth
 // of a pixel. The whole magnifier, handle included, comes out 16.2 units
-// against the capture's 15.75 by 15.99. The DIAGONAL allowance is the one
-// number here still unmeasured: 20 units at 24 dp is 20 px where the nearest
-// diagonal figure the reference holds, Notes' compose, covers 17 × 17, so the
-// checkmark and the clear mark stand wider than the platform's own. The
-// capture that would settle it is on the reference's list.
+// against the capture's 15.75 by 15.99. The clear mark's disc is the same
+// allowance drawn solid, and the platform's own clear control measures 13.04
+// px across. The DIAGONAL allowance is the one number here still unmeasured:
+// 20 units at 24 dp is 20 px where the nearest diagonal figure the reference
+// holds, Notes' compose, covers 17 × 17, so the checkmark stands wider than
+// the platform's own. The capture that would settle it is on the reference's
+// list.
 //
 // The weight is the set's one measured band, which at 24 dp is 1.4 units and
 // 1.40 px at once — the 1.35 to 1.48 px those same symbols measure, read

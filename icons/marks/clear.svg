@@ -1,31 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <!-- Clear: the control that empties a field of what was typed into it. Two
-       bands crossing — the figure a reader reaches for to take something back,
-       and the same one an Input chip's dismiss mark draws.
+  <!-- Clear: the control that empties a field of what was typed into it. It
+       is the platform's own drawing rather than a figure of this set's: a
+       FILLED DISC with a cross knocked out of it, so what shows through the
+       cross is the fill the control stands on.
 
-       Grid: a diagonal form with no round element in it, so it takes the
-       diagonal allowance of 20 units rather than the square keyline or the
-       round form's 13. Each band's centre line runs corner to corner of that
-       allowance, 3,3 to 21,21 and 21,3 to 3,21, and each takes the set's one
-       measured band of 1.4 units, spent perpendicular. The ends are cut
-       square: a cross is read by its crossing, and a cap on four arms only
-       thickens the figure. Two contours, one per band, so they abut rather
-       than wind against each other.
+       MEASURED at 1x off voicememos-multi-folder-search-2026-09-18.png, the
+       one stored capture of a clear control — a focused Voice Memos toolbar
+       search field holding a query, the mark at x 996-1009 on the field's
+       #e8e8e8 fill. Every reading below is a least-squares fit of the figure
+       to the capture's own coverage over the mark's whole block, coverage
+       taken against the disc's own #232323 plateau, rms 0.007 of a pixel per
+       pixel over 18 by 17:
 
-       The DIAGONAL allowance is not measured the way the square keyline and
-       the round form's 13 units are, and the set records the miss: it stays
-       20 units, and no stored capture holds a bare diagonal band standing
-       alone in a toolbar band at all. Notes' compose covers 17 by 17, the
-       nearest reading, and it is a figure rather than a bare band. The
-       capture that would settle it is on the reference's list.
+         the disc      13.04 px across, centred (1002.56, 64.45)
+         the cross     arms 1.18 px across perpendicular, at 45 degrees,
+                       their centre lines 7.00 px tip to tip, square ended
+                       and so 5.78 px across the figure's bounding box
 
-       Where the band-landing rule reaches. It does not: both bands run at
-       45 degrees and no edge of this drawing runs along the grid, so neither
-       has a leading edge on a whole unit to land a whole device pixel inside.
-       A 45-degree band covers 1.000 of the pixel it runs through at 24 dp and at
-       20, and 0.996 at 16 — the set's band is a DEVICE width, 1.32 px below
-       20 dp and 1.40 from 20 up — and the crossing at the middle covers one
-       whole at every size. -->
-  <path fill="#000000" d="M2.505 3.495 L20.505 21.495 L21.495 20.505 L3.495 2.505 Z"/>
-  <path fill="#000000" d="M21.495 3.495 L3.495 21.495 L2.505 20.505 L20.505 2.505 Z"/>
+       The disc is a ROUND FORM and takes the set's measured round and curved
+       allowance of 13 units, which at 24 dp is 13 px against the capture's
+       13.04 — the same allowance and the same agreement Finder's toolbar
+       magnifier lens reads at (search.svg). The library draws this mark at
+       24 dp, where one grid unit is one device pixel, so the disc comes out
+       at the platform's own size.
+
+       WHAT THE ROW READINGS UNDER-READ. reference/macos/controls.md recorded
+       this cross from row and column cuts as 5.31 by 5.32 px with arms of
+       1.05: a cut across a 45-degree arm is the arm's own width times root
+       two, and a cut integrated over a whole pixel row near an arm's end
+       takes in the air past that end, so both numbers come out thin. Fitting
+       the whole figure at once instead gives 1.18 and 5.78, and the area the
+       two models enclose settles it — the capture's knockout covers 15.29 px
+       of the disc, the fit's 15.13 and the row readings' 12.46, an eighteenth
+       of the figure missing. Round ends fit the same capture as well as
+       square ones (rms 0.0455 against 0.0457 over the mark's own block, arms
+       1.18 either way), and the ends are cut square here because a cross is
+       read by its crossing.
+
+       THE KNOCKOUT IS WOUND, not painted. A painter is handed one colour and
+       the mark is drawn in it, so a mark cannot paint the fill it stands on —
+       it does not know it. Gio fills by the non-zero rule and offers no
+       even-odd mode, so the cross is a single contour wound against the disc
+       inside ONE path: disc clockwise, cross counter-clockwise. The cross is
+       ONE outline around the union of the two arms and not two, because two
+       contours each wound against the disc would leave the crossing at their
+       middle at a winding of -1 and fill it solid.
+
+       Where the band-landing rule reaches. It does not, and nothing here is a
+       band: the disc is a solid figure and the cross is a hole in it, both
+       measured extents rather than a weight. The set's widening holds a BAND
+       to a device width, so this mark takes none of it and both its figure
+       and its hole scale with the grid — icons.bandless. -->
+  <path fill="#000000" d="M12 5.5 C15.5899 5.5 18.5 8.4101 18.5 12 C18.5 15.5899 15.5899 18.5 12 18.5 C8.4101 18.5 5.5 15.5899 5.5 12 C5.5 8.4101 8.4101 5.5 12 5.5 Z M9.1079 9.9423 L11.1656 12 L9.1079 14.0577 L9.9423 14.8921 L12 12.8344 L14.0577 14.8921 L14.8921 14.0577 L12.8344 12 L14.8921 9.9423 L14.0577 9.1079 L12 11.1656 L9.9423 9.1079 Z"/>
 </svg>

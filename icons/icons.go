@@ -63,6 +63,9 @@ const (
 	Search Name = "search"
 
 	// Clear is the control that empties a field of what was typed into it.
+	// The drawing is the platform's own control rather than a figure of this
+	// set's: a filled disc with a cross knocked out of it, so the fill the
+	// control stands on shows through the cross.
 	Clear Name = "clear"
 
 	// Plus is the control that adds one more of what the window holds — a
@@ -156,6 +159,36 @@ func SearchDrawingSizePx(gtx layout.Context, sizePx int) float32 {
 	w := float64(widening(gtx.Metric.PxPerDp, sizePx)) / 1000
 	return float32(SearchDrawingSize*float64(sizePx) + w)
 }
+
+// The clear mark's disc, as fractions of the square it is drawn in. A control
+// placing the mark by the platform's own measured clearance needs where the
+// disc stands inside the square, because the square is bigger than the disc
+// and the measurement is the disc's.
+//
+// They are stated rather than measured off the parsed file because they are
+// that file's contract. clear.svg draws its disc to the set's measured round
+// and curved allowance of 13 units, centred, so it stands from unit 5.5 to
+// unit 18.5 on both axes. TestClearMarkIsDrawnWhereAFieldExpectsIt holds the
+// drawing to both.
+const (
+	// ClearDiscOrigin is the square's leading and top edge to the disc's
+	// first pixel.
+	ClearDiscOrigin = 5.5 / 24.0
+	// ClearDiscSize is the disc's outer extent inside the square, which is
+	// the set's round and curved allowance.
+	ClearDiscSize = 13.0 / 24.0
+)
+
+// ClearDiscOriginPx and ClearDiscSizePx are those two in device pixels for a
+// mark drawn at sizePx in this window. The clear mark lays down no band, so it
+// takes none of the widening the set spends on one and both are the fraction
+// scaled.
+func ClearDiscOriginPx(sizePx int) float32 { return float32(ClearDiscOrigin * float64(sizePx)) }
+
+// ClearDiscSizePx is the disc's outer extent in device pixels. A control
+// holding the platform's measured clearance past the mark measures it from the
+// last pixel the disc covers, which is this.
+func ClearDiscSizePx(sizePx int) float32 { return float32(ClearDiscSize * float64(sizePx)) }
 
 // The sidebar mark's pane, as fractions of the square it is drawn in. The
 // mark is one figure on both platforms the set draws it for — macOS adds the
@@ -271,6 +304,27 @@ func widening(pxPerDp float32, px int) int {
 	return int(math.Round(extra * 1000))
 }
 
+// bandless reports whether the mark under this registry key lays down no band
+// at all, and so takes none of the widening.
+//
+// The widening holds a BAND to a device width. The clear mark has none: it is
+// a solid disc with a cross knocked out of it, and both the disc's extent and
+// the cross's are measured figures rather than a weight, so both scale with
+// the grid and the offset would thicken the one while closing the other.
+func bandless(entry string) bool {
+	name, _, _ := strings.Cut(entry, platformSep)
+	return Name(name) == Clear
+}
+
+// widenFor is widening for one mark: the size's own reading, or nothing for a
+// mark that draws no band.
+func widenFor(entry string, pxPerDp float32, px int) int {
+	if bandless(entry) {
+		return 0
+	}
+	return widening(pxPerDp, px)
+}
+
 // Painter draws a mark into a square of sizePx at the current origin, in col.
 // It is the shape this library's controls take for an icon slot.
 type Painter func(gtx layout.Context, sizePx int, col color.NRGBA)
@@ -377,7 +431,7 @@ func (s *Set) Mark(name Name) Painter {
 		if sizePx <= 0 {
 			return
 		}
-		call := s.drawing(entry, sizePx, widening(gtx.Metric.PxPerDp, sizePx))
+		call := s.drawing(entry, sizePx, widenFor(entry, gtx.Metric.PxPerDp, sizePx))
 		paint.ColorOp{Color: col}.Add(gtx.Ops)
 		call.Add(gtx.Ops)
 	}

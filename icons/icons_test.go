@@ -207,18 +207,16 @@ func TestEveryMarkComesOutAtTheStrengthItsBandGives(t *testing.T) {
 	// and a pixel's centre stands at a half in both axes — so an arm running
 	// x+y = c reaches a whole pixel at 24 dp when c is a whole unit, at 20 dp
 	// when five sixths of it is, and at 16 dp when two thirds of it is. The
-	// clear mark's two bands run c = 0 and c = 24, whole at every size, and it
-	// still falls short at 16 because 1.4 units is 0.93 px there and a
-	// 45-degree band that wide covers 0.884 of its best pixel. The check's
-	// arms run x-y = -8 and x+y = 26, whole at 24 dp and neither at the other
-	// two. The three chevrons' arms are steeper than 45 degrees and stand on
-	// no such line at all; what carries them at 24 dp is the mitre at the
-	// apex, which is solid.
+	// check's arms run x-y = -8 and x+y = 26, whole at 24 dp and neither at
+	// the other two. The three chevrons' arms are steeper than 45 degrees and
+	// stand on no such line at all; what carries them at 24 dp is the mitre at
+	// the apex, which is solid. The clear mark carries no band at all — a
+	// solid disc with a cross knocked out of it — so it arrives at the colour
+	// at every size, and its entry went with the bare cross it replaced.
 	reaches := map[icons.Name]map[int]int{
 		icons.Check:          {16: 0x80, 20: 0x5d},
 		icons.Chevron:        {24: 0x2c},
 		icons.ChevronPair:    {24: 0x2c},
-		icons.Clear:          {16: 0x54, 20: 0x2a},
 		icons.Disclosure:     {16: 0x5f, 20: 0x58},
 		icons.Document:       {16: 0x5a},
 		icons.HistoryBack:    {16: 0x5f, 20: 0x55},
@@ -441,6 +439,50 @@ func TestSearchMarkIsDrawnWhereAFieldExpectsIt(t *testing.T) {
 		}
 		if col := topmostDrawnColumn(img); !within(float64(col)+0.5, centre, 1) {
 			t.Errorf("at %d px the lens's topmost pixel is in column %d, and its centre is stated at %.2f", px, col, centre)
+		}
+	}
+}
+
+// TestClearMarkIsDrawnWhereAFieldExpectsIt holds clear.svg to the two numbers
+// a search field places it by: the disc stands [icons.ClearDiscOrigin] into
+// the square and is [icons.ClearDiscSize] of it. The field places the mark by
+// the disc and not by the square, because the clearance the platform leaves
+// past it is measured to the disc's own last pixel.
+//
+// The knockout is read at the same time: the cross has to reach the surface
+// under the mark, and a mark that filled its disc solid would still land the
+// bounds above.
+func TestClearMarkIsDrawnWhereAFieldExpectsIt(t *testing.T) {
+	mark := icons.New("darwin").Mark(icons.Clear)
+	if mark == nil {
+		t.Fatal("the set carries no clear mark")
+	}
+	for _, px := range []int{16, 20, 24} {
+		img := shoot(t, px, func(gtx layout.Context) { mark(gtx, px, black) })
+		drawn := drawnBounds(img)
+		want := image.Rect(
+			int(icons.ClearDiscOrigin*float64(px)),
+			int(icons.ClearDiscOrigin*float64(px)),
+			int((icons.ClearDiscOrigin+icons.ClearDiscSize)*float64(px)+0.999),
+			int((icons.ClearDiscOrigin+icons.ClearDiscSize)*float64(px)+0.999),
+		)
+		if drawn != want {
+			t.Errorf("at %d px the disc covered %v and the allowance it is authored to fill is %v", px, drawn, want)
+		}
+		// The cross is knocked out of the disc and not painted over it, so
+		// the middle of the mark reads the surface it stands on. At 24 dp the
+		// arms are 1.18 px across and the crossing is the one place a whole
+		// pixel stands inside them.
+		mid := px / 2
+		if px == 24 {
+			if c := img.RGBAAt(mid, mid); c.R < 0xf0 {
+				t.Errorf("at %d px the crossing reads %#02x, and the cross is knocked out to the surface under the mark", px, c.R)
+			}
+		}
+		// Nothing outside the disc is drawn: the cross is a hole in the
+		// figure, not a mark of its own reaching past it.
+		if c := img.RGBAAt(0, mid); c.R != 0xff {
+			t.Errorf("at %d px the square's leading edge reads %#02x on the mark's centre row, and the disc does not reach it", px, c.R)
 		}
 	}
 }

@@ -37,12 +37,19 @@ import (
 // reason, the dismissible chip's mark takes.
 const ClearHitDp = 24
 
-// markDp is the square the search field draws each of its marks in, and the
-// lead and gap pairs place the leading glyph and the text after it, one pair
-// per variant. Each is measured; the provenance is on the method that spends
-// it.
+// markDp and clearMarkDp are the squares the search field draws its two marks
+// in; the lead and gap pairs place the leading glyph and the text after it,
+// one pair per variant; and clearTrailDp is the clear space the platform
+// leaves past the clear mark. Each is measured; the provenance is on the
+// method that spends it.
+//
+// The two squares are different numbers because the platform draws the two
+// marks at different sizes, and each square is chosen to land its own mark's
+// measured extent.
 const (
-	markDp        unit.Dp = 16
+	markDp        unit.Dp = 18
+	clearMarkDp   unit.Dp = 24
+	clearTrailDp  unit.Dp = 14
 	sidebarLeadDp unit.Dp = 9
 	sidebarGapDp  unit.Dp = 5
 	toolbarLeadDp unit.Dp = 10
@@ -396,21 +403,66 @@ func (a adorn) shapeCount(gtx layout.Context, shaper *text.Shaper, tok resolvedT
 	return a
 }
 
-// markPx is the square each of the two slots is cut to, and the square the
-// mark in it is drawn at. Both ends take one square, so the field is even end
-// to end and neither mark outweighs the other.
+// markPx is the square the looking glass is drawn in.
 //
 // It is the field's own number, not the density's control icon size, because
 // the platform draws this glyph at a size of its own and that size is
-// measured: MEASURED, mail-window.png and voicememos-window.png — the
-// magnifier is drawn 12.9 px square in both, its lens 10.25 px across
-// outside and its band 1.25 px. The set draws a mark to 20 of its 24
-// grid units, so the square that comes out at the platform's size is
-// 12.9 × 24/20 = 15.5, and 16 dp draws the glyph 13.3 px across with a
-// 10.7 px lens and a 1.33 px band. Density does not move it: no stored
-// capture holds a search field at the platform's small size, and the
-// checkbox carries its own side length for the same reason.
+// measured: MEASURED, mail-window.png (x 878-890) and voicememos-window.png
+// (x 657-669) — the magnifier covers 12.33 px across its marks, its lens
+// 10.29 px across outside and its band 1.32 px.
+//
+// The square is derived from that covered extent and the set's own drawing.
+// icons draws the search mark from unit 3.9 to unit 20.095 of its 24-unit
+// grid and widens its band to the size's own measured device width, half of
+// that spent past each edge, so a square of S dp covers 16.195S/24 + 1.32 -
+// 1.4S/24 px. The square that lands 12.33 is 17.86 dp; 18 is the whole dp
+// nearest it and covers 12.42 px by that arithmetic and 12.27 px read off a
+// render, which is the platform's own to a sixth of a pixel. The 16 dp this
+// field drew until CG5.12 covered 11.19, a pixel and an eighth under the
+// glyph the capture holds.
+//
+// Density does not move it: no stored capture holds a search field at the
+// platform's small size, and the checkbox carries its own side length for the
+// same reason.
 func (a adorn) markPx(gtx layout.Context) int { return gtx.Dp(markDp) }
+
+// clearPx is the square the clear mark is drawn in, which is not the looking
+// glass's.
+//
+// The clear mark is the platform's own control drawing — a filled disc with a
+// cross knocked out of it — and the disc is a ROUND FORM, so icons draws it to
+// the set's measured round and curved allowance of 13 of its 24 units. At
+// 24 dp one unit is one device pixel, so the disc comes out 13 px across
+// against the 13.04 MEASURED off
+// voicememos-multi-folder-search-2026-09-18.png (x 996-1009), and the square
+// that lands it is the grid's own size. The mark lays down no band and so
+// takes none of the set's widening; nothing else has to move with the size.
+func (a adorn) clearPx(gtx layout.Context) int { return gtx.Dp(clearMarkDp) }
+
+// clearEndPx is the field's own trailing edge to the last pixel the clear
+// mark's disc covers, and clearLeadPx the same edge to its first.
+//
+// MEASURED, voicememos-multi-folder-search-2026-09-18.png: the disc runs
+// x 996-1009 in a fill that runs to x=1023, so the mark ends 14 clear columns
+// inside the field's own trailing edge. It is that application's own number,
+// standing beside the 13 px leading inset it draws where Mail and Finder both
+// draw 10 — no other stored capture holds a clear control at all, so 14 is
+// the one reading there is and it is spent as read.
+//
+// A field with an edge spends that edge's width before the clearance, the way
+// adorn.glyphX spends it at the leading end; the sidebar recess has no edge to
+// spend.
+func (a adorn) clearEndPx(gtx layout.Context, s RenderState) int {
+	if s.Variant == Chrome && s.Region == Sidebar {
+		return gtx.Dp(clearTrailDp)
+	}
+	return gtx.Dp(hairlineDp) + gtx.Dp(clearTrailDp)
+}
+
+func (a adorn) clearLeadPx(gtx layout.Context, s RenderState) int {
+	disc := float64(icons.ClearDiscSizePx(a.clearPx(gtx)))
+	return a.clearEndPx(gtx, s) + int(math.Ceil(disc))
+}
 
 // drawingPx is how much of that square the looking glass actually covers,
 // the band's own widening in it: below 24 dp the set draws its band at a
@@ -492,7 +544,7 @@ func (a adorn) insets(gtx layout.Context, tok resolvedTokens, s RenderState, pad
 		lead = end + a.promptGapPx(gtx, s)
 	}
 	if a.clear {
-		trail = padH + a.markPx(gtx) + a.trailGapPx(gtx, tok)
+		trail = a.clearLeadPx(gtx, s) + a.trailGapPx(gtx, tok)
 	}
 	if a.count != "" {
 		// The count stands between the clear mark and the text, keeping the
@@ -546,24 +598,44 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 	if a.count != "" {
 		x := field.X - padH - a.promptGapPx(gtx, s) - a.countDims.Size.X
 		if a.clear {
-			x -= slot
+			x = field.X - a.clearLeadPx(gtx, s) - a.promptGapPx(gtx, s) - a.countDims.Size.X
 		}
 		st := op.Offset(image.Pt(x, promptOffset(gtx, tok, field.Y, a.countDims))).Push(gtx.Ops)
 		a.countCall.Add(gtx.Ops)
 		st.Pop()
 	}
 	if a.clear && a.showClear {
-		origin := image.Pt(field.X-padH-slot, (field.Y-slot)/2)
+		// The clear mark is drawn in the platform's CONTROL TEXT where the
+		// looking glass and the prompt are drawn in its secondary label: the
+		// glass names the field and the prompt stands in for a value, and
+		// neither is operated, where this mark is a control the reader
+		// presses. MEASURED,
+		// voicememos-multi-folder-search-2026-09-18.png: the disc's plateau
+		// is #232323 on the field's #e8e8e8 fill, which is black at 216 of
+		// 255 over it to the byte. Label carries that same coverage in both
+		// appearances, so the pixel cannot tell the two names apart and the
+		// name is chosen for what the thing is — the reference reads the save
+		// dialog's pop-up drawing its own mark at control text.
+		mark := a.clearPx(gtx)
+		disc := icons.ClearDiscSizePx(mark)
+		clearCol := vgcolor.Flatten(tok.platform.ControlText, fill)
+		// The square is placed off the DISC inside it, and at a fraction of a
+		// pixel, because the number the platform gives is the disc's: its last
+		// pixel the measured clearance inside the field's own trailing edge,
+		// and its centre on the field's centre row.
+		x := float32(field.X-a.clearEndPx(gtx, s)) - disc
+		y := float32(field.Y)/2 - disc/2
 		if g := icons.Mark(icons.Clear); g != nil {
-			st := op.Offset(origin).Push(gtx.Ops)
-			g(gtx, slot, col)
+			o := icons.ClearDiscOriginPx(mark)
+			st := op.Affine(f32.Affine2D{}.Offset(f32.Pt(x-o, y-o))).Push(gtx.Ops)
+			g(gtx, mark, clearCol)
 			st.Pop()
 		}
-		a.registerClear(gtx, origin, slot)
+		a.registerClear(gtx, image.Pt(int(x), int(y)), int(disc))
 	}
 }
 
-// registerClear puts the clear mark's clickable over the mark, grown to
+// registerClear puts the clear mark's clickable over the disc, grown to
 // [ClearHitDp] on each axis and centred on it.
 //
 // The field's own reported size is unaffected, and so is the editor's box:
