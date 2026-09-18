@@ -94,6 +94,31 @@ var markBands = map[string][]band{
 		{"the leading side", down, 3, 15},
 		{"the trailing side", down, 19.5, 15},
 	},
+	// The sidebar's own folder, measured off
+	// voicememos-multi-folder-2026-09-18.png: the tab's top and the body's
+	// top land, and the flap, the foot and the two sides keep the capture's
+	// proportion and miss at 20. folder.svg records all six.
+	"folder": {
+		{"the tab's top", across, 4.5, 6},
+		{"the body's top", across, 6, 12},
+		{"the flap", across, 9, 12},
+		{"the body's foot", across, 18, 12},
+		{"the leading side", down, 3, 15},
+		{"the trailing side", down, 19.5, 15},
+	},
+	// The page measured off finder-window-untinted-dark.png: the two sides
+	// and the fold's upright land, and the top, the foot and the fold's
+	// crossbar keep the capture's proportion and miss at 20. The cut itself
+	// runs at 45 degrees and the rule reaches it no more than it reaches the
+	// chevron. document.svg records all five bands and the cut.
+	"document": {
+		{"the page's top", across, 3, 9},
+		{"the page's foot", across, 19.5, 9},
+		{"the fold's crossbar", across, 9, 13.5},
+		{"the leading side", down, 6, 15},
+		{"the trailing side", down, 16.5, 15},
+		{"the fold's upright", down, 10.5, 6},
+	},
 	// Drawn on the diagonal or the curve throughout: no edge runs along the
 	// grid, so the rule reaches none of them and each file says so, with what
 	// it has instead — the diagonal measure of 2 units, which covers a whole

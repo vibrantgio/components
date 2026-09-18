@@ -284,9 +284,9 @@ func (inv *Inventory) navbar(c tokens.PlatformColors) layout.Widget {
 func (inv *Inventory) sidebarProps(c tokens.PlatformColors) patsidebar.Props {
 	return patsidebar.Props{
 		Items: []patsidebar.Item{
-			{Icon: dot(c.SystemBlue, 16), Label: "Everything", Active: true},
-			{Icon: dot(c.SystemIndigo, 16), Label: "Components"},
-			{Icon: dot(c.SystemTeal, 16), Label: "Patterns"},
+			{Icon: dot(c.SystemBlue, 16), Label: "Everything", Count: "128", Active: true},
+			{Icon: dot(c.SystemIndigo, 16), Label: "Components", Count: "46", Section: "Library"},
+			{Icon: dot(c.SystemTeal, 16), Label: "Patterns", Count: "16"},
 			{Icon: dot(c.SystemGreen, 16), Label: "Markdown"},
 		},
 		Shaper: inv.shaper,
@@ -298,7 +298,7 @@ func (inv *Inventory) sidebar(c tokens.PlatformColors) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		one := func(collapsed bool) layout.Widget {
 			return patsidebar.Render(inv.shaper, props, collapsed, c, tokens.Spacing,
-				tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+				tokens.DefaultTypography.LabelLarge, patsidebar.SectionStyle(tokens.DefaultTypography), tokens.Comfortable)
 		}
 		return layout.Flex{}.Layout(gtx,
 			layout.Rigid(one(false)),
@@ -624,7 +624,7 @@ func (inv *Inventory) shell(c tokens.PlatformColors) layout.Widget {
 		},
 	}
 	sidebarW := patsidebar.Render(inv.shaper, inv.sidebarProps(c), false, c, tokens.Spacing,
-		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+		tokens.DefaultTypography.LabelLarge, patsidebar.SectionStyle(tokens.DefaultTypography), tokens.Comfortable)
 	asideW := func(gtx layout.Context) layout.Dimensions {
 		// An aside is an inspector, which is a chrome region: it wears the
 		// platform's chrome material, the same fill the frame around it

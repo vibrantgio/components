@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Document: the thing a sidebar row stands for when the entry is a single
+       piece of content — a note, a file, a page. It names a thing and not a
+       control, as the folder mark does.
+
+       MEASURED at 1x, the page symbol on Finder's "Documents" row in
+       finder-window-untinted-dark.png (the panel at x 64, the row's mark over
+       x 87-99, y 256-274). The page is 13 px across by 19 down, its bands
+       about 1.4 px, and its top-trailing corner is cut on a diagonal from
+       (94,257) to (100,263) — six columns against seven rows, so a
+       45-degree cut. The fold is closed from inside by two lines: a vertical
+       at x 93-94 running from under the top edge down to the cut's end, and a
+       horizontal at y 263-264 running from there out to the trailing edge.
+
+       Grid: an axis-aligned form with one diagonal, so it fills the set's
+       18-unit square keyline in its long direction — 3 to 21 down — and takes
+       the set's axis-aligned band of 1.5. The page's 13 by 19 proportion puts
+       it 12.3 units across against 18 down; 12 is the nearest width on the
+       set's 1.5 sub-grid, drawn from 6 to 18, which centres the figure on
+       both axes. The corner is cut 6 by 6, the measured 45 degrees on the
+       sub-grid.
+
+       The cut runs at 45 degrees and is drawn at the figure's own weight
+       rather than at the set's diagonal measure of 2: the capture reads the
+       diagonal at the same 1.4 px perpendicular as the four straight edges,
+       and a heavier band inside one figure reads as a second weight. The
+       diagonal measure is for a mark whose only bands run diagonally.
+
+       Where each band lands. A band's leading edge at 1.5m puts a whole
+       device pixel inside it at 16, 20 and 24 dp when m is 0 or 3 mod 4. The
+       two VERTICAL bands land — the leading edge at 6 (m=4) and the trailing
+       band's leading edge at 16.5 (m=11) — and the two horizontal ones do
+       not: the top at 3 (m=2) and the foot at 19.5 (m=13). That is this
+       drawing's miss, and it is the mirror of the folder mark's: landing the
+       horizontals would take the page to 15 units deep against the keyline's
+       18 and the capture's 19, a worse miss on a reading that is measured.
+
+       Three contours. The page is one outline with its inner edge wound back,
+       the inner edge offset 1.5 perpendicular everywhere — which puts the
+       inner diagonal's corners at 11.379,4.5 and 16.5,9.622. The fold's two
+       lines are drawn in the same direction as the outer contour, so where
+       one crosses the cut's own band the overlap fills solid under the
+       non-zero winding rule rather than cutting a hole in it. -->
+  <path fill="#000000" d="M6 3 L12 3 L18 9 L18 21 L6 21 Z M7.5 4.5 L7.5 19.5 L16.5 19.5 L16.5 9.622 L11.379 4.5 Z"/>
+  <path fill="#000000" d="M10.5 4.5 L12 4.5 L12 9 L10.5 9 Z"/>
+  <path fill="#000000" d="M10.5 9 L18 9 L18 10.5 L10.5 10.5 Z"/>
+</svg>

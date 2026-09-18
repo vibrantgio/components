@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Folder: the thing a sidebar row stands for when the entry holds other
+       entries. It names a thing rather than a control, which is what tells it
+       from the open-folder mark: that one is drawn on the control that
+       chooses which folder a window is showing.
+
+       MEASURED at 1x, the folder symbol on every folder row of
+       voicememos-multi-folder-2026-09-18.png (the panel at x 64-283, the
+       first folder row's box y 203-234). Sub-pixel edges are the coverage
+       summed along a cut: across y=220 the leading band runs 83.00-84.50 and
+       the trailing 101.50-103.00, and down x=92 the body's top band runs
+       212.61-214.09, the flap 215.33-216.70 and the foot 225.51-227.00. So
+       the body is 20.00 px across by 14.39 down, the tab rises 1.61 above it
+       to y=211.00, every band measures 1.37 to 1.50, and the flap stands
+       1.24 px clear of the body's inner top face.
+
+       Grid: an axis-aligned form, so it fills the set's 18-unit square
+       keyline across — 3 to 21 — and takes the set's axis-aligned band of
+       1.5. The body's 14.39 by 20.00 proportion puts it 12.95 units deep
+       against 18 across; 13.5 is the nearest depth on the set's 1.5 sub-grid,
+       drawn from 6 to 19.5. The tab is one band proud — the shallowest rise
+       this set can draw, and the measured 1.61 px is 1.45 units — which takes
+       the whole figure to 15 units, from 4.5 to 19.5, centred on both axes.
+       The tab runs to 9: the measured tab is 6.7 px of the body's 20, which
+       is 6.03 units. The flap stands one band clear of the body's inner top
+       face at 7.5, so it runs 9 to 10.5, against the measured 1.12 units of
+       air.
+
+       Where each band lands. A band's leading edge at 1.5m puts a whole
+       device pixel inside it at 16, 20 and 24 dp when m is 0 or 3 mod 4. The
+       tab's top at 4.5 (m=3) and the body's top at 6 (m=4) land; the flap at
+       9 (m=6) and the foot at 18 (m=12) do not — nor do the two VERTICAL
+       bands, whose leading edges are 3 (m=2) and 19.5 (m=13). That is the
+       miss this drawing carries, and it is the same one the open-folder mark
+       records: moving the sides to 4.5 and 18 would land both and take the
+       figure to 15 units across against the keyline's 18 and the capture's
+       20, which is a worse miss on a reading that is measured.
+
+       The flap is drawn across the body's whole inner width. The capture
+       insets it about 1.2 px at each end, which is a rounded cap the set does
+       not draw at this weight.
+
+       Three contours, abutting rather than winding against each other: the
+       tab's bar, the body as an outline with its inner edge wound back, and
+       the flap. -->
+  <path fill="#000000" d="M3 4.5 L9 4.5 L9 6 L3 6 Z"/>
+  <path fill="#000000" d="M3 6 L21 6 L21 19.5 L3 19.5 Z M4.5 7.5 L4.5 18 L19.5 18 L19.5 7.5 Z"/>
+  <path fill="#000000" d="M4.5 9 L19.5 9 L19.5 10.5 L4.5 10.5 Z"/>
+</svg>

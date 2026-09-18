@@ -77,6 +77,16 @@ const (
 	// OpenFolder is the control that opens a folder — chooses which folder
 	// the window is showing.
 	OpenFolder Name = "open-folder"
+
+	// Folder is the thing an entry stands for when it holds other entries.
+	// It names a thing rather than a control, which is what tells it from
+	// OpenFolder: that one is drawn on the control that chooses which folder
+	// a window is showing, and this one on the row that is a folder.
+	Folder Name = "folder"
+
+	// Document is the thing an entry stands for when it is one piece of
+	// content — a note, a file, a page. It names a thing, as Folder does.
+	Document Name = "document"
 )
 
 // The search mark's drawing, as fractions of the square it is drawn in. A

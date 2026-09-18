@@ -18,8 +18,12 @@
 //
 // # Names
 //
-// A name says what the control is, never what the picture contains: sidebar,
-// disclosure, history-back — not panel-with-lines, triangle, left-chevron. The
+// A name says what the mark stands for, never what the picture contains:
+// sidebar, disclosure, history-back — not panel-with-lines, triangle,
+// left-chevron. For most of the set that is a control; a mark may also stand
+// for a thing, which is what a row in a list is drawn with — folder,
+// document — and the two are told apart by the name, which is why the control
+// that chooses a folder is open-folder and the folder a row IS is folder. The
 // drawing behind a name is free to change, and does change between platforms;
 // the name is the part call sites store, so it has to survive that. Names are
 // lowercase ASCII with words joined by "-", the qualifier last
