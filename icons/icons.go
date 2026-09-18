@@ -113,20 +113,21 @@ const (
 // square, and where the lens's centre falls in it.
 //
 // They are stated rather than measured off the parsed file because they are
-// that file's contract. search.svg fills the set's 20-unit allowance exactly
-// — drawn from unit 2 to unit 22 on both axes — and carries its lens centred
-// on unit 10, which is not the drawing's own centre and cannot be: the lens
+// that file's contract. search.svg draws its lens to the set's measured round
+// and curved allowance of 13 units, which with the handle puts the drawing
+// from unit 3.9 to unit 20.095 on both axes, and carries its lens centred on
+// unit 10.4, which is not the drawing's own centre and cannot be: the lens
 // stands leading and high and the handle runs to the lower trailing corner.
 // TestSearchMarkIsDrawnWhereAFieldExpectsIt holds the drawing to all three.
 const (
 	// SearchDrawingOrigin is the square's leading and top edge to the
 	// drawing's first pixel.
-	SearchDrawingOrigin = 2.0 / 24.0
+	SearchDrawingOrigin = 3.9 / 24.0
 	// SearchDrawingSize is the side of the drawing inside the square.
-	SearchDrawingSize = 20.0 / 24.0
+	SearchDrawingSize = 16.195 / 24.0
 	// SearchLensCentre is the square's leading and top edge to the centre of
 	// the lens, which is the point a field aligns on its centre row.
-	SearchLensCentre = 10.0 / 24.0
+	SearchLensCentre = 10.4 / 24.0
 )
 
 // The sidebar mark's pane, as fractions of the square it is drawn in. The
@@ -152,11 +153,12 @@ const (
 	SidebarPaneWidth  = 19.0 / 24.0
 	SidebarPaneHeight = 15.0 / 24.0
 	// SidebarBand is the weight every edge of the mark is drawn at, the set's
-	// axis-aligned band.
-	SidebarBand = 1.5 / 24.0
+	// one measured band.
+	SidebarBand = 1.4 / 24.0
 	// SidebarSeamLeading is the square's leading edge to the seam's, which
 	// leaves the leading column just under half the width of the trailing
-	// one: the measured 4.99 against 10.21, one to 2.05.
+	// one: the measured 4.99 against 10.21, one to 2.05 over an inner pane
+	// of 16.2.
 	SidebarSeamLeading = 8.75 / 24.0
 	// SidebarListBand is the weight the list lines inside the leading column
 	// are drawn at, the set's second band, and SidebarListPeriod the

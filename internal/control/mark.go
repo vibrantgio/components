@@ -40,7 +40,9 @@ const (
 	MarkHDp = 2*MarkChevronHDp + MarkGapDp
 )
 
-// MarkStrokeDp is the arm's line weight, perpendicular to the arm.
+// MarkStrokeDp is the arm's line weight, perpendicular to the arm: the icon
+// set's one measured band, which chevron-pair.svg draws and the design
+// bundle's masked SVG repeats.
 //
 // MEASURED off the same capture: an arm crossing a row covers about 1.85
 // columns — the light capture's row y=345 reads 0.02 + 0.65 + 0.99 of a column
@@ -48,12 +50,14 @@ const (
 // the horizontal, which is what an eight by five chevron's centreline runs at,
 // so perpendicular it is 1.85 × sin 51.3° ≈ 1.44 px. The whole upper chevron
 // covers 12.7 px² of the capture, which over a centreline 2 × 4.7 px long is
-// 1.36 px of width. 1.5 is the nearest weight this system draws.
+// 1.36 px of width. 1.4 stands between the two and is the one band the whole
+// set draws.
 //
 // It is spent in PIXELS and not through gtx.Dp: a dp rounds to a whole pixel,
-// and 1.5 dp rounded at one pixel per dp is a two-pixel arm — a third heavier
-// than the platform's, which is what turns two thin strokes into a wedge.
-const MarkStrokeDp = 1.5
+// and 1.4 dp rounded at one pixel per dp is a one-pixel arm at the small end
+// and a two-pixel one at the large, which is what turns two thin strokes into
+// a wedge.
+const MarkStrokeDp = 1.4
 
 // The square the set draws a control's mark inside, and where the pair stands
 // in it. The grid components/icons is authored on is 24 units, so a mark drawn

@@ -68,7 +68,7 @@ func ChromeFace(
 //
 // w is [ChromeFace] or something wrapping it, a widget.Clickable included.
 func ChromeShadow(gtx layout.Context, p tokens.PlatformColors, s RenderState, w layout.Widget) layout.Dimensions {
-	return toolbarface.Cast(gtx, chromeShadow(p, s), w)
+	return toolbarface.Cast(gtx, chromeShadow(p, s), s.Focused && !s.Disabled, w)
 }
 
 // drawChromeIcon renders a chrome button whose label is a symbol: the

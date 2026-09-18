@@ -436,19 +436,34 @@ func Shadow(p tokens.PlatformColors) tokens.DropShadow {
 // drawn with the control's box cut out of it, so painting it after the control
 // lands what painting it under the control landed.
 //
+// WHILE THE CONTROL IS FOCUSED the cut is the focus halo's footprint instead —
+// the control's box grown by [focus.OutsidePx], which is the half of the band
+// that lies past the box. The halo is drawn inside this call and the shadow
+// after it, so without the larger cut the ramp runs over the band: the find
+// recess measured up to 11 of 255 of shadow lying on its own halo. The state
+// the control is drawn in is what says which cut answers, and it is the state
+// this call already receives.
+//
 // The radius is half the reported height: every bordered control in a stored
 // toolbar band is a capsule. The reach and the offset are the appearance's
 // own, which is why the whole reading is passed rather than its peak alone.
 //
 // shadow is [Shadow]'s reading, or a copy of it whose coverage the caller has
 // faded with the control it belongs to.
-func Cast(gtx layout.Context, shadow tokens.DropShadow, w layout.Widget) layout.Dimensions {
+func Cast(gtx layout.Context, shadow tokens.DropShadow, focused bool, w layout.Widget) layout.Dimensions {
 	// This is also the call outside the control's Clickable, so it is where
 	// the focus band w drew is painted: the band straddles the control's own
 	// box and a Clickable clips what it wraps to that box.
 	dims := focus.Around(gtx, w)
+	box := image.Rectangle{Max: dims.Size}
+	radius := dims.Size.Y / 2
+	cut, cutRadius := box, radius
+	if focused {
+		cut = focus.Footprint(gtx, box)
+		cutRadius = radius + focus.OutsidePx(gtx)
+	}
 	macro := op.Record(gtx.Ops)
-	control.DrawToolbarShadowAround(gtx, image.Rectangle{Max: dims.Size}, dims.Size.Y/2, shadow)
+	control.DrawToolbarShadowAround(gtx, box, radius, cut, cutRadius, shadow)
 	op.Defer(gtx.Ops, macro.Stop())
 	return dims
 }

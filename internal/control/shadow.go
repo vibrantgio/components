@@ -219,8 +219,8 @@ func shadowTile(gtx layout.Context, rect image.Rectangle, stop1 f32.Point, c1 co
 }
 
 // DrawToolbarShadowAround paints the same shadow as [DrawToolbarShadow] with
-// the control's own box cut out of it, for a caller painting the shadow AFTER
-// the control rather than under it.
+// cut removed from it, for a caller painting the shadow AFTER the control
+// rather than under it.
 //
 // A band paints its controls' shadows in one pass after the window's columns
 // have laid out — otherwise a shadow is covered over one column and left
@@ -232,7 +232,13 @@ func shadowTile(gtx layout.Context, rect image.Rectangle, stop1 f32.Point, c1 co
 // steepest phase, half a pixel, the difference is the shadow's peak coverage
 // times a quarter of the step from the band to the fill — under one 255th at
 // either appearance's measured numbers.
-func DrawToolbarShadowAround(gtx layout.Context, bounds image.Rectangle, radius int, sh tokens.DropShadow) {
+//
+// cut is the control's own box at rest, rounded to cutRadius. While the
+// control is FOCUSED it is the footprint the focus halo covers instead, which
+// straddles that box: the halo is painted before this pass and the ramp would
+// otherwise run over it, which reads as a shadow lying on the band rather than
+// under it.
+func DrawToolbarShadowAround(gtx layout.Context, bounds image.Rectangle, radius int, cut image.Rectangle, cutRadius int, sh tokens.DropShadow) {
 	extent := gtx.Dp(unit.Dp(sh.Reach))
 	if extent <= 0 || sh.Peak.A == 0 {
 		return
@@ -243,11 +249,17 @@ func DrawToolbarShadowAround(gtx layout.Context, bounds image.Rectangle, radius 
 	if m := min(bounds.Dx(), bounds.Dy()) / 2; radius > m {
 		radius = m
 	}
-	// The whole drawing's extent: the sunk rectangle and the control's own
-	// box, grown by the reach. One pixel of slack keeps the ramp's last
-	// column inside the outer contour.
-	reachAll := bounds.Union(bounds.Add(image.Pt(0, gtx.Dp(unit.Dp(sh.Offset))))).Inset(-extent - 1)
-	defer clip.Outline{Path: ringPath(gtx.Ops, reachAll, bounds, radius)}.Op().Push(gtx.Ops).Pop()
+	if cutRadius < 0 {
+		cutRadius = 0
+	}
+	if m := min(cut.Dx(), cut.Dy()) / 2; cutRadius > m {
+		cutRadius = m
+	}
+	// The whole drawing's extent: the sunk rectangle, the control's own box
+	// and whatever is cut out of it, grown by the reach. One pixel of slack
+	// keeps the ramp's last column inside the outer contour.
+	reachAll := bounds.Union(cut).Union(bounds.Add(image.Pt(0, gtx.Dp(unit.Dp(sh.Offset))))).Inset(-extent - 1)
+	defer clip.Outline{Path: ringPath(gtx.Ops, reachAll, cut, cutRadius)}.Op().Push(gtx.Ops).Pop()
 	DrawToolbarShadow(gtx, bounds, radius, sh)
 }
 

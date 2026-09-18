@@ -4,44 +4,42 @@
        that is belongs to the control's label.
 
        No stored capture holds this control: none of the five toolbar bands in
-       reference/macos/controls.md carries one, so the drawing is the set's
-       grid and nothing else, stated here as the plus and the search marks
-       state their measured readings.
+       reference/macos/controls.md carries one, so the drawing's proportions
+       are the set's grid and nothing else, stated here as the plus and the
+       search marks state their measured readings. The capture is on the
+       reference's list. What this mark does take from the measurement is the
+       set's two settled numbers: the one band of 1.4 units and the round and
+       curved allowance of 13, read off the magnifier's lens in
+       finder-window-light.png against the tag's 19 px square in the same
+       band.
 
-       Grid: a curved form, so it takes the 20-unit allowance rather than the
-       square keyline. The ring is centred on 12,13 with a centreline radius
-       of 8 and a band of 2 — the set's curved measure, because the band is
-       curved everywhere and runs along an axis at four points only — so its
-       outer edge reaches 3 and 21 across and 4 and 22 down. The arrowhead's
-       base carries the drawing to 2 at the top, which puts the figure at 18
-       by 20 inside the allowance, centred on both axes. Every radius is a
-       whole unit; the ring's centre sits one unit below the grid's, which is
-       half of what the head reaches past the ring at the top, so the figure
-       comes out centred.
+       Grid: a curved form, so its ring takes the 13-unit allowance rather
+       than the square keyline. The ring is centred on 12,12.7 with an outer
+       radius of 6.5 and an inner one of 5.1 — the set's one band of 1.4,
+       curved everywhere and running along an axis at four points only — so
+       its outer edge reaches 5.5 and 18.5 across and 6.2 and 19.2 down. The
+       arrowhead's base carries the drawing to 4.8 at the top, which puts the
+       figure at 13 by 14.4, centred on both axes. The ring's centre sits
+       0.7 below the grid's, which is half of what the head reaches past the
+       ring at the top, so the figure comes out centred.
 
-       The allowance is not measured the way the square keyline is, and the
-       set records the miss: the platform's round and diagonal band symbols
-       cover 16 by 17 px (Finder's magnifier) and 17 by 17 (Notes' compose)
-       against its square 18 to 19, so a 20-unit allowance drawn at 24 dp
-       stands three to four pixels wider than the platform's own. The keyline
-       moved to the measurement and the allowance did not; the reading is
-       recorded here.
-
-       The band-landing rule the set's axis-aligned marks are drawn by does
-       not reach this figure: the ring is curved everywhere and runs along an
-       axis at four points only, as the search mark's lens does, so it has no
-       leading edge at 1.5m to land. What the rule asks for is had another
-       way — the band is 2 units, which is 1.33 px at 16 dp, 1.67 at 20 and
-       2.00 at 24, over one whole device pixel at every size.
-
-       The ring is open at the top trailing, from the head at 270 degrees
-       round to 20 degrees short of the trailing middle: 70 degrees of gap and
-       290 of band. The arrowhead caps the band's end at the top, its base the
-       band's own end face carried out to three units either side and its tip
-       five units along the tangent, so the figure turns clockwise — the
+       The ring is open at the top trailing, from the head at the top round to
+       20 degrees short of the trailing middle: 70 degrees of gap and 290 of
+       band. The arrowhead caps the band's end at the top, its base the band's
+       own end face carried out to 2.1 units either side — one and a half
+       bands, as the figure carried before the band was measured — and its tip
+       3.5 units along the tangent, so the figure turns clockwise, the
        direction the platform's own reload marks turn. Two contours: the ring
        is one closed outline with its inner edge wound back against its outer,
-       and the head abuts its end face rather than winding against it. -->
-  <path fill="#000000" d="M 20.4572 9.9218 C 21.8007 13.6129 20.5951 17.749 17.4789 20.1402 C 14.3626 22.5314 10.0554 22.6254 6.8378 20.3724 C 3.6202 18.1194 2.2354 14.0398 3.4165 10.2936 C 4.5977 6.5474 8.072 4 12 4 L 12 6 C 8.9449 6 6.2427 7.9813 5.324 10.8951 C 4.4053 13.8088 5.4824 16.9817 7.985 18.7341 C 10.4876 20.4864 13.8375 20.4133 16.2613 18.5535 C 18.6851 16.6936 19.6228 13.4767 18.5778 10.6059 Z"/>
-  <path fill="#000000" d="M 12 2 L 17 5 L 12 8 Z"/>
+       and the head abuts its end face rather than winding against it.
+
+       Where the band-landing rule reaches. It does not: the ring is curved
+       everywhere and runs along an axis at four points only, as the search
+       mark's lens does, so it has no leading edge on a whole unit to land a
+       whole device pixel inside. A band of 1.4 units is 0.93 px at 16 dp,
+       1.17 at 20 and 1.40 at 24; the head is a solid triangle and is the one
+       place this figure arrives at the control's own colour undiluted at
+       every size. -->
+  <path fill="#000000" d="M18.108 10.4769 C19.0783 13.1427 18.2076 16.1298 15.9569 17.8568 C13.7063 19.5838 10.5956 19.6517 8.2718 18.0245 C5.9479 16.3973 4.9478 13.451 5.8008 10.7454 C6.6539 8.0398 9.1631 6.2 12 6.2 L12 7.6 C9.7741 7.6 7.8054 9.0436 7.136 11.1664 C6.4667 13.2892 7.2514 15.601 9.0748 16.8777 C10.8981 18.1544 13.3388 18.1011 15.1047 16.7461 C16.8706 15.3911 17.5537 13.0473 16.7924 10.9557 Z"/>
+  <path fill="#000000" d="M12 4.8 L15.5 6.9 L12 9 Z"/>
 </svg>

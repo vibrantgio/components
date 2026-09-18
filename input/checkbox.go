@@ -86,21 +86,23 @@ const controlLabelGap = unit.Dp(6)
 // The check mark is drawn on components/icons' grid rather than on one of
 // its own, so that the library has a single answer to "what does a stroke
 // weigh". checkGrid is that grid — 24 units, whatever size the drawing is
-// realized at — and checkBandUnits is its diagonal band measure: 2 units,
-// the compensation a 45-degree edge needs to cover device pixels whole,
-// against 1.5 for an axis-aligned one. The check is nothing but two
-// 45-degree arms, so it takes the diagonal measure throughout.
+// realized at — and checkBandUnits is the set's one measured band: 1.4
+// units, spent perpendicular whichever way an edge runs. The set draws no
+// second weight for a 45-degree edge, and this figure is nothing but two
+// 45-degree arms.
 const (
 	checkGrid      = 24.0
-	checkBandUnits = 2.0
+	checkBandUnits = 1.4
 )
 
 // checkLine is the check's centre line on that grid: in from the left, down
-// to the turn, then up and out to the right. Both arms run at exactly 45
-// degrees and every corner sits on the icon set's 1.5 sub-grid. Stroked, the
-// figure spans 17 by 12.5 units, inside the 20-unit allowance a diagonal
-// form is given — a diagonal drawing fills a square keyline less than a
-// square one does, which is why that allowance is the wider of the two.
+// to the turn, then up and out to the right. It is the set's own check mark
+// point for point. Both arms run at exactly 45 degrees, the short one on
+// x-y = -8 and the long one on x+y = 26 — whole units, which is where a
+// 45-degree band of 1.4 covers a device pixel whole. Stroked, the figure
+// spans 16.4 by 12.19 units, inside the 20-unit allowance a diagonal form is
+// given — a diagonal drawing fills a square keyline less than a square one
+// does, which is why that allowance is the wider of the two.
 //
 // The set's own files draw their caps and turns as an explicit closed
 // contour because their SVG backend cannot ask for a line cap or a join.
@@ -109,9 +111,9 @@ const (
 // width. It is the identical drawing, arrived at with three points instead
 // of fourteen.
 var checkLine = [3]f32.Point{
-	{X: 4.5, Y: 12},
-	{X: 9, Y: 16.5},
-	{X: 19.5, Y: 6},
+	{X: 4.5, Y: 12.5},
+	{X: 9, Y: 17},
+	{X: 19.5, Y: 6.5},
 }
 
 // CheckboxRenderState holds explicit visual state for static rendering.

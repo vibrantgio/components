@@ -219,7 +219,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 					// The shadow is cast around the clickable rather than
 					// inside it: it falls outside the control's own box, and
 					// a Clickable clips what it wraps to that box.
-					return toolbarface.Cast(gtx, toolbarface.Shadow(tok.platform), func(gtx layout.Context) layout.Dimensions {
+					return toolbarface.Cast(gtx, toolbarface.Shadow(tok.platform), s.Focused, func(gtx layout.Context) layout.Dimensions {
 						return click.Layout(gtx,
 							func(gtx layout.Context) layout.Dimensions {
 								semantic.ClassOp(semantic.Button).Add(gtx.Ops)
@@ -275,7 +275,7 @@ func RenderToolbar(
 	s ToolbarState,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return toolbarface.Cast(gtx, toolbarface.Shadow(p), func(gtx layout.Context) layout.Dimensions {
+		return toolbarface.Cast(gtx, toolbarface.Shadow(p), s.face().Focused, func(gtx layout.Context) layout.Dimensions {
 			return toolbarface.Draw(gtx, shaper, value, p, sp, labelStyle, d, s.face())
 		})
 	}

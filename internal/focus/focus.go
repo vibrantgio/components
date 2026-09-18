@@ -80,6 +80,27 @@ const Width = unit.Dp(4)
 // the band. The other half lies over the control's outermost 2 dp.
 const Outside = Width / 2
 
+// OutsidePx is how far past a control's own box the halo reaches, in device
+// pixels at gtx's metric: half of [Width], rounded out so the band's own
+// antialiased edge falls inside it.
+//
+// A caller drawing anything that must not appear under the band needs the
+// footprint rather than the box — the toolbar control's deferred drop shadow
+// is the one that does.
+func OutsidePx(gtx layout.Context) int {
+	w := gtx.Dp(Width)
+	if w < 1 {
+		w = 1
+	}
+	return (w + 1) / 2
+}
+
+// Footprint is the box the halo drawn on box's outline covers: box grown by
+// [OutsidePx] on every side.
+func Footprint(gtx layout.Context, box image.Rectangle) image.Rectangle {
+	return box.Inset(-OutsidePx(gtx))
+}
+
 // Ring is the colour a focused control draws its halo in: the platform's
 // keyboard focus indicator, flattened over beneath — the opaque fill that
 // part of the band lies on, which is the surface the control stands on

@@ -26,36 +26,42 @@
                         top edge, which a circle of r 3 gives as 0, 0.67, 0.98
                         and 1.00 and one of r 2 as 0, 0.96, 1.00, 1.00
 
+       That 1.39 is one of the three readings the set's one band of 1.4 units
+       is drawn to; this mark's own capture and the set's band agree to a
+       hundredth.
+
        Grid: the pane is 19 by 15 on the 24 grid, so its sides sit on the
        set's square keyline 2.5 units in and its top and bottom at 4.5 and
        19.5 — the measured 19.31 drawn at the keyline and the measured 15.12
-       at the nearest whole unit. The band is the set's axis-aligned
-       measure of 1.5 units, a sixth over the measured 1.39, which is the miss
-       the whole set carries; every edge here runs along the grid, so none of
-       them takes the diagonal compensation. That gives an inner pane of 16 by
-       12. Corner radius 3 outside and 1.5 inside, which keeps the band even
-       all the way round; a sharper corner reads as a screen rather than a
-       window. Outer contour clockwise, inner counter-clockwise, so the band is
-       a hole under the non-zero winding rule.
+       at the nearest whole unit. Every edge here runs along the grid. That
+       gives an inner pane of 16.2 by 12.2. Corner radius 3 outside and 1.6
+       inside, which keeps the band even all the way round; a sharper corner
+       reads as a screen rather than a window. Outer contour clockwise, inner
+       counter-clockwise, so the band is a hole under the non-zero winding
+       rule.
 
        The seam stands at 8.75, which is the measured one to 2.05 drawn on the
-       quarter unit: 4.99 against 10.21 over an inner pane of 16 puts its
-       leading edge at 8.76, leaving a leading column of 4.75 against a
-       trailing one of 9.75. Its own contour, so it abuts the frame rather
-       than winding against it.
+       quarter unit: 4.99 against 10.21 over an inner pane of 16.2 puts its
+       leading edge at 8.75 to the hundredth, leaving a leading column of 4.85
+       against a trailing one of 9.95. Its own contour, so it abuts the frame
+       rather than winding against it.
 
-       Where each band lands. The pane's top at 4.5 (m=3) and its foot at 18
-       (m=12) are on the 1.5 sub-grid and land a whole device pixel at 16, 20
-       and 24 dp alike. The two SIDES do not, and cannot: the keyline's 19
-       units is odd against a 24-unit box, so they stand at 2.5 and 20 and
-       land a whole pixel at 24 dp only, reaching 0.917 of their best pixel at
-       20 dp and 0.667 at 16. The SEAM lands at 24 dp and reaches 0.833 at
-       16 dp and 0.708 at 20. The measurement stands over the third size's
-       crispness in all three cases, which is the trade the keyline's own
-       reading already made for the set.
+       Where each band lands. A band of 1.4 units holds a whole device pixel
+       when its own span contains one: at 24 dp that wants a leading edge on a
+       whole unit or no more than 0.4 below one, at 20 dp a leading edge whose
+       five sixths does the same against 1.167 px, and at 16 dp nothing at all
+       — 1.4 units is 0.93 px there, under one device pixel. So the SEAM at
+       8.75 lands a whole pixel at 24 dp and reaches 0.708 of its best pixel
+       at 20 and 0.767 at 16. The pane's TOP at 4.5 and its FOOT at 18.1 land
+       none, reaching 0.900 at 24 dp, 0.917 at 20 and 0.933 at 16. The two
+       SIDES land none either, and cannot: the keyline's 19 units is odd
+       against a 24-unit box, so they stand at 2.5 and 20.1 and reach 0.900 at
+       24 dp, 0.917 at 20 and 0.600 at 16. The measurement stands over the
+       crispness in every case, which is the trade the keyline's own reading
+       and the set's one measured band each already made.
  -->
-  <path fill="#000000" d="M18.5 4.5 C20.157 4.5 21.5 5.843 21.5 7.5 L21.5 16.5 C21.5 18.157 20.157 19.5 18.5 19.5 L5.5 19.5 C3.843 19.5 2.5 18.157 2.5 16.5 L2.5 7.5 C2.5 5.843 3.843 4.5 5.5 4.5 Z M5.5 6 C4.672 6 4 6.672 4 7.5 L4 16.5 C4 17.328 4.672 18 5.5 18 L18.5 18 C19.328 18 20 17.328 20 16.5 L20 7.5 C20 6.672 19.328 6 18.5 6 Z"/>
+  <path fill="#000000" d="M18.5 4.5 C20.157 4.5 21.5 5.843 21.5 7.5 L21.5 16.5 C21.5 18.157 20.157 19.5 18.5 19.5 L5.5 19.5 C3.843 19.5 2.5 18.157 2.5 16.5 L2.5 7.5 C2.5 5.843 3.843 4.5 5.5 4.5 Z M5.5 5.9 C4.6163 5.9 3.9 6.6163 3.9 7.5 L3.9 16.5 C3.9 17.3837 4.6163 18.1 5.5 18.1 L18.5 18.1 C19.3837 18.1 20.1 17.3837 20.1 16.5 L20.1 7.5 C20.1 6.6163 19.3837 5.9 18.5 5.9 Z"/>
   <!-- The seam, one band wide, spanning the inner pane from top to
        bottom. -->
-  <path fill="#000000" d="M8.75 6 L10.25 6 L10.25 18 L8.75 18 Z"/>
+  <path fill="#000000" d="M8.75 5.9 L10.15 5.9 L10.15 18.1 L8.75 18.1 Z"/>
 </svg>

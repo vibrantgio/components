@@ -3,30 +3,28 @@
        bands crossing — the figure a reader reaches for to take something back,
        and the same one an Input chip's dismiss mark draws.
 
-       Grid: a diagonal form, so it takes the 20-unit allowance rather than the
-       square keyline. Each band's centre line runs corner to corner of that
-       allowance, 3,3 to 21,21 and 21,3 to 3,21, and each takes the diagonal
-       measure of 2 — what a 45-degree edge needs to cover device pixels whole
-       at the sizes the library draws. The ends are cut square: a cross is read
-       by its crossing, and a cap on four arms only thickens the figure. Two
-       contours, one per band, so they abut rather than wind against each
-       other.
+       Grid: a diagonal form with no round element in it, so it takes the
+       diagonal allowance of 20 units rather than the square keyline or the
+       round form's 13. Each band's centre line runs corner to corner of that
+       allowance, 3,3 to 21,21 and 21,3 to 3,21, and each takes the set's one
+       measured band of 1.4 units, spent perpendicular. The ends are cut
+       square: a cross is read by its crossing, and a cap on four arms only
+       thickens the figure. Two contours, one per band, so they abut rather
+       than wind against each other.
 
-       The allowance is not measured the way the square keyline is, and the
-       set records the miss: the platform's round and diagonal band symbols
-       cover 16 by 17 px (Finder's magnifier) and 17 by 17 (Notes' compose)
-       against its square 18 to 19, so a 20-unit allowance drawn at 24 dp
-       stands three to four pixels wider than the platform's own. The keyline
-       moved to the measurement and the allowance did not; the reading is
-       recorded here.
+       The DIAGONAL allowance is not measured the way the square keyline and
+       the round form's 13 units are, and the set records the miss: it stays
+       20 units, and no stored capture holds a bare diagonal band standing
+       alone in a toolbar band at all. Notes' compose covers 17 by 17, the
+       nearest reading, and it is a figure rather than a bare band. The
+       capture that would settle it is on the reference's list.
 
        Where the band-landing rule reaches. It does not: both bands run at
        45 degrees and no edge of this drawing runs along the grid, so neither
-       has a leading edge at 1.5m to land a whole device pixel inside. What
-       the rule asks for is had the other way — the diagonal measure of 2
-       units is 1.33 px at 16 dp, 1.67 at 20 and 2.00 at 24, and a band at 45
-       degrees that wide covers better than 99.7% of the pixel it runs
-       through at all three. -->
-  <path fill="#000000" d="M2.293 3.707 L20.293 21.707 L21.707 20.293 L3.707 2.293 Z"/>
-  <path fill="#000000" d="M21.707 3.707 L3.707 21.707 L2.293 20.293 L20.293 2.293 Z"/>
+       has a leading edge on a whole unit to land a whole device pixel inside.
+       A 45-degree band of 1.4 units covers 1.000 of the pixel it runs through
+       at 24 dp, 0.969 at 20 and 0.884 at 16, and the crossing at the middle
+       covers one whole at every size. -->
+  <path fill="#000000" d="M2.505 3.495 L20.505 21.495 L21.495 20.505 L3.495 2.505 Z"/>
+  <path fill="#000000" d="M21.495 3.495 L3.495 21.495 L2.505 20.505 L20.505 2.505 Z"/>
 </svg>

@@ -169,19 +169,19 @@ func TestMarkRendersAtEverySizeItIsDrawnAt(t *testing.T) {
 	}
 }
 
-// TestEveryMarkComesOutAtFullStrength is the set's evenness rule read off the
-// pixels: whichever way a mark's edges run, its darkest pixel has to arrive at
-// the colour the control asked for, or near enough that no eye separates the
-// marks standing side by side.
+// TestEveryMarkComesOutAtTheStrengthItsBandGives walks the set at all three
+// sizes and holds each mark to the deepest value its own drawing can reach.
 //
-// An axis-aligned band on the grid gets there for nothing — it covers device
-// pixels whole. A 45 degree band does not: it crosses a pixel corner to corner
-// and covers a whole one only from √2 px across, and the backend composites in
-// linear light, so a band covering 91% of a pixel's area arrives at 67% of the
-// colour and reads grey beside a mark that covers whole ones. That is what the
-// diagonal marks carry a heavier measure for, and this is the check that
-// notices if one of them stops carrying it.
-func TestEveryMarkComesOutAtFullStrength(t *testing.T) {
+// The set draws ONE measured band of 1.4 units, which is 1.40 px at 24 dp,
+// 1.17 at 20 and 0.93 at 16. Only the first of those covers a device pixel, so
+// at 24 dp a mark arrives at the control's own colour wherever a band's
+// leading edge stands on a whole unit or just under one, and at the two
+// smaller sizes it arrives there only where two bands cross, a figure is
+// solid, or a diagonal runs through a pixel's own centre. What each mark
+// reaches everywhere else is READ OFF THE RENDER and recorded below with the
+// arithmetic that gives it. A mark drawn differently moves its entry with it,
+// which is the point: the set may not quietly lose weight.
+func TestEveryMarkComesOutAtTheStrengthItsBandGives(t *testing.T) {
 	// A shade this near the colour asked for is that colour: 0x14 of 0xff is
 	// under a hundredth of the light a white surface gives back.
 	const solid = 0x14
@@ -193,22 +193,38 @@ func TestEveryMarkComesOutAtFullStrength(t *testing.T) {
 	// 20. Their files say so; they are read at the size they are drawn at.
 	oneSize := map[icons.Name]bool{icons.Chevron: true, icons.ChevronPair: true}
 
-	// What a 45-degree band cannot reach on one figure's phase, and why. A
-	// band of width w at 45 degrees covers a whole device pixel only where a
-	// pixel's centre lies within w/2 - sqrt(2)/2 of the band's own centre
-	// line. At 20 dp the set's diagonal measure of 2 units is 1.667 px, which
-	// leaves 0.126 px of room; the three chevrons' centre lines run from 9,6
-	// to 15,12 to 9,18 and its mirror, whose pixel offsets at that size are
-	// half-integers, so the nearest pixel centre stands 0.354 px off and the
-	// best pixel is 96 per cent covered. MEASURED off the render: it arrives
-	// at 0x39. The geometry is the capture's own 8 by 14 and the phase is
-	// what the grid gives it; a figure with longer arms crosses more phases
-	// and lands one, which is what the set drew before CG5.7 took the
-	// measurement.
-	phase := map[icons.Name]map[int]int{
-		icons.Disclosure:     {20: 0x3a},
-		icons.HistoryBack:    {20: 0x3a},
-		icons.HistoryForward: {20: 0x3a},
+	// What each mark reaches where the band lands no whole device pixel.
+	//
+	// The four figures that arrive at the colour everywhere are the ones with
+	// a solid junction in them: the plus's crossing, the folder's and the open
+	// folder's square corners, the refresh mark's arrowhead. The document
+	// reaches it at 20 and 24 from its fold's two lines, which stand on 11 and
+	// 9.5; the search mark from the handle meeting the ring; the sidebar from
+	// the seam at 8.75, which lands at 24 dp alone.
+	//
+	// The diagonals are phase, not weight. A 45-degree band covers a whole
+	// device pixel only where a pixel's own centre lies on its centre line,
+	// and a pixel's centre stands at a half in both axes — so an arm running
+	// x+y = c reaches a whole pixel at 24 dp when c is a whole unit, at 20 dp
+	// when five sixths of it is, and at 16 dp when two thirds of it is. The
+	// clear mark's two bands run c = 0 and c = 24, whole at every size, and it
+	// still falls short at 16 because 1.4 units is 0.93 px there and a
+	// 45-degree band that wide covers 0.884 of its best pixel. The check's
+	// arms run x-y = -8 and x+y = 26, whole at 24 dp and neither at the other
+	// two. The three chevrons' arms are steeper than 45 degrees and stand on
+	// no such line at all; what carries them at 24 dp is the mitre at the
+	// apex, which is solid.
+	reaches := map[icons.Name]map[int]int{
+		icons.Check:          {16: 0x80, 20: 0x5d},
+		icons.Chevron:        {24: 0x2c},
+		icons.ChevronPair:    {24: 0x2c},
+		icons.Clear:          {16: 0x54, 20: 0x2a},
+		icons.Disclosure:     {16: 0x5f, 20: 0x58},
+		icons.Document:       {16: 0x5a},
+		icons.HistoryBack:    {16: 0x5f, 20: 0x55},
+		icons.HistoryForward: {16: 0x5f, 20: 0x58},
+		icons.Search:         {16: 0x48},
+		icons.Sidebar:        {16: 0x45, 20: 0x46},
 	}
 
 	set := icons.New("darwin")
@@ -232,13 +248,15 @@ func TestEveryMarkComesOutAtFullStrength(t *testing.T) {
 				}
 			}
 			want := solid
-			if m, ok := phase[name]; ok {
+			if m, ok := reaches[name]; ok {
 				if v, ok := m[px]; ok {
 					want = v
 				}
 			}
-			if darkest > want {
-				t.Errorf("%q at %d px: the darkest pixel came out at %#02x, and a mark at the set's weight comes out at %#02x or below — the band is too thin for its direction",
+			// One 255th of slack: the rasterizer rounds, and the readings
+			// above are what it rounded to.
+			if darkest > want+1 {
+				t.Errorf("%q at %d px: the darkest pixel came out at %#02x, and this mark's own bands reach %#02x — it has lost weight",
 					name, px, darkest, want)
 			}
 		}
@@ -579,6 +597,13 @@ func at(px int, fraction float64) int { return int(fraction * float64(px)) }
 
 // checkBand holds one run of covered pixels to a band of the set's weight
 // standing at lead, both stated as fractions of the mark's square.
+//
+// A run of ONE covered pixel pins its width and nothing else: the set's band
+// is 0.93 px at 16 dp and 1.17 at 20, so it can fall entirely inside a single
+// device pixel, and the share that pixel carries says how thick the band is
+// without saying where inside it the band stands. Such a run is held to its
+// width and to both edges lying within the pixel, which is all the raster
+// offers.
 func checkBand(t *testing.T, px int, what string, r run, lead float64) {
 	t.Helper()
 	// A band's edges land on eighths of a pixel at these sizes, and the
@@ -589,21 +614,33 @@ func checkBand(t *testing.T, px int, what string, r run, lead float64) {
 		trail: (lead + icons.SidebarBand) * float64(px),
 		width: icons.SidebarBand * float64(px),
 	}
+	if math.Abs(r.width-want.width) > tolerance {
+		t.Errorf("%d px: %s covers %.3f px, want %.3f — the band is not the set's weight",
+			px, what, r.width, want.width)
+	}
+	if r.n == 1 {
+		lo, hi := float64(r.first), float64(r.first+1)
+		if want.lead < lo-tolerance || want.trail > hi+tolerance {
+			t.Errorf("%d px: %s covers pixel %d alone, and the band stated at %.3f to %.3f does not fit inside it",
+				px, what, r.first, want.lead, want.trail)
+		}
+		return
+	}
 	if math.Abs(r.lead-want.lead) > tolerance {
 		t.Errorf("%d px: %s starts at %.3f px, want %.3f", px, what, r.lead, want.lead)
 	}
 	if math.Abs(r.trail-want.trail) > tolerance {
 		t.Errorf("%d px: %s ends at %.3f px, want %.3f", px, what, r.trail, want.trail)
 	}
-	if math.Abs(r.width-want.width) > tolerance {
-		t.Errorf("%d px: %s covers %.3f px, want %.3f — the band is not the set's weight",
-			px, what, r.width, want.width)
-	}
 }
 
 // run is one band read off a line of coverage: where it begins and ends, in
-// pixels from the line's origin, and how much of a pixel it covers.
-type run struct{ lead, trail, width float64 }
+// pixels from the line's origin, how much of a pixel it covers, and which
+// pixels it lies on.
+type run struct {
+	lead, trail, width float64
+	first, n           int
+}
 
 // runs splits a line of coverage into the bands that cover it.
 func runs(line []float64) []run {
@@ -622,6 +659,8 @@ func runs(line []float64) []run {
 			lead:  float64(i) + 1 - line[i],
 			trail: float64(j-1) + line[j-1],
 			width: sum,
+			first: i,
+			n:     j - i,
 		})
 		i = j
 	}

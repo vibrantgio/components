@@ -474,10 +474,21 @@ func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size im
 	// after every column of the window has laid out and the reach past the
 	// band is cut by the window rather than by whichever column the field
 	// stands over. The field's own box is cut out of it, which is what makes
-	// a shadow painted after the field land what one painted under it landed.
+	// a shadow painted after the field land what one painted under it landed
+	// — and while the field is FOCUSED the cut is the focus halo's footprint
+	// instead, the box grown by the half of the band that lies past it. The
+	// halo is drawn below and the shadow after it, so without the larger cut
+	// the ramp runs over the band: this recess measured up to 11 of 255 of
+	// shadow lying on its own halo.
 	if s.onToolbar() {
+		box := image.Rectangle{Max: size}
+		cut, cutRad := box, rad
+		if s.Focused && !s.Disabled {
+			cut = focus.Footprint(gtx, box)
+			cutRad = rad + focus.OutsidePx(gtx)
+		}
 		macro := op.Record(gtx.Ops)
-		control.DrawToolbarShadowAround(gtx, image.Rectangle{Max: size}, rad, shadow)
+		control.DrawToolbarShadowAround(gtx, box, rad, cut, cutRad, shadow)
 		op.Defer(gtx.Ops, macro.Stop())
 	}
 

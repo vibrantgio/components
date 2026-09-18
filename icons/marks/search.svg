@@ -5,62 +5,63 @@
 
        MEASURED, mail-window.png and voicememos-window.png: the platform's
        magnifier is a round lens with the handle at 45 degrees to the lower
-       trailing corner, drawn 12.9 px square, the lens 10.25 px across
-       outside, the band 1.25 px, and the handle's far end 10.15 px from the
-       lens's centre — twice the lens's outer radius. The proportions below
-       are those readings scaled to this grid; the numbers and the method are
-       in reference/macos/controls.md under "What the sidebar search field
-       measures".
+       trailing corner, drawn 12.33 px square across its marks, the lens
+       10.29 px across outside, the band 1.33 px, and the handle's far end
+       10.15 px from the lens's centre — twice the lens's outer radius. The
+       numbers and the method are in reference/macos/controls.md under "What
+       the sidebar search field measures".
 
-       Grid: a round form, so it takes the 20-unit allowance rather than the
-       square keyline, and it fills that allowance exactly — drawn from 2 to 22
-       on both axes, which is what lets a field place the drawing by its own
-       edges. The lens is a ring centred on 10,10, outer radius 8 and inner
-       radius 6: a band of 2, the set's diagonal measure, because the band is
-       curved everywhere and runs along an axis at four points only. Outer
-       contour clockwise, inner counter-clockwise, so the ring is a hole under
-       the non-zero winding rule.
+       MEASURED at 1x, finder-window-light.png: the same magnifier standing
+       ALONE in a toolbar band, as a symbol rather than inside a field, covers
+       15.75 px across by 15.99 down (x 965-980, y 18-34) in a control 36 px
+       tall, and ITS LENS IS 13.06 PX ACROSS OUTSIDE — the leading outer edge
+       at x 965.02 and the trailing one at 978.08 on the lens's own centre
+       row, the top at y 18.85 and the foot at 31.90 down its own centre
+       column. The square symbol standing in the same band is Finder's tag at
+       19 px, so the lens is 0.687 of the square keyline. That is the set's
+       ROUND AND CURVED ALLOWANCE: 13 units in the 24-unit box, drawn at 24 dp
+       where one unit is one device pixel.
+
+       Grid: a round form, so it takes that 13-unit allowance rather than the
+       square keyline. The lens is a ring centred on 10.4,10.4, outer radius
+       6.5 and inner radius 5.1: the set's one measured band of 1.4, curved
+       everywhere and running along an axis at four points only. Outer contour
+       clockwise, inner counter-clockwise, so the ring is a hole under the
+       non-zero winding rule. With the handle the drawing spans 3.9 to 20.095
+       on both axes — 16.195 units, the capture's own 15.75 by 15.99 to within
+       half a unit — and it is centred in the square, which is what lets a
+       field place it by its own edges.
 
        The lens's centre is not the drawing's centre and cannot be: the lens
        stands leading and high, the handle runs to the lower trailing corner.
        A field aligning this mark on its centre row aligns the lens, which is
        where the platform puts it — see SearchLensCentre.
 
-       MEASURED at 1x, finder-window-light.png: the same magnifier standing
-       ALONE in a toolbar band, as a symbol rather than inside a field, covers
-       16 px across by 17 down (x 965-980, y 18-34) in a control 36 px tall.
-       This set draws 20 by 20 on its 20-unit allowance, four columns and
-       three rows over that reading. The proportions inside the drawing are
-       the capture's — the lens is 0.80 of the extent against the measured
-       0.791 and the band 0.10 of it against the measured 0.102 — so what
-       differs is the size and not the figure.
-
-       The allowance is not measured the way the square keyline is, and the
-       set records the miss: the platform's round and diagonal band symbols
-       cover 16 by 17 px (Finder's magnifier) and 17 by 17 (Notes' compose)
-       against its square 18 to 19, so a 20-unit allowance drawn at 24 dp
-       stands three to four pixels wider than the platform's own. The keyline
-       moved to the measurement and the allowance did not; the reading is
-       recorded here.
+       The proportions inside the drawing are the capture's: the lens is 0.803
+       of the drawing's extent against the toolbar symbol's measured 0.829 and
+       the field glyph's 0.834, and the band is 0.086 of it against the field
+       glyph's 0.108.
 
        Where the band-landing rule reaches. It does not: the lens is curved
        everywhere and runs along an axis at four points only, and the handle
-       runs at 45 degrees, so no edge of this drawing has a leading edge at
-       1.5m to land a whole device pixel inside. What the rule asks for is had
-       the other way — the band is 2 units, which is 1.33 px at 16 dp, 1.67 at
-       20 and 2.00 at 24, over one whole device pixel at every size. -->
-  <path fill="#000000" d="M10 2 C14.4183 2 18 5.5817 18 10 C18 14.4183 14.4183 18 10 18 C5.5817 18 2 14.4183 2 10 C2 5.5817 5.5817 2 10 2 Z M10 4 C6.6863 4 4 6.6863 4 10 C4 13.3137 6.6863 16 10 16 C13.3137 16 16 13.3137 16 10 C16 6.6863 13.3137 4 10 4 Z"/>
+       runs at 45 degrees, so no edge of this drawing has a leading edge on a
+       whole unit to land a whole device pixel inside. A band of 1.4 units is
+       0.93 px at 16 dp, 1.17 at 20 and 1.40 at 24, and at 45 degrees it
+       covers 1.000 of the pixel it runs through at 24 dp, 0.969 at 20 and
+       0.884 at 16. -->
+  <path fill="#000000" d="M10.4 3.9 C13.9899 3.9 16.9 6.8101 16.9 10.4 C16.9 13.9899 13.9899 16.9 10.4 16.9 C6.8101 16.9 3.9 13.9899 3.9 10.4 C3.9 6.8101 6.8101 3.9 10.4 3.9 Z M10.4 5.3 C7.5833 5.3 5.3 7.5833 5.3 10.4 C5.3 13.2167 7.5833 15.5 10.4 15.5 C13.2167 15.5 15.5 13.2167 15.5 10.4 C15.5 7.5833 13.2167 5.3 10.4 5.3 Z"/>
   <!-- The handle, its own contour so it abuts the ring rather than winding
-       against it: a band of 2 at 45 degrees, its far end at 21.293,21.293,
-       which puts its far corner on the allowance at 22 and that end twice the
-       lens's outer radius from the lens's centre, as the captures read it.
+       against it: the set's band at 45 degrees, its far end at 19.6,19.6,
+       which puts that end 13.01 units from the lens's centre — twice the
+       lens's outer radius, as the captures read it — and its far corner at
+       20.095, the drawing's own edge.
 
        Its near end STOPS ON THE RING'S INNER EDGE and does not cross it. A
-       corner of a 2-unit band whose centre line stands d from the lens's
-       centre lies sqrt(d²+1) out, so d = sqrt(35) = 5.916 puts both near
-       corners exactly on the inner radius of 6. The handle drawn from d =
-       5.5 reached 5.59 — 0.41 inside the lens's own hole, which the non-zero
-       winding rule fills solid, and the join came out as a lump where the
+       corner of a 1.4-unit band whose centre line stands d from the lens's
+       centre lies sqrt(d²+0.49) out, so d = sqrt(25.52) = 5.0517 puts both
+       near corners exactly on the inner radius of 5.1. A handle drawn from
+       any less reaches inside the lens's own hole, which the non-zero winding
+       rule fills solid, and the join comes out as a lump where the
        platform's is a clean meeting. -->
-  <path fill="#000000" d="M14.891 13.477 L22 20.586 L20.586 22 L13.477 14.891 Z"/>
+  <path fill="#000000" d="M14.4671 13.4771 L20.095 19.105 L19.105 20.095 L13.4771 14.4671 Z"/>
 </svg>

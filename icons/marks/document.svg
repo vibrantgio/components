@@ -12,47 +12,56 @@
        at x 93-94 running from under the top edge down to the cut's end, and a
        horizontal at y 263-264 running from there out to the trailing edge.
 
+       THIS MARK'S OWN EXTENT IS THE EXCEPTION THE SET RECORDS: its capture
+       reads the page 13 PX ACROSS where the set's square keyline is 19, so
+       the figure takes the keyline in its long direction only and its own
+       measured 13 across it. Its band, on the other hand, is the set's own:
+       the capture's 1.4 px is the reading the whole set is drawn to.
+
        Grid: an axis-aligned form with one diagonal, so it fills the set's
        square keyline in its long direction — 2.5 to 21.5 down, 19 units —
-       and takes the set's axis-aligned band of 1.5. The page's 13 by
-       19 proportion puts it 13 units across against those 19 down, drawn from
-       5.5 to 18.5, which centres the figure on both axes. The corner is cut 6
-       by 6, the measured 45 degrees on the sub-grid.
+       and takes the set's one band of 1.4. The page's 13 by 19 proportion
+       puts it 13 units across against those 19 down, drawn from 5.5 to 18.5,
+       which centres the figure on both axes. The corner is cut 6 by 6, the
+       measured 45 degrees.
 
-       The cut runs at 45 degrees and is drawn at the figure's own weight
-       rather than at the set's diagonal measure of 2: the capture reads the
-       diagonal at the same 1.4 px perpendicular as the four straight edges,
-       and a heavier band inside one figure reads as a second weight. The
-       diagonal measure is for a mark whose only bands run diagonally.
+       The cut runs at 45 degrees and is drawn at the set's one band like
+       every other edge here: the capture reads the diagonal at the same
+       1.4 px perpendicular as the four straight edges, and one measured band
+       is what the whole set draws whichever way an edge runs.
 
        The fold's crossbar is drawn where the capture puts it: its leading
        edge stands 7 px into a 19 px page, which is 7 units into this one at
        9.5. The fold's UPRIGHT is not. The capture stands it 6 px into a 13 px
-       page, which is 11.5 here, and it is drawn at 10.5 — the sub-grid unit
-       beside that — because it is the only band in this figure that CAN land
-       a whole device pixel at all three sizes, and a figure whose every band
-       misses reads grey at 16 dp against a label drawn in the same colour.
-       10.5 still stands under the cut: the inner diagonal reaches x 11.8787
-       at the inner top face, which the band at 10.5 to 12 meets.
+       page, which is 11.5 here, and it is drawn at 11 — the whole unit beside
+       that — because a band of 1.4 holds a whole device pixel only from an
+       edge on a whole unit or just under one, and a figure whose every band
+       misses reads grey at the small sizes against a label drawn in the same
+       colour. 11 still stands under the cut: the inner diagonal reaches
+       x 11.9201 at the inner top face, which the band at 11 to 12.4 meets.
 
-       Where each band lands. The fold's UPRIGHT at 10.5 (m=7) is on the 1.5
-       sub-grid and lands a whole device pixel at 16, 20 and 24 dp alike; it
-       is the one band here that does. The fold's CROSSBAR at 9.5 lands one at
-       20 and 24 and reaches 0.667 of its best pixel at 16. The two SIDES at
-       5.5 and 17 land one at 24 and reach 0.667 at 16 and 0.833 at 20. The
-       page's TOP at 2.5 and its FOOT at 20 stand on the keyline, which the
-       keyline's 19 odd units keeps off the sub-grid: they land at 24 dp and
-       reach 0.667 at 16 and 0.917 at 20. That is what a figure measured on
-       both axes costs on this grid; the readings stand and the misses are
-       recorded.
+       Where each band lands. A band of 1.4 units holds a whole device pixel
+       when its own span contains one: at 24 dp that wants a leading edge on a
+       whole unit or no more than 0.4 below one, at 20 dp a leading edge whose
+       five sixths does the same against 1.167 px, and at 16 dp nothing at all
+       — 1.4 units is 0.93 px there, under one device pixel. So the fold's
+       UPRIGHT at 11 lands a whole pixel at 24 dp and reaches 0.833 at 20 and
+       0.667 at 16; the fold's CROSSBAR at 9.5 lands one at 20 dp and reaches
+       0.900 at 24 and 0.667 at 16. The two SIDES at 5.5 and 17.1 land none,
+       reaching 0.900 at 24, 0.750 at 20 and 0.600 at 16. The page's TOP at
+       2.5 and its FOOT at 20.1 stand on the keyline, which the keyline's 19
+       odd units keeps off every whole unit: they land none either, reaching
+       0.900 at 24, 0.917 at 20 and 0.600 at 16. That is what a figure
+       measured on both axes costs on this grid; the readings stand and the
+       misses are recorded.
 
        Three contours. The page is one outline with its inner edge wound back,
-       the inner edge offset 1.5 perpendicular everywhere — which puts the
-       inner diagonal's corners at 11.8787,4 and 17,9.1213. The fold's two
+       the inner edge offset 1.4 perpendicular everywhere — which puts the
+       inner diagonal's corners at 11.9201,3.9 and 17.1,9.0799. The fold's two
        lines are drawn in the same direction as the outer contour, so where
        one crosses the cut's own band the overlap fills solid under the
        non-zero winding rule rather than cutting a hole in it. -->
-  <path fill="#000000" d="M5.5 2.5 L12.5 2.5 L18.5 8.5 L18.5 21.5 L5.5 21.5 Z M7 4 L7 20 L17 20 L17 9.1213 L11.8787 4 Z"/>
-  <path fill="#000000" d="M10.5 4 L12 4 L12 9.5 L10.5 9.5 Z"/>
-  <path fill="#000000" d="M10.5 9.5 L18.5 9.5 L18.5 11 L10.5 11 Z"/>
+  <path fill="#000000" d="M5.5 2.5 L12.5 2.5 L18.5 8.5 L18.5 21.5 L5.5 21.5 Z M6.9 3.9 L6.9 20.1 L17.1 20.1 L17.1 9.0799 L11.9201 3.9 Z"/>
+  <path fill="#000000" d="M11 3.9 L12.4 3.9 L12.4 9.5 L11 9.5 Z"/>
+  <path fill="#000000" d="M11 9.5 L18.5 9.5 L18.5 10.9 L11 10.9 Z"/>
 </svg>

@@ -81,21 +81,20 @@ const PopupMarkTrailDp unit.Dp = 9
 // notes-toolbar.png and voicememos-window.png. A symbol's covered extent
 // there reads 18 × 18 px (Finder's group pull-down), 19 × 19 (its tag),
 // 17 × 12 (its list), 16 × 17 (its magnifier), 17 × 17 (Notes' compose) and
-// 19 × 15 (Voice Memos' sidebar toggle): a square form fills about 18 px and
-// a round or diagonal one about 17. That is the icon set's own grid at 24 —
-// a square form to its 18-unit keyline and a round one to 20 units on a
-// 24-unit grid — so 24 is the size at which the set draws the platform's
-// measured extent, and the size at which every unit of that grid lands on a
-// whole pixel.
+// 19 × 15 (Voice Memos' sidebar toggle), and the magnifier's own lens is
+// 13.06 px across outside. That is the icon set's own grid at 24 — a square
+// form to its 19-unit keyline and a round one to the 13 units that lens
+// measures, on a 24-unit grid — so 24 is the size at which the set draws the
+// platform's measured extent, and the size at which every unit of that grid
+// lands on a whole pixel.
 //
-// The weight is the set's one weight and stands with its miss stated. The
-// axis-aligned band of those same symbols measures 1.12 px (Finder's list
-// bar), 1.15 to 1.22 (its magnifier's circle), 1.26 (Notes' compose) and 1.39
-// (Voice Memos' sidebar rectangle), against the 1.5 px the set's 1.5-unit
-// band draws at 24. The set is a sixth heavier, and a lighter one is not
-// available: 1.25 units falls to 0.83 px at the 16 dp end of the range, below
-// one device pixel, where an antialiased line is drawn grey rather than in
-// the control's colour.
+// The weight is the set's one measured band. Read against each symbol's own
+// drawn plateau, the band of those same symbols measures 1.35 px (Finder's
+// list bar), 1.48 (its magnifier's circle), 1.40 (Notes' compose, and Mail's
+// again) and 1.39 (Voice Memos' sidebar rectangle); the set draws 1.4 units,
+// which is 1.4 px here. What it costs is at the other end of the range: 1.4
+// units is 0.93 px at 16 dp, under one device pixel, so a band there is drawn
+// at part coverage and components/icons records what each mark reaches.
 const ChromeMarkDp unit.Dp = 24
 
 // ChromeMarkSideDp is the clear room a toolbar control leaves on each side of

@@ -58,22 +58,58 @@
 //
 // # The grid
 //
-// Every mark is drawn on a 24×24 grid — viewBox "0 0 24 24" — and a square
-// form is drawn to the keyline 2.5 units in from every edge, a 19×19 box. A
-// round or diagonal form takes a wider allowance, 2 units in from every edge
-// and a 20×20 box, because a circle inside the same bounds as a square reads
-// smaller than it; that is optical compensation and it is the only reason to
-// cross the keyline.
+// Every mark is drawn on a 24×24 grid — viewBox "0 0 24 24" — and what a form
+// is drawn TO depends on what shape that form is:
 //
-// The keyline is MEASURED at 1x off the toolbar bands in the organization's
-// macOS reference, where a symbol standing alone in a band is the platform
-// drawing this set's own subject at its own size. Finder's tag covers 19 × 19
-// px (finder-window-light.png, x 873-891, y 17-35) and its group pull-down
-// 18 × 18 (x 769-786, y 17-34); Voice Memos' sidebar toggle covers
-// 19.31 × 15.12 (voicememos-window.png, x 106-125, y 18-33). All three stand
-// in controls 36 px tall. 19 is the reading the set is drawn to, and 24 dp is
-// where it comes out: one unit to one device pixel, so a square mark drawn to
-// the keyline covers the platform's own 19 px there.
+//	a square form        the keyline, 2.5 units in from every edge, 19×19
+//	a round or curved    the allowance, 13 units across
+//	a diagonal form      20 units, 2 in from every edge
+//
+// The first two are MEASURED off the organization's macOS reference. The
+// third is not, and this package says so wherever it is spent.
+//
+// THE KEYLINE IS MEASURED at 1x off the toolbar bands, where a symbol
+// standing alone in a band is the platform drawing this set's own subject at
+// its own size. Finder's tag covers 19 × 19 px (finder-window-light.png,
+// x 873-891, y 17-35) and its group pull-down 18 × 18 (x 769-786, y 17-34);
+// Voice Memos' sidebar toggle covers 19.31 × 15.12 (voicememos-window.png,
+// x 106-125, y 18-33). All three stand in controls 36 px tall. 19 is the
+// reading the set is drawn to, and 24 dp is where it comes out: one unit to
+// one device pixel, so a square mark drawn to the keyline covers the
+// platform's own 19 px there.
+//
+// THE ROUND AND CURVED ALLOWANCE IS MEASURED the same way, off the one round
+// form the reference holds standing alone in a band: the magnifier's lens in
+// finder-window-light.png (x 965-980, y 18-34). Its outer diameter is
+// 13.06 px — the leading outer edge at x 965.02 and the trailing one at
+// 978.08 on the lens's own centre row, the top at y 18.85 and the foot at
+// 31.90 down its own centre column — against the tag's 19 px square in the
+// same band, so the lens is 0.687 of the keyline. The two field glyphs agree
+// at their own size: Mail's and Voice Memos' search fields each draw a lens
+// 10.29 px across outside in a glyph 12.33 px wide, which against the toolbar
+// symbol's own 15.75 px width is 13.14 units. 13 is the reading, and the set
+// draws its round forms to it — the search mark's lens and the refresh mark's
+// ring. It replaces an unmeasured 20 the set carried before, which stood
+// seven units over the platform's own lens.
+//
+// THE DIAGONAL ALLOWANCE IS NOT MEASURED. No stored capture holds a bare
+// diagonal band standing alone in a toolbar band; Notes' compose covers
+// 17 × 17, the nearest reading, and it is a figure rather than a band. The
+// allowance stays 20 units, the check and the clear marks are all that take
+// it, and the capture that would settle it is on the reference's list.
+//
+// # What a form is measured against, per place
+//
+// 19 IS THE KEYLINE OF A SYMBOL STANDING ON ITS OWN — the tag in a toolbar
+// band, the marks a sidebar row is drawn with. A mark drawn INSIDE a control
+// is that control's own measurement instead, and the set draws each at what
+// its own capture reads: the pull-down's glyph at 18, the pop-up's chevron
+// pair at 8 by 11, its single chevron at 8 by 5, the history chevron at 8 by
+// 14. The density heights work the same way — the platform draws a control in
+// a toolbar band taller than one in a dialog, and neither reading corrects the
+// other — and a mark is no different. What a form is drawn to is the place it
+// stands in, and the keyline is one of those places rather than the answer for
+// all of them.
 //
 // 24 is chosen for the sizes the library actually draws icons at: 16, 20 and
 // 24 dp — the control's content box at each density, plus the top of the
@@ -85,48 +121,70 @@
 // factor 4 — so the honest statement is which lines land where. At 1 device
 // pixel per dp, a coordinate falls on a whole pixel at 24 dp on every whole
 // unit, at 16 dp on every multiple of 1.5, and at 20 dp only on multiples of
-// 1.2. A coordinate whole at both 16 and 24 dp is therefore a multiple of 3,
-// and one whole at all three is a multiple of 6. So author on the 1.5
-// sub-grid where the drawing is free to move, and check the mark rendered at
-// all three sizes rather than trusting the arithmetic.
+// 1.2.
 //
-// THE KEYLINE ITSELF IS NOT ON THAT SUB-GRID, and that is the price of the
-// measurement. 19 units is odd against a 24-unit box, so a centred square
-// form stands at 2.5 and 21.5 and its four edges land a whole device pixel at
-// 24 dp alone: the leading band runs 2.5 to 4.0, which covers device pixel 3
-// whole at 24 dp, reaches 0.917 of its best pixel at 20 and 0.667 at 16, and
-// the trailing band is the mirror of it. The 18-unit keyline this set carried
-// before landed all three, and it drew a square symbol a unit under the
-// platform's largest reading. Measured beats published, and what is lost is
-// recorded here and in every file the keyline reaches.
+// WHAT THE MEASURED BAND COSTS THAT. The band is 1.4 units (below), which is
+// 0.93 px at 16 dp — under one device pixel — so at that size no band in this
+// set holds a whole device pixel anywhere, wherever it is placed. At 24 dp a
+// band holds one when its own 1.4 units contain a whole unit, which is a
+// leading edge on a whole unit or no more than 0.4 below one; at 20 dp the
+// band is 1.167 px and holds one when its leading edge times five sixths does
+// the same against that 1.167. So a band's placement stands on the WHOLE unit
+// wherever the measurement leaves it free — the plus's two bars run 10.6 to
+// 12, the folder's flap 8.6 to 10, the open folder's 9.6 to 11, the
+// document's fold upright 11 to 12.4 — and every file records what its
+// measured placements reach where they land nothing.
 //
-// # The stroke
+// THE KEYLINE ITSELF LANDS NOTHING, and that is the price of the two
+// measurements together. 19 units is odd against a 24-unit box, so a centred
+// square form stands at 2.5 and 21.5, and a band of 1.4 from either edge
+// reaches 0.900 of its best pixel at 24 dp, 0.917 at 20 and 0.600 at 16. The
+// 18-unit keyline and the 1.5 band this set carried before landed whole
+// pixels on both counts, and they drew a square symbol a unit under the
+// platform's largest reading at a weight a sixth over its own. Measured beats
+// published, and what is lost is recorded here and in every file the keyline
+// and the band reach.
 //
-// Two weights, and which one an element takes is what it IS in the drawing,
-// never how the mark wants to be read.
+// # The band
 //
-// THE BAND is the figure itself: 1.5 units thick where its edges are
-// axis-aligned and 2 units where they run diagonally. The two are the same
-// weight on screen, which is the point — one number for both draws marks that
-// come out uneven.
+// ONE MEASURED WIDTH, and every mark in the set draws it: 1.4 units, spent
+// perpendicular to whatever the band runs along — the axis, a diagonal or a
+// curve alike.
 //
-// The floor fixes the axis-aligned number. Below one device pixel an
-// antialiased line is drawn as grey rather than as the control's colour, so the
-// mark quietly loses contrast against the label beside it; 1.25 units would be
-// 0.83 px at the smallest size the library draws, and that is the failure. 1.5
-// is the thinnest weight that never falls under a device pixel across the
-// range: at 1 px per dp it is 1.0 px at 16 dp, 1.25 px at 20 dp and 1.5 px at
-// 24 dp, and double that at 2 px per dp.
+// MEASURED at 1x off the toolbar bands of the organization's macOS reference,
+// each symbol read against its own drawn plateau rather than against a colour
+// name: the compose symbol measures 1.40 px in notes-toolbar.png and again in
+// mail-window.png, Voice Memos' sidebar rectangle 1.39, the pop-up's chevron
+// pair 1.36 to 1.44, the sidebar folder 1.37 to 1.50, Finder's view-pop-up
+// list bar 1.35 and its magnifier's circle 1.48. 1.4 is the figure the
+// tightest readings agree on and it stands inside every one of the others.
 //
-// Heavier buys nothing there. 1.5 units already covers whole pixels and comes
-// out at the control's colour undiluted; 2 units would be 1.33 px at 16 dp,
-// off the pixel grid the band is chosen to land on (below), for a coverage
-// that is already full. Nor is the set bolder than the platform's own marks at
-// that weight: the platform's axis-aligned band measures 1.12 px (Finder's
-// list symbol), 1.26 (Notes' compose), 1.39 (Voice Memos' sidebar rectangle)
-// and 1.37 to 1.50 (Voice Memos' sidebar folder) at 1x, against this set's 1.5
-// at 24. What settles a measure is how much of a pixel the band covers, not
-// how its number compares to another set's.
+// The set drew three weights before this and the marks came out uneven — 1.5
+// on the axis, 2 on a 45-degree band as optical compensation, and a rendered
+// spread of 1.15 to 2.13 px across the set at one size, where the platform
+// holds one weight. One measured number is what closes it, and what a mark's
+// own capture reads where it differs is stated in that mark's file: the
+// history chevron's 1.53 perpendicular, the folder's 1.37 to 1.50, the
+// document's 13-wide page against a 19-unit keyline.
+//
+// WHAT ONE BAND COSTS THE DIAGONAL, and why the compensation went. A band at
+// 45 degrees crosses a pixel corner to corner, so it covers less of one than
+// an axis-aligned band of the same width. At 1.4 units it covers 1.000 of the
+// pixel it runs through at 24 dp, 0.969 at 20 and 0.884 at 16, against the
+// axis-aligned band's best of 1.000, 1.000 and 0.933. The compensation was
+// measured against an axis-aligned band that COVERED A WHOLE PIXEL at every
+// size; at the measured width nothing covers one at 16 dp in either
+// direction, and the two arrive within five per cent of each other. A heavier
+// diagonal now buys nothing but a mark heavier than the platform's, which is
+// the defect it was drawn to avoid.
+//
+// WHAT ONE BAND COSTS THE SMALL SIZES. 1.4 units is 0.93 px at 16 dp and 1.17
+// at 20, so a band at those sizes is drawn at part coverage and a mark
+// arrives at the control's own colour only where two bands cross or a figure
+// is solid — the plus's crossing, the refresh mark's arrowhead, a chevron's
+// apex. The set drew 1.5 to keep a whole device pixel at the small end of the
+// range, and 1.5 is not what the platform draws. The reading is recorded, and
+// each file states what its own bands reach at each of the three sizes.
 //
 // THE SECOND BAND is 0.93 units, and it is measured rather than derived:
 // the three list lines inside the sidebar mark's leading column carry 2.80
@@ -135,40 +193,14 @@
 // centres stand on a period of 2.20. It is what the platform gives an element
 // that says "a list lives here" beside a figure that says what the control is.
 //
-// 0.93 falls UNDER the floor the band is held to — 0.62 px at 16 dp,
-// 0.78 at 20 and 0.93 at 24 — and that is the point of it rather than a miss.
-// A band that cannot fill a device pixel is drawn at part coverage, and part
-// coverage of the control's own colour is exactly what a line carried beside the figure
-// reads as. The set drew this before as the band itself under a fill-opacity,
-// which is the same effect asked for twice: a weight the platform does not
-// draw, faded by a number nothing measured. What the platform draws is a
-// thinner line, and a thinner line is what is drawn here.
-//
-// The keyline and the band are chosen together, and that is what makes the
-// small sizes crisp WHERE the drawing is free to choose. A band running from
-// unit 3 to unit 4.5 covers device pixels 2 to 3 at 16 dp — one whole pixel
-// covered, landed on the pixel grid, at the size where half a pixel of error
-// is the largest share of the mark — and pixels 4 to 6 at 16 dp on a 2 px/dp
-// display. At 24 dp it covers 3 to 4.5, and 6 to 9 at 2 px/dp, exact again.
-// Only 20 dp lands that band off the grid, at 2.5 to 3.75; the alternative
-// would be a band of 1.2 units, the only width that is whole-pixel there, and
-// it falls to 0.8 px at 16 dp and breaks the floor. That is why a mark's
-// straight edges sit on the 1.5 sub-grid wherever the keyline and the
-// measurement leave them free to.
-//
-// WHERE on the sub-grid a band sits then decides the third size. A band lands a
-// whole device pixel inside it at 16, 20 and 24 dp alike when its leading edge
-// is 1.5m units with m ≡ 0 or 3 (mod 4) — 0, 4.5, 6, 10.5, 12, 16.5, 18, 22.5 —
-// and reaches only 0.75 of one at 20 dp from every other multiple of 1.5. At
-// 16 dp the band is exactly one pixel, so both its edges have to fall on the
-// grid, which is what restricts it to multiples of 1.5 in the first place; at
-// 20 dp it is 1.25 px, and one of the two edges has to fall on the grid for a
-// whole pixel to fit inside. The plus mark is drawn to that rule: its two bars
-// run 10.5 to 12 rather than centred on 12, which is what puts them at the
-// control's own colour at every size. A band that cannot take one of those
-// units without leaving the place a capture measures it at keeps the
-// measurement — the keyline, the sidebar's seam and the folder's flap are the
-// cases — and each file records which of its bands land where.
+// It falls under the band, and under a device pixel at every size: 0.62 px at
+// 16 dp, 0.78 at 20 and 0.93 at 24. That is the point of it rather than a
+// miss. A band that cannot fill a device pixel is drawn at part coverage, and
+// part coverage of the control's own colour is exactly what a line carried
+// beside the figure reads as. The set drew this before as the band itself
+// under a fill-opacity, which is the same effect asked for twice: a weight the
+// platform does not draw, faded by a number nothing measured. What the
+// platform draws is a thinner line, and a thinner line is what is drawn here.
 //
 // Every mark's file states its own bands the same way: where each leading
 // edge stands, how thick it is, which of the three sizes it lands a whole
@@ -178,34 +210,6 @@
 // render every mark at 16, 20 and 24 and read each stated band's coverage off
 // the render against the arithmetic its own numbers give, so a file's claim
 // and its drawing cannot part company.
-//
-// A diagonal edge cannot land on the grid at all, and that is why it takes a
-// measure of its own. A band at 45 degrees crosses a pixel corner to corner,
-// so it covers a whole one only from √2 px across; at 1.5 units it is 1.0 px
-// at 16 dp and covers 91% of the pixel it runs through. That is the number the
-// geometry gives, and it is not the number the eye gets: the backend
-// composites in linear light, where 91% of a pixel's area comes out at 67% of
-// the colour on screen. Beside an axis-aligned band at 100% the mark reads grey.
-//
-// 2 units is the measure that closes it. The band is 1.33 px at 16 dp, 1.67 at
-// 20 and 2.0 at 24; it covers better than 99.7% of a pixel at all three, and it
-// comes out at 96 to 99% of the colour — level with the axis-aligned band to an
-// eye, and level with the platform's own chevrons rendered at the same sizes,
-// which measure 94 to 100% at 16 pt and 100% at 20 and 24. Under 2 the mark is
-// still the lighter sibling: 1.75 units comes out at 80 to 86%. Over 2 nothing
-// is left to buy — coverage is already whole, the colour stops rising, and the
-// drawing outgrows the 20-unit diagonal allowance, which a 2-unit band on a
-// centre line from 3 to 21 fills exactly.
-//
-// Compensating the diagonal is not this set's invention; only the size of the
-// compensation is. The platform draws the same pair heavier on the diagonal —
-// its sidebar's band measures 1.26 px at 16 pt and 1.89 at 24, its chevron's
-// 1.44 and 2.18, about a seventh more. This set needs a third more, because a
-// backend compositing in linear light punishes a part-covered pixel harder
-// than one compositing in the encoded space: the same 91% of a pixel's area is
-// 67% of the colour here and 91% of it there. So the ratio is not portable, and a
-// measure taken off another set's drawing is not either. Render the mark and
-// read the pixels.
 //
 // A mark that needs emphasis gets it from what it draws, not from a thicker
 // line. The second band is not a lighter version of the band to
@@ -223,18 +227,20 @@
 // reading to the pixel — and 24 is the size at which every whole unit of the
 // grid lands on a whole device pixel.
 //
-// The round and diagonal allowance is NOT measured the same way, and the set
-// records the miss: 20 units at 24 dp is 20 px against the platform's 16 to
-// 17, so this set's magnifier, chevrons and checkmark stand three to four
-// pixels wider than the platform's do in the same band. The allowance is the
-// set's own optical compensation and the ruling that moved the keyline did not
-// move it.
+// The round and curved allowance is measured off the same band: the
+// magnifier's lens is 13.06 px across outside there, so a round form drawn to
+// the set's 13 units at 24 dp covers the platform's own lens to a sixteenth
+// of a pixel. The whole magnifier, handle included, comes out 16.2 units
+// against the capture's 15.75 by 15.99. The DIAGONAL allowance is the one
+// number here still unmeasured: 20 units at 24 dp is 20 px where the nearest
+// diagonal figure the reference holds, Notes' compose, covers 17 × 17, so the
+// checkmark and the clear mark stand wider than the platform's own. The
+// capture that would settle it is on the reference's list.
 //
-// The weight is the set's own band and carries its miss. The axis-aligned
-// band of those same symbols measures 1.12 px to 1.39 against the 1.5 px this
-// set draws at 24: a sixth heavier, and a lighter one is not available, the
-// floor above being what it is. components/internal/control carries the size
-// as ChromeMarkDp, with the readings.
+// The weight is the set's one measured band: 1.4 units, which at 24 dp is the
+// 1.35 to 1.48 px those same symbols measure, read against each symbol's own
+// drawn plateau. components/internal/control carries the size as ChromeMarkDp,
+// with the readings.
 //
 // # Drawing a mark
 //

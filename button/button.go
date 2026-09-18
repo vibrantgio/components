@@ -420,7 +420,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 						// The shadow the chrome variant casts falls outside the
 						// control's own box, and a Clickable clips what it wraps
 						// to that box, so it is cast around the clickable.
-						return toolbarface.Cast(gtx, chromeShadow(tok.platform, state), body)
+						return toolbarface.Cast(gtx, chromeShadow(tok.platform, state), state.Focused && !state.Disabled, body)
 					}
 					return body(gtx)
 				})

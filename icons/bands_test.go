@@ -10,19 +10,18 @@ import (
 )
 
 // The set's grid, as icons' package documentation states it: a 24-unit
-// square, a square keyline of 19 units, an axis-aligned band of 1.5
-// units and a second one of 0.93. A band of 1.5 lands a whole device pixel
-// inside it at 16, 20 and 24 dp alike when its leading edge is 1.5m with
-// m ≡ 0 or 3 (mod 4); from every other multiple of 1.5 it reaches 0.75 of one
-// at 20 dp and a whole one at the other two. The keyline itself is off that
-// sub-grid — 19 is odd against 24 — so a square form's own edges land at 24 dp
-// alone, and the second band lands nothing anywhere, being under one device
-// pixel at every size.
+// square, a square keyline of 19 units, one measured band of 1.4 units and a
+// second one of 0.93. A band of 1.4 holds a whole device pixel inside it when
+// its own span contains one: at 24 dp that wants a leading edge on a whole
+// unit or no more than 0.4 below one, at 20 dp a leading edge whose five
+// sixths does the same against 1.167 px, and at 16 dp nothing lands anywhere,
+// 0.93 px being under one device pixel. The keyline itself lands nothing at
+// any size — 19 is odd against 24 — and so does the second band.
 const (
 	gridUnits = 24.0
-	// band is the axis-aligned weight, and the width a band entry
+	// band is the set's one measured weight, and the width a band entry
 	// carries when it states none.
-	bandUnits = 1.5
+	bandUnits = 1.4
 	// secondBand is the measured weight the sidebar mark's list lines
 	// take, stated by the entries that carry it.
 	secondBand = 0.93
@@ -74,21 +73,22 @@ func (b band) thick() float64 {
 // The keys are registry keys, so a platform's own drawing is held to its own
 // row: the two sidebar drawings are one figure and both are read.
 var markBands = map[string][]band{
-	// Two bars, each 10.5 to 12 — m = 7, which lands at every size — inside
-	// arms that run the keyline from 2.5 to 21.5. plus.svg states both.
+	// Two bars, each 10.6 to 12 — the trailing edge on the whole unit 12,
+	// which lands at 20 and 24 dp — inside arms that run the keyline from
+	// 2.5 to 21.5. plus.svg states both.
 	"plus": {
-		{"the crossbar", across, 10.5, 0, 6},
-		{"the upright", down, 10.5, 0, 6},
+		{"the crossbar", across, 10.6, 0, 6},
+		{"the upright", down, 10.6, 0, 6},
 	},
-	// The pane measured off voicememos-window.png: the top and the foot land
-	// at every size, and the two sides on the keyline and the seam on the
-	// measured one to 2.05 land at 24 dp alone. sidebar.svg records all five.
+	// The pane measured off voicememos-window.png: the seam on the measured
+	// one to 2.05 lands at 24 dp, and the top, the foot and the two sides on
+	// the keyline land nothing at all. sidebar.svg records all five.
 	"sidebar": {
 		{"the leading side", down, 2.5, 0, 12},
 		{"the seam", down, 8.75, 0, 12},
-		{"the trailing side", down, 20, 0, 12},
+		{"the trailing side", down, 20.1, 0, 12},
 		{"the pane's top", across, 4.5, 0, 15},
-		{"the pane's foot", across, 18, 0, 15},
+		{"the pane's foot", across, 18.1, 0, 15},
 	},
 	// The same pane, with the three list lines macOS adds inside the leading
 	// column: the second band, measured at 0.93 on a period of 2.20, which
@@ -97,54 +97,55 @@ var markBands = map[string][]band{
 	"sidebar@darwin": {
 		{"the leading side", down, 2.5, 0, 15},
 		{"the seam", down, 8.75, 0, 15},
-		{"the trailing side", down, 20, 0, 15},
+		{"the trailing side", down, 20.1, 0, 15},
 		{"the pane's top", across, 4.5, 0, 15},
-		{"the pane's foot", across, 18, 0, 15},
+		{"the pane's foot", across, 18.1, 0, 15},
 		{"the first list line", across, 7.985, secondBand, 6.5},
 		{"the second list line", across, 10.185, secondBand, 6.5},
 		{"the third list line", across, 12.385, secondBand, 6.5},
 	},
-	// The folder measured off mail-window.png: three bands across that land
-	// at every size, a flap on the capture's own air, and two sides on the
-	// keyline. open-folder.svg records all six.
+	// The folder measured off mail-window.png: the body's top and the flap
+	// land at 20 and 24 dp, the tab's 1.5-unit rise is an extent the capture
+	// gives rather than a band, and the foot and the two sides land nothing.
+	// open-folder.svg records all six.
 	"open-folder": {
-		{"the tab's top", across, 4.5, 0, 6},
+		{"the tab's top", across, 4.5, 1.5, 6},
 		{"the body's top", across, 6, 0, 12},
-		{"the flap", across, 9.75, 0, 12},
-		{"the body's foot", across, 18, 0, 12},
+		{"the flap", across, 9.6, 0, 12},
+		{"the body's foot", across, 18.1, 0, 12},
 		{"the leading side", down, 2.5, 0, 15},
-		{"the trailing side", down, 20, 0, 15},
+		{"the trailing side", down, 20.1, 0, 15},
 	},
 	// The sidebar's own folder, measured off
-	// voicememos-multi-folder-2026-09-18.png: the tab's top, the body's top
-	// and its foot land at every size, and the flap and the two sides at 24
-	// dp alone. folder.svg records all six.
+	// voicememos-multi-folder-2026-09-18.png: the body's top lands at 20 and
+	// 24 dp and the flap at 24, the tab's 1.5-unit rise is an extent the
+	// capture gives rather than a band, and the foot and the two sides land
+	// nothing. folder.svg records all six.
 	"folder": {
-		{"the tab's top", across, 4.5, 0, 6},
+		{"the tab's top", across, 4.5, 1.5, 6},
 		{"the body's top", across, 6, 0, 12},
-		{"the flap", across, 8.75, 0, 12},
-		{"the body's foot", across, 18, 0, 12},
+		{"the flap", across, 8.6, 0, 12},
+		{"the body's foot", across, 18.1, 0, 12},
 		{"the leading side", down, 2.5, 0, 15},
-		{"the trailing side", down, 20, 0, 15},
+		{"the trailing side", down, 20.1, 0, 15},
 	},
-	// The page measured off finder-window-untinted-dark.png: nothing here is
-	// on the 1.5 sub-grid, which is what a figure measured on both axes costs
-	// on this grid. The cut itself runs at 45 degrees and the rule reaches it
-	// no more than it reaches the chevron. document.svg records all six bands
-	// and the cut.
+	// The page measured off finder-window-untinted-dark.png: only the fold's
+	// two lines land anything, which is what a figure measured on both axes
+	// costs on this grid. The cut itself runs at 45 degrees and the rule
+	// reaches it no more than it reaches the chevron. document.svg records all
+	// six bands and the cut.
 	"document": {
 		{"the page's top", across, 2.5, 0, 9},
-		{"the page's foot", across, 20, 0, 9},
+		{"the page's foot", across, 20.1, 0, 9},
 		{"the fold's crossbar", across, 9.5, 0, 15},
 		{"the leading side", down, 5.5, 0, 15},
-		{"the trailing side", down, 17, 0, 15},
-		{"the fold's upright", down, 10.5, 0, 6},
+		{"the trailing side", down, 17.1, 0, 15},
+		{"the fold's upright", down, 11, 0, 6},
 	},
 	// Drawn on the diagonal or the curve throughout: no edge runs along the
 	// grid, so the rule reaches none of them and each file says so, with what
-	// it has instead — the diagonal measure of 2 units for a band at 45
-	// degrees, and the 1.5 spent perpendicular for the chevrons,
-	// whose arms are steeper.
+	// it has instead — the set's one band of 1.4 spent perpendicular,
+	// whichever way the edge runs.
 	"check":           nil,
 	"chevron":         nil,
 	"chevron-pair":    nil,
@@ -245,41 +246,92 @@ func wholePixelIn(lo, hi float64) (int, bool) {
 }
 
 // TestTheBandLandingRuleIsTheArithmetic pins the rule the set is authored by
-// against the arithmetic it stands for: on this grid a band of 1.5 units
-// lands a whole device pixel at 16 and 24 dp wherever its leading edge is a
-// multiple of 1.5, and at 20 dp only from 1.5m with m ≡ 0 or 3 (mod 4).
+// against the arithmetic it stands for. A band of w device pixels standing at
+// lo holds a whole one inside it when w is at least one and lo either falls on
+// a pixel boundary or stands no further than w-1 below the next — which for
+// the set's measured 1.4 units is 0.4 of a unit at 24 dp, 0.167 px at 20 and
+// nothing at all at 16, where the band is 0.93 px.
 func TestTheBandLandingRuleIsTheArithmetic(t *testing.T) {
-	for m := 0; m*3 <= 2*(gridUnits-bandUnits); m++ {
-		lead := bandUnits * float64(m)
+	for i := 0; i <= 10*(gridUnits-bandUnits); i++ {
+		lead := float64(i) / 10
 		for _, px := range markPx {
 			scale := float64(px) / gridUnits
-			_, whole := wholePixelIn(lead*scale, (lead+bandUnits)*scale)
-			want := px != 20 || m%4 == 0 || m%4 == 3
-			if whole != want {
-				t.Errorf("a band at %.1f (m=%d) at %d px: whole pixel inside = %v, want %v", lead, m, px, whole, want)
+			lo := lead * scale
+			_, whole := wholePixelIn(lo, lo+bandUnits*scale)
+			if want := landsByRule(lo, bandUnits*scale); whole != want {
+				t.Errorf("a band at %.1f at %d px: whole pixel inside = %v, want %v", lead, px, whole, want)
 			}
+		}
+	}
+	// The three claims the files are written against, stated size by size:
+	// every whole unit lands at 24 dp, a whole unit lands at 20 dp when it is
+	// 0 or 1 past a multiple of six — five sixths of it falling on a pixel
+	// boundary or a sixth under one — and nothing lands at 16.
+	for lead := 0.0; lead <= gridUnits-bandUnits; lead++ {
+		if !landsByRule(lead, bandUnits) {
+			t.Errorf("a band at the whole unit %.0f lands nothing at 24 dp", lead)
+		}
+		lo := lead * 20 / gridUnits
+		got := landsByRule(lo, bandUnits*20/gridUnits)
+		if want := math.Mod(lead, 6) <= 1; got != want {
+			t.Errorf("a band at the whole unit %.0f at 20 dp: lands = %v, want %v", lead, got, want)
+		}
+	}
+	for i := 0; i <= 10*(gridUnits-bandUnits); i++ {
+		lo := float64(i) / 10 * 16 / gridUnits
+		if landsByRule(lo, bandUnits*16/gridUnits) {
+			t.Errorf("a band at %.1f lands a whole device pixel at 16 dp, where 1.4 units is %.2f px", float64(i)/10, bandUnits*16/gridUnits)
 		}
 	}
 }
 
-// TestTheKeylineLandsAtOneSizeAndTheSecondBandAtNone states the two prices the
-// measured grid carries, so that a later change to either number has to move
-// this claim with it.
+// landsByRule is the closed form of the landing rule: a band of w pixels at lo
+// holds a whole device pixel when w covers one and lo leaves room for it.
+func landsByRule(lo, w float64) bool {
+	const slack = 1e-9
+	if w < 1-slack {
+		return false
+	}
+	f := lo - math.Floor(lo)
+	if f < slack || 1-f < slack {
+		return true
+	}
+	return 1-f <= w-1+slack
+}
+
+// bestPixelIn is the largest share of a device pixel the band from lo to hi
+// covers: what it reaches where it lands none.
+func bestPixelIn(lo, hi float64) float64 {
+	var best float64
+	for i := int(math.Floor(lo)); i < int(math.Ceil(hi)); i++ {
+		best = max(best, min(hi, float64(i+1))-max(lo, float64(i)))
+	}
+	return best
+}
+
+// TestTheKeylineAndTheSecondBandLandNothing states the two prices the measured
+// grid carries, so that a later change to either number has to move this claim
+// with it.
 //
 // The square keyline is 19 units centred in a 24-unit box, which puts a square
-// form's own edges at 2.5 and 20 — off the 1.5 sub-grid, because 19 is odd
-// against 24 — so each lands a whole device pixel at 24 dp alone. The
-// second band is 0.93 units, under one device pixel at every size the
-// library draws, so it lands one nowhere.
-func TestTheKeylineLandsAtOneSizeAndTheSecondBandAtNone(t *testing.T) {
+// form's own edges at 2.5 and 20.1 — neither on a whole unit, because 19 is
+// odd against 24 — so a band of 1.4 from either of them holds a whole device
+// pixel at no size at all and reaches 0.900 of its best pixel at 24 dp, 0.917
+// at 20 and 0.600 at 16. The second band is 0.93 units, under one device pixel
+// at every size the library draws, so it lands one nowhere either.
+func TestTheKeylineAndTheSecondBandLandNothing(t *testing.T) {
 	const keyline = 19.0
 	lead := (gridUnits - keyline) / 2
+	reach := map[int]float64{24: 0.900, 20: 0.917, 16: 0.600}
 	for _, edge := range []float64{lead, gridUnits - lead - bandUnits} {
 		for _, px := range markPx {
 			scale := float64(px) / gridUnits
-			_, whole := wholePixelIn(edge*scale, (edge+bandUnits)*scale)
-			if want := px == 24; whole != want {
-				t.Errorf("the keyline's band at %.1f at %d px: whole pixel inside = %v, want %v", edge, px, whole, want)
+			lo := edge * scale
+			if _, whole := wholePixelIn(lo, lo+bandUnits*scale); whole {
+				t.Errorf("the keyline's band at %.1f at %d px holds a whole device pixel, and the keyline's odd 19 units cannot", edge, px)
+			}
+			if got := bestPixelIn(lo, lo+bandUnits*scale); math.Abs(got-reach[px]) > bandTolerance {
+				t.Errorf("the keyline's band at %.1f at %d px reaches %.3f of its best pixel, want the stated %.3f", edge, px, got, reach[px])
 			}
 		}
 	}
