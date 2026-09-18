@@ -61,6 +61,13 @@ type State struct {
 	Hovered bool
 	Pressed bool
 	Focused bool
+
+	// Checked is the persistent state of a control that records a yes — a
+	// toolbar toggle that says whether the thing it governs stands. It is
+	// not an interaction: it outlives the pointer, and the control draws it
+	// as the platform draws the chosen segment of a segmented control. See
+	// [CheckedPatch].
+	Checked bool
 }
 
 // state is the token vocabulary's name for the interaction the control is in.
@@ -345,6 +352,9 @@ func Capsule(gtx layout.Context, box image.Rectangle, radius int, p tokens.Platf
 	// rectangles could not.
 	outer := clip.RRect{Rect: box, SE: radius, SW: radius, NE: radius, NW: radius}
 	paint.FillShape(gtx.Ops, fill, outer.Op(gtx.Ops))
+	if s.Checked {
+		CheckedPatch(gtx, box, p, fill)
+	}
 	if band > 0 {
 		edgePath := outer.Path(gtx.Ops)
 		edgeArea := outer.Push(gtx.Ops)
@@ -352,6 +362,49 @@ func Capsule(gtx layout.Context, box image.Rectangle, radius int, p tokens.Platf
 		edgeArea.Pop()
 	}
 	return outer
+}
+
+// CheckedPatch paints what a bordered toolbar control lays over its own fill
+// while it records a yes: the patch the platform fills the chosen segment of
+// a segmented control with, inset inside the control's box and cornered at
+// half its own height.
+//
+// MEASURED, finder-window-untinted-dark.png, the four-segment view control at
+// x 796-943, y 46-81 with its list segment chosen: the patch spans x 836-867,
+// y 51-76 — 32 by 26 in a segment 37 wide and a control 36 tall, so five rows
+// clear above and below and two and a half columns clear at either end — and
+// reads #494949 against the control's own #262626.
+// finder-window-untinted-light.png draws the same 32 by 26 (x 814-845,
+// y 39-64) against its #f7f7f7. The coverage between patch and fill is
+// tokens.PlatformColors.ToolbarCheckedOverlay; the insets are here, being
+// lengths.
+//
+// The corner fits the patch's own half-height: the per-row coverage of its top
+// runs 8, 6, 5, 4, 3, 2, 1 columns of inset against a capsule's 9.4, 7.7, 6.5,
+// 5.5, 4.7, 4.0, 3.3 at r = 13 — the spread the platform's continuous corner
+// puts on a circular fit everywhere in the reference, and the same shape the
+// control around it is drawn with.
+//
+// beneath is the fill the patch is laid over, so the coverage lands on
+// whatever the control carries in its interaction state: a checked control
+// still tints under the pointer.
+func CheckedPatch(gtx layout.Context, box image.Rectangle, p tokens.PlatformColors, beneath color.NRGBA) {
+	insetY, insetX := gtx.Dp(control.ToolbarCheckedInsetYDp), gtx.Dp(control.ToolbarCheckedInsetXDp)
+	patch := image.Rect(box.Min.X+insetX, box.Min.Y+insetY, box.Max.X-insetX, box.Max.Y-insetY)
+	if patch.Dx() <= 0 || patch.Dy() <= 0 {
+		return
+	}
+	radius := patch.Dy() / 2
+	paint.FillShape(gtx.Ops, vgcolor.Flatten(p.ToolbarCheckedOverlay, beneath), clip.RRect{
+		Rect: patch, SE: radius, SW: radius, NE: radius, NW: radius,
+	}.Op(gtx.Ops))
+}
+
+// Shadow is the drop shadow a bordered toolbar control casts on its band
+// under p's appearance: the peak coverage with the reach and the offset
+// measured beside it. [Cast] spreads it.
+func Shadow(p tokens.PlatformColors) control.ToolbarShadow {
+	return control.ToolbarShadowOf(p)
 }
 
 // Cast lays w out and paints under it the drop shadow the bordered toolbar
@@ -366,11 +419,12 @@ func Capsule(gtx layout.Context, box image.Rectangle, radius int, p tokens.Platf
 // replaying it puts one drawing on both paths.
 //
 // The radius is half the reported height: every bordered control in a stored
-// toolbar band is a capsule.
+// toolbar band is a capsule. The reach and the offset are the appearance's
+// own, which is why the whole reading is passed rather than its peak alone.
 //
-// shadow is the platform's ToolbarControlShadow, or a copy of it whose
-// coverage the caller has faded with the control it belongs to.
-func Cast(gtx layout.Context, shadow color.NRGBA, w layout.Widget) layout.Dimensions {
+// shadow is [Shadow]'s reading, or a copy of it whose coverage the caller has
+// faded with the control it belongs to.
+func Cast(gtx layout.Context, shadow control.ToolbarShadow, w layout.Widget) layout.Dimensions {
 	macro := op.Record(gtx.Ops)
 	dims := w(gtx)
 	call := macro.Stop()

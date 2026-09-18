@@ -63,6 +63,11 @@ const (
 
 	// Clear is the control that empties a field of what was typed into it.
 	Clear Name = "clear"
+
+	// Plus is the control that adds one more of what the window holds — a
+	// new note, a new chat. One mark serves every such control: what is
+	// added is the control's label to say, not the mark's.
+	Plus Name = "plus"
 )
 
 // The search mark's drawing, as fractions of the square it is drawn in. A

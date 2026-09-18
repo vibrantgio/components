@@ -430,7 +430,7 @@ const hairlineDp unit.Dp = 1
 //
 // The box is two nested fills rather than a stroke, which keeps the corner's
 // antialiasing out of the golden images.
-func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size image.Point, fill, edge, shadow color.NRGBA) {
+func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size image.Point, fill, edge color.NRGBA, shadow control.ToolbarShadow) {
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 	if s.Variant == Chrome {
 		rad = size.Y / 2
@@ -776,21 +776,21 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // Focus replaces the edge with focus.Ring — the platform's keyboard focus
 // indicator, the one ring every control in this library wears — drawn at
 // focus.Width instead of the hairline's single pixel.
-func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, edge, placeholder, shadow color.NRGBA) {
+func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, edge, placeholder color.NRGBA, shadow control.ToolbarShadow) {
 	fill = fieldFill(p, s)
 	foreground = p.Text
 	edge = control.Border(p)
 	placeholder = control.Placeholder(p, fill)
 	if s.onToolbar() {
 		edge = control.ToolbarSearchRim(p)
-		shadow = p.ToolbarControlShadow
+		shadow = control.ToolbarShadowOf(p)
 	}
 	switch {
 	case s.Disabled:
 		foreground = vgcolor.Flatten(p.DisabledControlText, fill)
 		placeholder = foreground
 		edge = control.Faded(edge, surface.Or(s.Surface, p.WindowBackground))
-		shadow = vgcolor.Fade(shadow, tokens.DisabledCoverage)
+		shadow = shadow.Faded()
 	case s.Focused:
 		edge = focus.Ring(p, surface.Or(s.Surface, p.WindowBackground))
 	}

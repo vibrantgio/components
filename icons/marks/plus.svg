@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Plus: the control that adds one more of what the window holds — a new
+       note, a new chat, a new recording. One picture in every state; what is
+       about to be added is the control's label to say.
+
+       Grid: an axis-aligned form, so it fills the set's 18-unit square
+       keyline — each arm runs from unit 3 to unit 21 — and takes the set's
+       axis-aligned band of 1.5 units, centred on unit 12 both ways. MEASURED
+       at 1x, the compose symbol of a toolbar control in notes-toolbar.png
+       (the control at x 8-44) and mail-window.png (x 404-441): the symbol's
+       covered box is 17 and 16 px in a control 36 px tall, and its band
+       measures 1.40 px on both — a run across the square's leading edge reads
+       233 then 115 on a fill of 35 and of 36, which over a foreground of 233
+       is 1.00 + 0.40 of a pixel, and its trailing edge 208 then 140, which is
+       0.87 + 0.53. The band is drawn at the set's own 1.5, a sixth heavier,
+       which is the miss the whole set carries and the reference records: a
+       lighter weight falls below one device pixel at the small end of the
+       range, where an antialiased line is drawn grey rather than in the
+       control's colour.
+
+       Each band runs from unit 10.5 to unit 12 rather than sitting centred on
+       unit 12, and that is what puts a whole device pixel inside it at every
+       size this set is drawn at: 10.5 and 12 fall on pixel boundaries at 16,
+       20 and 24 px alike, so the crossing covers one pixel whole and its
+       neighbours in part — the capture's own profile, one pixel at the mark's
+       colour and a fraction beside it. A band centred on unit 12 splits
+       evenly across two pixels and reaches the colour on neither, which reads
+       grey beside a label drawn in the same colour. The drawn extent stays
+       centred: what moves is where the two bars sit inside it, by three
+       quarters of a unit.
+
+       The ends are cut square: a cross is read by its crossing, and a cap on
+       four arms only thickens the figure — the same rule the clear mark's two
+       bands are drawn by. Two contours, one per arm, abutting rather than
+       winding against each other. -->
+  <path fill="#000000" d="M3 10.5 L21 10.5 L21 12 L3 12 Z"/>
+  <path fill="#000000" d="M10.5 3 L12 3 L12 21 L10.5 21 Z"/>
+</svg>

@@ -97,6 +97,7 @@ func drawChromeIcon(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 		Hovered: s.Hovered && !s.Disabled,
 		Pressed: s.Pressed && !s.Disabled,
 		Focused: s.Focused && !s.Disabled,
+		Checked: s.Checked,
 	})
 
 	// The symbol centred in the box, clipped to the control's own shape so a
@@ -137,14 +138,16 @@ func chromeColors(p tokens.PlatformColors, s RenderState) (fill, fg color.NRGBA)
 	return fill, toolbarface.Mark(p, fill)
 }
 
-// chromeShadow is the peak of the shadow the control casts on its band: the
-// platform's own, faded with the control while it is switched off — a control
-// that is not offering itself does not stand off its band as one that is.
-func chromeShadow(p tokens.PlatformColors, s RenderState) color.NRGBA {
+// chromeShadow is the shadow the control casts on its band — the platform's
+// own coverage with the reach and the offset its appearance measures — faded
+// with the control while it is switched off: a control that is not offering
+// itself does not stand off its band as one that is.
+func chromeShadow(p tokens.PlatformColors, s RenderState) control.ToolbarShadow {
+	sh := toolbarface.Shadow(p)
 	if s.Disabled {
-		return vgcolor.Fade(p.ToolbarControlShadow, tokens.DisabledCoverage)
+		return sh.Faded()
 	}
-	return p.ToolbarControlShadow
+	return sh
 }
 
 // chromeState is the token vocabulary's name for the interaction the control

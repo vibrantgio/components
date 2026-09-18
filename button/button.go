@@ -179,6 +179,14 @@ type RenderState struct {
 	Focused  bool
 	Pressed  bool
 	Disabled bool
+
+	// Checked is the persistent state of a control that records a yes — the
+	// toolbar toggle that says whether the pane it governs stands. It is
+	// read on the chrome symbol path alone, where the platform draws it as
+	// the chosen segment of a segmented control: a patch inside the
+	// control's own box, laid over whatever fill the control carries. The
+	// form variants carry no such drawing and ignore it.
+	Checked bool
 }
 
 // Props configures a Button instance.

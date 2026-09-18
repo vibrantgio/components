@@ -117,3 +117,21 @@ func chevron(p *clip.Path, x, y, w, h, stroke float32, up bool) {
 	p.LineTo(f32.Pt(x+2*d, base))
 	p.Close()
 }
+
+// The patch a bordered toolbar control fills while it records a yes, inset
+// inside the control's own box.
+//
+// MEASURED, finder-window-untinted-dark.png and -light.png, the chosen
+// segment of Finder's four-segment view control: the patch is 32 by 26 in a
+// segment 37 wide and a control 36 tall, so it stands five rows clear of the
+// control's own edge above and below and two and a half columns clear at
+// either end. Both appearances draw the same 32 by 26. The colour it is
+// filled in is tokens.PlatformColors.ToolbarCheckedOverlay over the fill the
+// control carries.
+const (
+	// ToolbarCheckedInsetYDp is what the patch leaves clear above and below.
+	ToolbarCheckedInsetYDp unit.Dp = 5
+
+	// ToolbarCheckedInsetXDp is what it leaves clear at either end.
+	ToolbarCheckedInsetXDp unit.Dp = 2.5
+)

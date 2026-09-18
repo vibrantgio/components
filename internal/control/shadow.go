@@ -11,6 +11,7 @@ import (
 	"gioui.org/unit"
 
 	vgcolor "github.com/vibrantgio/theme/color"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // The drop shadow a BORDERED TOOLBAR CONTROL casts on the band it stands in.
@@ -30,32 +31,88 @@ import (
 // heavier and longer below it than above, which is one rectangle sunk below
 // the control and not a second shadow.
 //
-// [ToolbarShadowReachDp] and [ToolbarShadowOffsetDp] are that rectangle fitted
-// to the reading, with the peak in tokens.PlatformColors.ToolbarControlShadow.
+// [ToolbarShadowOf] carries that rectangle fitted to the reading, per
+// appearance, with the peak in tokens.PlatformColors.ToolbarControlShadow.
 //
 // The ramp is the one effects/depth draws for a floating surface — a linear
 // falloff from the peak at the shape's edge to nothing at the reach, in eight
 // gradient tiles around one interior fill — and it is drawn here rather than
 // called there because the module graph runs the other way: effects imports
 // components.
-const (
-	// ToolbarShadowReachDp is how far the shadow carries past the rectangle
-	// that casts it.
-	ToolbarShadowReachDp unit.Dp = 23
 
-	// ToolbarShadowOffsetDp is how far below the control that rectangle
-	// sits, which is what makes the shadow heavier under the control than
-	// over it.
-	ToolbarShadowOffsetDp unit.Dp = 9
+// ToolbarShadow is one reading of that shadow: the peak coverage at the sunk
+// rectangle's edge, how far the ramp carries past that rectangle, and how far
+// below the control the rectangle sits. The three are measured together off
+// one capture and are spent together, which is why they travel as one value
+// and not as a colour beside two constants.
+//
+// The zero value draws nothing: a control that casts no shadow answers it.
+type ToolbarShadow struct {
+	Peak   color.NRGBA
+	Reach  unit.Dp
+	Offset unit.Dp
+}
+
+// The two readings, each fitted to its own captures.
+//
+// MEASURED, light, finder-window-light.png: black at 9/255 with 23 px of
+// reach and the rectangle sunk 9 px lands every one of the 77 sampled pixels
+// within two 255ths and most within one (CG5.3f).
+//
+// MEASURED, dark, finder-window-untinted-dark.png and notes-toolbar.png,
+// re-read 2026-09-18 by CG5.3i: the band under every bordered control is one
+// 255th deep over seven rows and untouched above and beside it. Fitted over
+// 10,575 band pixels around the Finder search field (x 1155-1379, y 46-81)
+// and the Notes compose control (x 8-44, y 8-43) at the recorded 6/255, the
+// best whole-pixel pair is 2 px of reach with the rectangle sunk 6 px: 312 of
+// 31,725 channel samples off by one 255th and none by more except at the
+// control's own antialiased corner, where the band tolerance admits three rim
+// pixels. The light pair fitted to the same samples is eleven times worse,
+// which is why the geometry is per appearance rather than one shape drawn
+// twice.
+const (
+	toolbarShadowReachLightDp  unit.Dp = 23
+	toolbarShadowOffsetLightDp unit.Dp = 9
+	toolbarShadowReachDarkDp   unit.Dp = 2
+	toolbarShadowOffsetDarkDp  unit.Dp = 6
 )
+
+// ToolbarShadowOf is the shadow a bordered toolbar control casts under p's
+// appearance: the peak p carries, and the reach and offset measured with it.
+//
+// Which reading answers is the platform's own behaviour and not an appearance
+// this code tests for. Where the platform gives the control an edge — the
+// hairline [ToolbarRim] answers a colour for — the control is told from its
+// band by that edge and its fill, and the shadow measures a hint sunk under
+// it. Where it gives none, the control's fill IS the band's own white and the
+// shadow is the whole of the step, so it carries far.
+func ToolbarShadowOf(p tokens.PlatformColors) ToolbarShadow {
+	sh := ToolbarShadow{
+		Peak:   p.ToolbarControlShadow,
+		Reach:  toolbarShadowReachLightDp,
+		Offset: toolbarShadowOffsetLightDp,
+	}
+	if ToolbarRim(p, p.ToolbarControlFill).A != 0 {
+		sh.Reach, sh.Offset = toolbarShadowReachDarkDp, toolbarShadowOffsetDarkDp
+	}
+	return sh
+}
+
+// Faded is the shadow a switched-off control casts: the same geometry at the
+// platform's measured disabled coverage. A control that is not offering
+// itself does not stand off its band as one that is.
+func (s ToolbarShadow) Faded() ToolbarShadow {
+	s.Peak = vgcolor.Fade(s.Peak, tokens.DisabledCoverage)
+	return s
+}
 
 // bezierCircle is the cubic-Bézier control-point ratio that best approximates
 // a quarter circle: 4/3·(√2−1).
 const bezierCircle = 0.55228475
 
-// DrawToolbarShadow paints the shadow the control occupying bounds casts,
-// in shadow at its own coverage at the sunk rectangle's edge and falling
-// linearly to nothing [ToolbarShadowReachDp] away.
+// DrawToolbarShadow paints the shadow the control occupying bounds casts: sh
+// at its own coverage at the sunk rectangle's edge, falling linearly to
+// nothing sh.Reach away.
 //
 // radius rounds the shadow's corners, in pixels: a caller passes the radius it
 // rounds its own fill to, so the interior cannot show through the rounding as
@@ -64,13 +121,13 @@ const bezierCircle = 0.55228475
 //
 // A zero coverage, or a reach that rounds to nothing at the current metric,
 // paints nothing.
-func DrawToolbarShadow(gtx layout.Context, bounds image.Rectangle, radius int, shadow color.NRGBA) {
-	extent := gtx.Dp(ToolbarShadowReachDp)
-	if extent <= 0 || shadow.A == 0 {
+func DrawToolbarShadow(gtx layout.Context, bounds image.Rectangle, radius int, sh ToolbarShadow) {
+	extent := gtx.Dp(sh.Reach)
+	if extent <= 0 || sh.Peak.A == 0 {
 		return
 	}
 
-	shadowBounds := bounds.Add(image.Pt(0, gtx.Dp(ToolbarShadowOffsetDp)))
+	shadowBounds := bounds.Add(image.Pt(0, gtx.Dp(sh.Offset)))
 	if radius < 0 {
 		radius = 0
 	}
@@ -82,9 +139,9 @@ func DrawToolbarShadow(gtx layout.Context, bounds image.Rectangle, radius int, s
 	// blends the encoded byte, so the ramp goes over at the coverage fitted
 	// to Gio's blend — the same correction effects/depth spends, and at a
 	// coverage this low it lands the platform's byte to within one 255th.
-	inner := shadow
-	inner.A = vgcolor.LinearCoverage(shadow.A)
-	outer := color.NRGBA{R: shadow.R, G: shadow.G, B: shadow.B}
+	inner := sh.Peak
+	inner.A = vgcolor.LinearCoverage(sh.Peak.A)
+	outer := color.NRGBA{R: sh.Peak.R, G: sh.Peak.G, B: sh.Peak.B}
 
 	if radius == 0 {
 		paint.FillShape(gtx.Ops, inner, clip.Rect(shadowBounds).Op())

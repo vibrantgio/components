@@ -58,6 +58,13 @@ type ToolbarState struct {
 	Focused bool
 }
 
+// face is this state as the shared toolbar geometry reads it. A pop-up holds
+// one of several values and records no yes of its own, so the checked state a
+// toolbar toggle draws is left unset here.
+func (s ToolbarState) face() toolbarface.State {
+	return toolbarface.State{Hovered: s.Hovered, Pressed: s.Pressed, Focused: s.Focused}
+}
+
 // ToolbarProps configures a [Toolbar] instance.
 type ToolbarProps struct {
 	// Value is the text the control carries: the choice the picker currently
@@ -203,7 +210,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 					// The shadow is cast around the clickable rather than
 					// inside it: it falls outside the control's own box, and
 					// a Clickable clips what it wraps to that box.
-					return toolbarface.Cast(gtx, tok.platform.ToolbarControlShadow, func(gtx layout.Context) layout.Dimensions {
+					return toolbarface.Cast(gtx, toolbarface.Shadow(tok.platform), func(gtx layout.Context) layout.Dimensions {
 						return click.Layout(gtx,
 							func(gtx layout.Context) layout.Dimensions {
 								semantic.ClassOp(semantic.Button).Add(gtx.Ops)
@@ -259,9 +266,8 @@ func RenderToolbar(
 	s ToolbarState,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return toolbarface.Cast(gtx, p.ToolbarControlShadow, func(gtx layout.Context) layout.Dimensions {
-			return toolbarface.Draw(gtx, shaper, value, p, sp, labelStyle, d,
-				toolbarface.State(s))
+		return toolbarface.Cast(gtx, toolbarface.Shadow(p), func(gtx layout.Context) layout.Dimensions {
+			return toolbarface.Draw(gtx, shaper, value, p, sp, labelStyle, d, s.face())
 		})
 	}
 }

@@ -37,6 +37,7 @@ var chromeStates = []struct {
 	{"pressed", button.RenderState{Pressed: true}},
 	{"focused", button.RenderState{Focused: true}},
 	{"disabled", button.RenderState{Disabled: true}},
+	{"checked", button.RenderState{Checked: true}},
 }
 
 // TestChromeButtonGolden records the platform's bordered toolbar control with
@@ -126,6 +127,47 @@ func TestChromeButtonCastsTheMeasuredShadow(t *testing.T) {
 			}
 			if sc.name == "light" && over == band {
 				t.Errorf("the row over the control reads the bare band %v; the light shadow reaches over the control too", over)
+			}
+		})
+	}
+}
+
+// TestChromeButtonDrawsTheMeasuredCheckedPatch reads the on-state off the
+// drawn control: a chrome control that records a yes fills a patch inside its
+// own box in the platform's checked coverage over its own fill, five rows
+// clear of the box above and below.
+//
+// MEASURED, finder-window-untinted-{dark,light}.png, the chosen segment of
+// Finder's four-segment view control: 32 by 26 in a 37 px segment of a 36 px
+// control, its fill #494949 over #262626 dark and #dedede over #f7f7f7 light.
+func TestChromeButtonDrawsTheMeasuredCheckedPatch(t *testing.T) {
+	for _, sc := range []struct {
+		name   string
+		colors tokens.PlatformColors
+	}{{"light", tokens.PlatformLight}, {"dark", tokens.PlatformDark}} {
+		t.Run(sc.name, func(t *testing.T) {
+			p := sc.colors
+			s := button.RenderState{Checked: true, Surface: p.SidebarMaterial}
+			w := button.RenderChrome(nil, p, tokens.Comfortable, s)
+			img := golden.Capture(t, image.Pt(120, 90), onChrome(p, centred(w)))
+			at := func(x, y int) color.NRGBA {
+				r, g, b, a := img.At(x, y).RGBA()
+				return color.NRGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
+			}
+			// The control runs y 27–62 at x 40–77: the patch's own middle,
+			// and the row two inside the control's top edge, which the patch
+			// leaves to the fill.
+			patch := vgcolor.Flatten(p.ToolbarCheckedOverlay, p.ToolbarControlFill)
+			if got := at(59, 44); got != patch {
+				t.Errorf("the checked control's middle reads %v, want the platform's checked patch %v", got, patch)
+			}
+			if got := at(59, 29); got != p.ToolbarControlFill {
+				t.Errorf("two rows inside the control's top edge reads %v, want its own fill %v — the patch stands clear of the control's box", got, p.ToolbarControlFill)
+			}
+			rest := button.RenderChrome(nil, p, tokens.Comfortable, button.RenderState{Surface: p.SidebarMaterial})
+			off := golden.Capture(t, image.Pt(120, 90), onChrome(p, centred(rest)))
+			if golden.PixelDiff(img, off) == 0 {
+				t.Error("the checked control draws exactly what the resting one draws; a control that records a state has to show it")
 			}
 		})
 	}
