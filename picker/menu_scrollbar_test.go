@@ -80,7 +80,7 @@ func suppressedCappedMenu(shaper *text.Shaper, tok resolvedTokens, s MenuState) 
 			idx[i] = i
 		}
 		return list.LayoutSelectable(viewGtx, list.NewState(), idx, func(gtx layout.Context, i int, _ bool) layout.Dimensions {
-			return drawOptionRow(gtx, shaper, tok, i == s.Selected, i+1 == s.Hovered, s.Options[i])
+			return drawOptionRow(gtx, shaper, tok, i == s.Selected, i == highlightedRow(s), s.Options[i])
 		})
 	}
 }
@@ -102,7 +102,7 @@ func stackedRows(shaper *text.Shaper, tok resolvedTokens, s MenuState) layout.Wi
 				Min: image.Pt(0, 0),
 				Max: image.Pt(fieldW, gtx.Constraints.Max.Y),
 			}
-			dims := drawOptionRow(rowGtx, shaper, tok, i == s.Selected, i+1 == s.Hovered, s.Options[i])
+			dims := drawOptionRow(rowGtx, shaper, tok, i == s.Selected, i == highlightedRow(s), s.Options[i])
 			off.Pop()
 			totalH += dims.Size.Y
 		}
@@ -133,7 +133,7 @@ func TestCappedOverflowingMenuDrawsTheBarOnlyInTheGutter(t *testing.T) {
 		t.Fatal("a capped, overflowing menu drew identically to the same menu with the bar suppressed; the bar never rendered")
 	}
 
-	barPx := unit.Metric{PxPerDp: 1, PxPerSp: 1}.Dp(scrollbar.FromTokens(tok.platform, tok.platform.ControlBackground).Width())
+	barPx := unit.Metric{PxPerDp: 1, PxPerSp: 1}.Dp(scrollbar.FromTokens(tok.platform, tok.platform.WindowBackground).Width())
 	gutter := size.X - barPx
 	bounds := withBar.Bounds()
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {

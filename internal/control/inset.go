@@ -41,8 +41,8 @@ const TextTrailDp unit.Dp = 6
 // PopupLeadDp is the leading inset the platform's pop-up button spends on its
 // own label — a different control from the text field above, and a deeper
 // inset. The picker's form trigger is drawn as that pop-up, so it spends this
-// rather than [TextLeadDp]; the rows of the menu it drops are not pop-ups and
-// keep the field's.
+// rather than [TextLeadDp]; the rows of the menu it opens are not pop-ups and
+// take columns of their own, which lead with the one the check stands in.
 //
 // MEASURED, save-dialog-{light,dark}.png, the "File Format:" pop-up at 1x: its
 // fill runs x 264–451 with no edge column — a run down x=350 gives #ececec

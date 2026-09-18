@@ -35,7 +35,12 @@ func TestDropdownGolden(t *testing.T) {
 	if floor := int(tokens.Comfortable.ControlHeight); row < floor {
 		row = floor
 	}
-	openH := row + len(opts)*row
+	// An open dropdown's menu stands OVER its trigger with the held row on
+	// the trigger's label, so the plane reaches above the trigger's own top
+	// edge: the open frames carry a row of room above the control and the
+	// control is laid out into it.
+	openTop := row
+	openH := openTop + row + len(opts)*row
 
 	// Zero corner radius avoids anti-aliasing variance between GPU context
 	// initialisations. Border/fill presence and colour accuracy are still
@@ -46,36 +51,42 @@ func TestDropdownGolden(t *testing.T) {
 		name     string
 		platform tokens.PlatformColors
 		size     image.Point
+		at       int // where in the frame the control is laid out
 		state    input.DropdownRenderState
 	}{
 		{
 			"dropdown-light-closed",
 			tokens.PlatformLight,
 			image.Pt(200, 44),
+			0,
 			input.DropdownRenderState{Options: opts},
 		},
 		{
 			"dropdown-dark-closed",
 			tokens.PlatformDark,
 			image.Pt(200, 44),
+			0,
 			input.DropdownRenderState{Options: opts},
 		},
 		{
 			"dropdown-light-focused",
 			tokens.PlatformLight,
 			image.Pt(200, 44),
+			0,
 			input.DropdownRenderState{Focused: true, Options: opts},
 		},
 		{
 			"dropdown-light-open",
 			tokens.PlatformLight,
 			image.Pt(200, openH),
+			openTop,
 			input.DropdownRenderState{Open: true, Options: opts, Selected: 0},
 		},
 		{
 			"dropdown-dark-open",
 			tokens.PlatformDark,
 			image.Pt(200, openH),
+			openTop,
 			input.DropdownRenderState{Open: true, Options: opts, Selected: 0},
 		},
 	}
@@ -90,7 +101,13 @@ func TestDropdownGolden(t *testing.T) {
 				tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 				tc.state,
 			)
-			golden.Render(t, tc.name, tc.size, w)
+			at := tc.at
+			golden.Render(t, tc.name, tc.size, func(gtx layout.Context) layout.Dimensions {
+				off := op.Offset(image.Pt(0, at)).Push(gtx.Ops)
+				defer off.Pop()
+				w(gtx)
+				return layout.Dimensions{Size: gtx.Constraints.Max}
+			})
 		})
 	}
 }

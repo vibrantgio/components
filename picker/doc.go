@@ -12,8 +12,10 @@
 //	           header row or any other chrome region: a capsule carrying its
 //	           own fill, with the same stacked chevron pair
 //	[Menu]     the surface both of them stand under: the platform's menu
-//	           rows, with its selection fill on the chosen row and on the row
-//	           under the pointer
+//	           rows on the floating level's own fill, the row under the
+//	           pointer — or, with the pointer over none, the row the picker
+//	           is holding — wearing the platform's inset selection pill, and
+//	           a check beside the held row
 //
 // Each has a live path and a pure one, the contract every component in this
 // library keeps: an rx.Observable[theme.Theme] and a props struct in, an
@@ -31,12 +33,13 @@
 //
 // # Where the menu is placed
 //
-// [Field] floats its menu against its own trigger, which is what a form's
-// select does and what its [FieldState.Open] draws — beneath by default, and
-// above it when the caller says [DropUp] because the room below is somebody
-// else's. Either way the box the field reports is the trigger's alone, so an
+// [Field] floats its menu OVER its own trigger, with the row the picker is
+// holding on the trigger's own label, which is what this platform's pop-up
+// button does and what its [FieldState.Open] draws: the value the reader was
+// looking at does not move when the menu opens over it, and the catalogue is
+// laid out around it. The box the field reports is the trigger's alone, so an
 // open field is placed exactly where a closed one is, and the trigger draws
-// the same mark either way — see [Drop]. [Toolbar] does not:
+// the same mark wherever the menu lands — see [Drop]. [Toolbar] does not:
 // a chrome-variant menu is a floating surface placed against the window, and
 // placing it is patterns/popover's job — a component may not reach up into a
 // pattern. So a toolbar trigger's caller hands the trigger to the popover as
@@ -57,26 +60,28 @@
 // the pixels above the trigger's top edge and below its bottom edge, inside
 // the container that laid the field out — and it is the container's to answer,
 // because Gio hands a component its constraints and nothing about where its
-// ancestors put it. Given the room, [Drop] becomes a preference: a menu that
-// cannot be seen whole on the preferred side while the other side holds more
-// of it flips to that other side, and either way the plane is capped to what
-// the chosen side leaves and the rows scroll inside the cap.
-// [FieldProps.MaxHeight] is a preference of the same kind — the room may
-// tighten it and can never loosen it. A caller that reports no room is
-// bounded by the window alone, which is what a floating surface is bounded by
-// when nobody says otherwise, and a catalogue opened in one wants a MaxHeight.
+// ancestors put it. Given the room, a menu that cannot stand whole where it
+// wants to is pushed the least distance that brings it inside; one taller than
+// the whole room is capped to the room and scrolls inside that cap, and [Drop]
+// says which end of the room the cap takes. [FieldProps.MaxHeight] tightens
+// the cap and can never loosen it. A caller that reports no room is bounded by
+// the window alone, which is what a floating surface is bounded by when nobody
+// says otherwise, and a catalogue opened in one wants a MaxHeight.
 //
-// Either way the surface is the same one: a floating, unscrimmed, shadowless
-// transient plane whose rows take the platform's control background under its
-// label, and whose chosen row — and the row under the pointer, which this
-// platform marks the same way — takes its emphasized selection fill.
-// [Menu]'s optionRowColors names them.
+// Either way the surface is the same one: a floating, unscrimmed transient
+// plane whose rows take the platform's window background — the fill of every
+// floating surface on this platform — under its label, whose highlighted row
+// wears an inset rounded pill in the platform's selection, and whose held row
+// carries a check in the pill's leading column. [Menu]'s optionRowColors names
+// the fills; none of them is read off an open menu, because no stored capture
+// holds one.
 //
-// Who draws the plane's EDGE depends on who placed the plane. [Field] draws it
-// around the menu it places itself, because there is nobody else to; a [Menu]
-// handed to patterns/popover is circled by that pattern's surface and draws
-// none of its own, which is the only arrangement in which the plane wears one
-// line.
+// Who draws the PLANE depends on who placed it. [Field] cuts the corner, casts
+// the shadow the floating level is told by and draws the edge around the menu
+// it places itself, because there is nobody else to; a [Menu] handed to
+// patterns/popover is circled by that pattern's surface and draws none of its
+// own, which is the only arrangement in which the plane wears one corner, one
+// shadow and one line.
 //
 // # The chrome variant's trigger
 //
@@ -116,10 +121,11 @@
 // several values and cannot say a direction, so the trigger carries no open
 // state and offers nowhere to hang one.
 //
-// What the pop-up still owes is its PLACEMENT. On the platform a pop-up's
-// menu stands OVER the trigger with the selected row aligned on it, and this
-// field drops its menu beneath or above instead. That is a placement nothing
-// here offers yet and no caller asks for.
+// The trigger's own DRAWING while its menu stands is the held one: the press
+// that opened the menu is not answered until it closes. No stored capture
+// holds a pop-up with its menu open, so what is drawn is the one held state
+// the reference measures — the push button's press overlay — and the capture
+// is on the reference's list.
 //
 // # Uncontrolled
 //

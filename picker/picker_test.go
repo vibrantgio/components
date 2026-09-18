@@ -15,7 +15,6 @@ import (
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/picker"
-	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -74,6 +73,26 @@ func menu(t *testing.T, s picker.MenuState) layout.Widget {
 
 var options = []string{"Alpha", "Beta", "Gamma"}
 
+// menuTop is where an open field puts its plane, measured from the trigger's
+// own top edge: the held row's box centred on the trigger's, with every row
+// above it laid out above. It is the arithmetic the field does, spelled once
+// here so a composition test can put a standalone menu where the field puts
+// one.
+func menuTop(d tokens.Density, selected int) int {
+	return (triggerHeight(d)-rowHeight(d))/2 - selected*rowHeight(d)
+}
+
+// planeInset is how far inside its own box a comparison reads the plane: the
+// corner the field cuts the plane to plus the line it draws round it, which is
+// where a rounded, antialiased outline stops being the rows' own pixels.
+const planeInset = 10
+
+// standsThere reports whether the plane itself covers a pixel of a capture
+// painted on [menuCover]. That surface carries no green at all and the shadow
+// the plane casts only darkens what it falls on, so any green in a pixel is
+// the plane's own fill and nothing else.
+func standsThere(img *image.RGBA, x, y int) bool { return px(img, x, y).G > 0 }
+
 // TestFieldTriggerShowsTheValue is the single-choice contract in pixels: the
 // closed trigger draws the option Selected names and nothing else about the
 // list, so a picker holding the second of three is indistinguishable from one
@@ -112,65 +131,92 @@ func TestFieldTriggerDrawsThePopUpsHeight(t *testing.T) {
 	}
 }
 
-// TestOpenFieldFloatsTheSharedMenuUnderItsTrigger is the one-surface contract:
-// the menu an open field drops is [Menu], not a second drawing of it. The
-// composite below draws the closed trigger, the standalone menu at the
-// trigger's own height, and the edge the field draws around that menu's plane
-// — and the open field has to be that image exactly.
+// TestOpenFieldStandsTheSharedMenuOverItsTrigger is this platform's pop-up
+// behaviour in pixels: the open menu does not drop below the trigger, it
+// stands OVER it with the row the picker is holding on the trigger's own
+// label, and the rows either side of it are laid out above and below.
 //
-// The edge is in the composite because it is NOT the menu's. A menu handed to
-// a pattern is circled by that pattern's own surface and would wear two lines,
-// so the plane's edge belongs to whoever put the plane there, which inline is
-// the field. What the shared-surface contract holds is that the rows are one
-// drawing; the edge around them is the field's frame and is asserted here as
-// the third term rather than folded into either.
-func TestOpenFieldFloatsTheSharedMenuUnderItsTrigger(t *testing.T) {
-	row := rowHeight(tokens.Comfortable)
-	size := image.Pt(200, row*(1+len(options)))
+// What stands there is the SHARED menu — the same surface [picker.Menu] emits
+// standing alone — so the interior of the field's plane is a standalone menu
+// placed at that offset, pixel for pixel. The comparison is read inside the
+// plane's own corner: the field cuts the plane to a corner and draws a line
+// round it, and neither is the rows' drawing.
+func TestOpenFieldStandsTheSharedMenuOverItsTrigger(t *testing.T) {
+	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
+	const sel = 1
+	at := row * 3
+	planeY := at + menuTop(tokens.Comfortable, sel)
+	planeH := row * len(options)
+	size := image.Pt(200, at+trig+row*len(options))
 
-	open := golden.Capture(t, size, field(t, picker.FieldState{
-		Open: true, Options: options, Selected: 1,
-	}))
-	composed := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
-		trigger := field(t, picker.FieldState{Options: options, Selected: 1})(gtx)
-		off := op.Offset(image.Pt(0, trigger.Size.Y)).Push(gtx.Ops)
-		rows := menu(t, picker.MenuState{Options: options, Selected: 1})(gtx)
-		planeEdge(gtx, rows.Size)
-		off.Pop()
-		return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, trigger.Size.Y+rows.Size.Y)}
-	})
-	if n := golden.PixelDiff(open, composed); n != 0 {
-		t.Errorf("an open field differs from its own trigger plus a standalone menu plus the plane's edge in %d pixels", n)
+	open := golden.Capture(t, size, laidOutAt(at, field(t, picker.FieldState{
+		Open: true, Options: options, Selected: sel,
+	})))
+	standalone := golden.Capture(t, size, laidOutAt(planeY, menu(t, picker.MenuState{
+		Options: options, Selected: sel,
+	})))
+
+	for y := planeY + planeInset; y < planeY+planeH-planeInset; y++ {
+		for x := planeInset; x < size.X-planeInset; x++ {
+			if a, b := px(open, x, y), px(standalone, x, y); a != b {
+				t.Fatalf("(%d,%d) inside the open field's plane is %v and the shared menu standing there is %v", x, y, a, b)
+			}
+		}
 	}
 }
 
-// planeEdge redraws the field's own edge around a menu box, so the composition
-// tests can name the three things an open field is made of instead of
-// comparing it to two of them. It is the line the field draws, spelled once
-// here: the platform's seam, one dp inside the box on all four sides.
-func planeEdge(gtx layout.Context, size image.Point) {
-	edge := vgcolor.Flatten(tokens.PlatformLight.Separator, tokens.PlatformLight.ControlBackground)
-	w := gtx.Dp(1)
-	for _, r := range []image.Rectangle{
-		{Max: image.Pt(size.X, w)},
-		{Min: image.Pt(0, size.Y-w), Max: size},
-		{Max: image.Pt(w, size.Y)},
-		{Min: image.Pt(size.X-w, 0), Max: size},
-	} {
-		paint.FillShape(gtx.Ops, edge, clip.Rect(r).Op())
+// TestOpenMenuStandsOnTheHeldRow reads the placement off the pixels: the plane
+// begins exactly [menuTop] above the trigger's top edge, so the held row
+// covers the trigger and the rows above it stand above.
+func TestOpenMenuStandsOnTheHeldRow(t *testing.T) {
+	row := rowHeight(tokens.Comfortable)
+	const sel = 1
+	at := row * 3
+	planeY := at + menuTop(tokens.Comfortable, sel)
+	size := image.Pt(200, at+row*(1+len(options)))
+
+	img := golden.Capture(t, size, onCover(laidOutAt(at, field(t, picker.FieldState{
+		Open: true, Options: options, Selected: sel,
+	}))))
+	if standsThere(img, 100, planeY-1) {
+		t.Errorf("y=%d, one pixel above where the plane should start, is the plane's own fill", planeY-1)
+	}
+	if !standsThere(img, 100, planeY+1) {
+		t.Errorf("y=%d, inside the plane's first row, is not the plane's own fill; the menu did not stand where the held row puts it", planeY+1)
+	}
+	if last := planeY + row*len(options); standsThere(img, 100, last) {
+		t.Errorf("y=%d, one pixel past the plane's last row, is the plane's own fill", last)
+	}
+}
+
+// laidOutAt lays w out y px down the frame and reports the frame, so a capture
+// can place a field where a container would.
+func laidOutAt(y int, w layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		off := op.Offset(image.Pt(0, y)).Push(gtx.Ops)
+		defer off.Pop()
+		w(gtx)
+		return layout.Dimensions{Size: gtx.Constraints.Max}
+	}
+}
+
+// onCover paints [menuCover] behind w, the surface [standsThere] reads against.
+func onCover(w layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, menuCover, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		return w(gtx)
 	}
 }
 
 // TestOpenFieldReportsTheTriggerAlone is the floating-surface contract in
 // measurements: the menu is deferred to the end of the frame and bounded by
 // the window, so it takes no room from the container the trigger stands in.
-// An open field reports what the closed one reports, either direction, and a
-// container places the two identically.
+// An open field reports what the closed one reports, whichever side its Drop
+// names, and a container places the two identically.
 //
 // The second half is why that is not simply a field that stopped drawing: the
-// band below the trigger, captured off an open field, is the standalone menu
-// with the field's own plane edge around it, pixel for pixel. The menu still
-// paints whole where the reported box no longer reaches.
+// band past the reported box is painted. The menu still paints whole where the
+// reported box no longer reaches.
 func TestOpenFieldReportsTheTriggerAlone(t *testing.T) {
 	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
 	closed := measure(t, image.Pt(200, 400), field(t, picker.FieldState{Options: options}))
@@ -185,124 +231,59 @@ func TestOpenFieldReportsTheTriggerAlone(t *testing.T) {
 			Open: true, Drop: d.drop, Options: options,
 		}))
 		if open != closed {
-			t.Errorf("dropping %s, an open field measured %v against the closed field's %v; the menu floats and asks its container for no room",
+			t.Errorf("%s, an open field measured %v against the closed field's %v; the menu floats and asks its container for no room",
 				d.name, open, closed)
 		}
 	}
 
-	size := image.Pt(200, trig+row*len(options))
-	bg := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
-	onBg := func(w layout.Widget) layout.Widget {
-		return func(gtx layout.Context) layout.Dimensions {
-			paint.FillShape(gtx.Ops, bg, clip.Rect{Max: gtx.Constraints.Max}.Op())
-			w(gtx)
-			return layout.Dimensions{Size: gtx.Constraints.Max}
-		}
-	}
-	open := golden.Capture(t, size, onBg(field(t, picker.FieldState{
+	at := row * 3
+	size := image.Pt(200, at+trig+row*len(options))
+	img := golden.Capture(t, size, onCover(laidOutAt(at, field(t, picker.FieldState{
 		Open: true, Options: options, Selected: 1,
-	})))
-	plane := golden.Capture(t, size, onBg(func(gtx layout.Context) layout.Dimensions {
-		off := op.Offset(image.Pt(0, trig)).Push(gtx.Ops)
-		rows := menu(t, picker.MenuState{Options: options, Selected: 1})(gtx)
-		planeEdge(gtx, rows.Size)
-		off.Pop()
-		return rows
-	}))
+	}))))
 	painted := false
-	for y := trig; y < size.Y; y++ {
-		for x := 0; x < size.X; x++ {
-			if a, b := px(open, x, y), px(plane, x, y); a != b {
-				t.Fatalf("(%d,%d), below the box the open field reported, is %v and the menu's own drawing is %v", x, y, a, b)
-			}
-			if px(open, x, y) != bg {
-				painted = true
-			}
+	for y := at + trig; y < size.Y; y++ {
+		if standsThere(img, 100, y) {
+			painted = true
+			break
 		}
 	}
 	if !painted {
-		t.Error("nothing at all was drawn below the trigger; an open field that reports its trigger must still float its menu")
+		t.Error("nothing at all was drawn past the box the open field reported; a floating menu is not bounded by it")
 	}
 }
 
-// TestOpenFieldFloatsTheSharedMenuOverItsTrigger is the same contract the
-// other way up: a field told there is no room below it floats the one surface
-// ABOVE its trigger, over whatever the window laid out before it. The trigger
-// stays where the caller put it — which is why the field below is laid out a
-// menu's height down the capture, the room the upward menu takes back — and
-// the plane's edge travels with the plane, so the composite carries it here
-// too and the direction changes the side and nothing else.
-func TestOpenFieldFloatsTheSharedMenuOverItsTrigger(t *testing.T) {
+// TestOpenMenusPlaneIsCorneredAndShadowed is what tells the level. The Level
+// entry gives a floating surface the window background under the platform's
+// shadow, and the window background is what the rows themselves fill: nothing
+// but the shadow parts the menu from the window behind it. The corner is the
+// plane's own, so the square pixel at its corner is not the plane.
+func TestOpenMenusPlaneIsCorneredAndShadowed(t *testing.T) {
 	row := rowHeight(tokens.Comfortable)
-	size := image.Pt(200, row*(1+len(options)))
+	const sel = 1
+	at := row * 4
+	planeY := at + menuTop(tokens.Comfortable, sel)
+	size := image.Pt(200, at+row*(2+len(options)))
 
-	open := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
-		off := op.Offset(image.Pt(0, row*len(options))).Push(gtx.Ops)
-		defer off.Pop()
-		return field(t, picker.FieldState{
-			Open: true, Drop: picker.DropUp, Options: options, Selected: 1,
-		})(gtx)
-	})
-	composed := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
-		rows := menu(t, picker.MenuState{Options: options, Selected: 1})(gtx)
-		planeEdge(gtx, rows.Size)
-		off := op.Offset(image.Pt(0, rows.Size.Y)).Push(gtx.Ops)
-		// The same trigger, which means the same DIRECTION: its mark points
-		// the way its menu goes, so a downward trigger under an upward menu
-		// would be a different control.
-		trigger := field(t, picker.FieldState{Options: options, Selected: 1, Drop: picker.DropUp})(gtx)
-		off.Pop()
-		return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, trigger.Size.Y+rows.Size.Y)}
-	})
-	if n := golden.PixelDiff(open, composed); n != 0 {
-		t.Errorf("an upward field differs from a standalone menu plus its own trigger under it in %d pixels; the direction changes the order and nothing else", n)
+	img := golden.Capture(t, size, onCover(laidOutAt(at, field(t, picker.FieldState{
+		Open: true, Options: options, Selected: sel,
+	}))))
+	if standsThere(img, 0, planeY) {
+		t.Error("the plane's own corner pixel is the plane's fill; the plane is not cornered")
 	}
-}
-
-// TestOpenFieldDrawsItsPlaneEdgeBothWaysUp: the edge is the plane's, so the
-// two directions draw the same one — an open field differs from the same field
-// with the edge suppressed by the same pixels either way up. There is no
-// suppression switch, so this measures it the way the drawing allows: the edge
-// is the only thing the field adds to the composite, and the composite without
-// it must differ, in both directions, by a count that is the same.
-func TestOpenFieldDrawsItsPlaneEdgeBothWaysUp(t *testing.T) {
-	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
-	size := image.Pt(200, trig+row*len(options))
-	counts := map[string]int{}
-
-	for _, d := range []struct {
-		name string
-		drop picker.Drop
-	}{{"down", picker.DropDown}, {"up", picker.DropUp}} {
-		triggerY, menuY := 0, trig
-		if d.drop == picker.DropUp {
-			triggerY, menuY = row*len(options), 0
-		}
-		open := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
-			off := op.Offset(image.Pt(0, triggerY)).Push(gtx.Ops)
-			defer off.Pop()
-			return field(t, picker.FieldState{
-				Open: true, Drop: d.drop, Options: options, Selected: 1,
-			})(gtx)
-		})
-		bare := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
-			off := op.Offset(image.Pt(0, triggerY)).Push(gtx.Ops)
-			field(t, picker.FieldState{Options: options, Selected: 1, Drop: d.drop})(gtx)
-			off.Pop()
-			off = op.Offset(image.Pt(0, menuY)).Push(gtx.Ops)
-			menu(t, picker.MenuState{Options: options, Selected: 1})(gtx)
-			off.Pop()
-			return layout.Dimensions{Size: size}
-		})
-		n := golden.PixelDiff(open, bare)
-		if n == 0 {
-			t.Errorf("%s: an open field is identical to its trigger and rows with no edge around the plane", d.name)
-		}
-		counts[d.name] = n
+	if !standsThere(img, planeInset, planeY+planeInset) {
+		t.Fatal("the plane is not painted where it should be; this measures nothing")
 	}
-	if counts["down"] != counts["up"] {
-		t.Errorf("the plane's edge covers %d pixels dropping down and %d dropping up; it is the plane's edge and does not change with the direction",
-			counts["down"], counts["up"])
+	// Two pixels out from the plane's foot, where nothing of the plane stands
+	// and the shadow is at its deepest.
+	foot := planeY + row*len(options) + 2
+	shadowed, clear := px(img, 100, foot), px(img, 100, size.Y-1)
+	if shadowed == clear {
+		t.Errorf("y=%d, just past the plane's foot, is %v — the same as the surface at %v; the floating plane casts no shadow",
+			foot, shadowed, clear)
+	}
+	if shadowed.R >= clear.R {
+		t.Errorf("y=%d reads %v against the surface's %v; the shadow does not darken what it falls on", foot, shadowed, clear)
 	}
 }
 
@@ -337,14 +318,14 @@ func TestCappedMenuIsTheCapAndScrolls(t *testing.T) {
 // it reaches the menu, so an open field over a catalogue floats a plane
 // exactly the cap tall rather than one forty rows tall — and measures its
 // trigger either way, because the plane is not the field's to make room for.
-// The extent is read off the pixels, which is where a floating plane's height
-// is now visible at all.
+//
+// A capped plane is a viewport and is placed by its room rather than by the
+// held row; told no room, it takes the trigger's own edges, so a DropDown cap
+// begins at the trigger's top. The extent is read off the pixels, which is
+// where a floating plane's height is visible at all.
 func TestCappedFieldFloatsExactlyTheCap(t *testing.T) {
 	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
-	long := make([]string, 40)
-	for i := range long {
-		long[i] = "Option " + string(rune('A'+i%26))
-	}
+	long := catalogue(40)
 	cap := unit.Dp(row * 5)
 	dims := measure(t, image.Pt(200, 2000), field(t, picker.FieldState{
 		Open: true, Options: long, MaxHeight: cap,
@@ -353,17 +334,16 @@ func TestCappedFieldFloatsExactlyTheCap(t *testing.T) {
 		t.Errorf("an open capped field measured %d px tall, want the trigger's %d px", dims.Size.Y, trig)
 	}
 
-	size := image.Pt(200, trig+row*7)
-	img := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
-		paint.FillShape(gtx.Ops, menuCover, clip.Rect{Max: gtx.Constraints.Max}.Op())
-		return field(t, picker.FieldState{Open: true, Options: long, MaxHeight: cap})(gtx)
-	})
-	if last := trig + row*5 - 1; px(img, 100, last) == menuCover {
+	at := row
+	size := image.Pt(200, at+row*7)
+	img := golden.Capture(t, size, onCover(laidOutAt(at, field(t, picker.FieldState{
+		Open: true, Options: long, MaxHeight: cap,
+	}))))
+	if last := at + row*5 - 1; !standsThere(img, 100, last) {
 		t.Errorf("y=%d, the last row inside the cap, was left unpainted; the plane is shorter than the cap it was given", last)
 	}
-	if past := trig + row*5; px(img, 100, past) != menuCover {
-		t.Errorf("y=%d, one pixel past the trigger plus the cap, is %v and not the %v behind it; the plane is taller than its cap",
-			past, px(img, 100, past), menuCover)
+	if past := at + row*5; standsThere(img, 100, past) {
+		t.Errorf("y=%d, one pixel past the cap, is the plane's own fill; the plane is taller than its cap", past)
 	}
 }
 
@@ -426,9 +406,9 @@ func TestMenuWithNoOptionsIsNoSurface(t *testing.T) {
 	}
 }
 
-// TestMenuSelectedRowIsDrawnApartFromTheRest: the selected row leaves the
-// menu's own plane for the platform's selection fill, so which row is selected
-// changes the drawing.
+// TestMenuSelectedRowIsDrawnApartFromTheRest: the row the picker is holding
+// wears the pill and carries the check, so which row is held changes the
+// drawing.
 func TestMenuSelectedRowIsDrawnApartFromTheRest(t *testing.T) {
 	size := image.Pt(200, rowHeight(tokens.Comfortable)*len(options))
 	first := golden.Capture(t, size, menu(t, picker.MenuState{Options: options, Selected: 0}))
@@ -459,10 +439,10 @@ func TestToolbarIsSizedToItsValue(t *testing.T) {
 	}
 }
 
-// TestMenuMarksTheRowUnderThePointer: hover is a row state, so exactly the
-// hovered row changes and a menu told the pointer is over nothing is the menu
-// at rest. Selection wins over hover, so the selected row under the pointer is
-// the selected row.
+// TestMenuMarksTheRowUnderThePointer: the pill says where the choice would
+// land if the press came now, so it goes on the row under the pointer and only
+// falls back to the held row when the pointer is over none. Two pills on one
+// menu would be two answers to one question.
 func TestMenuMarksTheRowUnderThePointer(t *testing.T) {
 	size := image.Pt(200, rowHeight(tokens.Comfortable)*len(options))
 	rest := golden.Capture(t, size, menu(t, picker.MenuState{Options: options, Selected: 0}))
@@ -477,7 +457,67 @@ func TestMenuMarksTheRowUnderThePointer(t *testing.T) {
 		t.Error("hovering the second row renders identically to hovering the third; hover marks a row, not the menu")
 	}
 	if n := golden.PixelDiff(rest, onSelected); n != 0 {
-		t.Errorf("hovering the selected row changed %d pixels; the standing answer outranks the transient state fill", n)
+		t.Errorf("hovering the held row changed %d pixels; the pill is one drawing and the held row already wears it", n)
+	}
+}
+
+// TestTheCheckStandsBesideTheHeldRowAndNowhereElse: the check says which row
+// the picker is holding, which is a different question from where the pointer
+// is. It stands in the pill's own leading column, it moves only when the held
+// row moves, and a menu holding nothing draws none at all. Nothing else in the
+// row moves with it — the labels stand in one line whichever row is held.
+func TestTheCheckStandsBesideTheHeldRowAndNowhereElse(t *testing.T) {
+	row := rowHeight(tokens.Comfortable)
+	size := image.Pt(200, row*len(options))
+	// The check's own column: the pill's inset from the plane, and the box
+	// the mark is drawn in.
+	const markLead, markBox = 10, 16
+
+	// One pointer position throughout — the third row — so the pill stands in
+	// the same place in all three and every difference is the check's.
+	held0 := golden.Capture(t, size, menu(t, picker.MenuState{Options: options, Selected: 0, Hovered: 3}))
+	held1 := golden.Capture(t, size, menu(t, picker.MenuState{Options: options, Selected: 1, Hovered: 3}))
+	none := golden.Capture(t, size, menu(t, picker.MenuState{Options: options, Selected: -1, Hovered: 3}))
+
+	// differs reports whether two captures differ anywhere in the column
+	// [from,to) of row r, by more than the one 255th two renderings of the
+	// same shape can land apart on: the rasterizer answers a pill's flat
+	// interior a level either way depending on what else the frame drew, and
+	// a level is below any reading the reference records.
+	differs := func(a, b *image.RGBA, r, from, to int) bool {
+		apart := func(p, q uint8) bool { d := int(p) - int(q); return d > 1 || d < -1 }
+		for x := from; x < to; x++ {
+			for y := r * row; y < (r+1)*row; y++ {
+				u, v := px(a, x, y), px(b, x, y)
+				if apart(u.R, v.R) || apart(u.G, v.G) || apart(u.B, v.B) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	mark := func(a, b *image.RGBA, r int) bool { return differs(a, b, r, markLead, markLead+markBox) }
+
+	if !mark(held0, none, 0) {
+		t.Error("the first row's mark column is the same held and unheld; no check is drawn beside the held row")
+	}
+	if !mark(held1, none, 1) {
+		t.Error("the second row's mark column is the same held and unheld")
+	}
+	if mark(held1, none, 0) {
+		t.Error("the first row carries a mark while the picker is holding the second")
+	}
+	if mark(held0, none, 1) {
+		t.Error("the second row carries a mark while the picker is holding the first")
+	}
+	if mark(held0, none, 2) || mark(held1, none, 2) {
+		t.Error("the row under the pointer carries a mark; the pill says where the press would land and the check says what is held")
+	}
+	// Everything past the mark's own box is one drawing in all three.
+	for r := range options {
+		if differs(held0, none, r, markLead+markBox, size.X) || differs(held1, none, r, markLead+markBox, size.X) {
+			t.Errorf("row %d draws differently past the mark's box; the check moved the label beside it", r)
+		}
 	}
 }
 
@@ -490,19 +530,20 @@ func TestMenuMarksTheRowUnderThePointer(t *testing.T) {
 
 // menuCover is the opaque sibling painted after the field, over everything
 // below the trigger's own band — the way a shell paints its main column after
-// the row the field stands in.
+// the row the field stands in. It carries no green at all, which is what
+// [standsThere] reads it by.
 var menuCover = color.NRGBA{R: 255, G: 0, B: 255, A: 255}
 
-// coveredField lays the field out and then, when covered, paints menuCover
-// over every row below the trigger.
-func coveredField(w layout.Widget, bg color.NRGBA, triggerH int, covered bool) layout.Widget {
+// coveredField lays the field out at y and then, when covered, paints
+// menuCover over everything below the trigger's band.
+func coveredField(w layout.Widget, bg color.NRGBA, y, triggerH int, covered bool) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, bg, clip.Rect{Max: gtx.Constraints.Max}.Op())
-		w(gtx)
+		laidOutAt(y, w)(gtx)
 		if covered {
-			off := op.Offset(image.Pt(0, triggerH)).Push(gtx.Ops)
+			off := op.Offset(image.Pt(0, y+triggerH)).Push(gtx.Ops)
 			paint.FillShape(gtx.Ops, menuCover, clip.Rect{
-				Max: image.Pt(gtx.Constraints.Max.X, gtx.Constraints.Max.Y-triggerH),
+				Max: image.Pt(gtx.Constraints.Max.X, gtx.Constraints.Max.Y-y-triggerH),
 			}.Op())
 			off.Pop()
 		}
@@ -510,23 +551,26 @@ func coveredField(w layout.Widget, bg color.NRGBA, triggerH int, covered bool) l
 	}
 }
 
-// TestOpenMenuIsWholeOverALaterSibling is the paint-order contract: the
-// dropped menu stands above the sibling laid out after the field, so every
-// pixel of it is the one it draws with nothing over it at all.
+// TestOpenMenuIsWholeOverALaterSibling is the paint-order contract: the open
+// menu stands above the sibling laid out after the field, so every pixel of
+// its plane is the one it draws with nothing over it at all.
 func TestOpenMenuIsWholeOverALaterSibling(t *testing.T) {
 	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
-	size := image.Pt(200, trig+row*len(options)+40)
-	w := field(t, picker.FieldState{Open: true, Selected: 1, Options: options})
+	const sel = 1
+	at := row * 3
+	planeY := at + menuTop(tokens.Comfortable, sel)
+	size := image.Pt(200, at+trig+row*len(options)+40)
+	w := field(t, picker.FieldState{Open: true, Selected: sel, Options: options})
 	bg := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
 
-	bare := golden.Capture(t, size, coveredField(w, bg, trig, false))
-	covered := golden.Capture(t, size, coveredField(w, bg, trig, true))
+	bare := golden.Capture(t, size, coveredField(w, bg, at, trig, false))
+	covered := golden.Capture(t, size, coveredField(w, bg, at, trig, true))
 
 	if got := px(covered, size.X-1, size.Y-1); got != menuCover {
 		t.Fatalf("the covering sibling did not paint: (%d,%d) is %v, want %v", size.X-1, size.Y-1, got, menuCover)
 	}
-	for y := trig; y < trig+row*len(options); y++ {
-		for x := 0; x < size.X; x++ {
+	for y := planeY + planeInset; y < planeY+row*len(options)-planeInset; y++ {
+		for x := planeInset; x < size.X-planeInset; x++ {
 			if a, b := px(bare, x, y), px(covered, x, y); a != b {
 				t.Fatalf("(%d,%d) inside the menu is %v with a later sibling painted and %v without it", x, y, b, a)
 			}
@@ -552,9 +596,9 @@ func catalogue(n int) []string {
 }
 
 // TestUpwardMenuStaysInTheRoomAbove is the fitting contract on the side the
-// caller asked for: a field pinned near the top of a short container, dropping
-// upward, floats a plane no taller than the space above its trigger — and the
-// caller's own MaxHeight, three times that space, does not buy it back. The
+// caller asked for: a field pinned near the top of a short container, whose
+// Drop names the room above it, floats a plane no taller than that room — and
+// the caller's own MaxHeight, three times that room, does not buy it back. The
 // available room tightens a preference and never loosens it.
 //
 // The extent is read off the pixels, which is where a floating plane's height
@@ -566,73 +610,82 @@ func TestUpwardMenuStaysInTheRoomAbove(t *testing.T) {
 	triggerY := row * 3
 	size := image.Pt(200, row*8)
 
-	img := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
-		paint.FillShape(gtx.Ops, menuCover, clip.Rect{Max: gtx.Constraints.Max}.Op())
-		off := op.Offset(image.Pt(0, triggerY)).Push(gtx.Ops)
-		defer off.Pop()
-		return field(t, picker.FieldState{
-			Open: true, Drop: picker.DropUp, Options: long, MaxHeight: unit.Dp(row * 6),
-			AvailableRoom: func(layout.Context) (int, int) { return above, 0 },
-		})(gtx)
-	})
-	if top := triggerY - above; px(img, 100, top-1) != menuCover {
-		t.Errorf("y=%d, one pixel above the room the container reported, is %v and not the %v behind it; the upward menu stands taller than the room above its trigger",
-			top-1, px(img, 100, top-1), menuCover)
+	img := golden.Capture(t, size, onCover(laidOutAt(triggerY, field(t, picker.FieldState{
+		Open: true, Drop: picker.DropUp, Options: long, MaxHeight: unit.Dp(row * 6),
+		AvailableRoom: func(layout.Context) (int, int) { return above, 0 },
+	}))))
+	if top := triggerY - above; standsThere(img, 100, top-1) {
+		t.Errorf("y=%d, one pixel above the room the container reported, is the plane's own fill; the upward menu stands taller than the room above its trigger", top-1)
 	}
-	if top := triggerY - above; px(img, 100, top) == menuCover {
+	if top := triggerY - above; !standsThere(img, 100, top) {
 		t.Errorf("y=%d, the top of the room above the trigger, was left unpainted; the menu is shorter than the room it was given", top)
 	}
-	if mid := triggerY - 1; px(img, 100, mid) == menuCover {
+	if mid := triggerY - 1; !standsThere(img, 100, mid) {
 		t.Errorf("y=%d, directly above the trigger, was left unpainted; no menu was floated at all", mid)
 	}
 }
 
-// TestFieldWithNoRoomFlipsToTheSideThatHasIt is the fitting contract against
-// the side the caller asked for: [Drop] is a preference, and a field told
-// there is nothing above it and six rows below it drops DOWNWARD however it
-// was asked. Nothing is painted over the container above the trigger, the
-// plane below is the room below exactly, and the trigger is the downward
-// trigger pixel for pixel — the pop-up's mark says no direction, so the
-// trigger is one drawing whichever side the menu lands on.
-func TestFieldWithNoRoomFlipsToTheSideThatHasIt(t *testing.T) {
+// TestACappedMenuIsAnchoredByItsDrop is the fitting contract where moving the
+// plane cannot help: a catalogue taller than the whole room is capped to the
+// room and scrolls inside that cap, and [picker.Drop] says which end of the
+// room the cap takes — DropUp the room above the trigger, DropDown the room
+// below. The trigger is one drawing either way: the pop-up's mark says no
+// direction.
+func TestACappedMenuIsAnchoredByItsDrop(t *testing.T) {
 	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
 	long := catalogue(40)
 	below := row * 6
 	triggerY := row
 	size := image.Pt(200, row*9)
+	room := func(layout.Context) (int, int) { return 0, below }
 
-	flipped := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
-		paint.FillShape(gtx.Ops, menuCover, clip.Rect{Max: gtx.Constraints.Max}.Op())
-		off := op.Offset(image.Pt(0, triggerY)).Push(gtx.Ops)
-		defer off.Pop()
-		return field(t, picker.FieldState{
-			Open: true, Drop: picker.DropUp, Options: long,
-			AvailableRoom: func(layout.Context) (int, int) { return 0, below },
-		})(gtx)
-	})
-	for y := 0; y < triggerY; y++ {
-		if got := px(flipped, 100, y); got != menuCover {
-			t.Fatalf("y=%d, above a trigger with no room above it, is %v and not the %v behind it; the menu did not flip", y, got, menuCover)
-		}
-	}
-	if last := triggerY + trig + below - 1; px(flipped, 100, last) == menuCover {
-		t.Errorf("y=%d, the last pixel of the room below the trigger, was left unpainted; the flipped menu is shorter than the room it flipped into", last)
-	}
-	if past := triggerY + trig + below; px(flipped, 100, past) != menuCover {
-		t.Errorf("y=%d, one pixel past the room below the trigger, is %v and not the %v behind it; the flipped menu is taller than the room it flipped into",
-			past, px(flipped, 100, past), menuCover)
+	for _, tc := range []struct {
+		name       string
+		drop       picker.Drop
+		start, end int  // the plane's own extent in the capture
+		headClear  bool // whether the pixel before the plane is clear of the trigger
+	}{
+		// The room runs from the trigger's top to six rows past its foot;
+		// six whole rows is what fits in it. Dropping down, the plane's head
+		// stands on the trigger's own last row, which this reads the same as
+		// the plane, so only its foot is read there.
+		{"up", picker.DropUp, triggerY, triggerY + row*6, true},
+		{"down", picker.DropDown, triggerY + trig + below - row*6, triggerY + trig + below, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			img := golden.Capture(t, size, onCover(laidOutAt(triggerY, field(t, picker.FieldState{
+				Open: true, Drop: tc.drop, Options: long, AvailableRoom: room,
+			}))))
+			if tc.headClear && standsThere(img, 100, tc.start-1) {
+				t.Errorf("y=%d, one pixel before the plane, is the plane's own fill", tc.start-1)
+			}
+			if !standsThere(img, 100, tc.start) {
+				t.Errorf("y=%d, the plane's first row, was left unpainted", tc.start)
+			}
+			if !standsThere(img, 100, tc.end-1) {
+				t.Errorf("y=%d, the plane's last row, was left unpainted", tc.end-1)
+			}
+			if standsThere(img, 100, tc.end) {
+				t.Errorf("y=%d, one pixel past the plane, is the plane's own fill", tc.end)
+			}
+			if standsThere(img, 100, triggerY-1) {
+				t.Errorf("y=%d, above a trigger with no room above it, is the plane's own fill; the cap took room the container does not have", triggerY-1)
+			}
+		})
 	}
 
-	downward := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
-		paint.FillShape(gtx.Ops, menuCover, clip.Rect{Max: gtx.Constraints.Max}.Op())
-		off := op.Offset(image.Pt(0, triggerY)).Push(gtx.Ops)
-		defer off.Pop()
-		return field(t, picker.FieldState{Options: long})(gtx)
-	})
+	// The trigger is one drawing whichever end of the room the cap takes. It
+	// is read off a CLOSED field, because an open one wears the held drawing.
+	up := golden.Capture(t, size, onCover(laidOutAt(triggerY, field(t, picker.FieldState{
+		Options: long, Drop: picker.DropUp,
+	}))))
+	down := golden.Capture(t, size, onCover(laidOutAt(triggerY, field(t, picker.FieldState{
+		Options: long, Drop: picker.DropDown,
+	}))))
 	for y := triggerY; y < triggerY+trig; y++ {
 		for x := 0; x < size.X; x++ {
-			if a, b := px(flipped, x, y), px(downward, x, y); a != b {
-				t.Fatalf("(%d,%d) of the flipped field's trigger is %v and the downward trigger's is %v; the trigger is one drawing whichever side the menu lands on", x, y, a, b)
+			if a, b := px(up, x, y), px(down, x, y); a != b {
+				t.Fatalf("(%d,%d) of an upward field's trigger is %v and a downward one's is %v; the trigger is one drawing whichever end the cap takes", x, y, a, b)
 			}
 		}
 	}
@@ -651,20 +704,23 @@ func TestFieldWithNoRoomFlipsToTheSideThatHasIt(t *testing.T) {
 // [control.PopupLeadDp]'s eleven, and the face adds its first glyph's left
 // side bearing to reach the twelfth.
 //
-// THE MENU'S ROWS are not pop-ups: they take the field's own inset,
-// [control.TextLeadDp], spent from the inner edge of the plane's hairline, so
-// a value in the menu stands on the same column as the value of a text field
-// beside the picker. The menu's own measurement is owed and the rows keep
-// this until it is taken.
+// THE MENU'S ROWS are not pop-ups either, and they are not bare text: a row is
+// read inside its pill, and the pill leads with the column the check stands
+// in. So a row's label starts at the pill's own inset from the plane — the
+// sidebar pill's measured 10 — plus the box the mark is drawn in (16, the
+// smallest of the three sizes components/icons is drawn at) plus the text
+// field's own leading inset, [control.TextLeadDp]. None of those three is read
+// off an open menu, because no stored capture holds one; the capture is on the
+// reference's list.
 //
 // The faces are pinned by DeterministicShaper, so both columns are the same on
 // every machine.
 func TestTheTriggerStandsOnThePopUpsColumnAndItsRowsOnTheFields(t *testing.T) {
 	// The face bears one column on this word, as input's own reading of the
-	// same inset does. The trigger draws no edge at all; the menu's plane
-	// wears a one-pixel one, so a row's inset starts one column in from the
-	// box.
+	// same inset does.
 	const bearing = 1
+	// The pill's inset and the mark's box, which the row's label follows.
+	const selectionInset, markBox = 10, 16
 	for _, tc := range []struct {
 		name      string
 		innerEdge int
@@ -673,7 +729,7 @@ func TestTheTriggerStandsOnThePopUpsColumnAndItsRowsOnTheFields(t *testing.T) {
 	}{
 		{"trigger", 0, int(control.PopupLeadDp) + bearing,
 			field(t, picker.FieldState{Options: []string{"Email address"}})},
-		{"row", 1, int(control.TextLeadDp) + bearing,
+		{"row", 0, selectionInset + markBox + int(control.TextLeadDp) + bearing,
 			menu(t, picker.MenuState{Options: []string{"Email address"}, Selected: -1})},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -734,6 +790,40 @@ func TestFieldStateGolden(t *testing.T) {
 				golden.Render(t, name, goldenSize, onSurface(sc.p.WindowBackground, w))
 			})
 		}
+	}
+}
+
+// TestOpenFieldGolden records the open menu in both schemes: the plane on the
+// floating level's own fill under the platform's shadow, cornered, the held
+// row wearing the inset pill with its check, and the trigger under it in the
+// held drawing. The frame carries room above and below the control, because
+// the menu stands over the trigger rather than beside it, and the picture is
+// only the picture if the shadow has somewhere to fall.
+func TestOpenFieldGolden(t *testing.T) {
+	opts := []string{"Alpha", "Beta", "Gamma"}
+	row := rowHeight(tokens.Comfortable)
+	size := image.Pt(240, row*(2+len(opts)))
+	for _, sc := range goldenSchemes {
+		name := "field-" + sc.name + "-open"
+		t.Run(name, func(t *testing.T) {
+			w := picker.RenderField(defaultShaper(t), sc.p, tokens.Spacing,
+				sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				picker.FieldState{Open: true, Options: opts, Selected: 1})
+			golden.Render(t, name, size, onSurface(sc.p.WindowBackground,
+				laidOutAt(row*2, inset(20, w))))
+		})
+	}
+}
+
+// inset lays w out w px in from either end of the frame, so a plane that
+// reaches the frame's own edges cannot be told from one that was clipped by
+// them.
+func inset(w int, child layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		off := op.Offset(image.Pt(w, 0)).Push(gtx.Ops)
+		defer off.Pop()
+		gtx.Constraints.Max.X -= 2 * w
+		return child(gtx)
 	}
 }
 

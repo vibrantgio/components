@@ -499,7 +499,7 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 			Body: inv.searchFieldRow(c)},
 		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled, then the same controls carrying their own labels", Height: 96,
 			Body: inv.toggleRow(c)},
-		{Name: "components-picker", Title: "Picker — the form trigger at rest, under the pointer, held, focused and switched off, then open under its menu beside the chrome toolbar at rest and under the pointer", Height: 264,
+		{Name: "components-picker", Title: "Picker — the form trigger at rest, under the pointer, held, focused and switched off, then open with its menu standing over it, beside the chrome toolbar at rest and under the pointer", Height: 200,
 			Body: inv.pickerRow(c)},
 		{Name: "components-breadcrumb", Title: "Breadcrumb — three segments, the earlier ones links and the last the current location", Height: 20,
 			Body: inv.breadcrumb(c)},
@@ -1526,26 +1526,46 @@ func (inv *Inventory) pickerRow(c tokens.PlatformColors) layout.Widget {
 	}
 }
 
-// padByMenu reports the open field's cell as the trigger PLUS the menu the
-// field floats under it, so the whole open surface stands inside this
-// section's own slot.
+// padByMenu reports the open field's cell as the whole open surface — the
+// menu AND the trigger under it — and lays the trigger out where that puts it.
 //
-// An open field reports its trigger and nothing else — the menu is a floating
-// surface, deferred to the end of the frame and bounded by the window — so a
+// An open field reports its trigger and nothing else: the menu is a floating
+// surface, deferred to the end of the frame and bounded by the window. So a
 // cell cut to what the field reports would let the menu paint across the
-// section below it, which is another family's row. The padding is the menu's
-// measured height rather than a number, so the cell follows the density and
-// the option list.
+// sections around it, which are other families' rows. The menu stands over the
+// trigger with the held row on it, so the room it wants is on both sides, and
+// the trigger is laid out far enough down the cell for the rows above the held
+// one to stand inside it. Every number here is measured off the menu the field
+// would draw, so the cell follows the density and the option list.
 func (inv *Inventory) padByMenu(c tokens.PlatformColors, st picker.FieldState, body layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		dims := body(gtx)
 		measure := op.Record(gtx.Ops)
 		menu := picker.RenderMenu(inv.shaper, c, tokens.Spacing,
 			tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 			picker.MenuState{Options: st.Options, Selected: st.Selected})(gtx)
+		trigger := body(gtx)
 		measure.Stop()
-		dims.Size.Y += menu.Size.Y
-		return dims
+
+		rows := len(st.Options)
+		if rows == 0 {
+			return trigger
+		}
+		row := menu.Size.Y / rows
+		// What the field puts above its trigger: the rows before the held one,
+		// less the half-row by which a menu row stands taller than the
+		// trigger.
+		above := st.Selected*row + (row-trigger.Size.Y)/2
+		if above < 0 {
+			above = 0
+		}
+		off := op.Offset(image.Pt(0, above)).Push(gtx.Ops)
+		body(gtx)
+		off.Pop()
+		h := above + trigger.Size.Y
+		if plane := above + (trigger.Size.Y-row)/2 - st.Selected*row + menu.Size.Y; plane > h {
+			h = plane
+		}
+		return layout.Dimensions{Size: image.Pt(trigger.Size.X, h)}
 	}
 }
 

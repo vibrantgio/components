@@ -14,6 +14,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/icons"
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/list"
 	"github.com/vibrantgio/components/scrollbar"
@@ -34,13 +35,15 @@ type MenuState struct {
 	// Options is the list of selectable items, in the order they are drawn.
 	Options []string
 
-	// Selected is the index of the one row drawn on the platform's selection
-	// fill. An index outside Options selects nothing, which is what a picker
-	// with no value yet looks like.
+	// Selected is the index of the one row the picker is holding: the row the
+	// check stands beside, and the row that wears the pill while no row is
+	// under the pointer. An index outside Options selects nothing, which is
+	// what a picker with no value yet looks like.
 	Selected int
 
 	// Hovered is the row the pointer is over, counted from ONE, so that the
-	// zero value is no row.
+	// zero value is no row. A hovered row wears the pill and Selected keeps
+	// the check — see [highlightedRow].
 	//
 	// Selected counts from zero because a picker always holds a value and
 	// some row is always it. Hover is the opposite: a menu holds a pointer
@@ -270,7 +273,7 @@ func layoutMenuLive(gtx layout.Context, shaper *text.Shaper, optClicks []widget.
 	return stackRows(gtx, rows, len(s.Options), capPx, tok, func(gtx layout.Context, i int) layout.Dimensions {
 		return optClicks[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			semantic.Button.Add(gtx.Ops)
-			return drawOptionRow(gtx, shaper, tok, i == s.Selected, i+1 == s.Hovered, s.Options[i])
+			return drawOptionRow(gtx, shaper, tok, i == s.Selected, i == highlightedRow(s), s.Options[i])
 		})
 	})
 }
@@ -281,7 +284,7 @@ func drawMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Men
 	// is its resting state, the rows from the top, because a scroll position
 	// is something a menu acquires by being scrolled.
 	return stackRows(gtx, nil, len(s.Options), capPx, tok, func(gtx layout.Context, i int) layout.Dimensions {
-		return drawOptionRow(gtx, shaper, tok, i == s.Selected, i+1 == s.Hovered, s.Options[i])
+		return drawOptionRow(gtx, shaper, tok, i == s.Selected, i == highlightedRow(s), s.Options[i])
 	})
 }
 
@@ -346,7 +349,7 @@ func stackRows(gtx layout.Context, rows *list.State, n, capPx int, tok resolvedT
 	for i := range idx {
 		idx[i] = i
 	}
-	bar := scrollbar.FromTokens(tok.platform, tok.platform.ControlBackground)
+	bar := scrollbar.FromTokens(tok.platform, tok.platform.WindowBackground)
 	return list.LayoutSelectableScrollbar(viewGtx, rows, bar, list.Overlay, idx, func(gtx layout.Context, i int, _ bool) layout.Dimensions {
 		return row(gtx, i)
 	})
@@ -366,53 +369,106 @@ func rowHeights(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s M
 		Max: image.Pt(gtx.Constraints.Max.X, gtx.Constraints.Max.Y),
 	}
 	for i := range s.Options {
-		hs[i] = drawOptionRow(rowGtx, shaper, tok, i == s.Selected, false, s.Options[i]).Size.Y
+		hs[i] = drawOptionRow(rowGtx, shaper, tok, i == s.Selected, i == s.Selected, s.Options[i]).Size.Y
 	}
 	measure.Stop()
 	return hs
 }
 
+// The menu's selection pill, and the mark that stands in it.
+//
+// NOT MEASURED. No stored capture in reference/macos holds an open menu at
+// all, so neither the pill's inset nor its corner nor the box the mark is
+// drawn in is read off this platform. Each is named from the one drawing the
+// reference does hold of a pill inset inside a rail — the sidebar's selected
+// row, measured off voicememos-sidebar-{light,dark}.png as inset 10 and
+// cornered at 8 — and the capture that would settle a menu's own is on the
+// reference's list.
+const (
+	// selectionInsetDp is what the pill leaves clear at either end of the
+	// row, the sidebar pill's own inset from its rail.
+	selectionInsetDp = unit.Dp(10)
+
+	// selectionRadiusDp is the pill's corner, the sidebar pill's own.
+	selectionRadiusDp = unit.Dp(8)
+
+	// markBoxDp is the square the check is drawn in: the smallest of the
+	// three sizes components/icons is drawn at, which is the one that stands
+	// beside a line of body text rather than alone in a control.
+	markBoxDp = unit.Dp(16)
+)
+
 // optionRowColors returns an option row's fill and the foreground that reads
 // on it. A surface decides what can be read on it, so a row's two colours are
 // never picked apart: they are returned as a pair.
 //
-// THE MENU'S OWN PLANE. A resting row is it: the platform's control
-// background, which is what it fills a menu with, under the platform's label
-// flattened onto it.
+// THE MENU'S OWN PLANE. A row that is neither held nor under the pointer is
+// it: the platform's window background, which is the fill of every floating
+// surface on this platform, under the platform's label flattened onto it.
 //
-// THE SELECTED ROW is the platform's emphasized selection — the fill it draws
-// behind the chosen row of a menu — under the foreground it names for text
-// standing on a fill the accent paints.
-//
-// THE HOVERED ROW takes the SAME pair. On this platform a menu highlights the
-// row under the pointer exactly as it marks the chosen one, so there is one
-// fill and not two, and selection winning over hover costs the drawing
-// nothing.
-func optionRowColors(p tokens.PlatformColors, selected, hovered bool) (fill, foreground color.NRGBA) {
-	if selected || hovered {
-		return p.SelectedContentBackground, p.AlternateSelectedControlText
+// THE HIGHLIGHTED ROW is the pill: the platform's selection over a floating
+// surface, under the foreground it names for text standing on a fill the
+// accent paints. No name in the recorded set is a menu's own selection, so the
+// pill takes the one selection the reference measures inside a chrome region
+// rather than in a content list — SidebarSelection — and the capture that
+// would settle a menu's own is on the reference's list.
+func optionRowColors(p tokens.PlatformColors, highlighted bool) (fill, foreground color.NRGBA) {
+	if highlighted {
+		return p.SidebarSelection, p.AlternateSelectedControlText
 	}
-	return p.ControlBackground, vgcolor.Flatten(p.Label, p.ControlBackground)
+	return p.WindowBackground, vgcolor.Flatten(p.Label, p.WindowBackground)
 }
 
-// drawOptionRow renders a single option row.
-func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, selected, hovered bool, label string) layout.Dimensions {
+// highlightedRow reports which row wears the pill: the row under the pointer
+// where there is one, and the row the picker is holding where there is not.
+//
+// The POINTER WINS. The pill says where the choice would land if the press
+// came now, and that is the row under the pointer; what the picker is holding
+// is said by the check instead, which never moves. Marking both would put two
+// pills on one menu, which is the platform drawing two answers to one
+// question.
+func highlightedRow(s MenuState) int {
+	if s.Hovered > 0 {
+		return s.Hovered - 1
+	}
+	return s.Selected
+}
+
+// rowColumns reports where the two things a row draws stand, as insets from
+// the plane's own leading edge: the box the check occupies and the column the
+// label starts on.
+//
+// Both are spent from the PILL rather than from the plane, because the pill is
+// what a row is read inside: the check stands at the pill's own leading edge,
+// and the label follows it after the text field's leading inset
+// ([control.TextLeadDp]). They do not move with the state — a row that carries
+// no check leaves the column clear, so the labels of a menu stand in one line
+// whichever row the picker is holding.
+func rowColumns(gtx layout.Context) (markLead, markBox, labelLead int) {
+	markLead = gtx.Dp(selectionInsetDp)
+	markBox = gtx.Dp(markBoxDp)
+	return markLead, markBox, markLead + markBox + gtx.Dp(control.TextLeadDp)
+}
+
+// drawOptionRow renders a single option row: the plane it stands on, the pill
+// where the row is highlighted, the check where the row is the one the picker
+// is holding, and the label.
+//
+// current says the row is the one the picker holds and is what the check
+// answers to; highlighted says the row wears the pill. They are two questions
+// — see [highlightedRow] — and a row may answer either, both or neither.
+func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, current, highlighted bool, label string) layout.Dimensions {
 	// An option row draws max(the density's control height, its line box plus
 	// twice the density's vertical padding), the sizing rule every stacked row
-	// in the system takes, and it takes the TEXT FIELD's two insets —
-	// [control.TextLeadDp] and [control.TextTrailDp] — spent from the inner
-	// edge of the plane's own hairline, so a row's label stands on the column
-	// a text field's value beside the picker stands on. Not the trigger's:
-	// that control is the platform's pop-up and sets its label deeper. The
-	// menu's own reading is owed and the rows keep these until it is taken.
-	lead := gtx.Dp(edgeDp) + gtx.Dp(control.TextLeadDp)
-	trail := gtx.Dp(edgeDp) + gtx.Dp(control.TextTrailDp)
+	// in the system takes.
+	markLead, markBox, lead := rowColumns(gtx)
+	trail := gtx.Dp(selectionInsetDp) + gtx.Dp(control.TextTrailDp)
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	f, wl, textSize := bodyLabel(tok)
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	fieldW := gtx.Constraints.Max.X
 
-	bg, textCol := optionRowColors(tok.platform, selected, hovered)
+	bg, textCol := optionRowColors(tok.platform, highlighted)
 	innerW := fieldW - lead - trail
 	if innerW < 1 {
 		innerW = 1
@@ -437,7 +493,20 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	}
 	rowSize := image.Pt(fieldW, rowH)
 
-	paint.FillShape(gtx.Ops, bg, clip.Rect{Max: rowSize}.Op())
+	// The plane first, the whole width of the row: the pill is inset inside
+	// it, so what stands at either end of the row is the menu's own fill.
+	paint.FillShape(gtx.Ops, tok.platform.WindowBackground, clip.Rect{Max: rowSize}.Op())
+	if highlighted {
+		paintSelection(gtx, rowSize, bg)
+	}
+
+	if current {
+		if mark := icons.Mark(icons.Check); mark != nil {
+			st := op.Offset(image.Pt(markLead, (rowH-markBox)/2)).Push(gtx.Ops)
+			mark(gtx, markBox, textCol)
+			st.Pop()
+		}
+	}
 
 	offY := (rowH - labelDims.Size.Y) / 2
 	st := op.Offset(image.Pt(lead, offY)).Push(gtx.Ops)
@@ -445,4 +514,26 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	st.Pop()
 
 	return layout.Dimensions{Size: rowSize}
+}
+
+// paintSelection fills the highlighted row's pill at the current offset:
+// [selectionInsetDp] in from either end of the row, cornered at
+// [selectionRadiusDp], the row's full height. It is the drawing
+// patterns/sidebar makes for a selected rail row, at the numbers that pattern
+// measures, because until a capture holds an open menu it is the one pill this
+// platform is recorded drawing.
+func paintSelection(gtx layout.Context, size image.Point, fill color.NRGBA) {
+	inset := gtx.Dp(selectionInsetDp)
+	if 2*inset >= size.X {
+		inset = 0
+	}
+	bounds := image.Rect(inset, 0, size.X-inset, size.Y)
+	if bounds.Dx() <= 0 || bounds.Dy() <= 0 {
+		return
+	}
+	r := gtx.Dp(selectionRadiusDp)
+	if half := min(bounds.Dx(), bounds.Dy()) / 2; r > half {
+		r = half
+	}
+	paint.FillShape(gtx.Ops, fill, clip.RRect{Rect: bounds, NE: r, NW: r, SE: r, SW: r}.Op(gtx.Ops))
 }

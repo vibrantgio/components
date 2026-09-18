@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Check: the mark that says this is the one. It stands beside the row a
+       control is currently holding — a menu's current item — and beside
+       nothing else; a control that is merely under the pointer is told by its
+       fill, not by this.
+
+       Grid: a diagonal form, so it takes the 20-unit allowance rather than
+       the square keyline, as the disclosure chevron does. The band's centre
+       line runs from 4.5,12 to 9,16.5 to 19.5,6: two arms at 45 degrees with
+       every corner on the 1.5 sub-grid, the short arm down and out and the
+       long arm up and out. The band takes the set's diagonal measure, 2
+       units, which is what a 45-degree edge needs to cover device pixels
+       whole at 16, 20 and 24 dp. With its round caps and its turn the drawing
+       spans 17 by 12.91 units, inside the allowance on both axes.
+
+       NOT MEASURED. No stored capture in reference/macos holds a checkmark
+       at all — not in a menu, not in a list — so this figure is drawn to the
+       set's grid rather than read off the platform, and the capture that
+       would settle its proportion and its weight is on the reference's list.
+
+       Where the band-landing rule reaches. It does not: both arms run at 45
+       degrees and no edge of this drawing runs along the grid, so neither has
+       a leading edge at 1.5m to land a whole device pixel inside. What the
+       rule asks for is had the other way, exactly as the disclosure chevron
+       has it — a 45-degree band 2 units wide is 1.33 px at 16 dp, 1.67 at 20
+       and 2.00 at 24, and covers better than 99.7% of the pixel it runs
+       through at all three.
+
+       The caps and the turn are drawn as geometry: nothing here is
+       axis-aligned, and this set's SVG backend can ask for neither a line cap
+       nor a join, so the outline is one closed contour — the centre line
+       offset one unit to each side, mitred at the turn and capped round at
+       both ends. -->
+  <path fill="#000000" d="M3.7929 12.7071 L9 17.9142 L20.2071 6.7071 C20.5978 6.3164 20.5978 5.6836 20.2071 5.2929 C19.8164 4.9022 19.1836 4.9022 18.7929 5.2929 L9 15.0858 L5.2071 11.2929 C4.8164 10.9022 4.1836 10.9022 3.7929 11.2929 C3.4022 11.6836 3.4022 12.3164 3.7929 12.7071 Z"/>
+</svg>

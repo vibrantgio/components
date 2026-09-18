@@ -107,6 +107,36 @@ func (s ToolbarShadow) Faded() ToolbarShadow {
 	return s
 }
 
+// FloatingShadowReach is how far the shadow a FLOATING surface casts carries
+// past that surface's own edge.
+//
+// MEASURED: the window plane recovers to its own value exactly 24 px out from
+// a floating pane's edge in both stored sidebar-shadow captures. It does not
+// vary with what is floating — the platform draws one shadow — which is why
+// effects/depth carries the same number for a floating surface. It is spelled
+// again here because the module graph runs the other way, as the note above
+// says: effects imports components.
+const FloatingShadowReach unit.Dp = 24
+
+// DrawFloatingShadow paints the shadow a floating surface casts around
+// bounds: tokens.PlatformColors.FloatingShadow at its own coverage at the
+// surface's edge, falling linearly to nothing [FloatingShadowReach] away.
+//
+// It takes the same ramp [DrawToolbarShadow] draws, because there is one ramp
+// and [ToolbarShadow] is the value it is handed. What differs is the offset: a
+// floating surface's shadow is centred on it, where a bordered toolbar
+// control's is sunk below it, which is what those captures measure.
+//
+// radius rounds the shadow's corners, in pixels: a caller passes the radius it
+// rounds its own fill to, so the interior cannot show through the rounding as
+// square wedges, and 0 keeps the square geometry.
+func DrawFloatingShadow(gtx layout.Context, bounds image.Rectangle, radius int, p tokens.PlatformColors) {
+	DrawToolbarShadow(gtx, bounds, radius, ToolbarShadow{
+		Peak:  p.FloatingShadow,
+		Reach: FloatingShadowReach,
+	})
+}
+
 // bezierCircle is the cubic-Bézier control-point ratio that best approximates
 // a quarter circle: 4/3·(√2−1).
 const bezierCircle = 0.55228475

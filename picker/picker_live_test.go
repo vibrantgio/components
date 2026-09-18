@@ -118,9 +118,12 @@ func TestFieldOpensItsMenuAndSelectsFromIt(t *testing.T) {
 		t.Fatalf("with its menu open the field measured %d px tall, want the trigger's %d px: the menu floats and takes no room", dims.Size.Y, trig)
 	}
 
-	// The second option's row: the rows float directly under the trigger, each
-	// one row tall, so row index i occupies [ trig+i*row, trig+(1+i)*row ).
-	dims = click(r, drive, f32.Pt(100, float32(trig+row)+float32(row)/2))
+	// The second option's row. The menu stands OVER the trigger with the held
+	// row — index 0 here — centred on it, so the plane begins (trig-row)/2
+	// above the trigger's top and row index i occupies
+	// [ (trig-row)/2 + i*row, (trig-row)/2 + (1+i)*row ).
+	top := (trig - row) / 2
+	dims = click(r, drive, f32.Pt(100, float32(top+row)+float32(row)/2))
 	if len(picked) != 1 || picked[0] != 1 {
 		t.Fatalf("OnSelect fired with %v, want exactly one call carrying index 1", picked)
 	}
@@ -129,23 +132,25 @@ func TestFieldOpensItsMenuAndSelectsFromIt(t *testing.T) {
 	}
 }
 
-// TestUpwardFieldSelectsFromTheMenuAboveItsTrigger walks the same path with
-// the menu on the other side: the trigger stays where the caller put it, the
-// rows float over the room ABOVE it, and a click lands on the option drawn
-// where it was clicked. The direction is a placement and the field stays one
-// component — nothing about picking changes with it.
+// TestFieldWithNoRoomBelowIsPushedUpAndStillSelects walks the same path with
+// the menu pushed off the place it wants to stand: a field told there is no
+// room below its trigger floats its plane up until its foot is at the
+// trigger's, over whatever the window laid out before it, and a click lands on
+// the option drawn where it was clicked. Where the plane lands is a placement
+// and the field stays one component — nothing about picking changes with it.
 //
 // The field is laid out a menu's height down the window because that is the
-// room an upward menu takes back: a field placed at the top would float its
-// rows off the window's own edge.
-func TestUpwardFieldSelectsFromTheMenuAboveItsTrigger(t *testing.T) {
+// room the pushed-up menu takes: a field placed at the top would have its rows
+// pushed off the window's own edge.
+func TestFieldWithNoRoomBelowIsPushedUpAndStillSelects(t *testing.T) {
 	var picked []int
 	w := materialize(t, picker.Field(rx.Of(liveTheme()), picker.FieldProps{
-		Description: "choose",
-		Options:     options,
-		Drop:        picker.DropUp,
-		Shaper:      defaultShaper(t),
-		OnSelect:    func(_ layout.Context, i int) { picked = append(picked, i) },
+		Description:   "choose",
+		Options:       options,
+		Drop:          picker.DropUp,
+		AvailableRoom: func(layout.Context) (int, int) { return 400, 0 },
+		Shaper:        defaultShaper(t),
+		OnSelect:      func(_ layout.Context, i int) { picked = append(picked, i) },
 	}))
 
 	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
@@ -160,18 +165,19 @@ func TestUpwardFieldSelectsFromTheMenuAboveItsTrigger(t *testing.T) {
 	drive := driver(scene, r, image.Pt(200, 400))
 
 	if dims := drive(); dims.Size.Y != trig {
-		t.Fatalf("closed upward field measured %d px tall, want the trigger's %d px", dims.Size.Y, trig)
+		t.Fatalf("closed field measured %d px tall, want the trigger's %d px", dims.Size.Y, trig)
 	}
 
-	// The trigger's own band, which the direction does not move.
+	// The trigger's own band, which the placement does not move.
 	dims := click(r, drive, f32.Pt(100, float32(top)+float32(trig)/2))
 	if dims.Size.Y != trig {
-		t.Fatalf("with its menu open the upward field measured %d px tall, want the trigger's %d px: the menu floats and takes no room", dims.Size.Y, trig)
+		t.Fatalf("with its menu open the field measured %d px tall, want the trigger's %d px: the menu floats and takes no room", dims.Size.Y, trig)
 	}
 
-	// Open, the rows float above the trigger: index i occupies
-	// [ top-(len-i)*row, top-(len-i-1)*row ).
-	dims = click(r, drive, f32.Pt(100, float32(top-2*row)+float32(row)/2))
+	// With nothing below, the plane's foot is the trigger's foot, so index i
+	// occupies [ top+trig-(len-i)*row, top+trig-(len-i-1)*row ).
+	foot := top + trig
+	dims = click(r, drive, f32.Pt(100, float32(foot-2*row)+float32(row)/2))
 	if len(picked) != 1 || picked[0] != 1 {
 		t.Fatalf("OnSelect fired with %v, want exactly one call carrying index 1", picked)
 	}
@@ -412,9 +418,10 @@ func TestCappedMenuOpensOnTheSelectedRow(t *testing.T) {
 		t.Fatalf("the open capped field measured %d px tall, want the trigger's %d px: the capped plane floats and takes no room", dims.Size.Y, trig)
 	}
 
-	// The first row of the viewport, which is the selected row's own band
-	// once the viewport has been scrolled to it.
-	click(r, drive, f32.Pt(100, float32(trig)+float32(row)/2))
+	// The second row of the viewport, which is inside the selected row's own
+	// band once the viewport has been scrolled to it. A capped plane is placed
+	// by its room, and told none it begins at the trigger's top edge.
+	click(r, drive, f32.Pt(100, float32(row)+float32(row)/2))
 	if len(picked) != 1 {
 		t.Fatalf("clicking the first visible row selected %v, want exactly one option", picked)
 	}
@@ -493,7 +500,7 @@ func TestPressOnADeferredMenuRowReachesTheRow(t *testing.T) {
 		OnSelect:    func(_ layout.Context, i int) { picked = append(picked, i) },
 	}))
 
-	row := rowHeight(tokens.Comfortable)
+	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)
 	size := image.Pt(200, row*(1+len(options))+40)
 	var sibTag, sibHits int
 	scene := func(gtx layout.Context) layout.Dimensions {
@@ -509,8 +516,10 @@ func TestPressOnADeferredMenuRowReachesTheRow(t *testing.T) {
 	drive()
 	click(r, drive, f32.Pt(100, float32(row)/2)) // the trigger: open
 
-	// The second option's row, which the sibling covers whole.
-	onRow := f32.Pt(100, float32(2*row)+float32(row)/2)
+	// The second option's row, which the sibling covers whole. The menu stands
+	// over the trigger on the held row — index 0 — so the plane begins
+	// (trig-row)/2 above the trigger's top.
+	onRow := f32.Pt(100, float32((trig-row)/2+row)+float32(row)/2)
 	click(r, drive, onRow)
 	if len(picked) != 1 || picked[0] != 1 {
 		t.Fatalf("press at %v on the menu's second row selected %v, want exactly one call carrying index 1", onRow, picked)

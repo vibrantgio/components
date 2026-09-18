@@ -87,6 +87,13 @@ const (
 	// Document is the thing an entry stands for when it is one piece of
 	// content — a note, a file, a page. It names a thing, as Folder does.
 	Document Name = "document"
+
+	// Check is the mark that says this is the one: it stands beside the
+	// option a control is currently holding, such as the current item of an
+	// open menu. It names a state rather than a control, and it says which
+	// one is held rather than which one the pointer is over — that is the
+	// fill's to say.
+	Check Name = "check"
 )
 
 // The search mark's drawing, as fractions of the square it is drawn in. A

@@ -31,7 +31,7 @@ import (
 // library's pop-up triggers draw one drawing at one size: see
 // [control.DrawMark], which holds the measurement and the geometry.
 
-// edgeDp is the hairline the dropped menu's plane is drawn with, and so the
+// edgeDp is the hairline the open menu's plane is drawn with, and so the
 // distance from the plane's outer edge to its inner one. The trigger draws no
 // edge at all — see [drawTrigger].
 const edgeDp = unit.Dp(1)
@@ -42,39 +42,43 @@ const edgeDp = unit.Dp(1)
 // display and whatever the field stands in clips it back.
 const dismissReach = unit.Dp(8192)
 
-// Drop is the side an open [Field] PREFERS to float its menu on.
+// Drop is the side an open [Field] PREFERS to spend its overflow on.
 //
-// It answers a question only the caller can see: whether the room beneath the
-// trigger is the room the menu should take. A field at the foot of a dialog
-// has none — a menu dropped there would stand off the bottom edge — so that
-// caller says [DropUp] and the menu floats above the trigger instead, over
-// whatever the window laid out before it.
+// An open menu does not drop. It stands OVER the trigger with the row the
+// picker is holding on the trigger's own label, which is what this platform's
+// pop-up button does: the choice the field is showing does not move when the
+// menu opens over it, and the rest of the catalogue is laid above and below it
+// — see [alignOverTrigger].
 //
-// It is a preference and not an instruction. A caller that reports the
-// available room ([FieldProps.AvailableRoom]) is telling the field how much
-// there is on each side, and a menu that cannot be seen whole on the preferred
-// side while the other side holds more of it flips to that other side. With
-// no room reported the preference is simply obeyed.
+// Drop answers what is left after that: which way the menu is pushed when the
+// room the caller reports ([FieldProps.AvailableRoom]) cannot hold it where it
+// wants to stand. A field near the foot of a dialog has little room below, so
+// its menu is pushed up; one near the top is pushed down. The push is worked
+// out from the room itself, and Drop settles it only where BOTH ends are
+// short — a menu taller than the whole room is capped to the room and scrolls
+// inside it, and Drop says which end of the room it is anchored to while the
+// rows move under it. With no room reported nothing says the menu cannot stand
+// where it wants to, and it does.
 //
 // Either way the open field reports its TRIGGER and nothing else. The menu is
 // a floating surface deferred to the end of the frame, and a floating surface
 // asks the container its anchor stands in for no room: an open field is placed
-// exactly where a closed one is, and the direction changes what the menu
+// exactly where a closed one is, and where the menu lands changes what it
 // covers, never the box the field reports.
 //
 // The trigger's mark says nothing about it. The platform's pop-up mark is a
 // pair of chevrons pointing opposite ways — it says the choice can move
-// either way and cannot say a direction — so a field that drops upwards draws
-// the same trigger as one that drops down, and the direction is read off the
-// menu itself. See [drawMark].
+// either way and cannot say a direction — so a field whose menu is pushed
+// upwards draws the same trigger as one whose menu is pushed down. See
+// [control.DrawMark].
 type Drop uint8
 
 const (
-	// DropDown is the zero value: the menu floats directly beneath the
-	// trigger, which is what a form's select does.
+	// DropDown is the zero value: a menu that cannot stand where it wants to
+	// takes the room below the trigger first.
 	DropDown Drop = iota
 
-	// DropUp floats the menu directly above the trigger.
+	// DropUp takes the room above the trigger first.
 	DropUp
 )
 
@@ -92,7 +96,8 @@ type FieldState struct {
 
 	// Hovered lays the platform's hover overlay over the trigger's fill;
 	// Pressed lays its press overlay there instead, a press winning over a
-	// hover. See [drawTrigger].
+	// hover. A trigger whose menu stands (Open) takes the pressed drawing
+	// too, for as long as it stands. See [drawTrigger].
 	Hovered bool
 	Pressed bool
 
@@ -103,8 +108,9 @@ type FieldState struct {
 	// [FieldProps.Surface].
 	Surface color.NRGBA
 
-	// Drop is the side the open menu floats on. The zero value is
-	// [DropDown], beneath the trigger. See [Drop].
+	// Drop is the side the open menu takes first when the room cannot hold
+	// it where it wants to stand — over the trigger. The zero value is
+	// [DropDown]. See [Drop].
 	Drop Drop
 
 	// MaxHeight is the tallest the caller would like the open menu's plane to
@@ -119,7 +125,8 @@ type FieldState struct {
 	// in: the pixels between the trigger's top edge and the top of the
 	// container the field was laid out in, and between its bottom edge and
 	// that container's bottom. It is asked on every frame the menu stands,
-	// before the menu is laid out.
+	// before the menu is laid out. The menu stands over the trigger, so the
+	// room it has is both of those plus the trigger's own height.
 	//
 	// The zero value is nil, and a menu with no room reported is bounded by
 	// the window alone — what a floating surface is bounded by when nobody
@@ -147,13 +154,12 @@ type FieldProps struct {
 	// Selected is the initial selected index established on subscribe.
 	Selected int
 
-	// Drop is the side the open menu PREFERS to float on, copied straight into
-	// [FieldState.Drop] on every frame. The zero value is [DropDown]. A caller
-	// with no room beneath the trigger says [DropUp]; either way the field
-	// reports its trigger alone and an open one is placed where a closed one
-	// is. A field that has been told the available room flips to the other
-	// side when this one cannot hold the menu and the other holds more of it.
-	// See [Drop].
+	// Drop is the side the open menu PREFERS to spend its overflow on, copied
+	// straight into [FieldState.Drop] on every frame. The zero value is
+	// [DropDown]. The menu itself stands over the trigger with the held row on
+	// the trigger's label; Drop settles only where a menu the reported room
+	// cannot hold is anchored. Either way the field reports its trigger alone
+	// and an open one is placed where a closed one is. See [Drop].
 	Drop Drop
 
 	// MaxHeight is the tallest the caller would like the open menu's plane to
@@ -172,10 +178,11 @@ type FieldProps struct {
 	// AvailableRoom, if non-nil, is asked on every frame the menu stands for
 	// the room it has to stand in — the pixels above the trigger's top edge
 	// and below its bottom edge, inside the container that laid the field out
-	// — and it settles both questions a floating surface has: which side of
-	// the trigger the menu goes on, and how tall it may be. The menu is capped
-	// to what the chosen side leaves and scrolls inside that cap, and [Drop]
-	// is a preference the room can overrule.
+	// — and it settles both questions a floating surface has: where the menu
+	// lands, and how tall it may be. The menu stands over the trigger, so the
+	// room it has is those two plus the trigger's own height; a menu that
+	// cannot stand there whole is pushed into the room, and one taller than
+	// the whole room is capped to it and scrolls inside that cap.
 	//
 	// The container is asked because a component cannot see past its own box:
 	// Gio gives a component its constraints and no readback of the transform or
@@ -456,9 +463,8 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 	// The side and the cap are settled before anything is drawn, because the
 	// menu is laid out against the side it lands on and the cap is the height
 	// that side leaves.
-	drop, capPx := fitMenu(gtx, shaper, tok, s)
+	offsetY, capPx := fitMenu(gtx, shaper, tok, s)
 	marked := s
-	marked.Drop = drop
 	// The trigger's own pointer state, read off the clickable that covers
 	// exactly the drawn bar. The menu's rows carry theirs separately.
 	marked.Hovered = trigger.Hovered()
@@ -502,93 +508,150 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 	event.Op(gtx.Ops, outside)
 	area.Pop()
 
-	return floatMenu(gtx, drop, tok, triggerCall, triggerDims, menuCall, menuDims)
+	return floatMenu(gtx, offsetY, tok, triggerCall, triggerDims, menuCall, menuDims)
+}
+
+// alignOverTrigger is where the menu's plane starts, measured from the
+// trigger's own top edge, for the menu to stand OVER the trigger with the row
+// the picker is holding on the trigger's label: the rows above it are laid out
+// above the trigger, the rows below it below, and the held row covers the
+// trigger itself.
+//
+// That is this platform's pop-up button. The control shows a value; pressing
+// it opens the catalogue around that value rather than beside it, so the thing
+// the reader was looking at does not move and the pointer is already on it.
+//
+// The held row's own box is centred on the trigger's — both are set in the
+// same role at the same size, so their labels meet when their boxes do, and
+// the trigger's own label is centred in the trigger the same way
+// ([drawTrigger]). A picker holding nothing has no row to align and puts the
+// top of the menu on the top of the trigger.
+//
+// heights are the rows' own heights in order, triggerH the trigger's.
+func alignOverTrigger(heights []int, selected, triggerH int) int {
+	if selected < 0 || selected >= len(heights) {
+		return 0
+	}
+	before := 0
+	for _, h := range heights[:selected] {
+		before += h
+	}
+	return (triggerH-heights[selected])/2 - before
 }
 
 // fitMenu settles the two questions the available room answers before an open
-// menu is laid out: which side of the trigger it floats on, and how tall its
-// plane may be. A closed field, or one with nothing to pick, is asked nothing
-// and keeps the caller's own side and preference.
+// menu is laid out: where the menu's plane starts against the trigger's top
+// edge, and how tall that plane may be. A closed field, or one with nothing to
+// pick, is asked nothing.
 //
-// [FieldState.Drop] is a preference and stands unless the room says otherwise.
-// The menu FLIPS when the preferred side cannot hold what the menu would draw
-// and the other side holds more of it: a surface the reader can see more of is
-// worth the side the caller did not ask for, and a surface that fits where it
-// was asked to go is not moved for a roomier neighbour. The cap is then the
-// chosen side's room, tightened further by [FieldState.MaxHeight] where the
-// caller stated one — the room may tighten a preference and never loosen it —
-// and a cap no smaller than the menu's own height is no cap at all, so a menu
-// with room to spare stacks its rows plainly and draws whole.
+// A MENU THAT DRAWS WHOLE stands over the trigger, on the held row — see
+// [alignOverTrigger]. The room the caller reports is what may move it: the
+// menu is pushed the least distance that brings it wholly inside the room, so
+// a field near the top of its container has its menu pushed down and one near
+// the foot has it pushed up. Nothing is moved that already fits.
 //
-// With no room reported ([FieldState.AvailableRoom] nil) the caller's side and
-// cap are the whole answer and the menu is bounded by the window.
-func fitMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s FieldState) (Drop, int) {
-	prefer := capPixels(gtx, s.MaxHeight)
-	if !s.Open || len(s.Options) == 0 || s.AvailableRoom == nil {
-		return s.Drop, prefer
+// A CAPPED MENU is a viewport, and the rows move under it: there is no row to
+// pin to the trigger, because which row stands where is the scroller's answer
+// and it changes as the reader scrolls. So a capped plane is placed by its
+// room instead — [FieldState.Drop] says which end of the room it takes,
+// DropUp the room above the trigger and DropDown the room below — and it
+// scrolls inside that cap, which is what the Placement rule asks of a surface
+// taller than the room it wins. With no room reported there is no room to take
+// an end of, so the cap is anchored to the trigger itself: DropDown begins at
+// the trigger's top edge and DropUp ends at its foot.
+//
+// [FieldState.MaxHeight] tightens the cap and can never loosen it: a menu the
+// caller capped and the room capped again takes the smaller of the two. A cap
+// no smaller than the menu's own height is no cap at all, so a menu with room
+// to spare stacks its rows plainly and draws whole.
+//
+// A cap ends on a row's edge — see [wholeRows].
+func fitMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s FieldState) (offsetY, capPx int) {
+	if !s.Open || len(s.Options) == 0 {
+		return 0, capPixels(gtx, s.MaxHeight)
 	}
 
-	// What the menu would draw uncapped, row by row, so the cap can end on a
-	// row's edge as well as inside the room.
+	// What the menu would draw uncapped, row by row, so a cap can end on a
+	// row's edge and the held row can be found.
 	heights := rowHeights(gtx, shaper, tok, MenuState{Options: s.Options, Selected: s.Selected})
 	uncapped := 0
 	for _, h := range heights {
 		uncapped += h
 	}
+	triggerH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 
-	above, below := s.AvailableRoom(gtx)
-	drop := s.Drop
-	room, other := below, above
-	if drop == DropUp {
-		room, other = above, below
+	// The room, in the trigger's own coordinates: the trigger's top edge is
+	// zero, so the room runs from minus what stands above it to the trigger's
+	// height plus what stands below. A field told nothing is bounded by the
+	// window, and the trigger's own edges are all this arithmetic knows.
+	top, bottom := 0, triggerH
+	if s.AvailableRoom != nil {
+		above, below := s.AvailableRoom(gtx)
+		top, bottom = -above, triggerH+below
 	}
-	want := uncapped
-	if prefer > 0 && prefer < want {
-		want = prefer
+
+	height := uncapped
+	if prefer := capPixels(gtx, s.MaxHeight); prefer > 0 && prefer < height {
+		height = wholeRows(heights, prefer)
 	}
-	if room < want && other > room {
-		if drop == DropUp {
-			drop = DropDown
-		} else {
-			drop = DropUp
+	if s.AvailableRoom != nil && height > bottom-top {
+		height = wholeRows(heights, bottom-top)
+	}
+
+	if height >= uncapped {
+		want := alignOverTrigger(heights, s.Selected, triggerH)
+		if s.AvailableRoom != nil {
+			if want+uncapped > bottom {
+				want = bottom - uncapped
+			}
+			if want < top {
+				want = top
+			}
 		}
-		room = other
+		return want, 0
 	}
-	capPx := room
-	if prefer > 0 && prefer < capPx {
-		capPx = prefer
+
+	if s.Drop == DropUp {
+		if s.AvailableRoom != nil {
+			return top, height
+		}
+		return triggerH - height, height
 	}
-	// The plane ends on a row's edge: a cap taken raw stops through the
-	// letters of whatever row the room ran out inside, which reads as a
-	// drawing fault rather than as more rows below. A room too small for even
-	// one row keeps the room, since the room is the bound.
+	if s.AvailableRoom != nil {
+		return bottom - height, height
+	}
+	return 0, height
+}
+
+// wholeRows is the tallest plane no taller than limit that ends on a row's
+// edge. A cap taken raw stops through the letters of whatever row the room ran
+// out inside, which reads as a drawing fault rather than as more rows below. A
+// limit too small for even one row keeps the limit, since the limit is the
+// bound; and a limit that leaves nothing is still a bound and not the absence
+// of one, so the plane is capped to a sliver rather than uncapped.
+func wholeRows(heights []int, limit int) int {
 	whole := 0
 	for _, h := range heights {
-		if whole+h > capPx {
+		if whole+h > limit {
 			break
 		}
 		whole += h
 	}
 	if whole > 0 {
-		capPx = whole
+		return whole
 	}
-	// A side that leaves nothing is still a bound and not the absence of one,
-	// so the plane is capped to a sliver rather than uncapped.
-	if capPx < 1 {
-		capPx = 1
+	if limit < 1 {
+		return 1
 	}
-	if capPx >= uncapped {
-		return drop, 0
-	}
-	return drop, capPx
+	return limit
 }
 
 // floatMenu draws the recorded trigger where the caller put it, floats the
-// recorded menu against it on the side fitMenu chose — directly beneath under
-// [DropDown], directly above under [DropUp] — and reports the TRIGGER, which
+// recorded menu against it at the offset fitMenu settled — over the trigger,
+// on the held row, unless the room pushed it — and reports the TRIGGER, which
 // is the whole of what the field measures whether its menu stands or not.
 //
-// The menu and its edge go through op.Defer, so the open plane paints and
+// The menu and its plane go through op.Defer, so the open plane paints and
 // hit-tests above every sibling the window lays out after the field's slot,
 // bounded by the window rather than by whatever clipped the trigger.
 // patterns/popover's package doc states the idiom and what deferral keeps and
@@ -596,64 +659,87 @@ func fitMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fiel
 // stands in, so the box the field reports is the trigger's either way and an
 // open field is placed exactly where a closed one is.
 //
-// The menu's plane takes its edge here, in both directions, because the plane
-// is the field's to draw: [Menu] handed to a pattern is circled by that
-// pattern's own surface and would wear two lines.
-func floatMenu(gtx layout.Context, d Drop, tok resolvedTokens, trigger op.CallOp, triggerDims layout.Dimensions, menu op.CallOp, menuDims layout.Dimensions) layout.Dimensions {
+// The plane is the FIELD's to draw and not the menu's: [Menu] handed to a
+// pattern is circled by that pattern's own surface and would wear two corners
+// and two shadows. What the field adds around the recorded rows is the corner,
+// the shadow the level is told by, and the edge — see [planeShape].
+func floatMenu(gtx layout.Context, offsetY int, tok resolvedTokens, trigger op.CallOp, triggerDims layout.Dimensions, menu op.CallOp, menuDims layout.Dimensions) layout.Dimensions {
 	trigger.Add(gtx.Ops)
-	menuY := triggerDims.Size.Y
-	if d == DropUp {
-		menuY = -menuDims.Size.Y
-	}
 	floating := op.Record(gtx.Ops)
-	menuOff := op.Offset(image.Pt(0, menuY)).Push(gtx.Ops)
-	menu.Add(gtx.Ops)
-	planeEdge(gtx, menuDims.Size, tok.platform)
+	menuOff := op.Offset(image.Pt(0, offsetY)).Push(gtx.Ops)
+	planeShape(gtx, menuDims.Size, tok.platform, menu)
 	menuOff.Pop()
 	op.Defer(gtx.Ops, floating.Stop())
 	return triggerDims
 }
 
-// planeEdge draws the open menu's own edge: the one line that says where the
-// transient plane ends.
+// planeRadius is the corner the open menu's plane is cut to.
 //
-// Without it the plane is separated from what it covers by fill alone, and the
-// fill is not always a separation — a menu standing on a pane the platform
-// fills the same way is a colour the eye cannot find, and text on one side of
-// it running into text on the other reads as corruption rather than as two
-// surfaces.
+// NOT MEASURED: no stored capture in reference/macos holds an open menu, so
+// there is no reading of a menu's own corner to take. It is the corner the one
+// pill the reference does measure carries — patterns/sidebar's selected row,
+// cornered at 8 — and the capture that would settle a menu's own is on the
+// reference's list. The rows' own pill takes the same corner, so the plane and
+// what stands inside it are cut alike.
+const planeRadius = unit.Dp(8)
+
+// planeShape draws the open menu's plane and the rows on it: the shadow that
+// says the surface is floating, the rows clipped to the plane's own corner,
+// and the edge that says where the plane ends.
 //
-// The line is the platform's seam flattened over the menu's own plane — it is
-// drawn inside the box, so that plane is what lies under it — one dp wide.
-// The geometry is patterns/popover's, because they are the same surface.
+// THE SHADOW is what tells this level. The Level entry gives a floating
+// surface the window background under the platform's shadow, and the window
+// background is what the rows themselves fill: nothing but the shadow tells
+// the menu's fill from the window's behind it, which is how this platform
+// tells them apart — see [control.DrawFloatingShadow] and
+// PlatformColors.FloatingShadow.
 //
-// It is drawn INSIDE the box the menu reported, on all four sides, so the edge
-// costs the plane no height and the two drop directions are one drawing.
-func planeEdge(gtx layout.Context, size image.Point, p tokens.PlatformColors) {
+// THE EDGE is the platform's seam flattened over the menu's own plane, drawn
+// INSIDE the box the menu reported so the edge costs the plane no height and
+// the plane is what lies under it. Without it the plane is separated from what
+// it covers by fill alone, and the fill is not always a separation — a menu
+// standing on a pane the platform fills the same way is a colour the eye
+// cannot find, and text on one side of it running into text on the other
+// reads as corruption rather than as two surfaces. The geometry is
+// patterns/popover's, because they are the same surface.
+//
+// The edge is laid ON the plane's outline rather than beside it: a stroke of
+// twice its width, centred on that outline and clipped to it, puts every pixel
+// of the line inside the box where a stroke of its own width would fall half
+// outside. Drawn that way both of its sides follow the corner, which four
+// rectangles could not — the same idiom the trigger's focus ring takes.
+func planeShape(gtx layout.Context, size image.Point, p tokens.PlatformColors, rows op.CallOp) {
 	if size.X <= 0 || size.Y <= 0 {
 		return
 	}
+	r := gtx.Dp(planeRadius)
+	if half := min(size.X, size.Y) / 2; r > half {
+		r = half
+	}
+	plane := clip.RRect{Rect: image.Rectangle{Max: size}, NE: r, NW: r, SE: r, SW: r}
+
+	control.DrawFloatingShadow(gtx, image.Rectangle{Max: size}, r, p)
+
+	area := plane.Push(gtx.Ops)
+	rows.Add(gtx.Ops)
+	area.Pop()
+
 	w := gtx.Dp(edgeDp)
 	if w < 1 {
 		w = 1
 	}
-	border := vgcolor.Flatten(p.Separator, p.ControlBackground)
-	for _, r := range [...]image.Rectangle{
-		{Max: image.Pt(size.X, w)},
-		{Min: image.Pt(0, size.Y-w), Max: size},
-		{Max: image.Pt(w, size.Y)},
-		{Min: image.Pt(size.X-w, 0), Max: size},
-	} {
-		paint.FillShape(gtx.Ops, border, clip.Rect(r).Op())
-	}
+	border := vgcolor.Flatten(p.Separator, p.WindowBackground)
+	path := plane.Path(gtx.Ops)
+	edgeArea := plane.Push(gtx.Ops)
+	paint.FillShape(gtx.Ops, border, clip.Stroke{Path: path, Width: float32(2 * w)}.Op())
+	edgeArea.Pop()
 }
 
 // drawField renders the static field — the trigger and, when open, the menu
 // it floats — for golden-image testing.
 func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s FieldState) layout.Dimensions {
-	drop, capPx := fitMenu(gtx, shaper, tok, s)
+	offsetY, capPx := fitMenu(gtx, shaper, tok, s)
 	marked := s
-	marked.Drop = drop
 
 	triggerMacro := op.Record(gtx.Ops)
 	triggerDims := drawTrigger(gtx, shaper, tok, marked)
@@ -671,7 +757,7 @@ func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fi
 	}, capPx)
 	menuCall := menuMacro.Stop()
 
-	return floatMenu(gtx, drop, tok, triggerCall, triggerDims, menuCall, menuDims)
+	return floatMenu(gtx, offsetY, tok, triggerCall, triggerDims, menuCall, menuDims)
 }
 
 // drawTrigger renders the field trigger bar (the closed face).
@@ -682,8 +768,8 @@ func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fi
 // — the control height, not the field's 28 — its fill runs x 264–451 with no
 // edge column of any kind, and both of its insets are spent from that fill's
 // own edge: [control.PopupLeadDp] for the label and
-// [control.PopupMarkTrailDp] for the mark. The rows of the menu it drops are
-// not pop-ups and keep the field's insets.
+// [control.PopupMarkTrailDp] for the mark. The rows of the menu it opens are
+// not pop-ups and take their own columns — see picker's rowColumns.
 func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s FieldState) layout.Dimensions {
 	// No edge column stands between the fill and the surface, so there is no
 	// inner edge for an inset to start from and both are spent from the
@@ -728,6 +814,14 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	// control-pressed-{light,dark}.png: #d5d5d5 and #474d52 over the push
 	// button's own fill. The pressed pop-up is on the capture list.
 	//
+	// WHILE ITS MENU STANDS the trigger takes the same held drawing. The
+	// press that opened the menu has not been answered until the menu closes,
+	// and a trigger drawn at rest under an open menu reads as a control
+	// nothing is happening to. No stored capture holds a pop-up with its menu
+	// open either, so what is drawn is the one held state the reference does
+	// measure, and that capture is on the reference's list with the pressed
+	// pop-up.
+	//
 	// A disabled trigger fades toward the surface it stands on at the
 	// platform's measured disabled coverage, and every name drawn over it is
 	// flattened onto the faded fill. Which surface that is, is the caller's
@@ -736,7 +830,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	switch {
 	case s.Disabled:
 		bg = control.Faded(bg, surface.Or(s.Surface, tok.platform.WindowBackground))
-	case s.Pressed:
+	case s.Pressed, s.Open:
 		bg = vgcolor.Flatten(tok.platform.PressOverlay, bg)
 	case s.Hovered:
 		bg = vgcolor.Flatten(tok.platform.HoverOverlay, bg)

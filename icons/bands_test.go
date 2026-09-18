@@ -123,6 +123,7 @@ var markBands = map[string][]band{
 	// grid, so the rule reaches none of them and each file says so, with what
 	// it has instead — the diagonal measure of 2 units, which covers a whole
 	// device pixel at all three sizes.
+	"check":           nil,
 	"clear":           nil,
 	"disclosure":      nil,
 	"history-back":    nil,
