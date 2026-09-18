@@ -418,9 +418,11 @@ const hairlineDp unit.Dp = 1
 // capsule at the toolbar control's height, and in the DARK appearance it
 // wears a 1 px rim the whole way round — x 643 and x 967 carry it as well as
 // y 8 and y 43 — lighter than both its fill and the band, which is the
-// highlight every bordered control in a dark toolbar band wears
-// (control.ToolbarRim). Light, the band steps straight to the fill and there
-// is no rim to draw.
+// highlight every bordered control in a dark toolbar band wears. The pixel is
+// #4d4d4d, which no alpha name lands: the separator over that fill gives
+// #4a4a4a, three of 255 short, so the recess carries its own measured value
+// (control.ToolbarSearchRim). Light, the band steps straight to the fill and
+// there is no rim to draw.
 //
 // Focus replaces the edge in both variants: the ring is the one keyboard
 // focus indicator every control in this library wears, and a recess with no
@@ -780,7 +782,7 @@ func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, 
 	edge = control.Border(p)
 	placeholder = control.Placeholder(p, fill)
 	if s.onToolbar() {
-		edge = control.ToolbarRim(p, fill)
+		edge = control.ToolbarSearchRim(p)
 		shadow = p.ToolbarControlShadow
 	}
 	switch {

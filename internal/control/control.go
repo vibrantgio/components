@@ -74,6 +74,24 @@ func Recess(p tokens.PlatformColors) color.NRGBA { return p.SidebarSearchFill }
 // its own.
 func ToolbarRecess(p tokens.PlatformColors) color.NRGBA { return p.ToolbarSearchFill }
 
+// ToolbarSearchRim is the hairline that recess wears round its own edge: the
+// platform's measured value for it and not an alpha name flattened, because
+// no name lands the pixel. It answers no colour in the light appearance,
+// where the platform draws no rim at all, and a caller draws nothing there.
+//
+// It is apart from [ToolbarRim], which is what a BORDERED toolbar control
+// wears: that rim is the separator over the control's own fill and misses by
+// five of 255 there, where over the recess's fill it misses by three. The two
+// are different pixels over different fills, so the recess carries its own
+// name rather than borrowing that one.
+//
+// MEASURED, voicememos-window.png, the search field at x 643-967, y 8-43 of a
+// frontmost dark toolbar: #4d4d4d flat along y=8 and y=43 over x 669-941, and
+// #4b4b4b and #4a4a4a down the columns at either end, so the rim runs the
+// whole way round. MEASURED, voicememos-sidebar-light.png: the light band
+// steps straight to the fill with no stroke row on any side.
+func ToolbarSearchRim(p tokens.PlatformColors) color.NRGBA { return p.ToolbarSearchRim }
+
 // ToolbarRim is the hairline a control standing in a toolbar band wears: the
 // platform's separator flattened over the fill it is drawn on — but only
 // where that hairline LIFTS the fill. Where it would darken it instead, the

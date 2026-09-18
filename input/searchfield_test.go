@@ -577,11 +577,19 @@ func TestSearchFieldToolbarRecessIsTheMeasuredControl(t *testing.T) {
 			}
 			// The rim: the platform draws one in the dark appearance only,
 			// and where it draws none the field's first row is its own fill.
-			rim := control.ToolbarRim(p.col, fill)
+			// It is the recess's own measured value and not the separator
+			// over the fill, which falls three of 255 short of the pixel.
+			rim := control.ToolbarSearchRim(p.col)
 			switch p.name {
 			case "dark":
 				if rim.A == 0 {
 					t.Fatal("the dark toolbar rim answers no colour; the capture holds one")
+				}
+				if want := (color.NRGBA{R: 0x4d, G: 0x4d, B: 0x4d, A: 0xff}); rim != want {
+					t.Errorf("the dark toolbar search rim = %v, want the measured %v", rim, want)
+				}
+				if rim == vgcolor.Flatten(p.col.Separator, fill) {
+					t.Error("the rim is the separator flattened over the fill; the capture reads three of 255 lighter")
 				}
 				if got := at(200, 0); got != rim {
 					t.Errorf("the recess's first row = %v, want the rim %v", got, rim)
