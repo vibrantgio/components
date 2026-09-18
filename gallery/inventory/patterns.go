@@ -311,13 +311,13 @@ func (inv *Inventory) sidebar(c tokens.PlatformColors) layout.Widget {
 // The pane specimen's measurements.
 //
 // The pane is chrome inside a window, not a component on a page: the inset,
-// the corner radius and the internal hairline only say what they say when the
-// backdrop shows around them. So the specimen draws a window of its own
-// inside the slot, and the pane stands in that.
+// the corner radius, the rim and the shadow only say what they say when the
+// window's own plane shows around them. So the specimen draws a window of its
+// own inside the slot, and the panel stands in that.
 //
-// The window needs no outline of its own: it paints the backdrop, which is a
-// tint darker than everything the section row around it is painted in, so the
-// darker rectangle is the window's edge.
+// The window needs no outline of its own: its plane and the content column
+// beside the panel are both painted, and the section row around it is a
+// different fill again.
 const (
 	paneSpecimenW unit.Dp = 560
 	paneSpecimenH unit.Dp = 200
@@ -325,24 +325,24 @@ const (
 	// a document rather than half the window, which is what the pattern's own
 	// stored images show it at.
 	paneColumnW unit.Dp = 168
-	// paneGutter is the air between the pane's trailing edge and the document
-	// that reflows beside it.
+	// paneGutter is the air between the panel's trailing edge and the
+	// document's own first column of prose.
 	paneGutter unit.Dp = 16
 )
 
-// pane draws the pane beside the content it stands over: the chrome column
-// running to the window's leading, top and bottom edges, one seam down its
-// trailing edge, and a document column starting where the pane stops.
+// pane draws the panel beside the content it stands over: the rounded column
+// set in from the window's leading, top and bottom edges with its rim and its
+// shadow, and a document column beginning where the panel stops.
 //
-// The content beside it is what makes the specimen a specimen. A pane alone
-// in a box shows a filled rectangle; a pane with a document flush against it
-// shows the one thing the pattern is for — one boundary, and what the reader
-// gets back when the column is sent away.
+// The content beside it is what makes the specimen a specimen. A panel alone
+// in a box shows a rounded rectangle; a panel with a document flush against
+// it shows the one thing the pattern is for — one boundary, and what the
+// reader gets back when the column is sent away.
 func (inv *Inventory) pane(c tokens.PlatformColors) layout.Widget {
 	contents := func(gtx layout.Context) layout.Dimensions {
-		// The strip at the top of the pane is the window buttons' band. This
+		// The strip at the top of the panel is the window buttons' band. This
 		// specimen draws no window buttons — they belong to the window and
-		// not to the pattern — so the pane's own content starts under it,
+		// not to the pattern — so the panel's own content starts under it,
 		// which is where a caller's content starts too.
 		inset := gtx.Dp(12)
 		defer op.Offset(image.Pt(inset, gtx.Dp(pane.StripDp))).Push(gtx.Ops).Pop()
@@ -361,15 +361,28 @@ func (inv *Inventory) pane(c tokens.PlatformColors) layout.Widget {
 		// narrower than that, the way every other bounded specimen here is.
 		size := image.Pt(min(gtx.Constraints.Max.X, gtx.Dp(paneSpecimenW)), gtx.Dp(paneSpecimenH))
 		gtx.Constraints = layout.Exact(size)
-		// The document's own surface under the whole specimen: the column
-		// and the document run to the window's edges between them, and the
-		// document is what a window is.
-		paint.FillShape(gtx.Ops, c.TextBackground, clip.Rect{Max: size}.Op())
+		// Clipped to the window it stands for: the panel's shadow reaches
+		// past the panel and a window cuts what its own chrome throws at its
+		// edge, so nothing here may paint into the page around the specimen.
+		defer clip.Rect{Max: size}.Push(gtx.Ops).Pop()
+		// The window's own plane under everything, which is what shows in the
+		// margins the panel stands off; then the document's surface from the
+		// panel's trailing edge to the window's, since the content is flush
+		// against the panel and runs to the window's other three edges.
+		paint.FillShape(gtx.Ops, c.WindowBackground, clip.Rect{Max: size}.Op())
 
 		b := pane.Bounds(gtx, size, paneColumnW, false)
+		paint.FillShape(gtx.Ops, c.TextBackground, clip.Rect(image.Rect(b.Max.X, 0, size.X, size.Y)).Op())
+		// Behind the panel's two trailing corner arcs stands the document, not
+		// the plane: the panel is flush with it on that side.
+		pane.FillTrailingCorners(gtx, c.TextBackground, b)
 		pane.Layout(gtx, c, b, contents)
+		// The shadow the panel casts on the plane and on the document beside
+		// it. Nothing this specimen draws afterwards stands where the ramp
+		// falls, so it goes here rather than last.
+		pane.PaintShadow(gtx, c, b)
 
-		// The document, starting one gutter past the column's seam — the
+		// The document, one gutter past the panel's trailing edge — the
 		// reflow the pattern's hidden state completes by starting it at the
 		// window's own edge instead.
 		doc := gtx
@@ -379,13 +392,13 @@ func (inv *Inventory) pane(c tokens.PlatformColors) layout.Widget {
 		inv.prose(c,
 			"The document beside it",
 			"",
-			"A pane runs to the window's leading, top",
-			"and bottom edges, with one seam to what",
-			"stands beside it.",
+			"A pane is set in from the window's",
+			"leading, top and bottom edges, rounded,",
+			"with the platform's rim and shadow.",
 			"",
 			"It wears the chrome material: a pane is",
 			"a shade off the content and told from it",
-			"by that shade and its one line.",
+			"by its rim and by the plane around it.",
 		)(doc)
 		off.Pop()
 
