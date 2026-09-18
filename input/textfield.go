@@ -458,8 +458,17 @@ func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size im
 	// system-settings-grouped-box-light.png: the sidebar around its recess
 	// reads the sidebar's own 249-250 in every row above and below it, so
 	// the platform casts nothing there.
+	//
+	// It goes through the band's own pass, as every other bordered control
+	// in a band does: recorded here and handed to op.Defer, so it is painted
+	// after every column of the window has laid out and the reach past the
+	// band is cut by the window rather than by whichever column the field
+	// stands over. The field's own box is cut out of it, which is what makes
+	// a shadow painted after the field land what one painted under it landed.
 	if s.onToolbar() {
-		control.DrawToolbarShadow(gtx, image.Rectangle{Max: size}, rad, shadow)
+		macro := op.Record(gtx.Ops)
+		control.DrawToolbarShadowAround(gtx, image.Rectangle{Max: size}, rad, shadow)
+		op.Defer(gtx.Ops, macro.Stop())
 	}
 
 	if borderPx > 0 {

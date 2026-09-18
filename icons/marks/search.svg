@@ -24,7 +24,14 @@
        The lens's centre is not the drawing's centre and cannot be: the lens
        stands leading and high, the handle runs to the lower trailing corner.
        A field aligning this mark on its centre row aligns the lens, which is
-       where the platform puts it — see SearchLensCentre. -->
+       where the platform puts it — see SearchLensCentre.
+
+       Where the band-landing rule reaches. It does not: the lens is curved
+       everywhere and runs along an axis at four points only, and the handle
+       runs at 45 degrees, so no edge of this drawing has a leading edge at
+       1.5m to land a whole device pixel inside. What the rule asks for is had
+       the other way — the band is 2 units, which is 1.33 px at 16 dp, 1.67 at
+       20 and 2.00 at 24, over one whole device pixel at every size. -->
   <path fill="#000000" d="M10 2 C14.4183 2 18 5.5817 18 10 C18 14.4183 14.4183 18 10 18 C5.5817 18 2 14.4183 2 10 C2 5.5817 5.5817 2 10 2 Z M10 4 C6.6863 4 4 6.6863 4 10 C4 13.3137 6.6863 16 10 16 C13.3137 16 16 13.3137 16 10 C16 6.6863 13.3137 4 10 4 Z"/>
   <!-- The handle, its own contour so it abuts the ring rather than winding
        against it: a band of 2 at 45 degrees, its centre line from just inside

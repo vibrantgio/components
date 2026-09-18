@@ -18,11 +18,12 @@
        range, where an antialiased line is drawn grey rather than in the
        control's colour.
 
-       Each band runs from unit 10.5 to unit 12 rather than sitting centred on
-       unit 12, and that is what puts a whole device pixel inside it at every
-       size this set is drawn at: 10.5 and 12 fall on pixel boundaries at 16,
-       20 and 24 px alike, so the crossing covers one pixel whole and its
-       neighbours in part — the capture's own profile, one pixel at the mark's
+       Where each band lands. Both of them — the crossbar and the upright —
+       run from unit 10.5 to unit 12 rather than sitting centred on unit 12,
+       and that is what puts a whole device pixel inside them at every size
+       this set is drawn at: a leading edge at 1.5m lands one at 16, 20 and 24
+       dp alike when m is 0 or 3 mod 4, and 10.5 is m=7. So the crossing
+       covers one pixel whole and its neighbours in part — the capture's own profile, one pixel at the mark's
        colour and a fraction beside it. A band centred on unit 12 splits
        evenly across two pixels and reaches the colour on neither, which reads
        grey beside a label drawn in the same colour. The drawn extent stays

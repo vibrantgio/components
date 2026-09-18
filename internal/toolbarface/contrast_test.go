@@ -34,17 +34,24 @@ func TestTheTriggerTakesThePlatformsNames(t *testing.T) {
 				t.Errorf("%s: Fill(%v) = %v, want %v", sc.name, tc.state, got, tc.want)
 			}
 		}
-		// The rim is the platform's seam where the platform draws one, and
-		// nothing where it does not: MEASURED, the dark toolbar control wears
-		// a 1 px highlight over its fill and the light one wears no edge at
-		// all, its band stepping straight up to the control's white.
-		rim := Rim(p, fill)
+		// The rim is the platform's measured value where the platform draws
+		// one, and nothing where it does not: MEASURED, the dark toolbar
+		// control wears a 1 px #404040 highlight over its #262626 fill and
+		// the light one wears no edge at all, its band stepping straight up
+		// to the control's white.
+		rim := Rim(p)
 		if sc.name == "dark" {
-			if want := vgcolor.Flatten(p.Separator, fill); rim != want {
-				t.Errorf("dark: Rim = %v, want the platform's seam over the fill %v", rim, want)
+			if want := (color.NRGBA{R: 0x40, G: 0x40, B: 0x40, A: 0xff}); rim != want {
+				t.Errorf("dark: Rim = %v, want the measured %v", rim, want)
 			}
 			if rim.R <= fill.R || rim.G <= fill.G || rim.B <= fill.B {
 				t.Errorf("dark: Rim %v does not lift the fill %v; the platform's rim there is a highlight", rim, fill)
+			}
+			// The seam over the fill is the answer this name replaced: it
+			// falls five of 255 short of the measured pixel, which is why
+			// the rim is a value of its own.
+			if seam := vgcolor.Flatten(p.Separator, fill); seam == rim {
+				t.Errorf("dark: the seam over the fill %v lands the measured rim; the name is carried because it does not", seam)
 			}
 		} else if rim.A != 0 {
 			t.Errorf("light: Rim = %v, want no edge at all — the platform draws none over this fill", rim)

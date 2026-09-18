@@ -126,6 +126,14 @@
 // measurement — the sidebar's pane and seam are the case, and that file
 // records which of its five bands land where.
 //
+// Every mark's file states its own bands the same way: where each leading
+// edge stands, which of the three sizes it lands a whole pixel at, and what
+// it misses by where it misses. A mark drawn entirely on the diagonal or the
+// curve states that the rule reaches none of its edges and what it has
+// instead. The package's tests walk the whole set, render every mark at 16,
+// 20 and 24 and read each stated band's coverage off the render, so a file's
+// claim and its drawing cannot part company.
+//
 // A diagonal edge cannot land on the grid at all, and that is why it takes a
 // measure of its own. A band at 45 degrees crosses a pixel corner to corner,
 // so it covers a whole one only from √2 px across; at 1.5 units it is 1.0 px

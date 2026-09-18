@@ -14,6 +14,16 @@
        rather than at more. Nothing here is axis-aligned, so the caps and the
        turn are drawn as geometry — the outline is one closed contour, which is
        what gives a stroked figure ends and a corner the backend would
-       otherwise cut square. -->
+       otherwise cut square.
+
+       Where the band-landing rule reaches. It does not: both arms run at 45
+       degrees and no edge of this drawing runs along the grid, so neither
+       has a leading edge at 1.5m to land a whole device pixel inside. What
+       the rule asks for is had the other way — the diagonal measure of 2
+       units is 1.33 px at 16 dp, 1.67 at 20 and 2.00 at 24, and a band at 45
+       degrees that wide covers better than 99.7% of the pixel it runs
+       through at all three. The centre line's own corners stand on the 1.5
+       sub-grid, which is where a diagonal figure can be held to the grid at
+       all. -->
   <path fill="#000000" d="M15.793 2.293 L6.793 11.293 C6.402 11.683 6.402 12.317 6.793 12.707 L15.793 21.707 C16.183 22.098 16.817 22.098 17.207 21.707 C17.598 21.317 17.598 20.683 17.207 20.293 L8.914 12 L17.207 3.707 C17.598 3.317 17.598 2.683 17.207 2.293 C16.817 1.902 16.183 1.902 15.793 2.293 Z"/>
 </svg>

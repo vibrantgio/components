@@ -206,3 +206,70 @@ func TestVariantNamesAreTheVocabularys(t *testing.T) {
 
 // darken is how many 255ths of its red channel a band lost under a shadow.
 func darken(band, got color.NRGBA) int { return int(band.R) - int(got.R) }
+
+// TestTheChromeShadowSurvivesWhatIsDrawnAfterIt is the band pass at the
+// pixels: a control's drop shadow is painted after every column of the window
+// has laid out, so a column drawn after the band cannot cover the part of the
+// shadow that reaches past the band's lower edge.
+//
+// The column here is one opaque rectangle standing where a window's content
+// column stands — from the band's foot down, drawn after the band. Before the
+// pass the shadow was painted under the control and this rectangle erased
+// every row of it below the band; after it the whole ramp is still there.
+func TestTheChromeShadowSurvivesWhatIsDrawnAfterIt(t *testing.T) {
+	// The band this control stands in, and the column under it: the control
+	// runs y 27–62 at x 40–77, so the band's own foot is the row after it.
+	const bandFoot = 63
+	p := tokens.PlatformLight
+	w := button.RenderChrome(crossIcon, p, tokens.Comfortable, button.RenderState{Surface: p.SidebarMaterial})
+	column := func(gtx layout.Context) layout.Dimensions {
+		dims := onChrome(p, centred(w))(gtx)
+		paint.FillShape(gtx.Ops, p.TextBackground,
+			clip.Rect(image.Rect(0, bandFoot, gtx.Constraints.Max.X, gtx.Constraints.Max.Y)).Op())
+		return dims
+	}
+	img := golden.Capture(t, image.Pt(120, 90), column)
+	// Down the control's own middle column, every row under the band's foot
+	// has to be darker than the column's own fill, and the darkening has to
+	// fall away rather than stop at a boundary.
+	prev := -1
+	for y := bandFoot; y < bandFoot+8; y++ {
+		got := int(img.RGBAAt(59, y).R)
+		if got >= int(p.TextBackground.R) {
+			t.Fatalf("row %d under the band reads the bare column %d; the column covered the shadow", y, got)
+		}
+		if prev >= 0 && got < prev {
+			t.Errorf("row %d reads %d against row %d's %d; the ramp deepens away from the control", y, got, y-1, prev)
+		}
+		prev = got
+	}
+}
+
+// TestTheChromeShadowIsCutByTheWindowAndNotByItsColumn is the other half of
+// the band pass: the reach past the band belongs to the window, so a control
+// standing inside a column that clips its contents still casts its whole
+// shadow. A column that cut it would leave one control's shadow shorter than
+// its neighbour's for no reason a reader can see.
+func TestTheChromeShadowIsCutByTheWindowAndNotByItsColumn(t *testing.T) {
+	// The column the control stands in, cut off two columns past the
+	// control's own trailing edge at x=77 — well inside the shadow's reach.
+	const columnEdge = 79
+	p := tokens.PlatformLight
+	w := button.RenderChrome(crossIcon, p, tokens.Comfortable, button.RenderState{Surface: p.SidebarMaterial})
+	inColumn := func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, p.SidebarMaterial, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		defer clip.Rect(image.Rect(0, 0, columnEdge, gtx.Constraints.Max.Y)).Push(gtx.Ops).Pop()
+		return centred(w)(gtx)
+	}
+	img := golden.Capture(t, image.Pt(120, 90), inColumn)
+	// The control's own middle row, two columns past the boundary.
+	if got := img.RGBAAt(columnEdge+2, 45); got.R >= p.SidebarMaterial.R {
+		t.Errorf("the band beside the control at x=%d reads %v, the bare material; the column cut the shadow off",
+			columnEdge+2, got)
+	}
+	// And the control itself is still cut by its column: only the shadow
+	// leaves it.
+	if got := img.RGBAAt(columnEdge+2, 45); got.R == p.ToolbarControlFill.R && got.G == p.ToolbarControlFill.G && got.B == p.ToolbarControlFill.B {
+		t.Error("the control's own fill crossed its column's edge; only the shadow is the window's")
+	}
+}

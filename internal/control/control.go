@@ -79,11 +79,11 @@ func ToolbarRecess(p tokens.PlatformColors) color.NRGBA { return p.ToolbarSearch
 // no name lands the pixel. It answers no colour in the light appearance,
 // where the platform draws no rim at all, and a caller draws nothing there.
 //
-// It is apart from [ToolbarRim], which is what a BORDERED toolbar control
-// wears: that rim is the separator over the control's own fill and misses by
-// five of 255 there, where over the recess's fill it misses by three. The two
-// are different pixels over different fills, so the recess carries its own
-// name rather than borrowing that one.
+// It is apart from [ToolbarControlRim], which is what a BORDERED toolbar
+// control wears: that one is #404040 over the control's own #262626, where
+// this is #4d4d4d over the recess's #363636. The two are different pixels
+// over different fills, so each carries its own name rather than borrowing
+// the other.
 //
 // MEASURED, voicememos-window.png, the search field at x 643-967, y 8-43 of a
 // frontmost dark toolbar: #4d4d4d flat along y=8 and y=43 over x 669-941, and
@@ -92,31 +92,26 @@ func ToolbarRecess(p tokens.PlatformColors) color.NRGBA { return p.ToolbarSearch
 // steps straight to the fill with no stroke row on any side.
 func ToolbarSearchRim(p tokens.PlatformColors) color.NRGBA { return p.ToolbarSearchRim }
 
-// ToolbarRim is the hairline a control standing in a toolbar band wears: the
-// platform's separator flattened over the fill it is drawn on — but only
-// where that hairline LIFTS the fill. Where it would darken it instead, the
-// platform draws no hairline at all and this answers the zero value, which is
-// no colour.
+// ToolbarControlRim is the hairline a BORDERED TOOLBAR CONTROL wears round
+// its own edge: the platform's measured value for it and not an alpha name
+// flattened, because no name lands the pixel. It answers no colour in the
+// light appearance, where the platform draws no rim at all, and a caller
+// draws nothing there.
 //
-// MEASURED. Dark, finder-window-untinted-dark.png: a bordered toolbar control
-// wears a 1 px rim reading #404040 over its #262626 fill, lighter than both
-// the fill and the #1e1e1e band — a highlight that lifts the control's edge.
-// The seam over that fill gives #3b3b3b, five of 255 short of the pixel,
-// which is the miss this name carries. voicememos-window.png agrees on the
-// toolbar search field: a 1 px #4d4d4d rim running the whole way round a
-// #363636 fill — the left and right columns of the capsule carry it as well
-// as the rows above and below, so it is the control's own edge and not the
-// band's seam — where the seam over that fill gives #4a4a4a, three of 255
-// short. Light, finder-window-light.png and voicememos-sidebar-light.png: the
-// band steps straight to the fill with no darker row on any side, and the
-// seam's own black would be an edge the platform does not draw.
-func ToolbarRim(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
-	rim := vgcolor.Flatten(p.Separator, beneath)
-	if rim.R <= beneath.R && rim.G <= beneath.G && rim.B <= beneath.B {
-		return color.NRGBA{}
-	}
-	return rim
-}
+// It is apart from [ToolbarSearchRim], which is what the toolbar's search
+// RECESS wears. The two are different pixels over different fills, so each
+// carries its own name.
+//
+// MEASURED, finder-window-untinted-dark.png, a frontmost window: a bordered
+// toolbar control wears a 1 px rim reading #404040 over its #262626 fill,
+// lighter than both the fill and the #1e1e1e band — a highlight that lifts
+// the control's edge. The separator over that fill gives #3b3b3b, five of
+// 255 short of the pixel, and over the band #323232, which is why the value
+// is carried rather than flattened. MEASURED, finder-window-light.png and
+// finder-window-untinted-light.png: the band steps straight to the fill with
+// no darker row on any side, and the separator's own black would be an edge
+// the platform does not draw.
+func ToolbarControlRim(p tokens.PlatformColors) color.NRGBA { return p.ToolbarControlRim }
 
 // Placeholder is the foreground a control's prompt is drawn in: the wording
 // a text field or a picker's field trigger shows in the space its value will

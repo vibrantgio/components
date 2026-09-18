@@ -6,6 +6,7 @@ import (
 
 	"gioui.org/f32"
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
@@ -82,9 +83,9 @@ const (
 //
 // Which reading answers is the platform's own behaviour and not an appearance
 // this code tests for. Where the platform gives the control an edge — the
-// hairline [ToolbarRim] answers a colour for — the control is told from its
-// band by that edge and its fill, and the shadow measures a hint sunk under
-// it. Where it gives none, the control's fill IS the band's own white and the
+// hairline [ToolbarControlRim] answers a colour for — the control is told
+// from its band by that edge and its fill, and the shadow measures a hint
+// sunk under it. Where it gives none, the control's fill IS the band's own white and the
 // shadow is the whole of the step, so it carries far.
 func ToolbarShadowOf(p tokens.PlatformColors) ToolbarShadow {
 	sh := ToolbarShadow{
@@ -92,7 +93,7 @@ func ToolbarShadowOf(p tokens.PlatformColors) ToolbarShadow {
 		Reach:  toolbarShadowReachLightDp,
 		Offset: toolbarShadowOffsetLightDp,
 	}
-	if ToolbarRim(p, p.ToolbarControlFill).A != 0 {
+	if ToolbarControlRim(p).A != 0 {
 		sh.Reach, sh.Offset = toolbarShadowReachDarkDp, toolbarShadowOffsetDarkDp
 	}
 	return sh
@@ -242,4 +243,73 @@ func shadowTile(gtx layout.Context, rect image.Rectangle, stop1 f32.Point, c1 co
 	defer clip.Rect(rect).Push(gtx.Ops).Pop()
 	paint.LinearGradientOp{Stop1: stop1, Color1: c1, Stop2: stop2, Color2: c2}.Add(gtx.Ops)
 	paint.PaintOp{}.Add(gtx.Ops)
+}
+
+// DrawToolbarShadowAround paints the same shadow as [DrawToolbarShadow] with
+// the control's own box cut out of it, for a caller painting the shadow AFTER
+// the control rather than under it.
+//
+// A band paints its controls' shadows in one pass after the window's columns
+// have laid out — otherwise a shadow is covered over one column and left
+// standing over another — and by then the control is already drawn. The
+// cut-out is what makes the later pass land what the earlier one landed: the
+// control's fill is opaque, so a shadow under it and a shadow with its box
+// removed are the same image. What the two differ by is the antialiased ring
+// at the control's own edge, where the coverage is spent twice: at the
+// steepest phase, half a pixel, the difference is the shadow's peak coverage
+// times a quarter of the step from the band to the fill — under one 255th at
+// either appearance's measured numbers.
+func DrawToolbarShadowAround(gtx layout.Context, bounds image.Rectangle, radius int, sh ToolbarShadow) {
+	extent := gtx.Dp(sh.Reach)
+	if extent <= 0 || sh.Peak.A == 0 {
+		return
+	}
+	if radius < 0 {
+		radius = 0
+	}
+	if m := min(bounds.Dx(), bounds.Dy()) / 2; radius > m {
+		radius = m
+	}
+	// The whole drawing's extent: the sunk rectangle and the control's own
+	// box, grown by the reach. One pixel of slack keeps the ramp's last
+	// column inside the outer contour.
+	reachAll := bounds.Union(bounds.Add(image.Pt(0, gtx.Dp(sh.Offset)))).Inset(-extent - 1)
+	defer clip.Outline{Path: ringPath(gtx.Ops, reachAll, bounds, radius)}.Op().Push(gtx.Ops).Pop()
+	DrawToolbarShadow(gtx, bounds, radius, sh)
+}
+
+// ringPath is outer with the rounded rectangle box cut out of it: the outer
+// contour wound one way and the inner the other, so the inner is a hole under
+// the non-zero winding rule Gio fills outlines by. Corners are the
+// quarter-circle Bézier, the same approximation the penumbra's own corners
+// are drawn with.
+func ringPath(ops *op.Ops, outer, box image.Rectangle, radius int) clip.PathSpec {
+	var p clip.Path
+	p.Begin(ops)
+
+	// The outer contour, clockwise on a screen whose y runs down.
+	p.MoveTo(f32.Pt(float32(outer.Min.X), float32(outer.Min.Y)))
+	p.LineTo(f32.Pt(float32(outer.Max.X), float32(outer.Min.Y)))
+	p.LineTo(f32.Pt(float32(outer.Max.X), float32(outer.Max.Y)))
+	p.LineTo(f32.Pt(float32(outer.Min.X), float32(outer.Max.Y)))
+	p.Close()
+
+	// The control's box, counter-clockwise: down the leading side, along the
+	// foot, up the trailing side and back across the top.
+	x0, y0 := float32(box.Min.X), float32(box.Min.Y)
+	x1, y1 := float32(box.Max.X), float32(box.Max.Y)
+	r := float32(radius)
+	k := bezierCircle * r
+	p.MoveTo(f32.Pt(x0, y0+r))
+	p.LineTo(f32.Pt(x0, y1-r))
+	p.CubeTo(f32.Pt(x0, y1-r+k), f32.Pt(x0+r-k, y1), f32.Pt(x0+r, y1))
+	p.LineTo(f32.Pt(x1-r, y1))
+	p.CubeTo(f32.Pt(x1-r+k, y1), f32.Pt(x1, y1-r+k), f32.Pt(x1, y1-r))
+	p.LineTo(f32.Pt(x1, y0+r))
+	p.CubeTo(f32.Pt(x1, y0+r-k), f32.Pt(x1-r+k, y0), f32.Pt(x1-r, y0))
+	p.LineTo(f32.Pt(x0+r, y0))
+	p.CubeTo(f32.Pt(x0+r-k, y0), f32.Pt(x0, y0+r-k), f32.Pt(x0, y0+r))
+	p.Close()
+
+	return p.End()
 }

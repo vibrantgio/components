@@ -117,13 +117,12 @@ func Fill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
 	return p.ToolbarControlFill
 }
 
-// Rim is the hairline around the control, and it is [control.ToolbarRim]:
-// the platform's separator over the fill the rim is drawn on where that
-// lifts it, and no colour where it would darken it. The two controls that
-// wear it — this trigger and the search field's toolbar recess — spend one
-// answer, and the measurement lives with that one.
-func Rim(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
-	return control.ToolbarRim(p, beneath)
+// Rim is the hairline around the control, and it is
+// [control.ToolbarControlRim]: the platform's measured #404040 in the dark
+// appearance and no colour in the light one, where it draws none. The
+// measurement lives with that name.
+func Rim(p tokens.PlatformColors) color.NRGBA {
+	return control.ToolbarControlRim(p)
 }
 
 // Label is the colour the control's own wording reads in: the platform's
@@ -324,7 +323,7 @@ func Draw(
 //
 // The shadow the control casts on its band is NOT drawn here: it falls
 // outside the box and so outside the clip a widget.Clickable puts around
-// whatever it wraps. [Cast] draws it, around the whole control.
+// whatever it wraps. [Cast] draws it, in the band's own pass.
 func Capsule(gtx layout.Context, box image.Rectangle, radius int, p tokens.PlatformColors, fill color.NRGBA, s State) clip.RRect {
 	// A focused control's edge IS the focus ring: the ring replaces the rim
 	// rather than being drawn inside it, and in the light appearance there is
@@ -335,7 +334,7 @@ func Capsule(gtx layout.Context, box image.Rectangle, radius int, p tokens.Platf
 	// boundary reads as part of that boundary" that holds components/button's
 	// ring clear of its edge. Nothing else moves: the shape measures the same
 	// box focused as at rest, and the label does not shift.
-	band, edgeColor := max(gtx.Dp(edgeDp), 1), Rim(p, fill)
+	band, edgeColor := max(gtx.Dp(edgeDp), 1), Rim(p)
 	if s.Focused {
 		band, edgeColor = gtx.Dp(focus.Width), focus.Ring(p, fill)
 	}
@@ -407,16 +406,22 @@ func Shadow(p tokens.PlatformColors) control.ToolbarShadow {
 	return control.ToolbarShadowOf(p)
 }
 
-// Cast lays w out and paints under it the drop shadow the bordered toolbar
-// control w drew casts on the band it stands on, sized to what w reported.
+// Cast lays w out and paints the drop shadow the bordered toolbar control w
+// drew casts on the band it stands on, sized to what w reported.
 //
-// It is a wrapper rather than a line inside [Capsule] because the shadow is
-// the one thing this control draws OUTSIDE its own box, and gioui.org/widget's
-// Clickable clips whatever it wraps to the box its layout.Widget reports — so a
-// shadow painted inside the control's own layout.Widget is cut off at the
-// control's edge on the live path and drawn whole on the pure one. Recording
-// the control, painting the shadow under the box it measured itself to and
-// replaying it puts one drawing on both paths.
+// The shadow is handed to [op.Defer], which is what makes a band's shadows
+// one pass: every one of them is painted after every column of the window has
+// laid out, so a control's shadow is not covered over one column and left
+// standing over another — the defect a chrome row's control shows against a
+// note column that paints its own fill, where the same control's neighbour
+// over a chrome column keeps its whole ramp. Defer resets the clip stack and
+// restores the transform, so the reach past the band is cut by the window and
+// never by the column the control happens to stand in.
+//
+// The control's own ops stay where they are, which is what keeps the band
+// ahead of the columns in the reading order. Only the shadow moves, and it is
+// drawn with the control's box cut out of it, so painting it after the control
+// lands what painting it under the control landed.
 //
 // The radius is half the reported height: every bordered control in a stored
 // toolbar band is a capsule. The reach and the offset are the appearance's
@@ -425,10 +430,9 @@ func Shadow(p tokens.PlatformColors) control.ToolbarShadow {
 // shadow is [Shadow]'s reading, or a copy of it whose coverage the caller has
 // faded with the control it belongs to.
 func Cast(gtx layout.Context, shadow control.ToolbarShadow, w layout.Widget) layout.Dimensions {
-	macro := op.Record(gtx.Ops)
 	dims := w(gtx)
-	call := macro.Stop()
-	control.DrawToolbarShadow(gtx, image.Rectangle{Max: dims.Size}, dims.Size.Y/2, shadow)
-	call.Add(gtx.Ops)
+	macro := op.Record(gtx.Ops)
+	control.DrawToolbarShadowAround(gtx, image.Rectangle{Max: dims.Size}, dims.Size.Y/2, shadow)
+	op.Defer(gtx.Ops, macro.Stop())
 	return dims
 }
