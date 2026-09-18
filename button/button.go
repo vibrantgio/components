@@ -348,77 +348,82 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 			}
 
 			return func(gtx layout.Context) layout.Dimensions {
-				if dis {
-					gtx = gtx.Disabled()
-				}
-
-				// The caller may own the clickable (and thus the focus tag);
-				// otherwise use the per-subscription one.
-				click := props.Clickable
-				if click == nil {
-					click = &ownClick
-				}
-
-				// Process events; Clicked also handles Space/Enter via widget.Clickable.
-				if click.Clicked(gtx) {
-					if props.OnClick != nil {
-						props.OnClick(gtx)
+				// The band a focused control wears straddles its own box,
+				// and a Clickable clips what it wraps to that box, so the
+				// band is collected inside and painted here, outside it.
+				return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+					if dis {
+						gtx = gtx.Disabled()
 					}
-					if props.Message != nil {
-						mvu.MessageOp{Message: props.Message}.Add(gtx.Ops)
+
+					// The caller may own the clickable (and thus the focus tag);
+					// otherwise use the per-subscription one.
+					click := props.Clickable
+					if click == nil {
+						click = &ownClick
 					}
-				}
 
-				hov := click.Hovered()
-				prs := click.Pressed()
-				foc := !dis && gtx.Focused(click)
-
-				desc := props.Description
-				if desc == "" {
-					desc = props.Label
-				}
-
-				iconOnly := props.Icon != nil && props.Label == ""
-
-				state := RenderState{
-					Emphasis:   props.Emphasis,
-					Variant:    props.Variant,
-					Fill:       props.Fill,
-					Foreground: props.Foreground,
-					Surface:    props.Surface,
-					Checked:    props.Checked,
-					Hovered:    hov,
-					Focused:    foc,
-					Pressed:    prs,
-					Disabled:   dis,
-				}
-				chrome := iconOnly && state.Variant == Chrome
-
-				// The clickable covers the drawn button exactly: a
-				// control's pointer target is the control, so density
-				// moves the target with the pixels.
-				body := func(gtx layout.Context) layout.Dimensions {
-					return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						semantic.ClassOp(semantic.Button).Add(gtx.Ops)
-						semantic.LabelOp(props.Label).Add(gtx.Ops)
-						semantic.DescriptionOp(desc).Add(gtx.Ops)
-						semantic.EnabledOp(!dis).Add(gtx.Ops)
-						if chrome {
-							return drawChromeIcon(gtx, props.Icon, tok, state)
+					// Process events; Clicked also handles Space/Enter via widget.Clickable.
+					if click.Clicked(gtx) {
+						if props.OnClick != nil {
+							props.OnClick(gtx)
 						}
-						if iconOnly {
-							return drawIconButton(gtx, props.Icon, tok, state)
+						if props.Message != nil {
+							mvu.MessageOp{Message: props.Message}.Add(gtx.Ops)
 						}
-						return drawButton(gtx, shaper, props.Label, tok, state)
-					})
-				}
-				if chrome {
-					// The shadow the chrome variant casts falls outside the
-					// control's own box, and a Clickable clips what it wraps
-					// to that box, so it is cast around the clickable.
-					return toolbarface.Cast(gtx, chromeShadow(tok.platform, state), body)
-				}
-				return body(gtx)
+					}
+
+					hov := click.Hovered()
+					prs := click.Pressed()
+					foc := !dis && gtx.Focused(click)
+
+					desc := props.Description
+					if desc == "" {
+						desc = props.Label
+					}
+
+					iconOnly := props.Icon != nil && props.Label == ""
+
+					state := RenderState{
+						Emphasis:   props.Emphasis,
+						Variant:    props.Variant,
+						Fill:       props.Fill,
+						Foreground: props.Foreground,
+						Surface:    props.Surface,
+						Checked:    props.Checked,
+						Hovered:    hov,
+						Focused:    foc,
+						Pressed:    prs,
+						Disabled:   dis,
+					}
+					chrome := iconOnly && state.Variant == Chrome
+
+					// The clickable covers the drawn button exactly: a
+					// control's pointer target is the control, so density
+					// moves the target with the pixels.
+					body := func(gtx layout.Context) layout.Dimensions {
+						return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							semantic.ClassOp(semantic.Button).Add(gtx.Ops)
+							semantic.LabelOp(props.Label).Add(gtx.Ops)
+							semantic.DescriptionOp(desc).Add(gtx.Ops)
+							semantic.EnabledOp(!dis).Add(gtx.Ops)
+							if chrome {
+								return drawChromeIcon(gtx, props.Icon, tok, state)
+							}
+							if iconOnly {
+								return drawIconButton(gtx, props.Icon, tok, state)
+							}
+							return drawButton(gtx, shaper, props.Label, tok, state)
+						})
+					}
+					if chrome {
+						// The shadow the chrome variant casts falls outside the
+						// control's own box, and a Clickable clips what it wraps
+						// to that box, so it is cast around the clickable.
+						return toolbarface.Cast(gtx, chromeShadow(tok.platform, state), body)
+					}
+					return body(gtx)
+				})
 			}
 		})
 	})
@@ -460,7 +465,9 @@ func Render(
 ) layout.Widget {
 	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, label: labelStyle, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
-		return drawButton(gtx, shaper, label, tok, s)
+		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+			return drawButton(gtx, shaper, label, tok, s)
+		})
 	}
 }
 
@@ -487,7 +494,9 @@ func RenderIcon(
 ) layout.Widget {
 	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
-		return drawIconButton(gtx, icon, tok, s)
+		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+			return drawIconButton(gtx, icon, tok, s)
+		})
 	}
 }
 

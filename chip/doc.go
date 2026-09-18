@@ -82,8 +82,9 @@
 // keeps the rim it has at rest — or the rim a selected one has dropped — and
 // wears the halo on its own outline: half the band past the chip's box and
 // half over it. The chip measures the same box focused as at rest and the
-// label does not shift; the half past the box goes through op.Defer, so
-// reporting a larger box to make room for it is not needed.
+// label does not shift; the half past the box is painted outside the clip the
+// chip's own Clickable puts around what it wraps, so reporting a larger box to
+// make room for it is not needed.
 //
 // # Geometry
 //

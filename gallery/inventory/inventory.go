@@ -299,11 +299,25 @@ func PlatformColorRows() []PlatformRow {
 	for i := range t.NumField() {
 		rows = append(rows, PlatformRow{
 			Name:  t.Field(i).Name,
-			Light: light.Field(i).Interface().(color.NRGBA),
-			Dark:  dark.Field(i).Interface().(color.NRGBA),
+			Light: platformFieldColor(light.Field(i)),
+			Dark:  platformFieldColor(dark.Field(i)),
 		})
 	}
 	return rows
+}
+
+// platformFieldColor is the colour one field of the set carries. Most fields
+// are a colour; a measured shadow is a coverage with the reach and the offset
+// it was fitted at, and what this page shows of one is its coverage, the page
+// being a page of colours.
+func platformFieldColor(v reflect.Value) color.NRGBA {
+	switch f := v.Interface().(type) {
+	case color.NRGBA:
+		return f
+	case tokens.DropShadow:
+		return f.Peak
+	}
+	return color.NRGBA{}
 }
 
 // Hex writes a colour the way the reference records it: six digits, and the

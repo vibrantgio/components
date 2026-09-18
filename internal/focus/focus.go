@@ -30,14 +30,34 @@
 // around it; a link rings at its glyphs padded [Outside] clear, a link having
 // no box of its own to take. Nothing reports a larger box to make room — the
 // footprint is the pointer target and taking the keyboard may not grow it —
-// so [Halo] hands its band to op.Defer and paints past the clip a
-// gioui.org/widget.Clickable puts around whatever it wraps, the way a
-// toolbar control's shadow reaches past its band.
+// so the band has to outlive the clip a gioui.org/widget.Clickable puts
+// around whatever it wraps.
+//
+// # How the band outlives that clip, and only that clip
+//
+// [Halo] records the band into a macro and hands it to the nearest [Sink] the
+// context carries. A control publishes one just OUTSIDE the clip its band has
+// to escape — [Around] is that call — and the sink paints what it collected
+// the moment the clip is popped, which lands the band exactly where it was
+// drawn: a Clickable pushes a clip and no transform, so inside it and outside
+// it are one coordinate space.
+//
+// It is done this way rather than through op.Defer, which ran the band after
+// the whole frame. Defer restores the transform and RESETS the clip, so a
+// band deferred out of a scrolling area escaped that area too and painted
+// over whatever stood beyond it: a focused control scrolled half out of a
+// list drew its halo across the window. There is no giving a deferred drawing
+// its area back — a clip recorded with the macro is written in the control's
+// own coordinate space, and nothing in Gio 0.10 tells a control where that
+// space sits, so a viewport handed down the context cuts at the control's own
+// origin instead of the area's. Escaping one named clip and keeping every
+// other is what the band actually wants, and it needs no coordinates at all.
 package focus
 
 import (
 	"image"
 	"image/color"
+	"maps"
 
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -84,13 +104,12 @@ func Ring(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
 // lands as, and a halo half on an accent fill and half on the window does
 // not dissolve into either.
 //
-// The band goes to op.Defer, which restores the transform and resets the
-// clip: a control reports the same box focused as at rest, so the half past
-// that box would otherwise be cut away by the clip a
-// gioui.org/widget.Clickable puts around whatever it wraps. Deferred ops run
-// in the order they were deferred, so a halo drawn while the window's
-// content laid out stands under every floating level deferred after it — a
-// popover, a menu, a tooltip, a modal.
+// The band goes to the [Sink] the context carries, which is what lets it
+// straddle the box: a control reports the same box focused as at rest, so the
+// half past that box would otherwise be cut away by the clip a
+// gioui.org/widget.Clickable puts around whatever it wraps. With no sink the
+// band is painted where it is drawn, which is right for a control nothing
+// clips and is what a caller composing these renderers itself gets.
 func Halo(gtx layout.Context, box image.Rectangle, radius int, outside, over color.NRGBA) {
 	halo(gtx, clip.RRect{Rect: box, SE: radius, SW: radius, NE: radius, NW: radius}, box, outside, over)
 }
@@ -135,5 +154,75 @@ func halo(gtx layout.Context, shape outline, box image.Rectangle, outside, over 
 		paint.FillShape(gtx.Ops, over, clip.Stroke{Path: shape.Path(gtx.Ops), Width: float32(w)}.Op())
 		inner.Pop()
 	}
-	op.Defer(gtx.Ops, macro.Stop())
+	band := macro.Stop()
+	if s := sinkOf(gtx); s != nil {
+		s.bands = append(s.bands, band)
+		return
+	}
+	band.Add(gtx.Ops)
+}
+
+// sinkKey is what a [Sink] travels under in gioui.org/layout.Context's
+// Values. It is spelled with this package's import path so no other
+// program-wide value can collide with it.
+const sinkKey = "github.com/vibrantgio/components/internal/focus.sink"
+
+// Sink collects the halo bands drawn under it, for a control about to wrap
+// what it draws in a clip the band has to outlive.
+//
+// A control allocates one per layout, hands it down with [Collecting] around
+// the call that pushes that clip, and calls [Sink.Draw] once it is popped —
+// which is what [Around] does. The band is recorded in the coordinate space
+// it is drawn in and replayed in that same space, so the control draws what
+// it always drew and the clip it names is the one thing the band is no longer
+// inside.
+type Sink struct {
+	bands []op.CallOp
+}
+
+// Collecting returns gtx with s collecting every halo drawn under it. A sink
+// already on gtx is replaced: the nearest one owns the clip the band has to
+// escape, and the clips outside it are the ones the band must keep.
+//
+// The context's Values map is copied rather than written into: it is shared
+// with every ancestor that handed it down, and a sink published for one
+// control may not reach the frame around it.
+func Collecting(gtx layout.Context, s *Sink) layout.Context {
+	values := maps.Clone(gtx.Values)
+	if values == nil {
+		values = make(map[string]any, 1)
+	}
+	values[sinkKey] = s
+	gtx.Values = values
+	return gtx
+}
+
+// Draw paints the bands s collected, in the order they were drawn, and empties
+// it. A control calls it immediately after the clip its band had to escape is
+// popped, at the transform the band was recorded at.
+func (s *Sink) Draw(gtx layout.Context) {
+	for _, band := range s.bands {
+		band.Add(gtx.Ops)
+	}
+	s.bands = s.bands[:0]
+}
+
+// Around lays w out with a sink of its own collecting the halos drawn inside
+// it, and paints them once w is done.
+//
+// It is the one call a control makes: the band lands over everything the
+// control drew and outside every clip the control pushed within itself, which
+// is what a band straddling the control's own box needs and all it needs. A
+// control wraps its whole drawing in this, its Clickable included.
+func Around(gtx layout.Context, w layout.Widget) layout.Dimensions {
+	var band Sink
+	dims := w(Collecting(gtx, &band))
+	band.Draw(gtx)
+	return dims
+}
+
+// sinkOf answers the nearest sink gtx carries, or nil.
+func sinkOf(gtx layout.Context) *Sink {
+	s, _ := gtx.Values[sinkKey].(*Sink)
+	return s
 }

@@ -359,18 +359,23 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 
 				foc := !dis && gtx.Focused(&trigger)
 
-				dims := layoutFieldLive(gtx, shaper, &trigger, optClicks, rows, &outside, tok, props.Description, FieldState{
-					Open:          open,
-					Focused:       foc,
-					Disabled:      dis,
-					Selected:      selected,
-					Options:       props.Options,
-					Drop:          props.Drop,
-					MaxHeight:     props.MaxHeight,
-					AvailableRoom: props.AvailableRoom,
-					Placeholder:   props.Placeholder,
-					NoOptions:     props.NoOptions,
-					Surface:       props.Surface,
+				// The focus band straddles the trigger's own box, and a
+				// Clickable clips what it wraps to that box, so the band is
+				// collected inside and painted here, outside it.
+				dims := focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+					return layoutFieldLive(gtx, shaper, &trigger, optClicks, rows, &outside, tok, props.Description, FieldState{
+						Open:          open,
+						Focused:       foc,
+						Disabled:      dis,
+						Selected:      selected,
+						Options:       props.Options,
+						Drop:          props.Drop,
+						MaxHeight:     props.MaxHeight,
+						AvailableRoom: props.AvailableRoom,
+						Placeholder:   props.Placeholder,
+						NoOptions:     props.NoOptions,
+						Surface:       props.Surface,
+					})
 				})
 				if moved := rows.Selected(); open && moved >= 0 && moved != selected {
 					selected = moved
@@ -454,7 +459,9 @@ func RenderField(
 ) layout.Widget {
 	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, body: body, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
-		return drawField(gtx, shaper, tok, s)
+		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+			return drawField(gtx, shaper, tok, s)
+		})
 	}
 }
 

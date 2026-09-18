@@ -163,19 +163,24 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 				// footprint the glyph is centred in plus the label
 				// beside it, both of which operate it, as they do on
 				// the platform.
-				return b.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					semantic.RadioButton.Add(gtx.Ops)
-					if desc := props.Description; desc != "" || props.Label != "" {
-						if desc == "" {
-							desc = props.Label
+				// The focus band rings the disc and straddles it, and a
+				// Clickable clips what it wraps, so the band is collected
+				// inside and painted here, outside it.
+				return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+					return b.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						semantic.RadioButton.Add(gtx.Ops)
+						if desc := props.Description; desc != "" || props.Label != "" {
+							if desc == "" {
+								desc = props.Label
+							}
+							semantic.DescriptionOp(desc).Add(gtx.Ops)
 						}
-						semantic.DescriptionOp(desc).Add(gtx.Ops)
-					}
-					return drawRadio(gtx, tok, RadioRenderState{
-						Selected: b.Value,
-						Focused:  foc,
-						Disabled: dis,
-						Label:    props.Label,
+						return drawRadio(gtx, tok, RadioRenderState{
+							Selected: b.Value,
+							Focused:  foc,
+							Disabled: dis,
+							Label:    props.Label,
+						})
 					})
 				})
 			}
@@ -205,7 +210,9 @@ func RenderRadio(
 		shaper:   shaper,
 	}
 	return func(gtx layout.Context) layout.Dimensions {
-		return drawRadio(gtx, tok, s)
+		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+			return drawRadio(gtx, tok, s)
+		})
 	}
 }
 

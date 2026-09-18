@@ -229,19 +229,24 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 				// footprint the glyph is centred in plus the label
 				// beside it, both of which operate the box, as they
 				// do on the platform.
-				return b.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					semantic.CheckBox.Add(gtx.Ops)
-					if desc := props.Description; desc != "" || props.Label != "" {
-						if desc == "" {
-							desc = props.Label
+				// The focus band rings the glyph's box and straddles it,
+				// and a Clickable clips what it wraps, so the band is
+				// collected inside and painted here, outside it.
+				return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+					return b.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						semantic.CheckBox.Add(gtx.Ops)
+						if desc := props.Description; desc != "" || props.Label != "" {
+							if desc == "" {
+								desc = props.Label
+							}
+							semantic.DescriptionOp(desc).Add(gtx.Ops)
 						}
-						semantic.DescriptionOp(desc).Add(gtx.Ops)
-					}
-					return drawCheckbox(gtx, tok, CheckboxRenderState{
-						Checked:  b.Value,
-						Focused:  foc,
-						Disabled: dis,
-						Label:    props.Label,
+						return drawCheckbox(gtx, tok, CheckboxRenderState{
+							Checked:  b.Value,
+							Focused:  foc,
+							Disabled: dis,
+							Label:    props.Label,
+						})
 					})
 				})
 			}
@@ -280,7 +285,9 @@ func RenderCheckbox(
 		shaper:   shaper,
 	}
 	return func(gtx layout.Context) layout.Dimensions {
-		return drawCheckbox(gtx, tok, s)
+		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+			return drawCheckbox(gtx, tok, s)
+		})
 	}
 }
 

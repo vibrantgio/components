@@ -338,11 +338,15 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 				foc := !dis && gtx.Focused(editor)
 				showPh := !foc && editor.Len() == 0
 
-				return drawTextFieldLive(gtx, shaper, editor, hitTag, props.Placeholder, desc, tok, RenderState{
-					Focused:  foc,
-					Disabled: dis,
-					Surface:  standsOn(props.Surface, tok.platform),
-				}, showPh, adorn{})
+				// The focus band straddles the field's own box, so it is
+				// collected inside whatever clips the field and painted here.
+				return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+					return drawTextFieldLive(gtx, shaper, editor, hitTag, props.Placeholder, desc, tok, RenderState{
+						Focused:  foc,
+						Disabled: dis,
+						Surface:  standsOn(props.Surface, tok.platform),
+					}, showPh, adorn{})
+				})
 			}
 		})
 	})
@@ -371,7 +375,9 @@ func Render(
 ) layout.Widget {
 	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, body: body, capBand: body.FaceMetrics().CapHeight, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
-		return drawTextFieldStatic(gtx, shaper, placeholder, tok, s, adorn{})
+		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+			return drawTextFieldStatic(gtx, shaper, placeholder, tok, s, adorn{})
+		})
 	}
 }
 
@@ -436,7 +442,7 @@ const hairlineDp unit.Dp = 1
 //
 // The box is two nested fills rather than a stroke, which keeps the corner's
 // antialiasing out of the golden images.
-func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size image.Point, fill, edge color.NRGBA, shadow control.ToolbarShadow) {
+func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size image.Point, fill, edge color.NRGBA, shadow tokens.DropShadow) {
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 	if s.Variant == Chrome {
 		rad = size.Y / 2
@@ -804,7 +810,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 //
 // Focus reaches none of them: the halo is laid on the outline the field
 // already draws, so a focused field keeps the edge it has at rest.
-func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, edge, placeholder color.NRGBA, shadow control.ToolbarShadow) {
+func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, edge, placeholder color.NRGBA, shadow tokens.DropShadow) {
 	fill = fieldFill(p, s)
 	foreground = p.Text
 	edge = control.Border(p)
@@ -818,7 +824,7 @@ func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, 
 		foreground = vgcolor.Flatten(p.DisabledControlText, fill)
 		placeholder = foreground
 		edge = control.Faded(edge, surface.Or(s.Surface, p.WindowBackground))
-		shadow = shadow.Faded()
+		shadow = control.FadedShadow(shadow)
 	}
 	return
 }

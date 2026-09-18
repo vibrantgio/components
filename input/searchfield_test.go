@@ -570,7 +570,7 @@ func TestSearchFieldToolbarRecessIsTheMeasuredControl(t *testing.T) {
 			// MEASURED, voicememos-sidebar-light.png, where the row under
 			// the recess reads 244 on a #ffffff band. A row still reading
 			// the fill would be a recess drawn taller than the measured 36.
-			band := vgcolor.Flatten(p.col.ToolbarControlShadow, p.col.SidebarMaterial)
+			band := vgcolor.Flatten(p.col.ToolbarControlShadow.Peak, p.col.SidebarMaterial)
 			if got := at(200, fieldH); got != band {
 				t.Errorf("row %d reads %v, want the chrome under this control's shadow %v; the recess is drawn taller than the measured %d px",
 					fieldH, got, band, fieldH)

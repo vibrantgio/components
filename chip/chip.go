@@ -548,12 +548,17 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 					Focused: gtx.Focused(click),
 				}
 
-				return props.Pin.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return click.Layout(gtx,
-						func(gtx layout.Context) layout.Dimensions {
-							return draw(gtx, shaper, props.Label, props.Purpose, props.Icon,
-								tok, s, desc, &dismiss)
-						})
+				// The focus band straddles the chip's own box, and a
+				// Clickable clips what it wraps to that box, so the band is
+				// collected inside and painted here, outside it.
+				return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+					return props.Pin.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						return click.Layout(gtx,
+							func(gtx layout.Context) layout.Dimensions {
+								return draw(gtx, shaper, props.Label, props.Purpose, props.Icon,
+									tok, s, desc, &dismiss)
+							})
+					})
 				})
 			}
 		})
@@ -588,7 +593,9 @@ func Render(
 ) layout.Widget {
 	tok := resolvedTokens{platform: p, label: labelStyle, spacing: sp, radius: rad, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
-		return draw(gtx, shaper, label, i, icon, tok, s, label, nil)
+		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+			return draw(gtx, shaper, label, i, icon, tok, s, label, nil)
+		})
 	}
 }
 

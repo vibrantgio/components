@@ -320,7 +320,11 @@ func (s *State) FocusedLink(gtx layout.Context) int {
 // the paragraph's last line.
 func Layout(gtx layout.Context, state *State, shaper *text.Shaper, style Style, spans []SpanStyle) layout.Dimensions {
 	rs := processInput(gtx, state, style)
-	dims := draw(gtx, shaper, style, spans, rs, state)
+	// A focused link's band straddles its glyphs, so it is collected while
+	// the run is drawn and painted once the whole paragraph is down.
+	dims := focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+		return draw(gtx, shaper, style, spans, rs, state)
+	})
 	// Links created by this frame's draw (their first layout) must
 	// register their event filters within the same frame their areas
 	// appear, or the router would drop events arriving before the next
@@ -335,7 +339,9 @@ func Layout(gtx layout.Context, state *State, shaper *text.Shaper, style Style, 
 // static demonstrations; production code should use [Layout].
 func Render(shaper *text.Shaper, style Style, spans []SpanStyle, s RenderState) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return draw(gtx, shaper, style, spans, s, nil)
+		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+			return draw(gtx, shaper, style, spans, s, nil)
+		})
 	}
 }
 

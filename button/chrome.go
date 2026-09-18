@@ -143,10 +143,10 @@ func chromeColors(p tokens.PlatformColors, s RenderState) (fill, fg color.NRGBA)
 // own coverage with the reach and the offset its appearance measures — faded
 // with the control while it is switched off: a control that is not offering
 // itself does not stand off its band as one that is.
-func chromeShadow(p tokens.PlatformColors, s RenderState) control.ToolbarShadow {
+func chromeShadow(p tokens.PlatformColors, s RenderState) tokens.DropShadow {
 	sh := toolbarface.Shadow(p)
 	if s.Disabled {
-		return sh.Faded()
+		return control.FadedShadow(sh)
 	}
 	return sh
 }

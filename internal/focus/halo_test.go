@@ -25,9 +25,9 @@ import (
 // rest — the footprint is the pointer target and taking the keyboard may not
 // grow it — so the half past the box would be cut away by the clip
 // gioui.org/widget's Clickable puts around whatever it wraps. [focus.Halo]
-// hands the band to op.Defer, which restores the transform and resets the
-// clip, and the band lands whole. The test draws the halo inside exactly such
-// a clip and reads the columns beyond it.
+// hands the band to the sink [focus.Around] publishes outside that clip, and
+// the band lands whole. The test draws the halo inside exactly such a clip,
+// under exactly such a sink, and reads the columns beyond it.
 func TestHaloStraddlesTheBoxAndOutlivesTheClip(t *testing.T) {
 	const frame, origin, side = 40, 10, 20
 	out := int(focus.Outside)
@@ -40,13 +40,15 @@ func TestHaloStraddlesTheBoxAndOutlivesTheClip(t *testing.T) {
 
 	img := golden.Capture(t, image.Pt(frame, frame), func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, standsOn, clip.Rect{Max: gtx.Constraints.Max}.Op())
-		// The control's own box, and the clip a Clickable would put around
-		// it: nothing drawn inside may reach a pixel beyond it.
-		area := clip.Rect(box).Push(gtx.Ops)
-		paint.FillShape(gtx.Ops, fill, clip.Rect(box).Op())
-		focus.Halo(gtx, box, 0, past, over)
-		area.Pop()
-		return layout.Dimensions{Size: gtx.Constraints.Max}
+		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+			// The control's own box, and the clip a Clickable would put
+			// around it: nothing drawn inside may reach a pixel beyond it.
+			area := clip.Rect(box).Push(gtx.Ops)
+			paint.FillShape(gtx.Ops, fill, clip.Rect(box).Op())
+			focus.Halo(gtx, box, 0, past, over)
+			area.Pop()
+			return layout.Dimensions{Size: gtx.Constraints.Max}
+		})
 	})
 	if img == nil {
 		return // headless unavailable; Capture called t.Skip

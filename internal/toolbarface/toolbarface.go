@@ -415,7 +415,7 @@ func CheckedPatch(gtx layout.Context, box image.Rectangle, p tokens.PlatformColo
 // Shadow is the drop shadow a bordered toolbar control casts on its band
 // under p's appearance: the peak coverage with the reach and the offset
 // measured beside it. [Cast] spreads it.
-func Shadow(p tokens.PlatformColors) control.ToolbarShadow {
+func Shadow(p tokens.PlatformColors) tokens.DropShadow {
 	return control.ToolbarShadowOf(p)
 }
 
@@ -442,8 +442,11 @@ func Shadow(p tokens.PlatformColors) control.ToolbarShadow {
 //
 // shadow is [Shadow]'s reading, or a copy of it whose coverage the caller has
 // faded with the control it belongs to.
-func Cast(gtx layout.Context, shadow control.ToolbarShadow, w layout.Widget) layout.Dimensions {
-	dims := w(gtx)
+func Cast(gtx layout.Context, shadow tokens.DropShadow, w layout.Widget) layout.Dimensions {
+	// This is also the call outside the control's Clickable, so it is where
+	// the focus band w drew is painted: the band straddles the control's own
+	// box and a Clickable clips what it wraps to that box.
+	dims := focus.Around(gtx, w)
 	macro := op.Record(gtx.Ops)
 	control.DrawToolbarShadowAround(gtx, image.Rectangle{Max: dims.Size}, dims.Size.Y/2, shadow)
 	op.Defer(gtx.Ops, macro.Stop())

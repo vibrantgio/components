@@ -32,8 +32,9 @@ import (
 // heavier and longer below it than above, which is one rectangle sunk below
 // the control and not a second shadow.
 //
-// [ToolbarShadowOf] carries that rectangle fitted to the reading, per
-// appearance, with the peak in tokens.PlatformColors.ToolbarControlShadow.
+// tokens.PlatformColors.ToolbarControlShadow carries that rectangle fitted to
+// the reading, per appearance: the peak with the reach and the offset it was
+// fitted at, which is why this package owns no geometry of its own.
 //
 // The ramp is the one effects/depth draws for a floating surface — a linear
 // falloff from the peak at the shape's edge to nothing at the reach, in eight
@@ -41,100 +42,42 @@ import (
 // called there because the module graph runs the other way: effects imports
 // components.
 
-// ToolbarShadow is one reading of that shadow: the peak coverage at the sunk
-// rectangle's edge, how far the ramp carries past that rectangle, and how far
-// below the control the rectangle sits. The three are measured together off
-// one capture and are spent together, which is why they travel as one value
-// and not as a colour beside two constants.
-//
-// The zero value draws nothing: a control that casts no shadow answers it.
-type ToolbarShadow struct {
-	Peak   color.NRGBA
-	Reach  unit.Dp
-	Offset unit.Dp
-}
-
-// The two readings, each fitted to its own captures.
-//
-// MEASURED, light, finder-window-light.png: black at 9/255 with 23 px of
-// reach and the rectangle sunk 9 px lands every one of the 77 sampled pixels
-// within two 255ths and most within one (CG5.3f).
-//
-// MEASURED, dark, finder-window-untinted-dark.png and notes-toolbar.png,
-// re-read 2026-09-18 by CG5.3i: the band under every bordered control is one
-// 255th deep over seven rows and untouched above and beside it. Fitted over
-// 10,575 band pixels around the Finder search field (x 1155-1379, y 46-81)
-// and the Notes compose control (x 8-44, y 8-43) at the recorded 6/255, the
-// best whole-pixel pair is 2 px of reach with the rectangle sunk 6 px: 312 of
-// 31,725 channel samples off by one 255th and none by more except at the
-// control's own antialiased corner, where the band tolerance admits three rim
-// pixels. The light pair fitted to the same samples is eleven times worse,
-// which is why the geometry is per appearance rather than one shape drawn
-// twice.
-const (
-	toolbarShadowReachLightDp  unit.Dp = 23
-	toolbarShadowOffsetLightDp unit.Dp = 9
-	toolbarShadowReachDarkDp   unit.Dp = 2
-	toolbarShadowOffsetDarkDp  unit.Dp = 6
-)
-
 // ToolbarShadowOf is the shadow a bordered toolbar control casts under p's
-// appearance: the peak p carries, and the reach and offset measured with it.
+// appearance: the reading p carries, whole.
 //
 // Which reading answers is the platform's own behaviour and not an appearance
 // this code tests for. Where the platform gives the control an edge — the
 // hairline [ToolbarControlRim] answers a colour for — the control is told
 // from its band by that edge and its fill, and the shadow measures a hint
-// sunk under it. Where it gives none, the control's fill IS the band's own white and the
-// shadow is the whole of the step, so it carries far.
-func ToolbarShadowOf(p tokens.PlatformColors) ToolbarShadow {
-	sh := ToolbarShadow{
-		Peak:   p.ToolbarControlShadow,
-		Reach:  toolbarShadowReachLightDp,
-		Offset: toolbarShadowOffsetLightDp,
-	}
-	if ToolbarControlRim(p).A != 0 {
-		sh.Reach, sh.Offset = toolbarShadowReachDarkDp, toolbarShadowOffsetDarkDp
-	}
-	return sh
+// sunk under it. Where it gives none, the control's fill IS the band's own
+// white and the shadow is the whole of the step, so it carries far.
+func ToolbarShadowOf(p tokens.PlatformColors) tokens.DropShadow {
+	return p.ToolbarControlShadow
 }
 
-// Faded is the shadow a switched-off control casts: the same geometry at the
-// platform's measured disabled coverage. A control that is not offering
-// itself does not stand off its band as one that is.
-func (s ToolbarShadow) Faded() ToolbarShadow {
-	s.Peak = vgcolor.Fade(s.Peak, tokens.DisabledCoverage)
-	return s
+// FadedShadow is the shadow a switched-off control casts: the same geometry
+// at the platform's measured disabled coverage. A control that is not
+// offering itself does not stand off its band as one that is.
+func FadedShadow(s tokens.DropShadow) tokens.DropShadow {
+	return s.WithPeak(vgcolor.Fade(s.Peak, tokens.DisabledCoverage))
 }
-
-// FloatingShadowReach is how far the shadow a FLOATING surface casts carries
-// past that surface's own edge.
-//
-// MEASURED: the window plane recovers to its own value exactly 24 px out from
-// a floating pane's edge in both stored sidebar-shadow captures. It does not
-// vary with what is floating — the platform draws one shadow — which is why
-// effects/depth carries the same number for a floating surface. It is spelled
-// again here because the module graph runs the other way, as the note above
-// says: effects imports components.
-const FloatingShadowReach unit.Dp = 24
 
 // DrawFloatingShadow paints the shadow a floating surface casts around
-// bounds: tokens.PlatformColors.FloatingShadow at its own coverage at the
-// surface's edge, falling linearly to nothing [FloatingShadowReach] away.
+// bounds: the reading tokens.PlatformColors.FloatingShadow carries, at its own
+// coverage at the surface's edge and falling linearly to nothing its reach
+// away.
 //
 // It takes the same ramp [DrawToolbarShadow] draws, because there is one ramp
-// and [ToolbarShadow] is the value it is handed. What differs is the offset: a
-// floating surface's shadow is centred on it, where a bordered toolbar
-// control's is sunk below it, which is what those captures measure.
+// and a [tokens.DropShadow] is the value it is handed. What differs is the
+// offset the reading carries: a floating surface's shadow is centred on it,
+// where a bordered toolbar control's is sunk below it, which is what those
+// captures measure.
 //
 // radius rounds the shadow's corners, in pixels: a caller passes the radius it
 // rounds its own fill to, so the interior cannot show through the rounding as
 // square wedges, and 0 keeps the square geometry.
 func DrawFloatingShadow(gtx layout.Context, bounds image.Rectangle, radius int, p tokens.PlatformColors) {
-	DrawToolbarShadow(gtx, bounds, radius, ToolbarShadow{
-		Peak:  p.FloatingShadow,
-		Reach: FloatingShadowReach,
-	})
+	DrawToolbarShadow(gtx, bounds, radius, p.FloatingShadow)
 }
 
 // bezierCircle is the cubic-Bézier control-point ratio that best approximates
@@ -152,13 +95,13 @@ const bezierCircle = 0.55228475
 //
 // A zero coverage, or a reach that rounds to nothing at the current metric,
 // paints nothing.
-func DrawToolbarShadow(gtx layout.Context, bounds image.Rectangle, radius int, sh ToolbarShadow) {
-	extent := gtx.Dp(sh.Reach)
+func DrawToolbarShadow(gtx layout.Context, bounds image.Rectangle, radius int, sh tokens.DropShadow) {
+	extent := gtx.Dp(unit.Dp(sh.Reach))
 	if extent <= 0 || sh.Peak.A == 0 {
 		return
 	}
 
-	shadowBounds := bounds.Add(image.Pt(0, gtx.Dp(sh.Offset)))
+	shadowBounds := bounds.Add(image.Pt(0, gtx.Dp(unit.Dp(sh.Offset))))
 	if radius < 0 {
 		radius = 0
 	}
@@ -289,8 +232,8 @@ func shadowTile(gtx layout.Context, rect image.Rectangle, stop1 f32.Point, c1 co
 // steepest phase, half a pixel, the difference is the shadow's peak coverage
 // times a quarter of the step from the band to the fill — under one 255th at
 // either appearance's measured numbers.
-func DrawToolbarShadowAround(gtx layout.Context, bounds image.Rectangle, radius int, sh ToolbarShadow) {
-	extent := gtx.Dp(sh.Reach)
+func DrawToolbarShadowAround(gtx layout.Context, bounds image.Rectangle, radius int, sh tokens.DropShadow) {
+	extent := gtx.Dp(unit.Dp(sh.Reach))
 	if extent <= 0 || sh.Peak.A == 0 {
 		return
 	}
@@ -303,7 +246,7 @@ func DrawToolbarShadowAround(gtx layout.Context, bounds image.Rectangle, radius 
 	// The whole drawing's extent: the sunk rectangle and the control's own
 	// box, grown by the reach. One pixel of slack keeps the ramp's last
 	// column inside the outer contour.
-	reachAll := bounds.Union(bounds.Add(image.Pt(0, gtx.Dp(sh.Offset)))).Inset(-extent - 1)
+	reachAll := bounds.Union(bounds.Add(image.Pt(0, gtx.Dp(unit.Dp(sh.Offset))))).Inset(-extent - 1)
 	defer clip.Outline{Path: ringPath(gtx.Ops, reachAll, bounds, radius)}.Op().Push(gtx.Ops).Pop()
 	DrawToolbarShadow(gtx, bounds, radius, sh)
 }

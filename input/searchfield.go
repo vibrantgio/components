@@ -20,6 +20,7 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/icons"
 	"github.com/vibrantgio/components/internal/control"
+	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/mvu"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
@@ -276,19 +277,23 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 				foc := !dis && gtx.Focused(editor)
 				showPh := !foc && editor.Len() == 0
 
-				return drawTextFieldLive(gtx, shaper, editor, hitTag, props.Placeholder, desc, tok, RenderState{
-					Focused:  foc,
-					Disabled: dis,
-					Surface:  standsOn(props.Surface, tok.platform),
-					Variant:  props.Variant,
-					Region:   props.Region,
-				}, showPh, adorn{
-					search:    true,
-					clear:     true,
-					showClear: !dis && editor.Len() > 0,
-					clearBtn:  clear,
-					clearDesc: desc,
-					count:     count(props.Count),
+				// The focus band straddles the field's own box, so it is
+				// collected inside whatever clips the field and painted here.
+				return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+					return drawTextFieldLive(gtx, shaper, editor, hitTag, props.Placeholder, desc, tok, RenderState{
+						Focused:  foc,
+						Disabled: dis,
+						Surface:  standsOn(props.Surface, tok.platform),
+						Variant:  props.Variant,
+						Region:   props.Region,
+					}, showPh, adorn{
+						search:    true,
+						clear:     true,
+						showClear: !dis && editor.Len() > 0,
+						clearBtn:  clear,
+						clearDesc: desc,
+						count:     count(props.Count),
+					})
 				})
 			}
 		})
@@ -318,7 +323,9 @@ func RenderSearch(
 	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, body: body, capBand: body.FaceMetrics().CapHeight, density: d}
 	ad := adorn{search: true, clear: true, showClear: !s.Disabled && s.Text != "", count: s.Count}
 	return func(gtx layout.Context) layout.Dimensions {
-		return drawTextFieldStatic(gtx, shaper, placeholder, tok, s, ad)
+		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
+			return drawTextFieldStatic(gtx, shaper, placeholder, tok, s, ad)
+		})
 	}
 }
 

@@ -114,7 +114,7 @@ func TestChromeButtonCastsTheMeasuredShadow(t *testing.T) {
 			if under == band {
 				t.Errorf("the row under the control reads the bare band %v; the platform's control darkens it", under)
 			}
-			if want := vgcolor.Flatten(p.ToolbarControlShadow, band); under != want {
+			if want := vgcolor.Flatten(p.ToolbarControlShadow.Peak, band); under != want {
 				t.Errorf("the row under the control = %v, want the band under this shadow's peak %v", under, want)
 			}
 			// The row over it is lighter than the row under it — the
