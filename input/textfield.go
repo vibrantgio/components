@@ -63,6 +63,12 @@ type RenderState struct {
 	// sidebar and one in a toolbar as two controls of different heights and
 	// different fills. The zero value is [Sidebar].
 	Region Region
+
+	// Count is what the query has found, standing inside a search field at
+	// its trailing end as SearchFieldProps.Count's answer does on the live
+	// path. It is read by the search field alone; a plain text field finds
+	// nothing and reports nothing.
+	Count string
 }
 
 // Variant is where a search field stands, and it is the whole of what one
@@ -562,6 +568,10 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 
 	fillColor, textColor, edgeColor, phColor, shadowColor := textFieldColors(tok.platform, s)
 
+	// The count is shaped before the insets are worked out: it stands inside
+	// the field, so the room it takes comes out of the text's width.
+	ad = ad.shapeCount(gtx, shaper, tok, s)
+
 	fieldW := gtx.Constraints.Max.X
 	lead, trail := ad.insets(gtx, tok, s, padH)
 	innerW := fieldW - lead - trail
@@ -713,6 +723,10 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	f, wl, textSize := bodyLabel(tok)
 
 	fillColor, textColor, edgeColor, phColor, shadowColor := textFieldColors(tok.platform, s)
+
+	// The count is shaped before the insets are worked out: it stands inside
+	// the field, so the room it takes comes out of the text's width.
+	ad = ad.shapeCount(gtx, shaper, tok, s)
 
 	fieldW := gtx.Constraints.Max.X
 	lead, trail := ad.insets(gtx, tok, s, padH)

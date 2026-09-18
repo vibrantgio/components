@@ -613,3 +613,75 @@ func TestSearchFieldToolbarRecessIsTheMeasuredControl(t *testing.T) {
 		})
 	}
 }
+
+// TestTheCountStandsInsideTheFieldAtItsTrailingEnd reads what a search field
+// reports about its query off the drawn pixels: it stands INSIDE the field,
+// between the text and the clear mark, and it moves neither.
+//
+// MEASURED, reference/macos/voicememos-multi-folder-search-2026-09-18.png —
+// a frontmost Voice Memos window whose toolbar field holds a query: the
+// field's fill runs x 700–1023 and the clear mark's disc x 996–1009, so the
+// mark stands fourteen clear of the field's trailing edge against the
+// magnifier's thirteen at its leading one. No stored capture holds a field
+// that reports a count, so where the count stands is composed from those two
+// readings: it takes the trailing end, the clear mark keeps its own inset,
+// and the clear space between them is the eight the platform leaves between
+// the magnifier and the prompt at the other end (mail-window.png).
+func TestTheCountStandsInsideTheFieldAtItsTrailingEnd(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 60)
+	p := tokens.PlatformLight
+	field := func(count string) *image.RGBA {
+		w := input.RenderSearch(shaper, "Search", p, tokens.Spacing, tokens.Radius,
+			tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{
+				Text: "margin", Count: count,
+				Variant: input.Chrome, Region: input.Toolbar, Surface: p.SidebarMaterial,
+			})
+		return golden.Capture(t, size, onChrome(p.SidebarMaterial, w))
+	}
+	// The columns carrying paint, read on the field's own centre row against
+	// the recess's fill.
+	painted := func(img *image.RGBA) []int {
+		var xs []int
+		fill := p.ToolbarSearchFill
+		for x := 0; x < size.X; x++ {
+			if c := img.RGBAAt(x, 18); c.R != fill.R || c.G != fill.G || c.B != fill.B {
+				xs = append(xs, x)
+			}
+		}
+		return xs
+	}
+	bare, counted := painted(field("")), painted(field("2 of 3"))
+	if len(bare) == 0 || len(counted) == 0 {
+		t.Fatal("the field drew nothing on its own centre row")
+	}
+	// The clear mark is the last paint in the field either way, and the count
+	// is spent out of the text's width rather than added to the field's, so
+	// the mark does not move.
+	if bare[len(bare)-1] != counted[len(counted)-1] {
+		t.Errorf("the clear mark ends at x=%d without a count and x=%d with one; the count is spent out of the text's width",
+			bare[len(bare)-1], counted[len(counted)-1])
+	}
+	if bare[0] != counted[0] {
+		t.Errorf("the magnifier begins at x=%d without a count and x=%d with one; a count at the trailing end moves nothing at the leading one",
+			bare[0], counted[0])
+	}
+	// What the count adds is paint the bare field does not have, and all of it
+	// stands inside the field, leading of the clear mark.
+	added := 0
+	seen := map[int]bool{}
+	for _, x := range bare {
+		seen[x] = true
+	}
+	for _, x := range counted {
+		if !seen[x] {
+			added++
+			if x >= counted[len(counted)-1] {
+				t.Errorf("the count paints at x=%d, at or past the clear mark; it stands leading of it", x)
+			}
+		}
+	}
+	if added == 0 {
+		t.Error("a field given a count drew nothing the same field without one did not; the count is not reaching the drawing")
+	}
+}

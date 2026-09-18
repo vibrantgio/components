@@ -12,6 +12,7 @@ import (
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -23,6 +24,7 @@ import (
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 )
 
 // ClearHitDp is the side of the pointer target the clear mark claims, in dp,
@@ -124,6 +126,18 @@ type SearchFieldProps struct {
 	// ClearMessage means clearing is reported as the change it is and
 	// nothing more.
 	ClearMessage any
+
+	// Count, if non-nil, is asked on every frame what the query has found,
+	// and what it answers stands INSIDE the field at its trailing end,
+	// leading of the clear mark, in the same foreground the field's own marks
+	// read in. An empty answer draws nothing and takes no room.
+	//
+	// It is a function rather than a value because the count changes with the
+	// content being searched and not with the theme, and a field instance
+	// outlives both: what it reports has to be read on the frame it is drawn
+	// on. What counting means is the caller's — this field holds a query and
+	// nothing else.
+	Count func() string
 
 	// Shaper is an explicit per-instance override of the text shaper. Leave
 	// it nil in normal use. See [TextFieldProps.Shaper].
@@ -274,6 +288,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 					showClear: !dis && editor.Len() > 0,
 					clearBtn:  clear,
 					clearDesc: desc,
+					count:     count(props.Count),
 				})
 			}
 		})
@@ -301,10 +316,19 @@ func RenderSearch(
 	s RenderState,
 ) layout.Widget {
 	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, body: body, capBand: body.FaceMetrics().CapHeight, density: d}
-	ad := adorn{search: true, clear: true, showClear: !s.Disabled && s.Text != ""}
+	ad := adorn{search: true, clear: true, showClear: !s.Disabled && s.Text != "", count: s.Count}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawTextFieldStatic(gtx, shaper, placeholder, tok, s, ad)
 	}
+}
+
+// count asks a SearchFieldProps.Count for this frame's answer, and answers
+// nothing where the caller stated none.
+func count(f func() string) string {
+	if f == nil {
+		return ""
+	}
+	return f()
 }
 
 // adorn is the pair of slots the search field adds to the text field's
@@ -326,6 +350,43 @@ type adorn struct {
 	// clearDesc names, for a reader who cannot see the mark, the field the
 	// mark empties.
 	clearDesc string
+
+	// count is what the query has found, standing inside the field at its
+	// trailing end: the field's own report on what it holds, leading of the
+	// clear mark. Empty draws nothing and reserves nothing.
+	count string
+	// countCall and countDims are the shaped count and the box it takes,
+	// recorded before the field's insets are worked out because the room it
+	// stands in is taken out of the text's width.
+	countCall op.CallOp
+	countDims layout.Dimensions
+}
+
+// shapeCount records the count and the box it takes, and returns the adorn
+// carrying both. It runs before the insets are worked out: the count stands
+// inside the field and the room it takes comes out of the text's width, the
+// way the two marks' does.
+func (a adorn) shapeCount(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s RenderState) adorn {
+	if a.count == "" || shaper == nil {
+		a.count = ""
+		return a
+	}
+	f, wl, textSize := bodyLabel(tok)
+	fill := fieldFill(tok.platform, s)
+	col := vgcolor.Flatten(tok.platform.SecondaryLabel, fill)
+	if s.Disabled {
+		col = vgcolor.Flatten(tok.platform.DisabledControlText, fill)
+	}
+	mMat := op.Record(gtx.Ops)
+	paint.ColorOp{Color: col}.Add(gtx.Ops)
+	mat := mMat.Stop()
+
+	inner := gtx
+	inner.Constraints = layout.Constraints{Max: image.Pt(gtx.Constraints.Max.X, gtx.Constraints.Max.Y)}
+	m := op.Record(gtx.Ops)
+	a.countDims = typeset.Layout(inner, shaper, wl, f, textSize, a.count, mat)
+	a.countCall = m.Stop()
+	return a
 }
 
 // markPx is the square each of the two slots is cut to, and the square the
@@ -424,6 +485,13 @@ func (a adorn) insets(gtx layout.Context, tok resolvedTokens, s RenderState, pad
 	if a.clear {
 		trail = padH + a.markPx(gtx) + a.trailGapPx(gtx, tok)
 	}
+	if a.count != "" {
+		// The count stands between the clear mark and the text, keeping the
+		// mark beside it the clear space the field's leading mark keeps from
+		// the text beside IT, and the text the same space it already kept
+		// from the mark.
+		trail += a.countDims.Size.X + a.promptGapPx(gtx, s)
+	}
 	return lead, trail
 }
 
@@ -465,6 +533,15 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 			g(gtx, slot, col)
 			st.Pop()
 		}
+	}
+	if a.count != "" {
+		x := field.X - padH - a.promptGapPx(gtx, s) - a.countDims.Size.X
+		if a.clear {
+			x -= slot
+		}
+		st := op.Offset(image.Pt(x, promptOffset(gtx, tok, field.Y, a.countDims))).Push(gtx.Ops)
+		a.countCall.Add(gtx.Ops)
+		st.Pop()
 	}
 	if a.clear && a.showClear {
 		origin := image.Pt(field.X-padH-slot, (field.Y-slot)/2)

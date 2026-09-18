@@ -113,3 +113,58 @@ func TestFromTokens(t *testing.T) {
 		})
 	}
 }
+
+// TestTheThumbCarriesTheRecordedCoverage reads the thumb off a capture in
+// both schemes and requires the pixel to be the recorded ScrollbarThumb
+// coverage over the fill the bar rides, and nothing else.
+//
+// MEASURED, reference/macos/textedit-scrollbar.png: the platform's overlay
+// knob reads #9d9fa1 over a #1a2124 track, which is labelColor's white at
+// 0.572 — 146 of 255 — reproduced within one 255th on every channel when it
+// is flattened in encoded sRGB, the space the platform composites in. That
+// coverage is carried in both schemes: the light row is the dark row's under
+// labelColor's black, no stored capture holding a light-appearance overlay
+// bar.
+//
+// What the bar then PAINTS is opaque: black at 0.572 over the light content's
+// white is 109, and white at the same coverage over the dark content's 30 is
+// 159. Both are read back here off the drawn image rather than off the style,
+// because a style that resolves correctly and a bar that paints something
+// else is the defect a colour assertion cannot see.
+func TestTheThumbCarriesTheRecordedCoverage(t *testing.T) {
+	const coverage = 0x92 // 146 of 255 — the recorded 0.572
+	for _, tc := range []struct {
+		name string
+		p    tokens.PlatformColors
+	}{
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.p.ScrollbarThumb.A; got != coverage {
+				t.Errorf("ScrollbarThumb is laid on at %#x, want the recorded %#x", got, coverage)
+			}
+			rides := tc.p.ControlBackground
+			size := image.Pt(24, 400)
+			state := NewState()
+			style := FromTokens(tc.p, rides)
+			img := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
+				gtx.Metric = unit.Metric{PxPerDp: 1, PxPerSp: 1}
+				paint.FillShape(gtx.Ops, rides, clip.Rect{Max: gtx.Constraints.Max}.Op())
+				style.Layout(gtx, state, layout.Vertical, 0.35, 0.65)
+				return layout.Dimensions{Size: gtx.Constraints.Max}
+			})
+			// The thumb's own middle row and middle column. The bar takes
+			// its gutter at the leading end of the minor axis it is given,
+			// so the thumb stands one track padding in; the middle column of
+			// it is clear of the corners the radius rounds away and of the
+			// padding either side, so the pixel read is the fill and never
+			// its antialiasing.
+			got := img.RGBAAt(int(style.TrackPadding)+int(style.ThumbMinorWidth)/2, size.Y/2)
+			want := vgcolor.Flatten(tc.p.ScrollbarThumb, rides)
+			if got.R != want.R || got.G != want.G || got.B != want.B || got.A != 0xff {
+				t.Errorf("the thumb paints %v, want the recorded coverage over the fill it rides, %v", got, want)
+			}
+		})
+	}
+}
