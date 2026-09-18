@@ -428,7 +428,7 @@ const hairlineDp unit.Dp = 1
 //
 // The box is two nested fills rather than a stroke, which keeps the corner's
 // antialiasing out of the golden images.
-func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size image.Point, fill, edge color.NRGBA) {
+func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size image.Point, fill, edge, shadow color.NRGBA) {
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 	if s.Variant == Chrome {
 		rad = size.Y / 2
@@ -447,6 +447,19 @@ func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size im
 	case s.Variant != Chrome:
 		borderPx = gtx.Dp(hairlineDp)
 	}
+	// A recess standing in a TOOLBAR band casts the bordered toolbar
+	// control's drop shadow, and one on a sidebar casts none. MEASURED,
+	// voicememos-sidebar-light.png: the band over the toolbar recess reads
+	// 250 and the band under it 244, the same two bytes Finder's toolbar
+	// pop-up leaves on its own white band — one shadow, drawn by whatever
+	// bordered control stands in that band. MEASURED,
+	// system-settings-grouped-box-light.png: the sidebar around its recess
+	// reads the sidebar's own 249-250 in every row above and below it, so
+	// the platform casts nothing there.
+	if s.onToolbar() {
+		control.DrawToolbarShadow(gtx, image.Rectangle{Max: size}, rad, shadow)
+	}
+
 	if borderPx > 0 {
 		paint.FillShape(gtx.Ops, edge, clip.RRect{
 			Rect: image.Rectangle{Max: size},
@@ -527,17 +540,16 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	// than the button beside it, and Density.ToolbarControlHeight for the
 	// recess standing in a toolbar band — and the drawn height is
 	// max(that floor, line box + 2×PaddingY).
-	// padH is the field's trailing inset, spent from the field's outer edge:
-	// the hairline that edge is drawn at plus the measured
-	// [control.TextTrailDp] inside it. It does not follow density, and
-	// neither does the leading inset adorn.insets carries.
-	padH := gtx.Dp(hairlineDp) + gtx.Dp(control.TextTrailDp)
+	// padH is the field's trailing inset — see [trailPad]. It does not
+	// follow density, and neither does the leading inset adorn.insets
+	// carries.
+	padH := trailPad(gtx, s)
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := fieldMinH(gtx, tok, s)
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
 
-	fillColor, textColor, edgeColor, phColor := textFieldColors(tok.platform, s)
+	fillColor, textColor, edgeColor, phColor, shadowColor := textFieldColors(tok.platform, s)
 
 	fieldW := gtx.Constraints.Max.X
 	lead, trail := ad.insets(gtx, tok, s, padH)
@@ -574,7 +586,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	}
 	fieldSize := image.Pt(fieldW, fieldH)
 
-	drawFieldBox(gtx, tok, s, fieldSize, fillColor, edgeColor)
+	drawFieldBox(gtx, tok, s, fieldSize, fillColor, edgeColor, shadowColor)
 
 	offY := promptOffset(gtx, tok, fieldH, contentDims)
 
@@ -682,14 +694,14 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	// Same sizing rules as drawTextFieldLive: the floor is fieldMinH — the
 	// field's own height, not the button's, and the toolbar control's where
 	// the recess stands in a toolbar band — and padH is the same trailing
-	// inset.
-	padH := gtx.Dp(hairlineDp) + gtx.Dp(control.TextTrailDp)
+	// inset [trailPad] gives the live path.
+	padH := trailPad(gtx, s)
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := fieldMinH(gtx, tok, s)
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
 
-	fillColor, textColor, edgeColor, phColor := textFieldColors(tok.platform, s)
+	fillColor, textColor, edgeColor, phColor, shadowColor := textFieldColors(tok.platform, s)
 
 	fieldW := gtx.Constraints.Max.X
 	lead, trail := ad.insets(gtx, tok, s, padH)
@@ -729,7 +741,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	}
 	fieldSize := image.Pt(fieldW, fieldH)
 
-	drawFieldBox(gtx, tok, s, fieldSize, fillColor, edgeColor)
+	drawFieldBox(gtx, tok, s, fieldSize, fillColor, edgeColor, shadowColor)
 
 	offY := promptOffset(gtx, tok, fieldH, labelDims)
 	st := op.Offset(image.Pt(textX, offY)).Push(gtx.Ops)
@@ -762,21 +774,44 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // Focus replaces the edge with focus.Ring — the platform's keyboard focus
 // indicator, the one ring every control in this library wears — drawn at
 // focus.Width instead of the hairline's single pixel.
-func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, edge, placeholder color.NRGBA) {
+func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, edge, placeholder, shadow color.NRGBA) {
 	fill = fieldFill(p, s)
 	foreground = p.Text
 	edge = control.Border(p)
 	placeholder = control.Placeholder(p, fill)
 	if s.onToolbar() {
 		edge = control.ToolbarRim(p, fill)
+		shadow = p.ToolbarControlShadow
 	}
 	switch {
 	case s.Disabled:
 		foreground = vgcolor.Flatten(p.DisabledControlText, fill)
 		placeholder = foreground
 		edge = control.Faded(edge, surface.Or(s.Surface, p.WindowBackground))
+		shadow = vgcolor.Fade(shadow, tokens.DisabledCoverage)
 	case s.Focused:
 		edge = focus.Ring(p, surface.Or(s.Surface, p.WindowBackground))
 	}
 	return
+}
+
+// trailPad is the field's trailing inset, spent from the field's outer edge:
+// the edge that field is drawn at plus the measured [control.TextTrailDp]
+// inside it. It does not follow density, and neither does the leading inset
+// adorn.insets carries.
+//
+// A field that draws no edge spends none. The sidebar recess is that field —
+// MEASURED, system-settings-grouped-box-{light,dark}.png: it steps from the
+// sidebar to its fill in one row with no stroke row on any side — so its
+// trailing inset is the measured six and nothing else, and the clear mark
+// standing in it lands where the measurement puts it rather than one column
+// further in. The toolbar recess spends the column in both appearances even
+// though the platform draws its rim in the dark one alone: it is the same
+// control in both schemes and only whether the rim is visible moves, which is
+// the rule adorn.glyphX spends at the leading end.
+func trailPad(gtx layout.Context, s RenderState) int {
+	if s.Variant == Chrome && s.Region == Sidebar {
+		return gtx.Dp(control.TextTrailDp)
+	}
+	return gtx.Dp(hairlineDp) + gtx.Dp(control.TextTrailDp)
 }

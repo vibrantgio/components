@@ -72,3 +72,41 @@ const PopupLeadDp unit.Dp = 11
 // chevron and its own trailing edge in a control 29 px tall, so the room is a
 // fixed one and not a ratio of the control's height.
 const PopupMarkTrailDp unit.Dp = 9
+
+// ChromeMarkDp is the box a symbol standing alone in a toolbar control is
+// drawn in — the size the chrome variant hands its mark, and the top of the
+// range components/icons is authored for.
+//
+// MEASURED at 1x, the toolbar bands of finder-window-light.png,
+// notes-toolbar.png and voicememos-window.png. A symbol's covered extent
+// there reads 18 × 18 px (Finder's group pull-down), 19 × 19 (its tag),
+// 17 × 12 (its list), 16 × 17 (its magnifier), 17 × 17 (Notes' compose) and
+// 19 × 15 (Voice Memos' sidebar toggle): a square form fills about 18 px and
+// a round or diagonal one about 17. That is the icon set's own grid at 24 —
+// a square form to its 18-unit keyline and a round one to 20 units on a
+// 24-unit grid — so 24 is the size at which the set draws the platform's
+// measured extent, and the size at which every unit of that grid lands on a
+// whole pixel.
+//
+// The weight is the set's one weight and stands with its miss stated. The
+// axis-aligned band of those same symbols measures 1.12 px (Finder's list
+// bar), 1.15 to 1.22 (its magnifier's circle), 1.26 (Notes' compose) and 1.39
+// (Voice Memos' sidebar rectangle), against the 1.5 px the set's 1.5-unit
+// band draws at 24. The set is a sixth heavier, and a lighter one is not
+// available: 1.25 units falls to 0.83 px at the 16 dp end of the range, below
+// one device pixel, where an antialiased line is drawn grey rather than in
+// the control's colour.
+const ChromeMarkDp unit.Dp = 24
+
+// ChromeMarkSideDp is the clear room a toolbar control leaves on each side of
+// that box, and so the width the chrome variant draws: [ChromeMarkDp] plus
+// twice this.
+//
+// MEASURED at 1x: a toolbar control carrying one symbol and nothing else
+// measures 38 px wide against its 36 px height in mail-window.png (the
+// compose control, x 404–441), 37 in notes-toolbar.png (x 8–44) and 40 in
+// voicememos-window.png (the sidebar toggle, x 96–135); Mail's three-segment
+// group divides to 37.3 a segment. Around a 24 px box those leave 7, 6.5 and
+// 8 columns a side. Seven is the middle reading and lands Mail's control
+// exactly; the platform's own spread across four readings is three columns.
+const ChromeMarkSideDp unit.Dp = 7

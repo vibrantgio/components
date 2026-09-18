@@ -13,8 +13,8 @@ import (
 // the reading — so there is no fill of the field's own left to fade.
 func TestTheSwitchedOffFieldsEdgeFades(t *testing.T) {
 	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
-		restFill, _, restEdge, _ := textFieldColors(p, RenderState{})
-		offFill, _, offEdge, _ := textFieldColors(p, RenderState{Disabled: true})
+		restFill, _, restEdge, _, _ := textFieldColors(p, RenderState{})
+		offFill, _, offEdge, _, _ := textFieldColors(p, RenderState{Disabled: true})
 		if offFill != restFill {
 			t.Errorf("a switched-off field fills %v against the resting %v; the interior is the surface and does not move", offFill, restFill)
 		}

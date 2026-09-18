@@ -469,6 +469,10 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 			Body: inv.emphasisButtonRow(c)},
 		{Name: "components-button-pinned", Title: "Button — the theme's own fill, and one pinned from outside the set", Height: 36,
 			Body: inv.pinnedButtonRow(c)},
+		// The slot is the toolbar control's own height plus the room its drop
+		// shadow reaches into the band under it.
+		{Name: "components-button-chrome", Title: "Button — the chrome variant, a symbol in the platform's bordered toolbar control, at rest, under the pointer, held, focused and switched off", Height: 68,
+			Body: inv.chromeButtonRow(c)},
 		{Name: "components-chip", Title: "Chip — the four purposes on three surfaces, then rest, hover, press and focus", Height: chipBlockH,
 			Body: inv.chipBlock(c)},
 		{Name: "components-badge", Title: "Badge — the five statuses, the three utterances, the disc, and the close mark", Height: badgeBlockH,
@@ -488,7 +492,10 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 			Body: inv.tooltip(c)},
 		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 60,
 			Body: inv.textFieldRow(c)},
-		{Name: "components-searchfield", Title: "Search field — at rest, holding a query with its clear mark, and the recess it takes on chrome", Height: 60,
+		// The slot holds the toolbar recess's own drop shadow as well as the
+		// controls: that shadow reaches 23 px past the control and a slot cut
+		// to the controls alone runs it into the heading below.
+		{Name: "components-searchfield", Title: "Search field — at rest, holding a query with its clear mark, and the recess it takes on chrome", Height: 84,
 			Body: inv.searchFieldRow(c)},
 		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled, then the same controls carrying their own labels", Height: 96,
 			Body: inv.toggleRow(c)},
@@ -575,6 +582,53 @@ func (inv *Inventory) emphasisButtonRow(c tokens.PlatformColors) layout.Widget {
 		{icon: inv.marks.Mark(icons.Sidebar), st: button.RenderState{Emphasis: button.Filled}},
 	})
 }
+
+// chromeButtonRow puts the chrome variant through the pointer walk on the
+// band it belongs to.
+//
+// It stands on the chrome material painted behind the row rather than on the
+// section's own surface, the way the picker's chrome trigger does: the
+// control's fill and the shadow it casts are measured against the band it
+// stands in, and one shown on the page's plane would be showing a step nobody
+// drew.
+//
+// A symbol is its whole label, which is the case this variant is for — no
+// stored toolbar band holds a control with a word in it — so the cells carry
+// no captions and the row is read as a row of controls.
+func (inv *Inventory) chromeButtonRow(c tokens.PlatformColors) layout.Widget {
+	states := []button.RenderState{
+		{},
+		{Hovered: true},
+		{Pressed: true},
+		{Focused: true},
+		{Disabled: true},
+	}
+	mark := inv.marks.Mark(icons.Sidebar)
+	return func(gtx layout.Context) layout.Dimensions {
+		cs := make([]layout.FlexChild, 0, 2*len(states))
+		for i, st := range states {
+			if i > 0 {
+				cs = append(cs, layout.Rigid(complayout.HSpacer(float32(ButtonCellGap))))
+			}
+			st.Surface = c.SidebarMaterial
+			cs = append(cs, layout.Rigid(button.RenderChrome(mark, c, tokens.Comfortable, st)))
+		}
+		macro := op.Record(gtx.Ops)
+		dims := complayout.InsetXY(float32(chromeButtonPad), float32(chromeButtonPad)).Layout(gtx,
+			func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{}.Layout(gtx, cs...)
+			})
+		call := macro.Stop()
+		paint.FillShape(gtx.Ops, c.SidebarMaterial, clip.Rect{Max: dims.Size}.Op())
+		call.Add(gtx.Ops)
+		return dims
+	}
+}
+
+// chromeButtonPad is the room the band keeps around the row of controls: the
+// 8 px the platform leaves above and below a control in its 52 px toolbar
+// band (MEASURED, the toolbar-control row at the head of controls.md).
+const chromeButtonPad unit.Dp = 8
 
 func (inv *Inventory) buttonCells(c tokens.PlatformColors, cells []buttonCell) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {

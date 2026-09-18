@@ -287,6 +287,38 @@ func Draw(
 	// bordered control in a toolbar band that way.
 	radius := box.Dy() / 2
 
+	outer := Capsule(gtx, box, radius, p, fill, s)
+
+	// The label at its own origin, clipped to the control's shape so a line
+	// box taller than the control is cut by the control rather than drawn
+	// past it.
+	area := outer.Push(gtx.Ops)
+	lo := op.Offset(image.Pt(lead, (h-labelDims.Size.Y)/2)).Push(gtx.Ops)
+	labelCall.Add(gtx.Ops)
+	lo.Pop()
+	area.Pop()
+
+	// The mark is handed its own column at the shape's full height and
+	// centres itself in it, at the one size the platform draws it.
+	control.DrawMark(gtx, image.Rect(w-trail-mark, 0, w-trail, h), markForeground)
+
+	pointer.CursorPointer.Add(gtx.Ops)
+	return layout.Dimensions{Size: size}
+}
+
+// Capsule paints the bordered toolbar control's own box into box: its fill,
+// and the rim or the focus ring that stands in the rim's place. It reports the
+// rounded shape it drew, which a caller pushes to clip whatever stands inside
+// that box.
+//
+// Every bordered toolbar control in this library is drawn through it — the
+// picker's chrome trigger and components/button's chrome variant — so a
+// control labelled with a symbol and a pop-up are one box drawn in two places.
+//
+// The shadow the control casts on its band is NOT drawn here: it falls
+// outside the box and so outside the clip a widget.Clickable puts around
+// whatever it wraps. [Cast] draws it, around the whole control.
+func Capsule(gtx layout.Context, box image.Rectangle, radius int, p tokens.PlatformColors, fill color.NRGBA, s State) clip.RRect {
 	// A focused control's edge IS the focus ring: the ring replaces the rim
 	// rather than being drawn inside it, and in the light appearance there is
 	// no rim to replace — the platform draws none there, so a resting light
@@ -319,20 +351,30 @@ func Draw(
 		paint.FillShape(gtx.Ops, edgeColor, clip.Stroke{Path: edgePath, Width: float32(2 * band)}.Op())
 		edgeArea.Pop()
 	}
+	return outer
+}
 
-	// The label at its own origin, clipped to the control's shape so a line
-	// box taller than the control is cut by the control rather than drawn
-	// past it.
-	area := outer.Push(gtx.Ops)
-	lo := op.Offset(image.Pt(lead, (h-labelDims.Size.Y)/2)).Push(gtx.Ops)
-	labelCall.Add(gtx.Ops)
-	lo.Pop()
-	area.Pop()
-
-	// The mark is handed its own column at the shape's full height and
-	// centres itself in it, at the one size the platform draws it.
-	control.DrawMark(gtx, image.Rect(w-trail-mark, 0, w-trail, h), markForeground)
-
-	pointer.CursorPointer.Add(gtx.Ops)
-	return layout.Dimensions{Size: size}
+// Cast lays w out and paints under it the drop shadow the bordered toolbar
+// control w drew casts on the band it stands on, sized to what w reported.
+//
+// It is a wrapper rather than a line inside [Capsule] because the shadow is
+// the one thing this control draws OUTSIDE its own box, and gioui.org/widget's
+// Clickable clips whatever it wraps to the box its layout.Widget reports — so a
+// shadow painted inside the control's own layout.Widget is cut off at the
+// control's edge on the live path and drawn whole on the pure one. Recording
+// the control, painting the shadow under the box it measured itself to and
+// replaying it puts one drawing on both paths.
+//
+// The radius is half the reported height: every bordered control in a stored
+// toolbar band is a capsule.
+//
+// shadow is the platform's ToolbarControlShadow, or a copy of it whose
+// coverage the caller has faded with the control it belongs to.
+func Cast(gtx layout.Context, shadow color.NRGBA, w layout.Widget) layout.Dimensions {
+	macro := op.Record(gtx.Ops)
+	dims := w(gtx)
+	call := macro.Stop()
+	control.DrawToolbarShadow(gtx, image.Rectangle{Max: dims.Size}, dims.Size.Y/2, shadow)
+	call.Add(gtx.Ops)
+	return dims
 }

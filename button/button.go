@@ -20,6 +20,7 @@ import (
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/surface"
+	"github.com/vibrantgio/components/internal/toolbarface"
 	"github.com/vibrantgio/mvu"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
@@ -76,6 +77,51 @@ func (e Emphasis) String() string {
 	return fmt.Sprintf("Emphasis(%d)", int(e))
 }
 
+// Variant is where the button stands — a setting, never a behaviour and never
+// a prominence. The zero value is [Form].
+//
+// It is the Variant the picker and the search field carry under the same two
+// names: one control drawn in two places, and the place settles what the
+// platform draws it as.
+type Variant uint8
+
+const (
+	// Form is the button among content: the platform's push button, at the
+	// density's control height, wearing its [Emphasis].
+	Form Variant = iota
+
+	// Chrome is the button standing in a chrome region — a toolbar, a navbar.
+	// A button whose label is a SYMBOL is drawn there as the platform's
+	// bordered toolbar control: a capsule at
+	// [tokens.Density.ToolbarControlHeight] with the symbol centred in it,
+	// wearing the toolbar control's own fill, its rim where the platform
+	// draws one, and the drop shadow it casts on its band — the same box the
+	// picker's chrome trigger is drawn from, through
+	// components/internal/toolbarface.
+	//
+	// It reaches the symbol path alone. A button carrying TEXT draws the form
+	// variant whatever this says: every symbol-labelled control in the stored
+	// toolbar bands is bordered, and no stored band holds a toolbar button
+	// with a word in it to measure one from.
+	//
+	// The fill, the rim and the shadow are the platform's for that control,
+	// so [Emphasis] reaches nothing here — there is one bordered toolbar
+	// control and the platform draws it one way.
+	Chrome
+)
+
+// String returns the name of the variant in the vocabulary the design system
+// uses everywhere else.
+func (v Variant) String() string {
+	switch v {
+	case Form:
+		return "form"
+	case Chrome:
+		return "chrome"
+	}
+	return fmt.Sprintf("Variant(%d)", int(v))
+}
+
 // RenderState holds the explicit visual state a static render draws in: the
 // emphasis the button wears and the interaction state it is in. The zero
 // value is Filled emphasis at rest, so RenderState{} is exactly today's
@@ -90,6 +136,11 @@ type RenderState struct {
 	// and RenderIcon take exactly one parameter that is not a token and
 	// this is it. Zero is Filled.
 	Emphasis Emphasis
+
+	// Variant is where the button stands: [Form] (the zero value) among
+	// content, [Chrome] in a chrome region. It is read on the symbol path
+	// alone — see [Chrome].
+	Variant Variant
 
 	// Fill and Foreground pin the Filled emphasis' fill and the foreground over
 	// it to a pair the scheme does not carry: a colour fixed from outside the
@@ -145,6 +196,13 @@ type Props struct {
 	// pointer target, never the focus ring. Composes with Icon: a ghost
 	// icon button is a less pronounced glyph over the same square.
 	Emphasis Emphasis
+
+	// Variant is where the button stands: [Form] (the zero value) among
+	// content, [Chrome] in a chrome region, copied straight into RenderState
+	// on every frame. A chrome button whose label is a symbol is drawn as the
+	// platform's bordered toolbar control; one carrying text draws the form
+	// variant. See [Chrome].
+	Variant Variant
 
 	// Fill and Foreground pin the Filled emphasis' fill and its foreground to a
 	// pair the scheme does not carry, copied straight into RenderState on
@@ -305,29 +363,44 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 
 				iconOnly := props.Icon != nil && props.Label == ""
 
+				state := RenderState{
+					Emphasis:   props.Emphasis,
+					Variant:    props.Variant,
+					Fill:       props.Fill,
+					Foreground: props.Foreground,
+					Surface:    props.Surface,
+					Hovered:    hov,
+					Focused:    foc,
+					Pressed:    prs,
+					Disabled:   dis,
+				}
+				chrome := iconOnly && state.Variant == Chrome
+
 				// The clickable covers the drawn button exactly: a
 				// control's pointer target is the control, so density
 				// moves the target with the pixels.
-				return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					semantic.ClassOp(semantic.Button).Add(gtx.Ops)
-					semantic.LabelOp(props.Label).Add(gtx.Ops)
-					semantic.DescriptionOp(desc).Add(gtx.Ops)
-					semantic.EnabledOp(!dis).Add(gtx.Ops)
-					state := RenderState{
-						Emphasis:   props.Emphasis,
-						Fill:       props.Fill,
-						Foreground: props.Foreground,
-						Surface:    props.Surface,
-						Hovered:    hov,
-						Focused:    foc,
-						Pressed:    prs,
-						Disabled:   dis,
-					}
-					if iconOnly {
-						return drawIconButton(gtx, props.Icon, tok, state)
-					}
-					return drawButton(gtx, shaper, props.Label, tok, state)
-				})
+				body := func(gtx layout.Context) layout.Dimensions {
+					return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+						semantic.ClassOp(semantic.Button).Add(gtx.Ops)
+						semantic.LabelOp(props.Label).Add(gtx.Ops)
+						semantic.DescriptionOp(desc).Add(gtx.Ops)
+						semantic.EnabledOp(!dis).Add(gtx.Ops)
+						if chrome {
+							return drawChromeIcon(gtx, props.Icon, tok, state)
+						}
+						if iconOnly {
+							return drawIconButton(gtx, props.Icon, tok, state)
+						}
+						return drawButton(gtx, shaper, props.Label, tok, state)
+					})
+				}
+				if chrome {
+					// The shadow the chrome variant casts falls outside the
+					// control's own box, and a Clickable clips what it wraps
+					// to that box, so it is cast around the clickable.
+					return toolbarface.Cast(gtx, chromeShadow(tok.platform, state), body)
+				}
+				return body(gtx)
 			}
 		})
 	})

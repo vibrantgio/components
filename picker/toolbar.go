@@ -200,15 +200,20 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 				}
 
 				return toolbarface.Pin(props.Pin).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return click.Layout(gtx,
-						func(gtx layout.Context) layout.Dimensions {
-							semantic.ClassOp(semantic.Button).Add(gtx.Ops)
-							semantic.LabelOp(props.Value).Add(gtx.Ops)
-							semantic.DescriptionOp(desc).Add(gtx.Ops)
-							semantic.EnabledOp(true).Add(gtx.Ops)
-							return toolbarface.Draw(gtx, shaper, props.Value, tok.platform,
-								tok.spacing, tok.label, tok.density, s)
-						})
+					// The shadow is cast around the clickable rather than
+					// inside it: it falls outside the control's own box, and
+					// a Clickable clips what it wraps to that box.
+					return toolbarface.Cast(gtx, tok.platform.ToolbarControlShadow, func(gtx layout.Context) layout.Dimensions {
+						return click.Layout(gtx,
+							func(gtx layout.Context) layout.Dimensions {
+								semantic.ClassOp(semantic.Button).Add(gtx.Ops)
+								semantic.LabelOp(props.Value).Add(gtx.Ops)
+								semantic.DescriptionOp(desc).Add(gtx.Ops)
+								semantic.EnabledOp(true).Add(gtx.Ops)
+								return toolbarface.Draw(gtx, shaper, props.Value, tok.platform,
+									tok.spacing, tok.label, tok.density, s)
+							})
+					})
 				})
 			}
 		})
@@ -219,9 +224,16 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 // in an explicit visual state, without event processing: the platform's
 // measured toolbar control fill at rest and that fill under the platform's
 // overlays under the pointer and while held, the one-dp rim of the platform's
-// seam, and the value and the pop-up mark both in the platform's control
-// text. When s.Focused, the focus ring takes the rim's place at the control's
-// edge, two dp instead of one.
+// seam, the drop shadow the control casts on the band it stands on, and the
+// value and the pop-up mark both in the platform's control text. When
+// s.Focused, the focus ring takes the rim's place at the control's edge, two
+// dp instead of one.
+//
+// The shadow reaches past the control on every side, so what this
+// layout.Widget paints is wider and taller than what it reports. In the light appearance
+// that shadow is the whole of what tells the control from its band, the
+// platform drawing no edge there and filling the control with the band's own
+// white.
 //
 // It takes no glyph, and that is the point rather than an omission: the mark
 // on a pop-up trigger is not the caller's to choose, and it does not change
@@ -247,8 +259,10 @@ func RenderToolbar(
 	s ToolbarState,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return toolbarface.Draw(gtx, shaper, value, p, sp, labelStyle, d,
-			toolbarface.State(s))
+		return toolbarface.Cast(gtx, p.ToolbarControlShadow, func(gtx layout.Context) layout.Dimensions {
+			return toolbarface.Draw(gtx, shaper, value, p, sp, labelStyle, d,
+				toolbarface.State(s))
+		})
 	}
 }
 

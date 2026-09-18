@@ -45,6 +45,26 @@
 // (components/chip). No variant here records a picked state and none is
 // asked to stand for one.
 //
+// # Where it stands
+//
+// A button also carries a [Variant] — where it stands, never how it behaves
+// and never how pronounced it is. [Form] is the default: the button among
+// content, at the density's control height, wearing its emphasis. [Chrome] is
+// the button in a chrome region, and there a button whose label is a SYMBOL is
+// the platform's bordered toolbar control: a capsule at the toolbar control's
+// measured height with the symbol centred in it, its own fill, its rim where
+// the platform draws one, and the drop shadow it casts on the band it stands
+// on — the box the picker's chrome trigger is drawn from. The emphasis reaches
+// nothing there: the platform draws one bordered toolbar control, one way.
+//
+// The chrome variant reaches the symbol path alone; a chrome button carrying
+// text draws the form variant, because no stored toolbar band holds a control
+// with a word in it to measure one from. [RenderChrome] is the whole control
+// on the pure path, and [ChromeShadow] around [ChromeFace] is the pair a
+// caller that owns the control's own widget.Clickable composes, a Clickable
+// clipping what it wraps to the box its layout.Widget reports while the shadow
+// falls outside it.
+//
 // # A pinned fill
 //
 // The filled variant alone will take a fill from its caller. Set both halves

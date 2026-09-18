@@ -19,6 +19,7 @@ import (
 	"github.com/vibrantgio/components/icon"
 	"github.com/vibrantgio/components/input"
 	"github.com/vibrantgio/components/internal/control"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -564,9 +565,15 @@ func TestSearchFieldToolbarRecessIsTheMeasuredControl(t *testing.T) {
 				t.Errorf("row %d reads the chrome %v; the recess is drawn shorter than the measured %d px",
 					fieldH-1, got, fieldH)
 			}
-			if got := at(200, fieldH); got != p.col.SidebarMaterial {
-				t.Errorf("row %d reads %v, want the chrome %v; the recess is drawn taller than the measured %d px",
-					fieldH, got, p.col.SidebarMaterial, fieldH)
+			// The row under it is the band carrying the shadow this
+			// control casts on it, which is the band and not the fill:
+			// MEASURED, voicememos-sidebar-light.png, where the row under
+			// the recess reads 244 on a #ffffff band. A row still reading
+			// the fill would be a recess drawn taller than the measured 36.
+			band := vgcolor.Flatten(p.col.ToolbarControlShadow, p.col.SidebarMaterial)
+			if got := at(200, fieldH); got != band {
+				t.Errorf("row %d reads %v, want the chrome under this control's shadow %v; the recess is drawn taller than the measured %d px",
+					fieldH, got, band, fieldH)
 			}
 			// The rim: the platform draws one in the dark appearance only,
 			// and where it draws none the field's first row is its own fill.

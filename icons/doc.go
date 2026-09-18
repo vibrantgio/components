@@ -146,6 +146,24 @@
 // to decide, never its importance. A mark that needs emphasis gets it from
 // what it draws, not from a thicker line.
 //
+// # A mark standing in chrome
+//
+// A mark that is the whole label of a control in a toolbar is drawn at 24 —
+// the top of the range above — and the grid is why. MEASURED at 1x off the
+// toolbar bands in the organization's macOS reference: a square symbol's
+// covered extent is 18 × 18 px (Finder's group pull-down) and 19 × 19 (its
+// tag), and a round or diagonal one 16 × 17 (its magnifier) and 17 × 17
+// (Notes' compose), in controls 36 px tall. A square form drawn to this set's
+// 18-unit keyline at 24 is 18 px and a round one drawn to 20 units is 17, so
+// 24 is the size at which the set draws the platform's own extent — and the
+// size at which every unit of the grid lands on a whole pixel.
+//
+// The weight is the set's one weight and carries its miss. The axis-aligned
+// band of those same symbols measures 1.12 px to 1.39 against the 1.5 px this
+// set draws at 24: a sixth heavier, and a lighter one is not available, the
+// floor above being what it is. components/internal/control carries the size
+// as ChromeMarkDp, with the readings.
+//
 // # Drawing a mark
 //
 // Author outlines, not strokes. Gio's clip.Stroke exposes neither line cap nor
