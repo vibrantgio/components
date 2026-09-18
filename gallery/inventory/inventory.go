@@ -1199,10 +1199,12 @@ func (inv *Inventory) textFieldRow(c tokens.PlatformColors) layout.Widget {
 // searchFieldRow is the search field in the three states that separate it
 // from the text field above it — empty, where the looking glass is all there
 // is to see, holding a query, where the clear mark has appeared beside it,
-// and focused — and then the variant it takes on chrome, which is a control
-// of a different shape: the platform's flat recess, no edge, its ends fully
-// rounded. That cell paints the chrome material behind the field, because a
-// recess only reads as one against the chrome material it is cut into.
+// and focused — and then the two recesses it takes on chrome, which are
+// controls of a different shape: the platform's flat recess with its ends
+// fully rounded, the sidebar's at the field's own height with no edge and the
+// toolbar's at the toolbar control's height under that band's highlight rim.
+// Those cells paint the chrome material behind the field, because a recess
+// only reads as one against the chrome material it is cut into.
 func (inv *Inventory) searchFieldRow(c tokens.PlatformColors) layout.Widget {
 	states := []struct {
 		label string
@@ -1212,6 +1214,7 @@ func (inv *Inventory) searchFieldRow(c tokens.PlatformColors) layout.Widget {
 		{"Typed", input.RenderState{Text: "meeting notes"}},
 		{"Focused", input.RenderState{Focused: true, Text: "meeting notes"}},
 		{"On chrome", input.RenderState{Variant: input.Chrome, Surface: c.SidebarMaterial}},
+		{"In a toolbar", input.RenderState{Variant: input.Chrome, Region: input.Toolbar, Surface: c.SidebarMaterial}},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(states))

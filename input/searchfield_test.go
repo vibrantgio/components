@@ -322,21 +322,25 @@ func TestSearchFieldChromeVariantIsTheMeasuredRecess(t *testing.T) {
 func TestPromptCapBandIsOnTheFieldsCentreRow(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 40)
-	// The field draws at the top of the capture, and Comfortable draws it
-	// 28 px tall.
-	const fieldH = 28
+	// The field draws at the top of the capture: Comfortable draws it 28 px
+	// tall, and 36 where the recess stands in a toolbar band.
 	for _, tc := range []struct {
 		name    string
 		colors  tokens.PlatformColors
 		variant input.Variant
+		region  input.Region
+		fieldH  int
 	}{
-		{"form-light", tokens.PlatformLight, input.Form},
-		{"form-dark", tokens.PlatformDark, input.Form},
-		{"chrome-light", tokens.PlatformLight, input.Chrome},
-		{"chrome-dark", tokens.PlatformDark, input.Chrome},
+		{"form-light", tokens.PlatformLight, input.Form, input.Sidebar, 28},
+		{"form-dark", tokens.PlatformDark, input.Form, input.Sidebar, 28},
+		{"chrome-light", tokens.PlatformLight, input.Chrome, input.Sidebar, 28},
+		{"chrome-dark", tokens.PlatformDark, input.Chrome, input.Sidebar, 28},
+		{"toolbar-light", tokens.PlatformLight, input.Chrome, input.Toolbar, 36},
+		{"toolbar-dark", tokens.PlatformDark, input.Chrome, input.Toolbar, 36},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			st := input.RenderState{Variant: tc.variant}
+			fieldH := tc.fieldH
+			st := input.RenderState{Variant: tc.variant, Region: tc.region}
 			stands := tc.colors.WindowBackground
 			if tc.variant == input.Chrome {
 				st.Surface = tc.colors.SidebarMaterial
@@ -402,16 +406,24 @@ func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
 		variant   input.Variant
+		region    input.Region
+		fieldH    int // the height the variant draws at, Comfortable
 		innerEdge int // the field's outer edge to its inner one
 		inset     int
 		gap       int
 	}{
-		{"form", input.Form, 1, 10, 8},
-		{"chrome", input.Chrome, 0, 9, 5},
+		{"form", input.Form, input.Sidebar, 28, 1, 10, 8},
+		{"chrome-sidebar", input.Chrome, input.Sidebar, 28, 0, 9, 5},
+		// The toolbar recess spends the rim's column before the inset, the
+		// way the form field spends its hairline, so its inner edge is one
+		// in even in the light appearance where no rim is drawn. It is drawn
+		// at the density's toolbar control height, so the band the glyph and
+		// the prompt occupy sits lower.
+		{"chrome-toolbar", input.Chrome, input.Toolbar, 36, 1, 10, 8},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			p := tokens.PlatformLight
-			st := input.RenderState{Variant: tc.variant}
+			st := input.RenderState{Variant: tc.variant, Region: tc.region}
 			stands := p.WindowBackground
 			if tc.variant == input.Chrome {
 				st.Surface = p.SidebarMaterial
@@ -423,11 +435,14 @@ func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
 				st,
 			)
 			img := golden.Capture(t, size, onChrome(stands, w))
-			// x=200 is clear of the prompt and both marks; rows 6 to 22 hold
-			// the glyph and stay clear of the field's corners.
-			fill := img.RGBAAt(200, 14)
+			// x=200 is clear of the prompt and both marks; the sixteen rows
+			// either side of the field's centre hold the whole glyph — the
+			// magnifier's handle reaches the lowest of them — and stay clear
+			// of the field's own corners.
+			mid := tc.fieldH / 2
+			fill := img.RGBAAt(200, mid)
 			covered := func(x int) bool {
-				for y := 6; y <= 22; y++ {
+				for y := mid - 8; y <= mid+8; y++ {
 					if img.RGBAAt(x, y) != fill {
 						return true
 					}
@@ -463,6 +478,122 @@ func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
 			if got := prompt - clear; got != tc.gap {
 				t.Errorf("the glyph's last pixel is at x=%d and the prompt's first at x=%d, %d clear columns; want the measured %d",
 					clear-1, prompt, got, tc.gap)
+			}
+		})
+	}
+}
+
+// TestSearchFieldToolbarRecessGolden records the recess a search field takes
+// in a toolbar band: the density's toolbar control height, the platform's
+// toolbar search fill, its ends fully rounded, and in the dark appearance the
+// highlight rim every bordered control in a dark toolbar wears.
+func TestSearchFieldToolbarRecessGolden(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 60)
+
+	cases := []struct {
+		name     string
+		platform tokens.PlatformColors
+		state    input.RenderState
+	}{
+		{"searchfield-toolbar-light-normal", tokens.PlatformLight, input.RenderState{}},
+		{"searchfield-toolbar-dark-normal", tokens.PlatformDark, input.RenderState{}},
+		{"searchfield-toolbar-light-typed", tokens.PlatformLight, input.RenderState{Text: "meeting notes"}},
+		{"searchfield-toolbar-dark-typed", tokens.PlatformDark, input.RenderState{Text: "meeting notes"}},
+		{"searchfield-toolbar-light-focused", tokens.PlatformLight, input.RenderState{Focused: true}},
+		{"searchfield-toolbar-dark-focused", tokens.PlatformDark, input.RenderState{Focused: true}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			st := tc.state
+			st.Variant = input.Chrome
+			st.Region = input.Toolbar
+			st.Surface = tc.platform.SidebarMaterial
+			w := input.RenderSearch(
+				shaper, "Search",
+				tc.platform, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				st,
+			)
+			golden.Render(t, tc.name, size, onChrome(tc.platform.SidebarMaterial, w))
+		})
+	}
+}
+
+// TestSearchFieldToolbarRecessIsTheMeasuredControl reads off the drawn pixels
+// what the toolbar recess was measured to be, and what tells it from the
+// sidebar's.
+//
+// MEASURED, voicememos-window.png and voicememos-sidebar-light.png, the
+// search field at the trailing end of a frontmost Voice Memos toolbar: it
+// spans y 8–43 dark and y 46–81 light — 36 px, the toolbar control height —
+// where the sidebar recess in system-settings-grouped-box-{light,dark}.png
+// spans 28. Its interior is #363636 dark and #e8e8e8 light. Dark it wears a
+// 1 px #4d4d4d rim the whole way round, lighter than both its fill and the
+// #1e1e1e band; light the band steps straight to the fill with no rim on any
+// side.
+func TestSearchFieldToolbarRecessIsTheMeasuredControl(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 60)
+	const fieldH = 36
+	for _, p := range []struct {
+		name string
+		col  tokens.PlatformColors
+	}{{"light", tokens.PlatformLight}, {"dark", tokens.PlatformDark}} {
+		t.Run(p.name, func(t *testing.T) {
+			w := input.RenderSearch(
+				shaper, "Search",
+				p.col, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				input.RenderState{Variant: input.Chrome, Region: input.Toolbar, Surface: p.col.SidebarMaterial},
+			)
+			img := golden.Capture(t, size, onChrome(p.col.SidebarMaterial, w))
+			at := func(x, y int) color.NRGBA {
+				r, g, b, a := img.At(x, y).RGBA()
+				return color.NRGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
+			}
+			fill := control.ToolbarRecess(p.col)
+			// x=200 is clear of the prompt and both marks.
+			if got := at(200, fieldH/2); got != fill {
+				t.Errorf("the recess's fill = %v, want the measured %v", got, fill)
+			}
+			if got := at(200, fieldH/2); got == p.col.SidebarSearchFill && p.name == "dark" {
+				t.Errorf("the recess's fill = %v, the sidebar's; the two were measured apart", got)
+			}
+			// The last row the field covers and the first it does not: the
+			// height is the toolbar control's and not the field's 28.
+			if got := at(200, fieldH-1); got == p.col.SidebarMaterial {
+				t.Errorf("row %d reads the chrome %v; the recess is drawn shorter than the measured %d px",
+					fieldH-1, got, fieldH)
+			}
+			if got := at(200, fieldH); got != p.col.SidebarMaterial {
+				t.Errorf("row %d reads %v, want the chrome %v; the recess is drawn taller than the measured %d px",
+					fieldH, got, p.col.SidebarMaterial, fieldH)
+			}
+			// The rim: the platform draws one in the dark appearance only,
+			// and where it draws none the field's first row is its own fill.
+			rim := control.ToolbarRim(p.col, fill)
+			switch p.name {
+			case "dark":
+				if rim.A == 0 {
+					t.Fatal("the dark toolbar rim answers no colour; the capture holds one")
+				}
+				if got := at(200, 0); got != rim {
+					t.Errorf("the recess's first row = %v, want the rim %v", got, rim)
+				}
+				if got := at(200, 1); got != fill {
+					t.Errorf("the row under the rim = %v, want the fill %v: the rim is one pixel", got, fill)
+				}
+			case "light":
+				if rim.A != 0 {
+					t.Errorf("the light toolbar rim answers %v; the platform draws none", rim)
+				}
+				if got := at(200, 0); got != fill {
+					t.Errorf("the recess's first row = %v, want the fill %v: the platform draws no light rim", got, fill)
+				}
+			}
+			// The ends are fully rounded, so the corner leaves the chrome.
+			if got := at(0, 0); got != p.col.SidebarMaterial {
+				t.Errorf("the recess's top-left corner = %v, want the chrome %v: the ends are fully rounded",
+					got, p.col.SidebarMaterial)
 			}
 		})
 	}

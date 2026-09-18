@@ -110,26 +110,13 @@ func Fill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
 	return p.ToolbarControlFill
 }
 
-// Rim is the hairline around the control: the platform's separator flattened
-// over the fill it is drawn on — but only where that hairline LIFTS the fill.
-// Where it would darken it instead, the platform draws no hairline at all and
-// this answers the zero value, which is no colour.
-//
-// MEASURED. Dark, finder-window-untinted-dark.png: the toolbar control wears a
-// 1 px rim reading #404040 over its #262626 fill, lighter than both the fill
-// and the #1e1e1e band — a highlight that lifts the control's edge. The seam
-// over that fill gives #3b3b3b, five of 255 short of the pixel, which is the
-// miss this name carries. Light, finder-window-light.png: the band steps from
-// 249, 250, 251 straight up to the control's #ffffff with no darker row on any
-// side — what stands outside the control there is its drop shadow, which falls
-// AWAY from the control, and the seam's own black would be an edge the
-// platform does not draw.
+// Rim is the hairline around the control, and it is [control.ToolbarRim]:
+// the platform's separator over the fill the rim is drawn on where that
+// lifts it, and no colour where it would darken it. The two controls that
+// wear it — this trigger and the search field's toolbar recess — spend one
+// answer, and the measurement lives with that one.
 func Rim(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
-	rim := vgcolor.Flatten(p.Separator, beneath)
-	if rim.R <= beneath.R && rim.G <= beneath.G && rim.B <= beneath.B {
-		return color.NRGBA{}
-	}
-	return rim
+	return control.ToolbarRim(p, beneath)
 }
 
 // Label is the colour the control's own wording reads in: the platform's

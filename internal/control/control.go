@@ -61,6 +61,45 @@ func FieldFill(p tokens.PlatformColors, standsOn color.NRGBA) color.NRGBA {
 // over what the field stands on.
 func Recess(p tokens.PlatformColors) color.NRGBA { return p.SidebarSearchFill }
 
+// ToolbarRecess is the interior of a search field standing in a TOOLBAR: the
+// platform's second recess, a different fill from the sidebar's [Recess] and
+// from the bordered control beside it in the same band.
+//
+// MEASURED, voicememos-sidebar-light.png and voicememos-window.png, the
+// search field at the trailing end of a frontmost Voice Memos toolbar: its
+// interior is flat #e8e8e8 light — the value the sidebar recess carries — and
+// #363636 dark over a #1e1e1e band, where the sidebar recess reads #2f3234
+// and a bordered toolbar control reads #262626. Light the two recesses are
+// one value; dark they are not, which is why the toolbar's carries a name of
+// its own.
+func ToolbarRecess(p tokens.PlatformColors) color.NRGBA { return p.ToolbarSearchFill }
+
+// ToolbarRim is the hairline a control standing in a toolbar band wears: the
+// platform's separator flattened over the fill it is drawn on — but only
+// where that hairline LIFTS the fill. Where it would darken it instead, the
+// platform draws no hairline at all and this answers the zero value, which is
+// no colour.
+//
+// MEASURED. Dark, finder-window-untinted-dark.png: a bordered toolbar control
+// wears a 1 px rim reading #404040 over its #262626 fill, lighter than both
+// the fill and the #1e1e1e band — a highlight that lifts the control's edge.
+// The seam over that fill gives #3b3b3b, five of 255 short of the pixel,
+// which is the miss this name carries. voicememos-window.png agrees on the
+// toolbar search field: a 1 px #4d4d4d rim running the whole way round a
+// #363636 fill — the left and right columns of the capsule carry it as well
+// as the rows above and below, so it is the control's own edge and not the
+// band's seam — where the seam over that fill gives #4a4a4a, three of 255
+// short. Light, finder-window-light.png and voicememos-sidebar-light.png: the
+// band steps straight to the fill with no darker row on any side, and the
+// seam's own black would be an edge the platform does not draw.
+func ToolbarRim(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
+	rim := vgcolor.Flatten(p.Separator, beneath)
+	if rim.R <= beneath.R && rim.G <= beneath.G && rim.B <= beneath.B {
+		return color.NRGBA{}
+	}
+	return rim
+}
+
 // Placeholder is the foreground a control's prompt is drawn in: the wording
 // a text field or a picker's field trigger shows in the space its value will
 // occupy, while there is no value there yet. It is the platform's

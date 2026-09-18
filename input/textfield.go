@@ -57,6 +57,12 @@ type RenderState struct {
 	// edge wherever it stands, which is what the Save dialog's field
 	// measures. The zero value is [Form].
 	Variant Variant
+
+	// Region is which chrome region the field stands in, and it is read
+	// only where Variant is [Chrome]: the platform draws a search field on a
+	// sidebar and one in a toolbar as two controls of different heights and
+	// different fills. The zero value is [Sidebar].
+	Region Region
 }
 
 // Variant is where a search field stands, and it is the whole of what one
@@ -73,10 +79,38 @@ const (
 	// stands on, measured off the Save dialog's unfocused field.
 	Form Variant = iota
 	// Chrome is the field standing on chrome — a sidebar, a toolbar: the
-	// platform's flat recess, no edge, its ends fully rounded, measured off
-	// the field at the top of System Settings' sidebar.
+	// platform's flat recess, its ends fully rounded, measured off the field
+	// at the top of System Settings' sidebar and off the one at the trailing
+	// end of Voice Memos' toolbar. Which of the two is drawn is [Region].
 	Chrome
 )
+
+// Region is the chrome region a search field stands in. The platform draws
+// one recess on a sidebar and another in a toolbar — a different height, a
+// different fill, a different pair of insets — so the region the caller names
+// settles which of the two is drawn. It is read only where the variant is
+// [Chrome]: a field on a form stands in no chrome region.
+type Region uint8
+
+const (
+	// Sidebar is the field standing on a sidebar: the recess measured off
+	// the field at the top of System Settings' sidebar — 28 px tall,
+	// [tokens.PlatformColors.SidebarSearchFill], no edge in either
+	// appearance.
+	Sidebar Region = iota
+	// Toolbar is the field standing in a toolbar band: the recess measured
+	// off the field at the trailing end of Voice Memos' toolbar — the
+	// density's toolbar control height,
+	// [tokens.PlatformColors.ToolbarSearchFill], and in the dark appearance
+	// the toolbar control's own highlight rim.
+	Toolbar
+)
+
+// onToolbar answers whether this state draws the toolbar recess: the chrome
+// variant standing in a toolbar band, and nothing else. It is the one test
+// the drawing branches on, said once so the height, the fill, the edge and
+// the insets cannot part company.
+func (s RenderState) onToolbar() bool { return s.Variant == Chrome && s.Region == Toolbar }
 
 // TextFieldProps configures a TextField instance.
 type TextFieldProps struct {
@@ -341,10 +375,30 @@ func Render(
 // field's own; everywhere else it is the surface the field stands on, which
 // is what the platform shows through a form field's hairline.
 func fieldFill(p tokens.PlatformColors, s RenderState) color.NRGBA {
-	if s.Variant == Chrome {
+	switch {
+	case s.onToolbar():
+		return control.ToolbarRecess(p)
+	case s.Variant == Chrome:
 		return control.Recess(p)
 	}
 	return control.FieldFill(p, s.Surface)
+}
+
+// fieldMinH is the height floor the field is drawn to: the density's field
+// height everywhere, and its TOOLBAR control height for the recess standing
+// in a toolbar band.
+//
+// MEASURED, voicememos-window.png and voicememos-sidebar-light.png: the
+// toolbar search field spans y 8–43 dark and y 46–81 light, 36 px in both,
+// against the 28 px the sidebar recess measures in
+// system-settings-grouped-box-{light,dark}.png. The 36 is
+// tokens.Density.ToolbarControlHeight, the number every bordered control in
+// the five stored toolbar bands reads at.
+func fieldMinH(gtx layout.Context, tok resolvedTokens, s RenderState) int {
+	if s.onToolbar() {
+		return gtx.Dp(unit.Dp(tok.density.ToolbarControlHeight))
+	}
+	return gtx.Dp(unit.Dp(tok.density.FieldHeight))
 }
 
 // hairlineDp is the edge a form field wears at rest, and so the distance from
@@ -357,9 +411,16 @@ const hairlineDp unit.Dp = 1
 // on a form, and on chrome the flat recess — no edge, its ends fully
 // rounded.
 //
-// MEASURED, system-settings-grouped-box-{light,dark}.png: the recess's
-// corner is half its height, a circular fit to its left end giving 14.7
-// against a 28 px height, the excess being the platform's continuous curve.
+// MEASURED, system-settings-grouped-box-{light,dark}.png: the sidebar
+// recess's corner is half its height, a circular fit to its left end giving
+// 14.7 against a 28 px height, the excess being the platform's continuous
+// curve. MEASURED, voicememos-window.png: the toolbar recess is the same
+// capsule at the toolbar control's height, and in the DARK appearance it
+// wears a 1 px rim the whole way round — x 643 and x 967 carry it as well as
+// y 8 and y 43 — lighter than both its fill and the band, which is the
+// highlight every bordered control in a dark toolbar band wears
+// (control.ToolbarRim). Light, the band steps straight to the fill and there
+// is no rim to draw.
 //
 // Focus replaces the edge in both variants: the ring is the one keyboard
 // focus indicator every control in this library wears, and a recess with no
@@ -376,6 +437,13 @@ func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size im
 	switch {
 	case s.Focused:
 		borderPx = gtx.Dp(focus.Width)
+	case s.onToolbar():
+		// The rim is drawn only where the platform draws one: it answers no
+		// colour in the light appearance, and a transparent border would
+		// leave a ring of whatever stands behind the field.
+		if edge.A > 0 {
+			borderPx = gtx.Dp(hairlineDp)
+		}
 	case s.Variant != Chrome:
 		borderPx = gtx.Dp(hairlineDp)
 	}
@@ -454,17 +522,18 @@ func capBandOffset(gtx layout.Context, tok resolvedTokens, rowH int, dims layout
 
 // drawTextFieldLive renders a live text field containing a widget.Editor.
 func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.Editor, hitTag *int, placeholder, desc string, tok resolvedTokens, s RenderState, showPlaceholder bool, ad adorn) layout.Dimensions {
-	// Sizing rule: the height floor is Density.FieldHeight and not
-	// Density.ControlHeight — the platform draws a field shorter than the
-	// button beside it, which is why the density carries the two separately
-	// — and the drawn height is max(that floor, line box + 2×PaddingY).
+	// Sizing rule: the height floor is fieldMinH — Density.FieldHeight and
+	// not Density.ControlHeight, because the platform draws a field shorter
+	// than the button beside it, and Density.ToolbarControlHeight for the
+	// recess standing in a toolbar band — and the drawn height is
+	// max(that floor, line box + 2×PaddingY).
 	// padH is the field's trailing inset, spent from the field's outer edge:
 	// the hairline that edge is drawn at plus the measured
 	// [control.TextTrailDp] inside it. It does not follow density, and
 	// neither does the leading inset adorn.insets carries.
 	padH := gtx.Dp(hairlineDp) + gtx.Dp(control.TextTrailDp)
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
-	minH := gtx.Dp(unit.Dp(tok.density.FieldHeight))
+	minH := fieldMinH(gtx, tok, s)
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
 
@@ -610,12 +679,13 @@ func editorTextShift(gtx layout.Context, sh *text.Shaper, lbl widget.Label, f fo
 // drawTextFieldStatic renders a static text field for golden-image testing.
 // It always shows the placeholder text; there is no live editor.
 func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder string, tok resolvedTokens, s RenderState, ad adorn) layout.Dimensions {
-	// Same sizing rules as drawTextFieldLive: the floor is
-	// Density.FieldHeight, the field's own, not the button's, and padH is
-	// the same trailing inset.
+	// Same sizing rules as drawTextFieldLive: the floor is fieldMinH — the
+	// field's own height, not the button's, and the toolbar control's where
+	// the recess stands in a toolbar band — and padH is the same trailing
+	// inset.
 	padH := gtx.Dp(hairlineDp) + gtx.Dp(control.TextTrailDp)
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
-	minH := gtx.Dp(unit.Dp(tok.density.FieldHeight))
+	minH := fieldMinH(gtx, tok, s)
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
 
@@ -697,6 +767,9 @@ func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, 
 	foreground = p.Text
 	edge = control.Border(p)
 	placeholder = control.Placeholder(p, fill)
+	if s.onToolbar() {
+		edge = control.ToolbarRim(p, fill)
+	}
 	switch {
 	case s.Disabled:
 		foreground = vgcolor.Flatten(p.DisabledControlText, fill)

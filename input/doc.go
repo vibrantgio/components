@@ -58,16 +58,26 @@
 // panel, a grouped box — it is the platform's bordered field, the hairline
 // around the surface beneath it that the Save dialog measures. On chrome — a
 // sidebar, a toolbar — it is the platform's flat recess: a fill of its own,
-// no edge, its ends fully rounded, measured off the field at the top of
-// System Settings' sidebar. A text field that is not a search field wears
-// the edge wherever it stands.
+// its ends fully rounded. A text field that is not a search field wears the
+// edge wherever it stands.
 //
-// On chrome the leading cluster is the sidebar's own too: the looking glass
+// The chrome variant draws one of two recesses, and which one is the chrome
+// region the caller names in Props.Region. On a sidebar it is the field at
+// the top of System Settings' sidebar: the field's own height, the sidebar
+// search fill, and no edge in either appearance. In a toolbar it is the field
+// at the trailing end of Voice Memos' toolbar: the density's toolbar control
+// height, the toolbar search fill, and in the dark appearance the 1 px
+// highlight rim every bordered control in a dark toolbar band wears. The
+// region is a property the caller states, not a second name for the variant.
+//
+// On a sidebar the leading cluster is that sidebar's own: the looking glass
 // stands 9 px in from the field's edge with the prompt 5 px after its last
 // pixel, and the glyph is the platform's — a round lens on a hairline band,
 // its centre on the field's centre row rather than its bounding box centred
-// there. The toolbar's inset and the capsule's are those places' own and are
-// not what a sidebar takes.
+// there. A field on a form and one in a toolbar spend the toolbar field's
+// measured pair instead, 10 px and 8 px, which Mail's toolbar and Finder's
+// both read. Voice Memos' own 13 and 7 are that application's drawing and
+// neither region takes them.
 //
 // The text field is uncontrolled. Props.Seed pre-fills a newly created
 // instance so an existing value can be edited rather than retyped, but a later

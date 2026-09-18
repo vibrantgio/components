@@ -39,11 +39,11 @@ const ClearHitDp = 24
 // per variant. Each is measured; the provenance is on the method that spends
 // it.
 const (
-	markDp       unit.Dp = 16
-	chromeLeadDp unit.Dp = 9
-	chromeGapDp  unit.Dp = 5
-	formLeadDp   unit.Dp = 10
-	formGapDp    unit.Dp = 8
+	markDp        unit.Dp = 16
+	sidebarLeadDp unit.Dp = 9
+	sidebarGapDp  unit.Dp = 5
+	toolbarLeadDp unit.Dp = 10
+	toolbarGapDp  unit.Dp = 8
 )
 
 // SearchFieldProps configures a SearchField instance.
@@ -64,6 +64,11 @@ type SearchFieldProps struct {
 	// the marks around it still composite onto the chrome material the
 	// field stands on.
 	Variant Variant
+
+	// Region is which chrome region this field stands in, read only where
+	// Variant is [Chrome]. State [Toolbar] for a field standing in a toolbar
+	// band; the zero value is [Sidebar], the recess a sidebar carries.
+	Region Region
 
 	// Surface answers the opaque fill this field stands on, for the scheme
 	// the field is drawing in: what its interior is filled with, and what
@@ -262,6 +267,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 					Disabled: dis,
 					Surface:  standsOn(props.Surface, tok.platform),
 					Variant:  props.Variant,
+					Region:   props.Region,
 				}, showPh, adorn{
 					search:    true,
 					clear:     true,
@@ -281,7 +287,8 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 //
 // The parameters are [Render]'s, and mean the same things.
 // RenderState.Variant picks the variant here as SearchFieldProps.Variant
-// does on the live path. The clear mark is drawn whenever RenderState.Text is
+// does on the live path, and RenderState.Region the chrome region as
+// SearchFieldProps.Region does. The clear mark is drawn whenever RenderState.Text is
 // non-empty, which is the state the live field draws it in.
 func RenderSearch(
 	shaper *text.Shaper,
@@ -344,25 +351,34 @@ func (a adorn) drawingPx(gtx layout.Context) float32 {
 
 // glyphX is the field's leading edge to the looking glass's first pixel.
 //
-// Both variants are measured from the field's inner edge, which is where the
-// platform reads them. MEASURED,
-// system-settings-grouped-box-{light,dark}.png: the recess carries no edge,
-// so its inner edge is its own at x=18, and the glyph's first pixel is at
-// x=27 — 9 px in. MEASURED, mail-window.png: the toolbar field's stroke is at
-// x=867 and its fill begins at x=868, with the glyph's first pixel at x=878 —
-// 10 px in from that inner edge.
+// Every reading is taken from the field's INNER edge, which is where the
+// platform sets them. MEASURED,
+// system-settings-grouped-box-{light,dark}.png: the sidebar recess carries no
+// edge, so its inner edge is its own at x=18, and the glyph's first pixel is
+// at x=27 — 9 px in. MEASURED, mail-window.png: a toolbar search field's
+// stroke is at x=867 and its fill begins at x=868, with the glyph's first
+// pixel at x=878 — 10 px in from that inner edge.
 //
-// The form field's own inner edge is [hairlineDp] in, and it is spent at the
-// hairline's width whatever the field's state, so focus — which replaces the
-// hairline with a wider ring — does not move the glyph.
+// A field with an edge spends that edge's width before the inset, and spends
+// it whatever the field's state, so focus — which replaces the edge with a
+// wider ring — does not move the glyph. The form field's edge is [hairlineDp]
+// and the toolbar recess's rim is drawn at the same hairline, so the two
+// spend one expression; the sidebar recess has no edge to spend.
 //
-// Voice Memos' capsule sets its glyph 13 px in; that is a third place's
-// number and is neither variant's to take.
+// The toolbar recess spends the rim's column in the light appearance too,
+// where the platform draws no rim: the box is the same control in both
+// schemes and only whether the rim is visible moves, and no stored light
+// toolbar outside Voice Memos holds a field to read the inset off.
+//
+// Voice Memos' own capsule sets its glyph 13 px in from its fill in both
+// appearances — x 644 to x 657 dark, x 700 to x 713 light — which is that
+// application's number and not the platform's; Finder's dark toolbar field
+// agrees with Mail's ten (fill from x=1158, glyph from x=1167).
 func (a adorn) glyphX(gtx layout.Context, s RenderState) float32 {
-	if s.Variant == Chrome {
-		return float32(gtx.Dp(chromeLeadDp))
+	if s.Variant == Chrome && s.Region == Sidebar {
+		return float32(gtx.Dp(sidebarLeadDp))
 	}
-	return float32(gtx.Dp(hairlineDp) + gtx.Dp(formLeadDp))
+	return float32(gtx.Dp(hairlineDp) + gtx.Dp(toolbarLeadDp))
 }
 
 // promptGapPx is the clear space between the looking glass's last pixel and
@@ -371,12 +387,14 @@ func (a adorn) glyphX(gtx layout.Context, s RenderState) float32 {
 // MEASURED, system-settings-grouped-box-{light,dark}.png: the glyph's last
 // pixel is at x=41 and the prompt's first at x=47, five clear columns between
 // them. MEASURED, mail-window.png the same way: the glyph's last pixel is at
-// x=890 and the prompt's first at x=899, eight clear columns.
+// x=890 and the prompt's first at x=899, eight clear columns. Voice Memos'
+// own field leaves seven (the glyph ends at x=669 and the prompt opens at
+// x=677), the same third place's drawing its 13 px inset is.
 func (a adorn) promptGapPx(gtx layout.Context, s RenderState) int {
-	if s.Variant == Chrome {
-		return gtx.Dp(chromeGapDp)
+	if s.Variant == Chrome && s.Region == Sidebar {
+		return gtx.Dp(sidebarGapDp)
 	}
-	return gtx.Dp(formGapDp)
+	return gtx.Dp(toolbarGapDp)
 }
 
 // trailGapPx is the clear space held between the text and the clear mark.

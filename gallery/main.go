@@ -796,6 +796,12 @@ func (g *gallery) searchFieldVariantRows() []layout.FlexChild {
 		// only surface a recess with no edge reads as a recess against.
 		{"On chrome (light)", input.RenderState{Variant: input.Chrome, Surface: tokens.PlatformLight.SidebarMaterial}, tokens.PlatformLight},
 		{"On chrome (dark)", input.RenderState{Variant: input.Chrome, Surface: tokens.PlatformDark.SidebarMaterial}, tokens.PlatformDark},
+		// The toolbar recess is the second control the platform draws under
+		// the search field's name: the toolbar control's height, its own
+		// measured fill, and in the dark appearance the highlight rim every
+		// bordered control in a dark toolbar band wears.
+		{"In a toolbar (light)", input.RenderState{Variant: input.Chrome, Region: input.Toolbar, Surface: tokens.PlatformLight.SidebarMaterial}, tokens.PlatformLight},
+		{"In a toolbar (dark)", input.RenderState{Variant: input.Chrome, Region: input.Toolbar, Surface: tokens.PlatformDark.SidebarMaterial}, tokens.PlatformDark},
 	}
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
