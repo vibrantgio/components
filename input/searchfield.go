@@ -614,8 +614,10 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 		// is #232323 on the field's #e8e8e8 fill, which is black at 216 of
 		// 255 over it to the byte. Label carries that same coverage in both
 		// appearances, so the pixel cannot tell the two names apart and the
-		// name is chosen for what the thing is — the reference reads the save
-		// dialog's pop-up drawing its own mark at control text.
+		// name follows what the part is: the clear mark is the control the
+		// user operates (the Search field entry's "[x]"), so it wears
+		// ControlText, while the looking glass and the prompt are signals
+		// naming the field and take the field's own text (ruled 2026-09-18).
 		mark := a.clearPx(gtx)
 		disc := icons.ClearDiscSizePx(mark)
 		clearCol := vgcolor.Flatten(tok.platform.ControlText, fill)
