@@ -92,6 +92,35 @@ const (
 	SearchLensCentre = 10.0 / 24.0
 )
 
+// The sidebar mark's pane, as fractions of the square it is drawn in. The
+// mark is one figure on both platforms the set draws it for — macOS adds the
+// list lines inside the leading column and moves nothing — so the pane, the
+// band and the seam below are the contract for every drawing behind the
+// name.
+//
+// They are stated rather than measured off the parsed file because they are
+// that file's contract, and because they are what a reading off a rendered
+// mark is checked against: the two mark files carry the capture the numbers
+// come from and where each band's whole device pixel lands.
+// TestSidebarMarkKeepsTheMeasuredPane holds both drawings to all five.
+const (
+	// SidebarPaneLeading is the square's leading edge to the pane's, which is
+	// the set's square keyline.
+	SidebarPaneLeading = 3.0 / 24.0
+	// SidebarPaneTop is the square's top edge to the pane's.
+	SidebarPaneTop = 4.5 / 24.0
+	// SidebarPaneWidth and SidebarPaneHeight are the pane's outer extent: a
+	// landscape rectangle in the proportion a window with a sidebar has.
+	SidebarPaneWidth  = 18.0 / 24.0
+	SidebarPaneHeight = 15.0 / 24.0
+	// SidebarBand is the weight every edge of the mark is drawn at, the set's
+	// axis-aligned measure.
+	SidebarBand = 1.5 / 24.0
+	// SidebarSeamLeading is the square's leading edge to the seam's,
+	// which leaves the leading column half the width of the trailing one.
+	SidebarSeamLeading = 9.0 / 24.0
+)
+
 // Painter draws a mark into a square of sizePx at the current origin, in col.
 // It is the shape this library's controls take for an icon slot.
 type Painter func(gtx layout.Context, sizePx int, col color.NRGBA)

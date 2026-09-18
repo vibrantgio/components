@@ -106,13 +106,25 @@
 // pixels 2 to 3 at 16 dp — one whole pixel covered, landed on the pixel grid,
 // at the size where half a pixel of error is the largest share of the mark —
 // and pixels 4 to 6 at 16 dp on a 2 px/dp display. At 24 dp it covers 3 to 4.5,
-// and 6 to 9 at 2 px/dp, exact again. Only 20 dp lands off the grid, at 2.5 to
-// 3.75; the alternative would be a band of 1.2 units, the only width that is
-// whole-pixel there, and it falls to 0.8 px at 16 dp and breaks the floor. So
-// the set is crisp at two of its three sizes and soft at the third, which is
-// the best one geometry can do for all three — and it is why a mark's straight
-// edges sit on the keyline or on the 1.5 sub-grid rather than a fraction in
-// from it.
+// and 6 to 9 at 2 px/dp, exact again. Only 20 dp lands that band off the grid,
+// at 2.5 to 3.75; the alternative would be a band of 1.2 units, the only width
+// that is whole-pixel there, and it falls to 0.8 px at 16 dp and breaks the
+// floor. That is why a mark's straight edges sit on the keyline or on the 1.5
+// sub-grid rather than a fraction in from it.
+//
+// WHERE on the sub-grid a band sits then decides the third size. A band lands a
+// whole device pixel inside it at 16, 20 and 24 dp alike when its leading edge
+// is 1.5m units with m ≡ 0 or 3 (mod 4) — 0, 4.5, 6, 10.5, 12, 16.5, 18, 22.5 —
+// and reaches only 0.75 of one at 20 dp from every other multiple of 1.5. At
+// 16 dp the band is exactly one pixel, so both its edges have to fall on the
+// grid, which is what restricts it to multiples of 1.5 in the first place; at
+// 20 dp it is 1.25 px, and one of the two edges has to fall on the grid for a
+// whole pixel to fit inside. The plus mark is drawn to that rule: its two bars
+// run 10.5 to 12 rather than centred on 12, which is what puts them at the
+// control's own colour at every size. A band that cannot take one of those
+// units without leaving the place a capture measures it at keeps the
+// measurement — the sidebar's pane and seam are the case, and that file
+// records which of its five bands land where.
 //
 // A diagonal edge cannot land on the grid at all, and that is why it takes a
 // measure of its own. A band at 45 degrees crosses a pixel corner to corner,

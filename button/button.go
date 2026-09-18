@@ -229,6 +229,15 @@ type Props struct {
 	// there. See RenderState.Surface.
 	Surface color.NRGBA
 
+	// Checked is the persistent state of a control that records a yes — the
+	// toolbar toggle that says whether the pane it governs stands — copied
+	// straight into RenderState on every frame. It is read on the chrome
+	// symbol path alone, where the platform draws it as the chosen segment
+	// of a segmented control: a patch inside the control's own box. The form
+	// variants carry no such drawing and ignore it. See
+	// RenderState.Checked.
+	Checked bool
+
 	// Icon, when non-nil and Label is empty, renders the button as a compact
 	// icon-only affordance: a square the density's control height on a side
 	// with the glyph centred, instead of a fill-width text label; that square
@@ -377,6 +386,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 					Fill:       props.Fill,
 					Foreground: props.Foreground,
 					Surface:    props.Surface,
+					Checked:    props.Checked,
 					Hovered:    hov,
 					Focused:    foc,
 					Pressed:    prs,

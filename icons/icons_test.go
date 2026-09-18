@@ -3,6 +3,7 @@ package icons_test
 import (
 	"image"
 	"image/color"
+	"math"
 	"runtime"
 	"testing"
 
@@ -445,4 +446,190 @@ func topmostDrawnColumn(img *image.RGBA) int {
 func within(got, want, slack float64) bool {
 	d := got - want
 	return d <= slack && -d <= slack
+}
+
+// sidebarPx are the sizes the library draws icons at, which is the range the
+// sidebar mark's pane is read at below.
+var sidebarPx = []int{16, 20, 24}
+
+// TestSidebarMarkKeepsTheMeasuredPane reads the sidebar mark's own geometry
+// off a render of it and holds it to the contract icons.SidebarPane* states.
+//
+// The reading is taken from the drawing that serves every platform, which is
+// the pane and the seam and nothing else; the macOS drawing is held to the
+// same pane by TestTheMacDrawingIsTheSamePane below, which is why the list
+// lines do not have to be read around here.
+//
+// Coverage is linearised before it is read. Gio mixes the mark into the
+// surface in linear light and the capture stores the result encoded, so the
+// stored byte is not the coverage — the organization's macOS reference records
+// the same rule for reading a component's own capture. A band's edges then
+// come out exactly: a run's leading edge is its first covered column plus what
+// that column is missing, and its trailing edge is its last plus what that one
+// carries.
+func TestSidebarMarkKeepsTheMeasuredPane(t *testing.T) {
+	const (
+		paneTrailing = icons.SidebarPaneLeading + icons.SidebarPaneWidth
+		paneBottom   = icons.SidebarPaneTop + icons.SidebarPaneHeight
+		// The square's own centre, which stands inside the pane on both axes:
+		// below the top corners and above the bottom ones, and in the trailing
+		// column clear of the seam.
+		paneMiddle = 0.5
+	)
+	mark := icons.New("windows").Mark(icons.Sidebar)
+	if mark == nil {
+		t.Fatal("no painter for the sidebar")
+	}
+	for _, px := range sidebarPx {
+		img := shoot(t, px, func(gtx layout.Context) { mark(gtx, px, black) })
+		cov := coverage(img)
+
+		// A row through the pane's middle crosses the two sides and the
+		// seam and nothing else: it runs below the top corners and above
+		// the bottom ones.
+		rows := runs(cov.row(at(px, paneMiddle)))
+		if len(rows) != 3 {
+			t.Fatalf("%d px: a row through the pane crossed %d bands, want the two sides and the seam", px, len(rows))
+		}
+		checkBand(t, px, "the leading side", rows[0], icons.SidebarPaneLeading)
+		checkBand(t, px, "the seam", rows[1], icons.SidebarSeamLeading)
+		checkBand(t, px, "the trailing side", rows[2], paneTrailing-icons.SidebarBand)
+
+		// A column through the pane's trailing half crosses the top and the
+		// bottom and neither the seam nor the list lines.
+		cols := runs(cov.col(at(px, paneMiddle)))
+		if len(cols) != 2 {
+			t.Fatalf("%d px: a column through the pane crossed %d bands, want the top and the bottom", px, len(cols))
+		}
+		checkBand(t, px, "the top", cols[0], icons.SidebarPaneTop)
+		checkBand(t, px, "the bottom", cols[1], paneBottom-icons.SidebarBand)
+	}
+}
+
+// TestTheMacDrawingIsTheSamePane: the two drawings behind the name differ
+// inside the leading column and nowhere else. macOS adds the list lines that
+// platform puts in a source list; the pane, the band and the seam are one
+// figure on both, so a control swapping platforms swaps no geometry.
+func TestTheMacDrawingIsTheSamePane(t *testing.T) {
+	fallback := icons.New("windows").Mark(icons.Sidebar)
+	mac := icons.New("darwin").Mark(icons.Sidebar)
+	if fallback == nil || mac == nil {
+		t.Fatal("no painter for the sidebar")
+	}
+	for _, px := range sidebarPx {
+		a := shoot(t, px, func(gtx layout.Context) { fallback(gtx, px, black) })
+		b := shoot(t, px, func(gtx layout.Context) { mac(gtx, px, black) })
+		// The leading column is the inner pane's leading edge to the
+		// seam's, and it is the only place the two are allowed to differ.
+		lo := at(px, icons.SidebarPaneLeading+icons.SidebarBand)
+		hi := at(px, icons.SidebarSeamLeading) + 1
+		for y := range px {
+			for x := range px {
+				if x >= lo && x < hi {
+					continue
+				}
+				if a.RGBAAt(x, y) != b.RGBAAt(x, y) {
+					t.Fatalf("%d px: the two drawings differ at %d,%d, outside the leading column",
+						px, x, y)
+				}
+			}
+		}
+	}
+}
+
+// at converts a fraction of the mark's square to a pixel index in a square of
+// px. Truncating is what puts the square's centre on the pixel that straddles
+// it at every size the set is drawn at.
+func at(px int, fraction float64) int { return int(fraction * float64(px)) }
+
+// checkBand holds one run of covered pixels to a band of the set's weight
+// standing at lead, both stated as fractions of the mark's square.
+func checkBand(t *testing.T, px int, what string, r run, lead float64) {
+	t.Helper()
+	// A band's edges land on eighths of a pixel at these sizes, and the
+	// rasterizer's own rounding is well inside that.
+	const tolerance = 0.03
+	want := struct{ lead, trail, width float64 }{
+		lead:  lead * float64(px),
+		trail: (lead + icons.SidebarBand) * float64(px),
+		width: icons.SidebarBand * float64(px),
+	}
+	if math.Abs(r.lead-want.lead) > tolerance {
+		t.Errorf("%d px: %s starts at %.3f px, want %.3f", px, what, r.lead, want.lead)
+	}
+	if math.Abs(r.trail-want.trail) > tolerance {
+		t.Errorf("%d px: %s ends at %.3f px, want %.3f", px, what, r.trail, want.trail)
+	}
+	if math.Abs(r.width-want.width) > tolerance {
+		t.Errorf("%d px: %s covers %.3f px, want %.3f — the band is not the set's weight",
+			px, what, r.width, want.width)
+	}
+}
+
+// run is one band read off a line of coverage: where it begins and ends, in
+// pixels from the line's origin, and how much of a pixel it covers.
+type run struct{ lead, trail, width float64 }
+
+// runs splits a line of coverage into the bands that cover it.
+func runs(line []float64) []run {
+	var out []run
+	for i := 0; i < len(line); i++ {
+		if line[i] <= 0 {
+			continue
+		}
+		j := i
+		var sum float64
+		for j < len(line) && line[j] > 0 {
+			sum += line[j]
+			j++
+		}
+		out = append(out, run{
+			lead:  float64(i) + 1 - line[i],
+			trail: float64(j-1) + line[j-1],
+			width: sum,
+		})
+		i = j
+	}
+	return out
+}
+
+// plane is one capture's coverage, a mark drawn in black on white read as the
+// share of each pixel the mark covers.
+type plane struct {
+	v    []float64
+	size int
+}
+
+func (p plane) row(y int) []float64 { return p.v[y*p.size : (y+1)*p.size] }
+
+func (p plane) col(x int) []float64 {
+	out := make([]float64, p.size)
+	for y := range out {
+		out[y] = p.v[y*p.size+x]
+	}
+	return out
+}
+
+// coverage reads a capture as coverage, linearising each channel first: the
+// rasterizer mixes the mark into the surface in linear light and the capture
+// stores the result encoded, so the stored byte is not the share of the pixel
+// the mark took.
+func coverage(img *image.RGBA) plane {
+	b := img.Bounds()
+	p := plane{size: b.Dx(), v: make([]float64, b.Dx()*b.Dy())}
+	for y := range b.Dy() {
+		for x := range b.Dx() {
+			p.v[y*p.size+x] = 1 - linear(img.RGBAAt(b.Min.X+x, b.Min.Y+y).R)
+		}
+	}
+	return p
+}
+
+// linear is the light one channel of an sRGB-encoded capture carries.
+func linear(v uint8) float64 {
+	c := float64(v) / 255
+	if c <= 0.04045 {
+		return c / 12.92
+	}
+	return math.Pow((c+0.055)/1.055, 2.4)
 }
