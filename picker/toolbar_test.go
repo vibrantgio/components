@@ -19,10 +19,10 @@ import (
 // onSurface paints the whole frame in the fill of the surface the trigger is
 // standing on and draws w inset inside it, and it has to do both.
 //
-// The host surface, because the trigger tints that surface rather than filling
-// itself: at rest the chrome shows through untouched, so against the headless
-// window's own clear colour a correct trigger and one that painted a fill of
-// its own look identical. The inset, because a control drawn at the image
+// The host surface, because what the images are for is the separation between
+// the control and the band it stands on: against the headless window's own
+// clear colour a control that stood off its band and one that read as part of
+// it look alike. The inset, because a control drawn at the image
 // origin has the host on two sides and the image edge on the other two, and an
 // image framed that way cannot show whether anything — a ring, a shadow, a
 // stray half-pixel of rim — spills outside the box the control reported. Every
@@ -65,25 +65,28 @@ var goldenSize = image.Pt(220, 60)
 // practice, and its width is what the images were recorded at.
 const toolbarValue = "OpenAI · gpt-5.5"
 
-// toolbar is RenderToolbar at the default spacing, radius and comfortable
-// density — the resolved tokens every measurement and image below draws with.
-func toolbar(t *testing.T, p tokens.PlatformColors, chrome color.NRGBA, s picker.ToolbarState) layout.Widget {
+// toolbar is RenderToolbar at the default spacing and comfortable density —
+// the resolved tokens every measurement and image below draws with.
+func toolbar(t *testing.T, p tokens.PlatformColors, s picker.ToolbarState) layout.Widget {
 	t.Helper()
-	return picker.RenderToolbar(defaultShaper(t), toolbarValue, p, chrome,
-		tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
+	return picker.RenderToolbar(defaultShaper(t), toolbarValue, p,
+		tokens.Spacing, tokens.DefaultTypography.LabelLarge,
 		tokens.Comfortable, s)
 }
 
 // TestToolbarGoldenOnEverySurface records or diffs the resting trigger in both
 // schemes on each of the two surfaces. Four images, and between them they are
-// the claim this geometry makes about the light scheme: the control is visible
-// there because of its rim, not because of a fill of its own.
+// the claim this geometry makes: the control carries a fill of its own that
+// stands off the chrome band. On the content plane in the light appearance the
+// step goes to nothing — the platform's own toolbar control stands there as
+// white on white, told from the band by a shadow this library does not draw —
+// and the light images record that rather than inventing an edge.
 func TestToolbarGoldenOnEverySurface(t *testing.T) {
 	for _, sc := range goldenSchemes {
 		for _, g := range goldenSurfaces {
 			name := "toolbar-" + sc.name + "-" + g.name
 			t.Run(name, func(t *testing.T) {
-				w := toolbar(t, sc.p, g.fill(sc.p), picker.ToolbarState{})
+				w := toolbar(t, sc.p, picker.ToolbarState{})
 				golden.Render(t, name, goldenSize, onSurface(g.fill(sc.p), w))
 			})
 		}
@@ -108,18 +111,18 @@ func TestToolbarStateGolden(t *testing.T) {
 		for _, st := range states {
 			name := "toolbar-" + sc.name + "-" + st.name
 			t.Run(name, func(t *testing.T) {
-				w := toolbar(t, sc.p, sc.p.SidebarMaterial, st.s)
+				w := toolbar(t, sc.p, st.s)
 				golden.Render(t, name, goldenSize, onSurface(sc.p.SidebarMaterial, w))
 			})
 		}
 	}
 }
 
-// TestToolbarDrawsAtTheDensityTable holds the geometry the trigger takes off the
-// tokens rather than off numbers of its own: the height is the density's own
-// rule for a control — max(ControlHeight, line box + 2×PaddingY) — so a face
-// that reached for its own padding or its own line box would draw a different
-// box.
+// TestToolbarDrawsAtTheDensityTable holds the geometry the trigger takes off
+// the tokens rather than off numbers of its own: the height is the density's
+// control height and nothing else, which is what the platform's pop-up
+// measures and what the form trigger draws, so a face that reached for its own
+// padding or grew to its own line box would draw a different box.
 func TestToolbarDrawsAtTheDensityTable(t *testing.T) {
 	shaper := defaultShaper(t)
 	box := image.Pt(1000, 1000)
@@ -134,11 +137,10 @@ func TestToolbarDrawsAtTheDensityTable(t *testing.T) {
 	} {
 		t.Run(d.name, func(t *testing.T) {
 			trigger := measure(t, box, picker.RenderToolbar(shaper, "Model", tokens.PlatformLight,
-				tokens.PlatformLight.SidebarMaterial,
-				tokens.Spacing, tokens.Radius, d.ts, d.d, picker.ToolbarState{})).Size
+				tokens.Spacing, d.ts, d.d, picker.ToolbarState{})).Size
 			if trigger.Y != d.want {
-				t.Errorf("toolbar height %d, want %d — max(ControlHeight %g, %g + 2×%g)",
-					trigger.Y, d.want, d.d.ControlHeight, d.ts.LineHeight, d.d.PaddingY)
+				t.Errorf("toolbar height %d, want the density's control height %d",
+					trigger.Y, d.want)
 			}
 			if trigger.X >= box.X {
 				t.Errorf("toolbar measured %d dp wide in a %d dp box: it is sized to its value", trigger.X, box.X)
@@ -148,16 +150,16 @@ func TestToolbarDrawsAtTheDensityTable(t *testing.T) {
 }
 
 // TestToolbarMarkIsSteadyAcrossTheWalk is the platform ruling written down
-// where a future change cannot silently undo it: a pull-down trigger's chevron
-// says "a menu opens below this" and never "this is open", so nothing about
-// the pointer's state may move it. The face offers no open flag to flip — that
-// is the structural half — and this is the drawn half: the box the trigger
+// where a future change cannot silently undo it: a pop-up trigger's mark says
+// the control holds one of several values and never "this is open", so nothing
+// about the pointer's state may move it. The face offers no open flag to flip
+// — that is the structural half — and this is the drawn half: the box the trigger
 // reports is the same box in all four states, so the mark neither grows nor
 // shifts under the pointer while the fill walks beneath it.
 func TestToolbarMarkIsSteadyAcrossTheWalk(t *testing.T) {
 	box := image.Pt(1000, 1000)
 	size := func(s picker.ToolbarState) image.Point {
-		return measure(t, box, toolbar(t, tokens.PlatformDark, tokens.PlatformDark.SidebarMaterial, s)).Size
+		return measure(t, box, toolbar(t, tokens.PlatformDark, s)).Size
 	}
 	rest := size(picker.ToolbarState{})
 	for _, tc := range []struct {
@@ -175,26 +177,27 @@ func TestToolbarMarkIsSteadyAcrossTheWalk(t *testing.T) {
 	}
 }
 
-// TestToolbarFillIsThePlatformsOverlay pins the passthrough by name: a toolbar
-// button is the one control on this platform that tints under the pointer, so
-// the trigger lays nothing at all over the chrome at rest and the platform's
-// own two overlays over it under the pointer and while it is held — each
-// resolved against the chrome, because the platform composites a coverage in
-// encoded sRGB and Gio's rasterizer would not.
+// TestToolbarFillIsThePlatformsOverlay pins the passthrough by name: the
+// trigger draws the platform's measured toolbar control fill at rest, and a
+// toolbar button is the one control on this platform that tints under the
+// pointer, so the platform's own two overlays go over that fill under the
+// pointer and while it is held — each resolved against it, because the
+// platform composites a coverage in encoded sRGB and Gio's rasterizer would
+// not.
 func TestToolbarFillIsThePlatformsOverlay(t *testing.T) {
 	for _, sc := range goldenSchemes {
 		t.Run(sc.name, func(t *testing.T) {
-			chrome := sc.p.SidebarMaterial
+			fill := sc.p.ToolbarControlFill
 			for _, tc := range []struct {
 				name  string
 				state tokens.State
 				want  color.NRGBA
 			}{
-				{"at rest", tokens.StateNormal, color.NRGBA{}},
-				{"hovered", tokens.StateHover, vgcolor.Flatten(sc.p.HoverOverlay, chrome)},
-				{"pressed", tokens.StatePressed, vgcolor.Flatten(sc.p.PressOverlay, chrome)},
+				{"at rest", tokens.StateNormal, fill},
+				{"hovered", tokens.StateHover, vgcolor.Flatten(sc.p.HoverOverlay, fill)},
+				{"pressed", tokens.StatePressed, vgcolor.Flatten(sc.p.PressOverlay, fill)},
 			} {
-				if got := picker.ToolbarFill(sc.p, tc.state, chrome); got != tc.want {
+				if got := picker.ToolbarFill(sc.p, tc.state); got != tc.want {
 					t.Errorf("%s: ToolbarFill = %v, want %v", tc.name, got, tc.want)
 				}
 			}

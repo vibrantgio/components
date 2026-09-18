@@ -1,14 +1,15 @@
 // Package control holds what every Vibrant Gio form control draws its box
 // by: the colours — the interior it fills, the edge it draws around it, and
-// the foreground of the prompt it shows where a value is not there yet — and
-// the two insets it spends on the text standing inside that box. They live
-// here rather than in components/input because components/picker's field
-// trigger is the same box under a different package — one control family,
-// one set of names and numbers, and no second answer to keep in step.
+// the foreground of the prompt it shows where a value is not there yet — the
+// two insets it spends on the text standing inside that box, and the pop-up
+// mark both of the picker's triggers wear. They live here rather than in
+// components/input because components/picker's field trigger is the same box
+// under a different package — one control family, one set of names and
+// numbers, and no second answer to keep in step.
 //
 // Each colour is the platform's own name for what that part of a field is;
-// each inset is read off a stored capture at 1x. Nothing here walks or
-// derives.
+// each inset and the mark's whole geometry are read off a stored capture at
+// 1x. Nothing here walks or derives.
 package control
 
 import (

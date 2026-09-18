@@ -1,8 +1,8 @@
 // Package toolbarface holds the geometry components/picker's chrome-variant
-// trigger is drawn from: the fill it tints under the pointer, the hairline
-// around it, the focus ring that replaces that hairline, the density's height
-// and padding, the pointer target's placement, and the chevron that says a
-// menu opens below.
+// trigger is drawn from: the fill it stands off its band with and tints under
+// the pointer, the hairline around it, the focus ring that replaces that
+// hairline, the density's control height, the pointer target's placement,
+// and the pop-up mark that says the control holds one of several values.
 //
 // It is internal because it is a seam and not a component: a caller reaches
 // for picker.Toolbar or picker.RenderToolbar, and those document the control
@@ -13,7 +13,6 @@ import (
 	"image"
 	"image/color"
 
-	"gioui.org/f32"
 	"gioui.org/font"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
@@ -23,13 +22,12 @@ import (
 	"gioui.org/text"
 	"gioui.org/unit"
 
-	vglayout "github.com/vibrantgio/components/layout"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
 
+	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
-	"github.com/vibrantgio/components/internal/surface"
 )
 
 // edgeDp is the rim's width — one hair at every density, the width every
@@ -38,63 +36,23 @@ import (
 // token because no scale in the system carries line weights.
 const edgeDp = unit.Dp(1)
 
-// The pull-down chevron's proportions, measured off the stored macOS reference
-// (reference/macos/mail-window.png in the org's .github repository;
-// window-bounded capture, macOS 26.5.2, dark appearance, one pixel per dp on
-// that display). Both pull-down controls in Mail's toolbar — the folder one and
-// the flag one — draw a chevron measuring 9 × 5 px inside a control
-// 29 px tall, identical to the pixel, and the folder control's chevron ends
-// 9 px inside the control's own trailing edge.
+// The trigger draws the platform's pop-up mark — the stacked chevron pair —
+// at the one size the platform draws it: see [control.DrawMark].
 //
-// So the chevron is a RATIO of the control's height, not a fixed size:
+// MEASURED, finder-window-light.png: the Finder toolbar's view pop-up draws
+// the pair 8 px wide and 11 px tall (x 726-733, upper y 21-25, lower y 27-31)
+// in a control 36 px tall, which is the same eight by eleven the Save dialog's
+// pop-up draws in one 24 px tall. The mark does not scale with the control it
+// stands in, so this trigger draws no ratio of its own. The single chevron
+// beside it in that capture (x 792-799, y 24-28) is the group control's, a
+// PULL-DOWN — a menu of actions rather than a choice — and this component has
+// no pull-down: a picker is single-choice by contract, so both of its
+// triggers wear the pop-up's pair.
 //
-//	chevronWidthRatio  the mark's width, 9 of the control's 29
-//	chevronAspect      the mark's height, 5 of its own 9
-//
-// which at this system's 24 dp comfortable control comes out at 7.4 × 4.1 dp.
-const (
-	chevronWidthRatio = 9.0 / 29.0
-	chevronAspect     = 5.0 / 9.0
-)
-
-// chevronStroke is the mark's line weight. The platform reference measured its
-// chevron band at ≈1.44 px at 16 pt from an offscreen render — the platform
-// draws diagonals heavier than its axis-aligned strokes — so 1.5 dp is that
-// measurement at the nearest weight this system draws.
-const chevronStroke = unit.Dp(1.5)
-
-// chevronWidth is the mark's column at density d, in pixels:
-// the platform's ratio of the CONTROL's height, so the mark keeps the
-// platform's proportion at every density rather than taking a line box the way
-// an inline glyph does.
-func chevronWidth(gtx layout.Context, d tokens.Density) int {
-	return gtx.Dp(unit.Dp(d.ControlHeight * chevronWidthRatio))
-}
-
-// chevron paints the pull-down mark — one chevron pointing down — spanning box
-// horizontally and centred in it vertically.
-//
-// It is STATIC. On the platform a pull-down button's chevron says "a menu opens
-// below this" and never "this is open": the glyph does not flip when the menu
-// stands, and a trigger that flipped one would be describing its own menu in a
-// vocabulary the platform reserves for a disclosure triangle.
-func chevron(gtx layout.Context, box image.Rectangle, col color.NRGBA) {
-	w := float32(box.Dx())
-	h := w * chevronAspect
-	stroke := float32(gtx.Dp(chevronStroke))
-	if stroke < 1 {
-		stroke = 1
-	}
-	x0 := float32(box.Min.X)
-	top := float32(box.Min.Y) + (float32(box.Dy())-h)/2
-
-	var p clip.Path
-	p.Begin(gtx.Ops)
-	p.MoveTo(f32.Pt(x0, top))
-	p.LineTo(f32.Pt(x0+w/2, top+h))
-	p.LineTo(f32.Pt(x0+w, top))
-	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: stroke}.Op())
-}
+// The clearance between the mark's last column and the control's trailing
+// edge is the pop-up's own [control.PopupMarkTrailDp], and the label's origin is
+// [control.PopupLeadDp]: the two triggers are one control drawn in two places
+// and spend one pair of insets.
 
 // State is the explicit visual state a static render draws in. The zero value
 // is a resting control.
@@ -117,32 +75,60 @@ func (s State) state() tokens.State {
 	return tokens.StateNormal
 }
 
-// Fill is what the control lays over the chrome it stands on: nothing at
-// rest, the platform's hover overlay under the pointer, its press overlay
-// while it is held, each flattened over chrome and opaque.
+// Fill is the control's own fill: the platform's measured toolbar control
+// fill at rest, that fill under the platform's hover overlay while the
+// pointer is on it, and under its press overlay while it is held.
+//
+// The control is a figure on its band and not part of it. MEASURED,
+// finder-window-untinted-dark.png, a frontmost window: every bordered control
+// in its toolbar reads #262626 against a band of #1e1e1e, eight levels
+// lighter than what it stands on, and finder-window.png's view pop-up agrees
+// in direction with #242d32 on a #232a2e band. The light value is that same
+// control's #ffffff in finder-window-light.png, where the band beneath it is
+// the content's own white and the control is told from it by its shadow; on
+// the chrome material this library paints it stands eight levels lighter,
+// which is the dark appearance's step to the level.
+//
+// The fill does not depend on what the control stands on, which is why this
+// takes no surface: the platform gives its toolbar control a fill of its own,
+// as it gives its push button one.
 //
 // A toolbar button is the one control on this platform that tints under the
 // pointer — a push button, a list row and a sidebar row do not, which is the
 // reading control-hover-{light,dark}.png records — so the overlay is applied
-// here and nowhere else in this library.
-//
-// At rest the return is the zero value, which is no colour at all: the
-// chrome shows through untouched rather than being repainted as itself.
-func Fill(p tokens.PlatformColors, state tokens.State, chrome color.NRGBA) color.NRGBA {
+// here and nowhere else in this library. The light hover lands on the
+// capture to the byte: the overlay over #ffffff is the #f2f2f2 that capture
+// holds.
+func Fill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
 	switch state {
 	case tokens.StatePressed:
-		return vgcolor.Flatten(p.PressOverlay, chrome)
+		return vgcolor.Flatten(p.PressOverlay, p.ToolbarControlFill)
 	case tokens.StateHover:
-		return vgcolor.Flatten(p.HoverOverlay, chrome)
+		return vgcolor.Flatten(p.HoverOverlay, p.ToolbarControlFill)
 	}
-	return color.NRGBA{}
+	return p.ToolbarControlFill
 }
 
 // Rim is the hairline around the control: the platform's separator flattened
-// over beneath — the control's own tint where it carries one and the chrome
-// otherwise — which is how the platform draws every hairline it draws.
+// over the fill it is drawn on — but only where that hairline LIFTS the fill.
+// Where it would darken it instead, the platform draws no hairline at all and
+// this answers the zero value, which is no colour.
+//
+// MEASURED. Dark, finder-window-untinted-dark.png: the toolbar control wears a
+// 1 px rim reading #404040 over its #262626 fill, lighter than both the fill
+// and the #1e1e1e band — a highlight that lifts the control's edge. The seam
+// over that fill gives #3b3b3b, five of 255 short of the pixel, which is the
+// miss this name carries. Light, finder-window-light.png: the band steps from
+// 249, 250, 251 straight up to the control's #ffffff with no darker row on any
+// side — what stands outside the control there is its drop shadow, which falls
+// AWAY from the control, and the seam's own black would be an edge the
+// platform does not draw.
 func Rim(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
-	return vgcolor.Flatten(p.Separator, beneath)
+	rim := vgcolor.Flatten(p.Separator, beneath)
+	if rim.R <= beneath.R && rim.G <= beneath.G && rim.B <= beneath.B {
+		return color.NRGBA{}
+	}
+	return rim
 }
 
 // Label is the colour the control's own wording reads in: the platform's
@@ -151,11 +137,20 @@ func Label(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
 	return vgcolor.Flatten(p.ControlText, beneath)
 }
 
-// Mark is the colour the chevron reads in: the platform's secondary label,
-// which is what it draws a control's own marks in beside that control's
-// wording, flattened over the fill the mark stands on.
+// Mark is the colour the pop-up mark reads in: the platform's control text,
+// the name it draws a control's own marks in, flattened over the fill the
+// mark stands on. It is the colour the control's wording reads in too — one
+// control, one foreground.
+//
+// MEASURED, save-dialog-{light,dark}.png: the pop-up's pair reads 36 light and
+// (224,225,226) dark on fills of #ececec and #333a3f, which is ControlText's
+// 216 of 255 flattened onto each to the byte. The secondary label's coverage
+// would land at 118 and 163. The toolbar's own pop-up agrees within what a
+// thin diagonal can cover: in finder-window-light.png its pair peaks at 77 on
+// a #ffffff fill, which is ControlText at 82% coverage, where SecondaryLabel
+// would need 140% of a pixel to reach it.
 func Mark(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
-	return vgcolor.Flatten(p.SecondaryLabel, beneath)
+	return vgcolor.Flatten(p.ControlText, beneath)
 }
 
 // Pin is the edge of the offered box that a drawn shape is pinned to.
@@ -217,41 +212,38 @@ func (p Pin) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 	return layout.Dimensions{Size: box, Baseline: dims.Baseline}
 }
 
-// Draw paints the pull-down trigger: the hairline or the focus ring that
-// replaces it, the fill it tints under the pointer, the label, and the
-// chevron that says a menu opens below.
+// Draw paints the chrome variant's trigger: the fill it stands off its band
+// with and tints under the pointer, the hairline or the focus ring that
+// replaces it, the label, and the pop-up mark.
 func Draw(
 	gtx layout.Context,
 	shaper *text.Shaper,
 	label string,
 	p tokens.PlatformColors,
-	chrome color.NRGBA,
 	sp tokens.SpacingScale,
-	rad tokens.RadiusScale,
 	labelStyle tokens.TextStyle,
 	d tokens.Density,
 	s State,
 ) layout.Dimensions {
-	// Every one of the platform's names this control draws carries a
-	// coverage, so each is flattened over the fill it actually lands on: the
-	// chrome at rest, and the control's own tint once it has one.
-	chrome = surface.Or(chrome, p.SidebarMaterial)
-	fill := Fill(p, s.state(), chrome)
-	beneath := chrome
-	if fill.A != 0 {
-		beneath = fill
-	}
-	labelForeground := Label(p, beneath)
-	glyphForeground := Mark(p, beneath)
+	// The control carries an opaque fill of its own in every state, so every
+	// coverage it draws over that fill is flattened onto it and nothing it
+	// draws depends on the band beneath.
+	fill := Fill(p, s.state())
+	labelForeground := Label(p, fill)
+	markForeground := Mark(p, fill)
 
-	padH := gtx.Dp(unit.Dp(d.PaddingX))
-	padV := gtx.Dp(unit.Dp(d.PaddingY))
+	// The two triggers spend one pair of insets, both MEASURED off the Save
+	// dialog's "File Format:" pop-up: the label's origin eleven columns in
+	// from the fill's edge, and nine clear columns between the mark's last
+	// column and the trailing edge. The same nine stands in the Finder
+	// toolbar's 36 px pop-up (finder-window-light.png, the pair ending at
+	// x=733 against a fill ending at x=742), so the clearance is fixed and not
+	// a ratio of the control's height.
+	lead := gtx.Dp(control.PopupLeadDp)
+	trail := gtx.Dp(control.PopupMarkTrailDp)
 	minH := gtx.Dp(unit.Dp(d.ControlHeight))
-	gap := gtx.Dp(unit.Dp(sp.S2))
-	// The chevron is not an inline glyph and does not take the label's line
-	// box: it is the platform's own ratio of the CONTROL's height, so the mark
-	// keeps the platform's proportion at every density.
-	mark := chevronWidth(gtx, d)
+	gap := gtx.Dp(unit.Dp(sp.S3))
+	mark := gtx.Dp(control.MarkWDp)
 
 	// Record the label's material and its layout to learn its size before
 	// anything is painted. typeset.Layout rather than widget.Label.Layout
@@ -261,9 +253,13 @@ func Draw(
 	paint.ColorOp{Color: labelForeground}.Add(gtx.Ops)
 	material := mColor.Stop()
 
+	// The line box is capped to the control's height, as the form trigger's
+	// is: a pop-up is not sized by the text it carries, and a Compact control
+	// is shorter than the line box its role declares.
 	labelGtx := gtx
 	labelGtx.Constraints.Min = image.Point{}
-	if maxLabelW := gtx.Constraints.Max.X - 2*padH - gap - mark; maxLabelW > 0 {
+	labelGtx.Constraints.Max.Y = minH
+	if maxLabelW := gtx.Constraints.Max.X - lead - gap - mark - trail; maxLabelW > 0 {
 		labelGtx.Constraints.Max.X = maxLabelW
 	}
 	mLabel := op.Record(gtx.Ops)
@@ -272,82 +268,76 @@ func Draw(
 		unit.Sp(labelStyle.Size), label, material)
 	labelCall := mLabel.Stop()
 
-	// Sized to content, not to the width it was given: the control names a
-	// choice, and one that stretched would be a banner.
-	w := labelDims.Size.X + gap + mark + 2*padH
-	h := max(labelDims.Size.Y+2*padV, minH)
+	// Sized to content across, not to the width it was given: the control
+	// names a choice, and one that stretched would be a banner. Down, it is
+	// the density's control height and nothing else, which is what the form
+	// trigger draws and what keeps the two variants one control.
+	w := lead + labelDims.Size.X + gap + mark + trail
 	w = min(w, gtx.Constraints.Max.X)
-	h = min(h, gtx.Constraints.Max.Y)
+	h := min(minH, gtx.Constraints.Max.Y)
 	size := image.Pt(w, h)
 	box := image.Rectangle{Max: size}
 
-	// The edge, as nested fills — the shape in the edge's colour, the fill
-	// inset by one hair inside it — and not as a stroke on the shape's path. A
-	// stroke is centred on its path, so half a hair of it would fall outside
-	// the box this control reports and every pixel of it would be a blend of
-	// the two colours rather than either.
+	// The corner is fully rounded — half the control's height. MEASURED,
+	// finder-window-untinted-light.png: the toolbar's group pull-down spans
+	// y 34-69 and its sub-pixel left edge reaches its extreme over rows 50-53,
+	// the control's own middle, which is a capsule; circular fits to that
+	// edge run 17.4 to 19.1 about the half-height's 18, the spread the
+	// platform's continuous corner puts on a circular fit everywhere else in
+	// this reference. finder-window.png's view pop-up agrees: 36 px tall,
+	// its edge 12 columns in on its first row against a capsule's 13.8.
 	//
+	// This is the one place the two variants differ in shape. The form
+	// trigger is the dialog's pop-up, which draws the button's rounded
+	// rectangle; the toolbar's is a capsule, and the platform draws every
+	// bordered control in a toolbar band that way.
+	radius := box.Dy() / 2
+
 	// A focused control's edge IS the focus ring: the ring replaces the rim
-	// rather than being drawn inside it. Drawn inside, the two make a
+	// rather than being drawn inside it, and in the light appearance there is
+	// no rim to replace — the platform draws none there, so a resting light
+	// control is its fill and nothing else. Drawn inside, the two make a
 	// three-line sandwich — hairline, a pixel of fill, then the ring — which
 	// reads as a dirty halo around the outline, the same "a band beside a
 	// boundary reads as part of that boundary" that holds components/button's
-	// ring clear of its edge. A button has no rim to collide with; this
-	// control does, so it trades its one hair for the ring's two while the
-	// ring is up. Nothing else moves: the shape measures the same box focused
-	// as at rest, and the label does not shift.
-	//
-	// The corner is the scale's Md stop, the SAME one components/button reads
-	// for every variant it draws: the platform draws its pop-up control as a
-	// rounded rectangle, and the rounded rectangle this system already owns is
-	// the button's. Reading the stop rather than naming a number is what keeps
-	// the two in step if the scale ever moves.
-	radius := gtx.Dp(unit.Dp(rad.Md))
-	band, edgeColor := max(gtx.Dp(edgeDp), 1), Rim(p, beneath)
+	// ring clear of its edge. Nothing else moves: the shape measures the same
+	// box focused as at rest, and the label does not shift.
+	band, edgeColor := max(gtx.Dp(edgeDp), 1), Rim(p, fill)
 	if s.Focused {
-		band, edgeColor = gtx.Dp(focus.Width), focus.Ring(p, beneath)
+		band, edgeColor = gtx.Dp(focus.Width), focus.Ring(p, fill)
 	}
-	if maxRad := min(box.Dx(), box.Dy()) / 2; radius > maxRad {
-		radius = maxRad
+	if edgeColor.A == 0 {
+		band = 0
 	}
-	inner, innerRad := box, radius
-	if in := box.Inset(band); in.Dx() > 0 && in.Dy() > 0 {
-		inner, innerRad = in, max(radius-band, 0)
-	}
-	// The fill inside the edge's shape, and the edge as a band laid ON that
-	// shape rather than as a shape beneath it: at rest there is no fill to
-	// lay over the edge's shape at all, so a shape painted in the edge's
-	// colour would carry that colour across the whole interior instead of
-	// leaving it a hairline.
-	//
-	// The band is a stroke of twice the edge's width centred on the shape's
-	// outline and clipped to that shape, which puts every pixel of it inside
-	// the box this control reports: a stroke of the edge's own width would
-	// fall half outside it. Drawn that way both of the band's sides follow
-	// the corner, which four rectangles could not.
-	if fill.A != 0 {
-		paint.FillShape(gtx.Ops, fill, vglayout.Pill(gtx.Ops, inner, innerRad))
-	}
-	outer := clip.RRect{Rect: box, SE: radius, SW: radius, NE: radius, NW: radius}
-	edgePath := outer.Path(gtx.Ops)
-	edgeArea := outer.Push(gtx.Ops)
-	paint.FillShape(gtx.Ops, edgeColor, clip.Stroke{Path: edgePath, Width: float32(2 * band)}.Op())
-	edgeArea.Pop()
 
-	// Label and mark on one centred row: the label leads, the mark follows it
-	// across the S2 gap, and the pair is centred in what the padding leaves.
-	content := labelDims.Size.X + gap + mark
-	offX := max((w-content)/2, padH)
-	lo := op.Offset(image.Pt(offX, (h-labelDims.Size.Y)/2)).Push(gtx.Ops)
+	// The fill as the control's whole shape, and the edge as a band laid ON
+	// that shape rather than as a shape beneath it: the band is a stroke of
+	// twice the edge's width centred on the shape's outline and clipped to
+	// that shape, which puts every pixel of it inside the box this control
+	// reports where a stroke of the edge's own width would fall half outside.
+	// Drawn that way both of the band's sides follow the corner, which four
+	// rectangles could not.
+	outer := clip.RRect{Rect: box, SE: radius, SW: radius, NE: radius, NW: radius}
+	paint.FillShape(gtx.Ops, fill, outer.Op(gtx.Ops))
+	if band > 0 {
+		edgePath := outer.Path(gtx.Ops)
+		edgeArea := outer.Push(gtx.Ops)
+		paint.FillShape(gtx.Ops, edgeColor, clip.Stroke{Path: edgePath, Width: float32(2 * band)}.Op())
+		edgeArea.Pop()
+	}
+
+	// The label at its own origin, clipped to the control's shape so a line
+	// box taller than the control is cut by the control rather than drawn
+	// past it.
+	area := outer.Push(gtx.Ops)
+	lo := op.Offset(image.Pt(lead, (h-labelDims.Size.Y)/2)).Push(gtx.Ops)
 	labelCall.Add(gtx.Ops)
 	lo.Pop()
+	area.Pop()
 
-	// The chevron is handed the mark's column at the shape's full height and
-	// centres itself in it, so its own drawn height stays the platform's ratio
-	// rather than being stretched to a box.
-	mo := op.Offset(image.Pt(offX+labelDims.Size.X+gap, 0)).Push(gtx.Ops)
-	chevron(gtx, image.Rect(0, 0, mark, h), glyphForeground)
-	mo.Pop()
+	// The mark is handed its own column at the shape's full height and
+	// centres itself in it, at the one size the platform draws it.
+	control.DrawMark(gtx, image.Rect(w-trail-mark, 0, w-trail, h), markForeground)
 
 	pointer.CursorPointer.Add(gtx.Ops)
 	return layout.Dimensions{Size: size}

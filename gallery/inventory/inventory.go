@@ -492,7 +492,7 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 			Body: inv.searchFieldRow(c)},
 		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 56,
 			Body: inv.toggleRow(c)},
-		{Name: "components-picker", Title: "Picker — the field closed, focused, open under its menu and disabled, then the chrome toolbar", Height: 180,
+		{Name: "components-picker", Title: "Picker — the form trigger at rest, under the pointer, held, focused and switched off, then open under its menu beside the chrome toolbar at rest and under the pointer", Height: 264,
 			Body: inv.pickerRow(c)},
 		{Name: "components-breadcrumb", Title: "Breadcrumb — three segments, the earlier ones links and the last the current location", Height: 20,
 			Body: inv.breadcrumb(c)},
@@ -1295,10 +1295,16 @@ const (
 	// pickerCaptionGap is the drop from a cell's caption to the specimen
 	// under it.
 	pickerCaptionGap = 6
+	// pickerRowGap is the air between the section's two rows.
+	pickerRowGap = 20
+	// pickerChromePad is the band of chrome material drawn around a chrome
+	// trigger, so the step between the control's fill and the band it stands
+	// on is visible on every side of it.
+	pickerChromePad = 8
 )
 
-// pickerRow shows the picker's two triggers side by side: the form-variant
-// field in each of its states, then the chrome-variant toolbar at rest.
+// pickerRow shows the picker's two triggers: the form-variant field in each of
+// its states, then the chrome-variant toolbar at rest and under the pointer.
 //
 // Both stand in one section because they are one component — the same
 // pick-one-from-many drawn for a form and for the window's chrome — and telling
@@ -1307,10 +1313,17 @@ const (
 // the shared surface, so the section shows that surface without spending a
 // cell on it.
 //
+// It is laid out in two rows because the page's width is spent: five form
+// cells at the field's own width already fill it, and a specimen the pointer
+// is on is the one a reader cannot produce from a still of any other. The
+// second row carries the open field and both chrome triggers.
+//
 // The toolbar trigger is sized by its value rather than pinned to the field's cell
 // width. It is the platform's pop-up control, which is as wide as what it
 // says; stretched to a form field's width it would be reporting a geometry
-// the component does not have.
+// the component does not have. It stands on the chrome material, which is what
+// the section paints behind it: the control carries a fill of its own and the
+// whole of what that fill is for is the step between it and its band.
 func (inv *Inventory) pickerRow(c tokens.PlatformColors) layout.Widget {
 	opts := []string{"Apple", "Banana", "Cherry"}
 	fields := []struct {
@@ -1318,8 +1331,9 @@ func (inv *Inventory) pickerRow(c tokens.PlatformColors) layout.Widget {
 		st    picker.FieldState
 	}{
 		{"Closed", picker.FieldState{Options: opts}},
+		{"Hover", picker.FieldState{Options: opts, Hovered: true}},
+		{"Press", picker.FieldState{Options: opts, Pressed: true}},
 		{"Focused", picker.FieldState{Options: opts, Focused: true}},
-		{"Open", picker.FieldState{Options: opts, Open: true, Selected: 1}},
 		{"Disabled", picker.FieldState{Options: opts, Disabled: true}},
 	}
 	cell := func(label string, body layout.Widget) layout.Widget {
@@ -1333,30 +1347,60 @@ func (inv *Inventory) pickerRow(c tokens.PlatformColors) layout.Widget {
 			)
 		}
 	}
-	return func(gtx layout.Context) layout.Dimensions {
-		cs := make([]layout.FlexChild, 0, 2*len(fields)+2)
-		for _, f := range fields {
-			if len(cs) > 0 {
-				cs = append(cs, layout.Rigid(complayout.HSpacer(pickerCellGap)))
-			}
-			body := picker.RenderField(inv.shaper, c, tokens.Spacing, tokens.Radius,
-				tokens.DefaultTypography.BodyLarge, tokens.Comfortable, f.st)
-			if f.st.Open {
-				body = inv.padByMenu(c, f.st, body)
-			}
-			w := cell(f.label, body)
-			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				gtx.Constraints.Min.X = gtx.Dp(pickerFieldW)
-				gtx.Constraints.Max.X = gtx.Dp(pickerFieldW)
-				return w(gtx)
-			}))
+	fieldCell := func(label string, st picker.FieldState) layout.FlexChild {
+		body := picker.RenderField(inv.shaper, c, tokens.Spacing, tokens.Radius,
+			tokens.DefaultTypography.BodyLarge, tokens.Comfortable, st)
+		if st.Open {
+			body = inv.padByMenu(c, st, body)
 		}
-		return layout.Flex{}.Layout(gtx, append(cs,
-			layout.Rigid(complayout.HSpacer(pickerCellGap)),
-			layout.Rigid(cell("Toolbar", picker.RenderToolbar(inv.shaper, opts[0], c,
-				c.SidebarMaterial, tokens.Spacing, tokens.Radius,
-				tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
-				picker.ToolbarState{}))))...)
+		w := cell(label, body)
+		return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min.X = gtx.Dp(pickerFieldW)
+			gtx.Constraints.Max.X = gtx.Dp(pickerFieldW)
+			return w(gtx)
+		})
+	}
+	// The chrome trigger stands on the chrome material, painted behind the
+	// cell rather than left to the section's own surface: the control's fill
+	// is measured against the band it stands on, and a trigger shown on the
+	// page's plane would be showing a step nobody drew.
+	toolbarCell := func(label string, st picker.ToolbarState) layout.FlexChild {
+		trigger := picker.RenderToolbar(inv.shaper, opts[0], c,
+			tokens.Spacing, tokens.DefaultTypography.LabelLarge,
+			tokens.Comfortable, st)
+		return layout.Rigid(cell(label, func(gtx layout.Context) layout.Dimensions {
+			macro := op.Record(gtx.Ops)
+			dims := complayout.InsetXY(pickerChromePad, pickerChromePad).Layout(gtx, trigger)
+			call := macro.Stop()
+			paint.FillShape(gtx.Ops, c.SidebarMaterial,
+				clip.Rect{Max: dims.Size}.Op())
+			call.Add(gtx.Ops)
+			return dims
+		}))
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		top := make([]layout.FlexChild, 0, 2*len(fields))
+		for _, f := range fields {
+			if len(top) > 0 {
+				top = append(top, layout.Rigid(complayout.HSpacer(pickerCellGap)))
+			}
+			top = append(top, fieldCell(f.label, f.st))
+		}
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{}.Layout(gtx, top...)
+			}),
+			layout.Rigid(complayout.VSpacer(pickerRowGap)),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{}.Layout(gtx,
+					fieldCell("Open", picker.FieldState{Options: opts, Open: true, Selected: 1}),
+					layout.Rigid(complayout.HSpacer(pickerCellGap)),
+					toolbarCell("Toolbar", picker.ToolbarState{}),
+					layout.Rigid(complayout.HSpacer(pickerCellGap)),
+					toolbarCell("Toolbar hover", picker.ToolbarState{Hovered: true}),
+				)
+			}),
+		)
 	}
 }
 

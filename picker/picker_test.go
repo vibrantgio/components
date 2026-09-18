@@ -448,8 +448,7 @@ func TestMenuSelectedRowIsDrawnApartFromTheRest(t *testing.T) {
 // height.
 func TestToolbarIsSizedToItsValue(t *testing.T) {
 	w := picker.RenderToolbar(defaultShaper(t), "Anthropic · Opus 5", tokens.PlatformLight,
-		tokens.PlatformLight.SidebarMaterial,
-		tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
+		tokens.Spacing, tokens.DefaultTypography.LabelLarge,
 		tokens.Comfortable, picker.ToolbarState{})
 	dims := measure(t, image.Pt(400, 200), w)
 	if dims.Size.X >= 400 {
@@ -782,5 +781,139 @@ func TestTheTriggersPressWinsOverItsHover(t *testing.T) {
 	both := frame(picker.FieldState{Options: opts, Selected: 1, Pressed: true, Hovered: true})
 	if n := golden.PixelDiff(held, both); n != 0 {
 		t.Errorf("a held trigger under the pointer moved %d pixels off the held one", n)
+	}
+}
+
+// TestCompactTriggerKeepsItsLabelInside holds the Compact box. BodyLarge's
+// line box is 24 dp at every density and the platform's small control is
+// 19 px (controls.md's small control rows: the small push button's published
+// 19 pt, which is what CompactControlHeight carries — no stored capture holds
+// a small pop-up, and one is on the reference's capture list). The role's SIZE
+// does not move: its cap band measures 12 px and stands inside 19 with room
+// either side. What is cut is the leading the line box carries around that
+// band, and the trigger clips what it draws to its own shape, so nothing it
+// paints falls outside the box it reports.
+func TestCompactTriggerKeepsItsLabelInside(t *testing.T) {
+	const pad = 10
+	surface := color.NRGBA{R: 0xff, G: 0x00, B: 0x00, A: 0xff}
+	p := tokens.PlatformLight
+	for _, d := range []struct {
+		name string
+		d    tokens.Density
+	}{{"comfortable", tokens.Comfortable}, {"compact", tokens.Compact}} {
+		t.Run(d.name, func(t *testing.T) {
+			trigger := picker.RenderField(defaultShaper(t), p, tokens.Spacing,
+				sharpRadius, tokens.DefaultTypography.BodyLarge, d.d,
+				picker.FieldState{Options: options, Selected: 1})
+			h := triggerHeight(d.d)
+			img := golden.Capture(t, image.Pt(160+2*pad, h+2*pad), func(gtx layout.Context) layout.Dimensions {
+				paint.FillShape(gtx.Ops, surface, clip.Rect{Max: gtx.Constraints.Max}.Op())
+				gtx.Constraints = layout.Exact(image.Pt(160, h))
+				off := op.Offset(image.Pt(pad, pad)).Push(gtx.Ops)
+				dims := trigger(gtx)
+				off.Pop()
+				return dims
+			})
+			for y := 0; y < img.Bounds().Dy(); y++ {
+				for x := 0; x < img.Bounds().Dx(); x++ {
+					if x >= pad && x < pad+160 && y >= pad && y < pad+h {
+						continue
+					}
+					r, g, b, _ := img.At(x, y).RGBA()
+					if uint8(r>>8) != surface.R || uint8(g>>8) != surface.G || uint8(b>>8) != surface.B {
+						t.Fatalf("the trigger painted (%d,%d) outside the %dx%d box it reports", x, y, 160, h)
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestBothTriggersDrawOneMark holds the two variants to one drawing at one
+// size. MEASURED: the Save dialog's pop-up and the Finder toolbar's both draw
+// the pair 8 px wide and 11 px tall, in controls 24 px and 36 px tall, so the
+// mark is sized by its point size and not by the control it stands in. The
+// form trigger's mark and the chrome trigger's are therefore the same pixels,
+// and the chrome trigger no longer draws the pull-down's single chevron:
+// a picker is single-choice by contract and has no pull-down purpose.
+func TestBothTriggersDrawOneMark(t *testing.T) {
+	const box = 40
+	p := tokens.PlatformLight
+	// Both triggers on one fill, so the mark's own antialiasing lands on the
+	// same background in both crops: the chrome variant's fill is what the
+	// form variant is asked to stand on.
+	var drawn image.Point
+	var under uint8
+	crop := func(w layout.Widget, fill color.NRGBA) image.Image {
+		under = fill.R
+		return golden.Capture(t, image.Pt(200, box), func(gtx layout.Context) layout.Dimensions {
+			paint.FillShape(gtx.Ops, fill, clip.Rect{Max: gtx.Constraints.Max}.Op())
+			dims := w(gtx)
+			drawn = dims.Size
+			return dims
+		})
+	}
+	// The mark is the last thing in the control, so the rightmost columns of
+	// what the control drew hold it and nothing else.
+	marks := func(img image.Image) image.Rectangle {
+		bounds := image.Rectangle{Min: image.Pt(1<<30, 1<<30)}
+		for y := 0; y < drawn.Y; y++ {
+			for x := drawn.X - 20; x < drawn.X; x++ {
+				r, _, _, _ := img.At(x, y).RGBA()
+				if uint8(r>>8) < under-40 {
+					bounds = bounds.Union(image.Rect(x, y, x+1, y+1))
+				}
+			}
+		}
+		return bounds
+	}
+
+	fieldW := picker.RenderField(defaultShaper(t), p, tokens.Spacing, sharpRadius,
+		tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		picker.FieldState{Options: options, Selected: 1})
+	toolbarW := picker.RenderToolbar(defaultShaper(t), options[1], p,
+		tokens.Spacing, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		picker.ToolbarState{})
+
+	fb := marks(crop(fieldW, p.PushButtonFill))
+	tb := marks(crop(toolbarW, p.ToolbarControlFill))
+	if fb.Dx() != tb.Dx() || fb.Dy() != tb.Dy() {
+		t.Errorf("the form trigger's mark measures %dx%d and the chrome trigger's %dx%d; one mark, one size",
+			fb.Dx(), fb.Dy(), tb.Dx(), tb.Dy())
+	}
+	if want := int(control.MarkHDp); fb.Dy() != want {
+		t.Errorf("the mark measures %d px tall, want the measured %d", fb.Dy(), want)
+	}
+	if want := int(control.MarkWDp); fb.Dx() != want {
+		t.Errorf("the mark measures %d px wide, want the measured %d", fb.Dx(), want)
+	}
+}
+
+// TestDisabledTriggerFadesTowardItsStatedSurface: a switched-off control fades
+// toward what it stands on at the platform's measured coverage, so a caller
+// that put the field on a card or a coloured fill has to be able to say so —
+// every field in this library states its surface. An unstated surface is the
+// window's own plane, which is what the fade landed on before the property
+// existed, so the default drawing does not move.
+func TestDisabledTriggerFadesTowardItsStatedSurface(t *testing.T) {
+	p := tokens.PlatformLight
+	size := image.Pt(160, triggerHeight(tokens.Comfortable))
+	render := func(s picker.FieldState) *image.RGBA {
+		return golden.Capture(t, size, picker.RenderField(defaultShaper(t), p,
+			tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge,
+			tokens.Comfortable, s))
+	}
+	unstated := render(picker.FieldState{Options: options, Selected: 1, Disabled: true})
+	onPlane := render(picker.FieldState{Options: options, Selected: 1, Disabled: true, Surface: p.WindowBackground})
+	if n := golden.PixelDiff(unstated, onPlane); n != 0 {
+		t.Errorf("an unstated surface differs from the window's plane in %d pixels; the plane is what an unstated surface means", n)
+	}
+	onCard := render(picker.FieldState{Options: options, Selected: 1, Disabled: true, Surface: p.SidebarSelection})
+	if n := golden.PixelDiff(unstated, onCard); n == 0 {
+		t.Error("a disabled trigger renders the same on the window's plane and on the sidebar's pill; the fade does not reach the surface it stands on")
+	}
+	enabled := render(picker.FieldState{Options: options, Selected: 1, Surface: p.SidebarSelection})
+	if n := golden.PixelDiff(onCard, enabled); n == 0 {
+		t.Error("a disabled trigger renders identically to an enabled one on the same surface")
 	}
 }

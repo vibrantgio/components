@@ -3,9 +3,7 @@ package picker
 import (
 	"image"
 	"image/color"
-	"math"
 
-	"gioui.org/f32"
 	"gioui.org/io/event"
 	"gioui.org/io/key"
 	"gioui.org/io/pointer"
@@ -21,6 +19,7 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
+	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/components/list"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
@@ -28,37 +27,9 @@ import (
 	"github.com/vibrantgio/theme/typeset"
 )
 
-// The form trigger's mark is the platform's pop-up mark: two chevrons stacked
-// point to point, the upper pointing up and the lower down. Its proportions
-// are MEASURED off save-dialog-{light,dark}.png at 1x, both appearances
-// agreeing to the pixel — the "File Format:" pop-up runs y 336–359, 24 px
-// tall, and the pair it draws spans x 435–442 and y 343–353: eight columns
-// wide, the upper chevron y 343–347 and the lower y 349–353, five rows each,
-// with one clear row between them.
-//
-// The Finder toolbar draws the same glyph at the same size in a control 36 px
-// tall (finder-window-light.png, x 726–733, upper y 21–25, lower y 27–31), so
-// the platform sizes this mark by its point size and not by the control. The
-// ratios below are the dialog reading, which is the control this trigger is
-// drawn as; expressing them as ratios of the control's height is what keeps
-// the proportion at a density the platform has not been captured at.
-//
-//	markWidthRatio  the pair's column, 8 of the control's 24
-//	markAspect      one chevron's height, 5 of the pair's own 8
-//	markGapRatio    the clear row between the two, 1 of the control's 24
-const (
-	markWidthRatio = 8.0 / 24.0
-	markAspect     = 5.0 / 8.0
-	markGapRatio   = 1.0 / 24.0
-)
-
-// markStroke is the pair's line weight. MEASURED off the same capture: an arm
-// crossing a row covers about 2.1 columns — the light capture's row y=346
-// reads 108, 37 and 156 against a 236 fill and a 36 foreground, which is
-// 0.64 + 0.99 + 0.40 of a column — and the arm runs at 45°, so perpendicular
-// it is 2.1 × sin 45° ≈ 1.5 px. The same weight the chrome variant's single
-// chevron is drawn at.
-const markStroke = unit.Dp(1.5)
+// The form trigger's mark is the platform's pop-up mark, and both of this
+// library's pop-up triggers draw one drawing at one size: see
+// [control.DrawMark], which holds the measurement and the geometry.
 
 // edgeDp is the hairline the dropped menu's plane is drawn with, and so the
 // distance from the plane's outer edge to its inner one. The trigger draws no
@@ -124,6 +95,13 @@ type FieldState struct {
 	// hover. See [drawTrigger].
 	Hovered bool
 	Pressed bool
+
+	// Surface is the opaque fill the trigger stands on. A switched-off
+	// trigger fades toward it at the platform's measured coverage, and the
+	// coverages drawn over the faded fill are flattened onto the answer. The
+	// zero value — no colour — is the window's own plane. See
+	// [FieldProps.Surface].
+	Surface color.NRGBA
 
 	// Drop is the side the open menu floats on. The zero value is
 	// [DropDown], beneath the trigger. See [Drop].
@@ -239,6 +217,14 @@ type FieldProps struct {
 	// Message, if non-nil, is emitted as mvu.MessageOp into the frame's ops on
 	// every selection — the MVU path, where OnSelect is the FRP one.
 	Message any
+
+	// Surface is the opaque fill the field stands on. The platform's control
+	// text, its overlays and the coverage a switched-off control fades by all
+	// carry a coverage rather than a colour, so what they land as depends on
+	// what is beneath: a caller that put the field on a card, a selected row
+	// or a coloured fill says so here. The zero value — no colour — is the
+	// window's own plane.
+	Surface color.NRGBA
 
 	// Shaper is an explicit per-instance override of the text shaper. Leave it
 	// nil in normal use: the field then shapes its text with the theme's
@@ -377,6 +363,7 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 					AvailableRoom: props.AvailableRoom,
 					Placeholder:   props.Placeholder,
 					NoOptions:     props.NoOptions,
+					Surface:       props.Surface,
 				})
 				if moved := rows.Selected(); open && moved >= 0 && moved != selected {
 					selected = moved
@@ -707,9 +694,8 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 	// Shape with the BodyLarge role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
-	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	fieldW := gtx.Constraints.Max.X
-	markW := gtx.Dp(unit.Dp(tok.density.ControlHeight * markWidthRatio))
+	markW := gtx.Dp(control.MarkWDp)
 
 	// A trigger says one of three things, and which foreground it says it in
 	// is the difference between a value and a prompt: an unanswered field
@@ -744,12 +730,12 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	//
 	// A disabled trigger fades toward the surface it stands on at the
 	// platform's measured disabled coverage, and every name drawn over it is
-	// flattened onto the faded fill. The form trigger reports no surface of
-	// its own, so the fade lands on the window's plane.
+	// flattened onto the faded fill. Which surface that is, is the caller's
+	// to state ([FieldState.Surface]); an unstated one is the window's plane.
 	bg := tok.platform.PushButtonFill
 	switch {
 	case s.Disabled:
-		bg = control.Faded(bg, tok.platform.WindowBackground)
+		bg = control.Faded(bg, surface.Or(s.Surface, tok.platform.WindowBackground))
 	case s.Pressed:
 		bg = vgcolor.Flatten(tok.platform.PressOverlay, bg)
 	case s.Hovered:
@@ -772,10 +758,19 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	if innerW < 1 {
 		innerW = 1
 	}
+	// The pop-up's height is the control height and nothing else, so the line
+	// box the label is set in is capped to it: MEASURED, controls.md's small
+	// control rows give the platform 19 px for a Compact control, where
+	// BodyLarge's line box is 24 dp at every density. The role's SIZE does not
+	// move — its cap band measures 12 px and stands inside 19 with room to
+	// spare — so what is cut is the leading the line box carries around that
+	// band, and the trigger clips what it draws to its own shape so a Compact
+	// control cannot paint a row of text outside itself.
+	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	innerGtx := gtx
 	innerGtx.Constraints = layout.Constraints{
 		Min: image.Pt(0, 0),
-		Max: image.Pt(innerW, gtx.Constraints.Max.Y),
+		Max: image.Pt(innerW, minH),
 	}
 
 	mTextCol := op.Record(gtx.Ops)
@@ -819,11 +814,15 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 		edgeArea.Pop()
 	}
 
-	// Text label: vertically centered.
+	// Text label: vertically centred, and clipped to the control's own shape
+	// so a line box taller than the control it stands in is cut by the
+	// control rather than drawn past it.
 	offY := (triggerH - labelDims.Size.Y) / 2
+	area := rrectOuter.Push(gtx.Ops)
 	st := op.Offset(image.Pt(lead, offY)).Push(gtx.Ops)
 	labelCall.Add(gtx.Ops)
 	st.Pop()
+	area.Pop()
 
 	// The mark: the pair's last column stands [control.PopupMarkTrailDp] clear
 	// of the fill's trailing edge, which is the trailing inset this control
@@ -838,51 +837,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	if s.Disabled {
 		markCol = vgcolor.Flatten(tok.platform.DisabledControlText, bg)
 	}
-	drawMark(gtx, image.Rect(fieldW-trail-markW, 0, fieldW-trail, triggerH), tok.density, markCol)
+	control.DrawMark(gtx, image.Rect(fieldW-trail-markW, 0, fieldW-trail, triggerH), markCol)
 
 	return layout.Dimensions{Size: triggerSize}
-}
-
-// drawMark paints the pop-up mark inside box: two chevrons stacked point to
-// point, the upper pointing up and the lower down, hairline strokes spanning
-// box horizontally and centred in it vertically.
-//
-// It is STATIC. The platform's pop-up mark says "this control holds one of
-// several values" and never "the menu is open" or "it opens upwards"; a pair
-// pointing both ways cannot say a direction, which is the whole reason the
-// platform draws a pair here and a single chevron on a pull-down. See [Drop]
-// for where the direction is actually settled.
-func drawMark(gtx layout.Context, box image.Rectangle, d tokens.Density, col color.NRGBA) {
-	stroke := float32(gtx.Dp(markStroke))
-	if stroke < 1 {
-		stroke = 1
-	}
-	// The measurements are of COVERAGE — the rows and columns the capture
-	// shows covered — and a stroke spreads half its width either side of the
-	// line it is drawn on, so box is that covered extent and the path is box
-	// inset by half a stroke on every side. The rasterizer puts the half back.
-	w := float32(box.Dx())
-	coveredH := w * markAspect
-	clear := float32(gtx.Dp(unit.Dp(d.ControlHeight * markGapRatio)))
-	armH := coveredH - stroke
-	sep := clear + stroke
-
-	// Centred in the control, and where the centring lands between two rows it
-	// takes the lower one: MEASURED, the pair covers y 343–353 in a control of
-	// y 336–359 — eleven rows in twenty-four, seven above them and six below,
-	// which is the exact centre of 6.5 rounded up.
-	coveredTop := float32(math.Ceil(float64(float32(box.Dy())-(2*coveredH+clear)) / 2))
-	top := float32(box.Min.Y) + coveredTop + stroke/2
-	x0, x1 := float32(box.Min.X)+stroke/2, float32(box.Max.X)-stroke/2
-	mid := (x0 + x1) / 2
-
-	var p clip.Path
-	p.Begin(gtx.Ops)
-	p.MoveTo(f32.Pt(x0, top+armH))
-	p.LineTo(f32.Pt(mid, top))
-	p.LineTo(f32.Pt(x1, top+armH))
-	p.MoveTo(f32.Pt(x0, top+armH+sep))
-	p.LineTo(f32.Pt(mid, top+2*armH+sep))
-	p.LineTo(f32.Pt(x1, top+armH+sep))
-	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: stroke}.Op())
 }

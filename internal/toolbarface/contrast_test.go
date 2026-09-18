@@ -20,39 +20,73 @@ func TestTheTriggerTakesThePlatformsNames(t *testing.T) {
 		{"dark", tokens.PlatformDark},
 	} {
 		p := sc.p
-		chrome := p.SidebarMaterial
+		fill := p.ToolbarControlFill
 		for _, tc := range []struct {
 			state tokens.State
 			want  color.NRGBA
 		}{
-			{tokens.StateNormal, color.NRGBA{}},
-			{tokens.StateFocus, color.NRGBA{}},
-			{tokens.StateHover, vgcolor.Flatten(p.HoverOverlay, chrome)},
-			{tokens.StatePressed, vgcolor.Flatten(p.PressOverlay, chrome)},
+			{tokens.StateNormal, fill},
+			{tokens.StateFocus, fill},
+			{tokens.StateHover, vgcolor.Flatten(p.HoverOverlay, fill)},
+			{tokens.StatePressed, vgcolor.Flatten(p.PressOverlay, fill)},
 		} {
-			if got := Fill(p, tc.state, chrome); got != tc.want {
+			if got := Fill(p, tc.state); got != tc.want {
 				t.Errorf("%s: Fill(%v) = %v, want %v", sc.name, tc.state, got, tc.want)
 			}
 		}
-		if got, want := Rim(p, chrome), vgcolor.Flatten(p.Separator, chrome); got != want {
-			t.Errorf("%s: Rim = %v, want the platform's separator over the chrome %v", sc.name, got, want)
+		// The rim is the platform's seam where the platform draws one, and
+		// nothing where it does not: MEASURED, the dark toolbar control wears
+		// a 1 px highlight over its fill and the light one wears no edge at
+		// all, its band stepping straight up to the control's white.
+		rim := Rim(p, fill)
+		if sc.name == "dark" {
+			if want := vgcolor.Flatten(p.Separator, fill); rim != want {
+				t.Errorf("dark: Rim = %v, want the platform's seam over the fill %v", rim, want)
+			}
+			if rim.R <= fill.R || rim.G <= fill.G || rim.B <= fill.B {
+				t.Errorf("dark: Rim %v does not lift the fill %v; the platform's rim there is a highlight", rim, fill)
+			}
+		} else if rim.A != 0 {
+			t.Errorf("light: Rim = %v, want no edge at all — the platform draws none over this fill", rim)
 		}
-		if got, want := Label(p, chrome), vgcolor.Flatten(p.ControlText, chrome); got != want {
-			t.Errorf("%s: Label = %v, want the platform's control text over the chrome %v", sc.name, got, want)
+		if got, want := Label(p, fill), vgcolor.Flatten(p.ControlText, fill); got != want {
+			t.Errorf("%s: Label = %v, want the platform's control text over the fill %v", sc.name, got, want)
 		}
-		if got, want := Mark(p, chrome), vgcolor.Flatten(p.SecondaryLabel, chrome); got != want {
-			t.Errorf("%s: Mark = %v, want the platform's secondary label over the chrome %v", sc.name, got, want)
+		if got, want := Mark(p, fill), vgcolor.Flatten(p.ControlText, fill); got != want {
+			t.Errorf("%s: Mark = %v, want the platform's control text over the fill %v", sc.name, got, want)
+		}
+		if Mark(p, fill) != Label(p, fill) {
+			t.Errorf("%s: the mark and the wording are two colours; one control reads in one foreground", sc.name)
 		}
 	}
 }
 
-// At rest the trigger lays nothing over the chrome it stands on: alpha zero
-// composites as a no-op, so the chrome survives it untouched.
-func TestRestingFillIsFullyTransparent(t *testing.T) {
+// At rest the trigger draws the platform's measured toolbar control fill,
+// which stands lighter than the chrome band it is on: the control is a figure
+// on its band and not part of it.
+func TestRestingFillStandsOffTheChrome(t *testing.T) {
 	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
-		if a := Fill(p, tokens.StateNormal, p.SidebarMaterial).A; a != 0 {
-			t.Errorf("resting fill alpha = %d, want 0", a)
+		rest := Fill(p, tokens.StateNormal)
+		if rest != p.ToolbarControlFill {
+			t.Errorf("resting fill = %v, want the measured toolbar control fill %v", rest, p.ToolbarControlFill)
 		}
+		if rest.A != 0xff {
+			t.Errorf("resting fill alpha = %d, want an opaque answer", rest.A)
+		}
+		band := p.SidebarMaterial
+		if rest.R <= band.R || rest.G <= band.G || rest.B <= band.B {
+			t.Errorf("resting fill %v is not lighter than the chrome %v on every channel", rest, band)
+		}
+	}
+}
+
+// The light hover lands on the capture to the byte: control-hover-light.png
+// holds a Finder toolbar control moving from #ffffff to #f2f2f2 under the
+// pointer, which is the overlay over the fill this control draws at rest.
+func TestLightHoverIsTheCapturedPixel(t *testing.T) {
+	want := color.NRGBA{R: 0xf2, G: 0xf2, B: 0xf2, A: 0xff}
+	if got := Fill(tokens.PlatformLight, tokens.StateHover); got != want {
+		t.Errorf("light hover = %v, want the captured %v", got, want)
 	}
 }
 
@@ -60,7 +94,7 @@ func TestRestingFillIsFullyTransparent(t *testing.T) {
 // must not look like one merely under the pointer.
 func TestPressLiesBeyondHover(t *testing.T) {
 	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
-		hover, press := Fill(p, tokens.StateHover, p.SidebarMaterial), Fill(p, tokens.StatePressed, p.SidebarMaterial)
+		hover, press := Fill(p, tokens.StateHover), Fill(p, tokens.StatePressed)
 		if hover == press {
 			t.Errorf("hover and press are one colour %v", hover)
 		}
@@ -70,21 +104,21 @@ func TestPressLiesBeyondHover(t *testing.T) {
 	}
 }
 
-// Both overlays are the platform's own black or white at a coverage, and
-// what the control paints is that coverage resolved against the chrome: an
-// opaque fill, because the platform composites in encoded sRGB and Gio's
-// rasterizer would not.
-func TestBothOverlaysResolveAgainstTheChrome(t *testing.T) {
+// Both overlays are the platform's own black or white at a coverage, and what
+// the control paints is that coverage resolved against its own fill: an opaque
+// answer, because the platform composites in encoded sRGB and Gio's rasterizer
+// would not.
+func TestBothOverlaysResolveAgainstTheFill(t *testing.T) {
 	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
 		for _, st := range []tokens.State{tokens.StateHover, tokens.StatePressed} {
 			if a := p.HoverOverlay.A; a == 0 || a == 0xff {
 				t.Errorf("hover overlay alpha = %d, want the platform's partial coverage", a)
 			}
-			if a := Fill(p, st, p.SidebarMaterial).A; a != 0xff {
+			if a := Fill(p, st).A; a != 0xff {
 				t.Errorf("%v fill alpha = %d, want an opaque answer", st, a)
 			}
-			if onChrome, onButton := Fill(p, st, p.SidebarMaterial), Fill(p, st, p.PushButtonFill); onChrome == onButton {
-				t.Errorf("%v reads the same on the chrome and on a push button's fill (%v)", st, onChrome)
+			if got := Fill(p, st); got == p.ToolbarControlFill {
+				t.Errorf("%v reads as the resting fill %v", st, got)
 			}
 		}
 	}

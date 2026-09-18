@@ -9,7 +9,6 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/components/internal/toolbarface"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/theme/theme"
@@ -101,27 +100,21 @@ type ToolbarProps struct {
 	// every component reading that typography. Set it only when this trigger
 	// must shape with a different one — a golden test pinning its faces.
 	Shaper *text.Shaper
-
-	// Surface is the opaque fill the trigger stands on. The platform's
-	// overlays, seam, control text and secondary label all carry a coverage,
-	// so what they land as depends on it and the trigger flattens each onto
-	// it. The zero value — no colour — is the chrome material, which is what
-	// a toolbar trigger stands on unless a caller put something between.
-	Surface color.NRGBA
 }
 
 // Toolbar returns an rx.Observable[layout.Widget] emitting the chrome
-// variant's trigger: the platform's pull-down control, at the button's
-// rounded-rect corner with the single down chevron drawn by the component.
+// variant's trigger: the platform's toolbar pop-up control, a capsule
+// carrying the value and the stacked chevron pair the component draws.
 //
 // It has no menu of its own — a chrome-variant menu floats against the window
 // and patterns/popover places it, so the caller hands this layout.Widget to the
 // popover as its anchor and a [Menu] as its content. [Field] is the trigger
 // that drops its own menu.
 //
-// The mark commits the caller to that placement: the chevron says a menu opens
-// BELOW this control, so the popover it is handed to must place the menu below
-// it. See the package doc for what a trigger the menu stands over would need.
+// The mark commits the caller to nothing about placement: the platform's
+// pop-up mark is a pair of chevrons pointing opposite ways, which says the
+// choice can move either way and cannot say a direction. See the package doc
+// for what a trigger the menu stands over would need.
 //
 // The pointer target is the drawn control, exactly as components/button's is:
 // the trigger draws at the density's control height and that is what a pointer
@@ -206,7 +199,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 							semantic.DescriptionOp(desc).Add(gtx.Ops)
 							semantic.EnabledOp(true).Add(gtx.Ops)
 							return toolbarface.Draw(gtx, shaper, props.Value, tok.platform,
-								props.Surface, tok.spacing, tok.radius, tok.label, tok.density, s)
+								tok.spacing, tok.label, tok.density, s)
 						})
 				})
 			}
@@ -215,18 +208,19 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 }
 
 // RenderToolbar produces a layout.Widget drawing the chrome variant's trigger
-// in an explicit visual state, without event processing: the chrome showing
-// through at rest and tinted by the platform's overlays under the pointer and
-// while held, the one-dp rim of the platform's seam, the value in the
-// platform's control text, and the down chevron in its secondary label. When
-// s.Focused, the focus ring takes the rim's place at the control's edge, two
-// dp instead of one.
+// in an explicit visual state, without event processing: the platform's
+// measured toolbar control fill at rest and that fill under the platform's
+// overlays under the pointer and while held, the one-dp rim of the platform's
+// seam, and the value and the pop-up mark both in the platform's control
+// text. When s.Focused, the focus ring takes the rim's place at the control's
+// edge, two dp instead of one.
 //
 // It takes no glyph, and that is the point rather than an omission: the mark
-// on a pull-down trigger is not the caller's to choose, and it does not change
-// when the menu opens. The platform's control says "a menu opens below this"
-// and never "this is open"; a caller that flipped the chevron would be saying the
-// second thing in a vocabulary the platform reserves for a disclosure triangle.
+// on a pop-up trigger is not the caller's to choose, and it does not change
+// when the menu opens. A pair of chevrons pointing opposite ways says the
+// control holds one of several values and cannot say a direction; a caller
+// that flipped one would be saying something in a vocabulary the platform
+// reserves for a disclosure triangle.
 //
 // labelStyle is the whole text style the value is set in; pass
 // tokens.DefaultTypography.LabelLarge with tokens.Comfortable for the default
@@ -237,34 +231,31 @@ func RenderToolbar(
 	shaper *text.Shaper,
 	value string,
 	p tokens.PlatformColors,
-	chrome color.NRGBA,
 	sp tokens.SpacingScale,
-	rad tokens.RadiusScale,
 	labelStyle tokens.TextStyle,
 	d tokens.Density,
 	s ToolbarState,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return toolbarface.Draw(gtx, shaper, value, p, chrome, sp, rad, labelStyle, d,
+		return toolbarface.Draw(gtx, shaper, value, p, sp, labelStyle, d,
 			toolbarface.State(s))
 	}
 }
 
-// ToolbarFill is what the chrome variant's trigger lays over the chrome it
-// stands on, under the given interaction state: nothing at rest, the
-// platform's hover overlay under the pointer, its press overlay while it is
-// held. A toolbar button is the one control on this platform that tints under
-// the pointer.
+// ToolbarFill is the fill the chrome variant's trigger draws under the given
+// interaction state: the platform's measured toolbar control fill at rest,
+// that fill under the platform's hover overlay while the pointer is on it,
+// and under its press overlay while it is held. A toolbar button is the one
+// control on this platform that tints under the pointer.
 //
-// chrome is the opaque fill the trigger stands on — the chrome material
-// unless the caller put something between — and the overlay is flattened
-// onto it, so the return is the colour the control actually lands as and not
-// something the caller has left to composite. At rest the return is the zero
-// value, which is no colour at all: the chrome shows through untouched.
+// It takes no surface. The platform gives its toolbar control a fill of its
+// own, as it gives its push button one, so the answer is the same wherever
+// the control stands and it is opaque — the caller is left nothing to
+// composite.
 //
 // It is exported because a window deciding what its own chrome must clear
 // needs the answer the trigger drew with, and re-deriving it at the call site
 // is how two answers appear.
-func ToolbarFill(p tokens.PlatformColors, state tokens.State, chrome color.NRGBA) color.NRGBA {
-	return toolbarface.Fill(p, state, surface.Or(chrome, p.SidebarMaterial))
+func ToolbarFill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
+	return toolbarface.Fill(p, state)
 }

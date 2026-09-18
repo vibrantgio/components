@@ -8,9 +8,9 @@
 //	           form beside a text field and a checkbox at the same control
 //	           height, with the same focus ring and the platform's stacked
 //	           chevron pair as its mark
-//	[Toolbar]  the CHROME variant — the platform's pull-down control, at the
-//	           button's rounded-rect corner with a single down chevron, for a
-//	           toolbar, a header row or any other chrome region
+//	[Toolbar]  the CHROME variant — the same pop-up drawn for a toolbar, a
+//	           header row or any other chrome region: a capsule carrying its
+//	           own fill, with the same stacked chevron pair
 //	[Menu]     the surface both of them stand under: the platform's menu
 //	           rows, with its selection fill on the chosen row and on the row
 //	           under the pointer
@@ -80,51 +80,46 @@
 //
 // # The chrome variant's trigger
 //
-// [Toolbar] is the platform's pull-down control, drawn from the measured
-// geometry components/internal/toolbarface holds: the chrome showing through
-// untouched at rest and tinted by the platform's own overlays under the
-// pointer and while held, the rim of its seam, the value in its control text,
-// the chevron in its secondary label, the focus ring that replaces that rim,
-// the density's height and padding, the pointer target that control is, the pin.
-// [ToolbarFill] is what the trigger lays over the chrome, for a caller that
-// must know. Two things are the toolbar trigger's own.
+// [Toolbar] is the same pop-up drawn for a chrome region, from the measured
+// geometry components/internal/toolbarface holds: the platform's own toolbar
+// control fill at rest and that fill under the platform's overlays under the
+// pointer and while held, the rim of its seam, the value and the mark both in
+// its control text, the focus ring that replaces that rim, the density's
+// height, the pointer target that control is, the pin. [ToolbarFill] is the
+// fill the trigger draws, for a caller that must know. Two things are the
+// toolbar trigger's own.
 //
-// THE CORNER. The scale's Md stop, the same one components/button reads for
-// every variant it draws. The platform draws its pop-up control as a rounded
-// rectangle, and the rounded rectangle this system already owns is the
-// button's; the trigger reads that stop rather than naming a number, so the two
-// cannot drift.
+// THE FILL. The platform gives a control standing in a toolbar a fill of its
+// own, lighter than the band it stands on, so the control is a figure on the
+// band and not part of it. MEASURED, finder-window-untinted-dark.png, a
+// frontmost window: every bordered control in its toolbar reads #262626
+// against a band of #1e1e1e; the light value is the same control's #ffffff in
+// finder-window-light.png. It does not depend on what the control stands on,
+// which is why the trigger takes no surface.
 //
-// THE MARK. A single down chevron, drawn by the component, not passed in.
-// Three consequences, all deliberate. A caller cannot put a different mark on
-// a toolbar trigger, because the mark is what says the control opens a menu. A caller
-// cannot FLIP it: on this platform a pull-down's chevron says "a menu opens
-// below this" and never "this is open", so the trigger carries no open state
-// and offers nowhere to hang one; a trigger whose glyph turned over when its
-// menu stood would be speaking the vocabulary the platform reserves for a
-// disclosure triangle. And the mark is a claim about PLACEMENT, so the caller
-// owes it: whatever places the menu — patterns/popover, in the only
-// arrangement this component has — must place it below the trigger, because a
-// mark that announces a direction the menu does not take is a defect and not a
-// style. It is also why the two triggers do not share one state: the field's
-// mark and its menu are one component, and the toolbar's menu is somewhere else on
-// the window.
+// THE CORNER. Fully rounded — half the control's height, where the form
+// trigger takes the button's rounded rectangle. MEASURED off the same
+// captures: the toolbar's controls are capsules, and the dialog's pop-up is
+// not. It is the one place the two variants differ in shape.
 //
-// THE PAIRED CHEVRONS are the OTHER control's, and [Field] is that control.
-// The platform's pop-up button wears an up chevron over a down one to say the
-// choice can move either way, and the form trigger draws that pair off the
-// save dialog's own pop-up — field.go's markWidthRatio and its neighbours
-// carry the capture and the figures. A pull-down wears the single chevron and
-// keeps it: two marks for two controls, not a flag on one.
+// THE MARK is NOT the toolbar trigger's own. Both variants wear the
+// platform's pop-up mark, the stacked chevron pair, at the one size the
+// platform draws it: 8 px by 11 in a 24 px control and the same 8 by 11 in a
+// 36 px one, so the mark is sized by its point size and not by the control.
+// components/internal/control holds the measurement and the drawing.
+//
+// The single chevron the platform draws beside it belongs to a PULL-DOWN — a
+// menu of actions rather than a choice — and this component has none: a
+// picker is single-choice by contract, so neither trigger wears it. The mark
+// is drawn by the component and not passed in, and a caller cannot flip it:
+// a pair of chevrons pointing opposite ways says the control holds one of
+// several values and cannot say a direction, so the trigger carries no open
+// state and offers nowhere to hang one.
 //
 // What the pop-up still owes is its PLACEMENT. On the platform a pop-up's
 // menu stands OVER the trigger with the selected row aligned on it, and this
 // field drops its menu beneath or above instead. That is a placement nothing
 // here offers yet and no caller asks for.
-//
-// The pull-down chevron's proportions are measured off the stored reference;
-// the constants in components/internal/toolbarface carry the capture and the
-// figures.
 //
 // # Uncontrolled
 //
