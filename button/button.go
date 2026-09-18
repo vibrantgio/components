@@ -566,33 +566,32 @@ func drawFocusRing(gtx layout.Context, size image.Point, rad int, ring color.NRG
 }
 
 // strokeRRect draws a one-hair line around a rounded rectangle of size size,
-// lying just inside its boundary so the whole line falls on the button.
+// wholly inside it: the button's painted footprint is size, not size plus
+// half a line.
 //
-// A stroke centred on the boundary spends half its width on the surface
-// behind the button, and the platform's hairline carries a coverage rather
-// than a colour — half of it laid on one surface and half on another is two
-// different lines.
+// A stroke is centred on the path it follows, so a hairline drawn at its own
+// width spends half of itself outside the box the button reports. The
+// platform's hairline carries a coverage rather than a colour, so half laid
+// on the button's fill and half on whatever stands behind it is two
+// different lines; and at 1x, where the hairline is one device pixel, the
+// outside half is a half-covered row above the button and another below it,
+// which measures a Tonal button 2 px taller than the Filled one beside it.
+// Insetting the path cannot fix that at 1x — half of one pixel is not an
+// integer coordinate — so the line is stroked at twice its width under a
+// clip of the button's own shape, which takes the outside half away. The
+// same idiom the picker's focus band and patterns' group hairline are drawn
+// with; the checkbox reaches the same place by insetting one fill inside
+// another.
 func strokeRRect(gtx layout.Context, size image.Point, rad int, col color.NRGBA) {
 	w := gtx.Dp(unit.Dp(1))
 	if w < 1 {
 		w = 1
 	}
-	half := w / 2
-	r := rad - half
-	if r < 0 {
-		r = 0
-	}
-	rrect := clip.RRect{
-		Rect: image.Rectangle{
-			Min: image.Pt(half, half),
-			Max: image.Pt(size.X-half, size.Y-half),
-		},
-		SE: r, SW: r, NE: r, NW: r,
-	}
-	paint.FillShape(gtx.Ops, col, clip.Stroke{
-		Path:  rrect.Path(gtx.Ops),
-		Width: float32(w),
-	}.Op())
+	rrect := clip.RRect{Rect: image.Rectangle{Max: size}, SE: rad, SW: rad, NE: rad, NW: rad}
+	stroke := clip.Stroke{Path: rrect.Path(gtx.Ops), Width: float32(2 * w)}.Op()
+	area := rrect.Push(gtx.Ops)
+	paint.FillShape(gtx.Ops, col, stroke)
+	area.Pop()
 }
 
 // buttonColors returns what the button paints for the given variant and

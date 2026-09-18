@@ -985,3 +985,85 @@ func TestButtonInjectedClickableFocusAndActivate(t *testing.T) {
 		t.Errorf("Space activation: OnClick fired %d times, want 1", clicked)
 	}
 }
+
+// TestEdgeFallsInsideTheButton pins the platform's hairline inside the box the
+// button reports: a Tonal button, offset from the frame's corner so a stroke
+// leaving its bounds has somewhere to land, paints exactly the rows and columns
+// it reports and no more, and measures what the Filled button beside it
+// measures.
+//
+// The regression it guards is a 1 dp stroke centred on the boundary. Half of it
+// falls outside the reported size, which at 1x is a half-covered row above the
+// button and another below it — a Tonal button measuring 26 rows where the
+// Filled one beside it measures 24, and two buttons in a row each painting a
+// half-line into the other's pixels.
+func TestEdgeFallsInsideTheButton(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 60)
+	colors := tokens.PlatformLight
+	const margin = 8
+
+	painted := func(e button.Emphasis) (image.Rectangle, int) {
+		var h int
+		shot := golden.Capture(t, size, onWindowSurface(colors, func(gtx layout.Context) layout.Dimensions {
+			off := op.Offset(image.Pt(margin, margin)).Push(gtx.Ops)
+			defer off.Pop()
+			gtx.Constraints.Max = gtx.Constraints.Max.Sub(image.Pt(2*margin, 2*margin))
+			dims := button.Render(
+				shaper, "Click me",
+				colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+				button.RenderState{Emphasis: e},
+			)(gtx)
+			h = dims.Size.Y
+			return dims
+		}))
+		if shot == nil {
+			return image.Rectangle{}, 0 // headless unavailable; Capture called t.Skip
+		}
+		return paintedBounds(shot, colors.WindowBackground), h
+	}
+
+	tonal, tonalH := painted(button.Tonal)
+	filled, filledH := painted(button.Filled)
+	if tonalH == 0 || filledH == 0 {
+		return
+	}
+	if got, want := tonal.Dy(), tonalH; got != want {
+		t.Errorf("the Tonal button paints %d rows and reports %d: its edge is falling outside the box it reports", got, want)
+	}
+	if tonal.Min.Y != margin {
+		t.Errorf("the Tonal button's first painted row is y=%d, want y=%d — the top of the box it was placed in", tonal.Min.Y, margin)
+	}
+	if got, want := tonal.Dy(), filled.Dy(); got != want {
+		t.Errorf("the Tonal button paints %d rows against the Filled button's %d; the two draw the same control height", got, want)
+	}
+}
+
+// paintedBounds is the bounding box of everything in shot that is not the
+// given surface: what the control actually painted, as against the size it
+// reported.
+func paintedBounds(shot *image.RGBA, surface color.NRGBA) image.Rectangle {
+	b := shot.Bounds()
+	out := image.Rectangle{Min: b.Max, Max: b.Min}
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			r, g, bb, a := shot.At(x, y).RGBA()
+			if uint8(r>>8) == surface.R && uint8(g>>8) == surface.G && uint8(bb>>8) == surface.B && uint8(a>>8) == surface.A {
+				continue
+			}
+			if x < out.Min.X {
+				out.Min.X = x
+			}
+			if y < out.Min.Y {
+				out.Min.Y = y
+			}
+			if x >= out.Max.X {
+				out.Max.X = x + 1
+			}
+			if y >= out.Max.Y {
+				out.Max.Y = y + 1
+			}
+		}
+	}
+	return out
+}

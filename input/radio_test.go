@@ -40,13 +40,13 @@ func TestRadioGolden(t *testing.T) {
 
 // ---- Accessibility tests ----
 
-// TestRadioFootprintIsControlHeight checks the radio's visual footprint is
-// the density's control-height square with the 16 dp glyph centred in it —
-// the checkbox's measured side length, which the radio's circle follows so
-// the two read as one row. That footprint is the pointer target too — the
-// button's row, not its circle — the same rule TestCheckboxTargetIsItsRow
-// exercises.
-func TestRadioFootprintIsControlHeight(t *testing.T) {
+// TestRadioFootprintIsItsMeasuredRow checks the radio's visual footprint is
+// the density's measured checkbox row, a square with the 16 dp glyph centred
+// in it — the checkbox's measured side length, which the radio's circle
+// follows so the two read as one row. That footprint is the pointer target
+// too — the button's row, not its circle — the same rule
+// TestCheckboxTargetIsItsRow exercises.
+func TestRadioFootprintIsItsMeasuredRow(t *testing.T) {
 	var ops op.Ops
 	gtx := layout.Context{
 		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
@@ -61,9 +61,9 @@ func TestRadioFootprintIsControlHeight(t *testing.T) {
 		input.RadioRenderState{},
 	)(gtx)
 
-	want := int(tokens.Comfortable.ControlHeight)
+	want := int(tokens.Comfortable.CheckboxRowHeight)
 	if dims.Size.X != want || dims.Size.Y != want {
-		t.Errorf("radio footprint = %v, want %dx%d px (ControlHeight square at 1:1 scale)", dims.Size, want, want)
+		t.Errorf("radio footprint = %v, want %dx%d px (CheckboxRowHeight square at 1:1 scale)", dims.Size, want, want)
 	}
 }
 

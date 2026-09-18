@@ -155,8 +155,9 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 				foc := !dis && gtx.Focused(&b)
 
 				// The pointer area is the footprint the glyph is
-				// centred in — the checkbox's row, not its 16 dp
-				// glyph, which is what the platform gives a pointer.
+				// centred in — the checkbox's measured row, not its
+				// 16 dp glyph, which is what the platform gives a
+				// pointer.
 				return b.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					semantic.CheckBox.Add(gtx.Ops)
 					if props.Description != "" {
@@ -195,10 +196,10 @@ func RenderCheckbox(
 func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState) layout.Dimensions {
 	// Sizing rule: the visual glyph keeps its measured 16 dp box at every
 	// density; the footprint (the row the glyph is centred in) is the
-	// density's control height, and the footprint is the pointer target —
+	// density's checkbox row, and the footprint is the pointer target —
 	// the platform gives a pointer the checkbox's row, never its glyph.
 	boxSz := gtx.Dp(checkboxBoxSize)
-	ctlSz := gtx.Dp(unit.Dp(tok.density.ControlHeight))
+	ctlSz := gtx.Dp(unit.Dp(tok.density.CheckboxRowHeight))
 	if ctlSz < boxSz {
 		ctlSz = boxSz
 	}
@@ -265,7 +266,17 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	} else {
 		edge := control.Border(tok.platform)
 		if s.Disabled {
-			edge = vgcolor.Flatten(tok.platform.DisabledControlText, standsOn)
+			// A switched-off box wears the platform's tertiary label.
+			// MEASURED, save-dialog-light.png and save-dialog-dark.png, the
+			// two switched-off "Options:" checkboxes: their wording plateaus
+			// at #bdbdbd on the sheet's white and #595f62 on its #232a2f,
+			// which TertiaryLabel's 66/255 black and 63/255 white reproduce
+			// to the byte in both appearances, where DisabledControlText's
+			// 63/255 lands on #c0c0c0 in light. The two appearances are far
+			// apart in Lc — 35.6 on the light sheet against −16.1 on the
+			// dark — and that spread is the platform's own relation between
+			// its two switched-off drawings, not a derivation made here.
+			edge = vgcolor.Flatten(tok.platform.TertiaryLabel, standsOn)
 		}
 		paint.FillShape(gtx.Ops, edge, rrectOuter.Op(gtx.Ops))
 		paint.FillShape(gtx.Ops, control.Fill(tok.platform), rrectInner.Op(gtx.Ops))

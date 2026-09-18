@@ -25,7 +25,10 @@ import (
 // radioDotSize the diameter of the dot inside it. The circle is the
 // checkbox's measured side length: the two controls stand beside each other
 // in one form, so one of them being wider than the other is a defect, and
-// the dot is half of it.
+// the dot is half of it. The platform draws the same 16 —
+// system-settings-grouped-box-light.png and -dark.png, the selected
+// "Automatically based on mouse or trackpad" radio at x 253–268, y 696–711,
+// both appearances agreeing to the pixel.
 const (
 	radioCircleSize = checkboxBoxSize
 	radioDotSize    = checkboxBoxSize / 2
@@ -122,8 +125,9 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 				foc := !dis && gtx.Focused(&b)
 
 				// The pointer area is the footprint the glyph is
-				// centred in — the button's row, not its 16 dp
-				// circle, which is what the platform gives a pointer.
+				// centred in — the measured checkbox row, not its
+				// 16 dp circle, which is what the platform gives a
+				// pointer.
 				return b.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					semantic.RadioButton.Add(gtx.Ops)
 					if props.Description != "" {
@@ -162,10 +166,11 @@ func RenderRadio(
 func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layout.Dimensions {
 	// Sizing rule: the visual glyph keeps its 16 dp circle at every density;
 	// the footprint (the row the glyph is centred in) is the density's
-	// control height, and the footprint is the pointer target — the platform
-	// gives a pointer the button's row, never its circle.
+	// checkbox row, which the radio stands in beside the box, and the
+	// footprint is the pointer target — the platform gives a pointer the
+	// button's row, never its circle.
 	circleSz := gtx.Dp(radioCircleSize)
-	ctlSz := gtx.Dp(unit.Dp(tok.density.ControlHeight))
+	ctlSz := gtx.Dp(unit.Dp(tok.density.CheckboxRowHeight))
 	if ctlSz < circleSz {
 		ctlSz = circleSz
 	}
@@ -214,7 +219,10 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	} else {
 		edge := control.Border(tok.platform)
 		if s.Disabled {
-			edge = vgcolor.Flatten(tok.platform.DisabledControlText, standsOn)
+			// The switched-off box's name, for the reason given in
+			// drawCheckbox: the platform's tertiary label is what the Save
+			// dialog's switched-off controls read in both appearances.
+			edge = vgcolor.Flatten(tok.platform.TertiaryLabel, standsOn)
 		}
 		paint.FillShape(gtx.Ops, edge, clip.Ellipse(outerRect).Op(gtx.Ops))
 		paint.FillShape(gtx.Ops, control.Fill(tok.platform), clip.Ellipse(innerRect).Op(gtx.Ops))

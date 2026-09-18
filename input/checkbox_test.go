@@ -54,11 +54,12 @@ func TestCheckboxGolden(t *testing.T) {
 
 // ---- Accessibility tests ----
 
-// TestCheckboxFootprintIsControlHeight checks the checkbox's visual footprint
-// is the density's control-height square with the measured 16 dp glyph centred
-// in it. That footprint is the pointer target too — the checkbox's row, not
-// its glyph — which TestCheckboxTargetIsItsRow exercises.
-func TestCheckboxFootprintIsControlHeight(t *testing.T) {
+// TestCheckboxFootprintIsItsMeasuredRow checks the checkbox's visual
+// footprint is the density's measured checkbox row, a square with the
+// measured 16 dp glyph centred in it. That footprint is the pointer target
+// too — the checkbox's row, not its glyph — which TestCheckboxTargetIsItsRow
+// exercises.
+func TestCheckboxFootprintIsItsMeasuredRow(t *testing.T) {
 	var ops op.Ops
 	gtx := layout.Context{
 		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
@@ -73,9 +74,9 @@ func TestCheckboxFootprintIsControlHeight(t *testing.T) {
 		input.CheckboxRenderState{},
 	)(gtx)
 
-	want := int(tokens.Comfortable.ControlHeight)
+	want := int(tokens.Comfortable.CheckboxRowHeight)
 	if dims.Size.X != want || dims.Size.Y != want {
-		t.Errorf("checkbox footprint = %v, want %dx%d px (ControlHeight square at 1:1 scale)", dims.Size, want, want)
+		t.Errorf("checkbox footprint = %v, want %dx%d px (CheckboxRowHeight square at 1:1 scale)", dims.Size, want, want)
 	}
 }
 
@@ -108,7 +109,7 @@ func TestCheckboxTargetIsItsRow(t *testing.T) {
 
 	// The footprint's far corner: inside the row, outside the 16 dp glyph
 	// centred in it, which is the only place the two can be told apart.
-	pos := f32.Pt(float32(tokens.Comfortable.ControlHeight)-1, float32(tokens.Comfortable.ControlHeight)-1)
+	pos := f32.Pt(float32(tokens.Comfortable.CheckboxRowHeight)-1, float32(tokens.Comfortable.CheckboxRowHeight)-1)
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
@@ -118,7 +119,7 @@ func TestCheckboxTargetIsItsRow(t *testing.T) {
 		t.Errorf("click in the footprint's corner, clear of the glyph: OnChange fired %d times, want 1", toggled)
 	}
 
-	outside := f32.Pt(float32(tokens.Comfortable.ControlHeight)+4, float32(tokens.Comfortable.ControlHeight)+4)
+	outside := f32.Pt(float32(tokens.Comfortable.CheckboxRowHeight)+4, float32(tokens.Comfortable.CheckboxRowHeight)+4)
 	r.Queue(
 		pointer.Event{Kind: pointer.Press, Position: outside, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
 		pointer.Event{Kind: pointer.Release, Position: outside, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
