@@ -31,6 +31,40 @@ import (
 // organization's macOS reference.
 const checkboxBoxSize = unit.Dp(16)
 
+// checkboxCornerRadius is the corner the box is drawn with: 5 dp, MEASURED
+// off save-dialog-light.png and save-dialog-dark.png.
+//
+// Both switched-off "Options:" boxes carry a one-pixel antialiased ramp at
+// each of their four corners. A circular fit to that ramp's per-row coverage,
+// the box's own extremes pinned — the fit CG4.8 made to the sidebar recess's
+// ends — answers r = 5.04, rms 0.038 px over 8 rows, in the light appearance
+// and r = 5.34, rms 0.070 px over 8 rows, in the dark; the four corners of
+// each box and the two boxes of each sheet agree to the hundredth. The
+// coverage missing from each corner says the same: 5.54 px² light and 6.21
+// px² dark against r²(1 − π/4), which is r = 5.08 and r = 5.38.
+//
+// The platform's corner is a continuous curve, which is what puts a circular
+// fit above the radius the corner is drawn at — the sidebar recess's 14 fits
+// at 14.7 and the sidebar pill's 8 at 7.9 — and the dark reading sits above
+// the light one because the dark sheet and fill are ten of 255 apart against
+// the light pair's thirteen, so its coverage is read on a coarser step. 5 is
+// what a circular corner draws.
+const checkboxCornerRadius = unit.Dp(5)
+
+// controlEdgeWidth is the width a control draws its own edge at: 1 dp,
+// MEASURED off the save dialog's "Tags:" text field, the sheet's one
+// unfocused enabled control that draws an edge at all.
+//
+// The field's box runs x 264–495 and y 243–269. A run across its straight
+// side gives one column at x=264 and one at x=495; a run down it gives one
+// row at y=243 and one at y=269. Each is a single pixel of #f3f3f3 light and
+// #2c3338 dark — [tokens.PlatformColors.FieldEdge] to the byte — with the
+// sheet on one side of it and the field's interior on the other. No stored
+// capture holds an enabled checkbox or an unselected radio, so the box and
+// the disc spend the field's hairline; that capture is on the reference's
+// list.
+const controlEdgeWidth = unit.Dp(1)
+
 // controlLabelGap is the leading gap a checkbox's square — or a radio's
 // circle — spends on the label beside it.
 //
@@ -312,7 +346,7 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		Min: image.Pt(offX, offY),
 		Max: image.Pt(offX+boxSz, offY+boxSz),
 	}
-	boxRad := gtx.Dp(unit.Dp(tok.radius.Sm))
+	boxRad := gtx.Dp(checkboxCornerRadius)
 	rrectOuter := clip.RRect{Rect: boxRect, SE: boxRad, SW: boxRad, NE: boxRad, NW: boxRad}
 
 	// Every name the box draws that carries a coverage is flattened onto
@@ -363,10 +397,11 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	default:
 		// Edge as nested fills: outer rect in the edge colour, inner rect in
 		// the box's own fill. Avoids clip.Stroke anti-aliasing variance in
-		// tests. No capture holds an enabled checkbox, so the edge and the
-		// interior stand as they are and the capture is on the reference's
-		// list.
-		borderPx := gtx.Dp(2)
+		// tests. The edge is one pixel of the platform's field hairline —
+		// controlEdgeWidth's reading — because no stored capture holds an
+		// enabled checkbox and the field beside it on the same sheet is what
+		// the platform draws an edge on.
+		borderPx := gtx.Dp(controlEdgeWidth)
 		innerRad := boxRad - borderPx
 		if innerRad < 0 {
 			innerRad = 0

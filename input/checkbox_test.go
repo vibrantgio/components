@@ -28,11 +28,6 @@ import (
 func TestCheckboxGolden(t *testing.T) {
 	size := image.Pt(44, 44)
 
-	// Zero corner radius avoids anti-aliasing variance between GPU context
-	// initialisations. Colour accuracy and border/fill presence are still
-	// fully exercised; the exact radius is tested in production rendering.
-	sharpRadius := tokens.RadiusScale{}
-
 	cases := []struct {
 		name     string
 		platform tokens.PlatformColors
@@ -48,7 +43,7 @@ func TestCheckboxGolden(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			w := input.RenderCheckbox(nil, tc.platform, tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge, tc.state)
+			w := input.RenderCheckbox(nil, tc.platform, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tc.state)
 			golden.Render(t, tc.name, size, w)
 		})
 	}
@@ -430,11 +425,10 @@ func off(a, b stdcolor.NRGBA) int {
 // interior's own colour, where the enabled box's first row carries the field
 // edge instead.
 //
-// Rendered at zero corner radius so the box is a sharp rectangle and its
-// outermost rows are flat fill rather than the rasterizer's own blend.
+// Every row and column is read at the box's own middle, where the measured
+// corner cannot reach and the drawing is flat fill or flat edge.
 func TestTheSwitchedOffBoxIsOneFillAndNoEdge(t *testing.T) {
 	const size = 44
-	sharpRadius := tokens.RadiusScale{}
 
 	// The glyph's measured 16 dp box, centred in the density's checkbox row,
 	// at the 1:1 metric golden.Capture renders at.
@@ -453,7 +447,7 @@ func TestTheSwitchedOffBoxIsOneFillAndNoEdge(t *testing.T) {
 
 			img := golden.Capture(t, image.Pt(size, size), input.RenderCheckbox(
 				nil,
-				sc.platform, tokens.Spacing, sharpRadius,
+				sc.platform, tokens.Spacing, tokens.Radius,
 				tokens.DefaultTypography.BodyLarge,
 				input.CheckboxRenderState{Disabled: true, Surface: sc.sheet},
 			))
@@ -482,7 +476,7 @@ func TestTheSwitchedOffBoxIsOneFillAndNoEdge(t *testing.T) {
 			// draws one.
 			on := golden.Capture(t, image.Pt(size, size), input.RenderCheckbox(
 				nil,
-				sc.platform, tokens.Spacing, sharpRadius,
+				sc.platform, tokens.Spacing, tokens.Radius,
 				tokens.DefaultTypography.BodyLarge,
 				input.CheckboxRenderState{Surface: sc.sheet},
 			))
@@ -507,7 +501,6 @@ func TestTheSwitchedOffBoxIsOneFillAndNoEdge(t *testing.T) {
 // platform's tertiary label over that fill.
 func TestTheSwitchedOffBoxKeepsItsMark(t *testing.T) {
 	const size = 44
-	sharpRadius := tokens.RadiusScale{}
 
 	for _, sc := range switchedOffReadings {
 		p := sc.platform
@@ -520,8 +513,8 @@ func TestTheSwitchedOffBoxKeepsItsMark(t *testing.T) {
 			set   layout.Widget
 		}{
 			{"box",
-				input.RenderCheckbox(nil, p, tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Disabled: true, Surface: sc.sheet}),
-				input.RenderCheckbox(nil, p, tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Disabled: true, Checked: true, Surface: sc.sheet})},
+				input.RenderCheckbox(nil, p, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Disabled: true, Surface: sc.sheet}),
+				input.RenderCheckbox(nil, p, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Disabled: true, Checked: true, Surface: sc.sheet})},
 			{"radio",
 				input.RenderRadio(nil, p, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Disabled: true, Surface: sc.sheet}),
 				input.RenderRadio(nil, p, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Disabled: true, Selected: true, Surface: sc.sheet})},

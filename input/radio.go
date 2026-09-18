@@ -30,6 +30,19 @@ import (
 // system-settings-grouped-box-light.png and -dark.png, the selected
 // "Automatically based on mouse or trackpad" radio at x 253–268, y 696–711,
 // both appearances agreeing to the pixel.
+//
+// It is a circle, and the 16 is its diameter: a least-squares circle fitted
+// to the sub-pixel edges of that disc — every row's two ends and every
+// column's, 60 points — lands on a centre of (261.00, 704.00) with r = 8.17,
+// rms 0.084 px, light and r = 8.12, rms 0.073 px, dark. The centre falls on
+// the glyph's own middle to the hundredth in both appearances, and the fit
+// sits a fifth of a pixel over 8 for the same reason a circular fit sits
+// over every corner in this reference: it is reading an antialiased rim.
+//
+// The dot is half the circle here and the platform's is not. The same fit to
+// the white dot inside that accent disc reads 5.00 px across — centre
+// (261.00, 704.00), r = 2.50 at an rms of 0.025 px light and 0.024 px dark
+// over 16 edges — which is five sixteenths of the glyph, not eight.
 const (
 	radioCircleSize = checkboxBoxSize
 	radioDotSize    = checkboxBoxSize / 2
@@ -265,10 +278,13 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		paint.FillShape(gtx.Ops, tok.platform.AlternateSelectedControlText, clip.Ellipse(dotRect()).Op(gtx.Ops))
 
 	default:
-		// No capture holds an unselected enabled radio, so the edge and the
-		// interior stand as they are and the capture is on the reference's
-		// list.
-		borderPx := gtx.Dp(2)
+		// The edge is one pixel of the platform's field hairline, the width
+		// and colour controlEdgeWidth reads off the save dialog's "Tags:"
+		// field. System Settings' radio is accent-filled and draws no edge of
+		// its own, and its capture holds no unselected sibling to read one
+		// off, so the disc spends the same hairline the box beside it does;
+		// the capture that would close it is on the reference's list.
+		borderPx := gtx.Dp(controlEdgeWidth)
 		innerRect := image.Rectangle{
 			Min: image.Pt(outerRect.Min.X+borderPx, outerRect.Min.Y+borderPx),
 			Max: image.Pt(outerRect.Max.X-borderPx, outerRect.Max.Y-borderPx),

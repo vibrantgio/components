@@ -138,9 +138,11 @@ func TestRadioFocusRingIsVisuallyDistinct(t *testing.T) {
 // Save dialog holds no switched-off radio, so the radio takes the checkbox's
 // reading, the two standing beside each other in one form.
 //
-// The circle's rim is antialiased by the rasterizer, so the edge is read one
-// pixel in from the widest point of the circle — the band the enabled radio
-// draws its edge in, fully covered in both drawings — against the centre.
+// The edge is read at the widest point of the circle, the one column the
+// measured one-pixel hairline occupies there, and it is read unpremultiplied:
+// a circle's rim is antialiased by the rasterizer, so that column carries the
+// edge's colour at a coverage of its own, and dividing the coverage out is
+// what separates the colour drawn from the fraction of the pixel it reached.
 func TestTheSwitchedOffRadioIsOneFillAndNoEdge(t *testing.T) {
 	const size = 44
 
@@ -149,7 +151,7 @@ func TestTheSwitchedOffRadioIsOneFillAndNoEdge(t *testing.T) {
 	circle := 16
 	row := int(tokens.Comfortable.CheckboxRowHeight)
 	c := row / 2
-	edgeBand := c - circle/2 + 1
+	rim := c - circle/2
 
 	for _, sc := range switchedOffReadings {
 		t.Run(sc.name, func(t *testing.T) {
@@ -168,8 +170,8 @@ func TestTheSwitchedOffRadioIsOneFillAndNoEdge(t *testing.T) {
 			if !nearlyEqual(centre, want) {
 				t.Errorf("a switched-off radio fills %v, want the platform's control fill at the disabled coverage %v", centre, want)
 			}
-			if got := img.RGBAAt(edgeBand, c); got != centre {
-				t.Errorf("a switched-off radio's edge band reads %v against its interior's %v; the platform draws no edge on one", got, centre)
+			if got := unpremultiplied(img.RGBAAt(rim, c)); !nearlyEqual(got, want) {
+				t.Errorf("a switched-off radio's rim reads %v against its interior's %v; the platform draws no edge on one", got, centre)
 			}
 
 			on := golden.Capture(t, image.Pt(size, size), input.RenderRadio(
@@ -181,8 +183,12 @@ func TestTheSwitchedOffRadioIsOneFillAndNoEdge(t *testing.T) {
 			if on == nil {
 				return
 			}
-			if on.RGBAAt(edgeBand, c) == on.RGBAAt(c, c) {
-				t.Errorf("an enabled radio's edge band reads its interior's %v; the enabled radio keeps its edge", on.RGBAAt(c, c))
+			edge, fill := control.Border(sc.platform), control.Fill(sc.platform)
+			if got := unpremultiplied(on.RGBAAt(rim, c)); !nearlyEqual(got, edge) {
+				t.Errorf("an enabled radio's rim reads %v, want the field hairline %v the enabled radio draws its edge in", got, edge)
+			}
+			if got := on.RGBAAt(rim+1, c); !nearlyEqual(got, fill) {
+				t.Errorf("an enabled radio reads %v one pixel in from its rim, want its own fill %v: the measured edge is one pixel wide", got, fill)
 			}
 		})
 	}
