@@ -18,7 +18,7 @@ import (
 func BenchmarkRadioRender(b *testing.B) {
 	w := input.RenderRadio(
 		nil,
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing,
 		tokens.DefaultTypography.BodyLarge,
 		input.RadioRenderState{},
 	)
@@ -42,7 +42,7 @@ func BenchmarkRadioRender(b *testing.B) {
 func BenchmarkRadioRenderSelected(b *testing.B) {
 	w := input.RenderRadio(
 		nil,
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing,
 		tokens.DefaultTypography.BodyLarge,
 		input.RadioRenderState{Selected: true},
 	)

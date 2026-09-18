@@ -4,8 +4,10 @@ import (
 	"image"
 	"image/color"
 
+	"gioui.org/f32"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
@@ -25,8 +27,8 @@ import (
 // radioCircleSize is the outer diameter of the radio circle, and
 // radioDotSize the diameter of the dot inside it. The circle is the
 // checkbox's measured side length: the two controls stand beside each other
-// in one form, so one of them being wider than the other is a defect, and
-// the dot is half of it. The platform draws the same 16 —
+// in one form, so one of them being wider than the other is a defect. The
+// platform draws the same 16 —
 // system-settings-grouped-box-light.png and -dark.png, the selected
 // "Automatically based on mouse or trackpad" radio at x 253–268, y 696–711,
 // both appearances agreeing to the pixel.
@@ -39,13 +41,16 @@ import (
 // sits a fifth of a pixel over 8 for the same reason a circular fit sits
 // over every corner in this reference: it is reading an antialiased rim.
 //
-// The dot is half the circle here and the platform's is not. The same fit to
-// the white dot inside that accent disc reads 5.00 px across — centre
-// (261.00, 704.00), r = 2.50 at an rms of 0.025 px light and 0.024 px dark
-// over 16 edges — which is five sixteenths of the glyph, not eight.
+// radioDotSize is the dot's own diameter, 5 dp, MEASURED off the same two
+// captures: the same fit to the white dot inside that accent disc reads
+// 5.00 px across — centre (261.00, 704.00), r = 2.50 at an rms of 0.025 px
+// light and 0.024 px dark over 16 edges — which is five sixteenths of the
+// glyph. The dot's centre is the disc's own to the hundredth, and the dot
+// straddles the pixel boundary that centre falls on: four full columns with a
+// half-covered one at each end.
 const (
 	radioCircleSize = checkboxBoxSize
-	radioDotSize    = checkboxBoxSize / 2
+	radioDotSize    = unit.Dp(5)
 )
 
 // RadioRenderState holds explicit visual state for static rendering.
@@ -114,16 +119,15 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 	// without a label never reaches them.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest5(t.Platform, t.Typography, t.Spacing, t.Radius, t.Density),
-			func(n rx.Tuple5[tokens.PlatformColors, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
+			rx.CombineLatest4(t.Platform, t.Typography, t.Spacing, t.Density),
+			func(n rx.Tuple4[tokens.PlatformColors, tokens.Typography, tokens.SpacingScale, tokens.Density]) resolvedTokens {
 				typ := n.Second
 				return resolvedTokens{
 					platform: n.First,
 					body:     typ.BodyLarge,
 					capBand:  typ.FaceMetrics(typ.BodyLarge).CapHeight,
 					spacing:  n.Third,
-					radius:   n.Fourth,
-					density:  n.Fifth,
+					density:  n.Fourth,
 					shaper:   typ.Shaper(),
 				}
 			},
@@ -189,7 +193,6 @@ func RenderRadio(
 	shaper *text.Shaper,
 	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
-	rad tokens.RadiusScale,
 	body tokens.TextStyle,
 	s RadioRenderState,
 ) layout.Widget {
@@ -198,7 +201,6 @@ func RenderRadio(
 		body:     body,
 		capBand:  body.FaceMetrics().CapHeight,
 		spacing:  sp,
-		radius:   rad,
 		density:  tokens.Comfortable,
 		shaper:   shaper,
 	}
@@ -242,12 +244,23 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	// shapes the fill is inset inside, and the fill for the dot.
 	standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
 
-	dotRect := func() image.Rectangle {
+	// The dot is drawn on the disc's own centre, which its odd measured
+	// diameter cannot reach from a whole-pixel rectangle: the platform's dot
+	// straddles the boundary the centre falls on. The shape carries the half
+	// pixel its rectangle is short of that centre, which is nothing at all
+	// when the scale makes the diameter even.
+	fillDot := func(c color.NRGBA) {
 		dotSz := gtx.Dp(radioDotSize)
-		return image.Rectangle{
+		r := image.Rectangle{
 			Min: image.Pt(cx-dotSz/2, cy-dotSz/2),
-			Max: image.Pt(cx+dotSz/2, cy+dotSz/2),
+			Max: image.Pt(cx-dotSz/2+dotSz, cy-dotSz/2+dotSz),
 		}
+		off := f32.Pt(
+			float32(cx)-float32(r.Min.X+r.Max.X)/2,
+			float32(cy)-float32(r.Min.Y+r.Max.Y)/2,
+		)
+		defer op.Affine(f32.Affine2D{}.Offset(off)).Push(gtx.Ops).Pop()
+		paint.FillShape(gtx.Ops, c, clip.Ellipse(r).Op(gtx.Ops))
 	}
 
 	switch {
@@ -269,13 +282,12 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 			// its switched-off controls below any floor, and the label stands
 			// there as measured — |Lc| 35.6 light and -16.1 dark on the
 			// sheet.
-			dot := vgcolor.Flatten(tok.platform.TertiaryLabel, fill)
-			paint.FillShape(gtx.Ops, dot, clip.Ellipse(dotRect()).Op(gtx.Ops))
+			fillDot(vgcolor.Flatten(tok.platform.TertiaryLabel, fill))
 		}
 
 	case s.Selected:
 		paint.FillShape(gtx.Ops, tok.platform.ControlAccent, clip.Ellipse(outerRect).Op(gtx.Ops))
-		paint.FillShape(gtx.Ops, tok.platform.AlternateSelectedControlText, clip.Ellipse(dotRect()).Op(gtx.Ops))
+		fillDot(tok.platform.AlternateSelectedControlText)
 
 	default:
 		// The edge is one pixel of the platform's field hairline, the width

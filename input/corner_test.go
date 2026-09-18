@@ -132,7 +132,7 @@ func TestTheBoxDrawsTheMeasuredCornerAndEdge(t *testing.T) {
 		t.Run(sc.name, func(t *testing.T) {
 			img := golden.Capture(t, image.Pt(size, size), input.RenderCheckbox(
 				nil,
-				sc.platform, tokens.Spacing, tokens.Radius,
+				sc.platform, tokens.Spacing,
 				tokens.DefaultTypography.BodyLarge,
 				input.CheckboxRenderState{Surface: sc.sheet},
 			))
@@ -207,7 +207,7 @@ func TestTheDiscIsTheMeasuredCircle(t *testing.T) {
 		t.Run(sc.name, func(t *testing.T) {
 			img := golden.Capture(t, image.Pt(size, size), input.RenderRadio(
 				nil,
-				sc.platform, tokens.Spacing, tokens.Radius,
+				sc.platform, tokens.Spacing,
 				tokens.DefaultTypography.BodyLarge,
 				input.RadioRenderState{Surface: sc.sheet},
 			))
@@ -256,6 +256,107 @@ func TestTheDiscIsTheMeasuredCircle(t *testing.T) {
 				if n != 1 {
 					t.Errorf("a run %s crosses %d pixels of the field hairline %v, want the measured 1", run.what, n, edge)
 				}
+			}
+		})
+	}
+}
+
+// dotCoverageRow answers the coverage of a selected radio's dot over each
+// column of one row of a capture.
+//
+// The dot is not drawn onto a clear window the way the disc is — it is drawn
+// onto the disc's own accent, which is opaque, so the alpha channel is 255
+// across the whole glyph and carries no coverage. The reading is the pixel's
+// distance from the accent along the channel the accent and the dot stand
+// furthest apart on, which is the fraction of the pixel the dot reached. The
+// disc's own antialiased rim, and the clear window outside it, sit at or
+// below the accent on that channel and read as nothing.
+func dotCoverageRow(img *image.RGBA, y, width int, base, dot stdcolor.NRGBA) []float64 {
+	ch := func(c stdcolor.RGBA) float64 { return linear(c.R) }
+	span := linear(dot.R) - linear(base.R)
+	lo := linear(base.R)
+	if d := linear(dot.G) - linear(base.G); math.Abs(d) > math.Abs(span) {
+		ch, span, lo = func(c stdcolor.RGBA) float64 { return linear(c.G) }, d, linear(base.G)
+	}
+	if d := linear(dot.B) - linear(base.B); math.Abs(d) > math.Abs(span) {
+		ch, span, lo = func(c stdcolor.RGBA) float64 { return linear(c.B) }, d, linear(base.B)
+	}
+
+	c := make([]float64, width)
+	for x := range c {
+		v := (ch(img.RGBAAt(x, y)) - lo) / span
+		c[x] = math.Min(1, math.Max(0, v))
+	}
+	return c
+}
+
+// linear is the light one channel of an sRGB-encoded capture carries. The
+// rasterizer mixes the dot into the accent in linear light and the capture
+// stores the result encoded, so a coverage read off the encoded value is not
+// the coverage at all: a half-covered pixel of white over the accent stores
+// 0.69 of the channel, which is 0.43 of the light.
+func linear(v uint8) float64 {
+	c := float64(v) / 255
+	if c <= 0.04045 {
+		return c / 12.92
+	}
+	return math.Pow((c+0.055)/1.055, 2.4)
+}
+
+// TestTheDotIsTheMeasuredFiveSixteenths reads the selected radio's dot off a
+// capture of the component, in both appearances, by the fit the disc is read
+// with.
+//
+// MEASURED, system-settings-grouped-box-{light,dark}.png: the same
+// least-squares circle through the dot's sub-pixel edges answers a centre of
+// (261.00, 704.00) and r = 2.50 — a diameter of 5.00 px in a 16 px disc whose
+// own centre is (261.00, 704.00), at an rms of 0.025 px light and 0.024 px
+// dark. The dot is five sixteenths of the glyph and stands on the disc's own
+// centre, which puts its edges on the half pixel: four fully covered columns
+// with a half-covered one at each end.
+func TestTheDotIsTheMeasuredFiveSixteenths(t *testing.T) {
+	const size = 44
+	row := int(tokens.Comfortable.CheckboxRowHeight)
+	lo := (row - glyphSide) / 2
+
+	for _, sc := range switchedOffReadings {
+		t.Run(sc.name, func(t *testing.T) {
+			img := golden.Capture(t, image.Pt(size, size), input.RenderRadio(
+				nil,
+				sc.platform, tokens.Spacing,
+				tokens.DefaultTypography.BodyLarge,
+				input.RadioRenderState{Selected: true, Surface: sc.sheet},
+			))
+			if img == nil {
+				return
+			}
+
+			base, dot := sc.platform.ControlAccent, sc.platform.AlternateSelectedControlText
+			if got := img.RGBAAt(lo+glyphSide/2, lo+glyphSide/2); !nearlyEqual(got, dot) {
+				t.Errorf("the dot's own centre reads %v, want the platform's %v the accent is named against", got, dot)
+			}
+
+			var px, py []float64
+			for y := lo; y < lo+glyphSide; y++ {
+				cov := dotCoverageRow(img, y, size, base, dot)
+				l, ok := leadingEdge(cov)
+				if !ok {
+					continue
+				}
+				tr, _ := trailingEdge(cov)
+				px = append(px, l, tr)
+				py = append(py, float64(y)+0.5, float64(y)+0.5)
+			}
+			cx, cy, r, rms := fitCircle(px, py)
+
+			const wantR = 2.5
+			wantC := float64(lo) + glyphSide/2.0
+			t.Logf("the dot fits centre (%.2f, %.2f), r = %.2f, rms %.3f px over %d edges", cx, cy, r, rms, len(px))
+			if math.Abs(r-wantR) > 0.15 || rms > 0.1 {
+				t.Errorf("the dot fits r = %.2f (rms %.3f px over %d edges), want the measured %.2f", r, rms, len(px), wantR)
+			}
+			if math.Abs(cx-wantC) > 0.15 || math.Abs(cy-wantC) > 0.15 {
+				t.Errorf("the dot centres on (%.2f, %.2f), want the disc's own (%.1f, %.1f)", cx, cy, wantC, wantC)
 			}
 		})
 	}

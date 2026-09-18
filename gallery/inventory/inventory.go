@@ -1309,14 +1309,14 @@ func (inv *Inventory) toggleRow(c tokens.PlatformColors) layout.Widget {
 		label string
 		w     layout.Widget
 	}{
-		{"Unchecked", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{})},
-		{"Checked", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Checked: true})},
-		{"Focused", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Focused: true})},
-		{"Disabled", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Disabled: true})},
-		{"Unselected", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{})},
-		{"Selected", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Selected: true})},
-		{"Focused", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Focused: true})},
-		{"Disabled", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Disabled: true})},
+		{"Unchecked", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{})},
+		{"Checked", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Checked: true})},
+		{"Focused", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Focused: true})},
+		{"Disabled", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Disabled: true})},
+		{"Unselected", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{})},
+		{"Selected", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Selected: true})},
+		{"Focused", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Focused: true})},
+		{"Disabled", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Disabled: true})},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(cells))
@@ -1365,10 +1365,10 @@ const (
 // a reader has to be able to check.
 func (inv *Inventory) labelledToggleRow(c tokens.PlatformColors) layout.Widget {
 	box := func(s input.CheckboxRenderState) layout.Widget {
-		return input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, s)
+		return input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, s)
 	}
 	disc := func(s input.RadioRenderState) layout.Widget {
-		return input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, s)
+		return input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, s)
 	}
 	// The first two labels are the save dialog's own, so the row can be held
 	// against the capture the measurements come from.

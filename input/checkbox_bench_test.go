@@ -18,7 +18,7 @@ import (
 func BenchmarkCheckboxRender(b *testing.B) {
 	w := input.RenderCheckbox(
 		nil,
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing,
 		tokens.DefaultTypography.BodyLarge,
 		input.CheckboxRenderState{},
 	)
@@ -42,7 +42,7 @@ func BenchmarkCheckboxRender(b *testing.B) {
 func BenchmarkCheckboxRenderChecked(b *testing.B) {
 	w := input.RenderCheckbox(
 		nil,
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
+		tokens.PlatformLight, tokens.Spacing,
 		tokens.DefaultTypography.BodyLarge,
 		input.CheckboxRenderState{Checked: true},
 	)

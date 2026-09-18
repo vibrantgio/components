@@ -181,16 +181,15 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 	// without a label never reaches them.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest5(t.Platform, t.Typography, t.Spacing, t.Radius, t.Density),
-			func(n rx.Tuple5[tokens.PlatformColors, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
+			rx.CombineLatest4(t.Platform, t.Typography, t.Spacing, t.Density),
+			func(n rx.Tuple4[tokens.PlatformColors, tokens.Typography, tokens.SpacingScale, tokens.Density]) resolvedTokens {
 				typ := n.Second
 				return resolvedTokens{
 					platform: n.First,
 					body:     typ.BodyLarge,
 					capBand:  typ.FaceMetrics(typ.BodyLarge).CapHeight,
 					spacing:  n.Third,
-					radius:   n.Fourth,
-					density:  n.Fifth,
+					density:  n.Fourth,
 					shaper:   typ.Shaper(),
 				}
 			},
@@ -262,12 +261,13 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 // harmless.
 //
 // Density is not a parameter: the static path always renders at
-// tokens.Comfortable; density-aware rendering goes through Checkbox.
+// tokens.Comfortable; density-aware rendering goes through Checkbox. Neither
+// is the radius scale: the box is drawn at the corner it measures,
+// checkboxCornerRadius, and the radio's disc has no corner at all.
 func RenderCheckbox(
 	shaper *text.Shaper,
 	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
-	rad tokens.RadiusScale,
 	body tokens.TextStyle,
 	s CheckboxRenderState,
 ) layout.Widget {
@@ -276,7 +276,6 @@ func RenderCheckbox(
 		body:     body,
 		capBand:  body.FaceMetrics().CapHeight,
 		spacing:  sp,
-		radius:   rad,
 		density:  tokens.Comfortable,
 		shaper:   shaper,
 	}

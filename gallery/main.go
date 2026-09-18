@@ -835,7 +835,7 @@ func (g *gallery) checkboxVariantRows() []layout.FlexChild {
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
-		w := input.RenderCheckbox(g.shaper, r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, r.state)
+		w := input.RenderCheckbox(g.shaper, r.colors, tokens.Spacing, tokens.DefaultTypography.BodyLarge, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
 		})
@@ -860,7 +860,7 @@ func (g *gallery) radioVariantRows() []layout.FlexChild {
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
-		w := input.RenderRadio(g.shaper, r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, r.state)
+		w := input.RenderRadio(g.shaper, r.colors, tokens.Spacing, tokens.DefaultTypography.BodyLarge, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
 		})
