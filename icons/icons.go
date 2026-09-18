@@ -68,6 +68,15 @@ const (
 	// new note, a new chat. One mark serves every such control: what is
 	// added is the control's label to say, not the mark's.
 	Plus Name = "plus"
+
+	// Refresh is the control that reads again what the window is showing,
+	// from wherever it came from. One mark serves every such control: what
+	// is read again is the control's label to say.
+	Refresh Name = "refresh"
+
+	// OpenFolder is the control that opens a folder — chooses which folder
+	// the window is showing.
+	OpenFolder Name = "open-folder"
 )
 
 // The search mark's drawing, as fractions of the square it is drawn in. A

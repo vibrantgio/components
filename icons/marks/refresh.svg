@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Refresh: the control that reads again what the window is showing, from
+       wherever it came from. One picture whatever is being read again; what
+       that is belongs to the control's label.
+
+       No stored capture holds this control: none of the five toolbar bands in
+       reference/macos/controls.md carries one, so the drawing is the set's
+       grid and nothing else, stated here as the plus and the search marks
+       state their measured readings.
+
+       Grid: a curved form, so it takes the 20-unit allowance rather than the
+       square keyline. The ring is centred on 12,13 with a centreline radius
+       of 8 and a band of 2 — the set's curved measure, because the band is
+       curved everywhere and runs along an axis at four points only — so its
+       outer edge reaches 3 and 21 across and 4 and 22 down. The arrowhead's
+       base carries the drawing to 2 at the top, which puts the figure at 18
+       by 20 inside the allowance, centred on both axes. Every radius is a
+       whole unit; the ring's centre sits one unit below the grid's, which is
+       half of what the head reaches past the ring at the top, so the figure
+       comes out centred.
+
+       The band-landing rule the set's axis-aligned marks are drawn by does
+       not reach this figure: the ring is curved everywhere and runs along an
+       axis at four points only, as the search mark's lens does, so it has no
+       leading edge at 1.5m to land. What the rule asks for is had another
+       way — the band is 2 units, which is 1.33 px at 16 dp, 1.67 at 20 and
+       2.00 at 24, over one whole device pixel at every size.
+
+       The ring is open at the top trailing, from the head at 270 degrees
+       round to 20 degrees short of the trailing middle: 70 degrees of gap and
+       290 of band. The arrowhead caps the band's end at the top, its base the
+       band's own end face carried out to three units either side and its tip
+       five units along the tangent, so the figure turns clockwise — the
+       direction the platform's own reload marks turn. Two contours: the ring
+       is one closed outline with its inner edge wound back against its outer,
+       and the head abuts its end face rather than winding against it. -->
+  <path fill="#000000" d="M 20.4572 9.9218 C 21.8007 13.6129 20.5951 17.749 17.4789 20.1402 C 14.3626 22.5314 10.0554 22.6254 6.8378 20.3724 C 3.6202 18.1194 2.2354 14.0398 3.4165 10.2936 C 4.5977 6.5474 8.072 4 12 4 L 12 6 C 8.9449 6 6.2427 7.9813 5.324 10.8951 C 4.4053 13.8088 5.4824 16.9817 7.985 18.7341 C 10.4876 20.4864 13.8375 20.4133 16.2613 18.5535 C 18.6851 16.6936 19.6228 13.4767 18.5778 10.6059 Z"/>
+  <path fill="#000000" d="M 12 2 L 17 5 L 12 8 Z"/>
+</svg>

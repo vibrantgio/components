@@ -87,7 +87,7 @@ func TestUnknownNameHasNoMark(t *testing.T) {
 // drawings stand behind it.
 func TestNamesListEachMarkOnce(t *testing.T) {
 	got := icons.New("darwin").Names()
-	want := []icons.Name{icons.Clear, icons.Disclosure, icons.HistoryBack, icons.HistoryForward, icons.Plus, icons.Search, icons.Sidebar}
+	want := []icons.Name{icons.Clear, icons.Disclosure, icons.HistoryBack, icons.HistoryForward, icons.OpenFolder, icons.Plus, icons.Refresh, icons.Search, icons.Sidebar}
 	if len(got) != len(want) {
 		t.Fatalf("names = %v, want %v", got, want)
 	}
