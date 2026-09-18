@@ -13,12 +13,11 @@
        horizontal at y 263-264 running from there out to the trailing edge.
 
        Grid: an axis-aligned form with one diagonal, so it fills the set's
-       18-unit square keyline in its long direction — 3 to 21 down — and takes
-       the set's axis-aligned band of 1.5. The page's 13 by 19 proportion puts
-       it 12.3 units across against 18 down; 12 is the nearest width on the
-       set's 1.5 sub-grid, drawn from 6 to 18, which centres the figure on
-       both axes. The corner is cut 6 by 6, the measured 45 degrees on the
-       sub-grid.
+       square keyline in its long direction — 2.5 to 21.5 down, 19 units —
+       and takes the set's axis-aligned band of 1.5. The page's 13 by
+       19 proportion puts it 13 units across against those 19 down, drawn from
+       5.5 to 18.5, which centres the figure on both axes. The corner is cut 6
+       by 6, the measured 45 degrees on the sub-grid.
 
        The cut runs at 45 degrees and is drawn at the figure's own weight
        rather than at the set's diagonal measure of 2: the capture reads the
@@ -26,22 +25,34 @@
        and a heavier band inside one figure reads as a second weight. The
        diagonal measure is for a mark whose only bands run diagonally.
 
-       Where each band lands. A band's leading edge at 1.5m puts a whole
-       device pixel inside it at 16, 20 and 24 dp when m is 0 or 3 mod 4. The
-       two VERTICAL bands land — the leading edge at 6 (m=4) and the trailing
-       band's leading edge at 16.5 (m=11) — and the two horizontal ones do
-       not: the top at 3 (m=2) and the foot at 19.5 (m=13). That is this
-       drawing's miss, and it is the mirror of the folder mark's: landing the
-       horizontals would take the page to 15 units deep against the keyline's
-       18 and the capture's 19, a worse miss on a reading that is measured.
+       The fold's crossbar is drawn where the capture puts it: its leading
+       edge stands 7 px into a 19 px page, which is 7 units into this one at
+       9.5. The fold's UPRIGHT is not. The capture stands it 6 px into a 13 px
+       page, which is 11.5 here, and it is drawn at 10.5 — the sub-grid unit
+       beside that — because it is the only band in this figure that CAN land
+       a whole device pixel at all three sizes, and a figure whose every band
+       misses reads grey at 16 dp against a label drawn in the same colour.
+       10.5 still stands under the cut: the inner diagonal reaches x 11.8787
+       at the inner top face, which the band at 10.5 to 12 meets.
+
+       Where each band lands. The fold's UPRIGHT at 10.5 (m=7) is on the 1.5
+       sub-grid and lands a whole device pixel at 16, 20 and 24 dp alike; it
+       is the one band here that does. The fold's CROSSBAR at 9.5 lands one at
+       20 and 24 and reaches 0.667 of its best pixel at 16. The two SIDES at
+       5.5 and 17 land one at 24 and reach 0.667 at 16 and 0.833 at 20. The
+       page's TOP at 2.5 and its FOOT at 20 stand on the keyline, which the
+       keyline's 19 odd units keeps off the sub-grid: they land at 24 dp and
+       reach 0.667 at 16 and 0.917 at 20. That is what a figure measured on
+       both axes costs on this grid; the readings stand and the misses are
+       recorded.
 
        Three contours. The page is one outline with its inner edge wound back,
        the inner edge offset 1.5 perpendicular everywhere — which puts the
-       inner diagonal's corners at 11.379,4.5 and 16.5,9.622. The fold's two
+       inner diagonal's corners at 11.8787,4 and 17,9.1213. The fold's two
        lines are drawn in the same direction as the outer contour, so where
        one crosses the cut's own band the overlap fills solid under the
        non-zero winding rule rather than cutting a hole in it. -->
-  <path fill="#000000" d="M6 3 L12 3 L18 9 L18 21 L6 21 Z M7.5 4.5 L7.5 19.5 L16.5 19.5 L16.5 9.622 L11.379 4.5 Z"/>
-  <path fill="#000000" d="M10.5 4.5 L12 4.5 L12 9 L10.5 9 Z"/>
-  <path fill="#000000" d="M10.5 9 L18 9 L18 10.5 L10.5 10.5 Z"/>
+  <path fill="#000000" d="M5.5 2.5 L12.5 2.5 L18.5 8.5 L18.5 21.5 L5.5 21.5 Z M7 4 L7 20 L17 20 L17 9.1213 L11.8787 4 Z"/>
+  <path fill="#000000" d="M10.5 4 L12 4 L12 9.5 L10.5 9.5 Z"/>
+  <path fill="#000000" d="M10.5 9.5 L18.5 9.5 L18.5 11 L10.5 11 Z"/>
 </svg>

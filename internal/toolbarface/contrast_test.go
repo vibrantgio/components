@@ -56,11 +56,17 @@ func TestTheTriggerTakesThePlatformsNames(t *testing.T) {
 		} else if rim.A != 0 {
 			t.Errorf("light: Rim = %v, want no edge at all — the platform draws none over this fill", rim)
 		}
-		if got, want := Label(p, fill), vgcolor.Flatten(p.ControlText, fill); got != want {
-			t.Errorf("%s: Label = %v, want the platform's control text over the fill %v", sc.name, got, want)
+		// The toolbar's own label colour, and not the control text a FORM
+		// control draws: MEASURED off the band's bare title and its glyphs,
+		// which hold one plateau the control text does not land.
+		if got, want := Label(p, fill), p.ToolbarLabel; got != want {
+			t.Errorf("%s: Label = %v, want the toolbar's measured label %v", sc.name, got, want)
 		}
-		if got, want := Mark(p, fill), vgcolor.Flatten(p.ControlText, fill); got != want {
-			t.Errorf("%s: Mark = %v, want the platform's control text over the fill %v", sc.name, got, want)
+		if got, want := Mark(p, fill), p.ToolbarLabel; got != want {
+			t.Errorf("%s: Mark = %v, want the toolbar's measured label %v", sc.name, got, want)
+		}
+		if ct := vgcolor.Flatten(p.ControlText, fill); Mark(p, fill) == ct {
+			t.Errorf("%s: the control text over the fill %v lands the measured label; the value is carried because it does not", sc.name, ct)
 		}
 		if Mark(p, fill) != Label(p, fill) {
 			t.Errorf("%s: the mark and the wording are two colours; one control reads in one foreground", sc.name)

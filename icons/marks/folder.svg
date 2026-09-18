@@ -11,39 +11,48 @@
        the trailing 101.50-103.00, and down x=92 the body's top band runs
        212.61-214.09, the flap 215.33-216.70 and the foot 225.51-227.00. So
        the body is 20.00 px across by 14.39 down, the tab rises 1.61 above it
-       to y=211.00, every band measures 1.37 to 1.50, and the flap stands
-       1.24 px clear of the body's inner top face.
+       to y=211.00, every band measures 1.37 to 1.50, the tab runs 6.7 px of
+       the body's 20, and the flap stands 1.24 px clear of the body's inner
+       top face.
 
-       Grid: an axis-aligned form, so it fills the set's 18-unit square
-       keyline across — 3 to 21 — and takes the set's axis-aligned band of
-       1.5. The body's 14.39 by 20.00 proportion puts it 12.95 units deep
-       against 18 across; 13.5 is the nearest depth on the set's 1.5 sub-grid,
-       drawn from 6 to 19.5. The tab is one band proud — the shallowest rise
-       this set can draw, and the measured 1.61 px is 1.45 units — which takes
-       the whole figure to 15 units, from 4.5 to 19.5, centred on both axes.
-       The tab runs to 9: the measured tab is 6.7 px of the body's 20, which
-       is 6.03 units. The flap stands one band clear of the body's inner top
-       face at 7.5, so it runs 9 to 10.5, against the measured 1.12 units of
-       air.
+       Grid: an axis-aligned form, so it fills the set's square keyline across
+       — 2.5 to 21.5, 19 units — and takes the set's axis-aligned band
+       of 1.5, which the capture's own 1.37 to 1.50 brackets. The body's
+       14.39 by 20.00 proportion puts it 13.67 units deep against 19 across;
+       13.5 is the nearest depth on the set's 1.5 sub-grid, drawn from 6 to
+       19.5, and it takes the two bands the figure has that CAN land. The tab
+       is one band proud — the measured 1.61 px is 1.53 units, one band to
+       within a fiftieth — which takes the whole figure to 15 units, from 4.5
+       to 19.5, centred on both axes. The tab runs to 9: the measured 6.7 px
+       of the body's 20 is 6.37 units and 9 is the sub-grid unit nearest the
+       end of that. The flap's leading edge stands at 8.75: the measured 1.24
+       px of air over a mean band of 1.42 is 0.87 of a band, which against the
+       set's 1.5 is 1.31 units below the body's inner top face at 7.5.
 
-       Where each band lands. A band's leading edge at 1.5m puts a whole
-       device pixel inside it at 16, 20 and 24 dp when m is 0 or 3 mod 4. The
-       tab's top at 4.5 (m=3) and the body's top at 6 (m=4) land; the flap at
-       9 (m=6) and the foot at 18 (m=12) do not — nor do the two VERTICAL
-       bands, whose leading edges are 3 (m=2) and 19.5 (m=13). That is the
-       miss this drawing carries, and it is the same one the open-folder mark
-       records: moving the sides to 4.5 and 18 would land both and take the
-       figure to 15 units across against the keyline's 18 and the capture's
-       20, which is a worse miss on a reading that is measured.
+       Where each band lands. The tab's top at 4.5 (m=3) and the body's top at
+       6 (m=4) are on the 1.5 sub-grid and land a whole device pixel at 16, 20
+       and 24 dp alike, as does the body's foot at 18 (m=12). The FLAP at 8.75
+       lands one at 24 dp and reaches 0.833 of its best pixel at 16 and 0.708
+       at 20. The two SIDES land one at 24 dp alone — the keyline's 19 units
+       is odd against a 24-unit box, so they stand at 2.5 and 20 — and reach
+       0.667 at 16 dp and 0.917 at 20. Moving the sides onto the sub-grid
+       costs the figure the keyline, which is the measured extent the whole
+       set is drawn to, so the keyline stands and the miss is recorded.
 
-       The flap is drawn across the body's whole inner width. The capture
-       insets it about 1.2 px at each end, which is a rounded cap the set does
-       not draw at this weight.
+       THE FLAP IS INSET, and that is what tells this mark from the
+       open-folder one at a glance. The capture holds it clear of the body's
+       two sides by about 1.2 px of a 20 px body, which is 1.14 units against
+       this figure's 19; it is drawn at 1.25 in from each side of the inner
+       pane, so it runs 5.25 to 18.75 where the open-folder mark's flap runs
+       the full inner width its own capture reads it at. Mail's pull-down and
+       Voice Memos' sidebar draw two folders and this is the difference
+       between them; without it the two marks are one drawing with a row
+       between them.
 
        Three contours, abutting rather than winding against each other: the
        tab's bar, the body as an outline with its inner edge wound back, and
        the flap. -->
-  <path fill="#000000" d="M3 4.5 L9 4.5 L9 6 L3 6 Z"/>
-  <path fill="#000000" d="M3 6 L21 6 L21 19.5 L3 19.5 Z M4.5 7.5 L4.5 18 L19.5 18 L19.5 7.5 Z"/>
-  <path fill="#000000" d="M4.5 9 L19.5 9 L19.5 10.5 L4.5 10.5 Z"/>
+  <path fill="#000000" d="M2.5 4.5 L9 4.5 L9 6 L2.5 6 Z"/>
+  <path fill="#000000" d="M2.5 6 L21.5 6 L21.5 19.5 L2.5 19.5 Z M4 7.5 L4 18 L20 18 L20 7.5 Z"/>
+  <path fill="#000000" d="M5.25 8.75 L18.75 8.75 L18.75 10.25 L5.25 10.25 Z"/>
 </svg>

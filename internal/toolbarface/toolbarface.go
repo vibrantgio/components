@@ -132,26 +132,34 @@ func Rim(p tokens.PlatformColors) color.NRGBA {
 	return control.ToolbarControlRim(p)
 }
 
-// Label is the colour the control's own wording reads in: the platform's
-// control text, flattened over the fill the wording stands on.
+// Label is the colour the control's own wording reads in: what the TOOLBAR
+// draws its own words in. It is opaque, so what it stands on does not change
+// it; beneath is taken for the signature [Mark] and every other face colour
+// here shares and for the day a coverage is measured.
+//
+// MEASURED, finder-window-light.png: the band's own title "Applications"
+// standing bare over a #ffffff band plateaus at #4d4d4d over 131 pixels, which
+// is no name in the catalogue — ControlText's 216 of 255 gives #272727 there.
+// The measurement lives with [tokens.PlatformColors.ToolbarLabel].
 func Label(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
-	return vgcolor.Flatten(p.ControlText, beneath)
+	return p.ToolbarLabel
 }
 
-// Mark is the colour the pop-up mark reads in: the platform's control text,
-// the name it draws a control's own marks in, flattened over the fill the
-// mark stands on. It is the colour the control's wording reads in too — one
-// control, one foreground.
+// Mark is the colour a chrome control's mark reads in, and it is the colour
+// its wording reads in: one control, one foreground, and one name for
+// everything a toolbar says.
 //
-// MEASURED, save-dialog-{light,dark}.png: the pop-up's pair reads 36 light and
-// (224,225,226) dark on fills of #ececec and #333a3f, which is ControlText's
-// 216 of 255 flattened onto each to the byte. The secondary label's coverage
-// would land at 118 and 163. The toolbar's own pop-up agrees within what a
-// thin diagonal can cover: in finder-window-light.png its pair peaks at 77 on
-// a #ffffff fill, which is ControlText at 82% coverage, where SecondaryLabel
-// would need 140% of a pixel to reach it.
+// MEASURED, finder-window-light.png: the group pull-down's grid glyph
+// (x 769-786, y 17-34) plateaus at #4d4d4d over 24 pixels and the search
+// capsule's magnifier (x 965-980, y 18-34) over 15 — the same plateau the
+// band's title holds, so it is the drawn colour and not the partial coverage
+// a thin stroke reaches. finder-window-untinted-dark.png reads #e9e9e9 for the
+// same glyphs. A FORM control is a different reading: the Save dialog's pop-up
+// draws its mark at ControlText exactly (36 light and (224,225,226) dark on
+// fills of #ececec and #333a3f), which is why components/picker's form trigger
+// keeps that name and this one answers for the toolbar.
 func Mark(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
-	return vgcolor.Flatten(p.ControlText, beneath)
+	return p.ToolbarLabel
 }
 
 // Pin is the edge of the offered box that a drawn shape is pinned to.

@@ -94,6 +94,17 @@ const (
 	// one is held rather than which one the pointer is over — that is the
 	// fill's to say.
 	Check Name = "check"
+
+	// ChevronPair is the mark on a control that holds one of several values:
+	// two chevrons stacked point to point, the upper pointing up and the
+	// lower down. It says the value can move either way and never which way
+	// the menu opens, which is why the platform draws a pair here.
+	ChevronPair Name = "chevron-pair"
+
+	// Chevron is the mark on a control that opens a menu of actions: one
+	// chevron pointing down, the pair's lower half. It says the menu goes
+	// down from here, which is the one thing the pair cannot say.
+	Chevron Name = "chevron"
 )
 
 // The search mark's drawing, as fractions of the square it is drawn in. A
@@ -132,19 +143,27 @@ const (
 const (
 	// SidebarPaneLeading is the square's leading edge to the pane's, which is
 	// the set's square keyline.
-	SidebarPaneLeading = 3.0 / 24.0
+	SidebarPaneLeading = 2.5 / 24.0
 	// SidebarPaneTop is the square's top edge to the pane's.
 	SidebarPaneTop = 4.5 / 24.0
 	// SidebarPaneWidth and SidebarPaneHeight are the pane's outer extent: a
-	// landscape rectangle in the proportion a window with a sidebar has.
-	SidebarPaneWidth  = 18.0 / 24.0
+	// landscape rectangle in the proportion a window with a sidebar has, the
+	// width drawn to the keyline and the height to the capture's own 15.12.
+	SidebarPaneWidth  = 19.0 / 24.0
 	SidebarPaneHeight = 15.0 / 24.0
 	// SidebarBand is the weight every edge of the mark is drawn at, the set's
-	// axis-aligned measure.
+	// axis-aligned band.
 	SidebarBand = 1.5 / 24.0
-	// SidebarSeamLeading is the square's leading edge to the seam's,
-	// which leaves the leading column half the width of the trailing one.
-	SidebarSeamLeading = 9.0 / 24.0
+	// SidebarSeamLeading is the square's leading edge to the seam's, which
+	// leaves the leading column just under half the width of the trailing
+	// one: the measured 4.99 against 10.21, one to 2.05.
+	SidebarSeamLeading = 8.75 / 24.0
+	// SidebarListBand is the weight the list lines inside the leading column
+	// are drawn at, the set's second band, and SidebarListPeriod the
+	// distance between two of their centres. Both are measured off the same
+	// toggle; only the macOS drawing carries them.
+	SidebarListBand   = 0.93 / 24.0
+	SidebarListPeriod = 2.20 / 24.0
 )
 
 // Painter draws a mark into a square of sizePx at the current origin, in col.

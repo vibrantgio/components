@@ -59,35 +59,56 @@
 // # The grid
 //
 // Every mark is drawn on a 24×24 grid — viewBox "0 0 24 24" — and a square
-// form is drawn to the keyline 3 units in from every edge, an 18×18 box. A
-// round or diagonal form may reach 2 units, a 20×20 box, because a circle
-// inside the same bounds as a square reads smaller than it; that is optical
-// compensation and it is the only reason to cross the keyline.
+// form is drawn to the keyline 2.5 units in from every edge, a 19×19 box. A
+// round or diagonal form takes a wider allowance, 2 units in from every edge
+// and a 20×20 box, because a circle inside the same bounds as a square reads
+// smaller than it; that is optical compensation and it is the only reason to
+// cross the keyline.
+//
+// The keyline is MEASURED at 1x off the toolbar bands in the organization's
+// macOS reference, where a symbol standing alone in a band is the platform
+// drawing this set's own subject at its own size. Finder's tag covers 19 × 19
+// px (finder-window-light.png, x 873-891, y 17-35) and its group pull-down
+// 18 × 18 (x 769-786, y 17-34); Voice Memos' sidebar toggle covers
+// 19.31 × 15.12 (voicememos-window.png, x 106-125, y 18-33). All three stand
+// in controls 36 px tall. 19 is the reading the set is drawn to, and 24 dp is
+// where it comes out: one unit to one device pixel, so a square mark drawn to
+// the keyline covers the platform's own 19 px there.
 //
 // 24 is chosen for the sizes the library actually draws icons at: 16, 20 and
 // 24 dp — the control's content box at each density, plus the top of the
-// range. It maps one unit to one device pixel at the largest of those, it
-// divides evenly enough to put the keyline and the band on whole pixels at the
-// smallest (below), and it is the grid the platforms publish their own
-// drawings on, so a mark can be traced against a reference without rescaling
-// arithmetic in between.
+// range. It maps one unit to one device pixel at the largest of those, and it
+// is the grid the platforms publish their own drawings on, so a mark can be
+// traced against a reference without rescaling arithmetic in between.
 //
 // No grid is pixel-exact at all three sizes — 16, 20 and 24 share only the
 // factor 4 — so the honest statement is which lines land where. At 1 device
 // pixel per dp, a coordinate falls on a whole pixel at 24 dp on every whole
 // unit, at 16 dp on every multiple of 1.5, and at 20 dp only on multiples of
 // 1.2. A coordinate whole at both 16 and 24 dp is therefore a multiple of 3,
-// and one whole at all three is a multiple of 6. So author on the 1.5 sub-grid,
-// prefer multiples of 3, put a drawing's dominant structure on multiples of 6
-// where the picture allows, and check the mark rendered at all three sizes
-// rather than trusting the arithmetic.
+// and one whole at all three is a multiple of 6. So author on the 1.5
+// sub-grid where the drawing is free to move, and check the mark rendered at
+// all three sizes rather than trusting the arithmetic.
+//
+// THE KEYLINE ITSELF IS NOT ON THAT SUB-GRID, and that is the price of the
+// measurement. 19 units is odd against a 24-unit box, so a centred square
+// form stands at 2.5 and 21.5 and its four edges land a whole device pixel at
+// 24 dp alone: the leading band runs 2.5 to 4.0, which covers device pixel 3
+// whole at 24 dp, reaches 0.917 of its best pixel at 20 and 0.667 at 16, and
+// the trailing band is the mirror of it. The 18-unit keyline this set carried
+// before landed all three, and it drew a square symbol a unit under the
+// platform's largest reading. Measured beats published, and what is lost is
+// recorded here and in every file the keyline reaches.
 //
 // # The stroke
 //
-// One weight for the whole set, written as two measures: a band 1.5 units
-// thick where its edges are axis-aligned, and 2 units where they run
-// diagonally. The two are the same weight on screen, which is the point — one
-// number for both draws marks that come out uneven.
+// Two weights, and which one an element takes is what it IS in the drawing,
+// never how the mark wants to be read.
+//
+// THE BAND is the figure itself: 1.5 units thick where its edges are
+// axis-aligned and 2 units where they run diagonally. The two are the same
+// weight on screen, which is the point — one number for both draws marks that
+// come out uneven.
 //
 // The floor fixes the axis-aligned number. Below one device pixel an
 // antialiased line is drawn as grey rather than as the control's colour, so the
@@ -99,22 +120,41 @@
 //
 // Heavier buys nothing there. 1.5 units already covers whole pixels and comes
 // out at the control's colour undiluted; 2 units would be 1.33 px at 16 dp,
-// off the pixel grid the keyline and the band are chosen together to land on
-// (below), for a coverage that is already full. Nor is the set bolder than the
-// platform's own marks at that weight: the platform's axis-aligned band is
-// 1.26 px at 16 pt against this set's 1.0. What settles a measure is how much
-// of a pixel the band covers, not how its number compares to another set's.
+// off the pixel grid the band is chosen to land on (below), for a coverage
+// that is already full. Nor is the set bolder than the platform's own marks at
+// that weight: the platform's axis-aligned band measures 1.12 px (Finder's
+// list symbol), 1.26 (Notes' compose), 1.39 (Voice Memos' sidebar rectangle)
+// and 1.37 to 1.50 (Voice Memos' sidebar folder) at 1x, against this set's 1.5
+// at 24. What settles a measure is how much of a pixel the band covers, not
+// how its number compares to another set's.
+//
+// THE SECOND BAND is 0.93 units, and it is measured rather than derived:
+// the three list lines inside the sidebar mark's leading column carry 2.80
+// units of coverage between them over a length of 2.53 (voicememos-window.png,
+// the sidebar toggle, x 108-111, y 21-31), which is 0.93 units each, and their
+// centres stand on a period of 2.20. It is what the platform gives an element
+// that says "a list lives here" beside a figure that says what the control is.
+//
+// 0.93 falls UNDER the floor the band is held to — 0.62 px at 16 dp,
+// 0.78 at 20 and 0.93 at 24 — and that is the point of it rather than a miss.
+// A band that cannot fill a device pixel is drawn at part coverage, and part
+// coverage of the control's own colour is exactly what a line carried beside the figure
+// reads as. The set drew this before as the band itself under a fill-opacity,
+// which is the same effect asked for twice: a weight the platform does not
+// draw, faded by a number nothing measured. What the platform draws is a
+// thinner line, and a thinner line is what is drawn here.
 //
 // The keyline and the band are chosen together, and that is what makes the
-// small sizes crisp. A band running from unit 3 to unit 4.5 covers device
-// pixels 2 to 3 at 16 dp — one whole pixel covered, landed on the pixel grid,
-// at the size where half a pixel of error is the largest share of the mark —
-// and pixels 4 to 6 at 16 dp on a 2 px/dp display. At 24 dp it covers 3 to 4.5,
-// and 6 to 9 at 2 px/dp, exact again. Only 20 dp lands that band off the grid,
-// at 2.5 to 3.75; the alternative would be a band of 1.2 units, the only width
-// that is whole-pixel there, and it falls to 0.8 px at 16 dp and breaks the
-// floor. That is why a mark's straight edges sit on the keyline or on the 1.5
-// sub-grid rather than a fraction in from it.
+// small sizes crisp WHERE the drawing is free to choose. A band running from
+// unit 3 to unit 4.5 covers device pixels 2 to 3 at 16 dp — one whole pixel
+// covered, landed on the pixel grid, at the size where half a pixel of error
+// is the largest share of the mark — and pixels 4 to 6 at 16 dp on a 2 px/dp
+// display. At 24 dp it covers 3 to 4.5, and 6 to 9 at 2 px/dp, exact again.
+// Only 20 dp lands that band off the grid, at 2.5 to 3.75; the alternative
+// would be a band of 1.2 units, the only width that is whole-pixel there, and
+// it falls to 0.8 px at 16 dp and breaks the floor. That is why a mark's
+// straight edges sit on the 1.5 sub-grid wherever the keyline and the
+// measurement leave them free to.
 //
 // WHERE on the sub-grid a band sits then decides the third size. A band lands a
 // whole device pixel inside it at 16, 20 and 24 dp alike when its leading edge
@@ -127,16 +167,17 @@
 // run 10.5 to 12 rather than centred on 12, which is what puts them at the
 // control's own colour at every size. A band that cannot take one of those
 // units without leaving the place a capture measures it at keeps the
-// measurement — the sidebar's pane and seam are the case, and that file
-// records which of its five bands land where.
+// measurement — the keyline, the sidebar's seam and the folder's flap are the
+// cases — and each file records which of its bands land where.
 //
 // Every mark's file states its own bands the same way: where each leading
-// edge stands, which of the three sizes it lands a whole pixel at, and what
-// it misses by where it misses. A mark drawn entirely on the diagonal or the
-// curve states that the rule reaches none of its edges and what it has
-// instead. The package's tests walk the whole set, render every mark at 16,
-// 20 and 24 and read each stated band's coverage off the render, so a file's
-// claim and its drawing cannot part company.
+// edge stands, how thick it is, which of the three sizes it lands a whole
+// device pixel at, and what it reaches where it lands none. A mark drawn
+// entirely on the diagonal or the curve states that the rule reaches none of
+// its edges and what it has instead. The package's tests walk the whole set,
+// render every mark at 16, 20 and 24 and read each stated band's coverage off
+// the render against the arithmetic its own numbers give, so a file's claim
+// and its drawing cannot part company.
 //
 // A diagonal edge cannot land on the grid at all, and that is why it takes a
 // measure of its own. A band at 45 degrees crosses a pixel corner to corner,
@@ -166,9 +207,9 @@
 // measure taken off another set's drawing is not either. Render the mark and
 // read the pixels.
 //
-// Every mark uses one of these two numbers, and which one is the mark's edges
-// to decide, never its importance. A mark that needs emphasis gets it from
-// what it draws, not from a thicker line.
+// A mark that needs emphasis gets it from what it draws, not from a thicker
+// line. The second band is not a lighter version of the band to
+// reach for: it is what a list line, a rule inside a pane and nothing else is.
 //
 // # A mark standing in chrome
 //
@@ -178,11 +219,18 @@
 // covered extent is 18 × 18 px (Finder's group pull-down) and 19 × 19 (its
 // tag), and a round or diagonal one 16 × 17 (its magnifier) and 17 × 17
 // (Notes' compose), in controls 36 px tall. A square form drawn to this set's
-// 18-unit keyline at 24 is 18 px and a round one drawn to 20 units is 17, so
-// 24 is the size at which the set draws the platform's own extent — and the
-// size at which every unit of the grid lands on a whole pixel.
+// 19-unit keyline at 24 is 19 px, which is the platform's own larger square
+// reading to the pixel — and 24 is the size at which every whole unit of the
+// grid lands on a whole device pixel.
 //
-// The weight is the set's one weight and carries its miss. The axis-aligned
+// The round and diagonal allowance is NOT measured the same way, and the set
+// records the miss: 20 units at 24 dp is 20 px against the platform's 16 to
+// 17, so this set's magnifier, chevrons and checkmark stand three to four
+// pixels wider than the platform's do in the same band. The allowance is the
+// set's own optical compensation and the ruling that moved the keyline did not
+// move it.
+//
+// The weight is the set's own band and carries its miss. The axis-aligned
 // band of those same symbols measures 1.12 px to 1.39 against the 1.5 px this
 // set draws at 24: a sixth heavier, and a lighter one is not available, the
 // floor above being what it is. components/internal/control carries the size
@@ -205,7 +253,7 @@
 // control's colour is applied at paint time — but a path with no fill at all
 // is skipped, so the attribute has to be there.
 //
-// A secondary element, the faint hairline inside a pane, is authored with
+// A faint element — a hairline inside a pane — can be authored with
 // fill-opacity. Per-path opacity survives into the cached drawing and
 // modulates the control's colour rather than replacing it, so a faint element
 // stays faint in every theme. Marks are otherwise monochrome: gradients are

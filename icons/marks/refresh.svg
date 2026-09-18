@@ -19,6 +19,14 @@
        half of what the head reaches past the ring at the top, so the figure
        comes out centred.
 
+       The allowance is not measured the way the square keyline is, and the
+       set records the miss: the platform's round and diagonal band symbols
+       cover 16 by 17 px (Finder's magnifier) and 17 by 17 (Notes' compose)
+       against its square 18 to 19, so a 20-unit allowance drawn at 24 dp
+       stands three to four pixels wider than the platform's own. The keyline
+       moved to the measurement and the allowance did not; the reading is
+       recorded here.
+
        The band-landing rule the set's axis-aligned marks are drawn by does
        not reach this figure: the ring is curved everywhere and runs along an
        axis at four points only, as the search mark's lens does, so it has no

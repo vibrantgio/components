@@ -3,37 +3,49 @@
        note, a new chat, a new recording. One picture in every state; what is
        about to be added is the control's label to say.
 
-       Grid: an axis-aligned form, so it fills the set's 18-unit square
-       keyline — each arm runs from unit 3 to unit 21 — and takes the set's
-       axis-aligned band of 1.5 units, centred on unit 12 both ways. MEASURED
-       at 1x, the compose symbol of a toolbar control in notes-toolbar.png
-       (the control at x 8-44) and mail-window.png (x 404-441): the symbol's
-       covered box is 17 and 16 px in a control 36 px tall, and its band
-       measures 1.40 px on both — a run across the square's leading edge reads
-       233 then 115 on a fill of 35 and of 36, which over a foreground of 233
-       is 1.00 + 0.40 of a pixel, and its trailing edge 208 then 140, which is
-       0.87 + 0.53. The band is drawn at the set's own 1.5, a sixth heavier,
-       which is the miss the whole set carries and the reference records: a
-       lighter weight falls below one device pixel at the small end of the
-       range, where an antialiased line is drawn grey rather than in the
-       control's colour.
+       Grid: an axis-aligned form, so it fills the set's square keyline — each
+       arm runs from unit 2.5 to unit 21.5, a 19 by 19 box — and takes the
+       set's axis-aligned band of 1.5 units.
 
-       Where each band lands. Both of them — the crossbar and the upright —
+       MEASURED at 1x, the compose symbol of a toolbar control in
+       notes-toolbar.png (the control at x 8-44) and mail-window.png
+       (x 404-441): the symbol's covered box is 17 and 16 px in a control 36 px
+       tall, and its band measures 1.40 px on both — a run across the square's
+       leading edge reads 233 then 115 on a fill of 35 and of 36, which over a
+       foreground of 233 is 1.00 + 0.40 of a pixel, and its trailing edge 208
+       then 140, which is 0.87 + 0.53.
+
+       The compose symbol is the platform's own new-item control and it is the
+       SMALLEST square reading in the reference. The set's keyline is the
+       LARGEST — Finder's tag at 19 by 19 — and one keyline draws the whole
+       set, so this mark is drawn two to three units wider than the symbol it
+       is read against. Both readings are recorded and the keyline stands. The
+       band is drawn at the set's own 1.5, a sixth over the 1.40, which is the
+       miss the whole set carries: a lighter weight falls below one device
+       pixel at the small end of the range, where an antialiased line is drawn
+       grey rather than in the control's colour.
+
+       Where each band lands. The two bars — the crossbar and the upright —
        run from unit 10.5 to unit 12 rather than sitting centred on unit 12,
        and that is what puts a whole device pixel inside them at every size
        this set is drawn at: a leading edge at 1.5m lands one at 16, 20 and 24
-       dp alike when m is 0 or 3 mod 4, and 10.5 is m=7. So the crossing
-       covers one pixel whole and its neighbours in part — the capture's own profile, one pixel at the mark's
-       colour and a fraction beside it. A band centred on unit 12 splits
-       evenly across two pixels and reaches the colour on neither, which reads
-       grey beside a label drawn in the same colour. The drawn extent stays
-       centred: what moves is where the two bars sit inside it, by three
-       quarters of a unit.
+       dp alike when m is 0 or 3 mod 4, and 10.5 is m=7. So the crossing covers
+       one pixel whole and its neighbours in part — the capture's own profile,
+       one pixel at the mark's colour and a fraction beside it. A band centred
+       on unit 12 splits evenly across two pixels and reaches the colour on
+       neither, which reads grey beside a label drawn in the same colour. The
+       drawn extent stays centred: what moves is where the two bars sit inside
+       it, by three quarters of a unit.
+
+       The ARM ENDS land nothing but 24 dp. They stand on the keyline at 2.5
+       and 21.5, which is off the 1.5 sub-grid, so each arm's last pixel is
+       whole at 24 dp and part-covered at 16 and 20 — the price the keyline's
+       19 measured units carries through the whole set.
 
        The ends are cut square: a cross is read by its crossing, and a cap on
        four arms only thickens the figure — the same rule the clear mark's two
        bands are drawn by. Two contours, one per arm, abutting rather than
        winding against each other. -->
-  <path fill="#000000" d="M3 10.5 L21 10.5 L21 12 L3 12 Z"/>
-  <path fill="#000000" d="M10.5 3 L12 3 L12 21 L10.5 21 Z"/>
+  <path fill="#000000" d="M2.5 10.5 L21.5 10.5 L21.5 12 L2.5 12 Z"/>
+  <path fill="#000000" d="M10.5 2.5 L12 2.5 L12 21.5 L10.5 21.5 Z"/>
 </svg>

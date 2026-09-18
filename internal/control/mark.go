@@ -5,11 +5,11 @@ import (
 	"image/color"
 	"math"
 
-	"gioui.org/f32"
 	"gioui.org/layout"
-	"gioui.org/op/clip"
-	"gioui.org/op/paint"
+	"gioui.org/op"
 	"gioui.org/unit"
+
+	"github.com/vibrantgio/components/icons"
 )
 
 // The pop-up mark: two chevrons stacked point to point, the upper pointing up
@@ -55,6 +55,18 @@ const (
 // than the platform's, which is what turns two thin strokes into a wedge.
 const MarkStrokeDp = 1.5
 
+// The square the set draws a control's mark inside, and where the pair stands
+// in it. The grid components/icons is authored on is 24 units, so a mark drawn
+// at 24 dp puts one unit on one device pixel and the pair comes out at the
+// measured eight by eleven; chevron-pair.svg stands it at x 8 to 16 and y 6 to
+// 17 of that square, a half unit high of centre because eleven is odd against
+// a 24-unit box.
+const (
+	markBoxDp  unit.Dp = 24
+	markLeadDp unit.Dp = 8
+	markTopDp  unit.Dp = 6
+)
+
 // DrawMark paints the pop-up mark inside box: the pair spanning box
 // horizontally and centred in it vertically, where the centring lands between
 // two rows taking the lower one.
@@ -63,59 +75,25 @@ const MarkStrokeDp = 1.5
 // y 336–359 — eleven rows in twenty-four, seven above them and six below,
 // which is the exact centre of 6.5 rounded up.
 //
+// The figure itself is the icon set's chevron-pair mark, which carries the
+// geometry, the profile and the readings both this control and the design
+// bundle are drawn from. The set is where a mark lives; this function is only
+// where one is placed.
+//
 // It is STATIC. The platform's pop-up mark says "this control holds one of
 // several values" and never "the menu is open" or "it opens upwards"; a pair
 // pointing both ways cannot say a direction, which is the whole reason the
 // platform draws a pair here and a single chevron on a pull-down.
 func DrawMark(gtx layout.Context, box image.Rectangle, col color.NRGBA) {
-	w := float32(box.Dx())
-	h := float32(gtx.Dp(MarkChevronHDp))
-	clear := float32(gtx.Dp(MarkGapDp))
-	stroke := MarkStrokeDp * gtx.Metric.PxPerDp
-	if stroke < 1 {
-		stroke = 1
+	mark := icons.Mark(icons.ChevronPair)
+	if mark == nil {
+		return
 	}
-
-	top := float32(box.Min.Y) + float32(math.Ceil(float64(float32(box.Dy())-(2*h+clear))/2))
-	x0 := float32(box.Min.X)
-
-	var p clip.Path
-	p.Begin(gtx.Ops)
-	chevron(&p, x0, top, w, h, stroke, true)
-	chevron(&p, x0, top+h+clear, w, h, stroke, false)
-	paint.FillShape(gtx.Ops, col, clip.Outline{Path: p.End()}.Op())
-}
-
-// chevron appends one chevron to p as a FILLED outline rather than as a
-// stroked polyline: its apex is a miter and its arms end in a cut, which is
-// the profile the platform draws. A stroked path is capped and joined round in
-// this rasterizer, and a round join at an apex this small is a blob three rows
-// deep where the platform's first row carries a third of a pixel of paint.
-//
-// The arms' centreline runs corner to corner of the covered box — a chevron
-// eight wide and five tall puts its arms at 51.3 degrees — and the outline is
-// that centreline offset by half the stroke to each side, mitered at the apex
-// and cut horizontally at the ends. Solving the three extremes of the offset
-// outline against the covered box gives d below, which is the horizontal room
-// the half-stroke takes.
-func chevron(p *clip.Path, x, y, w, h, stroke float32, up bool) {
-	k := 2 * h / w
-	d := (stroke / 2) * float32(math.Sqrt(float64(1+k*k))) / k
-	apex, base := y, y+h
-	if !up {
-		apex, base = y+h, y
-	}
-	p.MoveTo(f32.Pt(x, base))
-	p.LineTo(f32.Pt(x+w/2, apex))
-	p.LineTo(f32.Pt(x+w, base))
-	p.LineTo(f32.Pt(x+w-2*d, base))
-	if up {
-		p.LineTo(f32.Pt(x+w/2, apex+2*d*k))
-	} else {
-		p.LineTo(f32.Pt(x+w/2, apex-2*d*k))
-	}
-	p.LineTo(f32.Pt(x+2*d, base))
-	p.Close()
+	h := gtx.Dp(MarkHDp)
+	top := box.Min.Y + int(math.Ceil(float64(box.Dy()-h)/2))
+	off := op.Offset(image.Pt(box.Min.X-gtx.Dp(markLeadDp), top-gtx.Dp(markTopDp))).Push(gtx.Ops)
+	mark(gtx, gtx.Dp(markBoxDp), col)
+	off.Pop()
 }
 
 // The patch a bordered toolbar control fills while it records a yes, inset

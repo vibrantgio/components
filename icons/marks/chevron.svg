@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Chevron: one chevron pointing down, the mark the platform puts on a
+       control that opens a menu of ACTIONS — a pull-down. It says the menu
+       goes down from here, which is the one thing the stacked pair cannot
+       say.
+
+       MEASURED at 1x, finder-window-light.png, the group pull-down beside
+       Finder's view pop-up: the mark spans x 792-799 and y 24-28 — eight
+       columns and five rows, pixel for pixel the lower half of the chevron
+       pair the pop-up beside it draws. mail-window.png's folder pull-down
+       reads 9 by 5 (x 740-748, y 23-28) in a control 29 px tall against this
+       one's 8 by 5 in a control 36 px tall, so the mark does not scale with
+       the control it stands in.
+
+       Grid: this mark is a CONTROL'S MARK and not a symbol filling the mark
+       box, so it takes neither the square keyline nor the round allowance. It
+       is drawn at its measured extent on the grid — 8 units across and 5 down
+       — which at 24 dp is the platform's own eight by five pixels. It stands
+       at x 8 to 16 and y 9 to 14: centred across, and a half unit high of
+       centre down, because five is odd against a 24-unit box and the half
+       unit is not drawable. Its geometry is the chevron pair's lower chevron
+       unchanged, so the two marks are one figure drawn once and twice.
+
+       The stroke, the profile and the outline's arithmetic are the pair's:
+       see chevron-pair.svg, which carries the readings both are drawn from.
+
+       Where the band-landing rule reaches. It does not: every edge of this
+       drawing runs on a diagonal, so none of them has a leading edge at 1.5m
+       to land a whole device pixel inside. The mark is drawn at 24 dp
+       wherever the library draws it, where one unit is one device pixel and
+       the measured extent comes out exact. -->
+  <path fill="#000000" d="M8 9 L12 14 L16 9 L14.079 9 L12 11.599 L9.921 9 Z"/>
+</svg>

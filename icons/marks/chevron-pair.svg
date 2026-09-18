@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Chevron pair: two chevrons stacked point to point, the upper pointing
+       up and the lower down. It is the mark the platform puts on a control
+       that holds one of several values, and it says that and nothing else —
+       never which way a menu opens, which a pair pointing both ways cannot
+       say.
+
+       MEASURED at 1x, save-dialog-light.png and save-dialog-dark.png, both
+       appearances agreeing to the pixel: the "File Format:" pop-up runs
+       y 336-359, 24 px tall, and its pair spans x 435-442 and y 343-353 —
+       eight columns wide, the upper chevron y 343-347 and the lower y 349-353,
+       five rows each, with one clear row between them. Eleven rows: five, one
+       clear, five. finder-window-light.png draws the same eight by eleven in a
+       control 36 px tall (x 726-733, upper y 21-25, lower y 27-31), so the
+       platform sizes this mark by its point size and a taller control gets the
+       same mark with more room around it.
+
+       Grid: this mark is a CONTROL'S MARK and not a symbol filling the mark
+       box, so it takes neither the square keyline nor the round allowance. It
+       is drawn at its measured extent on the grid — 8 units across and 11
+       down — which at 24 dp is the platform's own eight by eleven pixels. It
+       stands at x 8 to 16 and y 6 to 17: centred across, and a half unit high
+       of centre down, because eleven is odd against a 24-unit box and the
+       half unit is not drawable. A call site places it by its own top-leading
+       corner rather than by the box's centre.
+
+       The stroke is the set's axis-aligned band, 1.5 units, spent
+       perpendicular to the arm. MEASURED off the same capture: an arm
+       crossing a row covers about 1.85 columns — row y=345 reads
+       0.02 + 0.65 + 0.99 of a column and y=346 reads 0.64 + 0.99 + 0.40 — and
+       the arm runs at 51.3 degrees off the horizontal, which is what an eight
+       by five chevron's centreline runs at, so perpendicular it is
+       1.85 x sin 51.3 = 1.44 px. The whole upper chevron covers 12.7 px² of
+       the capture, which over a centreline 2 x 4.7 px long is 1.36 px of
+       width. 1.5 is the nearest weight this set draws, and the set's DIAGONAL
+       measure of 2 is not taken here: that measure is for a band at 45
+       degrees, and these arms are steeper.
+
+       The profile is two thin strokes meeting at a point, not a wedge. The
+       platform's upper chevron carries 0.38, 2.55, 4.09, 4.06, 1.65 of a
+       pixel row by row — a third of a pixel of paint in the apex row — so the
+       figure is drawn as a filled outline with a mitred apex and cut ends,
+       which puts 0.46 in that row against the platform's 0.38 and 11.3 px² of
+       coverage against its 12.73. The remaining excess is at the arms' far
+       ends, where the platform tapers and a straight cut does not. A round
+       cap and a round join put 1.49 in the apex row and reach full width
+       three rows down, which is the blob a stroked polyline gives here.
+
+       The outline is the centreline offset half the stroke to each side: with
+       k = 2h/w = 1.25 the half-stroke takes (stroke/2) x sqrt(1+k²)/k = 0.9605
+       of horizontal room, so the closing side of each V runs 1.921 in from
+       each end and 2.401 down from the apex.
+
+       Where the band-landing rule reaches. It does not: every edge of this
+       drawing runs on a diagonal, so none of them has a leading edge at 1.5m
+       to land a whole device pixel inside. The mark is drawn at 24 dp
+       wherever the library draws it, where one unit is one device pixel and
+       the measured extent comes out exact. -->
+  <path fill="#000000" d="M8 11 L12 6 L16 11 L14.079 11 L12 8.401 L9.921 11 Z"/>
+  <path fill="#000000" d="M8 12 L12 17 L16 12 L14.079 12 L12 14.599 L9.921 12 Z"/>
+</svg>

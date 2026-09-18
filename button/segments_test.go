@@ -61,7 +61,12 @@ func TestTheSegmentedPairIsTheMeasuredControl(t *testing.T) {
 			}
 
 			fill := tc.p.ToolbarControlFill
-			rule := vgcolor.Flatten(tc.p.Separator, fill)
+			// The control's OWN seam, measured: the separator over the fill
+			// falls twelve of 255 short of it in the light appearance.
+			rule := tc.p.ToolbarControlSeam
+			if flat := vgcolor.Flatten(tc.p.Separator, fill); flat == rule {
+				t.Errorf("the separator over the fill %v lands the measured seam; the value is carried because it does not", flat)
+			}
 			is := func(x, y int, want color.NRGBA) bool {
 				c := img.RGBAAt(x, y)
 				return c.R == want.R && c.G == want.G && c.B == want.B

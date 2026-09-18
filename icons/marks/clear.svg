@@ -12,6 +12,14 @@
        contours, one per band, so they abut rather than wind against each
        other.
 
+       The allowance is not measured the way the square keyline is, and the
+       set records the miss: the platform's round and diagonal band symbols
+       cover 16 by 17 px (Finder's magnifier) and 17 by 17 (Notes' compose)
+       against its square 18 to 19, so a 20-unit allowance drawn at 24 dp
+       stands three to four pixels wider than the platform's own. The keyline
+       moved to the measurement and the allowance did not; the reading is
+       recorded here.
+
        Where the band-landing rule reaches. It does not: both bands run at
        45 degrees and no edge of this drawing runs along the grid, so neither
        has a leading edge at 1.5m to land a whole device pixel inside. What

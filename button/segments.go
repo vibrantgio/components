@@ -69,11 +69,12 @@ type ChromeSegment struct {
 // [control.ChromeMarkSideDp] clear on each side), and the control is that
 // width per segment plus the seams.
 //
-// The seam is the platform's separator over the fill the segment carries,
-// which is the Language's rule for the line where two flush regions meet. It
-// lands the dark capture's pixel within one 255th; the light capture's is 12
-// levels lighter than the name resolves to, and the pixel is recorded in the
-// reference against the name.
+// The seam is a MEASURED value of the toolbar and not the Language's
+// separator flattened: the two Finder captures read #f2f2f2 light over the
+// control's #ffffff and #3a3a3a dark over its #262626, and the separator over
+// those fills gives #e6e6e6 and #3b3b3b — twelve of 255 short in the light
+// appearance and one over in the dark. See
+// [tokens.PlatformColors.ToolbarControlSeam], which carries both readings.
 //
 // The shadow the control casts on its band is not drawn here — it falls
 // outside the box this reports, the way [ChromeFace]'s does. Callers wrap
@@ -125,8 +126,13 @@ func ChromeSegments(gtx layout.Context, p tokens.PlatformColors, d tokens.Densit
 			}
 		}
 		if i > 0 {
+			// The seam is the CONTROL'S own line and a measured value, not
+			// the Language's separator flattened: the platform's separator
+			// over the fill lands #e6e6e6 light against the measured #f2f2f2,
+			// twelve of 255 short. See
+			// tokens.PlatformColors.ToolbarControlSeam.
 			line := image.Rect(x-rule, clear, x, h-clear)
-			paint.FillShape(gtx.Ops, vgcolor.Flatten(p.Separator, rest), clip.Rect(line).Op())
+			paint.FillShape(gtx.Ops, p.ToolbarControlSeam, clip.Rect(line).Op())
 		}
 		if s.Icon != nil && mark > 0 {
 			fg := toolbarface.Mark(p, fill)

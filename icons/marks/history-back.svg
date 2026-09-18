@@ -1,29 +1,51 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
   <!-- History back: the mark on the control that returns to what was shown
-       before. A chevron pointing at where the reader came from, and the mirror
-       of its forward sibling, so a pair of them reads as one control.
+       before. A chevron pointing at where the reader came from, and the
+       mirror of its forward sibling, so a pair of them reads as one control.
 
-       Grid: a diagonal form, so it takes the 20-unit allowance rather than the
-       square keyline — a chevron inside an 18 box reads smaller than a square
-       does. The band's centre line runs from 16.5,3 to 7.5,12 to 16.5,21: two
-       arms at 45 degrees and every corner of the centre line on the 1.5
-       sub-grid. The band takes the diagonal measure, 2 units, which is what a
-       45-degree edge needs to cover device pixels whole at the sizes the
-       library draws. With the caps and the turn added the drawing is 11 by 20,
-       filling the allowance exactly — which is what settles the measure at 2
-       rather than at more. Nothing here is axis-aligned, so the caps and the
-       turn are drawn as geometry — the outline is one closed contour, which is
-       what gives a stroked figure ends and a corner the backend would
-       otherwise cut square.
+       MEASURED at 1x, finder-window-light.png, the back/forward pair at the
+       leading end of that window's content column (the control x 326-398, the
+       back chevron x 340-347 and the forward one x 376-383, both y 19-32):
+       the platform's toolbar chevron covers 8 px across by 14 down in a
+       control 36 px tall — the 24-unit mark box, so one px there is one unit
+       here — and its band measures 1.53 px perpendicular: row y=30 covers
+       0.60 + 1.00 + 0.71 = 2.33 columns against a 254 fill and a 191
+       foreground, and 2.33 x sin 41.2 = 1.53. Both chevrons are drawn in
+       disabledControlText, Finder standing at the top of its history, which
+       fixes the geometry and not the colour.
+
+       Grid: the drawing is the capture's 8 by 14, which takes neither the
+       square keyline nor the round allowance — a chevron standing in a band
+       is not a form filling the mark box, and the platform draws it a third
+       of the box's width. It stands at x 8 to 16 and y 5 to 19, centred on
+       both axes. The band's centre line runs from 15,6 to 9,12 to 15,18: two arms at 45
+       degrees, each 6 units across and 6 down, with every corner on the 1.5
+       sub-grid. Round caps of one unit at both ends and a round turn carry
+       the drawn figure to the measured 8 by 14 — the covered box is the
+       centre line's own box grown one unit on every side.
+
+       The band takes the set's diagonal measure, 2 units, against the
+       capture's 1.53 perpendicular. That is the compensation the whole set
+       carries on a 45-degree edge and the package's documentation states it:
+       this backend composites in linear light, where a band covering 91 per
+       cent of a pixel's area arrives at 67 per cent of the colour, so a
+       diagonal drawn at the platform's own perpendicular width reads grey
+       beside an axis-aligned one. The reading is recorded and the measure
+       stands.
+
+       Nothing here is axis-aligned, so the caps and the turn are drawn as
+       geometry — the outline is one closed contour, which is what gives a
+       stroked figure ends and a corner the backend would otherwise cut
+       square.
 
        Where the band-landing rule reaches. It does not: both arms run at 45
        degrees and no edge of this drawing runs along the grid, so neither
        has a leading edge at 1.5m to land a whole device pixel inside. What
        the rule asks for is had the other way — the diagonal measure of 2
        units is 1.33 px at 16 dp, 1.67 at 20 and 2.00 at 24, and a band at 45
-       degrees that wide covers better than 99.7% of the pixel it runs
-       through at all three. The centre line's own corners stand on the 1.5
-       sub-grid, which is where a diagonal figure can be held to the grid at
-       all. -->
-  <path fill="#000000" d="M15.793 2.293 L6.793 11.293 C6.402 11.683 6.402 12.317 6.793 12.707 L15.793 21.707 C16.183 22.098 16.817 22.098 17.207 21.707 C17.598 21.317 17.598 20.683 17.207 20.293 L8.914 12 L17.207 3.707 C17.598 3.317 17.598 2.683 17.207 2.293 C16.817 1.902 16.183 1.902 15.793 2.293 Z"/>
+       degrees that wide covers better than 99.7 per cent of the pixel it
+       runs through at all three. The centre line's own corners stand on the
+       1.5 sub-grid, which is where a diagonal figure can be held to the grid
+       at all. -->
+  <path fill="#000000" d="M14.293 5.293 L8.293 11.293 C7.902 11.683 7.902 12.317 8.293 12.707 L14.293 18.707 C14.683 19.098 15.317 19.098 15.707 18.707 C16.098 18.317 16.098 17.683 15.707 17.293 L10.414 12 L15.707 6.707 C16.098 6.317 16.098 5.683 15.707 5.293 C15.317 4.902 14.683 4.902 14.293 5.293 Z"/>
 </svg>

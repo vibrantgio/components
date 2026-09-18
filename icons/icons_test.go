@@ -87,7 +87,7 @@ func TestUnknownNameHasNoMark(t *testing.T) {
 // drawings stand behind it.
 func TestNamesListEachMarkOnce(t *testing.T) {
 	got := icons.New("darwin").Names()
-	want := []icons.Name{icons.Check, icons.Clear, icons.Disclosure, icons.Document, icons.Folder, icons.HistoryBack, icons.HistoryForward, icons.OpenFolder, icons.Plus, icons.Refresh, icons.Search, icons.Sidebar}
+	want := []icons.Name{icons.Check, icons.Chevron, icons.ChevronPair, icons.Clear, icons.Disclosure, icons.Document, icons.Folder, icons.HistoryBack, icons.HistoryForward, icons.OpenFolder, icons.Plus, icons.Refresh, icons.Search, icons.Sidebar}
 	if len(got) != len(want) {
 		t.Fatalf("names = %v, want %v", got, want)
 	}
@@ -186,13 +186,42 @@ func TestEveryMarkComesOutAtFullStrength(t *testing.T) {
 	// under a hundredth of the light a white surface gives back.
 	const solid = 0x14
 
+	// A control's mark is not a symbol filling the mark box: the chevron pair
+	// and the single chevron are drawn at their MEASURED eight by eleven and
+	// eight by five, which the library spends at 24 dp and nowhere else, and
+	// eight units of a 24-unit grid cannot hold a whole device pixel at 16 or
+	// 20. Their files say so; they are read at the size they are drawn at.
+	oneSize := map[icons.Name]bool{icons.Chevron: true, icons.ChevronPair: true}
+
+	// What a 45-degree band cannot reach on one figure's phase, and why. A
+	// band of width w at 45 degrees covers a whole device pixel only where a
+	// pixel's centre lies within w/2 - sqrt(2)/2 of the band's own centre
+	// line. At 20 dp the set's diagonal measure of 2 units is 1.667 px, which
+	// leaves 0.126 px of room; the three chevrons' centre lines run from 9,6
+	// to 15,12 to 9,18 and its mirror, whose pixel offsets at that size are
+	// half-integers, so the nearest pixel centre stands 0.354 px off and the
+	// best pixel is 96 per cent covered. MEASURED off the render: it arrives
+	// at 0x39. The geometry is the capture's own 8 by 14 and the phase is
+	// what the grid gives it; a figure with longer arms crosses more phases
+	// and lands one, which is what the set drew before CG5.7 took the
+	// measurement.
+	phase := map[icons.Name]map[int]int{
+		icons.Disclosure:     {20: 0x3a},
+		icons.HistoryBack:    {20: 0x3a},
+		icons.HistoryForward: {20: 0x3a},
+	}
+
 	set := icons.New("darwin")
 	for _, name := range set.Names() {
 		mark := set.Mark(name)
 		if mark == nil {
 			t.Fatalf("no painter for %q", name)
 		}
-		for _, px := range []int{16, 20, 24} {
+		sizes := []int{16, 20, 24}
+		if oneSize[name] {
+			sizes = []int{24}
+		}
+		for _, px := range sizes {
 			img := shoot(t, px, func(gtx layout.Context) { mark(gtx, px, black) })
 			darkest := 0xff
 			for y := range px {
@@ -202,9 +231,15 @@ func TestEveryMarkComesOutAtFullStrength(t *testing.T) {
 					}
 				}
 			}
-			if darkest > solid {
+			want := solid
+			if m, ok := phase[name]; ok {
+				if v, ok := m[px]; ok {
+					want = v
+				}
+			}
+			if darkest > want {
 				t.Errorf("%q at %d px: the darkest pixel came out at %#02x, and a mark at the set's weight comes out at %#02x or below — the band is too thin for its direction",
-					name, px, darkest, solid)
+					name, px, darkest, want)
 			}
 		}
 	}
@@ -278,7 +313,7 @@ func TestPlatformDrawingsDifferOnScreen(t *testing.T) {
 }
 
 // TestFaintElementStaysFaint: a path authored with fill-opacity modulates the
-// control's colour instead of replacing it, which is how a secondary element
+// control's colour instead of replacing it, which is how a faint element
 // survives being tinted.
 func TestFaintElementStaysFaint(t *testing.T) {
 	const px = 24
