@@ -22,9 +22,13 @@
 // field and an unchecked box are filled with the platform's text background
 // and edged with its measured field edge; a checked box and a chosen radio
 // are its accent, marked in the foreground it names for text on that accent;
-// a disabled control's foreground is its disabled control text; and a focused
-// control wears its keyboard focus indicator. None of them measures, walks or
-// derives a colour of its own.
+// a switched-off box or radio is one fill and no edge at all — the platform's
+// control fill at its measured disabled coverage over the surface the control
+// stands on, which is what the push button draws switched off — with the mark
+// it still shows in the tertiary label its label takes; a disabled control's
+// foreground is its disabled control text; and a focused control wears its
+// keyboard focus indicator. None of them measures, walks or derives a colour
+// of its own.
 //
 // A text field takes the density's field height rather than its control
 // height: the platform draws a field shorter than the button standing beside

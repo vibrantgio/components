@@ -212,73 +212,68 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		Max: image.Pt(offX+boxSz, offY+boxSz),
 	}
 	boxRad := gtx.Dp(unit.Dp(tok.radius.Sm))
-
-	// Edge as nested fills: outer rect in the edge colour, inner rect in the
-	// box's own fill. Avoids clip.Stroke anti-aliasing variance in tests.
-	borderPx := gtx.Dp(2)
-	innerRad := boxRad - borderPx
-	if innerRad < 0 {
-		innerRad = 0
-	}
 	rrectOuter := clip.RRect{Rect: boxRect, SE: boxRad, SW: boxRad, NE: boxRad, NW: boxRad}
-	innerRect := image.Rectangle{
-		Min: image.Pt(offX+borderPx, offY+borderPx),
-		Max: image.Pt(offX+boxSz-borderPx, offY+boxSz-borderPx),
-	}
-	rrectInner := clip.RRect{Rect: innerRect, SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad}
 
 	// Every name the box draws that carries a coverage is flattened onto
 	// what lies under it: the surface for the edge and the ring, which are
 	// shapes the fill is inset inside, and the fill for the check.
 	standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
 
-	if s.Checked {
+	switch {
+	case s.Disabled:
+		// A switched-off box is one fill and no edge at all. MEASURED,
+		// save-dialog-light.png and save-dialog-dark.png: the two
+		// switched-off "Options:" checkboxes read #f2f2f2 light and #2e3439
+		// dark, and seventeen rows above them on the same sheet the enabled
+		// "File Format:" pop-up reads the push button's own #ececec and
+		// #333a3f. That is the platform's control fill at
+		// tokens.DisabledCoverage over the sheet — exactly in light, one
+		// 255th over on dark green and blue — which is what the push button
+		// does when it is switched off. The box draws no edge column in
+		// either appearance: its rim is a one-pixel antialiased ramp from
+		// this fill to the sheet.
+		fill := control.Faded(tok.platform.PushButtonFill, standsOn)
+		paint.FillShape(gtx.Ops, fill, rrectOuter.Op(gtx.Ops))
+		if s.Checked {
+			// No stored capture holds a switched-off CHECKED box, so the
+			// mark takes the colour the switched-off label takes beside it:
+			// the platform's tertiary label, which reproduces the measured
+			// #bdbdbd light and #595f62 dark of both checkbox labels on the
+			// sheet. The capture is on the reference's list. On this fill
+			// that mark reads |Lc| 33 light and 17 dark, under the graphic
+			// floor, which is the same order as the switched-off label's own
+			// 35.6 and -16.1 on the sheet: the platform's relation between
+			// its switched-off drawings, recorded rather than derived away.
+			drawCheck(gtx, boxRect, boxSz, vgcolor.Flatten(tok.platform.TertiaryLabel, fill))
+		}
+
+	case s.Checked:
 		// The fill says a value has been set; the check says what setting it
 		// means. Without the mark the checked state is a swatch, and a list
 		// of them carries completion in hue alone — which is the one channel
 		// a reader may not have. So the box draws a check, in the foreground
 		// the platform names for text on a fill its accent paints, at the
 		// icon set's weight.
-		fill := tok.platform.ControlAccent
-		foreground := tok.platform.AlternateSelectedControlText
-		if s.Disabled {
-			fill = control.DisabledFill(tok.platform, standsOn)
-			foreground = control.DisabledMark(tok.platform, fill)
-		}
-		paint.FillShape(gtx.Ops, fill, rrectOuter.Op(gtx.Ops))
+		paint.FillShape(gtx.Ops, tok.platform.ControlAccent, rrectOuter.Op(gtx.Ops))
+		drawCheck(gtx, boxRect, boxSz, tok.platform.AlternateSelectedControlText)
 
-		scale := float32(boxSz) / checkGrid
-		org := f32.Pt(float32(boxRect.Min.X), float32(boxRect.Min.Y))
-		var check clip.Path
-		check.Begin(gtx.Ops)
-		for i, u := range checkLine {
-			at := org.Add(f32.Pt(u.X*scale, u.Y*scale))
-			if i == 0 {
-				check.MoveTo(at)
-			} else {
-				check.LineTo(at)
-			}
+	default:
+		// Edge as nested fills: outer rect in the edge colour, inner rect in
+		// the box's own fill. Avoids clip.Stroke anti-aliasing variance in
+		// tests. No capture holds an enabled checkbox, so the edge and the
+		// interior stand as they are and the capture is on the reference's
+		// list.
+		borderPx := gtx.Dp(2)
+		innerRad := boxRad - borderPx
+		if innerRad < 0 {
+			innerRad = 0
 		}
-		paint.FillShape(gtx.Ops, foreground, clip.Stroke{
-			Path:  check.End(),
-			Width: checkBandUnits * scale,
-		}.Op())
-	} else {
-		edge := control.Border(tok.platform)
-		if s.Disabled {
-			// A switched-off box wears the platform's tertiary label.
-			// MEASURED, save-dialog-light.png and save-dialog-dark.png, the
-			// two switched-off "Options:" checkboxes: their wording plateaus
-			// at #bdbdbd on the sheet's white and #595f62 on its #232a2f,
-			// which TertiaryLabel's 66/255 black and 63/255 white reproduce
-			// to the byte in both appearances, where DisabledControlText's
-			// 63/255 lands on #c0c0c0 in light. The two appearances are far
-			// apart in Lc — 35.6 on the light sheet against −16.1 on the
-			// dark — and that spread is the platform's own relation between
-			// its two switched-off drawings, not a derivation made here.
-			edge = vgcolor.Flatten(tok.platform.TertiaryLabel, standsOn)
+		innerRect := image.Rectangle{
+			Min: image.Pt(offX+borderPx, offY+borderPx),
+			Max: image.Pt(offX+boxSz-borderPx, offY+boxSz-borderPx),
 		}
-		paint.FillShape(gtx.Ops, edge, rrectOuter.Op(gtx.Ops))
+		rrectInner := clip.RRect{Rect: innerRect, SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad}
+		paint.FillShape(gtx.Ops, control.Border(tok.platform), rrectOuter.Op(gtx.Ops))
 		paint.FillShape(gtx.Ops, control.Fill(tok.platform), rrectInner.Op(gtx.Ops))
 	}
 
@@ -310,4 +305,27 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	}
 
 	return layout.Dimensions{Size: image.Pt(ctlSz, ctlSz)}
+}
+
+// drawCheck strokes the check into the box at boxRect, boxSz px on a side, in
+// the given foreground. One drawing serves every state that carries a mark:
+// the check's geometry does not move when the box is switched off, only the
+// colour it is stroked in.
+func drawCheck(gtx layout.Context, boxRect image.Rectangle, boxSz int, foreground color.NRGBA) {
+	scale := float32(boxSz) / checkGrid
+	org := f32.Pt(float32(boxRect.Min.X), float32(boxRect.Min.Y))
+	var check clip.Path
+	check.Begin(gtx.Ops)
+	for i, u := range checkLine {
+		at := org.Add(f32.Pt(u.X*scale, u.Y*scale))
+		if i == 0 {
+			check.MoveTo(at)
+		} else {
+			check.LineTo(at)
+		}
+	}
+	paint.FillShape(gtx.Ops, foreground, clip.Stroke{
+		Path:  check.End(),
+		Width: checkBandUnits * scale,
+	}.Op())
 }

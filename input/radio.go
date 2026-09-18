@@ -183,17 +183,12 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		Max: image.Pt(cx+circleSz/2, cy+circleSz/2),
 	}
 
-	borderPx := gtx.Dp(2)
-	innerRect := image.Rectangle{
-		Min: image.Pt(outerRect.Min.X+borderPx, outerRect.Min.Y+borderPx),
-		Max: image.Pt(outerRect.Max.X-borderPx, outerRect.Max.Y-borderPx),
-	}
-
-	// Two drawings, not one with a colour swapped. Unselected, the glyph is
+	// Three drawings, not one with a colour swapped. Unselected, the glyph is
 	// an edge with the control's own fill inside it — the same pair the box
 	// and the field wear at rest. Selected, the whole circle is the accent
 	// the platform paints a chosen control in, with the dot in the
-	// foreground that colour is named against. Nested fills throughout:
+	// foreground that colour is named against. Switched off, it is one fill
+	// and no edge, as the box beside it is. Nested fills throughout:
 	// clip.Stroke's anti-aliasing varies between GPU context initialisations
 	// and these are golden-tested.
 	// Every name the glyph draws that carries a coverage is flattened onto
@@ -201,30 +196,47 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	// shapes the fill is inset inside, and the fill for the dot.
 	standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
 
-	if s.Selected {
-		fill := tok.platform.ControlAccent
-		dot := tok.platform.AlternateSelectedControlText
-		if s.Disabled {
-			fill = control.DisabledFill(tok.platform, standsOn)
-			dot = control.DisabledMark(tok.platform, fill)
-		}
-		paint.FillShape(gtx.Ops, fill, clip.Ellipse(outerRect).Op(gtx.Ops))
-
+	dotRect := func() image.Rectangle {
 		dotSz := gtx.Dp(radioDotSize)
-		dotRect := image.Rectangle{
+		return image.Rectangle{
 			Min: image.Pt(cx-dotSz/2, cy-dotSz/2),
 			Max: image.Pt(cx+dotSz/2, cy+dotSz/2),
 		}
-		paint.FillShape(gtx.Ops, dot, clip.Ellipse(dotRect).Op(gtx.Ops))
-	} else {
-		edge := control.Border(tok.platform)
-		if s.Disabled {
-			// The switched-off box's name, for the reason given in
-			// drawCheckbox: the platform's tertiary label is what the Save
-			// dialog's switched-off controls read in both appearances.
-			edge = vgcolor.Flatten(tok.platform.TertiaryLabel, standsOn)
+	}
+
+	switch {
+	case s.Disabled:
+		// The switched-off drawing the checkbox measures, for the reason
+		// given in drawCheckbox: the platform's control fill at
+		// tokens.DisabledCoverage over the surface the glyph stands on, and
+		// no edge. The Save dialog holds no switched-off radio, so this is
+		// the checkbox's reading carried across — the two controls stand
+		// beside each other in one form and the platform draws them as one
+		// family.
+		fill := control.Faded(tok.platform.PushButtonFill, standsOn)
+		paint.FillShape(gtx.Ops, fill, clip.Ellipse(outerRect).Op(gtx.Ops))
+		if s.Selected {
+			// No stored capture holds a switched-off SELECTED radio, so the
+			// dot takes the colour the switched-off label takes beside it,
+			// as the check does. The capture is on the reference's list.
+			dot := vgcolor.Flatten(tok.platform.TertiaryLabel, fill)
+			paint.FillShape(gtx.Ops, dot, clip.Ellipse(dotRect()).Op(gtx.Ops))
 		}
-		paint.FillShape(gtx.Ops, edge, clip.Ellipse(outerRect).Op(gtx.Ops))
+
+	case s.Selected:
+		paint.FillShape(gtx.Ops, tok.platform.ControlAccent, clip.Ellipse(outerRect).Op(gtx.Ops))
+		paint.FillShape(gtx.Ops, tok.platform.AlternateSelectedControlText, clip.Ellipse(dotRect()).Op(gtx.Ops))
+
+	default:
+		// No capture holds an unselected enabled radio, so the edge and the
+		// interior stand as they are and the capture is on the reference's
+		// list.
+		borderPx := gtx.Dp(2)
+		innerRect := image.Rectangle{
+			Min: image.Pt(outerRect.Min.X+borderPx, outerRect.Min.Y+borderPx),
+			Max: image.Pt(outerRect.Max.X-borderPx, outerRect.Max.Y-borderPx),
+		}
+		paint.FillShape(gtx.Ops, control.Border(tok.platform), clip.Ellipse(outerRect).Op(gtx.Ops))
 		paint.FillShape(gtx.Ops, control.Fill(tok.platform), clip.Ellipse(innerRect).Op(gtx.Ops))
 	}
 

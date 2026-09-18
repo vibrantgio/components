@@ -11,6 +11,7 @@ import (
 	"github.com/reactivego/rx"
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/input"
+	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -118,5 +119,57 @@ func TestRadioFocusRingIsVisuallyDistinct(t *testing.T) {
 	}
 	if n := golden.PixelDiff(imgNormal, imgFocused); n == 0 {
 		t.Error("focused and normal radio buttons render identically; expected focus ring pixels to differ")
+	}
+}
+
+// TestTheSwitchedOffRadioIsOneFillAndNoEdge reads the switched-off radio off a
+// capture of the component, in both appearances, against the same reference
+// the box is read against (switchedOffReadings, in checkbox_test.go): the
+// Save dialog holds no switched-off radio, so the radio takes the checkbox's
+// reading, the two standing beside each other in one form.
+//
+// The circle's rim is antialiased by the rasterizer, so the edge is read one
+// pixel in from the widest point of the circle — the band the enabled radio
+// draws its edge in, fully covered in both drawings — against the centre.
+func TestTheSwitchedOffRadioIsOneFillAndNoEdge(t *testing.T) {
+	const size = 44
+
+	// The glyph's 16 dp circle, centred in the density's checkbox row, at the
+	// 1:1 metric golden.Capture renders at.
+	circle := 16
+	row := int(tokens.Comfortable.CheckboxRowHeight)
+	c := row / 2
+	edgeBand := c - circle/2 + 1
+
+	for _, sc := range switchedOffReadings {
+		t.Run(sc.name, func(t *testing.T) {
+			want := control.Faded(sc.platform.PushButtonFill, sc.sheet)
+
+			img := golden.Capture(t, image.Pt(size, size), input.RenderRadio(
+				sc.platform, tokens.Spacing, tokens.Radius,
+				input.RadioRenderState{Disabled: true, Surface: sc.sheet},
+			))
+			if img == nil {
+				return
+			}
+			centre := img.RGBAAt(c, c)
+			if !nearlyEqual(centre, want) {
+				t.Errorf("a switched-off radio fills %v, want the platform's control fill at the disabled coverage %v", centre, want)
+			}
+			if got := img.RGBAAt(edgeBand, c); got != centre {
+				t.Errorf("a switched-off radio's edge band reads %v against its interior's %v; the platform draws no edge on one", got, centre)
+			}
+
+			on := golden.Capture(t, image.Pt(size, size), input.RenderRadio(
+				sc.platform, tokens.Spacing, tokens.Radius,
+				input.RadioRenderState{Surface: sc.sheet},
+			))
+			if on == nil {
+				return
+			}
+			if on.RGBAAt(edgeBand, c) == on.RGBAAt(c, c) {
+				t.Errorf("an enabled radio's edge band reads its interior's %v; the enabled radio keeps its edge", on.RGBAAt(c, c))
+			}
+		})
 	}
 }

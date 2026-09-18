@@ -15,7 +15,9 @@ import (
 	"github.com/reactivego/rx"
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/input"
+	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -365,4 +367,178 @@ func nearerTo(got stdcolor.RGBA, mark, fill stdcolor.NRGBA) bool {
 		return dr*dr + dg*dg + db*db
 	}
 	return got.A == 0xff && d(mark) < d(fill)
+}
+
+// switchedOffReadings is the stored reference's switched-off control, one row
+// per appearance. MEASURED, save-dialog-light.png and save-dialog-dark.png:
+// the two "Options:" checkboxes are the only switched-off controls on the
+// sheet and their 16 px boxes read #f2f2f2 and #2e3439, on sheets of #ffffff
+// and #232a2f; the enabled "File Format:" pop-up seventeen rows above them
+// reads the push button's own #ececec and #333a3f on the same sheet. The
+// slack is what the platform's disabled coverage lands over on that enabled
+// fill: nothing in light, one 255th on green and blue in dark, which is the
+// tolerance the same reference carries for the hover overlay's dark reading.
+var switchedOffReadings = []struct {
+	name     string
+	platform tokens.PlatformColors
+	sheet    stdcolor.NRGBA
+	box      stdcolor.NRGBA
+	slack    int
+}{
+	{"light", tokens.PlatformLight, stdcolor.NRGBA{0xff, 0xff, 0xff, 0xff}, stdcolor.NRGBA{0xf2, 0xf2, 0xf2, 0xff}, 0},
+	{"dark", tokens.PlatformDark, stdcolor.NRGBA{0x23, 0x2a, 0x2f, 0xff}, stdcolor.NRGBA{0x2e, 0x34, 0x39, 0xff}, 1},
+}
+
+// off reports how far apart two colours are on their widest channel.
+func off(a, b stdcolor.NRGBA) int {
+	d := func(x, y uint8) int {
+		if x > y {
+			return int(x) - int(y)
+		}
+		return int(y) - int(x)
+	}
+	n := d(a.R, b.R)
+	if v := d(a.G, b.G); v > n {
+		n = v
+	}
+	if v := d(a.B, b.B); v > n {
+		n = v
+	}
+	return n
+}
+
+// TestTheSwitchedOffBoxIsOneFillAndNoEdge reads the switched-off checkbox off
+// a capture of the component, in both appearances, and against the stored
+// reference's pixels.
+//
+// Two things are read. The fill: the platform's control fill at the measured
+// disabled coverage over the surface the box stands on, which is what the
+// push button does when it is switched off and what puts the box on the
+// reference's #f2f2f2 and #2e3439. And the edge: the platform's switched-off
+// box draws no edge column at all — its rim is a one-pixel antialiased ramp
+// from the fill to the sheet — so every row and column of the box carries the
+// interior's own colour, where the enabled box's first row carries the field
+// edge instead.
+//
+// Rendered at zero corner radius so the box is a sharp rectangle and its
+// outermost rows are flat fill rather than the rasterizer's own blend.
+func TestTheSwitchedOffBoxIsOneFillAndNoEdge(t *testing.T) {
+	const size = 44
+	sharpRadius := tokens.RadiusScale{}
+
+	// The glyph's measured 16 dp box, centred in the density's checkbox row,
+	// at the 1:1 metric golden.Capture renders at.
+	const box = 16
+	row := int(tokens.Comfortable.CheckboxRowHeight)
+	lo := (row - box) / 2
+	hi := lo + box - 1
+	mid := lo + box/2
+
+	for _, sc := range switchedOffReadings {
+		t.Run(sc.name, func(t *testing.T) {
+			want := control.Faded(sc.platform.PushButtonFill, sc.sheet)
+			if n := off(want, sc.box); n > sc.slack {
+				t.Errorf("the platform's control fill at the disabled coverage lands on %v, want the capture's %v within %d", want, sc.box, sc.slack)
+			}
+
+			img := golden.Capture(t, image.Pt(size, size), input.RenderCheckbox(
+				sc.platform, tokens.Spacing, sharpRadius,
+				input.CheckboxRenderState{Disabled: true, Surface: sc.sheet},
+			))
+			if img == nil {
+				return
+			}
+			if got := img.RGBAAt(mid, mid); !nearlyEqual(got, want) {
+				t.Errorf("a switched-off box fills %v, want the platform's control fill at the disabled coverage %v", got, want)
+			}
+			centre := img.RGBAAt(mid, mid)
+			for _, at := range []struct {
+				what string
+				x, y int
+			}{
+				{"first row", mid, lo},
+				{"last row", mid, hi},
+				{"first column", lo, mid},
+				{"last column", hi, mid},
+			} {
+				if got := img.RGBAAt(at.x, at.y); got != centre {
+					t.Errorf("a switched-off box's %s reads %v against its interior's %v; the platform draws no edge on one", at.what, got, centre)
+				}
+			}
+
+			// The enabled box is what an edge row looks like, and it still
+			// draws one.
+			on := golden.Capture(t, image.Pt(size, size), input.RenderCheckbox(
+				sc.platform, tokens.Spacing, sharpRadius,
+				input.CheckboxRenderState{Surface: sc.sheet},
+			))
+			if on == nil {
+				return
+			}
+			if on.RGBAAt(mid, lo) == on.RGBAAt(mid, mid) {
+				t.Errorf("an enabled box's first row reads its interior's %v; the enabled box keeps its edge", on.RGBAAt(mid, mid))
+			}
+		})
+	}
+}
+
+// TestTheSwitchedOffBoxKeepsItsMark asserts that a switched-off box and radio
+// still say whether a value is set, and say it in the colour the switched-off
+// label beside them is drawn in rather than in the accent the platform draws
+// on no switched-off control at all.
+//
+// No stored capture holds a switched-off checked box or a switched-off
+// selected radio, so what is pinned here is the rule and not a pixel: the
+// fill does not move between set and unset, the mark does, and it is the
+// platform's tertiary label over that fill.
+func TestTheSwitchedOffBoxKeepsItsMark(t *testing.T) {
+	const size = 44
+	sharpRadius := tokens.RadiusScale{}
+
+	for _, sc := range switchedOffReadings {
+		p := sc.platform
+		fill := control.Faded(p.PushButtonFill, sc.sheet)
+		mark := vgcolor.Flatten(p.TertiaryLabel, fill)
+
+		for _, cs := range []struct {
+			what  string
+			unset layout.Widget
+			set   layout.Widget
+		}{
+			{"box",
+				input.RenderCheckbox(p, tokens.Spacing, sharpRadius, input.CheckboxRenderState{Disabled: true, Surface: sc.sheet}),
+				input.RenderCheckbox(p, tokens.Spacing, sharpRadius, input.CheckboxRenderState{Disabled: true, Checked: true, Surface: sc.sheet})},
+			{"radio",
+				input.RenderRadio(p, tokens.Spacing, tokens.Radius, input.RadioRenderState{Disabled: true, Surface: sc.sheet}),
+				input.RenderRadio(p, tokens.Spacing, tokens.Radius, input.RadioRenderState{Disabled: true, Selected: true, Surface: sc.sheet})},
+		} {
+			unset := golden.Capture(t, image.Pt(size, size), cs.unset)
+			set := golden.Capture(t, image.Pt(size, size), cs.set)
+			if unset == nil || set == nil {
+				return
+			}
+			if golden.PixelDiff(unset, set) == 0 {
+				t.Errorf("%s %s: a switched-off control with a value set is the same pixels as one without; the mark says which", sc.name, cs.what)
+			}
+			marked, accented := 0, 0
+			b := set.Bounds()
+			for y := b.Min.Y; y < b.Max.Y; y++ {
+				for x := b.Min.X; x < b.Max.X; x++ {
+					got := set.RGBAAt(x, y)
+					if nearerTo(got, mark, fill) {
+						marked++
+					}
+					if nearlyEqual(got, p.ControlAccent) {
+						accented++
+					}
+				}
+			}
+			if marked == 0 {
+				t.Errorf("%s %s: a switched-off control with a value set carries no pixel of its mark %v over the fill %v", sc.name, cs.what, mark, fill)
+			}
+			if accented != 0 {
+				t.Errorf("%s %s: a switched-off control carries %d pixels of the accent %v; the platform draws none on one", sc.name, cs.what, accented, p.ControlAccent)
+			}
+		}
+	}
 }
