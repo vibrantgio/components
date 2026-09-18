@@ -29,17 +29,18 @@
        inner top face is at 7.4 and the flap is drawn from 9.6, a tenth of a
        unit under that, which puts its trailing edge on the whole unit 11.
 
-       Where each band lands. A band of 1.4 units holds a whole device pixel
-       when its own span contains one: at 24 dp that wants a leading edge on a
-       whole unit or no more than 0.4 below one, at 20 dp a leading edge whose
-       five sixths does the same against 1.167 px, and at 16 dp nothing at all
-       — 1.4 units is 0.93 px there, under one device pixel. So the body's TOP
-       at 6 and the FLAP at 9.6 each land a whole pixel at 20 and 24 dp, and
-       reach 0.933 and 0.600 of their best pixel at 16. The tab's top at 4.5
-       and the body's FOOT at 18.1 land none, reaching 0.900 at 24 dp, 0.917
-       at 20 and 0.933 at 16. The two SIDES land none either — the keyline's
-       19 units is odd against a 24-unit box, so they stand at 2.5 and 20.1 —
-       and reach 0.900 at 24 dp, 0.917 at 20 and 0.600 at 16, where the
+       Where each band lands. The set's band is a DEVICE width — 1.32 px
+       below 20 dp and 1.40 from 20 up — and half its widening is spent
+       outward on either edge, so it covers a whole device pixel at all three
+       sizes and what decides a landing is where its leading edge falls: no
+       more than 0.40 px below a pixel boundary at 24 dp, 0.40 at 20 and 0.32
+       at 16. So the body's TOP
+       at 6 lands a whole pixel at all three sizes and the FLAP at 9.6 at 20
+       and 24 dp, reaching 0.793 of its best pixel at 16. The tab's top at 4.5
+       and the body's FOOT at 18.1 land one at 16 and at 20 dp and none at 24,
+       reaching 0.900 there. The two SIDES land one at 20 dp alone — the
+       keyline's 19 units is odd against a 24-unit box, so they stand at 2.5
+       and 20.1 — and reach 0.900 at 24 dp and 0.793 at 16, where the
        platform's own capture has them at a flat 1.34 px. Moving the sides
        onto a whole unit costs the figure the keyline, which is the measured
        extent the whole set is drawn to, so the keyline stands and the miss is

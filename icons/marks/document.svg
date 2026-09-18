@@ -40,18 +40,19 @@
        colour. 11 still stands under the cut: the inner diagonal reaches
        x 11.9201 at the inner top face, which the band at 11 to 12.4 meets.
 
-       Where each band lands. A band of 1.4 units holds a whole device pixel
-       when its own span contains one: at 24 dp that wants a leading edge on a
-       whole unit or no more than 0.4 below one, at 20 dp a leading edge whose
-       five sixths does the same against 1.167 px, and at 16 dp nothing at all
-       — 1.4 units is 0.93 px there, under one device pixel. So the fold's
-       UPRIGHT at 11 lands a whole pixel at 24 dp and reaches 0.833 at 20 and
-       0.667 at 16; the fold's CROSSBAR at 9.5 lands one at 20 dp and reaches
-       0.900 at 24 and 0.667 at 16. The two SIDES at 5.5 and 17.1 land none,
-       reaching 0.900 at 24, 0.750 at 20 and 0.600 at 16. The page's TOP at
+       Where each band lands. The set's band is a DEVICE width — 1.32 px
+       below 20 dp and 1.40 from 20 up — and half its widening is spent
+       outward on either edge, so it covers a whole device pixel at all three
+       sizes and what decides a landing is where its leading edge falls: no
+       more than 0.40 px below a pixel boundary at 24 dp, 0.40 at 20 and 0.32
+       at 16. So the fold's
+       UPRIGHT at 11 lands a whole pixel at 24 dp and reaches 0.950 at 20 and
+       0.860 at 16; the fold's CROSSBAR at 9.5 lands one at 20 dp and reaches
+       0.900 at 24 and 0.860 at 16. The two SIDES at 5.5 and 17.1 land none,
+       reaching 0.900 at 24, 0.867 at 20 and 0.793 at 16. The page's TOP at
        2.5 and its FOOT at 20.1 stand on the keyline, which the keyline's 19
-       odd units keeps off every whole unit: they land none either, reaching
-       0.900 at 24, 0.917 at 20 and 0.600 at 16. That is what a figure
+       odd units keeps off every whole unit: they land one at 20 dp alone,
+       reaching 0.900 at 24 and 0.793 at 16. That is what a figure
        measured on both axes costs on this grid; the readings stand and the
        misses are recorded.
 

@@ -39,11 +39,12 @@
 
        Where the band-landing rule reaches. It does not: both arms run at 45
        degrees and no edge of this drawing runs along the grid, so neither has
-       a leading edge on a whole unit to land a whole device pixel inside. A
-       45-degree band of 1.4 units covers 1.000 of the pixel it runs through
-       at 24 dp, 0.969 at 20 and 0.884 at 16 — which is the set's one band on
-       the axis to within a few hundredths at every size, and why this set no
-       longer draws its diagonals heavier than its straight edges.
+       a leading edge on a whole unit to land a whole device pixel inside. A 45-degree band covers 1.000 of the pixel it runs through at 24 dp and at
+       20, and 0.996 at 16 — the set's band on the axis to within half a per
+       cent at every size, and why this set no longer draws its diagonals
+       heavier than its straight edges. The band is a DEVICE width, 1.32 px
+       below 20 dp and 1.40 from 20 up, so these arms reach the control's own
+       colour at every size the library draws them at.
 
        The caps and the turn are drawn as geometry: nothing here is
        axis-aligned, and this set's SVG backend can ask for neither a line cap

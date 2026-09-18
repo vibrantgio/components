@@ -412,9 +412,11 @@ func (a adorn) shapeCount(gtx layout.Context, shaper *text.Shaper, tok resolvedT
 // checkbox carries its own side length for the same reason.
 func (a adorn) markPx(gtx layout.Context) int { return gtx.Dp(markDp) }
 
-// drawingPx is how much of that square the looking glass actually covers.
+// drawingPx is how much of that square the looking glass actually covers,
+// the band's own widening in it: below 24 dp the set draws its band at a
+// device width and the drawing reaches half of that past each edge.
 func (a adorn) drawingPx(gtx layout.Context) float32 {
-	return icons.SearchDrawingSize * float32(a.markPx(gtx))
+	return icons.SearchDrawingSizePx(gtx, a.markPx(gtx))
 }
 
 // glyphX is the field's leading edge to the looking glass's first pixel.
@@ -534,7 +536,7 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 			// in, and its lens — not its bounding box — on the field's centre
 			// row. Rounding the square to whole pixels instead would split
 			// the lens's band across two columns and draw it grey.
-			x := a.glyphX(gtx, s) - icons.SearchDrawingOrigin*float32(slot)
+			x := a.glyphX(gtx, s) - icons.SearchDrawingOriginPx(gtx, slot)
 			y := float32(field.Y)/2 - icons.SearchLensCentre*float32(slot)
 			st := op.Affine(f32.Affine2D{}.Offset(f32.Pt(x, y))).Push(gtx.Ops)
 			g(gtx, slot, col)

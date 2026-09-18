@@ -22,9 +22,10 @@
        Where the band-landing rule reaches. It does not: both bands run at
        45 degrees and no edge of this drawing runs along the grid, so neither
        has a leading edge on a whole unit to land a whole device pixel inside.
-       A 45-degree band of 1.4 units covers 1.000 of the pixel it runs through
-       at 24 dp, 0.969 at 20 and 0.884 at 16, and the crossing at the middle
-       covers one whole at every size. -->
+       A 45-degree band covers 1.000 of the pixel it runs through at 24 dp and at
+       20, and 0.996 at 16 — the set's band is a DEVICE width, 1.32 px below
+       20 dp and 1.40 from 20 up — and the crossing at the middle covers one
+       whole at every size. -->
   <path fill="#000000" d="M2.505 3.495 L20.505 21.495 L21.495 20.505 L3.495 2.505 Z"/>
   <path fill="#000000" d="M21.495 3.495 L3.495 21.495 L2.505 20.505 L20.505 2.505 Z"/>
 </svg>

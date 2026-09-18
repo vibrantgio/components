@@ -46,17 +46,18 @@
        against a trailing one of 9.95. Its own contour, so it abuts the frame
        rather than winding against it.
 
-       Where each band lands. A band of 1.4 units holds a whole device pixel
-       when its own span contains one: at 24 dp that wants a leading edge on a
-       whole unit or no more than 0.4 below one, at 20 dp a leading edge whose
-       five sixths does the same against 1.167 px, and at 16 dp nothing at all
-       — 1.4 units is 0.93 px there, under one device pixel. So the SEAM at
-       8.75 lands a whole pixel at 24 dp and reaches 0.708 of its best pixel
-       at 20 and 0.767 at 16. The pane's TOP at 4.5 and its FOOT at 18.1 land
-       none, reaching 0.900 at 24 dp, 0.917 at 20 and 0.933 at 16. The two
-       SIDES land none either, and cannot: the keyline's 19 units is odd
-       against a 24-unit box, so they stand at 2.5 and 20.1 and reach 0.900 at
-       24 dp, 0.917 at 20 and 0.600 at 16. The measurement stands over the
+       Where each band lands. The set's band is a DEVICE width — 1.32 px
+       below 20 dp and 1.40 from 20 up — and half its widening is spent
+       outward on either edge, so it covers a whole device pixel at all three
+       sizes and what decides a landing is where its leading edge falls: no
+       more than 0.40 px below a pixel boundary at 24 dp, 0.40 at 20 and 0.32
+       at 16. So the SEAM at
+       8.75 lands a whole pixel at 24 dp and reaches 0.825 of its best pixel
+       at 20 and 0.960 at 16. The pane's TOP at 4.5 and its FOOT at 18.1 land
+       one at 16 and at 20 dp and none at 24, reaching 0.900 there. The two
+       SIDES land one at 20 dp alone: the keyline's 19 units is odd against a
+       24-unit box, so they stand at 2.5 and 20.1 and reach 0.900 at 24 dp and
+       0.793 at 16. The measurement stands over the
        crispness in every case, which is the trade the keyline's own reading
        and the set's one measured band each already made.
  -->

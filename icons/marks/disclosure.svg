@@ -47,9 +47,10 @@
        Where the band-landing rule reaches. It does not: both arms run on a
        diagonal and no edge of this drawing runs along the grid, so neither
        has a leading edge on a whole unit to land a whole device pixel inside.
-       A band of 1.4 units at 45 degrees covers 1.000 of the pixel it runs
-       through at 24 dp, 0.969 at 20 and 0.884 at 16, and these arms stand
-       within a degree and a half of that; the mark is drawn at 24 dp wherever
+       A band at 45 degrees covers 1.000 of the pixel it runs through at 24 dp
+       and at 20, and 0.996 at 16 — the set's band is a DEVICE width, 1.32 px
+       below 20 dp and 1.40 from 20 up — and these arms stand within a degree
+       and a half of that; the mark is drawn at 24 dp wherever
        the library draws it, where one unit is one device pixel and the
        measured extent comes out exact. -->
   <path fill="#000000" d="M9.1833 5.1937 L16.3138 12 L9.1833 18.8063 C8.9037 19.0733 8.4606 19.063 8.1937 18.7833 C7.9267 18.5037 7.937 18.0606 8.2167 17.7937 L14.2862 12 L8.2167 6.2063 C7.937 5.9394 7.9267 5.4963 8.1937 5.2167 C8.4606 4.937 8.9037 4.9267 9.1833 5.1937 Z"/>

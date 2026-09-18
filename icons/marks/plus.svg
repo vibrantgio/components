@@ -35,14 +35,15 @@
        label drawn in the same colour. The drawn extent stays centred: what
        moves is where the two bars sit inside it, by seven tenths of a unit.
 
-       The ARM ENDS land nothing. They stand on the keyline at 2.5 and 21.5,
-       which the keyline's odd 19 units keeps off every whole unit, so each
-       arm's last pixel reaches 0.900 of its best pixel at 24 dp, 0.917 at 20
-       and 0.600 at 16 — the price the keyline's measured units carries
-       through the whole set. At 16 dp the band is 0.93 px and holds a whole
-       device pixel nowhere at all, which is what one measured band costs the
-       small end of the range; the crossing is where this mark still arrives
-       at the control's own colour there.
+       The ARM ENDS stand on the keyline at 2.5 and 21.5, which the keyline's
+       odd 19 units keeps off every whole unit, so each arm's last pixel lands
+       a whole device pixel at 20 dp — where the widening carries its leading
+       edge down onto 1.967 — and none at 24 or 16, reaching 0.900 and 0.793
+       of its best pixel there. That is the price the keyline's measured units
+       carries through the whole set. The two BARS land a whole pixel at every
+       one of the three sizes: the band is a device width, 1.32 px below 20 dp
+       and 1.40 from 20 up, and their leading edge at 10.6 leaves room for one
+       at all three.
 
        The ends are cut square: a cross is read by its crossing, and a cap on
        four arms only thickens the figure — the same rule the clear mark's two

@@ -14,12 +14,16 @@ import (
 // drawing returns the ops for one mark at one pixel size, building them on
 // first ask and replaying the recorded macro afterwards. The recorded ops
 // carry geometry and per-path opacity only; the painter supplies the colour
-// outside them, which is why the size is the whole key.
-func (s *Set) drawing(entry string, px int) op.CallOp {
+// outside them, which is why the size and the widening are the whole key.
+//
+// widen is how much wider than the grid's 1.4 units the band is drawn here,
+// in device pixels, keyed in thousandths so that two frames at one size build
+// one drawing.
+func (s *Set) drawing(entry string, px, widen int) op.CallOp {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	key := cacheKey{entry: entry, px: px}
+	key := cacheKey{entry: entry, px: px, widen: widen}
 	if call, ok := s.cache[key]; ok {
 		return call
 	}
@@ -32,7 +36,7 @@ func (s *Set) drawing(entry string, px int) op.CallOp {
 
 	macro := op.Record(s.ops)
 	mark.SetTarget(mark.ViewBox.AspectMeet(float64(px), float64(px), 0.5, 0.5))
-	svgdriver.Draw(&recorder{ops: s.ops}, mark, 1)
+	svgdriver.Draw(&recorder{ops: s.ops, widen: float64(widen) / 1000}, mark, 1)
 	call := macro.Stop()
 
 	s.cache[key] = call
@@ -52,6 +56,11 @@ type recorder struct {
 	ops    *op.Ops
 	path   []svg.Operation
 	stroke svgdriver.StrokeOptions
+	// widen is how much wider than the grid's own 1.4 units every band this
+	// drawing lays down is, in device pixels. It is spent as an offset of
+	// half its own width on every edge, so a band grows by the whole of it
+	// and keeps its centreline.
+	widen float64
 }
 
 // assert interface conformance
@@ -109,6 +118,9 @@ func (r *recorder) cover(shape clip.Op, alpha float32) {
 // spec replays the buffered path into a fresh clip.Path, which is what the
 // single-use clip.PathSpec forces: a path filled and stroked is built twice.
 func (r *recorder) spec() clip.PathSpec {
+	if r.widen > 0 {
+		return r.offsetSpec()
+	}
 	var p clip.Path
 	p.Begin(r.ops)
 	for _, o := range r.path {
@@ -124,6 +136,23 @@ func (r *recorder) spec() clip.PathSpec {
 		case svg.OpClose:
 			p.Close()
 		}
+	}
+	return p.End()
+}
+
+// offsetSpec is the buffered path with every edge moved outward by half the
+// widening: the contours flattened, offset and filled as one path, so the
+// coverage a render reads is the offset geometry's own and not two shapes
+// composited over each other.
+func (r *recorder) offsetSpec() clip.PathSpec {
+	var p clip.Path
+	p.Begin(r.ops)
+	for _, c := range offsetContours(flattenPath(r.path), r.widen/2) {
+		p.MoveTo(c[0])
+		for _, q := range c[1:] {
+			p.LineTo(q)
+		}
+		p.Close()
 	}
 	return p.End()
 }

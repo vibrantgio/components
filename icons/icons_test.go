@@ -598,21 +598,25 @@ func at(px int, fraction float64) int { return int(fraction * float64(px)) }
 // checkBand holds one run of covered pixels to a band of the set's weight
 // standing at lead, both stated as fractions of the mark's square.
 //
-// A run of ONE covered pixel pins its width and nothing else: the set's band
-// is 0.93 px at 16 dp and 1.17 at 20, so it can fall entirely inside a single
-// device pixel, and the share that pixel carries says how thick the band is
-// without saying where inside it the band stands. Such a run is held to its
-// width and to both edges lying within the pixel, which is all the raster
-// offers.
+// A run of ONE covered pixel pins its width and nothing else: a band can fall
+// entirely inside a single device pixel, and the share that pixel carries says
+// how thick the band is without saying where inside it the band stands. Such a
+// run is held to its width and to both edges lying within the pixel, which is
+// all the raster offers.
+//
+// The band is a DEVICE width, so what is wanted here is the width the set's
+// own rule gives at this size — 1.32 px below 20 dp and 1.40 from 20 up — and
+// the grid's placement with half the widening spent outward on either edge.
 func checkBand(t *testing.T, px int, what string, r run, lead float64) {
 	t.Helper()
 	// A band's edges land on eighths of a pixel at these sizes, and the
 	// rasterizer's own rounding is well inside that.
 	const tolerance = 0.03
+	w := widen(px)
 	want := struct{ lead, trail, width float64 }{
-		lead:  lead * float64(px),
-		trail: (lead + icons.SidebarBand) * float64(px),
-		width: icons.SidebarBand * float64(px),
+		lead:  lead*float64(px) - w/2,
+		trail: (lead+icons.SidebarBand)*float64(px) + w/2,
+		width: bandPx(px),
 	}
 	if math.Abs(r.width-want.width) > tolerance {
 		t.Errorf("%d px: %s covers %.3f px, want %.3f — the band is not the set's weight",

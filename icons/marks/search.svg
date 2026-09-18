@@ -40,15 +40,17 @@
        The proportions inside the drawing are the capture's: the lens is 0.803
        of the drawing's extent against the toolbar symbol's measured 0.829 and
        the field glyph's 0.834, and the band is 0.086 of it against the field
-       glyph's 0.108.
+       glyph's 0.108. At 16 dp, where the set's band is the field glyph's own
+       1.32 px, the drawing's 10.80 px of extent puts it at 0.122 of the
+       extent instead: the band is held to the device width the capture gives
+       and the extent is left where the grid puts it.
 
        Where the band-landing rule reaches. It does not: the lens is curved
        everywhere and runs along an axis at four points only, and the handle
        runs at 45 degrees, so no edge of this drawing has a leading edge on a
-       whole unit to land a whole device pixel inside. A band of 1.4 units is
-       0.93 px at 16 dp, 1.17 at 20 and 1.40 at 24, and at 45 degrees it
-       covers 1.000 of the pixel it runs through at 24 dp, 0.969 at 20 and
-       0.884 at 16. -->
+       whole unit to land a whole device pixel inside. The set's band is a DEVICE width — 1.32 px below 20 dp and 1.40 from 20 up
+       — and at 45 degrees it covers 1.000 of the pixel it runs through at
+       24 dp and at 20, and 0.996 at 16. -->
   <path fill="#000000" d="M10.4 3.9 C13.9899 3.9 16.9 6.8101 16.9 10.4 C16.9 13.9899 13.9899 16.9 10.4 16.9 C6.8101 16.9 3.9 13.9899 3.9 10.4 C3.9 6.8101 6.8101 3.9 10.4 3.9 Z M10.4 5.3 C7.5833 5.3 5.3 7.5833 5.3 10.4 C5.3 13.2167 7.5833 15.5 10.4 15.5 C13.2167 15.5 15.5 13.2167 15.5 10.4 C15.5 7.5833 13.2167 5.3 10.4 5.3 Z"/>
   <!-- The handle, its own contour so it abuts the ring rather than winding
        against it: the set's band at 45 degrees, its far end at 19.6,19.6,

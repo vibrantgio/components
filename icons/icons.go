@@ -4,6 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"image/color"
+	"math"
 	"runtime"
 	"slices"
 	"strings"
@@ -126,9 +127,35 @@ const (
 	// SearchDrawingSize is the side of the drawing inside the square.
 	SearchDrawingSize = 16.195 / 24.0
 	// SearchLensCentre is the square's leading and top edge to the centre of
-	// the lens, which is the point a field aligns on its centre row.
+	// the lens, which is the point a field aligns on its centre row. The
+	// band's widening is spent outward on both edges of every band, so the
+	// lens's centre stands where the grid puts it at every size.
 	SearchLensCentre = 10.4 / 24.0
 )
+
+// SearchDrawingOriginPx is the square's leading and top edge to the drawing's
+// first pixel, in device pixels, for a mark drawn at sizePx in this window.
+//
+// It is not SearchDrawingOrigin scaled. Below 24 dp the band is drawn at the
+// device width its own size's capture gives, and half of that widening is
+// spent outward on every edge, so the drawing reaches that much further
+// leading and higher than the grid puts it. A control placing the looking
+// glass by the platform's own measured inset places the drawing's first pixel
+// and so has to ask for this.
+func SearchDrawingOriginPx(gtx layout.Context, sizePx int) float32 {
+	w := float64(widening(gtx.Metric.PxPerDp, sizePx)) / 1000
+	return float32(SearchDrawingOrigin*float64(sizePx) - w/2)
+}
+
+// SearchDrawingSizePx is the side of the drawing inside the square, in device
+// pixels, for a mark drawn at sizePx in this window: SearchDrawingSize scaled
+// and the band's whole widening, half of it spent past each edge. A control
+// holding the platform's measured clear space past the glyph measures it from
+// the last pixel the glyph covers, which is this.
+func SearchDrawingSizePx(gtx layout.Context, sizePx int) float32 {
+	w := float64(widening(gtx.Metric.PxPerDp, sizePx)) / 1000
+	return float32(SearchDrawingSize*float64(sizePx) + w)
+}
 
 // The sidebar mark's pane, as fractions of the square it is drawn in. The
 // mark is one figure on both platforms the set draws it for — macOS adds the
@@ -152,8 +179,11 @@ const (
 	// width drawn to the keyline and the height to the capture's own 15.12.
 	SidebarPaneWidth  = 19.0 / 24.0
 	SidebarPaneHeight = 15.0 / 24.0
-	// SidebarBand is the weight every edge of the mark is drawn at, the set's
-	// one measured band.
+	// SidebarBand is the weight every edge of the mark is drawn at on the
+	// grid, which is the set's band at 24 dp. Below that the band is drawn at
+	// the device width the size's own capture gives and comes out wider than
+	// this in units — the grid places the band's centreline and the device
+	// width sets how far it reaches either side of it.
 	SidebarBand = 1.4 / 24.0
 	// SidebarSeamLeading is the square's leading edge to the seam's, which
 	// leaves the leading column just under half the width of the trailing
@@ -167,6 +197,79 @@ const (
 	SidebarListBand   = 0.93 / 24.0
 	SidebarListPeriod = 2.20 / 24.0
 )
+
+// The set's grid, and the band drawn on it. The grid is 24 units square and
+// one unit is one device pixel at 24 dp. The BAND is not a unit width: it is
+// a DEVICE width, read off the platform's own symbol standing at the size the
+// mark is drawn at, and the units it comes to therefore move with the size.
+//
+// MEASURED at 1x off the organization's macOS reference, each symbol read
+// against its own drawn plateau rather than against a colour name, band
+// against covered extent:
+//
+//	a symbol 12.33 px across   1.32 px   the search field's magnifier, in
+//	                                     mail-window.png (x 878-890) and
+//	                                     voicememos-window.png (x 657-669)
+//	a symbol 16 px across      1.40 px   Mail's compose (mail-window.png,
+//	                                     x 415-430)
+//	a symbol 19.31 px across   1.39 px   Voice Memos' sidebar toggle
+//	                                     (voicememos-window.png, x 106-125)
+//
+// The platform holds one weight across a symbol four times another's size —
+// its narrowest reading stands at 0.85 of its widest over a range the unit
+// band would have spanned by a factor of four — so the band is drawn as the
+// device width each size's own capture gives and not as a share of the mark.
+const (
+	// gridUnits is the side of the square every mark is drawn on.
+	gridUnits = 24.0
+	// bandUnitsAt24 is the band at 24 dp, where one unit is one device pixel
+	// and the device width and the unit width are the same number. It is the
+	// figure every mark's file states its own placements in.
+	bandUnitsAt24 = 1.4
+	// bandPxFrom20 is the device width the band takes from 20 dp up, where a
+	// square mark drawn to the set's 19-unit keyline covers 15.83 px and more
+	// — the size Mail's compose and Voice Memos' sidebar toggle stand at. At
+	// 24 dp it is bandUnitsAt24 to the hundredth, so the two meet there.
+	bandPxFrom20 = 1.40
+	// bandPxBelow20 is the device width the band takes below 20 dp, where a
+	// square mark covers under 15.83 px — the size the search field's
+	// magnifier stands at. Nothing is captured between 12.33 px and 16, so
+	// the set steps at 20 dp rather than running a line between the two.
+	bandPxBelow20 = 1.32
+)
+
+// bandUnits is the band's width on the grid for a mark drawn at dp points:
+// the device width its own size's capture gives, turned back into units. At
+// 24 dp and above it is the grid's own 1.4 — above 24 dp no symbol is
+// captured, and the unit band is what the set falls back to, which meets the
+// device rule exactly at 24.
+func bandUnits(dp float64) float64 {
+	switch {
+	case !(dp > 0) || dp >= gridUnits:
+		return bandUnitsAt24
+	case dp >= 20:
+		return bandPxFrom20 * gridUnits / dp
+	default:
+		return bandPxBelow20 * gridUnits / dp
+	}
+}
+
+// widening is how much wider than the grid's 1.4 units a mark's band is drawn
+// at this size, in thousandths of a device pixel. pxPerDp is the window's own
+// scale: the band is a width in device pixels at 1x and scales with the
+// window like everything else the mark draws, so the size in POINTS is what
+// picks the reading and the size in PIXELS is what it is spent at.
+func widening(pxPerDp float32, px int) int {
+	scale := float64(pxPerDp)
+	if !(scale > 0) {
+		scale = 1
+	}
+	extra := (bandUnits(float64(px)/scale) - bandUnitsAt24) * float64(px) / gridUnits
+	if extra <= 0 {
+		return 0
+	}
+	return int(math.Round(extra * 1000))
+}
 
 // Painter draws a mark into a square of sizePx at the current origin, in col.
 // It is the shape this library's controls take for an icon slot.
@@ -189,11 +292,13 @@ type Set struct {
 }
 
 // cacheKey is what a built drawing is stored under: the registry key that
-// answered, and the pixel size it was built for. Colour is not part of it —
-// the painter applies colour outside the recorded ops.
+// answered, the pixel size it was built for, and the widening its band took
+// there, in thousandths of a device pixel. Colour is not part of it — the
+// painter applies colour outside the recorded ops.
 type cacheKey struct {
 	entry string
 	px    int
+	widen int
 }
 
 // New returns the set as the named operating system sees it. goos is a
@@ -272,7 +377,7 @@ func (s *Set) Mark(name Name) Painter {
 		if sizePx <= 0 {
 			return
 		}
-		call := s.drawing(entry, sizePx)
+		call := s.drawing(entry, sizePx, widening(gtx.Metric.PxPerDp, sizePx))
 		paint.ColorOp{Color: col}.Add(gtx.Ops)
 		call.Add(gtx.Ops)
 	}

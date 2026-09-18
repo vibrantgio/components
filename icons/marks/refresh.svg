@@ -36,10 +36,10 @@
        Where the band-landing rule reaches. It does not: the ring is curved
        everywhere and runs along an axis at four points only, as the search
        mark's lens does, so it has no leading edge on a whole unit to land a
-       whole device pixel inside. A band of 1.4 units is 0.93 px at 16 dp,
-       1.17 at 20 and 1.40 at 24; the head is a solid triangle and is the one
-       place this figure arrives at the control's own colour undiluted at
-       every size. -->
+       whole device pixel inside. The set's band is a DEVICE width — 1.32 px below
+       20 dp and 1.40 from 20 up — so the ring covers a whole device pixel
+       where it runs along an axis at every size; the head is a solid triangle
+       and arrives at the control's own colour wherever the figure stands. -->
   <path fill="#000000" d="M18.108 10.4769 C19.0783 13.1427 18.2076 16.1298 15.9569 17.8568 C13.7063 19.5838 10.5956 19.6517 8.2718 18.0245 C5.9479 16.3973 4.9478 13.451 5.8008 10.7454 C6.6539 8.0398 9.1631 6.2 12 6.2 L12 7.6 C9.7741 7.6 7.8054 9.0436 7.136 11.1664 C6.4667 13.2892 7.2514 15.601 9.0748 16.8777 C10.8981 18.1544 13.3388 18.1011 15.1047 16.7461 C16.8706 15.3911 17.5537 13.0473 16.7924 10.9557 Z"/>
   <path fill="#000000" d="M12 4.8 L15.5 6.9 L12 9 Z"/>
 </svg>
