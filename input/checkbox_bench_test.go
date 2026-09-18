@@ -17,7 +17,9 @@ import (
 // regressions (>5% threshold).
 func BenchmarkCheckboxRender(b *testing.B) {
 	w := input.RenderCheckbox(
+		nil,
 		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
+		tokens.DefaultTypography.BodyLarge,
 		input.CheckboxRenderState{},
 	)
 
@@ -39,7 +41,9 @@ func BenchmarkCheckboxRender(b *testing.B) {
 // solid accent fill and a stroked mark instead of an edged box.
 func BenchmarkCheckboxRenderChecked(b *testing.B) {
 	w := input.RenderCheckbox(
+		nil,
 		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
+		tokens.DefaultTypography.BodyLarge,
 		input.CheckboxRenderState{Checked: true},
 	)
 

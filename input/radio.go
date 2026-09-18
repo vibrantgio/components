@@ -8,6 +8,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
+	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
 
@@ -43,6 +44,10 @@ type RadioRenderState struct {
 	Focused  bool
 	Disabled bool
 
+	// Label is the option's own text, drawn beside the disc. Empty draws
+	// the disc alone.
+	Label string
+
 	// Surface is the opaque fill the control stands on. Its focus ring rides
 	// in the slack around the glyph, so the platform's keyboard focus
 	// indicator — a coverage rather than a colour — lands on this, and so
@@ -53,7 +58,11 @@ type RadioRenderState struct {
 
 // RadioProps configures a Radio instance.
 type RadioProps struct {
-	// Description is the screen-reader label.
+	// Label is the option's own text, drawn beside the disc and part of the
+	// control: the whole row operates it. Empty draws the disc alone.
+	Label string
+
+	// Description is the screen-reader label. Empty falls back to Label.
 	Description string
 
 	// Selected is the initial selected state established on subscribe.
@@ -87,14 +96,23 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 	}
 
 	// Flatten the nested theme observables into a concrete snapshot. The
-	// radio draws no text, so unlike TextField it does not subscribe to the
-	// theme's Typography and leaves the snapshot's body style and shaper
-	// zero.
+	// label is drawn in the body role, so the typography emission supplies
+	// the text style, its cap band and the theme's cached shaper; a radio
+	// without a label never reaches them.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest4(t.Platform, t.Spacing, t.Radius, t.Density),
-			func(n rx.Tuple4[tokens.PlatformColors, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
-				return resolvedTokens{platform: n.First, spacing: n.Second, radius: n.Third, density: n.Fourth}
+			rx.CombineLatest5(t.Platform, t.Typography, t.Spacing, t.Radius, t.Density),
+			func(n rx.Tuple5[tokens.PlatformColors, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
+				typ := n.Second
+				return resolvedTokens{
+					platform: n.First,
+					body:     typ.BodyLarge,
+					capBand:  typ.FaceMetrics(typ.BodyLarge).CapHeight,
+					spacing:  n.Third,
+					radius:   n.Fourth,
+					density:  n.Fifth,
+					shaper:   typ.Shaper(),
+				}
 			},
 		)
 	})
@@ -124,19 +142,23 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 
 				foc := !dis && gtx.Focused(&b)
 
-				// The pointer area is the footprint the glyph is
-				// centred in — the measured checkbox row, not its
-				// 16 dp circle, which is what the platform gives a
-				// pointer.
+				// The pointer area is the whole control — the
+				// footprint the glyph is centred in plus the label
+				// beside it, both of which operate it, as they do on
+				// the platform.
 				return b.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					semantic.RadioButton.Add(gtx.Ops)
-					if props.Description != "" {
-						semantic.DescriptionOp(props.Description).Add(gtx.Ops)
+					if desc := props.Description; desc != "" || props.Label != "" {
+						if desc == "" {
+							desc = props.Label
+						}
+						semantic.DescriptionOp(desc).Add(gtx.Ops)
 					}
 					return drawRadio(gtx, tok, RadioRenderState{
 						Selected: b.Value,
 						Focused:  foc,
 						Disabled: dis,
+						Label:    props.Label,
 					})
 				})
 			}
@@ -147,15 +169,26 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 // RenderRadio produces a layout.Widget for a radio button in an explicit visual
 // state, without any event processing or rx machinery. Intended for golden-image
 // testing and static demonstrations; production code should use Radio.
+//
+// The parameters are [RenderCheckbox]'s and mean the same things: shaper and
+// body draw RadioRenderState.Label, and density is not among them.
 func RenderRadio(
+	shaper *text.Shaper,
 	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
+	body tokens.TextStyle,
 	s RadioRenderState,
 ) layout.Widget {
-	// Density is not a parameter: the static path always renders at
-	// tokens.Comfortable; density-aware rendering goes through Radio.
-	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, density: tokens.Comfortable}
+	tok := resolvedTokens{
+		platform: p,
+		body:     body,
+		capBand:  body.FaceMetrics().CapHeight,
+		spacing:  sp,
+		radius:   rad,
+		density:  tokens.Comfortable,
+		shaper:   shaper,
+	}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawRadio(gtx, tok, s)
 	}
@@ -218,7 +251,11 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		if s.Selected {
 			// No stored capture holds a switched-off SELECTED radio, so the
 			// dot takes the colour the switched-off label takes beside it,
-			// as the check does. The capture is on the reference's list.
+			// as the check does. The capture is on the reference's list. No
+			// contrast floor applies here either: the platform chose to draw
+			// its switched-off controls below any floor, and the label stands
+			// there as measured — |Lc| 35.6 light and -16.1 dark on the
+			// sheet.
 			dot := vgcolor.Flatten(tok.platform.TertiaryLabel, fill)
 			paint.FillShape(gtx.Ops, dot, clip.Ellipse(dotRect()).Op(gtx.Ops))
 		}
@@ -263,5 +300,18 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		}.Op())
 	}
 
-	return layout.Dimensions{Size: image.Pt(ctlSz, ctlSz)}
+	// The label is part of the control, as it is on the platform, drawn
+	// exactly as the checkbox draws it: the measured gap after the circle,
+	// the platform's label colour over the surface the glyph stands on, and
+	// faded with the glyph.
+	label := vgcolor.Flatten(tok.platform.Label, standsOn)
+	if s.Disabled {
+		label = vgcolor.Flatten(tok.platform.TertiaryLabel, standsOn)
+	}
+	w := ctlSz
+	if beside := labelBeside(gtx, tok, outerRect.Max.X, ctlSz, s.Label, label); beside > 0 {
+		w = outerRect.Max.X + beside
+	}
+
+	return layout.Dimensions{Size: image.Pt(w, ctlSz)}
 }

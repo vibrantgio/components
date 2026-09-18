@@ -30,6 +30,13 @@
 // keyboard focus indicator. None of them measures, walks or derives a colour
 // of its own.
 //
+// A checkbox and a radio are the glyph and the label together: the label is
+// part of the control, as it is on the platform, so the whole row operates
+// the box and the label fades with it when the control is switched off. It
+// stands at the platform's measured gap after the glyph, in the platform's
+// label colour, with its cap band centred on the glyph's row. A control with
+// no label draws the glyph alone.
+//
 // A text field takes the density's field height rather than its control
 // height: the platform draws a field shorter than the button standing beside
 // it, and that is the one place in the library where the two heights part.

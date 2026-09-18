@@ -490,7 +490,7 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 			Body: inv.textFieldRow(c)},
 		{Name: "components-searchfield", Title: "Search field — at rest, holding a query with its clear mark, and the recess it takes on chrome", Height: 60,
 			Body: inv.searchFieldRow(c)},
-		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled", Height: 56,
+		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled, then the same controls carrying their own labels", Height: 96,
 			Body: inv.toggleRow(c)},
 		{Name: "components-picker", Title: "Picker — the form trigger at rest, under the pointer, held, focused and switched off, then open under its menu beside the chrome toolbar at rest and under the pointer", Height: 264,
 			Body: inv.pickerRow(c)},
@@ -1252,14 +1252,14 @@ func (inv *Inventory) toggleRow(c tokens.PlatformColors) layout.Widget {
 		label string
 		w     layout.Widget
 	}{
-		{"Unchecked", input.RenderCheckbox(c, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{})},
-		{"Checked", input.RenderCheckbox(c, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Checked: true})},
-		{"Focused", input.RenderCheckbox(c, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Focused: true})},
-		{"Disabled", input.RenderCheckbox(c, tokens.Spacing, tokens.Radius, input.CheckboxRenderState{Disabled: true})},
-		{"Unselected", input.RenderRadio(c, tokens.Spacing, tokens.Radius, input.RadioRenderState{})},
-		{"Selected", input.RenderRadio(c, tokens.Spacing, tokens.Radius, input.RadioRenderState{Selected: true})},
-		{"Focused", input.RenderRadio(c, tokens.Spacing, tokens.Radius, input.RadioRenderState{Focused: true})},
-		{"Disabled", input.RenderRadio(c, tokens.Spacing, tokens.Radius, input.RadioRenderState{Disabled: true})},
+		{"Unchecked", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{})},
+		{"Checked", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Checked: true})},
+		{"Focused", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Focused: true})},
+		{"Disabled", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Disabled: true})},
+		{"Unselected", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{})},
+		{"Selected", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Selected: true})},
+		{"Focused", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Focused: true})},
+		{"Disabled", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Disabled: true})},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(cells))
@@ -1278,6 +1278,64 @@ func (inv *Inventory) toggleRow(c tokens.PlatformColors) layout.Widget {
 					}),
 				)
 			}))
+		}
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return layout.Flex{}.Layout(gtx, cs...)
+			}),
+			layout.Rigid(complayout.VSpacer(toggleRowGap)),
+			layout.Rigid(inv.labelledToggleRow(c)),
+		)
+	}
+}
+
+// The labelled row's measurements.
+const (
+	// toggleRowGap is the air between the row of bare glyphs and the row of
+	// labelled controls under it.
+	toggleRowGap = 14
+	// toggleCellGap is the air between two controls of one family, and
+	// toggleFamilyGap the wider break between the checkboxes and the radios,
+	// so the row is read by family rather than by state.
+	toggleCellGap   = 24
+	toggleFamilyGap = 44
+)
+
+// labelledToggleRow draws the controls as the platform draws them in a form:
+// the box or the disc with its own label, which is part of the control. Every
+// state the label itself moves in stands here — set, unset and switched off,
+// for both families — because the label fades with the glyph and that is what
+// a reader has to be able to check.
+func (inv *Inventory) labelledToggleRow(c tokens.PlatformColors) layout.Widget {
+	box := func(s input.CheckboxRenderState) layout.Widget {
+		return input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, s)
+	}
+	disc := func(s input.RadioRenderState) layout.Widget {
+		return input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, s)
+	}
+	// The first two labels are the save dialog's own, so the row can be held
+	// against the capture the measurements come from.
+	cells := []layout.Widget{
+		box(input.CheckboxRenderState{Label: "Show startup screen"}),
+		box(input.CheckboxRenderState{Checked: true, Label: "Stay open"}),
+		box(input.CheckboxRenderState{Disabled: true, Label: "Switched off"}),
+		disc(input.RadioRenderState{Selected: true, Label: "Chosen"}),
+		disc(input.RadioRenderState{Label: "Not chosen"}),
+		disc(input.RadioRenderState{Disabled: true, Label: "Switched off"}),
+	}
+	// The break falls where the family changes, which is after the third cell.
+	const firstDisc = 3
+	return func(gtx layout.Context) layout.Dimensions {
+		cs := make([]layout.FlexChild, 0, 2*len(cells))
+		for i, w := range cells {
+			if i > 0 {
+				gap := toggleCellGap
+				if i == firstDisc {
+					gap = toggleFamilyGap
+				}
+				cs = append(cs, layout.Rigid(complayout.HSpacer(float32(gap))))
+			}
+			cs = append(cs, layout.Rigid(w))
 		}
 		return layout.Flex{}.Layout(gtx, cs...)
 	}

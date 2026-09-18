@@ -103,7 +103,7 @@ func focusPanel(c tokens.PlatformColors, name string, fill stdcolor.NRGBA, shape
 		fixedWidth(focusFieldW, input.Render(shaper, "Field", c, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 			input.RenderState{Focused: true, Surface: fill})),
-		input.RenderCheckbox(c, tokens.Spacing, tokens.Radius,
+		input.RenderCheckbox(shaper, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge,
 			input.CheckboxRenderState{Focused: true, Surface: fill}),
 		bounded(120, chip.Render(shaper, "Chip", chip.Assist, nil, c, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.LabelLarge, tokens.Comfortable,

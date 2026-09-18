@@ -263,22 +263,22 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 	}
 
 	g.cbLive, err = input.Checkbox(th, input.CheckboxProps{
-		Description: "Accept terms",
+		Label: "Accept terms",
 	}).First()
 	if err != nil {
 		log.Printf("checkbox: %v", err)
 	}
 
 	g.rbALive, err = input.Radio(th, input.RadioProps{
-		Description: "Option A",
-		Selected:    true,
+		Label:    "Option A",
+		Selected: true,
 	}).First()
 	if err != nil {
 		log.Printf("radio A: %v", err)
 	}
 
 	g.rbBLive, err = input.Radio(th, input.RadioProps{
-		Description: "Option B",
+		Label: "Option B",
 	}).First()
 	if err != nil {
 		log.Printf("radio B: %v", err)
@@ -714,6 +714,9 @@ func (g *gallery) pageInputs(gtx layout.Context) layout.Dimensions {
 			g.sectionHeader("Radio — live (two options, independent state)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+					// Each option draws its own label: it is part of
+					// the control, and a label the page drew beside
+					// the disc would not operate it.
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							if g.rbALive != nil {
@@ -721,20 +724,12 @@ func (g *gallery) pageInputs(gtx layout.Context) layout.Dimensions {
 							}
 							return layout.Dimensions{}
 						}),
-						layout.Rigid(complayout.HSpacer(8)),
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "Option A", pageText, unit.Sp(14), font.Font{})
-						}),
 						layout.Rigid(complayout.HSpacer(32)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							if g.rbBLive != nil {
 								return g.rbBLive(gtx)
 							}
 							return layout.Dimensions{}
-						}),
-						layout.Rigid(complayout.HSpacer(8)),
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "Option B", pageText, unit.Sp(14), font.Font{})
 						}),
 					)
 				})
@@ -834,7 +829,7 @@ func (g *gallery) checkboxVariantRows() []layout.FlexChild {
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
-		w := input.RenderCheckbox(r.colors, tokens.Spacing, tokens.Radius, r.state)
+		w := input.RenderCheckbox(g.shaper, r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
 		})
@@ -859,7 +854,7 @@ func (g *gallery) radioVariantRows() []layout.FlexChild {
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
-		w := input.RenderRadio(r.colors, tokens.Spacing, tokens.Radius, r.state)
+		w := input.RenderRadio(g.shaper, r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
 		})

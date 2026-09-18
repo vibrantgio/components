@@ -430,17 +430,26 @@ func standsOn(f func(tokens.PlatformColors) color.NRGBA, p tokens.PlatformColors
 // from its bottom edge. The offset is never negative: a line box taller than
 // the field it is drawn in stays anchored to the field's top.
 func promptOffset(gtx layout.Context, tok resolvedTokens, fieldH int, dims layout.Dimensions) int {
+	if off := capBandOffset(gtx, tok, fieldH, dims); off > 0 {
+		return off
+	}
+	return 0
+}
+
+// capBandOffset is promptOffset without the clamp: how far below the top of a
+// rowH-tall row the line box is drawn for its cap band to be centred on the
+// row's centre. A control whose row is shorter than the body role's line box —
+// the checkbox's measured 22 px row is — takes this raw, so that the band
+// lands where the platform puts it and the line box hangs above the row.
+func capBandOffset(gtx layout.Context, tok resolvedTokens, rowH int, dims layout.Dimensions) int {
 	scale := gtx.Metric.PxPerDp
 	if scale == 0 {
 		// A zero Metric is a 1-to-1 scale, which is how gtx.Dp reads it;
 		// reading it the same way here keeps the two in step.
 		scale = 1
 	}
-	baseline := int(math.Round(float64(float32(fieldH)+tok.capBand*scale) / 2))
-	if off := baseline - (dims.Size.Y - dims.Baseline); off > 0 {
-		return off
-	}
-	return 0
+	baseline := int(math.Round(float64(float32(rowH)+tok.capBand*scale) / 2))
+	return baseline - (dims.Size.Y - dims.Baseline)
 }
 
 // drawTextFieldLive renders a live text field containing a widget.Editor.

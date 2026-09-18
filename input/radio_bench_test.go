@@ -17,7 +17,9 @@ import (
 // regressions (>5% threshold).
 func BenchmarkRadioRender(b *testing.B) {
 	w := input.RenderRadio(
+		nil,
 		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
+		tokens.DefaultTypography.BodyLarge,
 		input.RadioRenderState{},
 	)
 
@@ -39,7 +41,9 @@ func BenchmarkRadioRender(b *testing.B) {
 // accent disc and the dot on it rather than an edge and a gap.
 func BenchmarkRadioRenderSelected(b *testing.B) {
 	w := input.RenderRadio(
+		nil,
 		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
+		tokens.DefaultTypography.BodyLarge,
 		input.RadioRenderState{Selected: true},
 	)
 

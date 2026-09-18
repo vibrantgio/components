@@ -7,8 +7,10 @@ import (
 	"gioui.org/f32"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
+	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
 
@@ -20,6 +22,7 @@ import (
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 )
 
 // checkboxBoxSize is the visual side length of the checkbox square: 16 dp,
@@ -27,6 +30,24 @@ import (
 // checkbox at y 372–387, x 264–279 in both appearances, and recorded in the
 // organization's macOS reference.
 const checkboxBoxSize = unit.Dp(16)
+
+// controlLabelGap is the leading gap a checkbox's square — or a radio's
+// circle — spends on the label beside it.
+//
+// MEASURED, save-dialog-{light,dark}.png: both "Options:" squares end at
+// column 279, so their edge is 280, and both labels' first covered column is
+// 286 — six columns clear, in both appearances and both rows.
+//
+// It is spent whole, where [control.TextLeadDp] spends its reading less the
+// capture's own first letter's bearing. The difference is what the capture
+// shows: the field's selection fill stands behind its value, so the platform's
+// own origin is there to be read and the bearing can be told from it. Here
+// only the covered columns are visible, so the six is spent to the first of
+// them and the capture's own labels — which begin with an S the body role's
+// face bears no column on — are covered column for column. A label whose
+// first glyph does carry a bearing stands one column further out, as it
+// would on the platform.
+const controlLabelGap = unit.Dp(6)
 
 // The check mark is drawn on components/icons' grid rather than on one of
 // its own, so that the library has a single answer to "what does a stroke
@@ -69,6 +90,10 @@ type CheckboxRenderState struct {
 	Focused  bool
 	Disabled bool
 
+	// Label is the control's own text, drawn beside the box. Empty draws
+	// the box alone.
+	Label string
+
 	// Surface is the opaque fill the control stands on. Its focus ring rides
 	// in the slack around the glyph, so the platform's keyboard focus
 	// indicator — a coverage rather than a colour — lands on this, and so
@@ -79,7 +104,11 @@ type CheckboxRenderState struct {
 
 // CheckboxProps configures a Checkbox instance.
 type CheckboxProps struct {
-	// Description is the screen-reader label.
+	// Label is the control's own text, drawn beside the box and part of the
+	// control: the whole row operates the box. Empty draws the box alone.
+	Label string
+
+	// Description is the screen-reader label. Empty falls back to Label.
 	Description string
 
 	// Checked is the initial checked state established on subscribe.
@@ -113,14 +142,23 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 	}
 
 	// Flatten the nested theme observables into a concrete snapshot. The
-	// checkbox draws no text, so unlike TextField it does not subscribe to
-	// the theme's Typography and leaves the snapshot's body style and shaper
-	// zero.
+	// label is drawn in the body role, so the typography emission supplies
+	// the text style, its cap band and the theme's cached shaper; a checkbox
+	// without a label never reaches them.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
-			rx.CombineLatest4(t.Platform, t.Spacing, t.Radius, t.Density),
-			func(n rx.Tuple4[tokens.PlatformColors, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
-				return resolvedTokens{platform: n.First, spacing: n.Second, radius: n.Third, density: n.Fourth}
+			rx.CombineLatest5(t.Platform, t.Typography, t.Spacing, t.Radius, t.Density),
+			func(n rx.Tuple5[tokens.PlatformColors, tokens.Typography, tokens.SpacingScale, tokens.RadiusScale, tokens.Density]) resolvedTokens {
+				typ := n.Second
+				return resolvedTokens{
+					platform: n.First,
+					body:     typ.BodyLarge,
+					capBand:  typ.FaceMetrics(typ.BodyLarge).CapHeight,
+					spacing:  n.Third,
+					radius:   n.Fourth,
+					density:  n.Fifth,
+					shaper:   typ.Shaper(),
+				}
 			},
 		)
 	})
@@ -154,19 +192,23 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 
 				foc := !dis && gtx.Focused(&b)
 
-				// The pointer area is the footprint the glyph is
-				// centred in — the checkbox's measured row, not its
-				// 16 dp glyph, which is what the platform gives a
-				// pointer.
+				// The pointer area is the whole control — the
+				// footprint the glyph is centred in plus the label
+				// beside it, both of which operate the box, as they
+				// do on the platform.
 				return b.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					semantic.CheckBox.Add(gtx.Ops)
-					if props.Description != "" {
-						semantic.DescriptionOp(props.Description).Add(gtx.Ops)
+					if desc := props.Description; desc != "" || props.Label != "" {
+						if desc == "" {
+							desc = props.Label
+						}
+						semantic.DescriptionOp(desc).Add(gtx.Ops)
 					}
 					return drawCheckbox(gtx, tok, CheckboxRenderState{
 						Checked:  b.Value,
 						Focused:  foc,
 						Disabled: dis,
+						Label:    props.Label,
 					})
 				})
 			}
@@ -176,19 +218,78 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 
 // RenderCheckbox produces a layout.Widget for a checkbox in an explicit visual
 // state, without any event processing or rx machinery. Intended for golden-image
-// testing and static demonstrations; production code should use Checkbox.
+// testing and static demonstrations; production code should use Checkbox,
+// which reads both of the parameters below off the theme.
+//
+// shaper and body draw CheckboxRenderState.Label — the whole text style, so
+// typeface, weight, size and line height all reach the shaper. Pass
+// tokens.DefaultTypography.BodyLarge and a shaper for the default desktop
+// look; a state with no label reaches neither, and a nil shaper is then
+// harmless.
+//
+// Density is not a parameter: the static path always renders at
+// tokens.Comfortable; density-aware rendering goes through Checkbox.
 func RenderCheckbox(
+	shaper *text.Shaper,
 	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
+	body tokens.TextStyle,
 	s CheckboxRenderState,
 ) layout.Widget {
-	// Density is not a parameter: the static path always renders at
-	// tokens.Comfortable; density-aware rendering goes through Checkbox.
-	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, density: tokens.Comfortable}
+	tok := resolvedTokens{
+		platform: p,
+		body:     body,
+		capBand:  body.FaceMetrics().CapHeight,
+		spacing:  sp,
+		radius:   rad,
+		density:  tokens.Comfortable,
+		shaper:   shaper,
+	}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawCheckbox(gtx, tok, s)
 	}
+}
+
+// labelBeside draws label in fg to the right of a glyph whose right edge is at
+// glyphRight, in a row rowH px tall, and answers the width it took — the
+// measured gap plus the label's own — or zero when there is no label. It is
+// the one label a checkbox and a radio draw, so the two cannot drift.
+//
+// The cap band, baseline up to the cap height, is centred on the glyph's row.
+// MEASURED, save-dialog-{light,dark}.png: "Show startup screen" caps run
+// y 375–385 against a square of y 372–387, a band centre of 380.0 against the
+// square's 379.5, and "Stay open after run handler" agrees — the same
+// half-pixel-low rounding the field's prompt takes. The offset is
+// capBandOffset's and may be negative: the body role's line box is taller
+// than the measured 22 px row, so the line box hangs above the row while the
+// band sits where the platform puts it.
+func labelBeside(gtx layout.Context, tok resolvedTokens, glyphRight, rowH int, label string, fg color.NRGBA) int {
+	if label == "" {
+		return 0
+	}
+	gap := gtx.Dp(controlLabelGap)
+	f, wl, textSize := bodyLabel(tok)
+
+	inner := gtx
+	inner.Constraints = layout.Constraints{Max: image.Pt(gtx.Constraints.Max.X-glyphRight-gap, gtx.Constraints.Max.Y)}
+	if inner.Constraints.Max.X < 1 {
+		inner.Constraints.Max.X = 1
+	}
+
+	mMat := op.Record(gtx.Ops)
+	paint.ColorOp{Color: fg}.Add(gtx.Ops)
+	mat := mMat.Stop()
+
+	mLabel := op.Record(gtx.Ops)
+	dims := typeset.Layout(inner, tok.shaper, wl, f, textSize, label, mat)
+	call := mLabel.Stop()
+
+	st := op.Offset(image.Pt(glyphRight+gap, capBandOffset(gtx, tok, rowH, dims))).Push(gtx.Ops)
+	call.Add(gtx.Ops)
+	st.Pop()
+
+	return gap + dims.Size.X
 }
 
 // drawCheckbox renders the checkbox into gtx. All visual state comes from s;
@@ -239,11 +340,13 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 			// mark takes the colour the switched-off label takes beside it:
 			// the platform's tertiary label, which reproduces the measured
 			// #bdbdbd light and #595f62 dark of both checkbox labels on the
-			// sheet. The capture is on the reference's list. On this fill
-			// that mark reads |Lc| 33 light and 17 dark, under the graphic
-			// floor, which is the same order as the switched-off label's own
-			// 35.6 and -16.1 on the sheet: the platform's relation between
-			// its switched-off drawings, recorded rather than derived away.
+			// sheet. The capture is on the reference's list. No contrast
+			// floor applies to either: the platform chose to draw its
+			// switched-off controls below any floor, and the label stands
+			// there as measured — |Lc| 35.6 light and -16.1 dark on the
+			// sheet. On this fill the mark reads |Lc| 33 light and 17 dark,
+			// the same order, which is the platform's relation between its
+			// switched-off drawings recorded rather than derived away.
 			drawCheck(gtx, boxRect, boxSz, vgcolor.Flatten(tok.platform.TertiaryLabel, fill))
 		}
 
@@ -304,7 +407,25 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		}.Op())
 	}
 
-	return layout.Dimensions{Size: image.Pt(ctlSz, ctlSz)}
+	// The label is part of the control, as it is on the platform: it stands
+	// at the measured gap after the square, in the platform's label colour
+	// over the surface the box stands on, and it fades with the box.
+	// MEASURED, save-dialog-{light,dark}.png: an enabled label on that sheet
+	// reads #272727 and #dddfdf, which is what the platform's label lands on
+	// over it, where both switched-off checkbox labels read #bdbdbd and
+	// #595f62.
+	label := vgcolor.Flatten(tok.platform.Label, standsOn)
+	if s.Disabled {
+		label = vgcolor.Flatten(tok.platform.TertiaryLabel, standsOn)
+	}
+	w := ctlSz
+	if beside := labelBeside(gtx, tok, boxRect.Max.X, ctlSz, s.Label, label); beside > 0 {
+		// The control ends at the label's last column; the row's height
+		// stays the measured one whatever the label's line box is.
+		w = boxRect.Max.X + beside
+	}
+
+	return layout.Dimensions{Size: image.Pt(w, ctlSz)}
 }
 
 // drawCheck strokes the check into the box at boxRect, boxSz px on a side, in
