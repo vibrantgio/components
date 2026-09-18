@@ -444,8 +444,8 @@ func TestMenuSelectedRowIsDrawnApartFromTheRest(t *testing.T) {
 
 // TestToolbarIsSizedToItsValue: the chrome variant's trigger is a control
 // around its value, not a bar across its container — it clamps to what it is
-// offered and otherwise reports its own width, at the density's control
-// height.
+// offered and otherwise reports its own width, at the density's TOOLBAR
+// control height.
 func TestToolbarIsSizedToItsValue(t *testing.T) {
 	w := picker.RenderToolbar(defaultShaper(t), "Anthropic · Opus 5", tokens.PlatformLight,
 		tokens.Spacing, tokens.DefaultTypography.LabelLarge,
@@ -454,8 +454,8 @@ func TestToolbarIsSizedToItsValue(t *testing.T) {
 	if dims.Size.X >= 400 {
 		t.Errorf("toolbar measured %d px wide at a 400 px constraint: a picker's trigger is sized to its value", dims.Size.X)
 	}
-	if want := int(tokens.Comfortable.ControlHeight); dims.Size.Y != want {
-		t.Errorf("toolbar height = %d px, want the density's control height %d px", dims.Size.Y, want)
+	if want := int(tokens.Comfortable.ToolbarControlHeight); dims.Size.Y != want {
+		t.Errorf("toolbar height = %d px, want the density's toolbar control height %d px", dims.Size.Y, want)
 	}
 }
 

@@ -117,9 +117,17 @@ type ToolbarProps struct {
 // for what a trigger the menu stands over would need.
 //
 // The pointer target is the drawn control, exactly as components/button's is:
-// the trigger draws at the density's control height and that is what a pointer
-// has to land on. [ToolbarProps.Pin] asks for the offered box instead, in
-// which case the control and its target travel together.
+// the trigger draws at the density's toolbar control height — the platform's
+// own 36 against a dialog control's 24 — and that is what a pointer has to
+// land on. [ToolbarProps.Pin] asks for the offered box instead, in which case
+// the control and its target travel together.
+//
+// A chrome variant belongs in a chrome region. It draws the platform's
+// toolbar control, which is what the platform draws in a toolbar band and
+// nowhere else, so a caller standing one on the content plane is showing a
+// toolbar control where the platform has none; the form trigger is the
+// control for a form. Nothing here tests for it, and nothing invents an edge
+// to make the stray case read.
 //
 // Keyboard activation is gioui.org/widget.Clickable's: the trigger is
 // focusable, Space and Enter activate it, and gtx.Focused drives
@@ -224,7 +232,9 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 //
 // labelStyle is the whole text style the value is set in; pass
 // tokens.DefaultTypography.LabelLarge with tokens.Comfortable for the default
-// desktop control. The trigger is sized to its content, clamped to the
+// desktop control. The height comes off d.ToolbarControlHeight, not
+// d.ControlHeight: the platform draws a control in a toolbar band taller than
+// one in a dialog. The trigger is sized to its content, clamped to the
 // constraints it is handed, and asks for the pointer cursor. Registering its
 // pointer area over that control is the live path's job — see [Toolbar].
 func RenderToolbar(

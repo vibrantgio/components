@@ -36,8 +36,14 @@ func onSurface(fill color.NRGBA, w layout.Widget) layout.Widget {
 	}
 }
 
-// The two surfaces a chrome-variant trigger actually rests on: the chrome band
-// a toolbar is, and the content plane a header row inside a pane stands on.
+// The two bands a chrome-variant trigger actually rests on. A toolbar band
+// carries no fill of its own on this platform — it is the fill of whatever
+// region lies under it, continued upward (MEASURED,
+// finder-window-untinted-dark.png: #1c1c1c over the sidebar and #1e1e1e over
+// the content) — so a trigger in a band over a rail stands on the
+// chrome material, and one in a band over the document stands on the
+// content's own fill. Both are chrome regions; the second is not the
+// content plane.
 var goldenSurfaces = []struct {
 	name string
 	fill func(tokens.PlatformColors) color.NRGBA
@@ -120,9 +126,10 @@ func TestToolbarStateGolden(t *testing.T) {
 
 // TestToolbarDrawsAtTheDensityTable holds the geometry the trigger takes off
 // the tokens rather than off numbers of its own: the height is the density's
-// control height and nothing else, which is what the platform's pop-up
-// measures and what the form trigger draws, so a face that reached for its own
-// padding or grew to its own line box would draw a different box.
+// TOOLBAR control height and nothing else, which is what every bordered
+// control in the stored Finder toolbars measures, so a face that reached for
+// the form trigger's control height, for its own padding, or grew to its own
+// line box would draw a different box.
 func TestToolbarDrawsAtTheDensityTable(t *testing.T) {
 	shaper := defaultShaper(t)
 	box := image.Pt(1000, 1000)
@@ -132,14 +139,14 @@ func TestToolbarDrawsAtTheDensityTable(t *testing.T) {
 		ts   tokens.TextStyle
 		want int
 	}{
-		{"comfortable", tokens.Comfortable, tokens.DefaultTypography.LabelLarge, 24},
-		{"compact", tokens.Compact, tokens.DefaultTypography.LabelMedium, 19},
+		{"comfortable", tokens.Comfortable, tokens.DefaultTypography.LabelLarge, 36},
+		{"compact", tokens.Compact, tokens.DefaultTypography.LabelMedium, 36},
 	} {
 		t.Run(d.name, func(t *testing.T) {
 			trigger := measure(t, box, picker.RenderToolbar(shaper, "Model", tokens.PlatformLight,
 				tokens.Spacing, d.ts, d.d, picker.ToolbarState{})).Size
 			if trigger.Y != d.want {
-				t.Errorf("toolbar height %d, want the density's control height %d",
+				t.Errorf("toolbar height %d, want the density's toolbar control height %d",
 					trigger.Y, d.want)
 			}
 			if trigger.X >= box.X {

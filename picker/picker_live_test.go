@@ -244,8 +244,8 @@ func TestToolbarActivatesOverTheControlItDrew(t *testing.T) {
 	r := new(gioinput.Router)
 	drive := driver(w, r, image.Pt(400, 120))
 	dims := drive()
-	if want := int(tokens.Comfortable.ControlHeight); dims.Size.Y != want {
-		t.Fatalf("toolbar measured %d px tall, want the density's control height %d px", dims.Size.Y, want)
+	if want := int(tokens.Comfortable.ToolbarControlHeight); dims.Size.Y != want {
+		t.Fatalf("toolbar measured %d px tall, want the density's toolbar control height %d px", dims.Size.Y, want)
 	}
 	if dims.Size.X >= 400 {
 		t.Fatalf("toolbar measured %d px wide at a 400 px constraint: it is sized to its value", dims.Size.X)

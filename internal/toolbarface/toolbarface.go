@@ -1,8 +1,9 @@
 // Package toolbarface holds the geometry components/picker's chrome-variant
 // trigger is drawn from: the fill it stands off its band with and tints under
 // the pointer, the hairline around it, the focus ring that replaces that
-// hairline, the density's control height, the pointer target's placement,
-// and the pop-up mark that says the control holds one of several values.
+// hairline, the density's toolbar control height, the pointer target's
+// placement, and the pop-up mark that says the control holds one of several
+// values.
 //
 // It is internal because it is a seam and not a component: a caller reaches
 // for picker.Toolbar or picker.RenderToolbar, and those document the control
@@ -241,7 +242,7 @@ func Draw(
 	// a ratio of the control's height.
 	lead := gtx.Dp(control.PopupLeadDp)
 	trail := gtx.Dp(control.PopupMarkTrailDp)
-	minH := gtx.Dp(unit.Dp(d.ControlHeight))
+	minH := gtx.Dp(unit.Dp(d.ToolbarControlHeight))
 	gap := gtx.Dp(unit.Dp(sp.S3))
 	mark := gtx.Dp(control.MarkWDp)
 
@@ -270,15 +271,21 @@ func Draw(
 
 	// Sized to content across, not to the width it was given: the control
 	// names a choice, and one that stretched would be a banner. Down, it is
-	// the density's control height and nothing else, which is what the form
-	// trigger draws and what keeps the two variants one control.
+	// the density's TOOLBAR control height and nothing else. That is a
+	// different number from the form trigger's control height —
+	// tokens.Density.ToolbarControlHeight's 36 against ControlHeight's 24 —
+	// because the platform draws it as a different control: every bordered
+	// control in the stored Finder toolbars measures 36 where the same
+	// window's dialog pop-up measures 24. The two variants are one component
+	// drawn in two places, and the place settles the height.
 	w := lead + labelDims.Size.X + gap + mark + trail
 	w = min(w, gtx.Constraints.Max.X)
 	h := min(minH, gtx.Constraints.Max.Y)
 	size := image.Pt(w, h)
 	box := image.Rectangle{Max: size}
 
-	// The corner is fully rounded — half the control's height. MEASURED,
+	// The corner is fully rounded — half the control's height, so it follows
+	// the toolbar height the box was just measured to. MEASURED,
 	// finder-window-untinted-light.png: the toolbar's group pull-down spans
 	// y 34-69 and its sub-pixel left edge reaches its extreme over rows 50-53,
 	// the control's own middle, which is a capsule; circular fits to that

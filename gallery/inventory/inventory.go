@@ -1299,7 +1299,9 @@ const (
 	pickerRowGap = 20
 	// pickerChromePad is the band of chrome material drawn around a chrome
 	// trigger, so the step between the control's fill and the band it stands
-	// on is visible on every side of it.
+	// on is visible on every side of it. It is the platform's own placement:
+	// a 36 dp toolbar control is centred in a 52 px unified toolbar band with
+	// 8 px above it and 8 below (.github/reference/macos/controls.md).
 	pickerChromePad = 8
 )
 
@@ -1323,7 +1325,12 @@ const (
 // says; stretched to a form field's width it would be reporting a geometry
 // the component does not have. It stands on the chrome material, which is what
 // the section paints behind it: the control carries a fill of its own and the
-// whole of what that fill is for is the step between it and its band.
+// whole of what that fill is for is the step between it and its band. That
+// band is not decoration around a specimen — a chrome variant lives in a
+// chrome region, so a trigger shown on the page's own plane would be a
+// specimen of something the library does not draw. It is also why the two
+// triggers in this section are different heights: the toolbar's is the
+// platform's measured toolbar control and the field's is the dialog's.
 func (inv *Inventory) pickerRow(c tokens.PlatformColors) layout.Widget {
 	opts := []string{"Apple", "Banana", "Cherry"}
 	fields := []struct {
