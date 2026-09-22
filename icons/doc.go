@@ -18,16 +18,16 @@
 //
 // # Names
 //
-// A name says what the mark stands for, never what the picture contains:
+// A name says what the mark depicts, never what the control using it does:
 // sidebar, disclosure, history-back — not panel-with-lines, triangle,
-// left-chevron. For most of the set that is a control; a mark may also stand
-// for a thing, which is what a row in a list is drawn with — folder,
-// document — and the two are told apart by the name, which is why the control
-// that chooses a folder is open-folder and the folder a row IS is folder. The
-// drawing behind a name is free to change, and does change between platforms;
-// the name is the part call sites store, so it has to survive that. Names are
-// lowercase ASCII with words joined by "-", the qualifier last
-// (history-back, history-forward), and they are stable once published.
+// left-chevron. One picture therefore carries one name however many actions
+// it serves: the folder a row IS and the control that chooses which folder a
+// window shows are both drawn with a closed folder, so both ask for folder,
+// and what the control does is its label's to say. The drawing behind a name
+// is free to change, and does change between platforms; the name is the part
+// call sites store, so it has to survive that. Names are lowercase ASCII with
+// words joined by "-", the qualifier last (history-back, history-forward),
+// and they are stable once published.
 //
 // # One name, one drawing per platform
 //
@@ -146,9 +146,8 @@
 // which is 0.93 px at 16 dp, and it held a whole pixel nowhere at that size at
 // all. A band's placement still stands on the WHOLE unit wherever the
 // measurement leaves it free — the plus's two bars run 10.6 to 12, the
-// folder's flap 8.6 to 10, the open folder's 9.6 to 11, the document's fold
-// upright 11 to 12.4 — and every file records what its measured placements
-// reach where they land nothing.
+// folder's flap 8.6 to 10, the document's fold upright 11 to 12.4 — and every
+// file records what its measured placements reach where they land nothing.
 //
 // THE KEYLINE LANDS A PIXEL AT ONE SIZE OF THE THREE, and that is the price
 // of the two measurements together. 19 units is odd against a 24-unit box, so
@@ -225,15 +224,11 @@
 // bands rather than a band. Its capture holds the flap 1.24 px clear of the
 // body's inner top face over a mean band of 1.42
 // (voicememos-multi-folder-2026-09-18.png), which is 1.22 units against the
-// set's own band, where the open folder's own capture gives 2.09
-// (mail-window.png: a 1.34 px edge over 2.00 px of air). The two marks read
-// two different folders because the platform draws two different folders. A
-// band widened to a device width takes that air with it: at 16 dp the gap
-// comes to 0.41 px and the two bands share a device pixel, so the flap and
-// the body's top face read as one thickened band there. No stored capture
-// holds either folder BELOW 24 dp, and neither is redrawn without one — the
-// gap is a measurement and widening it would replace that with a copy of the
-// other mark's. The capture is on the reference's list.
+// set's own band. A band widened to a device width takes that air with it: at
+// 16 dp the gap comes to 0.41 px and the two bands share a device pixel, so
+// the flap and the body's top face read as one thickened band there. No
+// stored capture holds the folder BELOW 24 dp, and it is not redrawn without
+// one — the gap is a measurement. The capture is on the reference's list.
 //
 // WHAT ONE BAND COSTS THE DIAGONAL, and why the compensation went. A band at
 // 45 degrees crosses a pixel corner to corner, so it covers less of one than

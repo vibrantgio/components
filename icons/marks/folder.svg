@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <!-- Folder: the thing a sidebar row stands for when the entry holds other
-       entries. It names a thing rather than a control, which is what tells it
-       from the open-folder mark: that one is drawn on the control that
-       chooses which folder a window is showing.
+  <!-- Folder: the closed folder. It is the thing a sidebar row stands for
+       when the entry holds other entries, and it is the picture on the
+       control that chooses which folder a window is showing — one mark,
+       because a mark is named by what it depicts.
 
        MEASURED at 1x, the folder symbol on every folder row of
        voicememos-multi-folder-2026-09-18.png (the panel at x 64-283, the
@@ -52,22 +52,16 @@
        redrawn. The capture's 1.24 px of air is 1.2 units here, and half the
        widening comes off each side of it: at 20 dp the gap is 0.77 px and at
        16 dp 0.41, so the flap and the body's inner top face share a device
-       pixel there and read as one thickened band. Widening the gap would
-       replace the capture's own reading with a copy of the open folder's
-       2.09, and no stored capture holds this folder below 24 dp — so nothing
-       is redrawn and the capture is on the reference's list. Moving the sides onto a whole unit costs the figure the keyline,
+       pixel there and read as one thickened band. No stored capture holds
+       this folder below 24 dp, so nothing is redrawn and the capture is on
+       the reference's list. Moving the sides onto a whole unit costs the figure the keyline,
        which is the measured extent the whole set is drawn to, so the keyline
        stands and the miss is recorded.
 
-       THE FLAP IS INSET, and that is what tells this mark from the
-       open-folder one at a glance. The capture holds it clear of the body's
-       two sides by about 1.2 px of a 20 px body, which is 1.14 units against
-       this figure's 19; it is drawn at 1.25 in from each side of the inner
-       pane, so it runs 5.15 to 18.85 where the open-folder mark's flap runs
-       the full inner width its own capture reads it at. Mail's pull-down and
-       Voice Memos' sidebar draw two folders and this is the difference
-       between them; without it the two marks are one drawing with a row
-       between them.
+       THE FLAP IS INSET. The capture holds it clear of the body's two sides
+       by about 1.2 px of a 20 px body, which is 1.14 units against this
+       figure's 19; it is drawn at 1.25 in from each side of the inner pane,
+       so it runs 5.15 to 18.85.
 
        Three contours, abutting rather than winding against each other: the
        tab's bar, the body as an outline with its inner edge wound back, and

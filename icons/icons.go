@@ -78,14 +78,10 @@ const (
 	// is read again is the control's label to say.
 	Refresh Name = "refresh"
 
-	// OpenFolder is the control that opens a folder — chooses which folder
-	// the window is showing.
-	OpenFolder Name = "open-folder"
-
-	// Folder is the thing an entry stands for when it holds other entries.
-	// It names a thing rather than a control, which is what tells it from
-	// OpenFolder: that one is drawn on the control that chooses which folder
-	// a window is showing, and this one on the row that is a folder.
+	// Folder is the folder: the thing an entry stands for when it holds
+	// other entries, and the picture on the control that chooses which
+	// folder a window is showing. A mark is named by what it depicts, so one
+	// folder serves both — what the control does is its label's to say.
 	Folder Name = "folder"
 
 	// Document is the thing an entry stands for when it is one piece of

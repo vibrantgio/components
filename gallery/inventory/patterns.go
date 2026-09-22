@@ -21,6 +21,7 @@ import (
 
 	"github.com/vibrantgio/components/badge"
 	"github.com/vibrantgio/components/button"
+	"github.com/vibrantgio/components/icons"
 	complayout "github.com/vibrantgio/components/layout"
 	"github.com/vibrantgio/components/toast"
 	"github.com/vibrantgio/patterns/accordion"
@@ -281,13 +282,21 @@ func (inv *Inventory) navbar(c tokens.PlatformColors) layout.Widget {
 	}
 }
 
-func (inv *Inventory) sidebarProps(c tokens.PlatformColors) patsidebar.Props {
+// sidebarProps is the rail the specimen shows: two runs, the second headed,
+// counts on the entries that hold things and none on the one that does not.
+//
+// The symbols are the icon set's own marks rather than stand-in shapes,
+// because the row's symbol carries a colour of its own — the sidebar's
+// measured symbol value, stronger than the label beside it and the pill's
+// foreground on the selected row — and a shape that paints itself would show
+// none of it.
+func (inv *Inventory) sidebarProps(tokens.PlatformColors) patsidebar.Props {
 	return patsidebar.Props{
 		Items: []patsidebar.Item{
-			{Icon: dot(c.SystemBlue, 16), Label: "Everything", Count: "128", Active: true},
-			{Icon: dot(c.SystemIndigo, 16), Label: "Components", Count: "46", Section: "Library"},
-			{Icon: dot(c.SystemTeal, 16), Label: "Patterns", Count: "16"},
-			{Icon: dot(c.SystemGreen, 16), Label: "Markdown"},
+			{Icon: inv.marks.Mark(icons.Folder), Label: "Everything", Count: "128", Active: true},
+			{Icon: inv.marks.Mark(icons.Folder), Label: "Components", Count: "46", Section: "Library"},
+			{Icon: inv.marks.Mark(icons.Folder), Label: "Patterns", Count: "16"},
+			{Icon: inv.marks.Mark(icons.Document), Label: "Markdown"},
 		},
 		Shaper: inv.shaper,
 	}

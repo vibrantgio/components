@@ -151,24 +151,10 @@ var markBands = map[string][]band{
 		{"the second list line", across, 10.185, secondBand, 5.15, 7.68, 6.5, 2},
 		{"the third list line", across, 12.385, secondBand, 5.15, 7.68, 6.5, 2},
 	},
-	// The folder measured off mail-window.png: the tab's 1.5-unit rise is an
-	// extent the capture gives rather than a band, and it meets the body's own
-	// top band, so a column through the tab reads the two as one run.
-	// open-folder.svg records all six.
-	"open-folder": {
-		{"the tab's top", across, 4.5, 1.5, 2.5, 9.5, 6, 0},
-		{"the body's top", across, 6, 0, 2.5, 21.5, 12, 1},
-		{"the flap", across, 9.6, 0, 3.9, 20.1, 12, 2},
-		{"the body's foot", across, 18.1, 0, 2.5, 21.5, 12, 1},
-		{"the leading side", down, 2.5, 0, 6, 19.5, 15, 1},
-		{"the trailing side", down, 20.1, 0, 6, 19.5, 15, 1},
-	},
-	// The sidebar's own folder, measured off
-	// voicememos-multi-folder-2026-09-18.png. Its flap stands 1.2 units below
-	// the body's inner top face where the open folder's stands 2.2, which is
-	// the capture's own 1.24 px of air: the two share a device pixel at 16 dp
-	// and the set redraws neither without a capture at that size.
-	// folder.svg records all six.
+	// The folder, measured off voicememos-multi-folder-2026-09-18.png. The
+	// tab's 1.5-unit rise is an extent the capture gives rather than a band,
+	// and it meets the body's own top band, so a column through the tab reads
+	// the two as one run. folder.svg records all six.
 	"folder": {
 		{"the tab's top", across, 4.5, 1.5, 2.5, 9, 6, 0},
 		{"the body's top", across, 6, 0, 2.5, 21.5, 12, 1},
