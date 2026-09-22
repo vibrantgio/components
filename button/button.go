@@ -50,12 +50,12 @@ const (
 
 	// Tonal is the middle variant: the platform's ordinary button — the
 	// push button's own measured fill under the platform's control text,
-	// inside the platform's hairline. The variant for a secondary action,
-	// and the one a row of equals wears.
+	// and no edge around it. The variant for a secondary action, and the
+	// one a row of equals wears.
 	Tonal
 
 	// Ghost is the least pronounced variant: the platform's borderless
-	// button — no fill and no hairline, the label or glyph in the
+	// button — no fill and no edge, the label or glyph in the
 	// platform's control text. For affordances that must be present without
 	// being the subject — a dialog's close X, a toolbar of icons, a "Learn
 	// more". A ghost is less pronounced, not small: it draws the same square
@@ -516,7 +516,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	rad := gtx.Dp(unit.Dp(tok.radius.Md)) // 6 dp corner radius
 
-	bg, edge, fg, haloOut, haloOver := buttonColors(tok.platform, s)
+	bg, fg, haloOut, haloOver := buttonColors(tok.platform, s)
 
 	// Record the label's paint material — replayed inside the label layout.
 	mColor := op.Record(gtx.Ops)
@@ -554,15 +554,12 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	}
 	btnSize := image.Pt(btnW, btnH)
 
-	// The fill, then the hairline the platform draws around an ordinary
-	// button. Both are opaque: buttonColors has already laid the platform's
-	// press overlay into the fill and the seam onto that, so nothing here
-	// asks Gio to composite a coverage.
+	// The fill, and nothing around it: the platform's push button draws no
+	// edge in any captured state (buttonColors). The fill is opaque —
+	// buttonColors has already laid the platform's press overlay into it —
+	// so nothing here asks Gio to composite a coverage.
 	rrect := clip.RRect{Rect: image.Rectangle{Max: btnSize}, SE: rad, SW: rad, NE: rad, NW: rad}
 	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
-	if edge.A != 0 {
-		strokeRRect(gtx, btnSize, rad, edge)
-	}
 
 	// The focus halo, on the button's own outline: same shape, same width
 	// and same place in every emphasis — keyboard visibility is not a
@@ -604,13 +601,10 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 	rad := gtx.Dp(unit.Dp(tok.radius.Md)) // 6 dp corner radius
 	sz := image.Pt(side, side)
 
-	bg, edge, fg, haloOut, haloOver := buttonColors(tok.platform, s)
+	bg, fg, haloOut, haloOver := buttonColors(tok.platform, s)
 
 	rrect := clip.RRect{Rect: image.Rectangle{Max: sz}, SE: rad, SW: rad, NE: rad, NW: rad}
 	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
-	if edge.A != 0 {
-		strokeRRect(gtx, sz, rad, edge)
-	}
 
 	// The focus halo, matching drawButton.
 	if s.Focused {
@@ -634,43 +628,14 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 	return layout.Dimensions{Size: sz}
 }
 
-// strokeRRect draws a one-hair line around a rounded rectangle of size size,
-// wholly inside it: the button's painted footprint is size, not size plus
-// half a line.
-//
-// A stroke is centred on the path it follows, so a hairline drawn at its own
-// width spends half of itself outside the box the button reports. The
-// platform's hairline carries a coverage rather than a colour, so half laid
-// on the button's fill and half on whatever stands behind it is two
-// different lines; and at 1x, where the hairline is one device pixel, the
-// outside half is a half-covered row above the button and another below it,
-// which measures a Tonal button 2 px taller than the Filled one beside it.
-// Insetting the path cannot fix that at 1x — half of one pixel is not an
-// integer coordinate — so the line is stroked at twice its width under a
-// clip of the button's own shape, which takes the outside half away. The
-// same idiom the picker's trigger and patterns' group hairline are drawn
-// with; the checkbox reaches the same place by insetting one fill inside
-// another.
-func strokeRRect(gtx layout.Context, size image.Point, rad int, col color.NRGBA) {
-	w := gtx.Dp(unit.Dp(1))
-	if w < 1 {
-		w = 1
-	}
-	rrect := clip.RRect{Rect: image.Rectangle{Max: size}, SE: rad, SW: rad, NE: rad, NW: rad}
-	stroke := clip.Stroke{Path: rrect.Path(gtx.Ops), Width: float32(2 * w)}.Op()
-	area := rrect.Push(gtx.Ops)
-	paint.FillShape(gtx.Ops, col, stroke)
-	area.Pop()
-}
-
 // buttonColors returns what the button paints for the given variant and
-// interaction state: the fill, the hairline around it, the foreground of the
-// label or glyph, and the two colours the halo of a focused button takes —
-// the half past its box and the half over it. An unused part comes
-// back at alpha zero, which is no colour a fill could use.
+// interaction state: the fill, the foreground of the label or glyph, and the
+// two colours the halo of a focused button takes — the half past its box and
+// the half over it. An unused part comes back at alpha zero, which is no
+// colour a fill could use.
 //
-// Every one of them is opaque. The platform's press overlay, seam, control
-// text and disabled text each carry a coverage, and the platform composites
+// Every one of them is opaque. The platform's press overlay, control text
+// and disabled text each carry a coverage, and the platform composites
 // those in encoded sRGB where Gio's rasterizer would composite them in
 // linear light, so each is flattened here onto the fill it actually lands
 // on — the button's own where it has one and RenderState.Surface where it
@@ -680,9 +645,23 @@ func strokeRRect(gtx layout.Context, size image.Point, rad int, col color.NRGBA)
 //
 //	Filled   the default push button's measured fill under the foreground
 //	         the platform pairs with it
-//	Tonal    the push button's measured fill and the platform's control
-//	         text, inside its hairline
-//	Ghost    no fill and no hairline, the platform's control text
+//	Tonal    the push button's measured fill under the platform's control
+//	         text
+//	Ghost    no fill, the platform's control text
+//
+// No variant draws an edge, in any state. MEASURED,
+// save-dialog-{light,dark}.png: the "Cancel" push button's boundary steps in
+// one row or column from the sheet to its own fill on every side, with no
+// stroke of a third value anywhere on it. Down x=365 the sheet's #ffffff
+// runs to y=500, y=501 reads #ededed and y 502-523 the fill's #ececec, and
+// across y=512 #ffffff at x=358 meets #ececec at x=359; dark, #232a2f to
+// #33393d at y=501 to #333a3f, and #232a2f at x=358 to #333a3f at x=359. The
+// single boundary row is the rounded rectangle's own antialiasing, a value
+// between the fill and the sheet rather than past either. MEASURED,
+// control-pressed-{light,dark}.png: the held "Cancel" reads the same way,
+// #ffffff to #d8d8d8 to #d5d5d5 and #232a2f to #454b4e to #474d52. The
+// "Tags:" field is the only unfocused enabled control on that sheet drawing
+// an edge at all, and the switched-off checkbox draws none either.
 //
 // Under the pointer the button takes the platform's hover overlay over
 // whatever fill it carries, and held down its press overlay over that same
@@ -700,9 +679,9 @@ func strokeRRect(gtx layout.Context, size image.Point, rad int, col color.NRGBA)
 // "Save" beside it keeps its resting fill — so the two overlays composite
 // over the default fill on the same rule as everywhere else.
 //
-// Disabled fades the control toward the surface it stands on: the fill and
-// the hairline at the platform's measured disabled coverage (control.Faded),
-// the foreground at the platform's disabled control text. The platform draws
+// Disabled fades the control toward the surface it stands on: the fill at
+// the platform's measured disabled coverage (control.Faded), the foreground
+// at the platform's disabled control text. The platform draws
 // a disabled default action as an ordinary disabled button, so every variant
 // that carries a fill falls back to the push button's fill first and fades
 // from there — which is what parts a disabled button from an enabled Tonal
@@ -720,14 +699,13 @@ func strokeRRect(gtx layout.Context, size image.Point, rad int, col color.NRGBA)
 // is no pair.
 //
 // Focus is a persistent state and not a treatment that replaces another: in
-// every variant it keeps the resting fill and the hairline and adds the halo.
-func buttonColors(p tokens.PlatformColors, s RenderState) (bg, edge, fg, haloOut, haloOver color.NRGBA) {
+// every variant it keeps the resting fill and adds the halo.
+func buttonColors(p tokens.PlatformColors, s RenderState) (bg, fg, haloOut, haloOver color.NRGBA) {
 	standsOn := surface.Or(s.Surface, p.WindowBackground)
 
-	var edged bool
 	switch s.Emphasis {
 	case Tonal:
-		bg, edged, fg = p.PushButtonFill, true, p.ControlText
+		bg, fg = p.PushButtonFill, p.ControlText
 
 	case Ghost:
 		fg = p.ControlText
@@ -743,7 +721,7 @@ func buttonColors(p tokens.PlatformColors, s RenderState) (bg, edge, fg, haloOut
 	if s.Disabled {
 		fg = p.DisabledControlText
 		if s.Emphasis != Ghost {
-			bg, edged = control.Faded(p.PushButtonFill, standsOn), true
+			bg = control.Faded(p.PushButtonFill, standsOn)
 		}
 	}
 
@@ -751,8 +729,7 @@ func buttonColors(p tokens.PlatformColors, s RenderState) (bg, edge, fg, haloOut
 	// straight onto the surface where it carries none — which is how a held
 	// or hovered Ghost button gets a fill at all. A press wins over a hover:
 	// the two are one answer and not two laid on each other. Everything the
-	// button draws over that result is then flattened onto it, hairline
-	// included: the platform's seam over a held button is over the held fill.
+	// button draws over that result is then flattened onto it.
 	if !s.Disabled {
 		switch {
 		case s.Pressed:
@@ -762,14 +739,7 @@ func buttonColors(p tokens.PlatformColors, s RenderState) (bg, edge, fg, haloOut
 		}
 	}
 	beneath := fillOr(bg, standsOn)
-	if edged {
-		seam := p.Separator
-		if s.Disabled {
-			seam = vgcolor.Fade(seam, tokens.DisabledCoverage)
-		}
-		edge = vgcolor.Flatten(seam, beneath)
-	}
-	return bg, edge, vgcolor.Flatten(fg, beneath), focus.Ring(p, standsOn), focus.Ring(p, beneath)
+	return bg, vgcolor.Flatten(fg, beneath), focus.Ring(p, standsOn), focus.Ring(p, beneath)
 }
 
 // fillOr returns the button's own fill, or what it stands on where it has

@@ -21,9 +21,8 @@
 // and each variant is one of the three buttons the platform draws: filled is
 // the platform's default action, its accent under the foreground the platform
 // pairs with an accent fill; tonal is the platform's ordinary button, its
-// measured fill under its control text inside its hairline; ghost is the
-// platform's borderless kind, no fill and no hairline under the same control
-// text. The drawn size, and with it the pointer target, are identical in all
+// measured fill under its control text, with no edge around it; ghost is the
+// platform's borderless kind, no fill at all under the same control text. The drawn size, and with it the pointer target, are identical in all
 // three, and so is the focus ring's shape, width, place and colour. Focus is
 // a persistent state in every variant: the resting fill stays and the ring is
 // added to it. The least pronounced variant is not the smallest one and is no
@@ -34,8 +33,8 @@
 // fill; a press wins, the two not being states that stack. The overlays are
 // the platform's own, each read off the state captures in the organization's
 // macOS reference. Disabled fades the control toward the surface it stands
-// on: the fill and the hairline at the platform's measured disabled
-// coverage, the foreground at its disabled control text. A fill falls back to
+// on: the fill at the platform's measured disabled coverage, the foreground
+// at its disabled control text. A fill falls back to
 // the push button's fill first and fades from there, because the platform
 // draws a disabled default action as an ordinary disabled button.
 //

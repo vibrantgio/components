@@ -59,46 +59,44 @@ func TestEmphasisTakesThePlatformsNames(t *testing.T) {
 			pinHit    = on(p.PressOverlay, pinFill)
 			// Switched off, a fill falls back to the push button's and
 			// fades toward the surface at the platform's measured
-			// coverage; the hairline over it fades by the same amount.
+			// coverage.
 			pushOff = vgcolor.Flatten(vgcolor.Fade(push, tokens.DisabledCoverage), plane)
-			seamOff = on(vgcolor.Fade(p.Separator, tokens.DisabledCoverage), pushOff)
 		)
 		for _, tc := range []struct {
 			name  string
 			state RenderState
 			bg    color.NRGBA
-			edge  color.NRGBA
 			fg    color.NRGBA
 			ring  color.NRGBA
 		}{
-			{"filled rest", RenderState{}, deflt, transparent, on(p.AlternateSelectedControlText, deflt), on(p.KeyboardFocusIndicator, deflt)},
-			{"filled hovered", RenderState{Hovered: true}, defltOver, transparent, on(p.AlternateSelectedControlText, defltOver), on(p.KeyboardFocusIndicator, defltOver)},
-			{"filled focused", RenderState{Focused: true}, deflt, transparent, on(p.AlternateSelectedControlText, deflt), on(p.KeyboardFocusIndicator, deflt)},
-			{"filled pressed", RenderState{Pressed: true}, defltHit, transparent, on(p.AlternateSelectedControlText, defltHit), on(p.KeyboardFocusIndicator, defltHit)},
-			{"filled disabled", RenderState{Disabled: true}, pushOff, seamOff, on(p.DisabledControlText, pushOff), on(p.KeyboardFocusIndicator, pushOff)},
+			{"filled rest", RenderState{}, deflt, on(p.AlternateSelectedControlText, deflt), on(p.KeyboardFocusIndicator, deflt)},
+			{"filled hovered", RenderState{Hovered: true}, defltOver, on(p.AlternateSelectedControlText, defltOver), on(p.KeyboardFocusIndicator, defltOver)},
+			{"filled focused", RenderState{Focused: true}, deflt, on(p.AlternateSelectedControlText, deflt), on(p.KeyboardFocusIndicator, deflt)},
+			{"filled pressed", RenderState{Pressed: true}, defltHit, on(p.AlternateSelectedControlText, defltHit), on(p.KeyboardFocusIndicator, defltHit)},
+			{"filled disabled", RenderState{Disabled: true}, pushOff, on(p.DisabledControlText, pushOff), on(p.KeyboardFocusIndicator, pushOff)},
 
-			{"tonal rest", RenderState{Emphasis: Tonal}, push, on(p.Separator, push), on(p.ControlText, push), on(p.KeyboardFocusIndicator, push)},
-			{"tonal hovered", RenderState{Emphasis: Tonal, Hovered: true}, pushOver, on(p.Separator, pushOver), on(p.ControlText, pushOver), on(p.KeyboardFocusIndicator, pushOver)},
-			{"tonal pressed", RenderState{Emphasis: Tonal, Pressed: true}, pushHit, on(p.Separator, pushHit), on(p.ControlText, pushHit), on(p.KeyboardFocusIndicator, pushHit)},
-			{"tonal disabled", RenderState{Emphasis: Tonal, Disabled: true}, pushOff, seamOff, on(p.DisabledControlText, pushOff), on(p.KeyboardFocusIndicator, pushOff)},
+			{"tonal rest", RenderState{Emphasis: Tonal}, push, on(p.ControlText, push), on(p.KeyboardFocusIndicator, push)},
+			{"tonal hovered", RenderState{Emphasis: Tonal, Hovered: true}, pushOver, on(p.ControlText, pushOver), on(p.KeyboardFocusIndicator, pushOver)},
+			{"tonal pressed", RenderState{Emphasis: Tonal, Pressed: true}, pushHit, on(p.ControlText, pushHit), on(p.KeyboardFocusIndicator, pushHit)},
+			{"tonal disabled", RenderState{Emphasis: Tonal, Disabled: true}, pushOff, on(p.DisabledControlText, pushOff), on(p.KeyboardFocusIndicator, pushOff)},
 
-			{"ghost rest", RenderState{Emphasis: Ghost}, transparent, transparent, on(p.ControlText, plane), on(p.KeyboardFocusIndicator, plane)},
-			{"ghost hovered", RenderState{Emphasis: Ghost, Hovered: true}, ghostOver, transparent, on(p.ControlText, ghostOver), on(p.KeyboardFocusIndicator, ghostOver)},
-			{"ghost pressed", RenderState{Emphasis: Ghost, Pressed: true}, ghostHit, transparent, on(p.ControlText, ghostHit), on(p.KeyboardFocusIndicator, ghostHit)},
-			{"ghost disabled", RenderState{Emphasis: Ghost, Disabled: true}, transparent, transparent, on(p.DisabledControlText, plane), on(p.KeyboardFocusIndicator, plane)},
+			{"ghost rest", RenderState{Emphasis: Ghost}, transparent, on(p.ControlText, plane), on(p.KeyboardFocusIndicator, plane)},
+			{"ghost hovered", RenderState{Emphasis: Ghost, Hovered: true}, ghostOver, on(p.ControlText, ghostOver), on(p.KeyboardFocusIndicator, ghostOver)},
+			{"ghost pressed", RenderState{Emphasis: Ghost, Pressed: true}, ghostHit, on(p.ControlText, ghostHit), on(p.KeyboardFocusIndicator, ghostHit)},
+			{"ghost disabled", RenderState{Emphasis: Ghost, Disabled: true}, transparent, on(p.DisabledControlText, plane), on(p.KeyboardFocusIndicator, plane)},
 
-			{"pinned rest", RenderState{Fill: pinFill, Foreground: pinForeground}, pinFill, transparent, pinForeground, on(p.KeyboardFocusIndicator, pinFill)},
-			{"pinned pressed", RenderState{Fill: pinFill, Foreground: pinForeground, Pressed: true}, pinHit, transparent, pinForeground, on(p.KeyboardFocusIndicator, pinHit)},
+			{"pinned rest", RenderState{Fill: pinFill, Foreground: pinForeground}, pinFill, pinForeground, on(p.KeyboardFocusIndicator, pinFill)},
+			{"pinned pressed", RenderState{Fill: pinFill, Foreground: pinForeground, Pressed: true}, pinHit, pinForeground, on(p.KeyboardFocusIndicator, pinHit)},
 
 			// A press wins over a hover: the two overlays are one
 			// answer and are never laid on each other.
-			{"tonal held under the pointer", RenderState{Emphasis: Tonal, Hovered: true, Pressed: true}, pushHit, on(p.Separator, pushHit), on(p.ControlText, pushHit), on(p.KeyboardFocusIndicator, pushHit)},
-			{"tonal switched off under the pointer", RenderState{Emphasis: Tonal, Hovered: true, Disabled: true}, pushOff, seamOff, on(p.DisabledControlText, pushOff), on(p.KeyboardFocusIndicator, pushOff)},
+			{"tonal held under the pointer", RenderState{Emphasis: Tonal, Hovered: true, Pressed: true}, pushHit, on(p.ControlText, pushHit), on(p.KeyboardFocusIndicator, pushHit)},
+			{"tonal switched off under the pointer", RenderState{Emphasis: Tonal, Hovered: true, Disabled: true}, pushOff, on(p.DisabledControlText, pushOff), on(p.KeyboardFocusIndicator, pushOff)},
 		} {
-			bg, edge, fg, _, ring := buttonColors(p, tc.state)
-			if bg != tc.bg || edge != tc.edge || fg != tc.fg || ring != tc.ring {
-				t.Errorf("%s/%s: got fill %v edge %v foreground %v ring %v, want %v %v %v %v",
-					sc.name, tc.name, bg, edge, fg, ring, tc.bg, tc.edge, tc.fg, tc.ring)
+			bg, fg, _, ring := buttonColors(p, tc.state)
+			if bg != tc.bg || fg != tc.fg || ring != tc.ring {
+				t.Errorf("%s/%s: got fill %v foreground %v ring %v, want %v %v %v",
+					sc.name, tc.name, bg, fg, ring, tc.bg, tc.fg, tc.ring)
 			}
 		}
 	}
@@ -114,8 +112,8 @@ func TestNothingTheButtonPaintsCarriesACoverage(t *testing.T) {
 				{Emphasis: e}, {Emphasis: e, Pressed: true},
 				{Emphasis: e, Focused: true}, {Emphasis: e, Disabled: true},
 			} {
-				bg, edge, fg, _, ring := buttonColors(p, s)
-				for _, c := range []color.NRGBA{bg, edge, fg, ring} {
+				bg, fg, _, ring := buttonColors(p, s)
+				for _, c := range []color.NRGBA{bg, fg, ring} {
 					if c.A != 0 && c.A != 0xff {
 						t.Errorf("%v %+v: %v carries a coverage; the button paints opaque", e, s, c)
 					}
@@ -132,8 +130,8 @@ func TestNothingTheButtonPaintsCarriesACoverage(t *testing.T) {
 func TestEveryVariantTintsUnderThePointer(t *testing.T) {
 	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
 		for _, e := range []Emphasis{Filled, Tonal, Ghost} {
-			restBG, _, _, _, _ := buttonColors(p, RenderState{Emphasis: e})
-			bg, _, _, _, _ := buttonColors(p, RenderState{Emphasis: e, Hovered: true})
+			restBG, _, _, _ := buttonColors(p, RenderState{Emphasis: e})
+			bg, _, _, _ := buttonColors(p, RenderState{Emphasis: e, Hovered: true})
 			if bg == restBG {
 				t.Errorf("%v hovered is still the resting fill %v", e, bg)
 			}
@@ -152,14 +150,11 @@ func TestEveryVariantTintsUnderThePointer(t *testing.T) {
 // the enabled pop-up seventeen rows above it reads #ececec.
 func TestSwitchedOffPartsFromTheEnabledTonal(t *testing.T) {
 	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
-		tonal, tonalEdge, _, _, _ := buttonColors(p, RenderState{Emphasis: Tonal})
+		tonal, _, _, _ := buttonColors(p, RenderState{Emphasis: Tonal})
 		for _, e := range []Emphasis{Filled, Tonal} {
-			off, offEdge, _, _, _ := buttonColors(p, RenderState{Emphasis: e, Disabled: true})
+			off, _, _, _ := buttonColors(p, RenderState{Emphasis: e, Disabled: true})
 			if off == tonal {
 				t.Errorf("%v switched off fills %v, the same pixel an enabled tonal does", e, off)
-			}
-			if offEdge == tonalEdge {
-				t.Errorf("%v switched off draws the hairline %v, the same pixel an enabled tonal does", e, offEdge)
 			}
 			want := vgcolor.Flatten(vgcolor.Fade(p.PushButtonFill, tokens.DisabledCoverage), p.WindowBackground)
 			if off != want {
@@ -191,12 +186,9 @@ func TestGhostRestingFillIsFullyTransparent(t *testing.T) {
 		{Emphasis: Ghost, Focused: true},
 		{Emphasis: Ghost, Disabled: true},
 	} {
-		bg, edge, _, _, _ := buttonColors(tokens.PlatformLight, s)
+		bg, _, _, _ := buttonColors(tokens.PlatformLight, s)
 		if bg.A != 0 {
 			t.Errorf("ghost %+v: fill alpha = %d, want 0", s, bg.A)
-		}
-		if edge.A != 0 {
-			t.Errorf("ghost %+v: edge alpha = %d, want 0", s, edge.A)
 		}
 	}
 }
@@ -206,8 +198,8 @@ func TestGhostRestingFillIsFullyTransparent(t *testing.T) {
 // is the whole reason the pair exists.
 func TestPinnedFillIsTheCallersPairInBothAppearances(t *testing.T) {
 	pinned := RenderState{Fill: pinFill, Foreground: pinForeground}
-	lightBG, _, lightFG, _, _ := buttonColors(tokens.PlatformLight, pinned)
-	darkBG, _, darkFG, _, _ := buttonColors(tokens.PlatformDark, pinned)
+	lightBG, lightFG, _, _ := buttonColors(tokens.PlatformLight, pinned)
+	darkBG, darkFG, _, _ := buttonColors(tokens.PlatformDark, pinned)
 	if lightBG != darkBG || lightFG != darkFG {
 		t.Errorf("pinned pair moved between appearances: light %v on %v, dark %v on %v",
 			lightFG, lightBG, darkFG, darkBG)
@@ -227,7 +219,7 @@ func TestHalfAPinIsNoPin(t *testing.T) {
 		{Fill: pinFill},
 		{Foreground: pinForeground},
 	} {
-		bg, _, fg, _, _ := buttonColors(p, s)
+		bg, fg, _, _ := buttonColors(p, s)
 		if want := on(p.AlternateSelectedControlText, p.DefaultButtonFill); bg != p.DefaultButtonFill || fg != want {
 			t.Errorf("%+v resolved to %v on %v, want the default-button pair %v on %v",
 				s, fg, bg, want, p.DefaultButtonFill)

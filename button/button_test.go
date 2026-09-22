@@ -1005,18 +1005,12 @@ func TestButtonInjectedClickableFocusAndActivate(t *testing.T) {
 	}
 }
 
-// TestEdgeFallsInsideTheButton pins the platform's hairline inside the box the
-// button reports: a Tonal button, offset from the frame's corner so a stroke
-// leaving its bounds has somewhere to land, paints exactly the rows and columns
-// it reports and no more, and measures what the Filled button beside it
-// measures.
-//
-// The regression it guards is a 1 dp stroke centred on the boundary. Half of it
-// falls outside the reported size, which at 1x is a half-covered row above the
-// button and another below it — a Tonal button measuring 26 rows where the
-// Filled one beside it measures 24, and two buttons in a row each painting a
-// half-line into the other's pixels.
-func TestEdgeFallsInsideTheButton(t *testing.T) {
+// TestTonalPaintsExactlyTheBoxItReports pins a Tonal button's painted
+// footprint to the box it reports: offset from the frame's corner so anything
+// leaving its bounds has somewhere to land, it paints exactly the rows it
+// reports and no more, and measures what the Filled button beside it measures.
+// Two buttons in a row would otherwise paint into each other's pixels.
+func TestTonalPaintsExactlyTheBoxItReports(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 60)
 	colors := tokens.PlatformLight
@@ -1048,7 +1042,7 @@ func TestEdgeFallsInsideTheButton(t *testing.T) {
 		return
 	}
 	if got, want := tonal.Dy(), tonalH; got != want {
-		t.Errorf("the Tonal button paints %d rows and reports %d: its edge is falling outside the box it reports", got, want)
+		t.Errorf("the Tonal button paints %d rows and reports %d: it is painting outside the box it reports", got, want)
 	}
 	if tonal.Min.Y != margin {
 		t.Errorf("the Tonal button's first painted row is y=%d, want y=%d — the top of the box it was placed in", tonal.Min.Y, margin)
