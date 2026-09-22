@@ -16,6 +16,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/picker"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
@@ -571,5 +572,50 @@ func TestScrollingTheFieldAwayClosesItsMenu(t *testing.T) {
 	}
 	if scrolled != 40 {
 		t.Errorf("the scroller under the field received %v of the 40 px wheel turn; the field's absorber is taking scroll distance it must only watch", scrolled)
+	}
+}
+
+// TestTheMenuDrawsNoRingWhileItHoldsTheKeyboard is the pixel proof of what a
+// list shows for the place a menu is: the held row and nothing else.
+//
+// A list standing in the content or at the front of a dialog wears the
+// keyboard focus halo on its own box (components/list's Halo). A menu does
+// not: the platform's own menus answer the keyboard by moving the row that
+// wears the pill, and a band around the whole surface would be a second
+// answer to one question. The menu wraps its rows in no halo, so a frame
+// holding the keyboard and a frame that never took it draw the same pixels.
+func TestTheMenuDrawsNoRingWhileItHoldsTheKeyboard(t *testing.T) {
+	size := image.Pt(200, 400)
+	frame := func(takeKeyboard bool) *image.RGBA {
+		w := materialize(t, picker.Menu(rx.Of(liveTheme()), picker.MenuProps{
+			Options: options,
+			Shaper:  defaultShaper(t),
+		}))
+		r := new(gioinput.Router)
+		drive := driver(w, r, size)
+		drive()
+		if takeKeyboard {
+			// A forward focus move lands the keyboard on the first row's
+			// own tag, which is how Tab reaches a menu that registers a
+			// tag per row.
+			r.MoveFocus(key.FocusForward)
+			drive()
+		}
+		return golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
+			gtx.Source = r.Source()
+			return w(gtx)
+		})
+	}
+	held, bare := frame(true), frame(false)
+	if held == nil || bare == nil {
+		return // headless unavailable; Capture called t.Skip
+	}
+	for y := held.Bounds().Min.Y; y < held.Bounds().Max.Y; y++ {
+		for x := held.Bounds().Min.X; x < held.Bounds().Max.X; x++ {
+			if held.RGBAAt(x, y) != bare.RGBAAt(x, y) {
+				t.Fatalf("the menu drew %v at (%d, %d) while it held the keyboard and %v while it did not: it draws a ring",
+					held.RGBAAt(x, y), x, y, bare.RGBAAt(x, y))
+			}
+		}
 	}
 }

@@ -166,7 +166,7 @@ func TestAFocusedListWearsTheHaloOnItsOwnBox(t *testing.T) {
 				gtx.Execute(key.FocusCmd{Tag: state.Focus()})
 				focused = true
 			}
-			return list.Halo(gtx, state, p, standsOn, p.SelectedContentBackground, func(gtx layout.Context) layout.Dimensions {
+			return list.Halo(gtx, state, p, standsOn, nil, func(gtx layout.Context) layout.Dimensions {
 				return list.LayoutSelectable(gtx, state, rows,
 					func(gtx layout.Context, _ int, _ bool) layout.Dimensions {
 						return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, focusRowH)}
@@ -315,12 +315,130 @@ func focusedListWithFirstRowSelected(t *testing.T, p tokens.PlatformColors) *ima
 			gtx.Execute(key.FocusCmd{Tag: state.Focus()})
 			focused = true
 		}
-		return list.Halo(gtx, state, p, standsOn, p.SelectedContentBackground, func(gtx layout.Context) layout.Dimensions {
+		selectionFill := func(row int) color.NRGBA {
+			if row == state.Selected() {
+				return p.SelectedContentBackground
+			}
+			return color.NRGBA{}
+		}
+		return list.Halo(gtx, state, p, standsOn, selectionFill, func(gtx layout.Context) layout.Dimensions {
 			return list.LayoutSelectable(gtx, state, rows,
 				func(gtx layout.Context, _ int, selected bool) layout.Dimensions {
 					size := image.Pt(gtx.Constraints.Max.X, focusRowH)
 					if selected {
 						paint.FillShape(gtx.Ops, p.SelectedContentBackground, clip.Rect{Max: size}.Op())
+					}
+					return layout.Dimensions{Size: size}
+				})
+		})
+	}
+	for range 2 {
+		var ops op.Ops
+		w(layout.Context{
+			Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
+			Constraints: layout.Exact(image.Pt(focusFrame, focusFrame)),
+			Ops:         &ops,
+			Source:      r.Source(),
+		})
+		r.Frame(&ops)
+	}
+	return golden.Capture(t, image.Pt(focusFrame, focusFrame), func(gtx layout.Context) layout.Dimensions {
+		gtx.Source = r.Source()
+		return w(gtx)
+	})
+}
+
+// TestTheBandLandsOnAHoveredRowsFillToo is the pixel proof that [list.Halo]
+// is told every fill a row paints and not the selection's alone: a list that
+// fills the row under the pointer as well as the selected one puts two rows
+// of fill under one band, and the band's sides must land on whichever of
+// them they cross.
+//
+// The case the library has is vaultview's chooser, whose rows take the
+// platform's selection fill under the pointer as well as under the keyboard
+// — the platform's own pick lists answer the pointer that way — so the row
+// the pointer rests on is a second fill the band runs down.
+func TestTheBandLandsOnAHoveredRowsFillToo(t *testing.T) {
+	const hoveredRow = 2
+	for _, sc := range []struct {
+		name string
+		p    tokens.PlatformColors
+	}{
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
+	} {
+		t.Run(sc.name, func(t *testing.T) {
+			p := sc.p
+			standsOn := p.WindowBackground
+			filled := p.SelectedContentBackground
+			onList := vgcolor.Flatten(p.KeyboardFocusIndicator, standsOn)
+			onRow := vgcolor.Flatten(p.KeyboardFocusIndicator, filled)
+
+			// Row 0 is the selection and row 2 is the row under the
+			// pointer; both paint the platform's selection fill.
+			paints := func(row int) bool { return row == 0 || row == hoveredRow }
+			img := focusedListFilling(t, p, paints)
+			if img == nil {
+				return // headless unavailable; Capture called t.Skip
+			}
+			out := int(focus.Outside)
+			hoverY := focusListY + hoveredRow*focusRowH + focusRowH/2
+			plainY := focusListY + focusRowH + focusRowH/2
+			for _, c := range []struct {
+				what string
+				x, y int
+				want color.NRGBA
+			}{
+				{"the over half's outer column on the hovered row", focusListX, hoverY, onRow},
+				{"its inner column", focusListX + out - 1, hoverY, onRow},
+				{"the hovered row's own uncovered fill", focusListX + out, hoverY, filled},
+				{"the over half at that row's trailing edge", focusListX + focusListW - 1, hoverY, onRow},
+				{"the outside half past that edge", focusListX + focusListW, hoverY, onList},
+				{"the over half on the unfilled row between them", focusListX, plainY, onList},
+				{"the list's own fill there", focusListX + out, plainY, standsOn},
+			} {
+				if at := img.RGBAAt(c.x, c.y); !nearlyEqual(at, c.want) {
+					t.Errorf("%s (x=%d, y=%d) = %v, want %v", c.what, c.x, c.y, at, c.want)
+				}
+			}
+		})
+	}
+}
+
+// focusedListFilling renders a list holding the keyboard whose rows paint
+// the platform's selection fill wherever paints says so, standing on the
+// platform's window background. Its first row is the selection.
+func focusedListFilling(t *testing.T, p tokens.PlatformColors, paints func(row int) bool) *image.RGBA {
+	t.Helper()
+	standsOn := p.WindowBackground
+	rows := make([]int, 6)
+	for i := range rows {
+		rows[i] = i
+	}
+	state := list.NewState()
+	state.Select(0)
+	r := new(gioinput.Router)
+	var focused bool
+	fill := func(row int) color.NRGBA {
+		if paints(row) {
+			return p.SelectedContentBackground
+		}
+		return color.NRGBA{}
+	}
+	w := func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, standsOn, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		defer op.Offset(image.Pt(focusListX, focusListY)).Push(gtx.Ops).Pop()
+		gtx.Constraints = layout.Exact(image.Pt(focusListW, focusListH))
+		if !focused {
+			gtx.Execute(key.FocusCmd{Tag: state.Focus()})
+			focused = true
+		}
+		return list.Halo(gtx, state, p, standsOn, fill, func(gtx layout.Context) layout.Dimensions {
+			return list.LayoutSelectable(gtx, state, rows,
+				func(gtx layout.Context, row int, _ bool) layout.Dimensions {
+					size := image.Pt(gtx.Constraints.Max.X, focusRowH)
+					if c := fill(row); c.A != 0 {
+						paint.FillShape(gtx.Ops, c, clip.Rect{Max: size}.Op())
 					}
 					return layout.Dimensions{Size: size}
 				})

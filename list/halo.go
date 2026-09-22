@@ -21,20 +21,37 @@ import (
 // list wrapped in it wears the same ring at the same width in the same
 // colour.
 //
-// It is a wrapper rather than something the layout entry points do
-// themselves because a list is not always a focusable: a menu that floats
-// and a chrome rail's rows carry a selection without ever being the control
-// the keyboard stands on, and a band around either would name a focus that
-// is not there.
+// # The caller says the place
 //
-// standsOn is the opaque fill the list stands on and selected the fill the
-// caller paints under the selected row. The band's half past the box lies on
-// standsOn, as every control's does; the half over the box lies on whatever
-// each of its pixels stands on — the selection's fill where it crosses the
-// selected row, standsOn everywhere else, the list painting no fill of its
-// own. A row reaching the box's edge is what puts two fills under one band:
-// the band's sides then run down rows of both, and a selected row at the
-// head or the foot of the viewport carries the band across it as well.
+// A list shows its focus as the platform does for the place it stands in,
+// and this wrapper is where that place is said: a list standing in the
+// content or at the front of a dialog is wrapped in Halo, and a list
+// standing anywhere the platform answers differently is not. A chrome rail
+// says it in the pill's colour (patterns/sidebar) and a menu in the held
+// row (components/picker), so neither wraps, and neither draws a ring.
+//
+// It is a wrapper rather than something the layout entry points do
+// themselves for exactly that reason: a list is not always a focusable, and
+// a band around a rail or a menu would name a focus that place does not
+// draw.
+//
+// # What the band lands on
+//
+// standsOn is the opaque fill the list itself stands on. The band's half
+// past the box lies on it, as every control's does; the half over the box
+// lies on whatever each of its pixels stands on, which is the fill the row
+// under it paints. rowFill answers that per row — it is handed a row's index
+// into the caller's item slice and returns the opaque fill that row paints,
+// or a colour with a zero alpha where the row paints none and standsOn shows
+// through. A nil rowFill is a list whose rows paint nothing.
+//
+// Every row is asked, not the selected one alone: a list that fills a row
+// under the pointer as well as under the selection puts two fills under one
+// band, and the band's over half must land on whichever of them the row it
+// crosses actually paints. A row reaching the box's edge is what puts a
+// second fill under the band at all — the band's sides then run down rows of
+// both, and a filled row at the head or the foot of the viewport carries the
+// band across it as well.
 //
 // Every colour the band takes is the platform's keyboard focus indicator at
 // its own coverage over the fill beneath it, flattened rather than stroked
@@ -48,7 +65,8 @@ func Halo(
 	gtx layout.Context,
 	state *State,
 	p tokens.PlatformColors,
-	standsOn, selected color.NRGBA,
+	standsOn color.NRGBA,
+	rowFill func(row int) color.NRGBA,
 	w layout.Widget,
 ) layout.Dimensions {
 	dims := w(gtx)
@@ -58,9 +76,17 @@ func Halo(
 	box := image.Rectangle{Max: dims.Size}
 	ring := focus.Ring(p, standsOn)
 	var fills []focus.Fill
-	if row, ok := state.selectedBox(); ok {
-		if row = row.Intersect(box); !row.Empty() {
-			fills = append(fills, focus.Fill{Box: row, Band: focus.Ring(p, selected)})
+	if rowFill != nil {
+		for _, r := range state.rowBoxes() {
+			fill := rowFill(r.index)
+			if fill.A == 0 || fill == standsOn {
+				continue
+			}
+			clipped := r.box.Intersect(box)
+			if clipped.Empty() {
+				continue
+			}
+			fills = append(fills, focus.Fill{Box: clipped, Band: focus.Ring(p, fill)})
 		}
 	}
 	focus.Halo(gtx, box, 0, ring, ring, fills...)

@@ -64,7 +64,7 @@ func (inv *Inventory) Patterns(c tokens.PlatformColors) []Section {
 			Body: inv.tabs(c)},
 		{Name: "patterns-navbar", Title: "Navbar — brand, links and actions", Height: 52,
 			Body: inv.navbar(c)},
-		{Name: "patterns-sidebar", Title: "Sidebar — expanded beside its collapsed rail", Height: 210,
+		{Name: "patterns-sidebar", Title: "Sidebar — holding the keyboard, not holding it, and collapsed", Height: 210,
 			Body: inv.sidebar(c)},
 		{Name: "patterns-pane", Title: "Pane — the chrome column down a window's leading edge, with one seam to the document", Height: paneSpecimenH,
 			Body: inv.pane(c)},
@@ -292,17 +292,28 @@ func (inv *Inventory) sidebarProps(tokens.PlatformColors) patsidebar.Props {
 	}
 }
 
+// sidebar shows the rail three ways: expanded while its list holds the
+// keyboard, expanded while it does not, and collapsed.
+//
+// The first two are the platform's two selection pills — the accent one
+// under a white label and the grey one under the label in the accent — and a
+// still render shows the grey one unless it says otherwise, which is what
+// Props.Focused is for.
 func (inv *Inventory) sidebar(c tokens.PlatformColors) layout.Widget {
 	props := inv.sidebarProps(c)
 	return func(gtx layout.Context) layout.Dimensions {
-		one := func(collapsed bool) layout.Widget {
-			return patsidebar.Render(inv.shaper, props, collapsed, c, tokens.Spacing,
+		one := func(collapsed, focused bool) layout.Widget {
+			p := props
+			p.Focused = focused
+			return patsidebar.Render(inv.shaper, p, collapsed, c, tokens.Spacing,
 				tokens.DefaultTypography.LabelLarge, patsidebar.SectionStyle(tokens.DefaultTypography), tokens.Comfortable)
 		}
 		return layout.Flex{}.Layout(gtx,
-			layout.Rigid(one(false)),
+			layout.Rigid(one(false, true)),
 			layout.Rigid(complayout.HSpacer(24)),
-			layout.Rigid(one(true)),
+			layout.Rigid(one(false, false)),
+			layout.Rigid(complayout.HSpacer(24)),
+			layout.Rigid(one(true, false)),
 		)
 	}
 }

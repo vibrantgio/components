@@ -36,10 +36,14 @@
 // virtualisation, and moves an index. See [LayoutSelectable] for the key map
 // and [State.Select]/[State.Reveal] for driving it from the caller's side.
 //
-// A list that is itself a focusable — a list at the front of a dialog, where
-// the keyboard lands when the dialog opens — wraps its layout in [Halo], which
-// draws the one focus ring every control in this library wears on the list's
-// own box. A list nothing focuses is left unwrapped.
+// A list shows its focus as the platform does for the place it stands in,
+// and the caller says the place by wrapping its layout or leaving it bare. A
+// list standing in the content or at the front of a dialog wraps in [Halo],
+// which draws the one focus ring every control in this library wears on the
+// list's own box. A chrome rail says it in the pill's colour
+// (github.com/vibrantgio/patterns/sidebar) and a menu in the held row
+// (github.com/vibrantgio/components/picker), so neither wraps and neither
+// draws a ring.
 //
 // The bar's appearance is a scrollbar.Style; derive the default themed one
 // with scrollbar.FromTokens (github.com/vibrantgio/components/scrollbar).
@@ -270,30 +274,35 @@ func (s *State) measuring(rowFn func(gtx layout.Context, i int) layout.Dimension
 	}
 }
 
-// selectedBox answers the box the selected row fills in the viewport's own
-// coordinates, and whether the most recent layout drew that row at all.
+// rowBox is one drawn row's index and the box it fills in the viewport's own
+// coordinates.
+type rowBox struct {
+	index int
+	box   image.Rectangle
+}
+
+// rowBoxes answers the box every row the most recent layout drew fills, in
+// the viewport's own coordinates. [Halo] reads it to say which fill each
+// pixel of its band stands on.
 //
 // The scroll position is final once the layout returns: the rows run from
 // Position.First down from -Position.Offset, each as tall as it reported, so
-// summing the recorded heights to the selected row lands its top edge. A
-// selected row above the first one laid out, or below the last, has no box.
-func (s *State) selectedBox() (image.Rectangle, bool) {
-	sel := s.Selected()
-	if sel < 0 {
-		return image.Rectangle{}, false
+// summing the recorded heights walks them. The walk stops at the first index
+// the layout did not draw, which is the row past the viewport's foot.
+func (s *State) rowBoxes() []rowBox {
+	if len(s.rows) == 0 {
+		return nil
 	}
+	boxes := make([]rowBox, 0, len(s.rows))
 	y := -s.l.Position.Offset
-	for i := s.l.Position.First; i <= sel; i++ {
+	for i := s.l.Position.First; ; i++ {
 		size, ok := s.rowSize(i)
 		if !ok {
-			return image.Rectangle{}, false
+			return boxes
 		}
-		if i == sel {
-			return image.Rect(0, y, size.X, y+size.Y), true
-		}
+		boxes = append(boxes, rowBox{index: i, box: image.Rect(0, y, size.X, y+size.Y)})
 		y += size.Y
 	}
-	return image.Rectangle{}, false
 }
 
 // rowSize answers the size row i reported to the most recent layout, and
