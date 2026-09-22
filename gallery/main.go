@@ -1207,14 +1207,6 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 	prefs := g.prefs
 	g.prefsMu.Unlock()
 
-	// The platform set with every foreground driven to full strength: the
-	// accent, the label, the control text and the seam opaque black on the
-	// white planes the light appearance already carries. It is what a caller
-	// may hand a component, not a set this library ships.
-	hc := tokens.PlatformLight
-	black := color.NRGBA{A: 0xff}
-	hc.ControlAccent, hc.Label, hc.Text, hc.ControlText, hc.Separator = black, black, black, black, black
-
 	return g.scrollPage(gtx, g.scrollSt[pageA11y], func(gtx layout.Context) layout.Dimensions {
 		cs := []layout.FlexChild{
 			g.sectionHeader("A11y — live OS accessibility preferences (polled every 2s)"),
@@ -1235,22 +1227,6 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(complayout.VSpacer(12)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, "Toggle Reduce Motion in System Settings > Accessibility > Display.", pageMuted, unit.Sp(13), font.Font{})
-						}),
-					)
-				})
-			}),
-			g.sectionHeader("A11y — high contrast: the platform set with every foreground at full strength"),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(200))
-							gtx.Constraints.Min.X = gtx.Dp(unit.Dp(200))
-							return button.Render(g.shaper, "High Contrast", hc, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, button.RenderState{})(gtx)
-						}),
-						layout.Rigid(complayout.HSpacer(16)),
-						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "The platform set, every foreground at full strength.", pageText, unit.Sp(13), font.Font{})
 						}),
 					)
 				})
