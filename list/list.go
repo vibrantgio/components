@@ -36,6 +36,11 @@
 // virtualisation, and moves an index. See [LayoutSelectable] for the key map
 // and [State.Select]/[State.Reveal] for driving it from the caller's side.
 //
+// A list that is itself a focusable — a list at the front of a dialog, where
+// the keyboard lands when the dialog opens — wraps its layout in [Halo], which
+// draws the one focus ring every control in this library wears on the list's
+// own box. A list nothing focuses is left unwrapped.
+//
 // The bar's appearance is a scrollbar.Style; derive the default themed one
 // with scrollbar.FromTokens (github.com/vibrantgio/components/scrollbar).
 //
