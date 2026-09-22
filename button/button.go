@@ -503,6 +503,12 @@ func RenderIcon(
 	}
 }
 
+// labelRoom is the width a button's label is measured in: room enough that
+// no single-line label this library draws is broken or elided by it, which is
+// what makes the measured width the label's own. A button's own box is
+// applied after, as the minimum width the button draws at.
+const labelRoom = 1 << 20
+
 // drawButton renders the button visual into gtx. All visual state comes from s;
 // no event queries are performed here.
 func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resolvedTokens, s RenderState) layout.Dimensions {
@@ -524,12 +530,16 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	textMaterial := mColor.Stop()
 
 	// Record the label render to obtain its size before drawing the background.
+	//
+	// The label is measured with the width it needs rather than the width the
+	// caller's box leaves it: a button's box is a budget and not a cap, and a
+	// label that does not fit widens its own button by its own measure (see
+	// the width rule below). Capping the label here would have it elided into
+	// a box the platform would have widened instead.
 	labelGtx := gtx
 	labelGtx.Constraints.Min = image.Pt(0, 0)
-	maxLabelW := gtx.Constraints.Max.X - 2*padH
-	if maxLabelW > 0 {
-		labelGtx.Constraints.Max.X = maxLabelW
-	}
+	labelGtx.Constraints.Max.X = labelRoom
+
 	// Shape with the LabelLarge role's typeface, weight, size and line height.
 	// Zero fields fall back to the shaper's defaults. typeset.Layout, not
 	// widget.Label.Layout, because the role's line height has to be the height
@@ -542,8 +552,12 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	labelDims := typeset.Layout(labelGtx, shaper, wl, f, unit.Sp(style.Size), label, textMaterial)
 	labelCall := mLabel.Stop()
 
-	// Button dimensions: fill available width, enforce the density's control
-	// height as the minimum.
+	// Button dimensions: fill the available width, and never draw narrower
+	// than the label plus its padding — the platform sizes a push button to
+	// its own label and holds a minimum under it, which is what a caller's
+	// box states here. So two short labels in one row stand equal at the box
+	// they are given, and a long one beside them is exactly as wide as it has
+	// to be. The density's control height is the minimum on the other axis.
 	btnW := gtx.Constraints.Max.X
 	if btnW < labelDims.Size.X+2*padH {
 		btnW = labelDims.Size.X + 2*padH
@@ -666,10 +680,14 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 // Under the pointer the button takes the platform's hover overlay over
 // whatever fill it carries, and held down its press overlay over that same
 // fill; a press wins, because the two do not stack. MEASURED,
-// control-hover-{light,dark}.png: a Finder toolbar pop-up, which carries no
-// fill of its own at rest, reads #f2f2f2 on the #ffffff band light and
-// #384146 on the #242d32 band dark — the overlay landing on the surface the
-// control stands on, which is what a Ghost button does here. MEASURED,
+// control-hover-{light,dark}.png: a Finder toolbar pop-up — a BORDERED
+// control, which carries a fill of its own at rest and, in the dark
+// appearance, a rim around it — reads #f2f2f2 against its resting #ffffff
+// light and #384146 against its resting #242d32 dark. That is the overlay
+// landing on the control's own fill, which is what a Filled or a Tonal
+// button does here; no stored capture holds a control with no fill of its
+// own under the pointer, so nothing measures the Ghost case and it takes the
+// same overlay over the surface it stands on. MEASURED,
 // control-pressed-{light,dark}.png: a held push button reads #d5d5d5 and
 // #474d52, the press overlay straight over the push button's fill with no
 // hover beneath it. No capture holds a push button under the pointer and not

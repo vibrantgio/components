@@ -112,16 +112,6 @@ func (inv *Inventory) prose(c tokens.PlatformColors, lines ...string) layout.Wid
 	}
 }
 
-// sized pins a layout.Widget to a width, which is what a pattern's action slot
-// needs from a caller handing it a bare button.
-func sized(w unit.Dp, child layout.Widget) layout.Widget {
-	return func(gtx layout.Context) layout.Dimensions {
-		gtx.Constraints.Min.X = gtx.Dp(w)
-		gtx.Constraints.Max.X = gtx.Dp(w)
-		return child(gtx)
-	}
-}
-
 // dot returns a round icon slot in the given colour, the stand-in a pattern's
 // Icon field takes when the gallery has no picture to put there.
 func dot(fill color.NRGBA, size unit.Dp) layout.Widget {
@@ -473,12 +463,15 @@ func (inv *Inventory) modal(c tokens.PlatformColors) layout.Widget {
 		// The footer buttons are the caller's own layout.Widget values on both
 		// the live and the static path, so a static dialog hands them over
 		// already rendered rather than expecting the pattern to invent them.
+		// Neither states a width: the footer owns the save dialog's measured
+		// push button width and lays both out in it, which is why the two
+		// stand equal here.
 		Actions: []layout.Widget{
-			sized(96, button.Render(inv.shaper, "Cancel", c, tokens.Spacing, tokens.Radius,
+			button.Render(inv.shaper, "Cancel", c, tokens.Spacing, tokens.Radius,
 				tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
-				button.RenderState{Emphasis: button.Tonal})),
-			sized(96, button.Render(inv.shaper, "Discard", c, tokens.Spacing, tokens.Radius,
-				tokens.DefaultTypography.LabelLarge, tokens.Comfortable, button.RenderState{})),
+				button.RenderState{Emphasis: button.Tonal}),
+			button.Render(inv.shaper, "Discard", c, tokens.Spacing, tokens.Radius,
+				tokens.DefaultTypography.LabelLarge, tokens.Comfortable, button.RenderState{}),
 		},
 		Shaper: inv.shaper,
 	}
