@@ -35,14 +35,16 @@ import (
 // every variant. Keyboard visibility is not an emphasis property.
 //
 // The three variants are the three buttons the platform draws: the default
-// action it fills with the accent, the ordinary button beside it, and the
+// action it fills with the measured default-button fill, the ordinary button
+// beside it, and the
 // borderless kind that carries no fill at all.
 type Emphasis int
 
 const (
 	// Filled is the most pronounced variant and the zero value: the
-	// platform's default action, filled with the accent and labelled in the
-	// foreground the platform pairs with an accent fill. One per surface —
+	// platform's default action, filled with the default push button's own
+	// measured fill and labelled in the foreground the platform pairs with
+	// it. One per surface —
 	// the action the screen is about.
 	Filled Emphasis = iota
 
@@ -159,7 +161,8 @@ type RenderState struct {
 	//
 	// The two are one pin and are honoured together. Leave either half
 	// unset — the zero value, alpha zero, which is no colour a fill could
-	// use — and the emphasis takes the platform's accent pair instead, so a
+	// use — and the emphasis takes the platform's default-button pair
+	// instead, so a
 	// half-written pin renders the stock button rather than an invisible
 	// label. Tonal and Ghost
 	// ignore both: neither carries a fill of its own to pin.
@@ -675,7 +678,8 @@ func strokeRRect(gtx layout.Context, size image.Point, rad int, col color.NRGBA)
 //
 // Every one of them is a platform name:
 //
-//	Filled   the accent fill under the foreground the platform pairs with it
+//	Filled   the default push button's measured fill under the foreground
+//	         the platform pairs with it
 //	Tonal    the push button's measured fill and the platform's control
 //	         text, inside its hairline
 //	Ghost    no fill and no hairline, the platform's control text
@@ -691,7 +695,10 @@ func strokeRRect(gtx layout.Context, size image.Point, rad int, col color.NRGBA)
 // #474d52, the press overlay straight over the push button's fill with no
 // hover beneath it. No capture holds a push button under the pointer and not
 // held, so nothing measures one as exempt and the overlay is applied here
-// like everywhere else.
+// like everywhere else. Neither state capture holds the DEFAULT button in
+// either state — the pressed pair changes the "Cancel" button alone and the
+// "Save" beside it keeps its resting fill — so the two overlays composite
+// over the default fill on the same rule as everywhere else.
 //
 // Disabled fades the control toward the surface it stands on: the fill and
 // the hairline at the platform's measured disabled coverage (control.Faded),
@@ -706,7 +713,8 @@ func strokeRRect(gtx layout.Context, size image.Point, rad int, col color.NRGBA)
 //
 // Filled is the one variant that takes a pin from the caller. A RenderState
 // carrying both halves of a fill pair (RenderState.Fill and Foreground) wears
-// that pair in place of the accent's and keeps everything else: the same
+// that pair in place of the default button's and keeps everything else: the
+// same
 // press overlay, the same disabled pair, and the same ring, which carries
 // its own coverage and composites over whatever fill is there. Half a pair
 // is no pair.
@@ -728,7 +736,7 @@ func buttonColors(p tokens.PlatformColors, s RenderState) (bg, edge, fg, haloOut
 		if pinnedFill(s) {
 			bg, fg = s.Fill, s.Foreground
 		} else {
-			bg, fg = p.ControlAccent, p.AlternateSelectedControlText
+			bg, fg = p.DefaultButtonFill, p.AlternateSelectedControlText
 		}
 	}
 
@@ -775,7 +783,8 @@ func fillOr(bg, standsOn color.NRGBA) color.NRGBA {
 }
 
 // pinnedFill reports whether the state carries a fill pin the Filled
-// emphasis should wear instead of the platform's accent pair. Both halves
+// emphasis should wear instead of the platform's default-button pair. Both
+// halves
 // must be there: a fill is no fill at alpha zero, and a foreground at alpha
 // zero would draw a label nobody can read, so a half-written pin is no pin.
 func pinnedFill(s RenderState) bool {

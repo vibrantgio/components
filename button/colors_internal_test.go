@@ -45,15 +45,18 @@ func TestEmphasisTakesThePlatformsNames(t *testing.T) {
 		plane := p.WindowBackground
 		// The fill each variant carries, and the press overlay laid onto it.
 		var (
-			accent     = p.ControlAccent
-			accentHit  = on(p.PressOverlay, accent)
-			accentOver = on(p.HoverOverlay, accent)
-			push       = p.PushButtonFill
-			pushHit    = on(p.PressOverlay, push)
-			pushOver   = on(p.HoverOverlay, push)
-			ghostHit   = on(p.PressOverlay, plane)
-			ghostOver  = on(p.HoverOverlay, plane)
-			pinHit     = on(p.PressOverlay, pinFill)
+			// The default push button's measured fill, which is what the
+			// Filled emphasis paints — not the accent the platform
+			// publishes under it.
+			deflt     = p.DefaultButtonFill
+			defltHit  = on(p.PressOverlay, deflt)
+			defltOver = on(p.HoverOverlay, deflt)
+			push      = p.PushButtonFill
+			pushHit   = on(p.PressOverlay, push)
+			pushOver  = on(p.HoverOverlay, push)
+			ghostHit  = on(p.PressOverlay, plane)
+			ghostOver = on(p.HoverOverlay, plane)
+			pinHit    = on(p.PressOverlay, pinFill)
 			// Switched off, a fill falls back to the push button's and
 			// fades toward the surface at the platform's measured
 			// coverage; the hairline over it fades by the same amount.
@@ -68,10 +71,10 @@ func TestEmphasisTakesThePlatformsNames(t *testing.T) {
 			fg    color.NRGBA
 			ring  color.NRGBA
 		}{
-			{"filled rest", RenderState{}, accent, transparent, on(p.AlternateSelectedControlText, accent), on(p.KeyboardFocusIndicator, accent)},
-			{"filled hovered", RenderState{Hovered: true}, accentOver, transparent, on(p.AlternateSelectedControlText, accentOver), on(p.KeyboardFocusIndicator, accentOver)},
-			{"filled focused", RenderState{Focused: true}, accent, transparent, on(p.AlternateSelectedControlText, accent), on(p.KeyboardFocusIndicator, accent)},
-			{"filled pressed", RenderState{Pressed: true}, accentHit, transparent, on(p.AlternateSelectedControlText, accentHit), on(p.KeyboardFocusIndicator, accentHit)},
+			{"filled rest", RenderState{}, deflt, transparent, on(p.AlternateSelectedControlText, deflt), on(p.KeyboardFocusIndicator, deflt)},
+			{"filled hovered", RenderState{Hovered: true}, defltOver, transparent, on(p.AlternateSelectedControlText, defltOver), on(p.KeyboardFocusIndicator, defltOver)},
+			{"filled focused", RenderState{Focused: true}, deflt, transparent, on(p.AlternateSelectedControlText, deflt), on(p.KeyboardFocusIndicator, deflt)},
+			{"filled pressed", RenderState{Pressed: true}, defltHit, transparent, on(p.AlternateSelectedControlText, defltHit), on(p.KeyboardFocusIndicator, defltHit)},
 			{"filled disabled", RenderState{Disabled: true}, pushOff, seamOff, on(p.DisabledControlText, pushOff), on(p.KeyboardFocusIndicator, pushOff)},
 
 			{"tonal rest", RenderState{Emphasis: Tonal}, push, on(p.Separator, push), on(p.ControlText, push), on(p.KeyboardFocusIndicator, push)},
@@ -198,11 +201,10 @@ func TestGhostRestingFillIsFullyTransparent(t *testing.T) {
 	}
 }
 
-// A pinned pair is the same colour in both appearances while the accent pair
-// it stands in for is not — which is the whole reason the pair exists. A
-// caller whose colour is fixed from outside the platform's set needs it to
-// stay put.
-func TestPinnedFillIsAppearanceStableWhereTheAccentPairIsNot(t *testing.T) {
+// A pinned pair is the caller's own colours in both appearances: a fill
+// fixed from outside the platform's set answers to neither appearance, which
+// is the whole reason the pair exists.
+func TestPinnedFillIsTheCallersPairInBothAppearances(t *testing.T) {
 	pinned := RenderState{Fill: pinFill, Foreground: pinForeground}
 	lightBG, _, lightFG, _, _ := buttonColors(tokens.PlatformLight, pinned)
 	darkBG, _, darkFG, _, _ := buttonColors(tokens.PlatformDark, pinned)
@@ -216,8 +218,9 @@ func TestPinnedFillIsAppearanceStableWhereTheAccentPairIsNot(t *testing.T) {
 	}
 }
 
-// Half a pin is no pin: the variant falls back to the platform's accent pair
-// rather than drawing a fill nobody chose or a label nobody can read.
+// Half a pin is no pin: the variant falls back to the platform's
+// default-button pair rather than drawing a fill nobody chose or a label
+// nobody can read.
 func TestHalfAPinIsNoPin(t *testing.T) {
 	p := tokens.PlatformLight
 	for _, s := range []RenderState{
@@ -225,9 +228,9 @@ func TestHalfAPinIsNoPin(t *testing.T) {
 		{Foreground: pinForeground},
 	} {
 		bg, _, fg, _, _ := buttonColors(p, s)
-		if want := on(p.AlternateSelectedControlText, p.ControlAccent); bg != p.ControlAccent || fg != want {
-			t.Errorf("%+v resolved to %v on %v, want the accent pair %v on %v",
-				s, fg, bg, want, p.ControlAccent)
+		if want := on(p.AlternateSelectedControlText, p.DefaultButtonFill); bg != p.DefaultButtonFill || fg != want {
+			t.Errorf("%+v resolved to %v on %v, want the default-button pair %v on %v",
+				s, fg, bg, want, p.DefaultButtonFill)
 		}
 	}
 }

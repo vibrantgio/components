@@ -408,7 +408,7 @@ func beneathTheRing(p tokens.PlatformColors, e button.Emphasis) color.NRGBA {
 	case button.Ghost:
 		return p.WindowBackground // a ghost paints none; the plane shows through
 	default:
-		return p.ControlAccent
+		return p.DefaultButtonFill
 	}
 }
 

@@ -136,15 +136,15 @@ func sectionNamed(t *testing.T, inv *Inventory, c tokens.PlatformColors, name st
 
 // TestThePinnedFillHoldsWhileTheAppearanceFlips is the appearance hunt
 // inverted, on the one row that must fail it. Both cells are captured in both
-// appearances: the theme's own cell has to read the set's own accent for the
-// appearance it was handed, and the pinned one has to come back the exact
-// colour it was handed, because that one is the caller's.
+// appearances: the theme's own cell has to read the set's own default-button
+// fill for the appearance it was handed, and the pinned one has to come back
+// the exact colour it was handed, because that one is the caller's.
 //
 // The two halves are asserted differently, and deliberately. The platform
-// reports ONE accent for both appearances, so "the theme's own fill moved"
-// is no longer a claim that can be made about it — what is asserted instead
-// is that the cell reads the accent of the set it was drawn from, which a row
-// that stopped drawing, or that drew from a default set, fails just as
+// draws ONE default-button fill in both appearances, so "the theme's own fill
+// moved" is no longer a claim that can be made about it — what is asserted
+// instead is that the cell reads the fill of the set it was drawn from, which
+// a row that stopped drawing, or that drew from a default set, fails just as
 // loudly.
 func TestThePinnedFillHoldsWhileTheAppearanceFlips(t *testing.T) {
 	inv := testInventory(t)
@@ -170,8 +170,8 @@ func TestThePinnedFillHoldsWhileTheAppearanceFlips(t *testing.T) {
 		img  *image.RGBA
 		set  tokens.PlatformColors
 	}{{"light", lit, light}, {"dark", drk, dark}} {
-		if got, want := c.img.RGBAAt(stockX, y), opaque(c.set.ControlAccent); got != want {
-			t.Errorf("%s: the theme's own cell at (%d,%d) = %v, want the set's own accent %v — this half of the row is not drawn from the set it was handed",
+		if got, want := c.img.RGBAAt(stockX, y), opaque(c.set.DefaultButtonFill); got != want {
+			t.Errorf("%s: the theme's own cell at (%d,%d) = %v, want the set's own default-button fill %v — this half of the row is not drawn from the set it was handed",
 				c.name, stockX, y, got, want)
 		}
 		if got, want := c.img.RGBAAt(pinnedX, y), opaque(PinnedFill); got != want {
