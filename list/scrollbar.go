@@ -78,9 +78,9 @@ func LayoutSelectableScrollbar[T any](
 	area.Pop()
 
 	sel := state.Selected()
-	return state.scrolled(gtx, bar, anchor, n, func(gtx layout.Context, i int) layout.Dimensions {
+	return state.scrolled(gtx, bar, anchor, n, state.measuring(func(gtx layout.Context, i int) layout.Dimensions {
 		return rowFn(gtx, items[i], i == sel)
-	})
+	}))
 }
 
 // scrolled is the body both scrollbar entry points share: the rows under the

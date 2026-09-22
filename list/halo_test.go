@@ -141,7 +141,10 @@ const (
 // focus.Outside past it and the rest over the list's own outermost columns.
 func TestAFocusedListWearsTheHaloOnItsOwnBox(t *testing.T) {
 	standsOn := color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
-	p := tokens.PlatformColors{KeyboardFocusIndicator: color.NRGBA{R: 0x00, G: 0x60, B: 0xff, A: 0xff}}
+	p := tokens.PlatformColors{
+		KeyboardFocusIndicator:    color.NRGBA{R: 0x00, G: 0x60, B: 0xff, A: 0xff},
+		SelectedContentBackground: color.NRGBA{R: 0x00, G: 0x64, B: 0xe1, A: 0xff},
+	}
 	band := vgcolor.Flatten(p.KeyboardFocusIndicator, standsOn)
 
 	rows := make([]int, 6)
@@ -163,7 +166,7 @@ func TestAFocusedListWearsTheHaloOnItsOwnBox(t *testing.T) {
 				gtx.Execute(key.FocusCmd{Tag: state.Focus()})
 				focused = true
 			}
-			return list.Halo(gtx, state, p, standsOn, func(gtx layout.Context) layout.Dimensions {
+			return list.Halo(gtx, state, p, standsOn, p.SelectedContentBackground, func(gtx layout.Context) layout.Dimensions {
 				return list.LayoutSelectable(gtx, state, rows,
 					func(gtx layout.Context, _ int, _ bool) layout.Dimensions {
 						return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, focusRowH)}
@@ -219,4 +222,122 @@ func TestAFocusedListWearsTheHaloOnItsOwnBox(t *testing.T) {
 			t.Errorf("at rest: the column at x=%d carries %v: a list nothing focuses wears no band", x, at)
 		}
 	}
+}
+
+// TestTheBandsOverHalfLandsOnEachFillItStandsOn is the pixel proof of what
+// the half of the band lying over the list's box composites onto: the fill
+// under each of its pixels, not one fill for the whole band.
+//
+// The platform's keyboard focus indicator carries a coverage of its own —
+// 127 of 255 — and the save dialog's own halo shows what that means: the two
+// columns of the band lying over the focused field keep the field's edge
+// column showing through them. A list's box carries more than one fill the
+// moment a row is selected at its edge, which is how a list at the front of
+// a dialog opens, and the band's sides run down that row as well as across
+// it.
+//
+// The colours read are the platform's indicator flattened onto each fill —
+// the platform composites an alpha colour in encoded sRGB, which is what
+// vgcolor.Flatten computes. A single translucent stroke would be composited
+// by Gio's rasterizer in linear light instead: at this coverage over the
+// light scheme's window that lands #bcc7fa where the platform lands #80b3fa,
+// and over the dark scheme's window #1c7dbc against #1c638e. So each fill
+// takes its own flattened colour under a clip of that fill's box.
+func TestTheBandsOverHalfLandsOnEachFillItStandsOn(t *testing.T) {
+	for _, sc := range []struct {
+		name string
+		p    tokens.PlatformColors
+	}{
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
+	} {
+		t.Run(sc.name, func(t *testing.T) {
+			p := sc.p
+			standsOn := p.WindowBackground
+			selected := p.SelectedContentBackground
+			onList := vgcolor.Flatten(p.KeyboardFocusIndicator, standsOn)
+			onRow := vgcolor.Flatten(p.KeyboardFocusIndicator, selected)
+
+			img := focusedListWithFirstRowSelected(t, p)
+			if img == nil {
+				return // headless unavailable; Capture called t.Skip
+			}
+			out := int(focus.Outside)
+			mid := focusListX + focusListW/2
+			selY := focusListY + focusRowH/2               // down the selected first row
+			plainY := focusListY + focusRowH + focusRowH/2 // down the row under it
+			for _, c := range []struct {
+				what string
+				x, y int
+				want color.NRGBA
+			}{
+				{"the outside half beside the selected row", focusListX - out, selY, onList},
+				{"the over half's outer column on the selected row", focusListX, selY, onRow},
+				{"its inner column", focusListX + out - 1, selY, onRow},
+				{"the row's own uncovered fill", focusListX + out, selY, selected},
+				{"the over half at the trailing edge of the selected row", focusListX + focusListW - 1, selY, onRow},
+				{"the outside half past that edge", focusListX + focusListW, selY, onList},
+				{"the over half's first row across the list's head", mid, focusListY, onRow},
+				{"its last row", mid, focusListY + out - 1, onRow},
+				{"the outside half above the head", mid, focusListY - 1, onList},
+				{"the selected row under the head's band", mid, focusListY + out, selected},
+				{"the over half's outer column on the row below it", focusListX, plainY, onList},
+				{"the list's own fill there", focusListX + out, plainY, standsOn},
+				{"the over half at the trailing edge of that row", focusListX + focusListW - 1, plainY, onList},
+			} {
+				if at := img.RGBAAt(c.x, c.y); !nearlyEqual(at, c.want) {
+					t.Errorf("%s (x=%d, y=%d) = %v, want %v", c.what, c.x, c.y, at, c.want)
+				}
+			}
+		})
+	}
+}
+
+// focusedListWithFirstRowSelected renders a list holding the keyboard, its
+// first row selected and wearing the fill the platform gives a selected
+// content row, standing on the platform's window background.
+func focusedListWithFirstRowSelected(t *testing.T, p tokens.PlatformColors) *image.RGBA {
+	t.Helper()
+	standsOn := p.WindowBackground
+	rows := make([]int, 6)
+	for i := range rows {
+		rows[i] = i
+	}
+	state := list.NewState()
+	state.Select(0)
+	r := new(gioinput.Router)
+	var focused bool
+	w := func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, standsOn, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		defer op.Offset(image.Pt(focusListX, focusListY)).Push(gtx.Ops).Pop()
+		gtx.Constraints = layout.Exact(image.Pt(focusListW, focusListH))
+		if !focused {
+			gtx.Execute(key.FocusCmd{Tag: state.Focus()})
+			focused = true
+		}
+		return list.Halo(gtx, state, p, standsOn, p.SelectedContentBackground, func(gtx layout.Context) layout.Dimensions {
+			return list.LayoutSelectable(gtx, state, rows,
+				func(gtx layout.Context, _ int, selected bool) layout.Dimensions {
+					size := image.Pt(gtx.Constraints.Max.X, focusRowH)
+					if selected {
+						paint.FillShape(gtx.Ops, p.SelectedContentBackground, clip.Rect{Max: size}.Op())
+					}
+					return layout.Dimensions{Size: size}
+				})
+		})
+	}
+	for range 2 {
+		var ops op.Ops
+		w(layout.Context{
+			Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
+			Constraints: layout.Exact(image.Pt(focusFrame, focusFrame)),
+			Ops:         &ops,
+			Source:      r.Source(),
+		})
+		r.Frame(&ops)
+	}
+	return golden.Capture(t, image.Pt(focusFrame, focusFrame), func(gtx layout.Context) layout.Dimensions {
+		gtx.Source = r.Source()
+		return w(gtx)
+	})
 }

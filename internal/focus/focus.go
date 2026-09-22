@@ -125,20 +125,43 @@ func Ring(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
 // lands as, and a halo half on an accent fill and half on the window does
 // not dissolve into either.
 //
+// fills are the parts of box where the control's own fill is not the one
+// over lies on, each with the colour the band lands as there; the over half
+// takes over everywhere they do not reach. A control whose box carries one
+// fill passes none.
+//
 // The band goes to the [Sink] the context carries, which is what lets it
 // straddle the box: a control reports the same box focused as at rest, so the
 // half past that box would otherwise be cut away by the clip a
 // gioui.org/widget.Clickable puts around whatever it wraps. With no sink the
 // band is painted where it is drawn, which is right for a control nothing
 // clips and is what a caller composing these renderers itself gets.
-func Halo(gtx layout.Context, box image.Rectangle, radius int, outside, over color.NRGBA) {
-	halo(gtx, clip.RRect{Rect: box, SE: radius, SW: radius, NE: radius, NW: radius}, box, outside, over)
+func Halo(gtx layout.Context, box image.Rectangle, radius int, outside, over color.NRGBA, fills ...Fill) {
+	halo(gtx, clip.RRect{Rect: box, SE: radius, SW: radius, NE: radius, NW: radius}, box, outside, over, fills)
+}
+
+// Fill is one of the fills the halo's over half lies on where a control's own
+// box carries more than one: Box is the part of the control's box that fill
+// covers, in the halo's own coordinates, and Band the colour the band lands
+// as over it — [Ring] flattened onto that fill.
+//
+// The band is the platform's indicator at its own coverage over whatever each
+// pixel stands on, so a box of two fills reads as two colours: a focused list
+// whose selected row reaches its edge is the case the library has, the over
+// half lying on the selection's fill down that row and on the list's fill
+// everywhere else. Each is a flattened opaque colour rather than one
+// translucent stroke because Gio's rasterizer would composite that stroke in
+// linear light where the platform composites in encoded sRGB — see
+// [Ring] and github.com/vibrantgio/theme/color.Flatten.
+type Fill struct {
+	Box  image.Rectangle
+	Band color.NRGBA
 }
 
 // HaloEllipse is [Halo] around an elliptical control — the radio's disc,
 // which has no corner radius to take.
 func HaloEllipse(gtx layout.Context, box image.Rectangle, outside, over color.NRGBA) {
-	halo(gtx, clip.Ellipse(box), box, outside, over)
+	halo(gtx, clip.Ellipse(box), box, outside, over, nil)
 }
 
 // outline is the shape a control's box is drawn as: a rounded rectangle for
@@ -150,7 +173,8 @@ type outline interface {
 
 // halo paints the band on shape's outline, in two passes: the whole band in
 // outside, then the half of it lying on the control in over, clipped to the
-// control's own shape.
+// control's own shape — and once more per fill, clipped to that fill's box as
+// well, so the over half lands on each fill the colour it lands as there.
 //
 // Two passes rather than two strokes. A stroke is centred on the path it
 // follows, so the only way to lay a band of half the width exactly on the
@@ -158,8 +182,8 @@ type outline interface {
 // again under a clip of the shape — the same idiom the picker's trigger and
 // the bordered toolbar control draw their edge with, and the one thing that
 // keeps both sides of the inner half following the corner.
-func halo(gtx layout.Context, shape outline, box image.Rectangle, outside, over color.NRGBA) {
-	if box.Empty() || (outside.A == 0 && over.A == 0) {
+func halo(gtx layout.Context, shape outline, box image.Rectangle, outside, over color.NRGBA, fills []Fill) {
+	if box.Empty() || (outside.A == 0 && over.A == 0 && len(fills) == 0) {
 		return
 	}
 	w := gtx.Dp(Width)
@@ -174,6 +198,19 @@ func halo(gtx layout.Context, shape outline, box image.Rectangle, outside, over 
 		inner := shape.Op(gtx.Ops).Push(gtx.Ops)
 		paint.FillShape(gtx.Ops, over, clip.Stroke{Path: shape.Path(gtx.Ops), Width: float32(w)}.Op())
 		inner.Pop()
+	}
+	for _, f := range fills {
+		if f.Band.A == 0 || f.Box.Empty() {
+			continue
+		}
+		// The fill's own box as well as the shape, both inside the macro: the
+		// band may be replayed at a sink, where the clips standing when it
+		// was drawn are gone.
+		area := clip.Rect(f.Box).Push(gtx.Ops)
+		inner := shape.Op(gtx.Ops).Push(gtx.Ops)
+		paint.FillShape(gtx.Ops, f.Band, clip.Stroke{Path: shape.Path(gtx.Ops), Width: float32(w)}.Op())
+		inner.Pop()
+		area.Pop()
 	}
 	band := macro.Stop()
 	if s := sinkOf(gtx); s != nil {

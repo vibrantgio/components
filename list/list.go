@@ -50,6 +50,8 @@
 package list
 
 import (
+	"image"
+
 	"gioui.org/io/event"
 	"gioui.org/io/key"
 	"gioui.org/layout"
@@ -99,6 +101,18 @@ type State struct {
 	// in, recorded so a caller can move the list by a viewport without
 	// having to hold a layout.Context of its own. See move.go.
 	viewport int
+
+	// rows is the index and size of every row the most recent selectable
+	// layout drew, which is what [Halo] reads to say which fill each pixel
+	// of its band stands on. Only the rows that layout drew are in it: a row
+	// virtualisation skipped has no geometry, and the band cannot cross it.
+	rows []rowGeometry
+}
+
+// rowGeometry is one laid-out row's index and the size it reported.
+type rowGeometry struct {
+	index int
+	size  image.Point
 }
 
 // focusTag is a non-zero-size type so its address is a unique event tag for
@@ -232,9 +246,65 @@ func LayoutSelectable[T any](
 	area.Pop()
 
 	sel := state.Selected()
-	return state.l.Layout(gtx, n, func(gtx layout.Context, i int) layout.Dimensions {
+	return state.l.Layout(gtx, n, state.measuring(func(gtx layout.Context, i int) layout.Dimensions {
 		return rowFn(gtx, items[i], i == sel)
-	})
+	}))
+}
+
+// measuring wraps rowFn so that every row it lays out leaves its index and
+// size behind in s. [Halo] reads them: the band's half over the list's box
+// lies on the fill of whichever row it crosses, and only the rows a layout
+// drew can be crossed.
+//
+// The rows are recorded rather than derived because a list imposes no row
+// height — a caller's rows may each be a different one — and they are looked
+// up by index rather than by the order they arrive in because
+// gioui.org/layout.List lays out backwards from its first visible row as well
+// as forwards.
+func (s *State) measuring(rowFn func(gtx layout.Context, i int) layout.Dimensions) func(layout.Context, int) layout.Dimensions {
+	s.rows = s.rows[:0]
+	return func(gtx layout.Context, i int) layout.Dimensions {
+		dims := rowFn(gtx, i)
+		s.rows = append(s.rows, rowGeometry{index: i, size: dims.Size})
+		return dims
+	}
+}
+
+// selectedBox answers the box the selected row fills in the viewport's own
+// coordinates, and whether the most recent layout drew that row at all.
+//
+// The scroll position is final once the layout returns: the rows run from
+// Position.First down from -Position.Offset, each as tall as it reported, so
+// summing the recorded heights to the selected row lands its top edge. A
+// selected row above the first one laid out, or below the last, has no box.
+func (s *State) selectedBox() (image.Rectangle, bool) {
+	sel := s.Selected()
+	if sel < 0 {
+		return image.Rectangle{}, false
+	}
+	y := -s.l.Position.Offset
+	for i := s.l.Position.First; i <= sel; i++ {
+		size, ok := s.rowSize(i)
+		if !ok {
+			return image.Rectangle{}, false
+		}
+		if i == sel {
+			return image.Rect(0, y, size.X, y+size.Y), true
+		}
+		y += size.Y
+	}
+	return image.Rectangle{}, false
+}
+
+// rowSize answers the size row i reported to the most recent layout, and
+// whether that layout drew it.
+func (s *State) rowSize(i int) (image.Point, bool) {
+	for _, r := range s.rows {
+		if r.index == i {
+			return r.size, true
+		}
+	}
+	return image.Point{}, false
 }
 
 // dropStaleSelection clears a selection that the current item slice no longer
