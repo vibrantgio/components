@@ -10,10 +10,13 @@
 //     scrollbar is drawn.
 //   - [LayoutScrollbar] additionally draws a scrollbar along the list's
 //     trailing edge, wired to the scroll position; dragging the thumb or
-//     clicking the track scrolls the list, and a pending [State.Reveal]
-//     brings its row into view.
+//     clicking the track scrolls the list.
 //   - [LayoutSelectable] adds a keyboard-movable selection over every row.
 //   - [LayoutSelectableScrollbar] is both: the selection and the bar.
+//
+// All four consume a pending [State.Reveal], so a caller asks for a row by
+// index wherever it lays its list out and never measures the column's pixels
+// itself.
 //
 // The two scrollbar entry points take an [Anchor] that decides where the bar
 // lives:
@@ -161,9 +164,9 @@ func (s *State) Select(i int) {
 	s.selPlusOne = i + 1
 }
 
-// Reveal schedules row i to be scrolled into view by the next layout that
-// scrolls — [LayoutSelectable], [LayoutSelectableScrollbar] or
-// [LayoutScrollbar]. It moves the viewport the short way: a row above the
+// Reveal schedules row i to be scrolled into view by the next layout, whichever
+// of the four entry points the caller uses. It moves the viewport the short
+// way: a row above the
 // window lands at the leading edge, a row below it at the trailing edge, and a
 // row already in view does not move the list at all.
 //
@@ -197,6 +200,11 @@ func NewStateAt(first int) *State {
 //
 // rowFn must not retain gtx past its call; the closure is invoked once per
 // visible item inside the layout.List callback.
+//
+// A pending [State.Reveal] is consumed here as it is in the other entry
+// points: a bare list is the one a caller reaches for when the column carries
+// no selection and draws no bar, and a row it cannot ask to be brought into
+// view is a row the caller has to find the pixels of itself.
 func Layout[T any](
 	gtx layout.Context,
 	state *State,
@@ -204,6 +212,7 @@ func Layout[T any](
 	rowFn func(gtx layout.Context, item T) layout.Dimensions,
 ) layout.Dimensions {
 	state.record(gtx)
+	state.scrollIntoView(len(items))
 	return state.l.Layout(gtx, len(items), func(gtx layout.Context, i int) layout.Dimensions {
 		return rowFn(gtx, items[i])
 	})

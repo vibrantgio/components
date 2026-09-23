@@ -30,8 +30,8 @@ const (
 // the content (Overlay). The list is vertical-only, so the bar is always
 // vertical and anchored east.
 //
-// A pending [State.Reveal] is consumed here as it is in the selectable entry
-// points, so a caller whose column scrolls but carries no selection of its
+// A pending [State.Reveal] is consumed here as it is in every other entry
+// point, so a caller whose column scrolls but carries no selection of its
 // own — a rail whose keyboard walks something other than the list's rows —
 // asks for a row by index rather than measuring the column's pixels itself.
 func LayoutScrollbar[T any](

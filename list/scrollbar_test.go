@@ -151,3 +151,36 @@ func TestLayoutScrollbarRevealsAPendingRow(t *testing.T) {
 		t.Errorf("revealing a row already in view moved the list from %+v to %+v", was, got)
 	}
 }
+
+// TestLayoutRevealsAPendingRow asserts the same of the bare list: a column
+// that draws no bar and carries no selection still answers [State.Reveal], so
+// a caller laying its rows out with [Layout] asks for a row by index rather
+// than working out the pixels of one itself.
+func TestLayoutRevealsAPendingRow(t *testing.T) {
+	state := NewState()
+	items := sbItems(40)
+	seen := 0
+	frame := func() { Layout(sbTestContext(), state, items, sbRowFn(&seen)) }
+
+	frame()
+	if pos := state.Position(); pos.First != 0 {
+		t.Fatalf("the list starts at row %d, want its leading edge", pos.First)
+	}
+
+	state.Reveal(30)
+	frame()
+	pos := state.Position()
+	if pos.First == 0 {
+		t.Fatal("a pending Reveal moved nothing; the bare list never consumed it")
+	}
+	if last := pos.First + pos.Count - 1; 30 < pos.First || 30 > last {
+		t.Errorf("after revealing row 30 the window shows rows %d to %d", pos.First, last)
+	}
+
+	was := state.Position()
+	state.Reveal(was.First + 1)
+	frame()
+	if got := state.Position(); got.First != was.First || got.Offset != was.Offset {
+		t.Errorf("revealing a row already in view moved the list from %+v to %+v", was, got)
+	}
+}
