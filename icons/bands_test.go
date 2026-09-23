@@ -128,6 +128,10 @@ var markBands = map[string][]band{
 		{"the crossbar", across, 10.6, 0, 2.5, 21.5, 6, 0},
 		{"the upright", down, 10.6, 0, 2.5, 21.5, 6, 1},
 	},
+	// The plus's crossbar alone, on the same two numbers. minus.svg states it.
+	"minus": {
+		{"the bar", across, 10.6, 0, 2.5, 21.5, 6, 0},
+	},
 	// The pane measured off voicememos-window.png: the seam on the measured
 	// one to 2.05, and the top, the foot and the two sides on the keyline.
 	// sidebar.svg records all five.

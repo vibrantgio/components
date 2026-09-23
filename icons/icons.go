@@ -73,6 +73,11 @@ const (
 	// added is the control's label to say, not the mark's.
 	Plus Name = "plus"
 
+	// Minus is the control that takes one away from what the window holds,
+	// the partner of the plus: the pair the platform stands under a list it
+	// lets the reader edit. What is removed is the control's label to say.
+	Minus Name = "minus"
+
 	// Refresh is the control that reads again what the window is showing,
 	// from wherever it came from. One mark serves every such control: what
 	// is read again is the control's label to say.

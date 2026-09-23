@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Minus: the control that takes one away from what the window holds — the
+       partner of the plus, and drawn as the plus without its upright. What is
+       removed is the control's label to say.
+
+       Grid: an axis-aligned form, so the bar runs the set's square keyline
+       from unit 2.5 to unit 21.5 and takes the set's one band of 1.4 units,
+       its leading edge at 10.6 and its trailing edge on the whole unit 12 —
+       the crossbar of plus.svg, unchanged, which is where that file records
+       the measurement and the reason those two numbers and not a band centred
+       on 12.
+
+       The ends are cut square, as the plus's four arms are: one bar is read
+       by its length, and a cap only thickens it. -->
+  <path fill="#000000" d="M2.5 10.6 L21.5 10.6 L21.5 12 L2.5 12 Z"/>
+</svg>
