@@ -17,10 +17,10 @@ import (
 	"github.com/vibrantgio/theme/typeset"
 
 	"github.com/vibrantgio/components/internal/control"
-	"github.com/vibrantgio/components/internal/toolbarface"
+	"github.com/vibrantgio/components/internal/controlface"
 )
 
-// SegmentSeamClearDp is the space a segmented toolbar control leaves clear
+// SegmentSeamClearDp is the space a segmented control leaves clear
 // above and below the hairline parting two of its segments.
 //
 // MEASURED at 1x, the back/forward pair in finder-window-light.png and
@@ -39,10 +39,9 @@ const segmentSeamDp unit.Dp = 1
 // the measured width is the label's own.
 const segmentLabelRoom = 1 << 20
 
-// ChromeSegment is one segment of the platform's segmented toolbar control:
-// what it carries, the state it is drawn in, and the target that makes it
-// pressable.
-type ChromeSegment struct {
+// BorderedSegment is one segment of the platform's segmented control: what it
+// carries, the state it is drawn in, and the target that makes it pressable.
+type BorderedSegment struct {
 	// Icon draws the segment's symbol into the square it is handed. A nil
 	// Icon draws an empty segment. It is not reached while Label carries a
 	// word: a segment carries one or the other.
@@ -77,10 +76,10 @@ type ChromeSegment struct {
 	Target layout.Widget
 }
 
-// ChromeSegments draws the platform's segmented bordered toolbar control: one
-// capsule carrying several symbols or words, each in a segment of the
-// control's own width, parted by the hairline the platform draws between
-// them, with the chosen segment wearing the patch the platform fills it with.
+// BorderedSegments draws the platform's segmented bordered control: one box
+// carrying several symbols or words, each in a segment of the control's own
+// width, parted by the hairline the platform draws between them, with the
+// chosen segment wearing the patch the platform fills it with.
 //
 // MEASURED at 1x, Finder's back/forward pair: x 326–398 in
 // finder-window-untinted-dark.png, where the control's rim reads at both ends
@@ -106,38 +105,35 @@ type ChromeSegment struct {
 // appearance and one over in the dark. See
 // [tokens.PlatformColors.ToolbarControlSeam], which carries both readings.
 //
-// THE PLACE SETTLES THE HEIGHT, THE SHAPE AND THE MARK'S ROOM. A control
-// standing in a chrome band is the toolbar control's own 36, drawn as the
-// capsule every bordered control in a stored band is drawn as, its segments'
-// marks in the band's [control.ChromeMarkDp] box. One standing in a sheet's
-// or a pane's body is the dialog control's 24 in the form's own shape — the
-// push button's rounded rectangle at the measured [tokens.RadiusScale.Md] —
-// with its marks in [control.BodyMarkBox]. Only the OUTER corners round: the
-// seams between segments are the control's own straight hairlines wherever it
-// stands. Which of the two it is is what the first segment's
-// [RenderState.Place] says. See [Place].
+// THE VARIANT SETTLES THE HEIGHT, THE SHAPE AND THE MARK'S ROOM. A chrome
+// control is the toolbar control's own 36, drawn as the capsule every
+// bordered control in a stored band is drawn as, its segments' marks in the
+// band's [control.ChromeMarkDp] box. A form control is the dialog control's
+// 24 in the push button's rounded rectangle at the measured
+// [tokens.RadiusScale.Md], with its marks in [control.FormMarkBox]. Only the
+// OUTER corners round: the seams between segments are the control's own
+// straight hairlines in either variant. Which of the two it is is what the
+// first segment's [RenderState.Variant] says.
 //
 // The shadow the control casts on its band is not drawn here — it falls
-// outside the box this reports, the way [ChromeFace]'s does. Callers in a
-// band wrap this in [ChromeShadow]; a control in a body casts none.
-func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformColors, rad tokens.RadiusScale, labelStyle tokens.TextStyle, d tokens.Density, segs []ChromeSegment) layout.Dimensions {
+// outside the box this reports, the way [BorderedFace]'s does. Callers in a
+// band wrap this in [BorderedShadow]; a form control casts none.
+func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformColors, rad tokens.RadiusScale, labelStyle tokens.TextStyle, d tokens.Density, segs []BorderedSegment) layout.Dimensions {
 	if len(segs) == 0 {
 		return layout.Dimensions{}
 	}
 	// The control's height, its shape and the room its marks stand in are the
-	// ones its PLACE names, and the place is the control's rather than a
-	// segment's: every segment of one control stands in one place, so the
+	// ones its VARIANT names, and the variant is the control's rather than a
+	// segment's: every segment of one control stands in one setting, so the
 	// first segment's answer is the control's, the way its focus and the band
 	// it stands on already are.
-	place := segs[0].State.Place
-	h := min(gtx.Dp(unit.Dp(place.Height(d))), gtx.Constraints.Max.Y)
+	variant := segs[0].State.Variant
+	h := min(gtx.Dp(unit.Dp(variant.Height(d))), gtx.Constraints.Max.Y)
 	mark, markTop := gtx.Dp(control.ChromeMarkDp), 0
-	radius := h / 2
-	if place == Body {
-		mark, markTop = control.BodyMarkBox(gtx, h)
-		radius = gtx.Dp(unit.Dp(rad.Md))
-	} else {
+	if variant == Chrome {
 		markTop = (h - mark) / 2
+	} else {
+		mark, markTop = control.FormMarkBox(gtx, h)
 	}
 	side := gtx.Dp(control.ChromeMarkSideDp)
 	rule := max(gtx.Dp(segmentSeamDp), 1)
@@ -150,18 +146,18 @@ func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformCo
 	labels := make([]op.CallOp, len(segs))
 	labelSize := make([]image.Point, len(segs))
 	segW := mark + 2*side
-	rest := placeRestingFill(p, place)
+	rest := variantRestingFill(p, variant)
 	for i, s := range segs {
 		fills[i] = rest
 		if !s.State.Disabled {
-			if st := chromeState(s.State); st == tokens.StateHover || st == tokens.StatePressed {
-				fills[i] = placeFill(p, place, st)
+			if st := controlState(s.State); st == tokens.StateHover || st == tokens.StatePressed {
+				fills[i] = variantFill(p, variant, st)
 			}
 		}
 		if s.Label == "" {
 			continue
 		}
-		fg := placeForeground(p, place, fills[i])
+		fg := variantForeground(p, variant, fills[i])
 		if s.State.Disabled {
 			fg = vgcolor.Flatten(p.DisabledControlText, fills[i])
 		}
@@ -189,13 +185,18 @@ func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformCo
 	for _, s := range segs {
 		focused = focused || (s.State.Focused && !s.State.Disabled)
 	}
-	outer := toolbarface.Capsule(gtx, box, radius, p, rest, toolbarface.State{
+	faceState := controlface.State{
 		Focused: focused,
-		Form:    place == Body,
 		// The band the pair stands on. Every segment of one control stands
 		// on one band, so the first segment's answer is the control's.
 		StandsOn: segs[0].State.Surface,
-	})
+	}
+	var outer clip.RRect
+	if variant == Chrome {
+		outer = controlface.Capsule(gtx, box, p, rest, faceState)
+	} else {
+		outer = controlface.PushButton(gtx, box, gtx.Dp(unit.Dp(rad.Md)), p, rest, faceState)
+	}
 
 	// The segments divide what the control ended up at, so a control asked
 	// for a width its natural segments do not add up to spreads the
@@ -221,7 +222,7 @@ func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformCo
 			// Finder's 37 by 36 view segment. Clipped to the capsule for the
 			// same reason the tint is.
 			area := outer.Push(gtx.Ops)
-			toolbarface.CheckedPatch(gtx, seg, p, fill)
+			controlface.CheckedPatch(gtx, seg, p, fill)
 			area.Pop()
 		}
 		if i > 0 {
@@ -244,7 +245,7 @@ func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformCo
 			off.Pop()
 			area.Pop()
 		case s.Icon != nil && mark > 0:
-			fg := placeForeground(p, place, fill)
+			fg := variantForeground(p, variant, fill)
 			if s.State.Disabled {
 				fg = vgcolor.Flatten(p.DisabledControlText, fill)
 			}

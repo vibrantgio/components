@@ -19,7 +19,7 @@ import (
 
 // The body control's measured numbers at the 1:1 metric golden.Capture
 // renders at.
-// bodyH is the dialog control's height, which is what Place.Body draws a
+// bodyH is the dialog control's height, which is what the form variant draws a
 // bordered control at.
 var bodyH = int(tokens.Comfortable.ControlHeight)
 
@@ -58,8 +58,8 @@ func bareBody(t *testing.T, p tokens.PlatformColors, icon func(layout.Context, i
 	img := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
 		gtx.Metric = unit.Metric{PxPerDp: 1, PxPerSp: 1}
 		gtx.Constraints.Min = image.Point{}
-		d := button.RenderChrome(icon, p, tokens.Radius, tokens.Comfortable, button.RenderState{
-			Place:   button.Body,
+		d := button.RenderBordered(icon, p, tokens.Radius, tokens.Comfortable, button.RenderState{
+			Variant: button.Form,
 			Surface: p.WindowBackground,
 		})(gtx)
 		box = d.Size
@@ -170,15 +170,15 @@ func TestABodyControlsMarkKeepsThePlatformsRoom(t *testing.T) {
 func TestABodySegmentedControlRoundsItsOuterCornersOnly(t *testing.T) {
 	for _, tc := range bodyReadings {
 		t.Run(tc.name, func(t *testing.T) {
-			segs := []button.ChromeSegment{
-				{Icon: square, State: button.RenderState{Place: button.Body}},
-				{Icon: square, State: button.RenderState{Place: button.Body}},
+			segs := []button.BorderedSegment{
+				{Icon: square, State: button.RenderState{Variant: button.Form}},
+				{Icon: square, State: button.RenderState{Variant: button.Form}},
 			}
 			var box image.Point
 			img := golden.Capture(t, image.Pt(120, 60), func(gtx layout.Context) layout.Dimensions {
 				gtx.Metric = unit.Metric{PxPerDp: 1, PxPerSp: 1}
 				gtx.Constraints.Min = image.Point{}
-				d := button.ChromeSegments(gtx, defaultShaper(t), tc.p, tokens.Radius,
+				d := button.BorderedSegments(gtx, defaultShaper(t), tc.p, tokens.Radius,
 					tokens.DefaultTypography.LabelLarge, tokens.Comfortable, segs)
 				box = d.Size
 				return d

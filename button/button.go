@@ -18,9 +18,9 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/internal/control"
+	"github.com/vibrantgio/components/internal/controlface"
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/surface"
-	"github.com/vibrantgio/components/internal/toolbarface"
 	"github.com/vibrantgio/components/pointershape"
 	"github.com/vibrantgio/mvu"
 	vgcolor "github.com/vibrantgio/theme/color"
@@ -84,7 +84,7 @@ func (e Emphasis) String() string {
 // a prominence. The zero value is [Form].
 //
 // It is the Variant the picker and the search field carry under the same two
-// names: one control drawn in two places, and the place settles what the
+// names: one control drawn in two settings, and the setting settles what the
 // platform draws it as.
 type Variant uint8
 
@@ -100,7 +100,7 @@ const (
 	// wearing the toolbar control's own fill, its rim where the platform
 	// draws one, and the drop shadow it casts on its band — the same box the
 	// picker's chrome trigger is drawn from, through
-	// components/internal/toolbarface.
+	// components/internal/controlface.
 	//
 	// It reaches the symbol path alone. A button carrying TEXT draws the form
 	// variant whatever this says: every symbol-labelled control in the stored
@@ -115,59 +115,24 @@ const (
 	// was measured on a BAND — the toolbar controls of finder-window.png,
 	// mail-window.png and notes-toolbar.png — and it is what tells a control
 	// from a band it matches in the light appearance, where the platform
-	// gives both #ffffff. A bordered control standing in a sheet's or a
-	// pane's BODY is the form variant's place: it stands on a surface of its
-	// own, at the body's control height, and casts none. See [Place].
+	// gives both #ffffff. A bordered control of the form variant stands on a
+	// surface of its own, at the form's control height, and casts none.
 	Chrome
 )
 
-// Place is where a bordered control stands, and it is what settles the
-// control's height and whether it casts the band's drop shadow. The zero
-// value is [Band].
+// Height is the control height this variant draws a bordered control at.
 //
-// The platform draws one bordered control in two places and at two heights:
+// The platform draws one bordered control in two variants and at two heights:
 // MEASURED, every bordered control in the five stored toolbar bands runs 36 px
 // where the same machine's Save dialog draws its push button and its pop-up at
 // 24 (controls.md, "The toolbar control's height, capture by capture"). So a
-// caller names the place and the height follows it, rather than naming a
+// caller names the variant and the height follows it, rather than naming a
 // height of its own.
-type Place uint8
-
-const (
-	// Band is the zero value: the control stands in a chrome band, at
-	// [tokens.Density.ToolbarControlHeight], casting the drop shadow the
-	// platform's toolbar control casts on its band.
-	Band Place = iota
-
-	// Body is the control standing in a sheet's or a pane's body — a
-	// segmented control in a dialog's form, the pair under an editable
-	// list. It draws at [tokens.Density.ControlHeight], the dialog
-	// control's 24, in the form's own shape — the push button's rounded
-	// rectangle at [tokens.RadiusScale.Md] and not the band's capsule — with
-	// its mark in the room the pop-up on that same sheet leaves its own, and
-	// it casts no shadow: the shadow is the chrome variant's and was
-	// measured on a band. See [Chrome].
-	Body
-)
-
-// Height is the control height this place draws a bordered control at.
-func (pl Place) Height(d tokens.Density) float32 {
-	if pl == Body {
-		return d.ControlHeight
+func (v Variant) Height(d tokens.Density) float32 {
+	if v == Chrome {
+		return d.ToolbarControlHeight
 	}
-	return d.ToolbarControlHeight
-}
-
-// String returns the name of the place in the vocabulary the design system
-// uses everywhere else.
-func (pl Place) String() string {
-	switch pl {
-	case Band:
-		return "band"
-	case Body:
-		return "body"
-	}
-	return fmt.Sprintf("Place(%d)", int(pl))
+	return d.ControlHeight
 }
 
 // String returns the name of the variant in the vocabulary the design system
@@ -198,16 +163,13 @@ type RenderState struct {
 	Emphasis Emphasis
 
 	// Variant is where the button stands: [Form] (the zero value) among
-	// content, [Chrome] in a chrome region. It is read on the symbol path
-	// alone — see [Chrome].
+	// content, [Chrome] in a chrome region. On the text and icon paths it is
+	// read on the symbol path alone — see [Chrome]. On the bordered paths —
+	// [RenderBordered], [BorderedFace], [BorderedShadow] and
+	// [BorderedSegments] — it settles the control's height, its face, its
+	// shape, the room its mark stands in and whether it casts the band's
+	// shadow. The button doc's Variant table carries the five in one place.
 	Variant Variant
-
-	// Place is where a bordered control stands: [Band] (the zero value) in a
-	// chrome band, [Body] in a sheet's or a pane's body. It settles the
-	// control's height and whether it casts the band's shadow, and it is
-	// read on the bordered paths alone — the chrome symbol button and
-	// [ChromeSegments]. See [Place].
-	Place Place
 
 	// Fill and Foreground pin the Filled emphasis' fill and the foreground over
 	// it to a pair the scheme does not carry: a colour fixed from outside the
@@ -250,10 +212,10 @@ type RenderState struct {
 
 	// Checked is the persistent state of a control that records a yes — the
 	// toolbar toggle that says whether the pane it governs stands. It is
-	// read on the chrome symbol path alone, where the platform draws it as
-	// the chosen segment of a segmented control: a patch inside the
-	// control's own box, laid over whatever fill the control carries. The
-	// form variants carry no such drawing and ignore it.
+	// read on the bordered paths alone, where the platform draws it as the
+	// chosen segment of a segmented control: a patch inside the control's
+	// own box, laid over whatever fill the control carries. The text and
+	// icon buttons carry no such drawing and ignore it.
 	Checked bool
 }
 
@@ -280,12 +242,6 @@ type Props struct {
 	// variant. See [Chrome].
 	Variant Variant
 
-	// Place is where a bordered control stands: [Band] (the zero value) in a
-	// chrome band, [Body] in a sheet's or a pane's body, copied straight
-	// into RenderState on every frame. It settles the control's height and
-	// whether it casts the band's shadow. See [Place].
-	Place Place
-
 	// Fill and Foreground pin the Filled emphasis' fill and its foreground to a
 	// pair the scheme does not carry, copied straight into RenderState on
 	// every frame — for the action whose colour is not the theme's to
@@ -307,8 +263,8 @@ type Props struct {
 	// toolbar toggle that says whether the pane it governs stands — copied
 	// straight into RenderState on every frame. It is read on the chrome
 	// symbol path alone, where the platform draws it as the chosen segment
-	// of a segmented control: a patch inside the control's own box. The form
-	// variants carry no such drawing and ignore it. See
+	// of a segmented control: a patch inside the control's own box. The text
+	// and icon buttons carry no such drawing and ignore it. See
 	// RenderState.Checked.
 	Checked bool
 
@@ -461,7 +417,6 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 					state := RenderState{
 						Emphasis:   props.Emphasis,
 						Variant:    props.Variant,
-						Place:      props.Place,
 						Fill:       props.Fill,
 						Foreground: props.Foreground,
 						Surface:    props.Surface,
@@ -471,7 +426,11 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 						Pressed:    prs,
 						Disabled:   dis,
 					}
-					chrome := iconOnly && state.Variant == Chrome
+					// A symbol in a chrome region is the platform's
+					// bordered control; a symbol among content is the icon
+					// button, which carries an emphasis where the bordered
+					// control carries none.
+					chromeSymbol := iconOnly && state.Variant == Chrome
 
 					// The clickable covers the drawn button exactly: a
 					// control's pointer target is the control, so density
@@ -482,8 +441,8 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 							semantic.LabelOp(props.Label).Add(gtx.Ops)
 							semantic.DescriptionOp(desc).Add(gtx.Ops)
 							semantic.EnabledOp(!dis).Add(gtx.Ops)
-							if chrome {
-								return drawChromeIcon(gtx, props.Icon, tok, state)
+							if chromeSymbol {
+								return drawBorderedSymbol(gtx, props.Icon, tok, state)
 							}
 							if iconOnly {
 								return drawIconButton(gtx, props.Icon, tok, state)
@@ -491,11 +450,11 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 							return drawButton(gtx, shaper, props.Label, tok, state)
 						})
 					}
-					if chrome {
+					if chromeSymbol {
 						// The shadow the chrome variant casts falls outside the
 						// control's own box, and a Clickable clips what it wraps
 						// to that box, so it is cast around the clickable.
-						return toolbarface.Cast(gtx, chromeShadow(tok.platform, state), state.Focused && !state.Disabled, body)
+						return controlface.Cast(gtx, borderedShadow(tok.platform, state), state.Focused && !state.Disabled, body)
 					}
 					return body(gtx)
 				})

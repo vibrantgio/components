@@ -117,20 +117,20 @@ const (
 	MarkClearBottomDp unit.Dp = 6
 )
 
-// BodyMarkBox is the box a symbol standing alone in a control in a sheet's or
-// a pane's BODY is drawn in, and where that box stands in a control h pixels
+// FormMarkBox is the box a symbol standing alone in a bordered control of the
+// FORM variant is drawn in, and where that box stands in a control h pixels
 // tall: the control's own height less the room above and below, at the
 // measured top clearance.
 //
-// A body control is the dialog control's 24 dp tall, and [ChromeMarkDp]'s 24
+// A form control is the dialog control's 24 dp tall, and [ChromeMarkDp]'s 24
 // in it leaves no room at all — the symbol runs edge to edge where the
 // platform's mark stands clear. The band is what the pop-up on that same
 // sheet leaves its own mark, so a symbol drawn in it is centred with the room
 // the platform gives one.
 //
-// The chrome place keeps [ChromeMarkDp]: 24 in a 36 px band control is its
+// The chrome variant keeps [ChromeMarkDp]: 24 in a 36 px band control is its
 // own measured reading, and this rule would give it 23.
-func BodyMarkBox(gtx layout.Context, h int) (box, top int) {
+func FormMarkBox(gtx layout.Context, h int) (box, top int) {
 	top = gtx.Dp(MarkClearTopDp)
 	box = max(h-top-gtx.Dp(MarkClearBottomDp), 0)
 	return box, top

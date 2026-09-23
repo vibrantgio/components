@@ -1,4 +1,4 @@
-package toolbarface
+package controlface
 
 import (
 	"image/color"

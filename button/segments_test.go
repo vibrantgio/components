@@ -18,7 +18,7 @@ import (
 
 // segmentPair lays a two-segment control out on the chrome material and
 // answers the image and the box it reported.
-func segmentPair(t *testing.T, p tokens.PlatformColors, segs []button.ChromeSegment, size image.Point) (*image.RGBA, image.Point) {
+func segmentPair(t *testing.T, p tokens.PlatformColors, segs []button.BorderedSegment, size image.Point) (*image.RGBA, image.Point) {
 	t.Helper()
 	var got image.Point
 	img := golden.Capture(t, size, onChrome(p, func(gtx layout.Context) layout.Dimensions {
@@ -26,7 +26,7 @@ func segmentPair(t *testing.T, p tokens.PlatformColors, segs []button.ChromeSegm
 		// The band hands the control room, not a width: a segmented control
 		// asked for a width divides it, and this pair is read at its own.
 		gtx.Constraints.Min = image.Point{}
-		d := button.ChromeSegments(gtx, defaultShaper(t), p, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, segs)
+		d := button.BorderedSegments(gtx, defaultShaper(t), p, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, segs)
 		got = d.Size
 		return d
 	}))
@@ -54,7 +54,8 @@ func TestTheSegmentedPairIsTheMeasuredControl(t *testing.T) {
 		{"dark", tokens.PlatformDark},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			segs := []button.ChromeSegment{{}, {}}
+			chrome := button.RenderState{Variant: button.Chrome}
+			segs := []button.BorderedSegment{{State: chrome}, {State: chrome}}
 			img, box := segmentPair(t, tc.p, segs, size)
 
 			h := int(tokens.Comfortable.ToolbarControlHeight)
@@ -113,8 +114,9 @@ func TestASwitchedOffSegmentFadesItsSymbolAlone(t *testing.T) {
 	mark := func(gtx layout.Context, sizePx int, col color.NRGBA) {
 		paint.FillShape(gtx.Ops, col, clip.Rect{Max: image.Pt(sizePx, sizePx)}.Op())
 	}
-	live := []button.ChromeSegment{{Icon: mark}, {Icon: mark}}
-	dead := []button.ChromeSegment{{Icon: mark}, {Icon: mark, State: button.RenderState{Disabled: true}}}
+	chrome := button.RenderState{Variant: button.Chrome}
+	live := []button.BorderedSegment{{Icon: mark, State: chrome}, {Icon: mark, State: chrome}}
+	dead := []button.BorderedSegment{{Icon: mark, State: chrome}, {Icon: mark, State: button.RenderState{Variant: button.Chrome, Disabled: true}}}
 
 	liveImg, liveBox := segmentPair(t, p, live, size)
 	deadImg, deadBox := segmentPair(t, p, dead, size)
@@ -135,13 +137,13 @@ func TestASwitchedOffSegmentFadesItsSymbolAlone(t *testing.T) {
 
 // segmentRow lays a segmented control out at a stated width — the shape a
 // form's own column asks for — and answers the image and the box it reported.
-func segmentRow(t *testing.T, p tokens.PlatformColors, segs []button.ChromeSegment, size image.Point, width int) (*image.RGBA, image.Point) {
+func segmentRow(t *testing.T, p tokens.PlatformColors, segs []button.BorderedSegment, size image.Point, width int) (*image.RGBA, image.Point) {
 	t.Helper()
 	var got image.Point
 	img := golden.Capture(t, size, onChrome(p, func(gtx layout.Context) layout.Dimensions {
 		gtx.Metric = unit.Metric{PxPerDp: 1, PxPerSp: 1}
 		gtx.Constraints.Min = image.Pt(width, 0)
-		d := button.ChromeSegments(gtx, defaultShaper(t), p, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, segs)
+		d := button.BorderedSegments(gtx, defaultShaper(t), p, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, segs)
 		got = d.Size
 		return d
 	}))
@@ -158,8 +160,10 @@ func segmentRow(t *testing.T, p tokens.PlatformColors, segs []button.ChromeSegme
 // and the seams, not a padding.
 func TestAWordedControlDividesTheWidthItIsAskedFor(t *testing.T) {
 	p := tokens.PlatformLight
-	segs := []button.ChromeSegment{
-		{Label: "OpenAI"}, {Label: "xAI"}, {Label: "OpenRouter"}, {Label: "Groq"},
+	chrome := button.RenderState{Variant: button.Chrome}
+	segs := []button.BorderedSegment{
+		{Label: "OpenAI", State: chrome}, {Label: "xAI", State: chrome},
+		{Label: "OpenRouter", State: chrome}, {Label: "Groq", State: chrome},
 	}
 	const width = 360
 	img, box := segmentRow(t, p, segs, image.Pt(420, 60), width)
@@ -206,9 +210,9 @@ func TestTheChosenSegmentWearsTheMeasuredPatch(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			p := tc.p
-			segs := []button.ChromeSegment{
-				{Label: "One"},
-				{Label: "Two", State: button.RenderState{Checked: true}},
+			segs := []button.BorderedSegment{
+				{Label: "One", State: button.RenderState{Variant: button.Chrome}},
+				{Label: "Two", State: button.RenderState{Variant: button.Chrome, Checked: true}},
 			}
 			const width = 200
 			img, _ := segmentRow(t, p, segs, image.Pt(260, 60), width)

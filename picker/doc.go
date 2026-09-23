@@ -86,7 +86,7 @@
 // # The chrome variant's trigger
 //
 // [Toolbar] is the same pop-up drawn for a chrome region, from the measured
-// geometry components/internal/toolbarface holds: the platform's own toolbar
+// geometry components/internal/controlface holds: the platform's own toolbar
 // control fill at rest and that fill under the platform's overlays under the
 // pointer and while held, the rim of its seam, the value and the mark both in
 // its control text, the focus halo it wears on that rim, the density's

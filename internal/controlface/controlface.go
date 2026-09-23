@@ -1,14 +1,18 @@
-// Package toolbarface holds the geometry components/picker's chrome-variant
-// trigger is drawn from: the fill it stands off its band with and tints under
-// the pointer, the hairline around it, the focus halo it wears over that
-// hairline, the density's toolbar control height, the pointer target's
-// placement, and the pop-up mark that says the control holds one of several
-// values.
+// Package controlface holds the geometry the platform's bordered control is
+// drawn from, in both of the variants it stands in: the fill it carries and
+// tints under the pointer, the hairline around it where the platform draws
+// one, the focus halo it wears over that hairline, the shape each variant
+// takes, the drop shadow the chrome variant casts on its band, and the pop-up
+// mark that says the control holds one of several values.
+//
+// [Capsule] is the chrome variant's shape and [PushButton] the form's; the
+// colours split the same way, [Fill] and [Mark] answering for the chrome
+// variant and [FormFill] and [FormForeground] for the form.
 //
 // It is internal because it is a seam and not a component: a caller reaches
-// for picker.Toolbar or picker.RenderToolbar, and those document the control
+// for components/picker or components/button, and those document the controls
 // this draws.
-package toolbarface
+package controlface
 
 import (
 	"image"
@@ -76,14 +80,6 @@ type State struct {
 	// as the platform draws the chosen segment of a segmented control. See
 	// [CheckedPatch].
 	Checked bool
-
-	// Form says the control stands in a sheet's or a pane's BODY and is
-	// drawn as the platform's form control rather than its toolbar one: the
-	// push button's own fill under the control text, and no rim, the
-	// platform drawing none around either of the controls its Save dialog
-	// holds. It carries the drop shadow's absence too, that shadow having
-	// been measured on a band. See [FormFill].
-	Form bool
 }
 
 // state is the token vocabulary's name for the interaction the control is in.
@@ -345,9 +341,7 @@ func Draw(
 	// trigger is the dialog's pop-up, which draws the button's rounded
 	// rectangle; the toolbar's is a capsule, and the platform draws every
 	// bordered control in a toolbar band that way.
-	radius := box.Dy() / 2
-
-	outer := Capsule(gtx, box, radius, p, fill, s)
+	outer := Capsule(gtx, box, p, fill, s)
 
 	// The label at its own origin, clipped to the control's shape so a line
 	// box taller than the control is cut by the control rather than drawn
@@ -366,37 +360,56 @@ func Draw(
 	return layout.Dimensions{Size: size}
 }
 
-// Capsule paints a bordered control's own box into box at the corner radius
-// it is handed: its fill, the rim around it, and the focus halo on that
-// outline while it holds the keyboard. It reports the rounded shape it drew,
-// which a caller pushes to clip whatever stands inside that box.
+// Capsule paints the CHROME variant's box into box: the capsule every
+// bordered control in a stored toolbar band is drawn as, at its fill, with
+// the rim the platform draws around it where it draws one and the focus halo
+// on that outline while it holds the keyboard. It reports the rounded shape
+// it drew, which a caller pushes to clip whatever stands inside that box.
 //
-// The radius is the caller's because the shape is the control's PLACE: a
-// control in a chrome band is the capsule every bordered control in a stored
-// band is drawn as, half its own height, and one in a sheet's or a pane's
-// body is the push button's rounded rectangle at the measured
-// [tokens.RadiusScale.Md].
+// MEASURED, finder-window-untinted-light.png: the toolbar's group pull-down
+// spans y 34-69 and its sub-pixel left edge reaches its extreme over rows
+// 50-53, the control's own middle, which is a capsule; circular fits to that
+// edge run 17.4 to 19.1 about the half-height's 18. So the corner is half the
+// control's own height and the caller names no radius.
 //
-// Every bordered control in this library is drawn through it — the picker's
-// chrome trigger and components/button's chrome variant — so a control
-// labelled with a symbol and a pop-up are one box drawn in two places.
+// The picker's chrome trigger and components/button's chrome symbol button
+// and segmented control are all drawn through it, so every bordered control
+// standing in a band is one box. The form variant's box is [PushButton].
 //
 // The shadow the control casts on its band is NOT drawn here: it falls
 // outside the box and so outside the clip a widget.Clickable puts around
 // whatever it wraps. [Cast] draws it, in the band's own pass.
-func Capsule(gtx layout.Context, box image.Rectangle, radius int, p tokens.PlatformColors, fill color.NRGBA, s State) clip.RRect {
-	// The control keeps its own rim whatever the keyboard is doing: focus is
-	// the halo laid on the outline and not a second answer to what the edge
-	// is. In the light appearance there is no rim at all — the platform
-	// draws none there, so a resting light control is its fill and nothing
-	// else — and a focused one in that appearance is its fill under the
-	// halo.
-	band, edgeColor := max(gtx.Dp(edgeDp), 1), Rim(p)
-	if edgeColor.A == 0 || s.Form {
-		// A BODY control draws no rim in either appearance: MEASURED, the
-		// Save dialog's push button and both its pop-ups meet the sheet in
-		// one step with no edge column, the "Tags:" text field being the one
-		// control on that sheet that draws an edge at all.
+func Capsule(gtx layout.Context, box image.Rectangle, p tokens.PlatformColors, fill color.NRGBA, s State) clip.RRect {
+	return face(gtx, box, box.Dy()/2, Rim(p), p, fill, s)
+}
+
+// PushButton paints the FORM variant's box into box at the radius it is
+// handed: the push button's rounded rectangle, at its fill, with no rim and
+// the focus halo on its outline while it holds the keyboard. It reports the
+// rounded shape it drew, the way [Capsule] does.
+//
+// MEASURED, save-dialog-{light,dark}.png: the sheet's "Cancel" fits r = 6.11
+// light and 6.17 dark, which is [tokens.RadiusScale.Md], and the radius is
+// the caller's because that scale is the theme's. The same captures give the
+// rim: the push button and both pop-ups meet the sheet in one step with no
+// edge column, the "Tags:" text field being the one control on that sheet
+// that draws an edge at all.
+//
+// A form control casts no drop shadow: the shadow was measured on a band and
+// belongs to the chrome variant. See [Shadow].
+func PushButton(gtx layout.Context, box image.Rectangle, radius int, p tokens.PlatformColors, fill color.NRGBA, s State) clip.RRect {
+	return face(gtx, box, radius, color.NRGBA{}, p, fill, s)
+}
+
+// face is the drawing both variants share: the fill as the whole shape, the
+// checked patch over it, the rim where the variant carries one, and the focus
+// halo on the outline. An alpha-zero rim is no edge at all.
+//
+// The control keeps its own rim whatever the keyboard is doing: focus is the
+// halo laid on the outline and not a second answer to what the edge is.
+func face(gtx layout.Context, box image.Rectangle, radius int, rim color.NRGBA, p tokens.PlatformColors, fill color.NRGBA, s State) clip.RRect {
+	band := max(gtx.Dp(edgeDp), 1)
+	if rim.A == 0 {
 		band = 0
 	}
 
@@ -415,7 +428,7 @@ func Capsule(gtx layout.Context, box image.Rectangle, radius int, p tokens.Platf
 	if band > 0 {
 		edgePath := outer.Path(gtx.Ops)
 		edgeArea := outer.Push(gtx.Ops)
-		paint.FillShape(gtx.Ops, edgeColor, clip.Stroke{Path: edgePath, Width: float32(2 * band)}.Op())
+		paint.FillShape(gtx.Ops, rim, clip.Stroke{Path: edgePath, Width: float32(2 * band)}.Op())
 		edgeArea.Pop()
 	}
 	if s.Focused {

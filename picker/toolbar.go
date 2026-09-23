@@ -9,7 +9,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/components/internal/toolbarface"
+	"github.com/vibrantgio/components/internal/controlface"
 	"github.com/vibrantgio/mvu"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
@@ -66,8 +66,8 @@ type ToolbarState struct {
 // face is this state as the shared toolbar geometry reads it. A pop-up holds
 // one of several values and records no yes of its own, so the checked state a
 // toolbar toggle draws is left unset here.
-func (s ToolbarState) face() toolbarface.State {
-	return toolbarface.State{Hovered: s.Hovered, Pressed: s.Pressed, Focused: s.Focused, StandsOn: s.Surface}
+func (s ToolbarState) face() controlface.State {
+	return controlface.State{Hovered: s.Hovered, Pressed: s.Pressed, Focused: s.Focused, StandsOn: s.Surface}
 }
 
 // ToolbarProps configures a [Toolbar] instance.
@@ -205,7 +205,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 					}
 				}
 
-				s := toolbarface.State{
+				s := controlface.State{
 					Hovered: click.Hovered(),
 					Pressed: click.Pressed(),
 					Focused: gtx.Focused(click),
@@ -215,18 +215,18 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 					StandsOn: tok.platform.SidebarMaterial,
 				}
 
-				return toolbarface.Pin(props.Pin).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return controlface.Pin(props.Pin).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					// The shadow is cast around the clickable rather than
 					// inside it: it falls outside the control's own box, and
 					// a Clickable clips what it wraps to that box.
-					return toolbarface.Cast(gtx, toolbarface.Shadow(tok.platform), s.Focused, func(gtx layout.Context) layout.Dimensions {
+					return controlface.Cast(gtx, controlface.Shadow(tok.platform), s.Focused, func(gtx layout.Context) layout.Dimensions {
 						return click.Layout(gtx,
 							func(gtx layout.Context) layout.Dimensions {
 								semantic.ClassOp(semantic.Button).Add(gtx.Ops)
 								semantic.LabelOp(props.Value).Add(gtx.Ops)
 								semantic.DescriptionOp(desc).Add(gtx.Ops)
 								semantic.EnabledOp(true).Add(gtx.Ops)
-								return toolbarface.Draw(gtx, shaper, props.Value, tok.platform,
+								return controlface.Draw(gtx, shaper, props.Value, tok.platform,
 									tok.spacing, tok.label, tok.density, s)
 							})
 					})
@@ -275,8 +275,8 @@ func RenderToolbar(
 	s ToolbarState,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return toolbarface.Cast(gtx, toolbarface.Shadow(p), s.face().Focused, func(gtx layout.Context) layout.Dimensions {
-			return toolbarface.Draw(gtx, shaper, value, p, sp, labelStyle, d, s.face())
+		return controlface.Cast(gtx, controlface.Shadow(p), s.face().Focused, func(gtx layout.Context) layout.Dimensions {
+			return controlface.Draw(gtx, shaper, value, p, sp, labelStyle, d, s.face())
 		})
 	}
 }
@@ -296,5 +296,5 @@ func RenderToolbar(
 // needs the answer the trigger drew with, and re-deriving it at the call site
 // is how two answers appear.
 func ToolbarFill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
-	return toolbarface.Fill(p, state)
+	return controlface.Fill(p, state)
 }
