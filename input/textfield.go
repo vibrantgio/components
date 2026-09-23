@@ -804,10 +804,18 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 
 // textFieldColors returns the (fill, foreground, edge, placeholder) colours
 // for the given state, each named by the platform: the fill a text field is
-// drawn with, the colour of the text in it, the hairline it wears at rest and
+// drawn with, the colour of the value in it, the hairline it wears at rest and
 // the foreground of the prompt standing in for a value that is not there yet
 // (control.Placeholder — the same name components/picker's field trigger
 // draws its prompt in, named once so the two cannot drift).
+//
+// The value is Label flattened onto the fill, not the opaque Text the field
+// drew before. MEASURED, voicememos-multi-folder-search-2026-09-18.png at 1x:
+// the typed query standing unselected in the toolbar recess plateaus at
+// #232323 over that recess's #e8e8e8 fill, which is Label's black at 216/255
+// flattened onto it to the byte, where Text's opaque black would read #000000.
+// Gio's editor paints the run, the caret and the text over the selection from
+// one material, so all three carry it.
 //
 // The interior is the surface the field stands on and not a fill of the
 // field's own — control.FieldFill carries the measurement — so a field on a
@@ -824,7 +832,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // already draws, so a focused field keeps the edge it has at rest.
 func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, edge, placeholder color.NRGBA, shadow tokens.DropShadow) {
 	fill = fieldFill(p, s)
-	foreground = p.Text
+	foreground = vgcolor.Flatten(p.Label, fill)
 	edge = control.Border(p)
 	placeholder = control.Placeholder(p, fill)
 	if s.onToolbar() {

@@ -3,6 +3,7 @@ package input_test
 import (
 	"context"
 	"image"
+	stdcolor "image/color"
 	"testing"
 
 	"gioui.org/f32"
@@ -20,6 +21,7 @@ import (
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/input"
 	"github.com/vibrantgio/components/internal/control"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -650,5 +652,64 @@ func TestTheIBeamStandsOverTheFieldAndNoFurther(t *testing.T) {
 	}
 	if got, want := at(fieldH/2), pointer.CursorText; got != want {
 		t.Errorf("pointer back over the field = %v; want %v", got, want)
+	}
+}
+
+// TestTheValuesPlateauIsTheLabel reads the colour of a typed value off a
+// capture of the field in both schemes: the pixel furthest from the field's
+// own fill is the one the value was stroked in, because anti-aliasing only
+// moves a glyph's pixels toward the surface and never past the colour it was
+// drawn with.
+//
+// The value is the platform's label flattened onto that fill and not the
+// opaque text colour. MEASURED, voicememos-multi-folder-search-2026-09-18.png
+// at 1x: a typed query standing unselected in the toolbar recess plateaus at
+// #232323 over that recess's #e8e8e8 fill, which is the label's black at
+// 216/255 over it to the byte, where the opaque text colour would read
+// #000000.
+func TestTheValuesPlateauIsTheLabel(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 60)
+	for _, tc := range []struct {
+		name     string
+		platform tokens.PlatformColors
+	}{
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			state := input.RenderState{Text: "Untitled"}
+			img := golden.Capture(t, size, onSheet(
+				control.FieldFill(tc.platform, stdcolor.NRGBA{}),
+				input.Render(
+					shaper, "Email address",
+					tc.platform, tokens.Spacing, tokens.RadiusScale{},
+					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, state,
+				)))
+			if img == nil {
+				return
+			}
+			fill := control.FieldFill(tc.platform, stdcolor.NRGBA{})
+			label := vgcolor.Flatten(tc.platform.Label, fill)
+
+			best, bestD := stdcolor.RGBA{}, -1
+			for y := 0; y < size.Y; y++ {
+				for x := 0; x < size.X; x++ {
+					if c := img.RGBAAt(x, y); dist(c, fill) > bestD {
+						bestD, best = dist(c, fill), c
+					}
+				}
+			}
+			if bestD <= 0 {
+				t.Fatal("the field drew no value on its fill")
+			}
+			if !nearerTo(best, label, tc.platform.Text) {
+				t.Errorf("the value's plateau is %v, nearer the opaque text %v than the platform's label over the fill, %v",
+					best, tc.platform.Text, label)
+			}
+			if best.R != label.R || best.G != label.G || best.B != label.B {
+				t.Errorf("the value's plateau is %v, want the platform's label over the field's fill, %v", best, label)
+			}
+		})
 	}
 }
