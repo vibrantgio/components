@@ -64,6 +64,16 @@
 // clipping what it wraps to the box its layout.Widget reports while the shadow
 // falls outside it.
 //
+// A bordered control also carries a [Place] — [Band], the zero value, or
+// [Body] — and the place settles its height and its shadow. The platform
+// draws one bordered control at two heights: 36 px in every stored toolbar
+// band against the 24 its own Save dialog draws a push button and a pop-up
+// at. The drop shadow goes with the band, not with borderedness: it was
+// measured on a band, and it is what tells a control from a band the platform
+// fills with the same #ffffff. So a segmented control or a symbol button
+// standing in a sheet's or a pane's body names [Body], draws at the density's
+// control height and casts none.
+//
 // # A pinned fill
 //
 // The filled variant alone will take a fill from its caller. Set both halves

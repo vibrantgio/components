@@ -76,6 +76,14 @@ type State struct {
 	// as the platform draws the chosen segment of a segmented control. See
 	// [CheckedPatch].
 	Checked bool
+
+	// Form says the control stands in a sheet's or a pane's BODY and is
+	// drawn as the platform's form control rather than its toolbar one: the
+	// push button's own fill under the control text, and no rim, the
+	// platform drawing none around either of the controls its Save dialog
+	// holds. It carries the drop shadow's absence too, that shadow having
+	// been measured on a band. See [FormFill].
+	Form bool
 }
 
 // state is the token vocabulary's name for the interaction the control is in.
@@ -123,6 +131,36 @@ func Fill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
 		return vgcolor.Flatten(p.HoverOverlay, p.ToolbarControlFill)
 	}
 	return p.ToolbarControlFill
+}
+
+// FormFill is the fill of a bordered control standing in a sheet's or a
+// pane's BODY: the platform's measured push-button fill, under the same hover
+// and press overlays every other fill in this library takes.
+//
+// MEASURED, save-dialog-{light,dark}.png: the sheet's "Cancel" and its two
+// pop-ups are all filled #ececec light and #333a3f dark, which is
+// [tokens.PlatformColors.PushButtonFill]. It is a step off the sheet in both
+// appearances, which is what lets a body control stand without the band's
+// drop shadow under it and without a rim the platform draws around neither.
+func FormFill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
+	switch state {
+	case tokens.StatePressed:
+		return vgcolor.Flatten(p.PressOverlay, p.PushButtonFill)
+	case tokens.StateHover:
+		return vgcolor.Flatten(p.HoverOverlay, p.PushButtonFill)
+	}
+	return p.PushButtonFill
+}
+
+// FormForeground is the colour a body control's wording and its mark read in:
+// the platform's control text over whatever fill the control ended up with.
+//
+// MEASURED, save-dialog-{light,dark}.png: the "File Format:" pop-up's mark
+// reads 36 light and (224,225,226) dark on fills of #ececec and #333a3f,
+// which is ControlText's 216 of 255 flattened onto each to the byte. A
+// toolbar control reads a different name — see [Mark].
+func FormForeground(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
+	return vgcolor.Flatten(p.ControlText, beneath)
 }
 
 // Rim is the hairline around the control, and it is
@@ -348,7 +386,11 @@ func Capsule(gtx layout.Context, box image.Rectangle, radius int, p tokens.Platf
 	// else — and a focused one in that appearance is its fill under the
 	// halo.
 	band, edgeColor := max(gtx.Dp(edgeDp), 1), Rim(p)
-	if edgeColor.A == 0 {
+	if edgeColor.A == 0 || s.Form {
+		// A BODY control draws no rim in either appearance: MEASURED, the
+		// Save dialog's push button and both its pop-ups meet the sheet in
+		// one step with no edge column, the "Tags:" text field being the one
+		// control on that sheet that draws an edge at all.
 		band = 0
 	}
 

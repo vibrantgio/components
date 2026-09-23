@@ -23,7 +23,8 @@ import (
 // drawn in an explicit visual state without event processing or rx machinery.
 //
 // The glyph is drawn by icon into a square of [control.ChromeMarkDp] centred
-// in a capsule d.ToolbarControlHeight tall, and that capsule is the pointer
+// in a capsule the height s.Place names — d.ToolbarControlHeight in a band,
+// the body's d.ControlHeight in a sheet — and that capsule is the pointer
 // target. It takes no text style and no radius scale: the corner is half the
 // control's height and there is no text to shape. Intended for golden-image
 // testing and static rendering; production code uses Button with
@@ -68,7 +69,13 @@ func ChromeFace(
 // control while it is switched off.
 //
 // w is [ChromeFace] or something wrapping it, a widget.Clickable included.
+// A control whose [RenderState.Place] is [Body] casts none: the shadow was
+// measured on a band and belongs to the chrome variant, so this lays w out
+// and paints nothing under it.
 func ChromeShadow(gtx layout.Context, p tokens.PlatformColors, s RenderState, w layout.Widget) layout.Dimensions {
+	if s.Place == Body {
+		return w(gtx)
+	}
 	return toolbarface.Cast(gtx, chromeShadow(p, s), s.Focused && !s.Disabled, w)
 }
 
@@ -84,7 +91,7 @@ func ChromeShadow(gtx layout.Context, p tokens.PlatformColors, s RenderState, w 
 // event queries are performed here.
 func drawChromeIcon(gtx layout.Context, icon func(gtx layout.Context, sizePx int, col color.NRGBA), tok resolvedTokens, s RenderState) layout.Dimensions {
 	p := tok.platform
-	h := gtx.Dp(unit.Dp(tok.density.ToolbarControlHeight))
+	h := gtx.Dp(unit.Dp(s.Place.Height(tok.density)))
 	mark := gtx.Dp(control.ChromeMarkDp)
 	w := mark + 2*gtx.Dp(control.ChromeMarkSideDp)
 	w = min(w, gtx.Constraints.Max.X)
@@ -99,6 +106,7 @@ func drawChromeIcon(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 		Pressed:  s.Pressed && !s.Disabled,
 		Focused:  s.Focused && !s.Disabled,
 		Checked:  s.Checked,
+		Form:     s.Place == Body,
 		StandsOn: surface.Or(s.Surface, p.SidebarMaterial),
 	})
 
@@ -133,17 +141,45 @@ func drawChromeIcon(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 func chromeColors(p tokens.PlatformColors, s RenderState) (fill, fg color.NRGBA) {
 	if s.Disabled {
 		standsOn := surface.Or(s.Surface, p.SidebarMaterial)
-		fill = control.Faded(p.ToolbarControlFill, standsOn)
+		fill = control.Faded(placeRestingFill(p, s.Place), standsOn)
 		return fill, vgcolor.Flatten(p.DisabledControlText, fill)
 	}
-	fill = toolbarface.Fill(p, chromeState(s))
-	return fill, toolbarface.Mark(p, fill)
+	fill = placeFill(p, s.Place, chromeState(s))
+	return fill, placeForeground(p, s.Place, fill)
+}
+
+// placeFill is the fill a bordered control carries where it stands: the
+// toolbar control's own on a band, the push button's in a body.
+func placeFill(p tokens.PlatformColors, pl Place, st tokens.State) color.NRGBA {
+	if pl == Body {
+		return toolbarface.FormFill(p, st)
+	}
+	return toolbarface.Fill(p, st)
+}
+
+// placeRestingFill is that fill at rest — what a switched-off control fades
+// from toward the surface it stands on.
+func placeRestingFill(p tokens.PlatformColors, pl Place) color.NRGBA {
+	return placeFill(p, pl, tokens.StateNormal)
+}
+
+// placeForeground is the colour a bordered control's mark and its wording
+// read in where it stands: the toolbar's own label on a band, the platform's
+// control text in a body.
+func placeForeground(p tokens.PlatformColors, pl Place, fill color.NRGBA) color.NRGBA {
+	if pl == Body {
+		return toolbarface.FormForeground(p, fill)
+	}
+	return toolbarface.Mark(p, fill)
 }
 
 // chromeShadow is the shadow the control casts on its band — the platform's
 // own coverage with the reach and the offset its appearance measures — faded
 // with the control while it is switched off: a control that is not offering
 // itself does not stand off its band as one that is.
+//
+// A body control casts none — see [ChromeShadow] — so this is not reached
+// there.
 func chromeShadow(p tokens.PlatformColors, s RenderState) tokens.DropShadow {
 	sh := toolbarface.Shadow(p)
 	if s.Disabled {

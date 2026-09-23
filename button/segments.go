@@ -106,14 +106,23 @@ type ChromeSegment struct {
 // appearance and one over in the dark. See
 // [tokens.PlatformColors.ToolbarControlSeam], which carries both readings.
 //
+// THE PLACE SETTLES THE HEIGHT. A control standing in a chrome band is the
+// toolbar control's own 36; one standing in a sheet's or a pane's body is the
+// dialog control's 24, which is what the first segment's
+// [RenderState.Place] says. See [Place].
+//
 // The shadow the control casts on its band is not drawn here — it falls
-// outside the box this reports, the way [ChromeFace]'s does. Callers wrap
-// this in [ChromeShadow].
+// outside the box this reports, the way [ChromeFace]'s does. Callers in a
+// band wrap this in [ChromeShadow]; a control in a body casts none.
 func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformColors, labelStyle tokens.TextStyle, d tokens.Density, segs []ChromeSegment) layout.Dimensions {
 	if len(segs) == 0 {
 		return layout.Dimensions{}
 	}
-	h := min(gtx.Dp(unit.Dp(d.ToolbarControlHeight)), gtx.Constraints.Max.Y)
+	// The control's height is the one its PLACE names, and the place is the
+	// control's rather than a segment's: every segment of one control stands
+	// in one place, so the first segment's answer is the control's, the way
+	// its focus and the band it stands on already are.
+	h := min(gtx.Dp(unit.Dp(segs[0].State.Place.Height(d))), gtx.Constraints.Max.Y)
 	mark := gtx.Dp(control.ChromeMarkDp)
 	side := gtx.Dp(control.ChromeMarkSideDp)
 	rule := max(gtx.Dp(segmentSeamDp), 1)
@@ -126,18 +135,19 @@ func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformCo
 	labels := make([]op.CallOp, len(segs))
 	labelSize := make([]image.Point, len(segs))
 	segW := mark + 2*side
-	rest := toolbarface.Fill(p, tokens.StateNormal)
+	place := segs[0].State.Place
+	rest := placeRestingFill(p, place)
 	for i, s := range segs {
 		fills[i] = rest
 		if !s.State.Disabled {
 			if st := chromeState(s.State); st == tokens.StateHover || st == tokens.StatePressed {
-				fills[i] = toolbarface.Fill(p, st)
+				fills[i] = placeFill(p, place, st)
 			}
 		}
 		if s.Label == "" {
 			continue
 		}
-		fg := toolbarface.Mark(p, fills[i])
+		fg := placeForeground(p, place, fills[i])
 		if s.State.Disabled {
 			fg = vgcolor.Flatten(p.DisabledControlText, fills[i])
 		}
@@ -167,6 +177,7 @@ func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformCo
 	}
 	outer := toolbarface.Capsule(gtx, box, h/2, p, rest, toolbarface.State{
 		Focused: focused,
+		Form:    place == Body,
 		// The band the pair stands on. Every segment of one control stands
 		// on one band, so the first segment's answer is the control's.
 		StandsOn: segs[0].State.Surface,
@@ -219,7 +230,7 @@ func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformCo
 			off.Pop()
 			area.Pop()
 		case s.Icon != nil && mark > 0:
-			fg := toolbarface.Mark(p, fill)
+			fg := placeForeground(p, place, fill)
 			if s.State.Disabled {
 				fg = vgcolor.Flatten(p.DisabledControlText, fill)
 			}

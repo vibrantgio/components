@@ -110,8 +110,62 @@ const (
 	// The fill, the rim and the shadow are the platform's for that control,
 	// so [Emphasis] reaches nothing here — there is one bordered toolbar
 	// control and the platform draws it one way.
+	//
+	// THE DROP SHADOW BELONGS TO THIS VARIANT AND NOT TO BORDEREDNESS. It
+	// was measured on a BAND — the toolbar controls of finder-window.png,
+	// mail-window.png and notes-toolbar.png — and it is what tells a control
+	// from a band it matches in the light appearance, where the platform
+	// gives both #ffffff. A bordered control standing in a sheet's or a
+	// pane's BODY is the form variant's place: it stands on a surface of its
+	// own, at the body's control height, and casts none. See [Place].
 	Chrome
 )
+
+// Place is where a bordered control stands, and it is what settles the
+// control's height and whether it casts the band's drop shadow. The zero
+// value is [Band].
+//
+// The platform draws one bordered control in two places and at two heights:
+// MEASURED, every bordered control in the five stored toolbar bands runs 36 px
+// where the same machine's Save dialog draws its push button and its pop-up at
+// 24 (controls.md, "The toolbar control's height, capture by capture"). So a
+// caller names the place and the height follows it, rather than naming a
+// height of its own.
+type Place uint8
+
+const (
+	// Band is the zero value: the control stands in a chrome band, at
+	// [tokens.Density.ToolbarControlHeight], casting the drop shadow the
+	// platform's toolbar control casts on its band.
+	Band Place = iota
+
+	// Body is the control standing in a sheet's or a pane's body — a
+	// segmented control in a dialog's form, the pair under an editable
+	// list. It draws at [tokens.Density.ControlHeight], the dialog
+	// control's 24, and casts no shadow: the shadow is the chrome variant's
+	// and was measured on a band. See [Chrome].
+	Body
+)
+
+// Height is the control height this place draws a bordered control at.
+func (pl Place) Height(d tokens.Density) float32 {
+	if pl == Body {
+		return d.ControlHeight
+	}
+	return d.ToolbarControlHeight
+}
+
+// String returns the name of the place in the vocabulary the design system
+// uses everywhere else.
+func (pl Place) String() string {
+	switch pl {
+	case Band:
+		return "band"
+	case Body:
+		return "body"
+	}
+	return fmt.Sprintf("Place(%d)", int(pl))
+}
 
 // String returns the name of the variant in the vocabulary the design system
 // uses everywhere else.
@@ -144,6 +198,13 @@ type RenderState struct {
 	// content, [Chrome] in a chrome region. It is read on the symbol path
 	// alone — see [Chrome].
 	Variant Variant
+
+	// Place is where a bordered control stands: [Band] (the zero value) in a
+	// chrome band, [Body] in a sheet's or a pane's body. It settles the
+	// control's height and whether it casts the band's shadow, and it is
+	// read on the bordered paths alone — the chrome symbol button and
+	// [ChromeSegments]. See [Place].
+	Place Place
 
 	// Fill and Foreground pin the Filled emphasis' fill and the foreground over
 	// it to a pair the scheme does not carry: a colour fixed from outside the
@@ -215,6 +276,12 @@ type Props struct {
 	// platform's bordered toolbar control; one carrying text draws the form
 	// variant. See [Chrome].
 	Variant Variant
+
+	// Place is where a bordered control stands: [Band] (the zero value) in a
+	// chrome band, [Body] in a sheet's or a pane's body, copied straight
+	// into RenderState on every frame. It settles the control's height and
+	// whether it casts the band's shadow. See [Place].
+	Place Place
 
 	// Fill and Foreground pin the Filled emphasis' fill and its foreground to a
 	// pair the scheme does not carry, copied straight into RenderState on
@@ -391,6 +458,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 					state := RenderState{
 						Emphasis:   props.Emphasis,
 						Variant:    props.Variant,
+						Place:      props.Place,
 						Fill:       props.Fill,
 						Foreground: props.Foreground,
 						Surface:    props.Surface,
@@ -521,7 +589,13 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	padH := gtx.Dp(unit.Dp(tok.density.PaddingX))
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
-	rad := gtx.Dp(unit.Dp(tok.radius.Md)) // 6 dp corner radius
+	// MEASURED, save-dialog-{light,dark}.png, the push button's own corner:
+	// a circular fit to the per-row coverage of "Cancel"'s corners, its
+	// extremes pinned, gives r = 6.11 light (rms 0.088 px) and r = 6.17 dark
+	// (rms 0.069), all four corners agreeing to the hundredth — which is
+	// RadiusScale.Md. Every circular fit in that reference sits above the
+	// radius drawn, the platform's corner being a continuous curve.
+	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 
 	bg, fg, haloOut, haloOver := buttonColors(tok.platform, s)
 
@@ -613,7 +687,7 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 	// shrink.
 	pad := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	side := gtx.Dp(unit.Dp(tok.density.ControlHeight))
-	rad := gtx.Dp(unit.Dp(tok.radius.Md)) // 6 dp corner radius
+	rad := gtx.Dp(unit.Dp(tok.radius.Md)) // the measured push-button corner; see drawButton
 	sz := image.Pt(side, side)
 
 	bg, fg, haloOut, haloOver := buttonColors(tok.platform, s)
