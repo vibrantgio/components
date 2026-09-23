@@ -20,6 +20,7 @@ import (
 	"github.com/reactivego/rx"
 
 	"github.com/vibrantgio/components/internal/surface"
+	"github.com/vibrantgio/components/pointershape"
 	"github.com/vibrantgio/mvu"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
@@ -731,7 +732,7 @@ func registerCloseTarget(gtx layout.Context, desc string, origin image.Point, ma
 		// label rather than a word this package invented for it.
 		semantic.LabelOp(desc).Add(gtx.Ops)
 		semantic.EnabledOp(true).Add(gtx.Ops)
-		pointer.CursorPointer.Add(gtx.Ops)
+		pointershape.OverSize(gtx.Ops, image.Pt(target, target), pointer.CursorPointer)
 		return layout.Dimensions{Size: image.Pt(target, target)}
 	})
 	off.Pop()

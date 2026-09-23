@@ -22,6 +22,7 @@ import (
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/surface"
+	"github.com/vibrantgio/components/pointershape"
 	"github.com/vibrantgio/mvu"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
@@ -679,7 +680,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	st.Pop()
 
 	if !s.Disabled {
-		pointer.CursorText.Add(gtx.Ops)
+		pointershape.OverSize(gtx.Ops, fieldSize, pointer.CursorText)
 	}
 
 	// The looking glass and the clear mark are drawn over the field's own

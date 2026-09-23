@@ -26,6 +26,7 @@ import (
 
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/surface"
+	"github.com/vibrantgio/components/pointershape"
 )
 
 // Purpose is what a chip is for, and it is the whole of what one chip differs
@@ -808,7 +809,7 @@ func draw(
 	semantic.EnabledOp(true).Add(gtx.Ops)
 	sem.Pop()
 
-	pointer.CursorPointer.Add(gtx.Ops)
+	pointershape.OverSize(gtx.Ops, size, pointer.CursorPointer)
 
 	if trail > 0 {
 		origin := image.Pt(x+trailGap, markY)
@@ -889,7 +890,7 @@ func registerDismissTarget(gtx layout.Context, desc string, origin image.Point, 
 		// rather than a word this package invented for it.
 		semantic.LabelOp(desc).Add(gtx.Ops)
 		semantic.EnabledOp(true).Add(gtx.Ops)
-		pointer.CursorPointer.Add(gtx.Ops)
+		pointershape.OverSize(gtx.Ops, image.Pt(target, target), pointer.CursorPointer)
 		return layout.Dimensions{Size: image.Pt(target, target)}
 	})
 	off.Pop()

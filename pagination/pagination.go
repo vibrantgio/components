@@ -42,6 +42,7 @@ import (
 	"github.com/vibrantgio/components/icon"
 	"github.com/vibrantgio/components/internal/surface"
 	complayout "github.com/vibrantgio/components/layout"
+	"github.com/vibrantgio/components/pointershape"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
@@ -251,7 +252,7 @@ func pageCellWidget(shaper *text.Shaper, n int, current, navigable bool, click *
 		return click.Layout(cgtx, func(gtx layout.Context) layout.Dimensions {
 			semantic.LabelOp(label).Add(gtx.Ops)
 			semantic.EnabledOp(true).Add(gtx.Ops)
-			pointer.CursorPointer.Add(gtx.Ops)
+			pointershape.OverSize(gtx.Ops, image.Pt(side, side), pointer.CursorPointer)
 			return draw(gtx)
 		})
 	}
@@ -328,7 +329,7 @@ func chevronCellWidget(pointsRight bool, click *widget.Clickable, enabled bool, 
 		}
 		return click.Layout(cgtx, func(gtx layout.Context) layout.Dimensions {
 			semantic.EnabledOp(true).Add(gtx.Ops)
-			pointer.CursorPointer.Add(gtx.Ops)
+			pointershape.OverSize(gtx.Ops, image.Pt(side, side), pointer.CursorPointer)
 			return draw(gtx)
 		})
 	}

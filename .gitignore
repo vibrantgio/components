@@ -4,3 +4,7 @@ gallery/gallery
 # comparison. Four of them were committed by accident and outlived the
 # failures they recorded.
 *.actual.png
+
+# Windows cross-builds: `GOOS=windows go build ./...` writes one beside each
+# main package in the module. Artifacts, never source.
+*.exe

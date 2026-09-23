@@ -21,6 +21,7 @@ import (
 	"github.com/vibrantgio/components/icons"
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
+	"github.com/vibrantgio/components/pointershape"
 	"github.com/vibrantgio/mvu"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
@@ -657,7 +658,7 @@ func (a adorn) registerClear(gtx layout.Context, origin image.Point, mark int) {
 		// should be told which one rather than a word this package invented.
 		semantic.LabelOp(a.clearDesc).Add(gtx.Ops)
 		semantic.EnabledOp(true).Add(gtx.Ops)
-		pointer.CursorPointer.Add(gtx.Ops)
+		pointershape.OverSize(gtx.Ops, image.Pt(target, target), pointer.CursorPointer)
 		return layout.Dimensions{Size: image.Pt(target, target)}
 	})
 	off.Pop()

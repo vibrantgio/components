@@ -15,6 +15,7 @@ import (
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/components/internal/toolbarface"
+	"github.com/vibrantgio/components/pointershape"
 )
 
 // RenderChrome produces a layout.Widget for a button standing in a chrome
@@ -113,7 +114,7 @@ func drawChromeIcon(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 	}
 
 	if !s.Disabled {
-		pointer.CursorPointer.Add(gtx.Ops)
+		pointershape.OverSize(gtx.Ops, size, pointer.CursorPointer)
 	}
 	return layout.Dimensions{Size: size}
 }

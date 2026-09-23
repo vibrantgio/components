@@ -39,6 +39,7 @@ import (
 	// gioui.org itself and introduces no new third-party dependency.
 	"golang.org/x/image/math/fixed"
 
+	"github.com/vibrantgio/components/pointershape"
 	vgcolor "github.com/vibrantgio/theme/color"
 )
 
@@ -545,9 +546,9 @@ func registerLinkArea(gtx layout.Context, l *linkState, off image.Point, s segme
 	cl := clip.Rect{Max: image.Pt(s.width, s.height)}.Push(gtx.Ops)
 	semantic.Button.Add(gtx.Ops)
 	semantic.DescriptionOp(l.url).Add(gtx.Ops)
-	pointer.CursorPointer.Add(gtx.Ops)
 	l.click.Add(gtx.Ops)
 	event.Op(gtx.Ops, l)
+	pointershape.OverSize(gtx.Ops, image.Pt(s.width, s.height), pointer.CursorPointer)
 	cl.Pop()
 	st.Pop()
 }

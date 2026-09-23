@@ -12,6 +12,7 @@ import (
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/clip"
 	"gioui.org/text"
 	"gioui.org/unit"
 
@@ -597,5 +598,57 @@ func TestTextFieldFocusTagExposesEditor(t *testing.T) {
 
 	if len(gotChanges) == 0 || gotChanges[len(gotChanges)-1] != "ok" {
 		t.Fatalf("OnChange after focusing via FocusTag = %v, want [... ok]", gotChanges)
+	}
+}
+
+// TestTheIBeamStandsOverTheFieldAndNoFurther reads the shape the frame
+// declares over a field and over a list standing under it in the same column.
+// The I-beam belongs to the text that can be edited, so it reaches the field's
+// own edge and the list beside it keeps the arrow. It is the reading behind
+// the report that a rail's list wore the shape of the find field above it.
+func TestTheIBeamStandsOverTheFieldAndNoFurther(t *testing.T) {
+	field := materialize(t, input.TextField(rx.Of(theme.Default()), input.TextFieldProps{
+		Placeholder: "Search",
+		Shaper:      defaultShaper(t),
+	}))
+	var rows int
+	size := image.Pt(300, 200)
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	var fieldH int
+	frame := func() {
+		ops.Reset()
+		gtx := layout.Context{
+			Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
+			Constraints: layout.Exact(size),
+			Ops:         ops,
+			Source:      r.Source(),
+		}
+		// One column: the field at its own height, the list filling the rest.
+		fgtx := gtx
+		fgtx.Constraints = layout.Constraints{Max: size}
+		fieldH = field(fgtx).Size.Y
+		st := op.Offset(image.Pt(0, fieldH)).Push(ops)
+		cl := clip.Rect(image.Rect(0, 0, size.X, size.Y-fieldH)).Push(ops)
+		event.Op(ops, &rows)
+		cl.Pop()
+		st.Pop()
+		r.Frame(ops)
+	}
+	frame()
+	frame()
+	at := func(y int) pointer.Cursor {
+		r.Queue(pointer.Event{Kind: pointer.Move, Position: f32.Pt(150, float32(y)), Source: pointer.Mouse})
+		frame()
+		return r.Cursor()
+	}
+	if got, want := at(fieldH/2), pointer.CursorText; got != want {
+		t.Errorf("pointer over the field = %v; want %v", got, want)
+	}
+	if got, want := at(fieldH+40), pointer.CursorDefault; got != want {
+		t.Errorf("pointer over the list under the field = %v; want %v", got, want)
+	}
+	if got, want := at(fieldH/2), pointer.CursorText; got != want {
+		t.Errorf("pointer back over the field = %v; want %v", got, want)
 	}
 }

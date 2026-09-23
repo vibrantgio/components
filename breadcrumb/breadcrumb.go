@@ -49,6 +49,7 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/internal/surface"
 	complayout "github.com/vibrantgio/components/layout"
+	"github.com/vibrantgio/components/pointershape"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
@@ -267,8 +268,9 @@ func segmentWidget(shaper *text.Shaper, item Item, click *widget.Clickable, fg c
 		return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			semantic.LabelOp(item.Label).Add(gtx.Ops)
 			semantic.EnabledOp(true).Add(gtx.Ops)
-			pointer.CursorPointer.Add(gtx.Ops)
-			return label(gtx)
+			dims := label(gtx)
+			pointershape.OverSize(gtx.Ops, dims.Size, pointer.CursorPointer)
+			return dims
 		})
 	}
 }

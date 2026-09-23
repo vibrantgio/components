@@ -870,3 +870,52 @@ func hasChromaticUnlike(img *image.RGBA, x0, x1 int, body color.NRGBA) bool {
 	}
 	return false
 }
+
+// TestTheHandStandsOverTheLinkAndNoFurther reads the shape the frame declares
+// across a line carrying one link: the hand over the link's own run of text,
+// the arrow over the prose either side of it. A link's target is the text it
+// marks, so its shape is that text's and the prose beside it keeps its own.
+func TestTheHandStandsOverTheLinkAndNoFurther(t *testing.T) {
+	shaper := defaultShaper(t)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	spans := []paragraph.SpanStyle{
+		{Content: "Read "},
+		{Content: "the principles", URL: "vault://Design/Principles"},
+		{Content: " for why."},
+	}
+	state := paragraph.NewState()
+	w := func(gtx layout.Context) layout.Dimensions {
+		return paragraph.Layout(gtx, state, shaper, style, spans)
+	}
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	size := image.Pt(400, 100)
+	driveFrame(w, ops, r, size)
+	driveFrame(w, ops, r, size)
+
+	at := func(x int) pointer.Cursor {
+		r.Queue(pointer.Event{Kind: pointer.Move, Position: f32.Pt(float32(x), 8), Source: pointer.Mouse})
+		driveFrame(w, ops, r, size)
+		return r.Cursor()
+	}
+	// The run the link marks, found by reading across the line rather than by
+	// pinning a shaped width that the faces decide.
+	var from, to int
+	for x := 0; x < size.X; x++ {
+		if at(x) == pointer.CursorPointer {
+			if from == 0 {
+				from = x
+			}
+			to = x
+		}
+	}
+	if from == 0 || to <= from {
+		t.Fatal("no run of the line declares the hand: a link shows no shape")
+	}
+	if got := at(from - 1); got != pointer.CursorDefault {
+		t.Errorf("pointer on the prose before the link = %v; want %v", got, pointer.CursorDefault)
+	}
+	if got := at(to + 1); got != pointer.CursorDefault {
+		t.Errorf("pointer on the prose after the link = %v; want %v", got, pointer.CursorDefault)
+	}
+}

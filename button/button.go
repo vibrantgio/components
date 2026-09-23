@@ -21,6 +21,7 @@ import (
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/components/internal/toolbarface"
+	"github.com/vibrantgio/components/pointershape"
 	"github.com/vibrantgio/mvu"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
@@ -591,7 +592,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	st.Pop()
 
 	if !s.Disabled {
-		pointer.CursorPointer.Add(gtx.Ops)
+		pointershape.OverSize(gtx.Ops, btnSize, pointer.CursorPointer)
 	}
 
 	return layout.Dimensions{Size: btnSize}
@@ -637,7 +638,7 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 	}
 
 	if !s.Disabled {
-		pointer.CursorPointer.Add(gtx.Ops)
+		pointershape.OverSize(gtx.Ops, sz, pointer.CursorPointer)
 	}
 	return layout.Dimensions{Size: sz}
 }

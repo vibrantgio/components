@@ -30,6 +30,7 @@ import (
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/surface"
+	"github.com/vibrantgio/components/pointershape"
 )
 
 // edgeDp is the rim's width — one hair at every density, the width every
@@ -323,7 +324,7 @@ func Draw(
 	// centres itself in it, at the one size the platform draws it.
 	control.DrawMark(gtx, image.Rect(w-trail-mark, 0, w-trail, h), markForeground)
 
-	pointer.CursorPointer.Add(gtx.Ops)
+	pointershape.OverSize(gtx.Ops, size, pointer.CursorPointer)
 	return layout.Dimensions{Size: size}
 }
 
