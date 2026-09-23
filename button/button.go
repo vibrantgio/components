@@ -142,8 +142,11 @@ const (
 	// Body is the control standing in a sheet's or a pane's body — a
 	// segmented control in a dialog's form, the pair under an editable
 	// list. It draws at [tokens.Density.ControlHeight], the dialog
-	// control's 24, and casts no shadow: the shadow is the chrome variant's
-	// and was measured on a band. See [Chrome].
+	// control's 24, in the form's own shape — the push button's rounded
+	// rectangle at [tokens.RadiusScale.Md] and not the band's capsule — with
+	// its mark in the room the pop-up on that same sheet leaves its own, and
+	// it casts no shadow: the shadow is the chrome variant's and was
+	// measured on a band. See [Chrome].
 	Body
 )
 

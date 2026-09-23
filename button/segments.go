@@ -106,24 +106,39 @@ type ChromeSegment struct {
 // appearance and one over in the dark. See
 // [tokens.PlatformColors.ToolbarControlSeam], which carries both readings.
 //
-// THE PLACE SETTLES THE HEIGHT. A control standing in a chrome band is the
-// toolbar control's own 36; one standing in a sheet's or a pane's body is the
-// dialog control's 24, which is what the first segment's
+// THE PLACE SETTLES THE HEIGHT, THE SHAPE AND THE MARK'S ROOM. A control
+// standing in a chrome band is the toolbar control's own 36, drawn as the
+// capsule every bordered control in a stored band is drawn as, its segments'
+// marks in the band's [control.ChromeMarkDp] box. One standing in a sheet's
+// or a pane's body is the dialog control's 24 in the form's own shape — the
+// push button's rounded rectangle at the measured [tokens.RadiusScale.Md] —
+// with its marks in [control.BodyMarkBox]. Only the OUTER corners round: the
+// seams between segments are the control's own straight hairlines wherever it
+// stands. Which of the two it is is what the first segment's
 // [RenderState.Place] says. See [Place].
 //
 // The shadow the control casts on its band is not drawn here — it falls
 // outside the box this reports, the way [ChromeFace]'s does. Callers in a
 // band wrap this in [ChromeShadow]; a control in a body casts none.
-func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformColors, labelStyle tokens.TextStyle, d tokens.Density, segs []ChromeSegment) layout.Dimensions {
+func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformColors, rad tokens.RadiusScale, labelStyle tokens.TextStyle, d tokens.Density, segs []ChromeSegment) layout.Dimensions {
 	if len(segs) == 0 {
 		return layout.Dimensions{}
 	}
-	// The control's height is the one its PLACE names, and the place is the
-	// control's rather than a segment's: every segment of one control stands
-	// in one place, so the first segment's answer is the control's, the way
-	// its focus and the band it stands on already are.
-	h := min(gtx.Dp(unit.Dp(segs[0].State.Place.Height(d))), gtx.Constraints.Max.Y)
-	mark := gtx.Dp(control.ChromeMarkDp)
+	// The control's height, its shape and the room its marks stand in are the
+	// ones its PLACE names, and the place is the control's rather than a
+	// segment's: every segment of one control stands in one place, so the
+	// first segment's answer is the control's, the way its focus and the band
+	// it stands on already are.
+	place := segs[0].State.Place
+	h := min(gtx.Dp(unit.Dp(place.Height(d))), gtx.Constraints.Max.Y)
+	mark, markTop := gtx.Dp(control.ChromeMarkDp), 0
+	radius := h / 2
+	if place == Body {
+		mark, markTop = control.BodyMarkBox(gtx, h)
+		radius = gtx.Dp(unit.Dp(rad.Md))
+	} else {
+		markTop = (h - mark) / 2
+	}
 	side := gtx.Dp(control.ChromeMarkSideDp)
 	rule := max(gtx.Dp(segmentSeamDp), 1)
 
@@ -135,7 +150,6 @@ func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformCo
 	labels := make([]op.CallOp, len(segs))
 	labelSize := make([]image.Point, len(segs))
 	segW := mark + 2*side
-	place := segs[0].State.Place
 	rest := placeRestingFill(p, place)
 	for i, s := range segs {
 		fills[i] = rest
@@ -167,15 +181,15 @@ func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformCo
 	size := image.Pt(total, h)
 	box := image.Rectangle{Max: size}
 
-	// One capsule for the whole control, at the resting fill and wearing the
+	// One shape for the whole control, at the resting fill and wearing the
 	// control's own rim: the segments are divisions of one box and not boxes
 	// of their own, which is why the rim runs round the pair and not round
-	// each half.
+	// each half, and why only the control's outer corners are rounded.
 	focused := false
 	for _, s := range segs {
 		focused = focused || (s.State.Focused && !s.State.Disabled)
 	}
-	outer := toolbarface.Capsule(gtx, box, h/2, p, rest, toolbarface.State{
+	outer := toolbarface.Capsule(gtx, box, radius, p, rest, toolbarface.State{
 		Focused: focused,
 		Form:    place == Body,
 		// The band the pair stands on. Every segment of one control stands
@@ -235,7 +249,7 @@ func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformCo
 				fg = vgcolor.Flatten(p.DisabledControlText, fill)
 			}
 			area := outer.Push(gtx.Ops)
-			off := op.Offset(image.Pt(x+(seg.Dx()-mark)/2, (h-mark)/2)).Push(gtx.Ops)
+			off := op.Offset(image.Pt(x+(seg.Dx()-mark)/2, markTop)).Push(gtx.Ops)
 			s.Icon(gtx, mark, fg)
 			off.Pop()
 			area.Pop()

@@ -22,21 +22,22 @@ import (
 // region whose label is a symbol: the platform's bordered toolbar control,
 // drawn in an explicit visual state without event processing or rx machinery.
 //
-// The glyph is drawn by icon into a square of [control.ChromeMarkDp] centred
-// in a capsule the height s.Place names — d.ToolbarControlHeight in a band,
-// the body's d.ControlHeight in a sheet — and that capsule is the pointer
-// target. It takes no text style and no radius scale: the corner is half the
-// control's height and there is no text to shape. Intended for golden-image
-// testing and static rendering; production code uses Button with
-// Props.Variant set to [Chrome] and Props.Icon set, or — where the caller owns
-// the control's widget.Clickable — [ChromeShadow] around [ChromeFace].
+// The glyph is drawn by icon into a square the control's place names, centred
+// in a shape that place names too — the band's capsule at
+// d.ToolbarControlHeight, the body's push button at d.ControlHeight and
+// rad.Md — and that shape is the pointer target. It takes no text style:
+// there is no text to shape. Intended for golden-image testing and static
+// rendering; production code uses Button with Props.Variant set to [Chrome]
+// and Props.Icon set, or — where the caller owns the control's
+// widget.Clickable — [ChromeShadow] around [ChromeFace].
 func RenderChrome(
 	icon func(gtx layout.Context, sizePx int, col color.NRGBA),
 	p tokens.PlatformColors,
+	rad tokens.RadiusScale,
 	d tokens.Density,
 	s RenderState,
 ) layout.Widget {
-	face := ChromeFace(icon, p, d, s)
+	face := ChromeFace(icon, p, rad, d, s)
 	return func(gtx layout.Context) layout.Dimensions {
 		return ChromeShadow(gtx, p, s, face)
 	}
@@ -53,10 +54,11 @@ func RenderChrome(
 func ChromeFace(
 	icon func(gtx layout.Context, sizePx int, col color.NRGBA),
 	p tokens.PlatformColors,
+	rad tokens.RadiusScale,
 	d tokens.Density,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{platform: p, density: d}
+	tok := resolvedTokens{platform: p, radius: rad, density: d}
 	s.Variant = Chrome
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawChromeIcon(gtx, icon, tok, s)
@@ -89,16 +91,30 @@ func ChromeShadow(gtx layout.Context, p tokens.PlatformColors, s RenderState, w 
 // [control.ChromeMarkDp] of mark with [control.ChromeMarkSideDp] clear on each
 // side, at the toolbar control's own height. All visual state comes from s; no
 // event queries are performed here.
+//
+// THE PLACE SETTLES THE SHAPE AND THE MARK'S ROOM. A band control is the
+// capsule every bordered control in a stored toolbar band is drawn as. A body
+// control is the form's own shape, the push button's rounded rectangle at the
+// measured [tokens.RadiusScale.Md] — save-dialog-{light,dark}.png's "Cancel"
+// fits r = 6.11 light and 6.17 dark — and its mark stands in
+// [control.BodyMarkBox], the band the pop-up on that same sheet leaves its
+// own mark, rather than in the band's 24 dp box, which in a 24 dp control
+// would leave the symbol no room at all.
 func drawChromeIcon(gtx layout.Context, icon func(gtx layout.Context, sizePx int, col color.NRGBA), tok resolvedTokens, s RenderState) layout.Dimensions {
 	p := tok.platform
-	h := gtx.Dp(unit.Dp(s.Place.Height(tok.density)))
-	mark := gtx.Dp(control.ChromeMarkDp)
+	h := min(gtx.Dp(unit.Dp(s.Place.Height(tok.density))), gtx.Constraints.Max.Y)
+	mark, markTop := gtx.Dp(control.ChromeMarkDp), 0
+	radius := h / 2
+	if s.Place == Body {
+		mark, markTop = control.BodyMarkBox(gtx, h)
+		radius = gtx.Dp(unit.Dp(tok.radius.Md))
+	} else {
+		markTop = (h - mark) / 2
+	}
 	w := mark + 2*gtx.Dp(control.ChromeMarkSideDp)
 	w = min(w, gtx.Constraints.Max.X)
-	h = min(h, gtx.Constraints.Max.Y)
 	size := image.Pt(w, h)
 	box := image.Rectangle{Max: size}
-	radius := h / 2
 
 	fill, fg := chromeColors(p, s)
 	outer := toolbarface.Capsule(gtx, box, radius, p, fill, toolbarface.State{
@@ -115,7 +131,7 @@ func drawChromeIcon(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 	// past it.
 	if icon != nil && mark > 0 {
 		area := outer.Push(gtx.Ops)
-		off := op.Offset(image.Pt((w-mark)/2, (h-mark)/2)).Push(gtx.Ops)
+		off := op.Offset(image.Pt((w-mark)/2, markTop)).Push(gtx.Ops)
 		icon(gtx, mark, fg)
 		off.Pop()
 		area.Pop()

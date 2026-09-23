@@ -864,7 +864,7 @@ func selectionNames(p tokens.PlatformColors, focused bool) (fill, run stdcolor.N
 	if focused {
 		return p.SelectedTextBackground, p.SelectedText
 	}
-	return p.UnemphasizedSelectedTextBackground, vgcolor.Flatten(p.Label, p.UnemphasizedSelectedTextBackground)
+	return p.UnemphasizedSelectedTextBackground, p.UnemphasizedSelectedText
 }
 
 // TestTheLiveFieldKeepsItsSelectionWhenFocusLeaves drives the live field
@@ -872,7 +872,7 @@ func selectionNames(p tokens.PlatformColors, focused bool) (fill, run stdcolor.N
 // the keyboard leaves. gioui.org/widget's editor paints the selection's fill
 // only while it holds focus, so what stands there afterwards is the field's
 // own pair — the platform's unemphasized selected text background with the
-// run drawn again in the label flattened onto it.
+// run drawn again in the platform's unemphasized selected text colour.
 //
 // It is read in the light appearance alone, which is the one a live field
 // laid out against theme.Default() draws in; the static path above reads both

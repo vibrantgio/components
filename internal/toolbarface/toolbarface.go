@@ -366,14 +366,20 @@ func Draw(
 	return layout.Dimensions{Size: size}
 }
 
-// Capsule paints the bordered toolbar control's own box into box: its fill,
-// the rim around it, and the focus halo on that outline while it holds the
-// keyboard. It reports the rounded shape it drew, which a caller pushes to
-// clip whatever stands inside that box.
+// Capsule paints a bordered control's own box into box at the corner radius
+// it is handed: its fill, the rim around it, and the focus halo on that
+// outline while it holds the keyboard. It reports the rounded shape it drew,
+// which a caller pushes to clip whatever stands inside that box.
 //
-// Every bordered toolbar control in this library is drawn through it — the
-// picker's chrome trigger and components/button's chrome variant — so a
-// control labelled with a symbol and a pop-up are one box drawn in two places.
+// The radius is the caller's because the shape is the control's PLACE: a
+// control in a chrome band is the capsule every bordered control in a stored
+// band is drawn as, half its own height, and one in a sheet's or a pane's
+// body is the push button's rounded rectangle at the measured
+// [tokens.RadiusScale.Md].
+//
+// Every bordered control in this library is drawn through it — the picker's
+// chrome trigger and components/button's chrome variant — so a control
+// labelled with a symbol and a pop-up are one box drawn in two places.
 //
 // The shadow the control casts on its band is NOT drawn here: it falls
 // outside the box and so outside the clip a widget.Clickable puts around

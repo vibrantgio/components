@@ -65,14 +65,19 @@
 // falls outside it.
 //
 // A bordered control also carries a [Place] — [Band], the zero value, or
-// [Body] — and the place settles its height and its shadow. The platform
-// draws one bordered control at two heights: 36 px in every stored toolbar
-// band against the 24 its own Save dialog draws a push button and a pop-up
-// at. The drop shadow goes with the band, not with borderedness: it was
-// measured on a band, and it is what tells a control from a band the platform
-// fills with the same #ffffff. So a segmented control or a symbol button
-// standing in a sheet's or a pane's body names [Body], draws at the density's
-// control height and casts none.
+// [Body] — and the place settles its height, its shape, the room its mark
+// stands in and its shadow. The platform draws one bordered control at two
+// heights: 36 px in every stored toolbar band against the 24 its own Save
+// dialog draws a push button and a pop-up at. It draws it in two shapes too:
+// a capsule in the band, the push button's rounded rectangle at the measured
+// 6 in the body. And it leaves the mark the room the pop-up on that sheet
+// leaves its own — seven rows above and six below — where the band's 24 dp
+// mark box in a 24 dp control leaves none. The drop shadow goes with the
+// band, not with borderedness: it was measured on a band, and it is what
+// tells a control from a band the platform fills with the same #ffffff. So a
+// segmented control or a symbol button standing in a sheet's or a pane's body
+// names [Body], draws the form's shape at the density's control height and
+// casts none.
 //
 // # A pinned fill
 //

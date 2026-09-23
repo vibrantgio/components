@@ -53,7 +53,7 @@ func TestChromeButtonGolden(t *testing.T) {
 			t.Run(name, func(t *testing.T) {
 				s := st.state
 				s.Surface = sc.colors.SidebarMaterial
-				w := button.RenderChrome(crossIcon, sc.colors, tokens.Comfortable, s)
+				w := button.RenderChrome(crossIcon, sc.colors, tokens.Radius, tokens.Comfortable, s)
 				golden.Render(t, name, size, onChrome(sc.colors, centred(w)))
 			})
 		}
@@ -79,7 +79,7 @@ func TestChromeButtonIsTheMeasuredControl(t *testing.T) {
 		Constraints: layout.Exact(image.Pt(200, 200)),
 		Ops:         &ops,
 	}
-	dims := button.RenderChrome(crossIcon, tokens.PlatformLight, tokens.Comfortable, button.RenderState{})(gtx)
+	dims := button.RenderChrome(crossIcon, tokens.PlatformLight, tokens.Radius, tokens.Comfortable, button.RenderState{})(gtx)
 	if want := int(tokens.Comfortable.ToolbarControlHeight); dims.Size.Y != want {
 		t.Errorf("chrome button height = %d, want the toolbar control's %d", dims.Size.Y, want)
 	}
@@ -101,7 +101,7 @@ func TestChromeButtonCastsTheMeasuredShadow(t *testing.T) {
 	}{{"light", tokens.PlatformLight}, {"dark", tokens.PlatformDark}} {
 		t.Run(sc.name, func(t *testing.T) {
 			p := sc.colors
-			w := button.RenderChrome(crossIcon, p, tokens.Comfortable, button.RenderState{Surface: p.SidebarMaterial})
+			w := button.RenderChrome(crossIcon, p, tokens.Radius, tokens.Comfortable, button.RenderState{Surface: p.SidebarMaterial})
 			img := golden.Capture(t, image.Pt(120, 90), onChrome(p, centred(w)))
 			at := func(x, y int) color.NRGBA {
 				r, g, b, a := img.At(x, y).RGBA()
@@ -148,7 +148,7 @@ func TestChromeButtonDrawsTheMeasuredCheckedPatch(t *testing.T) {
 		t.Run(sc.name, func(t *testing.T) {
 			p := sc.colors
 			s := button.RenderState{Checked: true, Surface: p.SidebarMaterial}
-			w := button.RenderChrome(nil, p, tokens.Comfortable, s)
+			w := button.RenderChrome(nil, p, tokens.Radius, tokens.Comfortable, s)
 			img := golden.Capture(t, image.Pt(120, 90), onChrome(p, centred(w)))
 			at := func(x, y int) color.NRGBA {
 				r, g, b, a := img.At(x, y).RGBA()
@@ -164,7 +164,7 @@ func TestChromeButtonDrawsTheMeasuredCheckedPatch(t *testing.T) {
 			if got := at(59, 29); got != p.ToolbarControlFill {
 				t.Errorf("two rows inside the control's top edge reads %v, want its own fill %v — the patch stands clear of the control's box", got, p.ToolbarControlFill)
 			}
-			rest := button.RenderChrome(nil, p, tokens.Comfortable, button.RenderState{Surface: p.SidebarMaterial})
+			rest := button.RenderChrome(nil, p, tokens.Radius, tokens.Comfortable, button.RenderState{Surface: p.SidebarMaterial})
 			off := golden.Capture(t, image.Pt(120, 90), onChrome(p, centred(rest)))
 			if golden.PixelDiff(img, off) == 0 {
 				t.Error("the checked control draws exactly what the resting one draws; a control that records a state has to show it")
@@ -180,10 +180,10 @@ func TestChromeIgnoresEmphasis(t *testing.T) {
 	size := image.Pt(120, 90)
 	p := tokens.PlatformLight
 	base := golden.Capture(t, size, onChrome(p, centred(
-		button.RenderChrome(crossIcon, p, tokens.Comfortable, button.RenderState{}))))
+		button.RenderChrome(crossIcon, p, tokens.Radius, tokens.Comfortable, button.RenderState{}))))
 	for _, e := range []button.Emphasis{button.Tonal, button.Ghost} {
 		got := golden.Capture(t, size, onChrome(p, centred(
-			button.RenderChrome(crossIcon, p, tokens.Comfortable, button.RenderState{Emphasis: e}))))
+			button.RenderChrome(crossIcon, p, tokens.Radius, tokens.Comfortable, button.RenderState{Emphasis: e}))))
 		if n := golden.PixelDiff(base, got); n != 0 {
 			t.Errorf("the %s emphasis moves %d pixel(s) of the chrome variant; the platform draws one bordered toolbar control", e, n)
 		}
@@ -221,7 +221,7 @@ func TestTheChromeShadowSurvivesWhatIsDrawnAfterIt(t *testing.T) {
 	// runs y 27–62 at x 40–77, so the band's own foot is the row after it.
 	const bandFoot = 63
 	p := tokens.PlatformLight
-	w := button.RenderChrome(crossIcon, p, tokens.Comfortable, button.RenderState{Surface: p.SidebarMaterial})
+	w := button.RenderChrome(crossIcon, p, tokens.Radius, tokens.Comfortable, button.RenderState{Surface: p.SidebarMaterial})
 	column := func(gtx layout.Context) layout.Dimensions {
 		dims := onChrome(p, centred(w))(gtx)
 		paint.FillShape(gtx.Ops, p.TextBackground,
@@ -255,7 +255,7 @@ func TestTheChromeShadowIsCutByTheWindowAndNotByItsColumn(t *testing.T) {
 	// control's own trailing edge at x=77 — well inside the shadow's reach.
 	const columnEdge = 79
 	p := tokens.PlatformLight
-	w := button.RenderChrome(crossIcon, p, tokens.Comfortable, button.RenderState{Surface: p.SidebarMaterial})
+	w := button.RenderChrome(crossIcon, p, tokens.Radius, tokens.Comfortable, button.RenderState{Surface: p.SidebarMaterial})
 	inColumn := func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, p.SidebarMaterial, clip.Rect{Max: gtx.Constraints.Max}.Op())
 		defer clip.Rect(image.Rect(0, 0, columnEdge, gtx.Constraints.Max.Y)).Push(gtx.Ops).Pop()

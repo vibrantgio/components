@@ -625,7 +625,7 @@ func (inv *Inventory) chromeButtonRow(c tokens.PlatformColors) layout.Widget {
 				cs = append(cs, layout.Rigid(complayout.HSpacer(float32(ButtonCellGap))))
 			}
 			st.Surface = c.SidebarMaterial
-			cs = append(cs, layout.Rigid(button.RenderChrome(mark, c, tokens.Comfortable, st)))
+			cs = append(cs, layout.Rigid(button.RenderChrome(mark, c, tokens.Radius, tokens.Comfortable, st)))
 		}
 		macro := op.Record(gtx.Ops)
 		dims := complayout.InsetXY(float32(chromeButtonPad), float32(chromeButtonPad)).Layout(gtx,

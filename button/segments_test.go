@@ -26,7 +26,7 @@ func segmentPair(t *testing.T, p tokens.PlatformColors, segs []button.ChromeSegm
 		// The band hands the control room, not a width: a segmented control
 		// asked for a width divides it, and this pair is read at its own.
 		gtx.Constraints.Min = image.Point{}
-		d := button.ChromeSegments(gtx, defaultShaper(t), p, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, segs)
+		d := button.ChromeSegments(gtx, defaultShaper(t), p, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, segs)
 		got = d.Size
 		return d
 	}))
@@ -141,7 +141,7 @@ func segmentRow(t *testing.T, p tokens.PlatformColors, segs []button.ChromeSegme
 	img := golden.Capture(t, size, onChrome(p, func(gtx layout.Context) layout.Dimensions {
 		gtx.Metric = unit.Metric{PxPerDp: 1, PxPerSp: 1}
 		gtx.Constraints.Min = image.Pt(width, 0)
-		d := button.ChromeSegments(gtx, defaultShaper(t), p, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, segs)
+		d := button.ChromeSegments(gtx, defaultShaper(t), p, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, segs)
 		got = d.Size
 		return d
 	}))

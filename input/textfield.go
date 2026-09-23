@@ -729,15 +729,17 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 // where the label at 216/255 over those two fills would land 28 and 29 of 255
 // off on the first channel.
 //
-// Unfocused, the fill is unemphasizedSelectedTextBackgroundColor, #dcdcdc
-// light and #464646 dark. The catalogue records no unemphasizedSelectedTextColor
-// — AppKit publishes none — so the run keeps the colour the field's other text
-// wears, the platform's label, flattened onto that fill.
+// Unfocused, both are the platform's unemphasized selected text names:
+// unemphasizedSelectedTextBackgroundColor, #dcdcdc light and #464646 dark,
+// under unemphasizedSelectedTextColor, which AppKit answers as the opaque
+// #000000 and #ffffff its emphasized twin carries (nscolors.tsv). The run is
+// the platform's own name and not the field's label flattened, which at 216
+// of 255 would land #222222 and #e3e3e3 on those two fills.
 func selectionPair(p tokens.PlatformColors, focused bool) (fill, run color.NRGBA) {
 	if focused {
 		return p.SelectedTextBackground, p.SelectedText
 	}
-	return p.UnemphasizedSelectedTextBackground, vgcolor.Flatten(p.Label, p.UnemphasizedSelectedTextBackground)
+	return p.UnemphasizedSelectedTextBackground, p.UnemphasizedSelectedText
 }
 
 // paintSelectedRun draws the selected run again in the colour selectionPair

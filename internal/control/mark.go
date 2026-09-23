@@ -100,6 +100,42 @@ func DrawMark(gtx layout.Context, box image.Rectangle, col color.NRGBA) {
 	off.Pop()
 }
 
+// The room the platform leaves above and below a mark inside the control it
+// stands in, and so the band a mark is drawn in.
+//
+// MEASURED, save-dialog-{light,dark}.png at 1x: the "File Format:" pop-up
+// runs y 336-359 and its pair covers y 343-353 — seven rows above it and six
+// below, an exact centring of eleven rows in twenty-four falling half a pixel
+// low. The two numbers are the platform's own and not a ratio: the Finder
+// toolbar's 36 px pop-up draws the same eight by eleven glyph with the room
+// growing around it.
+const (
+	// MarkClearTopDp is what the control leaves clear above the mark.
+	MarkClearTopDp unit.Dp = 7
+
+	// MarkClearBottomDp is what it leaves clear below.
+	MarkClearBottomDp unit.Dp = 6
+)
+
+// BodyMarkBox is the box a symbol standing alone in a control in a sheet's or
+// a pane's BODY is drawn in, and where that box stands in a control h pixels
+// tall: the control's own height less the room above and below, at the
+// measured top clearance.
+//
+// A body control is the dialog control's 24 dp tall, and [ChromeMarkDp]'s 24
+// in it leaves no room at all — the symbol runs edge to edge where the
+// platform's mark stands clear. The band is what the pop-up on that same
+// sheet leaves its own mark, so a symbol drawn in it is centred with the room
+// the platform gives one.
+//
+// The chrome place keeps [ChromeMarkDp]: 24 in a 36 px band control is its
+// own measured reading, and this rule would give it 23.
+func BodyMarkBox(gtx layout.Context, h int) (box, top int) {
+	top = gtx.Dp(MarkClearTopDp)
+	box = max(h-top-gtx.Dp(MarkClearBottomDp), 0)
+	return box, top
+}
+
 // The patch a bordered toolbar control fills while it records a yes, inset
 // inside the control's own box.
 //
