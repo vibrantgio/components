@@ -67,6 +67,10 @@ func TestTextFieldGolden(t *testing.T) {
 		// first of the two words is selected and the second is not.
 		{"textfield-light-selected", tokens.PlatformLight, input.RenderState{Focused: true, Text: selectedRunValue, Selection: [2]int{0, 8}}},
 		{"textfield-dark-selected", tokens.PlatformDark, input.RenderState{Focused: true, Text: selectedRunValue, Selection: [2]int{0, 8}}},
+		// The same run once the field has lost the keyboard: the platform
+		// keeps the selection visible in its unemphasized pair.
+		{"textfield-light-selected-unfocused", tokens.PlatformLight, input.RenderState{Text: selectedRunValue, Selection: [2]int{0, 8}}},
+		{"textfield-dark-selected-unfocused", tokens.PlatformDark, input.RenderState{Text: selectedRunValue, Selection: [2]int{0, 8}}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -725,19 +729,36 @@ func TestTheValuesPlateauIsTheLabel(t *testing.T) {
 const selectedRunValue = "Untitled Untitled"
 
 // selectionFillBox is the box the selection's fill covers in img — the
-// columns and rows the field painted SelectedTextBackground across.
+// columns and rows the field painted that fill across.
+//
+// Only a run of selectionFillRun consecutive columns counts. The unemphasized
+// fill is a grey, and a black label anti-aliased against a white field walks
+// the same grey ramp, so a pixel on its own is no evidence: a glyph's edge
+// never holds one colour across a run that wide, and the selection's own fill
+// is drawn under a rectangular clip and holds it across every row it covers.
+const selectionFillRun = 8
+
 func selectionFillBox(img *image.RGBA, size image.Point, fill stdcolor.NRGBA) (image.Rectangle, bool) {
 	box, found := image.Rectangle{}, false
 	for y := 0; y < size.Y; y++ {
-		for x := 0; x < size.X; x++ {
+		for x := 0; x < size.X; {
 			if dist(img.RGBAAt(x, y), fill) != 0 {
+				x++
 				continue
 			}
-			if !found {
-				box, found = image.Rect(x, y, x+1, y+1), true
-				continue
+			end := x
+			for end < size.X && dist(img.RGBAAt(end, y), fill) == 0 {
+				end++
 			}
-			box = box.Union(image.Rect(x, y, x+1, y+1))
+			if end-x >= selectionFillRun {
+				r := image.Rect(x, y, end, y+1)
+				if !found {
+					box, found = r, true
+				} else {
+					box = box.Union(r)
+				}
+			}
+			x = end
 		}
 	}
 	return box, found
@@ -759,21 +780,29 @@ func plateau(img *image.RGBA, r image.Rectangle, over stdcolor.NRGBA) (stdcolor.
 	return best, bestD
 }
 
-// TestTheSelectedRunsPlateauIsTheSelectedText reads the two colours a field's
-// value wears when part of it is selected: the selected run over the
+// TestTheSelectedRunsPlateauIsThePairItsFocusNames reads the two colours a
+// field's value wears when part of it is selected — the selected run over the
 // selection's fill, and the run beside it on the same rows, over the field's
-// own fill.
+// own fill — in both appearances and in both focus states.
 //
-// A selected run wears the platform's selected text colour over its selected
-// text background whatever colour the field's other text wears. MEASURED,
-// save-dialog-{light,dark}.png at 1x: the focused "Save As:" field's selected
-// "Untitled" plateaus at #000000 light and #ffffff dark, opaque — sixteen
-// pixels exactly light and forty-eight exactly dark — standing on the
+// Focused, a selected run wears the platform's selected text colour over its
+// selected text background whatever colour the field's other text wears.
+// MEASURED, save-dialog-{light,dark}.png at 1x: the focused "Save As:" field's
+// selected "Untitled" plateaus at #000000 light and #ffffff dark, opaque —
+// sixteen pixels exactly light and forty-eight exactly dark — standing on the
 // selection's own fill, where the label at 216/255 over those two fills would
-// land 28 and 29 of 255 off on the first channel. The unselected run is the
-// label over the field's fill, which is what the same field's value reads
-// unselected (voicememos-multi-folder-search-2026-09-18.png, CG7.4).
-func TestTheSelectedRunsPlateauIsTheSelectedText(t *testing.T) {
+// land 28 and 29 of 255 off on the first channel.
+//
+// Once the keyboard has left, the platform keeps the selection visible and
+// drops it to unemphasizedSelectedTextBackgroundColor, #dcdcdc light and
+// #464646 dark (nscolors.tsv). The catalogue publishes no
+// unemphasizedSelectedTextColor, so the run there is the platform's label
+// flattened onto that fill — the same name the field's other text wears.
+//
+// The unselected run is the label over the field's fill in both states, which
+// is what the same field's value reads unselected
+// (voicememos-multi-folder-search-2026-09-18.png, CG7.4).
+func TestTheSelectedRunsPlateauIsThePairItsFocusNames(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 60)
 	for _, tc := range []struct {
@@ -783,40 +812,131 @@ func TestTheSelectedRunsPlateauIsTheSelectedText(t *testing.T) {
 		{"light", tokens.PlatformLight},
 		{"dark", tokens.PlatformDark},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			fill := control.FieldFill(tc.platform, stdcolor.NRGBA{})
-			img := golden.Capture(t, size, onSheet(fill, input.Render(
-				shaper, "Email address",
-				tc.platform, tokens.Spacing, tokens.RadiusScale{},
-				tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
-				input.RenderState{Text: selectedRunValue, Selection: [2]int{0, 8}},
-			)))
-			if img == nil {
-				return
-			}
-			box, ok := selectionFillBox(img, size, tc.platform.SelectedTextBackground)
-			if !ok {
-				t.Fatal("the field painted no selection fill; this measures nothing")
-			}
-			selected, d := plateau(img, box, tc.platform.SelectedTextBackground)
-			if d <= 0 {
-				t.Fatal("the selection's fill carries no run")
-			}
-			if want := tc.platform.SelectedText; selected.R != want.R || selected.G != want.G || selected.B != want.B {
-				t.Errorf("the selected run's plateau is %v, want the platform's selected text %v; the label over the selection's fill would read %v",
-					selected, want, vgcolor.Flatten(tc.platform.Label, tc.platform.SelectedTextBackground))
-			}
-			// The rest of the line, on the selection's own rows so the
-			// field's edge and any band on it are out of the reading.
-			beside := image.Rect(box.Max.X, box.Min.Y, size.X, box.Max.Y)
-			unselected, d := plateau(img, beside, fill)
-			if d <= 0 {
-				t.Fatal("no unselected run stands beside the selected one")
-			}
-			if want := vgcolor.Flatten(tc.platform.Label, fill); unselected.R != want.R || unselected.G != want.G || unselected.B != want.B {
-				t.Errorf("the unselected run's plateau is %v, want the platform's label over the field's fill %v", unselected, want)
-			}
-		})
+		for _, fs := range []struct {
+			name    string
+			focused bool
+		}{
+			{"focused", true},
+			{"unfocused", false},
+		} {
+			t.Run(tc.name+"-"+fs.name, func(t *testing.T) {
+				fill := control.FieldFill(tc.platform, stdcolor.NRGBA{})
+				wantFill, wantRun := selectionNames(tc.platform, fs.focused)
+				img := golden.Capture(t, size, onSheet(fill, input.Render(
+					shaper, "Email address",
+					tc.platform, tokens.Spacing, tokens.RadiusScale{},
+					tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+					input.RenderState{Focused: fs.focused, Text: selectedRunValue, Selection: [2]int{0, 8}},
+				)))
+				if img == nil {
+					return
+				}
+				box, ok := selectionFillBox(img, size, wantFill)
+				if !ok {
+					t.Fatalf("the field painted no selection fill in %v; this measures nothing", wantFill)
+				}
+				selected, d := plateau(img, box, wantFill)
+				if d <= 0 {
+					t.Fatal("the selection's fill carries no run")
+				}
+				if selected.R != wantRun.R || selected.G != wantRun.G || selected.B != wantRun.B {
+					t.Errorf("the selected run's plateau is %v, want %v over the selection's fill %v", selected, wantRun, wantFill)
+				}
+				// The rest of the line, on the selection's own rows so the
+				// field's edge and any band on it are out of the reading.
+				beside := image.Rect(box.Max.X, box.Min.Y, size.X, box.Max.Y)
+				unselected, d := plateau(img, beside, fill)
+				if d <= 0 {
+					t.Fatal("no unselected run stands beside the selected one")
+				}
+				if want := vgcolor.Flatten(tc.platform.Label, fill); unselected.R != want.R || unselected.G != want.G || unselected.B != want.B {
+					t.Errorf("the unselected run's plateau is %v, want the platform's label over the field's fill %v", unselected, want)
+				}
+			})
+		}
+	}
+}
+
+// selectionNames is the pair a selected run in a field is drawn with, by
+// whether the field holds the keyboard: the package's own selectionPair,
+// restated here because these tests stand outside it.
+func selectionNames(p tokens.PlatformColors, focused bool) (fill, run stdcolor.NRGBA) {
+	if focused {
+		return p.SelectedTextBackground, p.SelectedText
+	}
+	return p.UnemphasizedSelectedTextBackground, vgcolor.Flatten(p.Label, p.UnemphasizedSelectedTextBackground)
+}
+
+// TestTheLiveFieldKeepsItsSelectionWhenFocusLeaves drives the live field
+// through a router: its editor takes the keyboard, selects a run, and then
+// the keyboard leaves. gioui.org/widget's editor paints the selection's fill
+// only while it holds focus, so what stands there afterwards is the field's
+// own pair — the platform's unemphasized selected text background with the
+// run drawn again in the label flattened onto it.
+//
+// It is read in the light appearance alone, which is the one a live field
+// laid out against theme.Default() draws in; the static path above reads both
+// appearances in both states.
+func TestTheLiveFieldKeepsItsSelectionWhenFocusLeaves(t *testing.T) {
+	var tag event.Tag
+	w := liveTextField(t, input.TextFieldProps{
+		Placeholder: "Email address",
+		Seed:        selectedRunValue,
+		FocusTag:    func(tg event.Tag) { tag = tg },
+	})
+	editor, ok := tag.(*widget.Editor)
+	if !ok {
+		t.Fatalf("FocusTag handed %T, want the field's editor", tag)
+	}
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	size := image.Pt(300, 60)
+
+	// Frame 1 registers the editor; its tag then takes the keyboard, selects
+	// the first word, and the keyboard leaves for nothing at all.
+	driveTextFieldFrame(w, ops, r, size)
+	r.Source().Execute(key.FocusCmd{Tag: tag})
+	driveTextFieldFrame(w, ops, r, size)
+	editor.SetCaret(0, 8)
+	driveTextFieldFrame(w, ops, r, size)
+	r.Source().Execute(key.FocusCmd{Tag: nil})
+	driveTextFieldFrame(w, ops, r, size)
+	if editor.SelectionLen() == 0 {
+		t.Fatal("the editor dropped its selection when the keyboard left; this measures nothing")
+	}
+
+	p := tokens.PlatformLight
+	fill := control.FieldFill(p, p.WindowBackground)
+	wantFill, wantRun := selectionNames(p, false)
+	img := golden.Capture(t, size, onSheet(p.WindowBackground, func(gtx layout.Context) layout.Dimensions {
+		gtx.Source = r.Source()
+		return w(gtx)
+	}))
+	if img == nil {
+		return
+	}
+	box, ok := selectionFillBox(img, size, wantFill)
+	if !ok {
+		t.Fatalf("the unfocused live field painted no selection fill in %v; the selection went invisible", wantFill)
+	}
+	selected, d := plateau(img, box, wantFill)
+	if d <= 0 {
+		t.Fatal("the selection's fill carries no run")
+	}
+	if selected.R != wantRun.R || selected.G != wantRun.G || selected.B != wantRun.B {
+		t.Errorf("the unfocused live field's selected run plateaus at %v, want %v over %v", selected, wantRun, wantFill)
+	}
+	// Nothing of the emphasized pair is left on the field.
+	if _, ok := selectionFillBox(img, size, p.SelectedTextBackground); ok {
+		t.Errorf("the unfocused live field still paints the emphasized selection fill %v", p.SelectedTextBackground)
+	}
+	unselected, d := plateau(img, image.Rect(box.Max.X, box.Min.Y, size.X, box.Max.Y), fill)
+	if d <= 0 {
+		t.Fatal("no unselected run stands beside the selected one")
+	}
+	if want := vgcolor.Flatten(p.Label, fill); unselected.R != want.R || unselected.G != want.G || unselected.B != want.B {
+		t.Errorf("the unselected run's plateau is %v, want the platform's label over the field's fill %v", unselected, want)
 	}
 }
 

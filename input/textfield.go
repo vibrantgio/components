@@ -656,8 +656,9 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	paint.ColorOp{Color: textColor}.Add(gtx.Ops)
 	textMat := mText.Stop()
 
+	selFill, selRun := selectionPair(tok.platform, s.Focused)
 	mSel := op.Record(gtx.Ops)
-	paint.ColorOp{Color: tok.platform.SelectedTextBackground}.Add(gtx.Ops)
+	paint.ColorOp{Color: selFill}.Add(gtx.Ops)
 	selMat := mSel.Stop()
 
 	// Editor — always laid out so it receives pointer/keyboard events.
@@ -686,9 +687,15 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	textShift := editorTextShift(innerGtx, shaper, wl, f, textSize, placeholder, phMat, contentDims.Size.Y)
 	st := op.Offset(image.Pt(textX, offY+textShift)).Push(gtx.Ops)
 	editor.Layout(editorGtx, shaper, f, textSize, textMat, selMat)
-	if s.Focused {
-		paintSelectedRun(editorGtx, editor, shaper, f, textSize, tok.platform.SelectedText)
+	// gioui.org/widget's editor paints the selection's fill only while it
+	// holds focus, so the field paints that fill itself once focus has left;
+	// while focused the editor has already laid it down and the field adds
+	// the run alone.
+	under := color.NRGBA{}
+	if !s.Focused {
+		under = selFill
 	}
+	paintSelectedRun(editorGtx, editor, shaper, f, textSize, under, selRun)
 	st.Pop()
 
 	if !s.Disabled {
@@ -713,14 +720,31 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	return layout.Dimensions{Size: fieldSize}
 }
 
-// paintSelectedRun draws the selected run again in the platform's selected
-// text colour, once per box the editor's selection covers, clipped to that
-// box. A selected run of text in a field wears selectedTextColor over
-// selectedTextBackgroundColor whatever colour the field's other text wears —
-// MEASURED, save-dialog-{light,dark}.png: the focused field's selected
-// "Untitled" plateaus at #000000 light and #ffffff dark, opaque, where the
-// label at 216/255 over the two selection fills would land 28 and 29 of 255
+// selectionPair is the fill a selected run in a field stands on and the
+// colour the run is drawn in, by whether the field holds the keyboard.
+//
+// Focused, both are the platform's emphasized selected text names — MEASURED,
+// save-dialog-{light,dark}.png: the focused field's selected "Untitled"
+// plateaus at #000000 light and #ffffff dark, opaque, over #b4d8fd/#406489,
+// where the label at 216/255 over those two fills would land 28 and 29 of 255
 // off on the first channel.
+//
+// Unfocused, the fill is unemphasizedSelectedTextBackgroundColor, #dcdcdc
+// light and #464646 dark. The catalogue records no unemphasizedSelectedTextColor
+// — AppKit publishes none — so the run keeps the colour the field's other text
+// wears, the platform's label, flattened onto that fill.
+func selectionPair(p tokens.PlatformColors, focused bool) (fill, run color.NRGBA) {
+	if focused {
+		return p.SelectedTextBackground, p.SelectedText
+	}
+	return p.UnemphasizedSelectedTextBackground, vgcolor.Flatten(p.Label, p.UnemphasizedSelectedTextBackground)
+}
+
+// paintSelectedRun draws the selected run again in the colour selectionPair
+// hands it, once per box the editor's selection covers, clipped to that box.
+// Where fill carries a colour it is laid down inside that same box first, under
+// the run: the editor paints the selection's own fill only while it holds
+// focus, and a field that has lost the keyboard keeps its selection visible.
 //
 // gioui.org/widget's editor paints the run, the caret and the text over the
 // selection from one material, so the second colour is drawn over the first:
@@ -739,7 +763,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 // The boxes come from the editor's own Regions over its selection, so they are
 // the columns and the line box the first pass painted the selection's fill
 // across, in the editor's own coordinates.
-func paintSelectedRun(gtx layout.Context, editor *widget.Editor, shaper *text.Shaper, f font.Font, size unit.Sp, selected color.NRGBA) {
+func paintSelectedRun(gtx layout.Context, editor *widget.Editor, shaper *text.Shaper, f font.Font, size unit.Sp, fill, selected color.NRGBA) {
 	if editor.SelectionLen() == 0 {
 		return
 	}
@@ -758,6 +782,10 @@ func paintSelectedRun(gtx layout.Context, editor *widget.Editor, shaper *text.Sh
 
 	for _, r := range regions {
 		area := clip.Rect(r.Bounds).Push(gtx.Ops)
+		if fill.A != 0 {
+			paint.ColorOp{Color: fill}.Add(gtx.Ops)
+			paint.PaintOp{}.Add(gtx.Ops)
+		}
 		run.Add(gtx.Ops)
 		area.Pop()
 	}
@@ -856,17 +884,18 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 
 	offY := promptOffset(gtx, tok, fieldH, labelDims)
 	sel, selected := staticSelection(gtx, shaper, tok, s, labelText, innerW, labelDims.Size.Y)
+	selFill, selRun := selectionPair(tok.platform, s.Focused)
 	st := op.Offset(image.Pt(textX, offY)).Push(gtx.Ops)
 	if selected {
-		paint.FillShape(gtx.Ops, tok.platform.SelectedTextBackground, clip.Rect(sel).Op())
+		paint.FillShape(gtx.Ops, selFill, clip.Rect(sel).Op())
 	}
 	labelCall.Add(gtx.Ops)
 	if selected {
-		// The run again in the platform's selected text colour, under the
+		// The run again in the colour selectionPair hands it, under the
 		// selection's own clip: the same two passes the live field draws,
 		// for the same reason.
 		mSelColor := op.Record(gtx.Ops)
-		paint.ColorOp{Color: tok.platform.SelectedText}.Add(gtx.Ops)
+		paint.ColorOp{Color: selRun}.Add(gtx.Ops)
 		selMat := mSelColor.Stop()
 
 		mSelRun := op.Record(gtx.Ops)
@@ -958,7 +987,8 @@ func staticSelection(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens
 // flattened onto it to the byte, where Text's opaque black would read #000000.
 // The caret carries it too, since gioui.org/widget's editor paints the run and
 // the caret from one paint material. The selected run does not: it is drawn
-// again in SelectedText over the selection's fill — see [paintSelectedRun].
+// again over the selection's fill in the colour [selectionPair] hands it,
+// which follows whether the field holds the keyboard — see [paintSelectedRun].
 //
 // The interior is the surface the field stands on and not a fill of the
 // field's own — control.FieldFill carries the measurement — so a field on a
