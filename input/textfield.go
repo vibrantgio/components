@@ -17,6 +17,7 @@ import (
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
+	"golang.org/x/image/math/fixed"
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/internal/control"
@@ -52,6 +53,14 @@ type RenderState struct {
 	// render path; it has no effect on the live TextField, whose text is held
 	// by the inner widget.Editor.
 	Text string
+
+	// Selection is the run of Text standing selected, a half-open rune range
+	// [Selection[0], Selection[1]) into it. It models a selection for the
+	// static render path; it has no effect on the live TextField, whose
+	// selection is the inner widget.Editor's. The zero value selects
+	// nothing, and neither does a range over an empty Text: a prompt stands
+	// in for a value that is not there yet and cannot be selected.
+	Selection [2]int
 
 	// Variant is where the field stands. It is read by the search field
 	// alone: a text field that is not a search field wears the platform's
@@ -677,6 +686,9 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	textShift := editorTextShift(innerGtx, shaper, wl, f, textSize, placeholder, phMat, contentDims.Size.Y)
 	st := op.Offset(image.Pt(textX, offY+textShift)).Push(gtx.Ops)
 	editor.Layout(editorGtx, shaper, f, textSize, textMat, selMat)
+	if s.Focused {
+		paintSelectedRun(editorGtx, editor, shaper, f, textSize, tok.platform.SelectedText)
+	}
 	st.Pop()
 
 	if !s.Disabled {
@@ -699,6 +711,56 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	cl.Pop()
 
 	return layout.Dimensions{Size: fieldSize}
+}
+
+// paintSelectedRun draws the selected run again in the platform's selected
+// text colour, once per box the editor's selection covers, clipped to that
+// box. A selected run of text in a field wears selectedTextColor over
+// selectedTextBackgroundColor whatever colour the field's other text wears —
+// MEASURED, save-dialog-{light,dark}.png: the focused field's selected
+// "Untitled" plateaus at #000000 light and #ffffff dark, opaque, where the
+// label at 216/255 over the two selection fills would land 28 and 29 of 255
+// off on the first channel.
+//
+// gioui.org/widget's editor paints the run, the caret and the text over the
+// selection from one material, so the second colour is drawn over the first:
+// the editor lays itself out a second time in the selected colour, into a
+// macro replayed under each selection box's clip — the idiom the focus band
+// draws its over half with, once per fill.
+//
+// The second pass runs on a DISABLED context, which is what keeps it to the
+// glyphs: that editor paints its caret only where the context is enabled and
+// the selection's fill only where it holds focus, so neither is drawn twice
+// and the caret keeps the colour the first pass gave it. The pass records the
+// pointer and key ops a second time under the editor's own tag, which the
+// router keeps once per tag, and it reads no events at all: a disabled source
+// delivers none.
+//
+// The boxes come from the editor's own Regions over its selection, so they are
+// the columns and the line box the first pass painted the selection's fill
+// across, in the editor's own coordinates.
+func paintSelectedRun(gtx layout.Context, editor *widget.Editor, shaper *text.Shaper, f font.Font, size unit.Sp, selected color.NRGBA) {
+	if editor.SelectionLen() == 0 {
+		return
+	}
+	start, end := editor.Selection()
+	regions := editor.Regions(start, end, nil)
+	if len(regions) == 0 {
+		return
+	}
+	mMat := op.Record(gtx.Ops)
+	paint.ColorOp{Color: selected}.Add(gtx.Ops)
+	mat := mMat.Stop()
+
+	mRun := op.Record(gtx.Ops)
+	editor.Layout(gtx.Disabled(), shaper, f, size, mat, mat)
+	run := mRun.Stop()
+
+	for _, r := range regions {
+		area := clip.Rect(r.Bounds).Push(gtx.Ops)
+		run.Add(gtx.Ops)
+		area.Pop()
+	}
 }
 
 // editorTextShift returns how far down the live editor must draw so its first
@@ -793,13 +855,93 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	drawFieldBox(gtx, tok, s, fieldSize, fillColor, edgeColor, shadowColor)
 
 	offY := promptOffset(gtx, tok, fieldH, labelDims)
+	sel, selected := staticSelection(gtx, shaper, tok, s, labelText, innerW, labelDims.Size.Y)
 	st := op.Offset(image.Pt(textX, offY)).Push(gtx.Ops)
+	if selected {
+		paint.FillShape(gtx.Ops, tok.platform.SelectedTextBackground, clip.Rect(sel).Op())
+	}
 	labelCall.Add(gtx.Ops)
+	if selected {
+		// The run again in the platform's selected text colour, under the
+		// selection's own clip: the same two passes the live field draws,
+		// for the same reason.
+		mSelColor := op.Record(gtx.Ops)
+		paint.ColorOp{Color: tok.platform.SelectedText}.Add(gtx.Ops)
+		selMat := mSelColor.Stop()
+
+		mSelRun := op.Record(gtx.Ops)
+		typeset.Layout(innerGtx, shaper, wl, f, textSize, labelText, selMat)
+		selRun := mSelRun.Stop()
+
+		area := clip.Rect(sel).Push(gtx.Ops)
+		selRun.Add(gtx.Ops)
+		area.Pop()
+	}
 	st.Pop()
 
 	ad.paint(gtx, tok, s, fieldSize, padH)
 
 	return layout.Dimensions{Size: fieldSize}
+}
+
+// staticSelection is the box the static path's selected run stands in: the
+// columns the run's glyphs are shaped to, across the whole line box the value
+// is drawn in, in the value's own coordinates. It answers false where nothing
+// is selected — no range, or a prompt standing in for a value, which cannot
+// be selected.
+//
+// It shapes the value with the parameters the paint pass shapes it with, so
+// the shaper answers from its cache rather than shaping a second time, and it
+// runs the shaper's glyphs to the end before the paint pass shapes anything: a
+// shaper lays one document out at a time. The two ends are rounded as
+// gioui.org/widget rounds the ends of an editor's own selection, so the live
+// field and this one cover the same columns for the same run.
+func staticSelection(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s RenderState, txt string, maxW, box int) (image.Rectangle, bool) {
+	from, to := s.Selection[0], s.Selection[1]
+	if from > to {
+		from, to = to, from
+	}
+	if shaper == nil || box <= 0 || s.Text == "" || txt != s.Text || to <= from {
+		return image.Rectangle{}, false
+	}
+	f, wl, size := bodyLabel(tok)
+	shaper.LayoutString(text.Parameters{
+		Font:            f,
+		PxPerEm:         fixed.I(gtx.Sp(size)),
+		MaxLines:        wl.MaxLines,
+		Truncator:       wl.Truncator,
+		Alignment:       wl.Alignment,
+		WrapPolicy:      wl.WrapPolicy,
+		MaxWidth:        maxW,
+		Locale:          gtx.Locale,
+		LineHeight:      fixed.I(gtx.Sp(wl.LineHeight)),
+		LineHeightScale: wl.LineHeightScale,
+	}, txt)
+	var lead, trail fixed.Int26_6
+	at, found := 0, false
+	for {
+		g, ok := shaper.NextGlyph()
+		if !ok {
+			break
+		}
+		next := at + int(g.Runes)
+		// A glyph stands in the selection when any of the runes it draws do.
+		if next > from && at < to {
+			l, r := g.X, g.X+g.Advance
+			if !found || l < lead {
+				lead = l
+			}
+			if !found || r > trail {
+				trail = r
+			}
+			found = true
+		}
+		at = next
+	}
+	if !found || trail <= lead {
+		return image.Rectangle{}, false
+	}
+	return image.Rect(lead.Round(), 0, trail.Round(), box), true
 }
 
 // textFieldColors returns the (fill, foreground, edge, placeholder) colours
@@ -814,8 +956,9 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 // the typed query standing unselected in the toolbar recess plateaus at
 // #232323 over that recess's #e8e8e8 fill, which is Label's black at 216/255
 // flattened onto it to the byte, where Text's opaque black would read #000000.
-// Gio's editor paints the run, the caret and the text over the selection from
-// one material, so all three carry it.
+// The caret carries it too, since gioui.org/widget's editor paints the run and
+// the caret from one paint material. The selected run does not: it is drawn
+// again in SelectedText over the selection's fill — see [paintSelectedRun].
 //
 // The interior is the surface the field stands on and not a fill of the
 // field's own — control.FieldFill carries the measurement — so a field on a

@@ -16,6 +16,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/text"
 	"gioui.org/unit"
+	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
 	golden "github.com/vibrantgio/components/golden"
@@ -62,6 +63,10 @@ func TestTextFieldGolden(t *testing.T) {
 		{"textfield-dark-normal", tokens.PlatformDark, input.RenderState{}},
 		{"textfield-light-focused", tokens.PlatformLight, input.RenderState{Focused: true}},
 		{"textfield-light-focused-with-text", tokens.PlatformLight, input.RenderState{Focused: true, Text: "hello@example.com"}},
+		// A selected run, which the platform draws in a second colour: the
+		// first of the two words is selected and the second is not.
+		{"textfield-light-selected", tokens.PlatformLight, input.RenderState{Focused: true, Text: selectedRunValue, Selection: [2]int{0, 8}}},
+		{"textfield-dark-selected", tokens.PlatformDark, input.RenderState{Focused: true, Text: selectedRunValue, Selection: [2]int{0, 8}}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -711,5 +716,189 @@ func TestTheValuesPlateauIsTheLabel(t *testing.T) {
 				t.Errorf("the value's plateau is %v, want the platform's label over the field's fill, %v", best, label)
 			}
 		})
+	}
+}
+
+// selectedRunValue is one word standing twice in a field, the first selected
+// and the second not: the same glyphs at the same size, so the two plateaus
+// the test reads differ by the colour the field drew them in and nothing else.
+const selectedRunValue = "Untitled Untitled"
+
+// selectionFillBox is the box the selection's fill covers in img — the
+// columns and rows the field painted SelectedTextBackground across.
+func selectionFillBox(img *image.RGBA, size image.Point, fill stdcolor.NRGBA) (image.Rectangle, bool) {
+	box, found := image.Rectangle{}, false
+	for y := 0; y < size.Y; y++ {
+		for x := 0; x < size.X; x++ {
+			if dist(img.RGBAAt(x, y), fill) != 0 {
+				continue
+			}
+			if !found {
+				box, found = image.Rect(x, y, x+1, y+1), true
+				continue
+			}
+			box = box.Union(image.Rect(x, y, x+1, y+1))
+		}
+	}
+	return box, found
+}
+
+// plateau is the pixel in r standing furthest from the colour it was drawn
+// over: the run's fully covered pixel, since anti-aliasing only moves a
+// glyph's pixels toward what it stands on and never past the colour it was
+// drawn with.
+func plateau(img *image.RGBA, r image.Rectangle, over stdcolor.NRGBA) (stdcolor.RGBA, int) {
+	best, bestD := stdcolor.RGBA{}, -1
+	for y := r.Min.Y; y < r.Max.Y; y++ {
+		for x := r.Min.X; x < r.Max.X; x++ {
+			if c := img.RGBAAt(x, y); dist(c, over) > bestD {
+				bestD, best = dist(c, over), c
+			}
+		}
+	}
+	return best, bestD
+}
+
+// TestTheSelectedRunsPlateauIsTheSelectedText reads the two colours a field's
+// value wears when part of it is selected: the selected run over the
+// selection's fill, and the run beside it on the same rows, over the field's
+// own fill.
+//
+// A selected run wears the platform's selected text colour over its selected
+// text background whatever colour the field's other text wears. MEASURED,
+// save-dialog-{light,dark}.png at 1x: the focused "Save As:" field's selected
+// "Untitled" plateaus at #000000 light and #ffffff dark, opaque — sixteen
+// pixels exactly light and forty-eight exactly dark — standing on the
+// selection's own fill, where the label at 216/255 over those two fills would
+// land 28 and 29 of 255 off on the first channel. The unselected run is the
+// label over the field's fill, which is what the same field's value reads
+// unselected (voicememos-multi-folder-search-2026-09-18.png, CG7.4).
+func TestTheSelectedRunsPlateauIsTheSelectedText(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 60)
+	for _, tc := range []struct {
+		name     string
+		platform tokens.PlatformColors
+	}{
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fill := control.FieldFill(tc.platform, stdcolor.NRGBA{})
+			img := golden.Capture(t, size, onSheet(fill, input.Render(
+				shaper, "Email address",
+				tc.platform, tokens.Spacing, tokens.RadiusScale{},
+				tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				input.RenderState{Text: selectedRunValue, Selection: [2]int{0, 8}},
+			)))
+			if img == nil {
+				return
+			}
+			box, ok := selectionFillBox(img, size, tc.platform.SelectedTextBackground)
+			if !ok {
+				t.Fatal("the field painted no selection fill; this measures nothing")
+			}
+			selected, d := plateau(img, box, tc.platform.SelectedTextBackground)
+			if d <= 0 {
+				t.Fatal("the selection's fill carries no run")
+			}
+			if want := tc.platform.SelectedText; selected.R != want.R || selected.G != want.G || selected.B != want.B {
+				t.Errorf("the selected run's plateau is %v, want the platform's selected text %v; the label over the selection's fill would read %v",
+					selected, want, vgcolor.Flatten(tc.platform.Label, tc.platform.SelectedTextBackground))
+			}
+			// The rest of the line, on the selection's own rows so the
+			// field's edge and any band on it are out of the reading.
+			beside := image.Rect(box.Max.X, box.Min.Y, size.X, box.Max.Y)
+			unselected, d := plateau(img, beside, fill)
+			if d <= 0 {
+				t.Fatal("no unselected run stands beside the selected one")
+			}
+			if want := vgcolor.Flatten(tc.platform.Label, fill); unselected.R != want.R || unselected.G != want.G || unselected.B != want.B {
+				t.Errorf("the unselected run's plateau is %v, want the platform's label over the field's fill %v", unselected, want)
+			}
+		})
+	}
+}
+
+// TestTheLiveFieldsSelectedRunWearsTheSelectedText reads the same two colours
+// off the live field, whose run, caret and selection gioui.org/widget's editor
+// paints from one paint material: the field draws the selected run again over
+// them in the platform's selected text colour, and the caret keeps the colour
+// the first pass gave it.
+//
+// It is read in the light appearance alone, which is the one a live field
+// laid out against theme.Default() draws in; the static path above reads both.
+func TestTheLiveFieldsSelectedRunWearsTheSelectedText(t *testing.T) {
+	var tag event.Tag
+	w := liveTextField(t, input.TextFieldProps{
+		Placeholder: "Email address",
+		Seed:        selectedRunValue,
+		FocusTag:    func(tg event.Tag) { tag = tg },
+	})
+	editor, ok := tag.(*widget.Editor)
+	if !ok {
+		t.Fatalf("FocusTag handed %T, want the field's editor", tag)
+	}
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	size := image.Pt(300, 60)
+
+	// Frame 1 registers the editor, then its tag takes focus: an editor paints
+	// no selection at all while another holds it.
+	driveTextFieldFrame(w, ops, r, size)
+	r.Source().Execute(key.FocusCmd{Tag: tag})
+	driveTextFieldFrame(w, ops, r, size)
+	editor.SetCaret(0, 8)
+
+	p := tokens.PlatformLight
+	fill := control.FieldFill(p, p.WindowBackground)
+	// The capture frame carries the router's own source, so the editor is
+	// still the focused tag while it draws.
+	img := golden.Capture(t, size, onSheet(p.WindowBackground, func(gtx layout.Context) layout.Dimensions {
+		gtx.Source = r.Source()
+		return w(gtx)
+	}))
+	if img == nil {
+		return
+	}
+	box, ok := selectionFillBox(img, size, p.SelectedTextBackground)
+	if !ok {
+		t.Fatal("the live field painted no selection fill; this measures nothing")
+	}
+	selected, d := plateau(img, box, p.SelectedTextBackground)
+	if d <= 0 {
+		t.Fatal("the selection's fill carries no run")
+	}
+	if want := p.SelectedText; selected.R != want.R || selected.G != want.G || selected.B != want.B {
+		t.Errorf("the live field's selected run plateaus at %v, want the platform's selected text %v", selected, want)
+	}
+	unselected, d := plateau(img, image.Rect(box.Max.X, box.Min.Y, size.X, box.Max.Y), fill)
+	if d <= 0 {
+		t.Fatal("no unselected run stands beside the selected one")
+	}
+	if want := vgcolor.Flatten(p.Label, fill); unselected.R != want.R || unselected.G != want.G || unselected.B != want.B {
+		t.Errorf("the live field's unselected run plateaus at %v, want the platform's label over the field's fill %v", unselected, want)
+	}
+	// The caret stands at the selected run's leading end and keeps the colour
+	// the field's other text wears. It is painted over the selection's own
+	// leading column — which is why the fill's box begins one column in — so
+	// it is read across that column and the two the caret is drawn at.
+	// Nothing else there can read it: the run's anti-aliased pixels carry the
+	// selection fill's channel order, ascending red to blue, and the label's
+	// grey does not.
+	caret := vgcolor.Flatten(p.Label, fill)
+	band := image.Rect(box.Min.X-2, box.Min.Y, box.Max.X, box.Max.Y)
+	found := false
+	for y := band.Min.Y; y < band.Max.Y && !found; y++ {
+		for x := band.Min.X; x < band.Max.X; x++ {
+			if c := img.RGBAAt(x, y); c.R == caret.R && c.G == caret.G && c.B == caret.B {
+				found = true
+				break
+			}
+		}
+	}
+	if !found {
+		t.Errorf("the caret standing at the selected run does not read %v; the second pass painted it too", caret)
 	}
 }
