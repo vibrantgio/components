@@ -4,20 +4,23 @@ import (
 	"image"
 	"image/color"
 
+	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
+	"gioui.org/text"
 	"gioui.org/unit"
 
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/toolbarface"
 )
 
-// SegmentSeamClearDp is the room a segmented toolbar control leaves clear
+// SegmentSeamClearDp is the space a segmented toolbar control leaves clear
 // above and below the hairline parting two of its segments.
 //
 // MEASURED at 1x, the back/forward pair in finder-window-light.png and
@@ -31,19 +34,37 @@ const SegmentSeamClearDp unit.Dp = 8
 // Finder captures, which is the width every seam in this library is drawn at.
 const segmentSeamDp unit.Dp = 1
 
+// segmentLabelRoom is the width a segment's word is measured in: room enough
+// that no single-line label this library draws is broken or elided by it, so
+// the measured width is the label's own.
+const segmentLabelRoom = 1 << 20
+
 // ChromeSegment is one segment of the platform's segmented toolbar control:
-// the symbol it carries, the state it is drawn in, and the target that makes
-// it pressable.
+// what it carries, the state it is drawn in, and the target that makes it
+// pressable.
 type ChromeSegment struct {
 	// Icon draws the segment's symbol into the square it is handed. A nil
-	// Icon draws an empty segment.
+	// Icon draws an empty segment. It is not reached while Label carries a
+	// word: a segment carries one or the other.
 	Icon func(gtx layout.Context, sizePx int, col color.NRGBA)
+
+	// Label is the word this segment carries instead of a symbol.
+	//
+	// NOT MEASURED, and the one thing here that is not: not one control in
+	// the five stored toolbar bands carries a word (controls.md, "What a
+	// toolbar control's symbol measures"), so no capture says what a worded
+	// segment insets its word by. A worded segment is drawn at its label
+	// plus the clearance the symbol path spends at either side
+	// ([control.ChromeMarkSideDp]), which is the nearest measured number
+	// this control holds.
+	Label string
 
 	// State is this segment's own interaction state. Hovered and Pressed
 	// tint this segment and not the control, which is what the platform
 	// draws: the pointer is on one segment at a time. Disabled fades this
-	// segment's symbol and takes its cursor away. Focused is read off the
-	// whole control, since the ring the platform draws is the control's.
+	// segment's symbol and takes its cursor away. Checked draws this segment
+	// as the chosen one. Focused is read off the whole control, since the
+	// ring the platform draws is the control's.
 	State RenderState
 
 	// Target, if non-nil, is laid out over this segment's own box at the
@@ -57,17 +78,26 @@ type ChromeSegment struct {
 }
 
 // ChromeSegments draws the platform's segmented bordered toolbar control: one
-// capsule carrying several symbols, each in a segment of the control's own
-// width, parted by the hairline the platform draws between them.
+// capsule carrying several symbols or words, each in a segment of the
+// control's own width, parted by the hairline the platform draws between
+// them, with the chosen segment wearing the patch the platform fills it with.
 //
 // MEASURED at 1x, Finder's back/forward pair: x 326–398 in
 // finder-window-untinted-dark.png, where the control's rim reads at both ends
 // and the seam at x=362 — two segments of 36 px with one column between
 // them, at the toolbar control's own 36 px height. The light window draws the
-// same pair at the same columns. A segment is therefore the width the chrome
-// variant already draws around one symbol ([control.ChromeMarkDp] with
+// same pair at the same columns. A symbol segment is therefore the width the
+// chrome variant already draws around one symbol ([control.ChromeMarkDp] with
 // [control.ChromeMarkSideDp] clear on each side), and the control is that
 // width per segment plus the seams.
+//
+// EVERY SEGMENT OF ONE CONTROL IS THE SAME WIDTH. MEASURED,
+// finder-window-untinted-dark.png: the four-segment view control spans x
+// 796–943, 148 px over four segments, 37 each; Mail's three-segment groups
+// divide to the same 37.3. So the widest segment sets the width of all of
+// them, and a caller asking for a wider control through gtx.Constraints.Min.X
+// — a segmented control laid across a form's own column — gets that width
+// divided evenly rather than a ragged row.
 //
 // The seam is a MEASURED value of the toolbar and not the Language's
 // separator flattened: the two Finder captures read #f2f2f2 light over the
@@ -79,15 +109,48 @@ type ChromeSegment struct {
 // The shadow the control casts on its band is not drawn here — it falls
 // outside the box this reports, the way [ChromeFace]'s does. Callers wrap
 // this in [ChromeShadow].
-func ChromeSegments(gtx layout.Context, p tokens.PlatformColors, d tokens.Density, segs []ChromeSegment) layout.Dimensions {
+func ChromeSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformColors, labelStyle tokens.TextStyle, d tokens.Density, segs []ChromeSegment) layout.Dimensions {
 	if len(segs) == 0 {
 		return layout.Dimensions{}
 	}
 	h := min(gtx.Dp(unit.Dp(d.ToolbarControlHeight)), gtx.Constraints.Max.Y)
 	mark := gtx.Dp(control.ChromeMarkDp)
-	segW := mark + 2*gtx.Dp(control.ChromeMarkSideDp)
+	side := gtx.Dp(control.ChromeMarkSideDp)
 	rule := max(gtx.Dp(segmentSeamDp), 1)
+
+	// The fill each segment is drawn over, and the word it carries, both
+	// worked out before the control's width is: the widest segment sets the
+	// width of every segment, so nothing can be placed until all of them
+	// have been measured.
+	fills := make([]color.NRGBA, len(segs))
+	labels := make([]op.CallOp, len(segs))
+	labelSize := make([]image.Point, len(segs))
+	segW := mark + 2*side
+	rest := toolbarface.Fill(p, tokens.StateNormal)
+	for i, s := range segs {
+		fills[i] = rest
+		if !s.State.Disabled {
+			if st := chromeState(s.State); st == tokens.StateHover || st == tokens.StatePressed {
+				fills[i] = toolbarface.Fill(p, st)
+			}
+		}
+		if s.Label == "" {
+			continue
+		}
+		fg := toolbarface.Mark(p, fills[i])
+		if s.State.Disabled {
+			fg = vgcolor.Flatten(p.DisabledControlText, fills[i])
+		}
+		labels[i], labelSize[i] = shapeSegmentLabel(gtx, shaper, labelStyle, s.Label, fg)
+		if w := labelSize[i].X + 2*side; w > segW {
+			segW = w
+		}
+	}
+
 	total := len(segs)*segW + (len(segs)-1)*rule
+	if total < gtx.Constraints.Min.X {
+		total = gtx.Constraints.Min.X
+	}
 	if total > gtx.Constraints.Max.X {
 		total = gtx.Constraints.Max.X
 	}
@@ -102,7 +165,6 @@ func ChromeSegments(gtx layout.Context, p tokens.PlatformColors, d tokens.Densit
 	for _, s := range segs {
 		focused = focused || (s.State.Focused && !s.State.Disabled)
 	}
-	rest := toolbarface.Fill(p, tokens.StateNormal)
 	outer := toolbarface.Capsule(gtx, box, h/2, p, rest, toolbarface.State{
 		Focused: focused,
 		// The band the pair stands on. Every segment of one control stands
@@ -110,20 +172,32 @@ func ChromeSegments(gtx layout.Context, p tokens.PlatformColors, d tokens.Densit
 		StandsOn: segs[0].State.Surface,
 	})
 
+	// The segments divide what the control ended up at, so a control asked
+	// for a width its natural segments do not add up to spreads the
+	// difference rather than leaving it at one end.
+	inner := total - (len(segs)-1)*rule
+	edgeAt := func(i int) int { return i*inner/len(segs) + i*rule }
+
 	clear := min(gtx.Dp(SegmentSeamClearDp), h/2)
 	for i, s := range segs {
-		x := i * (segW + rule)
-		seg := image.Rect(x, 0, x+segW, h)
-		fill := rest
-		if !s.State.Disabled {
-			if st := chromeState(s.State); st == tokens.StateHover || st == tokens.StatePressed {
-				fill = toolbarface.Fill(p, st)
-				// Clipped to the capsule, so a tint on an end segment
-				// follows the corner rather than squaring it off.
-				area := outer.Push(gtx.Ops)
-				paint.FillShape(gtx.Ops, fill, clip.Rect(seg).Op())
-				area.Pop()
-			}
+		x, xEnd := edgeAt(i), edgeAt(i)+inner*(i+1)/len(segs)-inner*i/len(segs)
+		seg := image.Rect(x, 0, xEnd, h)
+		fill := fills[i]
+		if fill != rest {
+			// Clipped to the capsule, so a tint on an end segment
+			// follows the corner rather than squaring it off.
+			area := outer.Push(gtx.Ops)
+			paint.FillShape(gtx.Ops, fill, clip.Rect(seg).Op())
+			area.Pop()
+		}
+		if s.State.Checked {
+			// The chosen segment's own patch, inset inside the SEGMENT and
+			// cornered at half its height — the 32 by 26 measured inside
+			// Finder's 37 by 36 view segment. Clipped to the capsule for the
+			// same reason the tint is.
+			area := outer.Push(gtx.Ops)
+			toolbarface.CheckedPatch(gtx, seg, p, fill)
+			area.Pop()
 		}
 		if i > 0 {
 			// The seam is the CONTROL'S own line and a measured value, not
@@ -134,13 +208,23 @@ func ChromeSegments(gtx layout.Context, p tokens.PlatformColors, d tokens.Densit
 			line := image.Rect(x-rule, clear, x, h-clear)
 			paint.FillShape(gtx.Ops, p.ToolbarControlSeam, clip.Rect(line).Op())
 		}
-		if s.Icon != nil && mark > 0 {
+		switch {
+		case s.Label != "":
+			area := outer.Push(gtx.Ops)
+			off := op.Offset(image.Pt(
+				x+(seg.Dx()-labelSize[i].X)/2,
+				(h-labelSize[i].Y)/2,
+			)).Push(gtx.Ops)
+			labels[i].Add(gtx.Ops)
+			off.Pop()
+			area.Pop()
+		case s.Icon != nil && mark > 0:
 			fg := toolbarface.Mark(p, fill)
 			if s.State.Disabled {
 				fg = vgcolor.Flatten(p.DisabledControlText, fill)
 			}
 			area := outer.Push(gtx.Ops)
-			off := op.Offset(image.Pt(x+(segW-mark)/2, (h-mark)/2)).Push(gtx.Ops)
+			off := op.Offset(image.Pt(x+(seg.Dx()-mark)/2, (h-mark)/2)).Push(gtx.Ops)
 			s.Icon(gtx, mark, fg)
 			off.Pop()
 			area.Pop()
@@ -154,4 +238,22 @@ func ChromeSegments(gtx layout.Context, p tokens.PlatformColors, d tokens.Densit
 		}
 	}
 	return layout.Dimensions{Size: size}
+}
+
+// shapeSegmentLabel measures a segment's word at its own width rather than
+// at the width a caller left it, and returns the recorded drawing with
+// the size it measured to. typeset.Layout, not widget.Label.Layout, because
+// the role's line height has to be the height of the label box.
+func shapeSegmentLabel(gtx layout.Context, shaper *text.Shaper, style tokens.TextStyle, label string, fg color.NRGBA) (op.CallOp, image.Point) {
+	mColor := op.Record(gtx.Ops)
+	paint.ColorOp{Color: fg}.Add(gtx.Ops)
+	material := mColor.Stop()
+
+	lg := gtx
+	lg.Constraints.Min = image.Point{}
+	lg.Constraints.Max.X = segmentLabelRoom
+
+	m := op.Record(gtx.Ops)
+	dims := typeset.Layout(lg, shaper, typeset.Label(style, 1), typeset.Font(style, font.Normal), unit.Sp(style.Size), label, material)
+	return m.Stop(), dims.Size
 }
