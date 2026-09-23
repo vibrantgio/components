@@ -109,3 +109,45 @@ func TestApplyScrollDeltaAdvancesPosition(t *testing.T) {
 		t.Errorf("Position.First after zero delta = %d; want %d (unchanged)", got, before)
 	}
 }
+
+// TestLayoutScrollbarRevealsAPendingRow asserts that a barred list with no
+// selection of its own answers [State.Reveal]: the caller names a row and the
+// next layout brings it into view, the same hand-off the selectable entry
+// points make for every traversal move they take.
+//
+// It is what a rail whose keyboard walks something other than the list's rows
+// stands on — the column scrolls, the selection is the caller's, and the
+// pixels are the list's to compute.
+func TestLayoutScrollbarRevealsAPendingRow(t *testing.T) {
+	bar := scrollbar.FromTokens(tokens.PlatformLight, tokens.PlatformLight.ControlBackground)
+	state := NewState()
+	items := sbItems(40)
+	seen := 0
+	frame := func() {
+		LayoutScrollbar(sbTestContext(), state, bar, Overlay, items, sbRowFn(&seen))
+	}
+
+	frame()
+	if pos := state.Position(); pos.First != 0 {
+		t.Fatalf("the list starts at row %d, want its leading edge", pos.First)
+	}
+
+	state.Reveal(30)
+	frame()
+	pos := state.Position()
+	if pos.First == 0 {
+		t.Fatal("a pending Reveal moved nothing; the barred list never consumed it")
+	}
+	if last := pos.First + pos.Count - 1; 30 < pos.First || 30 > last {
+		t.Errorf("after revealing row 30 the window shows rows %d to %d", pos.First, last)
+	}
+
+	// A row already in view does not move the list: Reveal goes the short way
+	// and a row it need not travel to is no distance at all.
+	was := state.Position()
+	state.Reveal(was.First + 1)
+	frame()
+	if got := state.Position(); got.First != was.First || got.Offset != was.Offset {
+		t.Errorf("revealing a row already in view moved the list from %+v to %+v", was, got)
+	}
+}

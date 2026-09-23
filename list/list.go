@@ -10,7 +10,8 @@
 //     scrollbar is drawn.
 //   - [LayoutScrollbar] additionally draws a scrollbar along the list's
 //     trailing edge, wired to the scroll position; dragging the thumb or
-//     clicking the track scrolls the list.
+//     clicking the track scrolls the list, and a pending [State.Reveal]
+//     brings its row into view.
 //   - [LayoutSelectable] adds a keyboard-movable selection over every row.
 //   - [LayoutSelectableScrollbar] is both: the selection and the bar.
 //
@@ -160,8 +161,9 @@ func (s *State) Select(i int) {
 	s.selPlusOne = i + 1
 }
 
-// Reveal schedules row i to be scrolled into view by the next
-// [LayoutSelectable]. It moves the viewport the short way: a row above the
+// Reveal schedules row i to be scrolled into view by the next layout that
+// scrolls — [LayoutSelectable], [LayoutSelectableScrollbar] or
+// [LayoutScrollbar]. It moves the viewport the short way: a row above the
 // window lands at the leading edge, a row below it at the trailing edge, and a
 // row already in view does not move the list at all.
 //

@@ -29,6 +29,11 @@ const (
 // anchor selects whether the bar reserves a gutter (Occupy) or floats over
 // the content (Overlay). The list is vertical-only, so the bar is always
 // vertical and anchored east.
+//
+// A pending [State.Reveal] is consumed here as it is in the selectable entry
+// points, so a caller whose column scrolls but carries no selection of its
+// own — a rail whose keyboard walks something other than the list's rows —
+// asks for a row by index rather than measuring the column's pixels itself.
 func LayoutScrollbar[T any](
 	gtx layout.Context,
 	state *State,
@@ -38,6 +43,7 @@ func LayoutScrollbar[T any](
 	rowFn func(gtx layout.Context, item T) layout.Dimensions,
 ) layout.Dimensions {
 	state.record(gtx)
+	state.scrollIntoView(len(items))
 	return state.scrolled(gtx, bar, anchor, len(items), func(gtx layout.Context, i int) layout.Dimensions {
 		return rowFn(gtx, items[i])
 	})
