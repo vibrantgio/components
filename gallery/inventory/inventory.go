@@ -511,7 +511,7 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 		// to the controls alone runs it into the heading below.
 		{Name: "components-searchfield", Title: "Search field — at rest, holding a query with its clear mark, and the recess it takes on chrome", Height: 84,
 			Body: inv.searchFieldRow(c)},
-		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled, then the same controls carrying their own labels", Height: 96,
+		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled, then the same controls carrying their own titles", Height: 96,
 			Body: inv.toggleRow(c)},
 		{Name: "components-picker", Title: "Picker — the form trigger at rest, under the pointer, held, focused and switched off, then open with its menu standing over it, beside the chrome toolbar at rest and under the pointer", Height: 200,
 			Body: inv.pickerRow(c)},
@@ -1027,8 +1027,7 @@ func (inv *Inventory) badgeStyle() tokens.TextStyle {
 // for the surface rather than derived from it — so a second pane of the same
 // five comes out the same byte and promises an adaptation that is not there.
 // A sheet labelling three rows with three surfaces and drawing one row three
-// times is worse than one that draws the row once (fresh-eyes review,
-// CE2.4b).
+// times is worse than one that draws the row once (fresh-eyes review).
 func (inv *Inventory) badgeBlock(c tokens.PlatformColors) layout.Widget {
 	style := inv.badgeStyle()
 	statuses := []struct {

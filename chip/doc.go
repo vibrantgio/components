@@ -26,10 +26,10 @@
 // takes the slot rather than standing beside a second one. Only [Input]
 // carries the trailing dismiss mark, and it always carries it.
 //
-// The marks and the words are ONE LINE OF TEXT. A mark stands in the band the
+// The marks and the text are ONE LINE OF TEXT. A mark stands in the band the
 // title's capitals stand in — baseline to cap height, read off the face the
 // title is set in — and is stroked at the width of the title's own stem, so
-// nothing inside a chip is heavier or taller than the words it is beside. See
+// nothing inside a chip is heavier or taller than the text it is beside. See
 // [MarkDp] and [MarkStrokeDp] for the measurement that fixes both.
 //
 // The parts are set an S2 stop apart, the spacing scale's own answer for two
@@ -60,11 +60,11 @@
 //
 // Every colour is one of the platform's own names and nothing is measured or
 // mixed. [Resolve] carries the table: a resting chip is the platform's
-// Control behind a Separator rim with ControlText words, a selected [Filter]
+// Control behind a Separator rim with its text in ControlText, a selected [Filter]
 // chip is SelectedContentBackground with AlternateSelectedControlText and no
 // rim, and a held chip wears PressOverlay over whichever body it started
 // from. The trailing dismiss mark is SecondaryLabel, which is the one part of
-// a chip the platform draws weaker than the words beside it.
+// a chip the platform draws weaker than the text beside it.
 //
 // The four purposes are one colour. What separates them is behaviour and
 // structure — which one selects, which carries the trailing mark, what stands
@@ -95,7 +95,7 @@
 // control family the chip has just left: a chip is smaller than a button by
 // construction and spends no padding on the axis. At Compact the line box is
 // taller than the chip height in both title roles, so a Compact chip measures
-// its title; a box shorter than the words in it is not a chip either.
+// its title; a box shorter than the text in it is not a chip either.
 //
 // Horizontal padding is d.PaddingX at each end. The silhouette is the radius
 // scale's Lg stop, 8 dp, clamped to half the height — a rounded rectangle, not

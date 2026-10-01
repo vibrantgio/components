@@ -75,7 +75,7 @@ func press(r *gioinput.Router, x, y int) {
 }
 
 // TestTheBadgeReportsItsTextAndTheMarkHitsTheFloor is the pointer-target
-// contract: the component measures the words it drew, while what the pointer may
+// contract: the component measures the text it drew, while what the pointer may
 // land on around the close mark is the 24 dp AA floor centred on it. The click
 // below is outside the drawn badge on the y axis and inside the mark's slop,
 // the only place the two can be told apart.
@@ -110,7 +110,7 @@ func TestTheBadgeReportsItsTextAndTheMarkHitsTheFloor(t *testing.T) {
 }
 
 // TestAClickAwayFromTheMarkIsNotADismissal is the same contract read the other
-// way: the badge's own words take no pointer input, so a press on the title
+// way: the badge's own text takes no pointer input, so a press on the title
 // reaches nothing. A badge whose whole box was clickable would be a control.
 func TestAClickAwayFromTheMarkIsNotADismissal(t *testing.T) {
 	var dismissed int

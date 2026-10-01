@@ -109,7 +109,7 @@ func Style(t tokens.Typography, d tokens.Density) tokens.TextStyle {
 // for [Neutral], which the platform gives no status colour.
 //
 // A bare badge is the symbol utterance — see [Fill] for why only that one
-// stands without a fill. A worded or counted badge reads in [Foreground]
+// stands without a fill. A badge with a title or a count reads in [Foreground]
 // against the fill it wears instead.
 //
 // The platform's system colours are read on every fill a window carries,
@@ -123,7 +123,7 @@ func BareForeground(p tokens.PlatformColors, status Status, standsOn color.NRGBA
 	return status.systemColor(p)
 }
 
-// Fill is the fill a worded or counted badge wears: the platform's system
+// Fill is the fill a badge with a title or a count wears: the platform's system
 // colour for the status, at full strength, which is how the platform draws
 // a count badge. A [Neutral] badge wears systemGray, the platform's answer
 // where no status is carried.
@@ -157,12 +157,12 @@ func BareForeground(p tokens.PlatformColors, status Status, standsOn color.NRGBA
 // badges drawn with ONE sign under two statuses are two hues and nothing else —
 // the exact channel collapse the fill exists to prevent, reintroduced above
 // the component. A set of symbol badges owes distinct shapes; a set that
-// cannot have them owes words instead.
+// cannot have them owes text instead.
 func Fill(p tokens.PlatformColors, status Status) color.NRGBA {
 	return status.systemColor(p)
 }
 
-// Foreground is the colour a worded or counted badge's content reads in: the
+// Foreground is the colour a badge with a title or a count reads its content in: the
 // foreground the platform pairs with a fill its accent or a system colour
 // paints, alternateSelectedControlTextColor — white in both appearances.
 //
@@ -250,7 +250,7 @@ type Props struct {
 	Status Status
 
 	// Description is the screen-reader label. Falls back to Title when empty,
-	// which is what a symbol badge needs — a sign with no words has nothing
+	// which is what a symbol badge needs — a sign with no text has nothing
 	// for a reader to say unless the caller says it.
 	Description string
 
@@ -492,19 +492,19 @@ func draw(
 	dismissible bool,
 	dismiss *widget.Clickable,
 ) layout.Dimensions {
-	// The utterance picks the structure: anything with words in it wears the
+	// The utterance picks the structure: anything with text in it wears the
 	// fill, a sign on its own stands bare unless the caller asked for the
 	// disc. See [Fill].
 	//
 	// A title ignores [RenderState.Disc] rather than being refused it: the
-	// fill the words already wear IS the fill the disc would add, so
+	// fill the text already wears IS the fill the disc would add, so
 	// honouring both would mean a badge inside a badge, and there is exactly
 	// one structure branch here.
-	worded := title != ""
-	disc := !worded && symbol != nil && s.Disc
+	hasTitle := title != ""
+	disc := !hasTitle && symbol != nil && s.Disc
 	standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
 	var fill, fg color.NRGBA
-	if worded || disc {
+	if hasTitle || disc {
 		fill, fg = Fill(tok.platform, status), Foreground(tok.platform)
 	} else {
 		fg = BareForeground(tok.platform, status, standsOn)
@@ -519,7 +519,7 @@ func draw(
 	// square, so a disc badge's box is the same line-box square a bare sign
 	// reports and a row that reserved room for one holds the other unmoved.
 	pad := 0
-	if worded {
+	if hasTitle {
 		pad = gtx.Dp(unit.Dp(fillPad(tok.spacing)))
 	}
 
@@ -577,7 +577,7 @@ func draw(
 	// constraints rounds to a stadium rather than drawing a corner larger
 	// than the box it belongs to.
 	radius := min(gtx.Dp(unit.Dp(fillRadius(tok.radius))), h/2)
-	if worded {
+	if hasTitle {
 		paint.FillShape(gtx.Ops, fill, clip.RRect{
 			Rect: image.Rectangle{Max: size},
 			NW:   radius, NE: radius, SE: radius, SW: radius,
@@ -644,7 +644,7 @@ func draw(
 
 	origin := image.Pt(x+markGap, (h-mark)/2)
 	markFg := fg
-	if !worded {
+	if !hasTitle {
 		// A bare sign's mark is not on the sign's own colour: it is an
 		// affordance on a piece of text, so it takes the platform's
 		// secondary label like every other small mark beside a word,
@@ -659,13 +659,13 @@ func draw(
 	// the fill's own edge and corner; on a bare badge it is the mark's own
 	// square. The platform's hover and press overlays carry a coverage, so
 	// each is flattened onto what it actually lands on: the status fill on a
-	// worded badge, the surface a bare one stands on.
+	// badge with a title, the surface a bare one stands on.
 	overlayOn := standsOn
-	if worded {
+	if hasTitle {
 		overlayOn = fill
 	}
 	if overlay := s.overlay(tok.platform, overlayOn); overlay.A != 0 {
-		if worded {
+		if hasTitle {
 			left := origin.X - markGap/2
 			paint.FillShape(gtx.Ops, overlay, clip.RRect{
 				Rect: image.Rectangle{Min: image.Pt(left, 0), Max: size},
@@ -713,7 +713,7 @@ func drawClose(gtx layout.Context, origin image.Point, mark int, c color.NRGBA) 
 // the target it answers to is 24.
 //
 // The badge's own reported size is unaffected: a caller laying badges out
-// spaces the words it can see, not the slop behind them, so where the slop of
+// spaces the text it can see, not the slop behind them, so where the slop of
 // two targets overlaps the one laid out later wins it, exactly as Gio delivers
 // to the topmost area.
 func registerCloseTarget(gtx layout.Context, desc string, origin image.Point, mark int, dismiss *widget.Clickable) {
@@ -727,7 +727,7 @@ func registerCloseTarget(gtx layout.Context, desc string, origin image.Point, ma
 	off := op.Offset(image.Pt(origin.X-(target-mark)/2, origin.Y-(target-mark)/2)).Push(gtx.Ops)
 	dismiss.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		semantic.ClassOp(semantic.Button).Add(gtx.Ops)
-		// The badge's own words name the target: what the mark removes is
+		// The badge's own text names the target: what the mark removes is
 		// this title, and a reader reaching the mark should be told which
 		// title rather than a word this package invented for it.
 		semantic.LabelOp(desc).Add(gtx.Ops)

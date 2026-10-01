@@ -54,7 +54,7 @@
 // reading as a chip, whose mark trails its title.
 //
 // The utterance picks the structure in one place, and it is the only branch in
-// the component: anything with words in it wears the fill, and a sign on
+// the component: anything with text in it wears the fill, and a sign on
 // its own stands bare. See [Fill] for why — and for the obligation that
 // carries, which is that a set of symbol badges must differ in shape, because
 // a sign repeated under two statuses is two hues and nothing else.
@@ -81,7 +81,7 @@
 // its own; the disc is for where a sign has to hold its own against what is
 // set around it, and it is asked for rather than assumed.
 //
-// A title ignores the disc. The fill a worded badge already wears IS the
+// A title ignores the disc. The fill a badge with a title already wears IS the
 // fill the disc would add, so there is still exactly one structure branch,
 // and a titled badge that also asked for a disc would be a badge inside a
 // badge.
@@ -119,7 +119,7 @@
 //	Info       systemBlue
 //	Neutral    systemGray filled, secondaryLabelColor bare
 //
-// A worded or counted badge is that colour filled, with its content in
+// A badge with a title or a count is that colour filled, with its content in
 // alternateSelectedControlTextColor — white in both appearances, the
 // foreground the platform pairs with a fill it paints in a system colour
 // ([Fill], [Foreground]). A symbol badge standing bare draws its sign in the
@@ -161,7 +161,7 @@
 // mistaken for it.
 //
 // The badge reports its title's baseline, so a row carrying a badge beside
-// words in a larger role can be set on one line with layout.Baseline. A symbol
+// text in a larger role can be set on one line with layout.Baseline. A symbol
 // badge reports none; a sign has no baseline to offer.
 //
 // The type role is the density's, one step less pronounced than the chip's:
@@ -190,7 +190,7 @@
 // target under it is [CloseHitDp] square, centred on the mark and free to
 // overhang the badge on every side. The badge itself is unchanged by that
 // target: it reports the text it drew, so a row of badges is laid out at the
-// scale of the words in it and the slop overhangs the air around them.
+// scale of the text in it and the slop overhangs the air around them.
 //
 // What answers the pointer is a region and not the 8 dp x inside it: on a
 // badge that wears a fill, that fill's trailing cap — from the middle of the

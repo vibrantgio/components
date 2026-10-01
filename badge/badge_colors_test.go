@@ -40,7 +40,7 @@ func TestEveryStatusIsThePlatformsColourForIt(t *testing.T) {
 }
 
 // TestAFilledBadgeReadsInTheForegroundThePlatformPairsWithAFill: the content
-// of a worded or counted badge is alternateSelectedControlTextColor and does
+// of a badge with a title or a count is alternateSelectedControlTextColor and does
 // not vary with the status, because the platform's own badge does not.
 func TestAFilledBadgeReadsInTheForegroundThePlatformPairsWithAFill(t *testing.T) {
 	for _, sc := range goldenSchemes {

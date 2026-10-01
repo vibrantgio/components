@@ -110,7 +110,7 @@ var goldenStatuses = []struct {
 }
 
 // goldenSize is an image comfortably larger than a row of badges, so the
-// stored image carries the page around the words as well as the words.
+// stored image carries the page around the text as well as the text.
 var goldenSize = image.Pt(420, 44)
 
 // badgeStyle is the type role a Comfortable badge is set in, asked of the component
@@ -383,7 +383,7 @@ func TestThePointerIsVisibleOnTheCloseMark(t *testing.T) {
 }
 
 // TestTheBodyTakesNoPointerState is the ruling's other side: a badge is read,
-// not used, so nothing about its words moves when the pointer is on the mark.
+// not used, so nothing about its text moves when the pointer is on the mark.
 // Only the mark's own pixels may change.
 func TestTheBodyTakesNoPointerState(t *testing.T) {
 	shaper := defaultShaper(t)
@@ -424,7 +424,7 @@ func dimensions(t *testing.T, w layout.Widget) layout.Dimensions {
 // TestTheBadgeReportsItsLabelsBaseline is the fix for a row that could not be
 // set on one line: layout.Baseline aligns on Dimensions.Baseline, a badge that
 // reports zero there is aligned by its box instead, and a badge whose box is
-// the line box while the words beside it are set in a larger role lands a few
+// the line box while the text beside it is set in a larger role lands a few
 // pixels off the line it belongs on.
 //
 // A symbol badge reports none on purpose. A sign has no baseline to offer, and
@@ -432,20 +432,20 @@ func dimensions(t *testing.T, w layout.Widget) layout.Dimensions {
 func TestTheBadgeReportsItsLabelsBaseline(t *testing.T) {
 	shaper := defaultShaper(t)
 	style := badgeStyle()
-	worded := dimensions(t, badge.Render(shaper, "Popular", nil, badge.Neutral,
+	hasTitle := dimensions(t, badge.Render(shaper, "Popular", nil, badge.Neutral,
 		tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, badge.RenderState{}))
-	if worded.Baseline <= 0 {
-		t.Errorf("a worded badge reports baseline %d: a row aligned on it has nothing to align on", worded.Baseline)
+	if hasTitle.Baseline <= 0 {
+		t.Errorf("a badge with a title reports baseline %d: a row aligned on it has nothing to align on", hasTitle.Baseline)
 	}
-	if worded.Baseline >= worded.Size.Y {
-		t.Errorf("a worded badge %d dp tall reports baseline %d, which is at or above its own top edge",
-			worded.Size.Y, worded.Baseline)
+	if hasTitle.Baseline >= hasTitle.Size.Y {
+		t.Errorf("a badge with a title %d dp tall reports baseline %d, which is at or above its own top edge",
+			hasTitle.Size.Y, hasTitle.Baseline)
 	}
 	// The baseline is measured up from the bottom, and the title fills the
 	// badge's whole height, so the two are the same number by construction —
 	// which is the claim: the badge passes on what the shaper told it rather
 	// than inventing a line of its own.
-	if got, want := worded.Baseline, typesetBaseline(t, shaper, style, "Popular"); got != want {
+	if got, want := hasTitle.Baseline, typesetBaseline(t, shaper, style, "Popular"); got != want {
 		t.Errorf("the badge reports baseline %d and its own typesetting reports %d", got, want)
 	}
 	symbolOnly := dimensions(t, badge.Render(shaper, "", check, badge.Neutral,

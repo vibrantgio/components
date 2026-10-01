@@ -15,7 +15,7 @@ import (
 // The symbol's measured 16 dp box or disc, centred in the density's checkbox
 // row, at the 1:1 metric golden.Capture renders at.
 const (
-	symbolSide  = 16
+	symbolSide = 16
 	cornerRows = 8 // the corner's own half-height: every row it can reach into
 )
 

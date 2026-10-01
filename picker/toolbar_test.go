@@ -66,16 +66,16 @@ var goldenSchemes = []struct {
 // the fill.
 var goldenSize = image.Pt(220, 60)
 
-// toolbarValue is what every stored toolbar image says. It is a two-part model
+// toolbarTitle is what every stored toolbar image says. It is a two-part model
 // name because that is the value the chrome variant's trigger carries in
 // practice, and its width is what the images were recorded at.
-const toolbarValue = "OpenAI · gpt-5.5"
+const toolbarTitle = "OpenAI · gpt-5.5"
 
 // toolbar is RenderToolbar at the default spacing and comfortable density —
 // the resolved tokens every measurement and image below draws with.
 func toolbar(t *testing.T, p tokens.PlatformColors, s picker.ToolbarState) layout.Widget {
 	t.Helper()
-	return picker.RenderToolbar(defaultShaper(t), toolbarValue, p,
+	return picker.RenderToolbar(defaultShaper(t), toolbarTitle, p,
 		tokens.Spacing, tokens.DefaultTypography.LabelLarge,
 		tokens.Comfortable, s)
 }

@@ -72,11 +72,11 @@ func (s ToolbarState) face() controlface.State {
 
 // ToolbarProps configures a [Toolbar] instance.
 type ToolbarProps struct {
-	// Value is the text the control carries: the choice the picker currently
+	// Title is the text the control carries: the choice the picker currently
 	// holds, because a picker's trigger shows its value.
-	Value string
+	Title string
 
-	// Description is the screen-reader label. Falls back to Value when empty.
+	// Description is the screen-reader label. Falls back to Title when empty.
 	Description string
 
 	// Pin is the edge of the offered box the control is drawn at. The zero
@@ -185,7 +185,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 			}
 			desc := props.Description
 			if desc == "" {
-				desc = props.Value
+				desc = props.Title
 			}
 
 			return func(gtx layout.Context) layout.Dimensions {
@@ -223,10 +223,10 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 						return click.Layout(gtx,
 							func(gtx layout.Context) layout.Dimensions {
 								semantic.ClassOp(semantic.Button).Add(gtx.Ops)
-								semantic.LabelOp(props.Value).Add(gtx.Ops)
+								semantic.LabelOp(props.Title).Add(gtx.Ops)
 								semantic.DescriptionOp(desc).Add(gtx.Ops)
 								semantic.EnabledOp(true).Add(gtx.Ops)
-								return controlface.Draw(gtx, shaper, props.Value, tok.platform,
+								return controlface.Draw(gtx, shaper, props.Title, tok.platform,
 									tok.spacing, tok.title, tok.density, s)
 							})
 					})
@@ -267,7 +267,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 // pointer area over that control is the live path's job — see [Toolbar].
 func RenderToolbar(
 	shaper *text.Shaper,
-	value string,
+	title string,
 	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	titleStyle tokens.TextStyle,
@@ -276,7 +276,7 @@ func RenderToolbar(
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		return controlface.Cast(gtx, controlface.Shadow(p), s.face().Focused, func(gtx layout.Context) layout.Dimensions {
-			return controlface.Draw(gtx, shaper, value, p, sp, titleStyle, d, s.face())
+			return controlface.Draw(gtx, shaper, title, p, sp, titleStyle, d, s.face())
 		})
 	}
 }

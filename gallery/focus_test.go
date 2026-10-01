@@ -29,14 +29,14 @@ import (
 // the sheet rather than to a component: a specimen pads itself and nothing
 // around it.
 const (
-	focusSheetW            = 800 // the capture's width in px, at 1 px per dp
+	focusSheetW           = 800 // the capture's width in px, at 1 px per dp
 	focusPanePadX unit.Dp = 16  // air a surface pane holds left and right
 	focusPanePadY unit.Dp = 14  // air a surface pane holds above and below
-	focusCaptionW  unit.Dp = 132 // the column the surface's name is set in
-	focusCellGap   unit.Dp = 14  // space between two specimens
-	focusFieldW    unit.Dp = 150 // the width the text field is laid out at
-	focusButtonW   unit.Dp = 108 // the width the button is laid out at
-	focusTriggerW  unit.Dp = 150 // the width the dropdown trigger is bounded to
+	focusCaptionW unit.Dp = 132 // the column the surface's name is set in
+	focusCellGap  unit.Dp = 14  // space between two specimens
+	focusFieldW   unit.Dp = 150 // the width the text field is laid out at
+	focusButtonW  unit.Dp = 108 // the width the button is laid out at
+	focusTriggerW unit.Dp = 150 // the width the dropdown trigger is bounded to
 )
 
 // surface is one row of the sheet: a fill and what the platform calls it.

@@ -238,12 +238,12 @@ func TestMenuSelectsWithoutATriggerOfItsOwn(t *testing.T) {
 }
 
 // TestToolbarActivatesOverTheControlItDrew: the chrome variant's trigger
-// reports the control it drew — it is sized to its value — and that control is
+// reports the control it drew — it is sized to its title — and that control is
 // the pointer target, exactly as components/button's and the chip's are.
 func TestToolbarActivatesOverTheControlItDrew(t *testing.T) {
 	var clicks int
 	w := materialize(t, picker.Toolbar(rx.Of(liveTheme()), picker.ToolbarProps{
-		Value:   "Anthropic · Opus 5",
+		Title:   "Anthropic · Opus 5",
 		Shaper:  defaultShaper(t),
 		OnClick: func(_ layout.Context) { clicks++ },
 	}))
@@ -255,7 +255,7 @@ func TestToolbarActivatesOverTheControlItDrew(t *testing.T) {
 		t.Fatalf("toolbar measured %d px tall, want the density's toolbar control height %d px", dims.Size.Y, want)
 	}
 	if dims.Size.X >= 400 {
-		t.Fatalf("toolbar measured %d px wide at a 400 px constraint: it is sized to its value", dims.Size.X)
+		t.Fatalf("toolbar measured %d px wide at a 400 px constraint: it is sized to its title", dims.Size.X)
 	}
 
 	// The pointer target is the control: a press inside it activates, a press
@@ -277,11 +277,11 @@ func TestToolbarActivatesOverTheControlItDrew(t *testing.T) {
 func TestToolbarPinTrailingReportsTheBoxItWasOffered(t *testing.T) {
 	box := image.Pt(400, 120)
 	free := materialize(t, picker.Toolbar(rx.Of(liveTheme()), picker.ToolbarProps{
-		Value:  "Anthropic · Opus 5",
+		Title:  "Anthropic · Opus 5",
 		Shaper: defaultShaper(t),
 	}))
 	pinned := materialize(t, picker.Toolbar(rx.Of(liveTheme()), picker.ToolbarProps{
-		Value:  "Anthropic · Opus 5",
+		Title:  "Anthropic · Opus 5",
 		Pin:    picker.PinTrailing,
 		Shaper: defaultShaper(t),
 	}))

@@ -37,7 +37,7 @@ var chipPurposes = []struct {
 //
 // Every name that carries a coverage comes back resolved against the fill it
 // lands on — the rim and the ring against the surface the chip stands on, the
-// words and the marks against the body — because the platform composites in
+// text and the marks against the body — because the platform composites in
 // encoded sRGB and Gio's rasterizer would not.
 func TestResolveNamesThePlatformColors(t *testing.T) {
 	for _, sc := range chipSchemes {

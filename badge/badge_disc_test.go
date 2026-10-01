@@ -253,7 +253,8 @@ func TestTheDiscWearsItsStatusFillAndForeground(t *testing.T) {
 				}
 				// The corner is outside an inscribed circle, so what is
 				// there is the surface: a square fill here would be the
-				// worded badge's container drawn on the wrong utterance.
+				// container a badge with a title wears, drawn on the wrong
+				// utterance.
 				if got := badgePixel(t, img, 0, 0); !sameColour(got, page) {
 					t.Errorf("the disc badge's top-left pixel is %v, want the page %v — the disc is not a circle", got, page)
 				}
@@ -315,7 +316,7 @@ func TestTheBareSignStaysTheDefault(t *testing.T) {
 }
 
 // TestALabelIgnoresTheDisc pins the documented answer to the case that is not
-// a form: a badge with words already wears the container the disc would add,
+// a form: a badge with text already wears the container the disc would add,
 // so asking for both changes nothing rather than nesting one inside the other.
 func TestALabelIgnoresTheDisc(t *testing.T) {
 	shaper := defaultShaper(t)

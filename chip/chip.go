@@ -112,7 +112,7 @@ const edgeDp = unit.Dp(1)
 // MarkStrokeDp is the line weight a chip's stroked marks are drawn at, in dp:
 // the width of the title's own upright stem.
 //
-// The marks and the words are one utterance, so they are drawn at one
+// The marks and the text are one utterance, so they are drawn at one
 // weight — which the platform bears out. Measured offscreen at three sizes,
 // its plus, check and cross carry a stroke band of 0.82 to 1.02 times their
 // title's stem, diagonals included: a diagonal's horizontal run is wider by
@@ -127,8 +127,8 @@ func MarkStrokeDp(style tokens.TextStyle) float32 { return style.FaceMetrics().S
 //
 // That box is the title's cap band — see [MarkDp] — everywhere but an [Input]
 // chip's leading slot, which is the avatar slot at [AvatarDp]. A painter that
-// strokes to the edge of the box it is handed lands in the band the words
-// occupy, which is what a mark inside a chip is for; one that draws a small
+// strokes to the edge of the box it is handed lands in the band the text
+// occupies, which is what a mark inside a chip is for; one that draws a small
 // figure in the middle of it reads as a chip with a hole at its leading end.
 //
 // A nil Symbol draws no leading mark; the chip loses the mark and the gap after
@@ -183,14 +183,14 @@ type Colors struct {
 	Outlined bool
 	Ring     color.NRGBA
 
-	// Label is the colour the words are set in. Mark is the leading symbol's
+	// Label is the colour the text is set in. Mark is the leading symbol's
 	// and the selected filter's checkmark's, which is the same colour: a mark
 	// in the leading slot is part of the title's own line.
 	Label color.NRGBA
 	Mark  color.NRGBA
 
 	// Dismiss is an [Input] chip's trailing mark, the one part of a chip the
-	// platform draws weaker than the words beside it.
+	// platform draws weaker than the text beside it.
 	Dismiss color.NRGBA
 }
 
@@ -199,9 +199,9 @@ type Colors struct {
 // A chip is an ordinary small control on this platform, and every colour here
 // is one of the platform's own names:
 //
-//	resting   body PushButtonFill, rim Separator, words and leading mark
+//	resting   body PushButtonFill, rim Separator, text and leading mark
 //	          ControlText
-//	selected  body SelectedContentBackground, no rim, words and checkmark
+//	selected  body SelectedContentBackground, no rim, text and checkmark
 //	          AlternateSelectedControlText
 //	hovered   HoverOverlay over whichever body the chip started from
 //	held      PressOverlay over that same body, a press winning over a hover
@@ -209,7 +209,7 @@ type Colors struct {
 //
 // Every colour that carries a coverage is flattened here onto the fill it
 // lands on — the rim and the ring onto [RenderState.Surface], because the
-// body is inset inside them; the words and the marks onto the body — so the
+// body is inset inside them; the text and the marks onto the body — so the
 // answers are opaque and the chip hands Gio no coverage to composite.
 //
 // The four purposes do not differ in colour. They differ in behaviour and in
@@ -757,7 +757,7 @@ func draw(
 	x := leadPad
 	if lead > 0 {
 		// The avatar is a picture rather than a mark on the line: it is taller
-		// than the band the words occupy and it is centred on the chip.
+		// than the band the text occupies and it is centred on the chip.
 		leadY := markY
 		if avatar {
 			leadY = (h - lead) / 2
@@ -885,7 +885,7 @@ func registerDismissTarget(gtx layout.Context, desc string, origin image.Point, 
 	off := op.Offset(image.Pt(origin.X-(target-mark)/2, origin.Y-(target-mark)/2)).Push(gtx.Ops)
 	dismiss.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		semantic.ClassOp(semantic.Button).Add(gtx.Ops)
-		// The chip's own words name the target: what the mark removes is this
+		// The chip's own text names the target: what the mark removes is this
 		// token, and a reader reaching the mark should be told which one
 		// rather than a word this package invented for it.
 		semantic.LabelOp(desc).Add(gtx.Ops)
