@@ -542,7 +542,7 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 type buttonCell struct {
 	label string
 	st    button.RenderState
-	// icon, when set, makes the cell the icon-only face: the glyph the button
+	// icon, when set, makes the cell the icon-only face: the symbol the button
 	// draws in place of a label. Such a cell is laid out at the square the
 	// density gives it rather than at the row's cell width — an icon button
 	// stretched to a text cell's width is a text button with no text in it,
@@ -583,7 +583,7 @@ func (inv *Inventory) buttonRow(c tokens.PlatformColors) layout.Widget {
 // word twice.
 //
 // The icon face closes the row rather than standing in a section of its own,
-// because it is the same button with a glyph where the label was — same
+// because it is the same button with a symbol where the label was — same
 // emphasis, same corner, same target — and the one thing worth seeing about it
 // is how its square sits beside the rectangles it is cut from. It is drawn at
 // Filled emphasis so the square itself is visible; the ghost cell to its left
@@ -720,7 +720,7 @@ var (
 // chipSurfaces are the fills the section shows the chip on: the content a
 // page is written on, the platform's grouped box, and the chrome material a
 // sidebar or a toolbar wears. Three rather than one because the chip's rim,
-// its focus halo and its press tint each carry a coverage rather than a
+// its focus ring and its press tint each carry a coverage rather than a
 // colour, so each lands as whatever it is composited onto and a specimen on
 // one fill says nothing about the others.
 //
@@ -752,7 +752,7 @@ func chipSurfaces(c tokens.PlatformColors) []struct {
 var chipPurposes = []struct {
 	label    string
 	purpose  chip.Purpose
-	icon     chip.Glyph
+	icon     chip.Symbol
 	selected bool
 }{
 	{"Set reminder", chip.Assist, chipPlus, false},
@@ -765,7 +765,7 @@ var chipPurposes = []struct {
 // chipPlus is the sign the assist specimen leads with, drawn as a vector
 // rather than rasterised from a font or an SVG so the stored images hold
 // still. Its arms span the box the chip reserves edge to edge and it is
-// stroked at the label's own stem width, which is what the Glyph contract asks
+// stroked at the label's own stem width, which is what the Symbol contract asks
 // now that the box is the label's cap band.
 //
 // The stem is taken in pixels WITHOUT rounding to a whole one, which is the
@@ -820,17 +820,17 @@ func chipAvatar(gtx layout.Context, sizePx int, col color.NRGBA) {
 // purposes once per surface, then the same chip through what the pointer and
 // the keyboard put it in, unselected and selected.
 //
-// The purposes are drawn once per surface, because the chip's rim, halo and
+// The purposes are drawn once per surface, because the chip's rim, ring and
 // press tint each carry a coverage and land as whatever they are composited
 // onto, so a specimen on one fill says nothing about the others. The state rows below stand on the page: what they
 // ask a reader to judge — whether the body that arrives under the pointer
-// still holds its label, and whether the focus halo reads apart from the rim — is the
+// still holds its label, and whether the focus ring reads apart from the rim — is the
 // same question on every surface, and asking it three times would bury the
 // two rows that are not the same. Both rests are there because the two walk from
 // different places: an unselected chip walks from the surface it stands on, a
 // selected one from the container it wears.
 func (inv *Inventory) chipBlock(c tokens.PlatformColors) layout.Widget {
-	specimen := func(label string, purpose chip.Purpose, icon chip.Glyph, st chip.RenderState) layout.Widget {
+	specimen := func(label string, purpose chip.Purpose, icon chip.Symbol, st chip.RenderState) layout.Widget {
 		return chip.Render(inv.shaper, label, purpose, icon, c,
 			tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
 			tokens.Comfortable, st)
@@ -970,7 +970,7 @@ var (
 // badgeCheck is the verdict sign the badge specimens draw, as a vector rather
 // than a font or SVG rasterisation so the stored images hold still. Its stroke
 // spans most of the box it is handed and is centred on it, which is what the
-// Glyph contract asks: the badge reserves the box, and a sign that under-fills
+// Symbol contract asks: the badge reserves the box, and a sign that under-fills
 // it reads as a gap in the line.
 func badgeCheck(gtx layout.Context, sizePx int, col color.NRGBA) {
 	w := float32(sizePx)
@@ -979,11 +979,11 @@ func badgeCheck(gtx layout.Context, sizePx int, col color.NRGBA) {
 	p.MoveTo(f32.Pt(w*0.16, w*0.52))
 	p.LineTo(f32.Pt(w*0.42, w*0.76))
 	p.LineTo(f32.Pt(w*0.84, w*0.24))
-	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: badgeGlyphStroke(gtx)}.Op())
+	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: badgeSymbolStroke(gtx)}.Op())
 }
 
 // badgeCross is the check's opposite, the second sign the disc row needs: the
-// two rows below the vocabulary are the obligation drawn, that a set of glyph
+// two rows below the vocabulary are the obligation drawn, that a set of symbol
 // badges differs in shape and not in hue alone.
 //
 // Its arms span the same 0.16 to 0.84 of the box the check does, so the two
@@ -997,12 +997,12 @@ func badgeCross(gtx layout.Context, sizePx int, col color.NRGBA) {
 	p.LineTo(f32.Pt(w*0.84, w*0.84))
 	p.MoveTo(f32.Pt(w*0.84, w*0.16))
 	p.LineTo(f32.Pt(w*0.16, w*0.84))
-	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: badgeGlyphStroke(gtx)}.Op())
+	paint.FillShape(gtx.Ops, col, clip.Stroke{Path: p.End(), Width: badgeSymbolStroke(gtx)}.Op())
 }
 
-// badgeGlyphStroke is the verdict signs' stroke width in pixels, floored at
+// badgeSymbolStroke is the verdict signs' stroke width in pixels, floored at
 // one: a sub-pixel stroke leaves a smear rather than a sign.
-func badgeGlyphStroke(gtx layout.Context) float32 {
+func badgeSymbolStroke(gtx layout.Context) float32 {
 	if s := float32(gtx.Dp(unit.Dp(1.5))); s >= 1 {
 		return s
 	}
@@ -1041,19 +1041,19 @@ func (inv *Inventory) badgeBlock(c tokens.PlatformColors) layout.Widget {
 		{"Error", badge.Error},
 		{"Info", badge.Info},
 	}
-	plain := func(label string, glyph badge.Glyph, status badge.Status) layout.Widget {
-		return badge.Render(inv.shaper, label, glyph, status, c, tokens.Spacing, tokens.Radius, style,
+	plain := func(label string, symbol badge.Symbol, status badge.Status) layout.Widget {
+		return badge.Render(inv.shaper, label, symbol, status, c, tokens.Spacing, tokens.Radius, style,
 			badge.RenderState{})
 	}
-	// A disc is a glyph badge asked to stand on its status's fill instead of
+	// A disc is a symbol badge asked to stand on its status's fill instead of
 	// bare. The fill is the same one the vocabulary panels above show on three
 	// surfaces, so the disc rows are drawn on the page like the other
 	// structure rows: what they ask a reader to judge is the shape, not a
 	// derivation the panels already answer.
-	discs := func(glyph badge.Glyph) []layout.Widget {
+	discs := func(symbol badge.Symbol) []layout.Widget {
 		cells := make([]layout.Widget, 0, len(statuses))
 		for _, bs := range statuses {
-			cells = append(cells, badge.Render(inv.shaper, "", glyph, bs.status, c,
+			cells = append(cells, badge.Render(inv.shaper, "", symbol, bs.status, c,
 				tokens.Spacing, tokens.Radius, style, badge.RenderState{Disc: true}))
 		}
 		return cells
@@ -1069,7 +1069,7 @@ func (inv *Inventory) badgeBlock(c tokens.PlatformColors) layout.Widget {
 	// Exactly three cells stand in the utterance row, because there are
 	// exactly three utterances. A sign set beside a word is a composition of
 	// two of them and would read as a fourth. The disc is not a fourth
-	// utterance either: it is the glyph utterance given the fill a word wears.
+	// utterance either: it is the symbol utterance given the fill a word wears.
 	rows := []struct {
 		caption string
 		cells   []layout.Widget
@@ -1362,7 +1362,7 @@ func (inv *Inventory) toggleRow(c tokens.PlatformColors) layout.Widget {
 
 // The labelled row's measurements.
 const (
-	// toggleRowGap is the air between the row of bare glyphs and the row of
+	// toggleRowGap is the air between the row of bare symbols and the row of
 	// labelled controls under it.
 	toggleRowGap = 14
 	// toggleCellGap is the air between two controls of one family, and
@@ -1375,7 +1375,7 @@ const (
 // labelledToggleRow draws the controls as the platform draws them in a form:
 // the box or the disc with its own label, which is part of the control. Every
 // state the label itself moves in stands here — set, unset and switched off,
-// for both families — because the label fades with the glyph and that is what
+// for both families — because the label fades with the symbol and that is what
 // a reader has to be able to check.
 func (inv *Inventory) labelledToggleRow(c tokens.PlatformColors) layout.Widget {
 	box := func(s input.CheckboxRenderState) layout.Widget {
@@ -1877,8 +1877,8 @@ func (inv *Inventory) pagination(c tokens.PlatformColors) layout.Widget {
 // ── Shared drawing helpers ────────────────────────────────────────────────────
 
 // ActionInfoIVG is the vector icon the icon section draws — the Material Symbols
-// action-info glyph, in IVG. It is exported because a surface showing the
-// icon family close up wants the same glyph the inventory shows, and two
+// action-info symbol, in IVG. It is exported because a surface showing the
+// icon family close up wants the same symbol the inventory shows, and two
 // copies of one blob would be two things to keep in step.
 var ActionInfoIVG = []byte{
 	0x89, 0x49, 0x56, 0x47, 0x02, 0x0a, 0x00, 0x50, 0x50, 0xb0, 0xb0, 0xc0,

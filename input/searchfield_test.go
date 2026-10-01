@@ -318,7 +318,7 @@ func TestSearchFieldChromeVariantIsTheMeasuredRecess(t *testing.T) {
 // a pixel low, which is where the rounding falls, and that is what this
 // asserts of ours.
 //
-// The scan starts past the looking glass — the glyph's last pixel is at x=21
+// The scan starts past the looking glass — the symbol's last pixel is at x=21
 // on chrome and x=23 on a form — and runs to well beyond the prompt's last.
 func TestPromptCapBandIsOnTheFieldsCentreRow(t *testing.T) {
 	shaper := defaultShaper(t)
@@ -386,19 +386,19 @@ func TestPromptCapBandIsOnTheFieldsCentreRow(t *testing.T) {
 
 // TestLeadingInsetIsMeasuredPerVariant reads off the drawn pixels the two
 // numbers that place the looking glass and the prompt after it, per variant:
-// the field's inner edge to the glyph's first pixel, and the clear columns
-// between the glyph's last pixel and the prompt's first.
+// the field's inner edge to the symbol's first pixel, and the clear columns
+// between the symbol's last pixel and the prompt's first.
 //
 // MEASURED, system-settings-grouped-box-{light,dark}.png: the recess carries
-// no edge, so its inner edge is its own at x=18, and the glyph's first pixel
-// is at x=27 — 9 px in; the glyph's last pixel is at x=41 and the prompt's
+// no edge, so its inner edge is its own at x=18, and the symbol's first pixel
+// is at x=27 — 9 px in; the symbol's last pixel is at x=41 and the prompt's
 // first at x=47, five clear columns. MEASURED, mail-window.png: the toolbar
-// field's stroke is at x=867 and its fill begins at x=868, with the glyph's
-// first pixel at x=878 — 10 px in; the glyph's last pixel is at x=890 and the
+// field's stroke is at x=867 and its fill begins at x=868, with the symbol's
+// first pixel at x=878 — 10 px in; the symbol's last pixel is at x=890 and the
 // prompt's first at x=899, eight clear columns.
 //
 // The gap is a count of clear columns, not a distance, which is what lets it
-// be read on both sides: this library draws the glyph a third of a column
+// be read on both sides: this library draws the symbol a third of a column
 // wider than either capture holds, and a column the drawing ends inside is a
 // column it covers.
 func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
@@ -418,7 +418,7 @@ func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
 		// The toolbar recess spends the rim's column before the inset, the
 		// way the form field spends its hairline, so its inner edge is one
 		// in even in the light appearance where no rim is drawn. It is drawn
-		// at the density's toolbar control height, so the band the glyph and
+		// at the density's toolbar control height, so the band the symbol and
 		// the prompt occupy sits lower.
 		{"chrome-toolbar", input.Chrome, input.Toolbar, 36, 1, 10, 8},
 	} {
@@ -437,7 +437,7 @@ func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
 			)
 			img := golden.Capture(t, size, onChrome(stands, w))
 			// x=200 is clear of the prompt and both marks; the sixteen rows
-			// either side of the field's centre hold the whole glyph — the
+			// either side of the field's centre hold the whole symbol — the
 			// magnifier's handle reaches the lowest of them — and stay clear
 			// of the field's own corners.
 			mid := tc.fieldH / 2
@@ -474,10 +474,10 @@ func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
 				t.Fatal("no prompt found past the looking glass; the gap measures nothing")
 			}
 			if got := first - tc.innerEdge; got != tc.inset {
-				t.Errorf("the glyph's first pixel is %d px in from the field's inner edge, want the measured %d", got, tc.inset)
+				t.Errorf("the symbol's first pixel is %d px in from the field's inner edge, want the measured %d", got, tc.inset)
 			}
 			if got := prompt - clear; got != tc.gap {
-				t.Errorf("the glyph's last pixel is at x=%d and the prompt's first at x=%d, %d clear columns; want the measured %d",
+				t.Errorf("the symbol's last pixel is at x=%d and the prompt's first at x=%d, %d clear columns; want the measured %d",
 					clear-1, prompt, got, tc.gap)
 			}
 		})

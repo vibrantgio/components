@@ -415,7 +415,7 @@ func painted(img *image.RGBA) int {
 // the lens's leftmost pixel stands on the row through its centre, and its
 // topmost pixel on the column through it. A drawing that moved the lens would
 // move both, and a field aligning the mark on a field's centre row would put
-// the glyph high or low without anything else noticing.
+// the symbol high or low without anything else noticing.
 func TestSearchMarkIsDrawnWhereAFieldExpectsIt(t *testing.T) {
 	mark := icons.New("darwin").Mark(icons.Search)
 	if mark == nil {

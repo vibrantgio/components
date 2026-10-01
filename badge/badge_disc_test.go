@@ -19,7 +19,7 @@ import (
 
 // cross is the second deterministic sign the disc specimens draw, beside
 // [check]. Two signs rather than one because the disc keeps the obligation a
-// bare glyph badge carries: a set of glyph badges owes distinct shapes, and a
+// bare symbol badge carries: a set of symbol badges owes distinct shapes, and a
 // disc puts a field of hue behind the sign without making hue enough on its
 // own.
 //
@@ -58,7 +58,7 @@ func dot(gtx layout.Context, sizePx int, col color.NRGBA) {
 }
 
 // square fills the whole box it is handed, corner to corner. It is the worst
-// case the disc has to hold: a [badge.Glyph] is a painter the package cannot
+// case the disc has to hold: a [badge.Symbol] is a painter the package cannot
 // inspect, so the size it hands one has to keep even a sign that uses all of
 // it inside the circle.
 func square(gtx layout.Context, sizePx int, col color.NRGBA) {
@@ -125,7 +125,7 @@ func centre(r image.Rectangle) (float64, float64) {
 }
 
 // TestTheDiscIsTheLineBoxAcross is the geometry ruling in one assertion: the
-// disc is a circle the glyph's line box across, which is the box a labelled
+// disc is a circle the symbol's line box across, which is the box a labelled
 // badge's line already reserves at that density. So a disc badge measures the
 // same line-box square a bare one does, and a row that held one holds the
 // other unmoved — which is the whole reason the disc costs a caller nothing.
@@ -180,11 +180,11 @@ func TestTheDiscIsTheLineBoxAcross(t *testing.T) {
 	}
 }
 
-// TestTheGlyphIsCentredInTheDisc pins the other half of the geometry: the sign
+// TestTheSymbolIsCentredInTheDisc pins the other half of the geometry: the sign
 // shares the disc's square, so its centre and the circle's are one point. A
 // sign drawn a pixel off centre inside a circle is the defect a still image
 // of one badge cannot show and a row of five makes obvious.
-func TestTheGlyphIsCentredInTheDisc(t *testing.T) {
+func TestTheSymbolIsCentredInTheDisc(t *testing.T) {
 	shaper := defaultShaper(t)
 	style := badgeStyle()
 	for _, sc := range goldenSchemes {
@@ -285,7 +285,7 @@ func TestTheDiscWearsItsStatusFillAndForeground(t *testing.T) {
 
 // TestTheBareSignStaysTheDefault is the ruling that the disc is asked for and
 // never assumed. The zero [badge.RenderState] draws what it drew before — no
-// fill anywhere in a glyph badge's box — and the two renders differ, so a disc
+// fill anywhere in a symbol badge's box — and the two renders differ, so a disc
 // that quietly became the default would fail here rather than in a golden
 // someone regenerated.
 func TestTheBareSignStaysTheDefault(t *testing.T) {
@@ -302,7 +302,7 @@ func TestTheBareSignStaysTheDefault(t *testing.T) {
 		page := sc.p.ControlBackground
 		for _, p := range []image.Point{{}, {X: size.X - 1}, {Y: size.Y - 1}, {X: size.X / 2, Y: 0}} {
 			if got := badgePixel(t, img, p.X, p.Y); !sameColour(got, page) {
-				t.Errorf("%s: the default glyph badge's pixel %v is %v, want the page %v — it has grown a disc unasked",
+				t.Errorf("%s: the default symbol badge's pixel %v is %v, want the page %v — it has grown a disc unasked",
 					sc.name, p, got, page)
 			}
 		}
@@ -323,14 +323,14 @@ func TestALabelIgnoresTheDisc(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
 		label string
-		glyph badge.Glyph
+		symbol badge.Symbol
 	}{
 		{"word", "Passing", nil},
 		{"word and sign", "Passing", check},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			render := func(s badge.RenderState) layout.Widget {
-				return badge.Render(shaper, tc.label, tc.glyph, badge.Success,
+				return badge.Render(shaper, tc.label, tc.symbol, badge.Success,
 					tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, s)
 			}
 			plain := render(badge.RenderState{})
@@ -362,9 +362,9 @@ func TestDiscGolden(t *testing.T) {
 		name := "badge-" + sc.name + "-disc"
 		t.Run(name, func(t *testing.T) {
 			ws := make([]layout.Widget, 0, 2*len(goldenStatuses))
-			for _, glyph := range []badge.Glyph{check, cross} {
+			for _, symbol := range []badge.Symbol{check, cross} {
 				for _, st := range goldenStatuses {
-					ws = append(ws, badge.Render(shaper, "", glyph, st.status,
+					ws = append(ws, badge.Render(shaper, "", symbol, st.status,
 						sc.p, tokens.Spacing, tokens.Radius, style, discState()))
 				}
 			}
@@ -380,7 +380,7 @@ func TestDiscGolden(t *testing.T) {
 // catch a field that never arrived.
 func TestPropsCarryTheDiscToTheDrawing(t *testing.T) {
 	shaper := defaultShaper(t)
-	props := badge.Props{Glyph: check, Status: badge.Success, Shaper: shaper,
+	props := badge.Props{Symbol: check, Status: badge.Success, Shaper: shaper,
 		Description: "The key is live"}
 	bare := live(t, props)
 	props.Disc = true
@@ -405,7 +405,7 @@ func TestPropsCarryTheDiscToTheDrawing(t *testing.T) {
 // corner still lands inside the fill and never on the rim.
 //
 // The fresh-eyes pass on the gallery caught the version this replaces. Handed
-// the disc's whole square, a check drawn to the Glyph contract — spanning most
+// the disc's whole square, a check drawn to the Symbol contract — spanning most
 // of the box — put its top-right tip on the antialiased rim and read as
 // clipped, at every call site that followed the contract.
 func TestASignFillingItsBoxStaysInsideTheDisc(t *testing.T) {

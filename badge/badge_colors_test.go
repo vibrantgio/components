@@ -51,7 +51,7 @@ func TestAFilledBadgeReadsInTheForegroundThePlatformPairsWithAFill(t *testing.T)
 	}
 }
 
-// TestABareSignIsTheSystemColourItself is the glyph utterance's half of the
+// TestABareSignIsTheSystemColourItself is the symbol utterance's half of the
 // same table: standing bare there is no fill to knock white out of, so the
 // sign is the system colour. Neutral has none, so it takes the platform's
 // secondary label — the strength the platform gives a word that is not the

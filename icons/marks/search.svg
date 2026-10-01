@@ -39,8 +39,8 @@
 
        The proportions inside the drawing are the capture's: the lens is 0.803
        of the drawing's extent against the toolbar symbol's measured 0.829 and
-       the field glyph's 0.834, and the band is 0.086 of it against the field
-       glyph's 0.108. At 16 dp, where the set's band is the field glyph's own
+       the field symbol's 0.834, and the band is 0.086 of it against the field
+       symbol's 0.108. At 16 dp, where the set's band is the field symbol's own
        1.32 px, the drawing's 10.80 px of extent puts it at 0.122 of the
        extent instead: the band is held to the device width the capture gives
        and the extent is left where the grid puts it.

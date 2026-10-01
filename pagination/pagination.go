@@ -145,7 +145,7 @@ func Pagination(th rx.Observable[theme.Theme], props Props) rx.Observable[layout
 // label is the LabelLarge role's whole text style — typeface, weight,
 // size and line height all reach the shaper — and d is the density the
 // row draws at (every cell is a Density.ControlHeight square, and the
-// chevron glyph scales with it). Pass
+// chevron symbol scales with it). Pass
 // tokens.DefaultTypography.LabelLarge and tokens.Comfortable for the
 // default desktop look.
 func Render(
@@ -168,13 +168,13 @@ type resolvedTokens struct {
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
 	label    tokens.TextStyle // the LabelLarge role: typeface, weight, size, line height
-	density  tokens.Density   // cell square and chevron glyph source
+	density  tokens.Density   // cell square and chevron symbol source
 	shaper   *text.Shaper     // the theme's shaper; nil in the Render path
 }
 
 // Cell metrics: every pagination control is a Density.ControlHeight square
 // (36 dp Comfortable, 28 dp Compact); the digit centres in the square like
-// an icon-button glyph. The chevron glyph takes the icon rule, icon.Size(d)
+// an icon-button symbol. The chevron symbol takes the icon rule, icon.Size(d)
 // = ControlHeight − 2·PaddingY (20/16 dp), matching components icon
 // buttons. Cells are adjacent controls separated by S2 gaps, so their hit
 // area stays the cell bounds.
@@ -261,7 +261,7 @@ func pageCellWidget(shaper *text.Shaper, n int, current, navigable bool, click *
 // drawPageCell paints one page-number cell: a side×side rounded square
 // (radius.Md, components/button's corner) filled with bg where there is one,
 // the digit shaped in the LabelLarge role and centred. The digit is never
-// truncated — the square is the control, the digit its glyph, mirroring the
+// truncated — the square is the control, the digit its symbol, mirroring the
 // icon-button rule rather than the text-button padding rule.
 func drawPageCell(gtx layout.Context, shaper *text.Shaper, label string, bg, fg color.NRGBA, tok resolvedTokens, side int) layout.Dimensions {
 	if bg.A != 0 {
@@ -304,9 +304,9 @@ func drawPageCell(gtx layout.Context, shaper *text.Shaper, label string, bg, fg 
 }
 
 // chevronCellWidget renders a ControlHeight-square chevron cell whose
-// glyph takes the icon rule, icon.Size(d). pointsRight selects
+// symbol takes the icon rule, icon.Size(d). pointsRight selects
 // the "next" direction; otherwise the chevron points "prev". A step arrow is
-// a drawn glyph rather than words, so it takes the label's strength; at the
+// a drawn symbol rather than words, so it takes the label's strength; at the
 // edge it cannot step, and takes the platform's disabled control text and
 // registers no click — matching the disabled-control convention used by
 // components/button.

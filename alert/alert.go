@@ -10,13 +10,13 @@
 // free of opaque configuration — copy it into your own app and modify as
 // needed.
 //
-// All four statuses draw the same right-pointing chevron glyph, differing
+// All four statuses draw the same right-pointing chevron symbol, differing
 // only in colour; the per-status icon set arrives with components/icon.
 //
 // Colour: every one of the platform's own names. The box stands on the
 // content's fill — controlBackgroundColor — inside a separatorColor
 // hairline, its title in labelColor, and the status is carried by the
-// glyph alone, in the platform's system colour for it: systemGreen,
+// symbol alone, in the platform's system colour for it: systemGreen,
 // systemOrange, systemRed, systemBlue. There is no tinted box and no
 // knocked-out foreground: an in-flow box on this platform is the fill it
 // stands on with a hairline around it, and the colour that says which
@@ -273,7 +273,7 @@ func drawChevron(gtx layout.Context, cx, cy, sz int, col color.NRGBA) {
 	paint.FillShape(gtx.Ops, col, clip.Outline{Path: p.End()}.Op())
 }
 
-// Mark is the colour of the alert's leading glyph: the platform's system
+// Mark is the colour of the alert's leading symbol: the platform's system
 // colour for the status, which is the only place on an alert the status is
 // carried. All four are system colours — Info included — so all four flip
 // with the appearance and none of them follows the accent.

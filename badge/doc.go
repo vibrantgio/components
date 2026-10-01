@@ -43,12 +43,12 @@
 //
 //	a word    "Popular", "Beta", "Deprecated"
 //	a count   "9", "128" — a word made of digits, not a second component
-//	a glyph   a check, a cross, a key — the sign that stands for the verdict
+//	a symbol   a check, a cross, a key — the sign that stands for the verdict
 //
 // and there is one structure underneath all three: the type's line box tall,
 // sized to what it says, in the platform's colours for its status. A count is a
-// [Props.Label] of digits and needs no field of its own. A glyph is
-// [Props.Glyph] with no label, drawn in the line box's own square. A glyph set
+// [Props.Label] of digits and needs no field of its own. A symbol is
+// [Props.Symbol] with no label, drawn in the line box's own square. A symbol set
 // beside a label leads it across the spacing scale's S1 stop — the sign comes
 // before the word it stands for, which is also what keeps the badge from
 // reading as a chip, whose mark trails its label.
@@ -56,16 +56,16 @@
 // The utterance picks the structure in one place, and it is the only branch in
 // the component: anything with words in it wears the fill, and a sign on
 // its own stands bare. See [Fill] for why — and for the obligation that
-// carries, which is that a set of glyph badges must differ in shape, because
+// carries, which is that a set of symbol badges must differ in shape, because
 // a sign repeated under two statuses is two hues and nothing else.
 //
 // # The disc
 //
-// A glyph badge may be asked to stand on its status's fill instead of bare:
+// A symbol badge may be asked to stand on its status's fill instead of bare:
 // [RenderState.Disc], or [Props.Disc] on the live path. The disc wears the
 // system colour itself — systemGreen under a white check — and never a tint
 // of it: it is the same [Fill] a word wears and the sign reads in the same
-// [Foreground] over it, drawn as a circle inscribed in the glyph's own
+// [Foreground] over it, drawn as a circle inscribed in the symbol's own
 // line-box square:
 //
 //	diameter = style.LineHeight
@@ -91,7 +91,7 @@
 //
 //	sign box = round down to the diameter's parity of (diameter / √2)
 //
-// which is the largest box whose every point is inside the circle. A [Glyph]
+// which is the largest box whose every point is inside the circle. A [Symbol]
 // is a painter this package cannot inspect and the contract it is written to
 // is that a sign spans most of the box it is handed, so handing one the disc's
 // full square puts a check's tip on the antialiased rim and a sign drawn
@@ -99,7 +99,7 @@
 // size that holds for a painter the badge has not seen. Rounding to the
 // diameter's own parity is what keeps the sign centred on whole pixels.
 //
-// A caller passes the same [Glyph] either way: the sign is smaller inside a
+// A caller passes the same [Symbol] either way: the sign is smaller inside a
 // disc than standing bare, and the badge's box is the same size in both.
 //
 // # Colour: the platform's system colours
@@ -122,7 +122,7 @@
 // A worded or counted badge is that colour filled, with its content in
 // alternateSelectedControlTextColor — white in both appearances, the
 // foreground the platform pairs with a fill it paints in a system colour
-// ([Fill], [Foreground]). A glyph badge standing bare draws its sign in the
+// ([Fill], [Foreground]). A symbol badge standing bare draws its sign in the
 // system colour itself ([BareForeground]); [Neutral] has no system colour of
 // its own, so bare it reads in the platform's secondary label, the strength
 // the platform gives a word that is not the subject.
@@ -145,11 +145,11 @@
 // badge off its line.
 //
 // Horizontally the badge is its content between two S2 stops: the padding, the
-// glyph's square, the S1 gap, the shaped label, the S1 gap, the close mark and
+// symbol's square, the S1 gap, the shaped label, the S1 gap, the close mark and
 // the padding, each present only when it has something to draw. S2 rather than
 // S1 because the gap inside the utterance and the gap to its edge must not be
 // the same number, or the sign and the word stop reading as one thing in one
-// box. A glyph badge, wearing no fill, has no padding either: its whole
+// box. A symbol badge, wearing no fill, has no padding either: its whole
 // box is the line box square.
 //
 // The corner is the radius scale's Base stop, clamped to half the height.
@@ -161,7 +161,7 @@
 // mistaken for it.
 //
 // The badge reports its label's baseline, so a row carrying a badge beside
-// words in a larger role can be set on one line with layout.Baseline. A glyph
+// words in a larger role can be set on one line with layout.Baseline. A symbol
 // badge reports none; a sign has no baseline to offer.
 //
 // The type role is the density's, one step less pronounced than the chip's:
@@ -176,9 +176,9 @@
 // box, so density moves the type's size and not the badge's height; that is a
 // property of the type scale, and the badge reports what it draws either way.
 //
-// The glyph's square is the line box, the rule components/chip states for an
+// The symbol's square is the line box, the rule components/chip states for an
 // inline mark: a mark on a line belongs to that line rather than to a control
-// around it. The disc is that same square's inscribed circle, so a glyph badge
+// around it. The disc is that same square's inscribed circle, so a symbol badge
 // measures the line box square whether it stands bare or on a disc.
 //
 // # The close mark

@@ -22,7 +22,7 @@
 // same URL form one link. Links render underlined in [Style].LinkColor, show
 // the pointer cursor on hover, and participate in window Tab traversal: each
 // link registers a focus tag, so Gio's default Tab handling moves focus
-// across them, and the focused link draws a visible focus halo. Space or
+// across them, and the focused link draws a visible focus ring. Space or
 // Enter on a focused link fires OnLinkClick, which carries the frame's live
 // layout.Context so consumers can emit mvu.MessageOp{Message: ...}.Add(gtx.Ops)
 // inside the callback. An inline link is text-sized: its pointer target is the
@@ -207,11 +207,11 @@ type Style struct {
 
 // FromTokens derives the default paragraph style from the platform's colour
 // set and the BodyLarge text style: body text in Text, links in Link, the
-// focus halo in the one colour every control in this library haloes a focused
+// focus ring in the one colour every control in this library rings a focused
 // element with, and the role's own size and line height. Pass
 // tokens.DefaultTypography.BodyLarge for the default desktop look.
 //
-// standsOn is the opaque fill the paragraph is drawn on. The focus halo
+// standsOn is the opaque fill the paragraph is drawn on. The focus ring
 // carries a coverage rather than a colour, so what it lands as depends on
 // what is under it; the zero value — no colour — is the window's own plane.
 //
@@ -227,7 +227,7 @@ func FromTokens(p tokens.PlatformColors, body tokens.TextStyle, standsOn color.N
 	return Style{
 		Color:      p.Text,
 		LinkColor:  p.Link,
-		FocusColor: focus.Ring(p, surface.Or(standsOn, p.WindowBackground)),
+		FocusColor: focus.RingColor(p, surface.Or(standsOn, p.WindowBackground)),
 		HoverColor: p.HoverOverlay,
 		Size:       unit.Sp(body.Size),
 		LineHeight: unit.Sp(body.LineHeight),
@@ -245,7 +245,7 @@ type RenderState struct {
 	// HoveredLink is the index of the link drawn in its hovered treatment;
 	// NoLink for none.
 	HoveredLink int
-	// FocusedLink is the index of the link drawn with the focus halo; NoLink
+	// FocusedLink is the index of the link drawn with the focus ring; NoLink
 	// for none.
 	FocusedLink int
 }

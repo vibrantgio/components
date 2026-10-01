@@ -579,11 +579,12 @@ func TestScrollingTheFieldAwayClosesItsMenu(t *testing.T) {
 // list shows for the place a menu is: the held row and nothing else.
 //
 // A list standing in the content or at the front of a dialog wears the
-// keyboard focus halo on its own box (components/list's Halo). A menu does
-// not: the platform's own menus answer the keyboard by moving the row that
-// wears the pill, and a band around the whole surface would be a second
-// answer to one question. The menu wraps its rows in no halo, so a frame
-// holding the keyboard and a frame that never took it draw the same pixels.
+// keyboard focus ring on its own box (components/list's FocusRing). A menu
+// does not: the platform's own menus answer the keyboard by moving the row
+// that wears the pill, and a band around the whole surface would be a
+// second answer to one question. The menu wraps its rows in no ring, so a
+// frame holding the keyboard and a frame that never took it draw the same
+// pixels.
 func TestTheMenuDrawsNoRingWhileItHoldsTheKeyboard(t *testing.T) {
 	size := image.Pt(200, 400)
 	frame := func(takeKeyboard bool) *image.RGBA {

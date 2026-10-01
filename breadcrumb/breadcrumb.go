@@ -1,6 +1,6 @@
 // Package breadcrumb provides the breadcrumb control: going back up the
 // hierarchy — each step a link, the last where you are. It draws a
-// horizontal row of labels separated by chevron glyphs. The last segment
+// horizontal row of labels separated by chevron symbols. The last segment
 // renders as a label (the current location); the segments before it render
 // as links, and may invoke an OnClick callback to navigate.
 //
@@ -78,7 +78,7 @@ type Props struct {
 	// triangle beside it should be, and a trail set in a smaller style than
 	// the desktop TitleSmall — or one whose separator should read as a
 	// hairline between labels rather than a mark of its own — wants a
-	// smaller square than the default. The glyph fills the square's full
+	// smaller square than the default. The symbol fills the square's full
 	// height, so this is the separator's drawn height and not a box around it.
 	Chevron unit.Dp
 

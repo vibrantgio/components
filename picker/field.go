@@ -780,7 +780,7 @@ func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fi
 func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s FieldState) layout.Dimensions {
 	// No edge column stands between the fill and the surface, so there is no
 	// inner edge for an inset to start from and both are spent from the
-	// fill's own. That holds in every state: focus is a halo laid on the
+	// fill's own. That holds in every state: focus is a ring laid on the
 	// shape's outline and moves nothing the trigger draws or reports.
 	lead := gtx.Dp(control.PopupLeadDp)
 	trail := gtx.Dp(control.PopupMarkTrailDp)
@@ -898,13 +898,13 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	//
 	// Focus adds nothing to that: the trigger keeps the fill and the
 	// edgeless shape the platform draws it with, and wears the library's one
-	// halo on that outline while it holds the keyboard.
+	// ring on that outline while it holds the keyboard.
 	rrectOuter := clip.RRect{Rect: image.Rectangle{Max: triggerSize}, SE: rad, SW: rad, NE: rad, NW: rad}
 	paint.FillShape(gtx.Ops, bg, rrectOuter.Op(gtx.Ops))
 	if s.Focused {
 		standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
-		focus.Halo(gtx, image.Rectangle{Max: triggerSize}, rad,
-			focus.Ring(tok.platform, standsOn), focus.Ring(tok.platform, bg))
+		focus.Ring(gtx, image.Rectangle{Max: triggerSize}, rad,
+			focus.RingColor(tok.platform, standsOn), focus.RingColor(tok.platform, bg))
 	}
 
 	// Text label: vertically centred, and clipped to the control's own shape

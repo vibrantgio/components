@@ -20,18 +20,18 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// The list's own geometry for the halo reading. The viewport holds two and a
+// The list's own geometry for the ring reading. The viewport holds two and a
 // half rows, so the third row — the one the focused control stands in — is
 // laid out half outside it, which is the case the reading is about.
 const (
-	haloListX, haloListY = 10, 10 // where the list stands in the frame
-	haloListW, haloListH = 60, 50 // the viewport
-	haloRowH             = 20
-	haloFocusedRow       = 2 // its top sits at 40, its foot 10 past the viewport
-	haloFrame            = 80
+	ringListX, ringListY = 10, 10 // where the list stands in the frame
+	ringListW, ringListH = 60, 50 // the viewport
+	ringRowH             = 20
+	ringFocusedRow       = 2 // its top sits at 40, its foot 10 past the viewport
+	ringFrame            = 80
 )
 
-// TestAFocusedRowsHaloStaysInsideTheViewport is the pixel proof that a
+// TestAFocusedRowsRingStaysInsideTheViewport is the pixel proof that a
 // deferred drawing made inside a list is cut by the list.
 //
 // A focused control's band straddles its own box, so it has to outlive the
@@ -45,7 +45,7 @@ const (
 // The row is the full width of the viewport and fills it, so the band
 // straddles the viewport's leading edge, its trailing edge and its foot at
 // once, and every one of them has to cut.
-func TestAFocusedRowsHaloStaysInsideTheViewport(t *testing.T) {
+func TestAFocusedRowsRingStaysInsideTheViewport(t *testing.T) {
 	standsOn := color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 	fill := color.NRGBA{R: 0x20, G: 0x20, B: 0x20, A: 0xff}
 	band := color.NRGBA{R: 0x00, G: 0x60, B: 0xff, A: 0xff}
@@ -58,21 +58,21 @@ func TestAFocusedRowsHaloStaysInsideTheViewport(t *testing.T) {
 		rows[i] = i
 	}
 
-	img := golden.Capture(t, image.Pt(haloFrame, haloFrame), func(gtx layout.Context) layout.Dimensions {
+	img := golden.Capture(t, image.Pt(ringFrame, ringFrame), func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, standsOn, clip.Rect{Max: gtx.Constraints.Max}.Op())
-		defer op.Offset(image.Pt(haloListX, haloListY)).Push(gtx.Ops).Pop()
-		gtx.Constraints = layout.Exact(image.Pt(haloListW, haloListH))
+		defer op.Offset(image.Pt(ringListX, ringListY)).Push(gtx.Ops).Pop()
+		gtx.Constraints = layout.Exact(image.Pt(ringListW, ringListH))
 		list.Layout(gtx, state, rows, func(gtx layout.Context, row int) layout.Dimensions {
-			size := image.Pt(gtx.Constraints.Max.X, haloRowH)
+			size := image.Pt(gtx.Constraints.Max.X, ringRowH)
 			box := image.Rectangle{Max: size}
-			if row == haloFocusedRow {
+			if row == ringFocusedRow {
 				// A control as every control in this library is drawn: the
 				// band recorded inside the clip a Clickable puts around what
 				// it wraps, and painted outside it.
 				focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
 					defer clip.Rect(box).Push(gtx.Ops).Pop()
 					paint.FillShape(gtx.Ops, fill, clip.Rect(box).Op())
-					focus.Halo(gtx, box, 0, band, band)
+					focus.Ring(gtx, box, 0, band, band)
 					return layout.Dimensions{Size: size}
 				})
 			}
@@ -87,22 +87,22 @@ func TestAFocusedRowsHaloStaysInsideTheViewport(t *testing.T) {
 	out := int(focus.Outside)
 	// The rows the focused control's band runs down, in the frame's own
 	// coordinates: its own, clear of the corners.
-	y := haloListY + haloFocusedRow*haloRowH + haloRowH/4
+	y := ringListY + ringFocusedRow*ringRowH + ringRowH/4
 	for _, c := range []struct {
 		what string
 		x, y int
 		want color.NRGBA
 	}{
-		{"the column past the viewport's leading edge", haloListX - out, y, standsOn},
-		{"the outer column of the band inside the leading edge", haloListX, y, band},
-		{"the inner column of that band", haloListX + out - 1, y, band},
-		{"the control's own fill", haloListX + out, y, fill},
-		{"the inner column of the band at the trailing edge", haloListW + haloListX - out, y, band},
-		{"the outer column of that band", haloListW + haloListX - 1, y, band},
-		{"the column past the viewport's trailing edge", haloListW + haloListX, y, standsOn},
-		{"the last row inside the viewport, where the band's foot never arrives", haloListX + out, haloListY + haloListH - 1, fill},
-		{"the band's own column one row past the viewport's foot", haloListX, haloListY + haloListH, standsOn},
-		{"the row the band's foot would have landed on", haloListX + haloListW/2, haloListY + (haloFocusedRow+1)*haloRowH - 1, standsOn},
+		{"the column past the viewport's leading edge", ringListX - out, y, standsOn},
+		{"the outer column of the band inside the leading edge", ringListX, y, band},
+		{"the inner column of that band", ringListX + out - 1, y, band},
+		{"the control's own fill", ringListX + out, y, fill},
+		{"the inner column of the band at the trailing edge", ringListW + ringListX - out, y, band},
+		{"the outer column of that band", ringListW + ringListX - 1, y, band},
+		{"the column past the viewport's trailing edge", ringListW + ringListX, y, standsOn},
+		{"the last row inside the viewport, where the band's foot never arrives", ringListX + out, ringListY + ringListH - 1, fill},
+		{"the band's own column one row past the viewport's foot", ringListX, ringListY + ringListH, standsOn},
+		{"the row the band's foot would have landed on", ringListX + ringListW/2, ringListY + (ringFocusedRow+1)*ringRowH - 1, standsOn},
 	} {
 		if at := img.RGBAAt(c.x, c.y); !nearlyEqual(at, c.want) {
 			t.Errorf("%s (x=%d, y=%d) = %v, want %v", c.what, c.x, c.y, at, c.want)
@@ -132,14 +132,14 @@ const (
 	focusFrame             = 80
 )
 
-// TestAFocusedListWearsTheHaloOnItsOwnBox is the pixel proof of what a list
-// at the front of a dialog shows: [list.Halo] puts the one ring on the
+// TestAFocusedListWearsTheRingOnItsOwnBox is the pixel proof of what a list
+// at the front of a dialog shows: [list.FocusRing] puts the one ring on the
 // LIST's box — not on a row's — while the list holds the keyboard, and puts
 // nothing there while it does not.
 //
 // The band straddles that box as it straddles every other control's:
 // focus.Outside past it and the rest over the list's own outermost columns.
-func TestAFocusedListWearsTheHaloOnItsOwnBox(t *testing.T) {
+func TestAFocusedListWearsTheRingOnItsOwnBox(t *testing.T) {
 	standsOn := color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 	p := tokens.PlatformColors{
 		KeyboardFocusIndicator:    color.NRGBA{R: 0x00, G: 0x60, B: 0xff, A: 0xff},
@@ -166,7 +166,7 @@ func TestAFocusedListWearsTheHaloOnItsOwnBox(t *testing.T) {
 				gtx.Execute(key.FocusCmd{Tag: state.Focus()})
 				focused = true
 			}
-			return list.Halo(gtx, state, p, standsOn, nil, func(gtx layout.Context) layout.Dimensions {
+			return list.FocusRing(gtx, state, p, standsOn, nil, func(gtx layout.Context) layout.Dimensions {
 				return list.LayoutSelectable(gtx, state, rows,
 					func(gtx layout.Context, _ int, _ bool) layout.Dimensions {
 						return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, focusRowH)}
@@ -229,7 +229,7 @@ func TestAFocusedListWearsTheHaloOnItsOwnBox(t *testing.T) {
 // under each of its pixels, not one fill for the whole band.
 //
 // The platform's keyboard focus indicator carries a coverage of its own —
-// 127 of 255 — and the save dialog's own halo shows what that means: the two
+// 127 of 255 — and the save dialog's own ring shows what that means: the two
 // columns of the band lying over the focused field keep the field's edge
 // column showing through them. A list's box carries more than one fill the
 // moment a row is selected at its edge, which is how a list at the front of
@@ -321,7 +321,7 @@ func focusedListWithFirstRowSelected(t *testing.T, p tokens.PlatformColors) *ima
 			}
 			return color.NRGBA{}
 		}
-		return list.Halo(gtx, state, p, standsOn, selectionFill, func(gtx layout.Context) layout.Dimensions {
+		return list.FocusRing(gtx, state, p, standsOn, selectionFill, func(gtx layout.Context) layout.Dimensions {
 			return list.LayoutSelectable(gtx, state, rows,
 				func(gtx layout.Context, _ int, selected bool) layout.Dimensions {
 					size := image.Pt(gtx.Constraints.Max.X, focusRowH)
@@ -348,11 +348,11 @@ func focusedListWithFirstRowSelected(t *testing.T, p tokens.PlatformColors) *ima
 	})
 }
 
-// TestTheBandLandsOnAHoveredRowsFillToo is the pixel proof that [list.Halo]
-// is told every fill a row paints and not the selection's alone: a list that
-// fills the row under the pointer as well as the selected one puts two rows
-// of fill under one band, and the band's sides must land on whichever of
-// them they cross.
+// TestTheBandLandsOnAHoveredRowsFillToo is the pixel proof that
+// [list.FocusRing] is told every fill a row paints and not the selection's
+// alone: a list that fills the row under the pointer as well as the
+// selected one puts two rows of fill under one band, and the band's sides
+// must land on whichever of them they cross.
 //
 // The case the library has is vaultview's chooser, whose rows take the
 // platform's selection fill under the pointer as well as under the keyboard
@@ -433,7 +433,7 @@ func focusedListFilling(t *testing.T, p tokens.PlatformColors, paints func(row i
 			gtx.Execute(key.FocusCmd{Tag: state.Focus()})
 			focused = true
 		}
-		return list.Halo(gtx, state, p, standsOn, fill, func(gtx layout.Context) layout.Dimensions {
+		return list.FocusRing(gtx, state, p, standsOn, fill, func(gtx layout.Context) layout.Dimensions {
 			return list.LayoutSelectable(gtx, state, rows,
 				func(gtx layout.Context, row int, _ bool) layout.Dimensions {
 					size := image.Pt(gtx.Constraints.Max.X, focusRowH)

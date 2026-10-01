@@ -1,7 +1,7 @@
 // Package controlface holds the geometry the platform's bordered control is
 // drawn from, in both of the variants it stands in: the fill it carries and
 // tints under the pointer, the hairline around it where the platform draws
-// one, the focus halo it wears over that hairline, the shape each variant
+// one, the focus ring it wears over that hairline, the shape each variant
 // takes, the drop shadow the chrome variant casts on its band, and the pop-up
 // mark that says the control holds one of several values.
 //
@@ -69,9 +69,9 @@ type State struct {
 	Focused bool
 
 	// StandsOn is the opaque fill the control stands on — its band. A
-	// focused control's halo lies half past its own box, so the half out
+	// focused control's ring lies half past its own box, so the half out
 	// there has to be flattened onto what is actually there. Alpha zero is
-	// no answer, and the halo takes the control's own fill on both halves.
+	// no answer, and the ring takes the control's own fill on both halves.
 	StandsOn color.NRGBA
 
 	// Checked is the persistent state of a control that records a yes — a
@@ -184,12 +184,12 @@ func Label(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
 // its wording reads in: one control, one foreground, and one name for
 // everything a toolbar says.
 //
-// MEASURED, finder-window-light.png: the group pull-down's grid glyph
+// MEASURED, finder-window-light.png: the group pull-down's grid symbol
 // (x 769-786, y 17-34) plateaus at #4d4d4d over 24 pixels and the search
 // capsule's magnifier (x 965-980, y 18-34) over 15 — the same plateau the
 // band's title holds, so it is the drawn colour and not the partial coverage
 // a thin stroke reaches. finder-window-untinted-dark.png reads #e9e9e9 for the
-// same glyphs. A FORM control is a different reading: the Save dialog's pop-up
+// same symbols. A FORM control is a different reading: the Save dialog's pop-up
 // draws its mark at ControlText exactly (36 light and (224,225,226) dark on
 // fills of #ececec and #333a3f), which is why components/picker's form trigger
 // keeps that name and this one answers for the toolbar.
@@ -257,7 +257,7 @@ func (p Pin) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 }
 
 // Draw paints the chrome variant's trigger: the fill it stands off its band
-// with and tints under the pointer, the hairline and the focus halo that
+// with and tints under the pointer, the hairline and the focus ring that
 // replaces it, the label, and the pop-up mark.
 func Draw(
 	gtx layout.Context,
@@ -362,7 +362,7 @@ func Draw(
 
 // Capsule paints the CHROME variant's box into box: the capsule every
 // bordered control in a stored toolbar band is drawn as, at its fill, with
-// the rim the platform draws around it where it draws one and the focus halo
+// the rim the platform draws around it where it draws one and the focus ring
 // on that outline while it holds the keyboard. It reports the rounded shape
 // it drew, which a caller pushes to clip whatever stands inside that box.
 //
@@ -385,7 +385,7 @@ func Capsule(gtx layout.Context, box image.Rectangle, p tokens.PlatformColors, f
 
 // PushButton paints the FORM variant's box into box at the radius it is
 // handed: the push button's rounded rectangle, at its fill, with no rim and
-// the focus halo on its outline while it holds the keyboard. It reports the
+// the focus ring on its outline while it holds the keyboard. It reports the
 // rounded shape it drew, the way [Capsule] does.
 //
 // MEASURED, save-dialog-{light,dark}.png: the sheet's "Cancel" fits r = 6.11
@@ -403,10 +403,10 @@ func PushButton(gtx layout.Context, box image.Rectangle, radius int, p tokens.Pl
 
 // face is the drawing both variants share: the fill as the whole shape, the
 // checked patch over it, the rim where the variant carries one, and the focus
-// halo on the outline. An alpha-zero rim is no edge at all.
+// ring on the outline. An alpha-zero rim is no edge at all.
 //
 // The control keeps its own rim whatever the keyboard is doing: focus is the
-// halo laid on the outline and not a second answer to what the edge is.
+// ring laid on the outline and not a second answer to what the edge is.
 func face(gtx layout.Context, box image.Rectangle, radius int, rim color.NRGBA, p tokens.PlatformColors, fill color.NRGBA, s State) clip.RRect {
 	band := max(gtx.Dp(edgeDp), 1)
 	if rim.A == 0 {
@@ -433,7 +433,7 @@ func face(gtx layout.Context, box image.Rectangle, radius int, rim color.NRGBA, 
 	}
 	if s.Focused {
 		standsOn := surface.Or(s.StandsOn, fill)
-		focus.Halo(gtx, box, radius, focus.Ring(p, standsOn), focus.Ring(p, fill))
+		focus.Ring(gtx, box, radius, focus.RingColor(p, standsOn), focus.RingColor(p, fill))
 	}
 	return outer
 }
@@ -498,11 +498,11 @@ func Shadow(p tokens.PlatformColors) tokens.DropShadow {
 // drawn with the control's box cut out of it, so painting it after the control
 // lands what painting it under the control landed.
 //
-// WHILE THE CONTROL IS FOCUSED the cut is the focus halo's footprint instead —
+// WHILE THE CONTROL IS FOCUSED the cut is the focus ring's footprint instead —
 // the control's box grown by [focus.OutsidePx], which is the half of the band
-// that lies past the box. The halo is drawn inside this call and the shadow
+// that lies past the box. The ring is drawn inside this call and the shadow
 // after it, so without the larger cut the ramp runs over the band: the find
-// recess measured up to 11 of 255 of shadow lying on its own halo. The state
+// recess measured up to 11 of 255 of shadow lying on its own ring. The state
 // the control is drawn in is what says which cut answers, and it is the state
 // this call already receives.
 //

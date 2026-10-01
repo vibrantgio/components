@@ -234,7 +234,7 @@ const (
 	// control row 18 px tall. A track at the height of a control on a page is
 	// taller than the whole of that band, which is what makes it read as an
 	// object dropped into a strip rather than part of one. So the track is cut
-	// to the smallest height that still dresses the glyph — the fill inside it
+	// to the smallest height that still dresses the symbol — the fill inside it
 	// clears [schemeIconSize] by a point at each edge — and it leaves room for
 	// a band around itself at the scale the platform gives one.
 	SchemeSegmentW unit.Dp = 44
@@ -242,7 +242,7 @@ const (
 	// SchemeSwitchW is the whole control, both segments.
 	SchemeSwitchW = 2 * SchemeSegmentW
 
-	// schemeIconSize is the glyph in a segment. It does not follow the track
+	// schemeIconSize is the symbol in a segment. It does not follow the track
 	// down: at chrome scale the same mark is dressed in less, rather than a
 	// smaller mark being dressed the same.
 	schemeIconSize unit.Dp = 20
@@ -250,8 +250,8 @@ const (
 	// half. The track showing all round it is what makes the pair read as one
 	// control with a marker on it rather than as two buttons that touch.
 	//
-	// With the glyph fixed it is also the floor under the track: the fill is
-	// the track less twice this, and a fill down to the glyph's own size would
+	// With the symbol fixed it is also the floor under the track: the fill is
+	// the track less twice this, and a fill down to the symbol's own size would
 	// have the mark bursting out of the thing that marks it.
 	schemeThumbInset unit.Dp = 3
 )
@@ -288,7 +288,7 @@ func SchemeSwitch(c tokens.PlatformColors, dark bool) layout.Widget {
 // track is the target.
 func SchemeSegment(c tokens.PlatformColors, dark, selected bool) layout.Widget {
 	foreground, fill := schemeSegmentColors(c, selected)
-	glyph := schemeGlyph(dark, foreground)
+	symbol := schemeSymbol(dark, foreground)
 	return func(gtx layout.Context) layout.Dimensions {
 		w, h := gtx.Dp(SchemeSegmentW), gtx.Dp(SchemeSwitchH)
 		r := h / 2
@@ -309,7 +309,7 @@ func SchemeSegment(c tokens.PlatformColors, dark, selected bool) layout.Widget {
 		size := gtx.Dp(schemeIconSize)
 		off := op.Offset(image.Pt((w-size)/2, (h-size)/2)).Push(gtx.Ops)
 		gtx.Constraints = layout.Exact(image.Pt(size, size))
-		glyph(gtx)
+		symbol(gtx)
 		off.Pop()
 		return layout.Dimensions{Size: image.Pt(w, h)}
 	}
@@ -322,7 +322,7 @@ func SchemeSegment(c tokens.PlatformColors, dark, selected bool) layout.Widget {
 // control changed twice an hour is owed.
 func schemeTrack(c tokens.PlatformColors) color.NRGBA { return c.PushButtonFill }
 
-// schemeSegmentColors returns the glyph's colour and the fill it is read
+// schemeSegmentColors returns the symbol's colour and the fill it is read
 // against, for a segment that is or is not the current one. Both come out of
 // here rather than being written at the point they are painted, so what a
 // contrast measurement reads is what the control draws.
@@ -339,22 +339,22 @@ func schemeSegmentColors(c tokens.PlatformColors, selected bool) (foreground, fi
 	return vgcolor.Flatten(c.ControlText, track), track
 }
 
-// schemeGlyph returns the sun or the moon drawn in `foreground`. The vector
+// schemeSymbol returns the sun or the moon drawn in `foreground`. The vector
 // carries its own colours, which on the wrong fill would be a dark disc on a
 // dark segment, so the colour is substituted on the way in.
 //
-// It is built where it is drawn rather than kept. Deciding a glyph this small
+// It is built where it is drawn rather than kept. Deciding a symbol this small
 // costs a few microseconds against a frame budget of several thousand, and a
 // cache of them would be shared mutable state in a package whose whole point
 // is that a surface is a function of the tokens it was handed.
-func schemeGlyph(dark bool, foreground color.NRGBA) layout.Widget {
+func schemeSymbol(dark bool, foreground color.NRGBA) layout.Widget {
 	data := mdicons.ImageWBSunny
 	if dark {
 		data = mdicons.ImageBrightness2
 	}
 	w, err := ivgraster.Widget(data, schemeIconSize, schemeIconSize, ivgraster.WithColors(foreground))
 	if err != nil {
-		// A glyph that will not decode leaves a blank of the right size: the
+		// A symbol that will not decode leaves a blank of the right size: the
 		// control keeps its shape and its targets, which is more than a panic
 		// on a paint path would leave.
 		return func(gtx layout.Context) layout.Dimensions {

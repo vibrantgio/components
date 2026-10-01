@@ -53,8 +53,8 @@ func TestCheckboxGolden(t *testing.T) {
 
 // TestCheckboxFootprintIsItsMeasuredRow checks the checkbox's visual
 // footprint is the density's measured checkbox row, a square with the
-// measured 16 dp glyph centred in it. That footprint is the pointer target
-// too — the checkbox's row, not its glyph — which TestCheckboxTargetIsItsRow
+// measured 16 dp symbol centred in it. That footprint is the pointer target
+// too — the checkbox's row, not its symbol — which TestCheckboxTargetIsItsRow
 // exercises.
 func TestCheckboxFootprintIsItsMeasuredRow(t *testing.T) {
 	var ops op.Ops
@@ -79,8 +79,8 @@ func TestCheckboxFootprintIsItsMeasuredRow(t *testing.T) {
 }
 
 // TestCheckboxTargetIsItsRow checks the live checkbox's pointer target is the
-// footprint the glyph is centred in and not the 16 dp glyph: a click in the
-// footprint's corner, clear of the glyph, toggles the value, and a click
+// footprint the symbol is centred in and not the 16 dp symbol: a click in the
+// footprint's corner, clear of the symbol, toggles the value, and a click
 // outside the footprint does not.
 func TestCheckboxTargetIsItsRow(t *testing.T) {
 	var toggled int
@@ -105,7 +105,7 @@ func TestCheckboxTargetIsItsRow(t *testing.T) {
 
 	drive() // register the input area
 
-	// The footprint's far corner: inside the row, outside the 16 dp glyph
+	// The footprint's far corner: inside the row, outside the 16 dp symbol
 	// centred in it, which is the only place the two can be told apart.
 	pos := f32.Pt(float32(tokens.Comfortable.CheckboxRowHeight)-1, float32(tokens.Comfortable.CheckboxRowHeight)-1)
 	r.Queue(
@@ -114,7 +114,7 @@ func TestCheckboxTargetIsItsRow(t *testing.T) {
 	)
 	drive()
 	if toggled != 1 {
-		t.Errorf("click in the footprint's corner, clear of the glyph: OnChange fired %d times, want 1", toggled)
+		t.Errorf("click in the footprint's corner, clear of the symbol: OnChange fired %d times, want 1", toggled)
 	}
 
 	outside := f32.Pt(float32(tokens.Comfortable.CheckboxRowHeight)+4, float32(tokens.Comfortable.CheckboxRowHeight)+4)
@@ -129,8 +129,8 @@ func TestCheckboxTargetIsItsRow(t *testing.T) {
 }
 
 // TestCheckboxCompactGolden records or diffs the checkbox at tokens.Compact
-// through the live pipeline: the 16 dp glyph centred in the Compact control
-// height, which is smaller than the glyph's own row at Comfortable.
+// through the live pipeline: the 16 dp symbol centred in the Compact control
+// height, which is smaller than the symbol's own row at Comfortable.
 func TestCheckboxCompactGolden(t *testing.T) {
 	w := materialize(t, input.Checkbox(rx.Of(densityTheme(tokens.Compact)), input.CheckboxProps{
 		Description: "opt-in",
@@ -254,10 +254,10 @@ func TestCheckboxFocusRingIsVisuallyDistinct(t *testing.T) {
 //
 // It counts the colour the ring lands as rather than the value the platform
 // publishes. The keyboard focus indicator carries a coverage of its own, and
-// focus.Ring resolves it against what lies under the band before anything is
-// painted — for a checkbox and a radio, the surface the control stands on,
-// which is the window's plane unless the caller says otherwise — so what a
-// capture holds is that opaque answer.
+// focus.RingColor resolves it against what lies under the band before
+// anything is painted — for a checkbox and a radio, the surface the control
+// stands on, which is the window's plane unless the caller says otherwise —
+// so what a capture holds is that opaque answer.
 func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 	size := image.Pt(44, 44)
 	shaper := defaultShaper(t)
@@ -271,10 +271,10 @@ func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 	} {
 		p := scheme.platform
 		// A control rings on what the band actually lies on: the surface
-		// for a glyph whose ring rides in the slack beside it, the
+		// for a symbol whose ring rides in the slack beside it, the
 		// control's own fill for a trigger whose edge IS the ring.
-		onPlane := focus.Ring(p, p.WindowBackground)
-		onTrigger := focus.Ring(p, p.PushButtonFill)
+		onPlane := focus.RingColor(p, p.WindowBackground)
+		onTrigger := focus.RingColor(p, p.PushButtonFill)
 
 		count := func(sz image.Point, w layout.Widget, ring stdcolor.NRGBA) int {
 			img := golden.Capture(t, sz, w)
@@ -429,7 +429,7 @@ func off(a, b stdcolor.NRGBA) int {
 func TestTheSwitchedOffBoxIsOneFillAndNoEdge(t *testing.T) {
 	const size = 44
 
-	// The glyph's measured 16 dp box, centred in the density's checkbox row,
+	// The symbol's measured 16 dp box, centred in the density's checkbox row,
 	// at the 1:1 metric golden.Capture renders at.
 	const box = 16
 	row := int(tokens.Comfortable.CheckboxRowHeight)

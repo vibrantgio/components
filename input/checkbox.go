@@ -130,10 +130,10 @@ type CheckboxRenderState struct {
 	// the box alone.
 	Label string
 
-	// Surface is the opaque fill the control stands on. Its focus halo rides
-	// in the slack around the glyph, so the platform's keyboard focus
+	// Surface is the opaque fill the control stands on. Its focus ring rides
+	// in the slack around the symbol, so the platform's keyboard focus
 	// indicator — a coverage rather than a colour — lands on this, and so
-	// does the glyph's own edge, which is drawn as a shape the fill is inset
+	// does the symbol's own edge, which is drawn as a shape the fill is inset
 	// inside. The zero value — no colour — is the window's own plane.
 	Surface color.NRGBA
 }
@@ -228,10 +228,10 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 				foc := !dis && gtx.Focused(&b)
 
 				// The pointer area is the whole control — the
-				// footprint the glyph is centred in plus the label
+				// footprint the symbol is centred in plus the label
 				// beside it, both of which operate the box, as they
 				// do on the platform.
-				// The focus band rings the glyph's box and straddles it,
+				// The focus band rings the symbol's box and straddles it,
 				// and a Clickable clips what it wraps, so the band is
 				// collected inside and painted here, outside it.
 				return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -293,12 +293,12 @@ func RenderCheckbox(
 	}
 }
 
-// labelBeside draws label in fg to the right of a glyph whose right edge is at
-// glyphRight, in a row rowH px tall, and answers the width it took — the
+// labelBeside draws label in fg to the right of a symbol whose right edge is at
+// symbolRight, in a row rowH px tall, and answers the width it took — the
 // measured gap plus the label's own — or zero when there is no label. It is
 // the one label a checkbox and a radio draw, so the two cannot drift.
 //
-// The cap band, baseline up to the cap height, is centred on the glyph's row.
+// The cap band, baseline up to the cap height, is centred on the symbol's row.
 // MEASURED, save-dialog-{light,dark}.png: "Show startup screen" caps run
 // y 375–385 against a square of y 372–387, a band centre of 380.0 against the
 // square's 379.5, and "Stay open after run handler" agrees — the same
@@ -306,7 +306,7 @@ func RenderCheckbox(
 // capBandOffset's and may be negative: the body role's line box is taller
 // than the measured 22 px row, so the line box hangs above the row while the
 // band sits where the platform puts it.
-func labelBeside(gtx layout.Context, tok resolvedTokens, glyphRight, rowH int, label string, fg color.NRGBA) int {
+func labelBeside(gtx layout.Context, tok resolvedTokens, symbolRight, rowH int, label string, fg color.NRGBA) int {
 	if label == "" {
 		return 0
 	}
@@ -314,7 +314,7 @@ func labelBeside(gtx layout.Context, tok resolvedTokens, glyphRight, rowH int, l
 	f, wl, textSize := bodyLabel(tok)
 
 	inner := gtx
-	inner.Constraints = layout.Constraints{Max: image.Pt(gtx.Constraints.Max.X-glyphRight-gap, gtx.Constraints.Max.Y)}
+	inner.Constraints = layout.Constraints{Max: image.Pt(gtx.Constraints.Max.X-symbolRight-gap, gtx.Constraints.Max.Y)}
 	if inner.Constraints.Max.X < 1 {
 		inner.Constraints.Max.X = 1
 	}
@@ -327,7 +327,7 @@ func labelBeside(gtx layout.Context, tok resolvedTokens, glyphRight, rowH int, l
 	dims := typeset.Layout(inner, tok.shaper, wl, f, textSize, label, mat)
 	call := mLabel.Stop()
 
-	st := op.Offset(image.Pt(glyphRight+gap, capBandOffset(gtx, tok, rowH, dims))).Push(gtx.Ops)
+	st := op.Offset(image.Pt(symbolRight+gap, capBandOffset(gtx, tok, rowH, dims))).Push(gtx.Ops)
 	call.Add(gtx.Ops)
 	st.Pop()
 
@@ -337,10 +337,10 @@ func labelBeside(gtx layout.Context, tok resolvedTokens, glyphRight, rowH int, l
 // drawCheckbox renders the checkbox into gtx. All visual state comes from s;
 // no event queries are performed here.
 func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState) layout.Dimensions {
-	// Sizing rule: the visual glyph keeps its measured 16 dp box at every
-	// density; the footprint (the row the glyph is centred in) is the
+	// Sizing rule: the visual symbol keeps its measured 16 dp box at every
+	// density; the footprint (the row the symbol is centred in) is the
 	// density's checkbox row, and the footprint is the pointer target —
-	// the platform gives a pointer the checkbox's row, never its glyph.
+	// the platform gives a pointer the checkbox's row, never its symbol.
 	boxSz := gtx.Dp(checkboxBoxSize)
 	ctlSz := gtx.Dp(unit.Dp(tok.density.CheckboxRowHeight))
 	if ctlSz < boxSz {
@@ -423,27 +423,27 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		paint.FillShape(gtx.Ops, control.Fill(tok.platform), rrectInner.Op(gtx.Ops))
 	}
 
-	// The focus halo, on the 16 dp box's own outline — the same band in the
+	// The focus ring, on the 16 dp box's own outline — the same band in the
 	// same place the button, the chip and the field beside it wear. The box
 	// keeps its edge and its fill under it, whatever it is doing: a checked
 	// box has no free edge to promote, its edge being the accent fill that
-	// says it is checked, and the halo does not need one.
+	// says it is checked, and the ring does not need one.
 	//
-	// It rides in the slack the density's footprint holds around the glyph,
+	// It rides in the slack the density's footprint holds around the symbol,
 	// so nothing about the control moves when it takes the keyboard. At the
 	// comfortable footprint's 22 dp that slack is 3 dp on each side and the
-	// halo spends 2 of it; tighter, the band reaches past the footprint,
-	// which is why focus.Halo defers it rather than drawing it in place.
+	// ring spends 2 of it; tighter, the band reaches past the footprint,
+	// which is why focus.Ring defers it rather than drawing it in place.
 	if s.Focused && !s.Disabled {
-		// What the halo's inner half lands on: the box's own outermost
+		// What the ring's inner half lands on: the box's own outermost
 		// band, which is the accent that says a box is checked and the
 		// platform's field edge where it is not.
 		boxEdge := control.Border(tok.platform)
 		if s.Checked {
 			boxEdge = tok.platform.ControlAccent
 		}
-		focus.Halo(gtx, boxRect, boxRad,
-			focus.Ring(tok.platform, standsOn), focus.Ring(tok.platform, boxEdge))
+		focus.Ring(gtx, boxRect, boxRad,
+			focus.RingColor(tok.platform, standsOn), focus.RingColor(tok.platform, boxEdge))
 	}
 
 	// The label is part of the control, as it is on the platform: it stands

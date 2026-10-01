@@ -24,8 +24,8 @@ func TestRingIsThePlatformsFocusIndicator(t *testing.T) {
 	} {
 		beneath := sc.p.WindowBackground
 		want := vgcolor.Flatten(sc.p.KeyboardFocusIndicator, beneath)
-		if got := focus.Ring(sc.p, beneath); got != want {
-			t.Errorf("%s: Ring = %v, want the platform's keyboard focus indicator over the plane, %v", sc.name, got, want)
+		if got := focus.RingColor(sc.p, beneath); got != want {
+			t.Errorf("%s: RingColor = %v, want the platform's keyboard focus indicator over the plane, %v", sc.name, got, want)
 		}
 	}
 }
@@ -39,16 +39,16 @@ func TestTheRingResolvesTheCoverageAgainstWhatIsBeneathIt(t *testing.T) {
 		if p.KeyboardFocusIndicator.A == 0 || p.KeyboardFocusIndicator.A == 0xff {
 			t.Errorf("keyboardFocusIndicatorColor alpha = %d, want the platform's partial coverage", p.KeyboardFocusIndicator.A)
 		}
-		if a := focus.Ring(p, p.WindowBackground).A; a != 0xff {
-			t.Errorf("Ring alpha = %d, want an opaque answer", a)
+		if a := focus.RingColor(p, p.WindowBackground).A; a != 0xff {
+			t.Errorf("RingColor alpha = %d, want an opaque answer", a)
 		}
-		if onPlane, onButton := focus.Ring(p, p.WindowBackground), focus.Ring(p, p.PushButtonFill); onPlane == onButton {
-			t.Errorf("the halo reads the same on the plane and on a push button's fill (%v); the coverage is not being resolved", onPlane)
+		if onPlane, onButton := focus.RingColor(p, p.WindowBackground), focus.RingColor(p, p.PushButtonFill); onPlane == onButton {
+			t.Errorf("the ring reads the same on the plane and on a push button's fill (%v); the coverage is not being resolved", onPlane)
 		}
 	}
 }
 
-// The halo is a keyboard affordance rather than an ornament, so it does not
+// The ring is a keyboard affordance rather than an ornament, so it does not
 // thin out when the controls around it tighten: one width at every density.
 //
 // MEASURED, save-dialog-{light,dark}.png, the focused "Save As:" field: four

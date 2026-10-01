@@ -26,7 +26,7 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// crossIcon is a deterministic "×" glyph painter — two diagonal clip.Stroke
+// crossIcon is a deterministic "×" symbol painter — two diagonal clip.Stroke
 // lines filling a sizePx×sizePx box — used to exercise the icon-only button.
 // Vector strokes (no font/SVG rasterisation) keep golden output stable.
 func crossIcon(gtx layout.Context, sizePx int, col color.NRGBA) {
@@ -355,11 +355,11 @@ func TestUnpinnedFillDrawsTheStockButton(t *testing.T) {
 	}
 }
 
-// TestPinnedFillCarriesAHaloThatReadsOnIt holds the half of the emphasis a
-// pinned fill could silently break: the halo composites over whatever fill
+// TestPinnedFillCarriesARingThatReadsOnIt holds the half of the emphasis a
+// pinned fill could silently break: the ring composites over whatever fill
 // is there, so a caller's pin must show through it exactly as the accent
 // fill does.
-func TestPinnedFillCarriesAHaloThatReadsOnIt(t *testing.T) {
+func TestPinnedFillCarriesARingThatReadsOnIt(t *testing.T) {
 	size := image.Pt(60, 60)
 	side := int(tokens.Comfortable.ControlHeight) // 1 px per dp in the harness
 	out := int(focus.Outside)
@@ -371,11 +371,11 @@ func TestPinnedFillCarriesAHaloThatReadsOnIt(t *testing.T) {
 		{"light", tokens.PlatformLight},
 		{"dark", tokens.PlatformDark},
 	} {
-		// The platform's focus indicator carries a coverage, and the halo
+		// The platform's focus indicator carries a coverage, and the ring
 		// resolves it against what each half lies on, so the pixel on the
-		// half over the button is exactly what focus.Ring answers for the
+		// half over the button is exactly what focus.RingColor answers for the
 		// pin.
-		ring := focus.Ring(scheme.colors, pinnedFill)
+		ring := focus.RingColor(scheme.colors, pinnedFill)
 		img := golden.Capture(t, size, onWindowSurface(scheme.colors, button.RenderIcon(
 			crossIcon, scheme.colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
 			button.RenderState{Fill: pinnedFill, Foreground: pinnedForeground, Focused: true},
@@ -383,24 +383,24 @@ func TestPinnedFillCarriesAHaloThatReadsOnIt(t *testing.T) {
 		if img == nil {
 			return // headless unavailable; Capture called t.Skip
 		}
-		// A pixel on the half of the halo that lies over the button, clear
+		// A pixel on the half of the ring that lies over the button, clear
 		// of both corners: the leading columns 0 to Outside of the button's
 		// own square.
 		if at := img.RGBAAt(out-1, side/2); !nearlyEqual(at, ring) {
-			t.Errorf("%s: halo pixel at (%d,%d) = %v, want the focus indicator over the pin %v",
+			t.Errorf("%s: ring pixel at (%d,%d) = %v, want the focus indicator over the pin %v",
 				scheme.name, out-1, side/2, at, ring)
 		}
 	}
 }
 
-// beneathTheRing is what the half of a focused button's halo that lies over
+// beneathTheRing is what the half of a focused button's ring that lies over
 // the button rests on: the variant's own resting fill. It is the test's own copy of the
 // rule drawButton applies, kept here so the assertion below reads a value
 // written independently of the code that painted it. Focus keeps the resting
 // fill in every variant, so the fill under the band is the resting one.
 //
 // Every one of these is opaque, so the plane under it does not reach the
-// pixel; the halo's own coverage is resolved against them by focus.Ring.
+// pixel; the ring's own coverage is resolved against them by focus.RingColor.
 func beneathTheRing(p tokens.PlatformColors, e button.Emphasis) color.NRGBA {
 	switch e {
 	case button.Tonal:
@@ -412,16 +412,16 @@ func beneathTheRing(p tokens.PlatformColors, e button.Emphasis) color.NRGBA {
 	}
 }
 
-// TestFocusHaloIsTheSameHaloInEveryEmphasis is the pixel proof of the rule
-// that keyboard visibility does not scale down with emphasis: the halo is the
+// TestFocusRingIsTheSameRingInEveryEmphasis is the pixel proof of the rule
+// that keyboard visibility does not scale down with emphasis: the ring is the
 // same shape, in the same place, at the same width in all three emphases. So
-// a ghost button's halo is neither thinner, dimmer nor smaller than a filled
+// a ghost button's ring is neither thinner, dimmer nor smaller than a filled
 // one's.
 //
 // The geometry is stated here rather than compared between emphases — a band
 // straddling the button's own square, focus.Outside of it past that square
 // and focus.Outside of it over it, and nothing anywhere else — so "the same
-// halo" is a claim about a band written down once and held by all three.
+// ring" is a claim about a band written down once and held by all three.
 //
 // The colour is the platform's one focus indicator in every variant, and it
 // carries a coverage, so each half is that indicator over what that half
@@ -431,12 +431,12 @@ func beneathTheRing(p tokens.PlatformColors, e button.Emphasis) color.NRGBA {
 //
 // Both appearances, because the platform answers the indicator per
 // appearance.
-func TestFocusHaloIsTheSameHaloInEveryEmphasis(t *testing.T) {
+func TestFocusRingIsTheSameRingInEveryEmphasis(t *testing.T) {
 	size := image.Pt(60, 60)
 	side := int(tokens.Comfortable.ControlHeight) // 1 px per dp in the harness
 	out := int(focus.Outside)
 
-	// band reports which half of the halo p falls in — inside the button's
+	// band reports which half of the ring p falls in — inside the button's
 	// square or past it — and whether it is one of the anti-aliased corners
 	// the colour check excuses. The button is drawn at the frame's origin, so
 	// the leading and top halves that lie past the square fall outside the
@@ -473,13 +473,13 @@ func TestFocusHaloIsTheSameHaloInEveryEmphasis(t *testing.T) {
 	} {
 		colors := scheme.colors
 		for _, e := range []button.Emphasis{button.Filled, button.Tonal, button.Ghost} {
-			over := focus.Ring(colors, beneathTheRing(colors, e))
-			past := focus.Ring(colors, colors.WindowBackground)
+			over := focus.RingColor(colors, beneathTheRing(colors, e))
+			past := focus.RingColor(colors, colors.WindowBackground)
 
-			// No glyph: at the platform's control height the padding is
-			// 2 dp and the halo reaches 2 dp in, so a glyph inset by the
+			// No symbol: at the platform's control height the padding is
+			// 2 dp and the ring reaches 2 dp in, so a symbol inset by the
 			// padding reaches into the band and a colour scan of the band
-			// would be reading the glyph. The claim here is about the band.
+			// would be reading the symbol. The claim here is about the band.
 			img := golden.Capture(t, size, onWindowSurface(colors, button.RenderIcon(
 				nil, colors, tokens.Spacing, tokens.RadiusScale{}, tokens.Comfortable,
 				button.RenderState{Emphasis: e, Focused: true},
@@ -506,11 +506,11 @@ func TestFocusHaloIsTheSameHaloInEveryEmphasis(t *testing.T) {
 				}
 			}
 			if missing > 0 {
-				t.Errorf("%s %s: %d pixels of the halo's band are not the halo colour (over the button %v, past it %v)",
+				t.Errorf("%s %s: %d pixels of the ring's band are not the ring colour (over the button %v, past it %v)",
 					scheme.name, e, missing, over, past)
 			}
 			if leaked > 0 {
-				t.Errorf("%s %s: %d pixels in a halo colour fall outside the halo's band",
+				t.Errorf("%s %s: %d pixels in a ring colour fall outside the ring's band",
 					scheme.name, e, leaked)
 			}
 		}
@@ -843,7 +843,7 @@ func TestButtonPressedIsVisuallyDistinct(t *testing.T) {
 // ---- Icon-only variant (GX.3) ----
 
 // TestIconButtonGolden records or diffs the icon-only variant in its idle and
-// focused states. Zero corner radius keeps edges sharp; the glyph is a
+// focused states. Zero corner radius keeps edges sharp; the symbol is a
 // clip.Stroke "×" so the render is deterministic.
 func TestIconButtonGolden(t *testing.T) {
 	size := image.Pt(60, 60)
@@ -891,7 +891,7 @@ func TestIconButtonVisualIsControlHeightSquare(t *testing.T) {
 }
 
 // TestIconButtonCompactGolden records or diffs the icon-only button at
-// tokens.Compact through the live pipeline: a 28 dp square with a 16 dp glyph.
+// tokens.Compact through the live pipeline: a 28 dp square with a 16 dp symbol.
 func TestIconButtonCompactGolden(t *testing.T) {
 	w := materialize(t, button.Button(rx.Of(densityTheme(tokens.Compact)), button.Props{
 		Icon:        crossIcon,

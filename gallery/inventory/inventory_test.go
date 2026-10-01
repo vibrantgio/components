@@ -97,11 +97,11 @@ func TestNoSectionIsPinnedToAnAppearance(t *testing.T) {
 					}
 				}
 				if got := share(drk, light.ControlBackground); got > planeFloor {
-					t.Errorf("%s: %.2f%% of the dark slot is the light set's own content plane, over the %.1f%% glyphs and marks account for — something in it is drawn from a default set",
+					t.Errorf("%s: %.2f%% of the dark slot is the light set's own content plane, over the %.1f%% symbols and marks account for — something in it is drawn from a default set",
 						s.Name, got, planeFloor)
 				}
 				if got := share(lit, dark.ControlBackground); got > planeFloor {
-					t.Errorf("%s: %.2f%% of the light slot is the dark set's own content plane, over the %.1f%% glyphs and marks account for — something in it is drawn from a default set",
+					t.Errorf("%s: %.2f%% of the light slot is the dark set's own content plane, over the %.1f%% symbols and marks account for — something in it is drawn from a default set",
 						s.Name, got, planeFloor)
 				}
 			})
@@ -197,7 +197,7 @@ const (
 	// pinned surface hide. White and near-black occur legitimately — the
 	// foreground the platform pairs with an accent fill is white, and a
 	// syntax highlighter style may name either — so the floor stands above what
-	// glyphs and marks account for and far below what a panel would put there.
+	// symbols and marks account for and far below what a panel would put there.
 	planeFloor = 2.0
 )
 
@@ -232,12 +232,12 @@ func TestTheCodeSpecimenIsLast(t *testing.T) {
 }
 
 // TestTheSchemeControlIsAControl measures the light/dark control on both sides
-// of the scheme: the target each half offers a pointer, and how far each glyph
+// of the scheme: the target each half offers a pointer, and how far each symbol
 // stands off the surface it is drawn on.
 //
 // Both halves are measured, not only the current one. A segment control says
 // what it does by showing the choice that is not in force beside the one that
-// is, and a glyph that has faded into the track says only that something is
+// is, and a symbol that has faded into the track says only that something is
 // selected.
 func TestTheSchemeControlIsAControl(t *testing.T) {
 	// The whole control, and one segment of it, at one dp per pixel.
@@ -258,11 +258,11 @@ func TestTheSchemeControlIsAControl(t *testing.T) {
 				}
 				foreground, fill := schemeSegmentColors(sc.c, selected)
 				ratio := themecolor.Magnitude(foreground, fill)
-				t.Logf("%s scheme, %s segment, selected=%v: glyph |Lc| %.2f on the fill behind it",
+				t.Logf("%s scheme, %s segment, selected=%v: symbol |Lc| %.2f on the fill behind it",
 					sc.name, map[bool]string{false: "sun", true: "moon"}[dark], selected, ratio)
-				if ratio < schemeGlyphFloor {
-					t.Errorf("%s: a glyph on a segment with selected=%v measures |Lc| %.2f, want at least |Lc| %.1f",
-						sc.name, selected, ratio, schemeGlyphFloor)
+				if ratio < schemeSymbolFloor {
+					t.Errorf("%s: a symbol on a segment with selected=%v measures |Lc| %.2f, want at least |Lc| %.1f",
+						sc.name, selected, ratio, schemeSymbolFloor)
 				}
 			}
 		}
@@ -355,26 +355,26 @@ func TestTheSchemeSegmentIsItsOwnTarget(t *testing.T) {
 	}
 }
 
-// TestTheSchemeFillHoldsItsGlyph is the floor under the track's height. The
-// track is cut to the scale of the strip it stands in and the glyph on it is
+// TestTheSchemeFillHoldsItsSymbol is the floor under the track's height. The
+// track is cut to the scale of the strip it stands in and the symbol on it is
 // not cut with it, so the fill marking the current half has to go on holding
-// that glyph with something to spare — a mark touching the edge of the thing
+// that symbol with something to spare — a mark touching the edge of the thing
 // that marks it reads as a mark that has outgrown it.
-func TestTheSchemeFillHoldsItsGlyph(t *testing.T) {
+func TestTheSchemeFillHoldsItsSymbol(t *testing.T) {
 	fill := SchemeSwitchH - 2*schemeThumbInset
 	if fill <= schemeIconSize {
-		t.Fatalf("the fill is %v round a %v glyph: the mark is as big as what marks it", fill, schemeIconSize)
+		t.Fatalf("the fill is %v round a %v symbol: the mark is as big as what marks it", fill, schemeIconSize)
 	}
-	t.Logf("track %v, inset %v either side, so the fill is %v round a %v glyph — %v clear at each edge",
+	t.Logf("track %v, inset %v either side, so the fill is %v round a %v symbol — %v clear at each edge",
 		SchemeSwitchH, schemeThumbInset, fill, schemeIconSize, (fill-schemeIconSize)/2)
 }
 
-// The floor the control's glyph is held to.
+// The floor the control's symbol is held to.
 const (
-	// schemeGlyphFloor is the contrast a glyph needs against what is behind
-	// it. A glyph is a graphic and not a line of text, which is the lower of
+	// schemeSymbolFloor is the contrast a symbol needs against what is behind
+	// it. A symbol is a graphic and not a line of text, which is the lower of
 	// the two standing floors.
-	schemeGlyphFloor = tokens.GraphicFloor
+	schemeSymbolFloor = tokens.GraphicFloor
 )
 
 // TestTabItemsDropTheBanner is the whole point of the tab cut: a surface

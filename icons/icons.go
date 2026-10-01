@@ -154,8 +154,8 @@ func SearchDrawingOriginPx(gtx layout.Context, sizePx int) float32 {
 // SearchDrawingSizePx is the side of the drawing inside the square, in device
 // pixels, for a mark drawn at sizePx in this window: SearchDrawingSize scaled
 // and the band's whole widening, half of it spent past each edge. A control
-// holding the platform's measured clear space past the glyph measures it from
-// the last pixel the glyph covers, which is this.
+// holding the platform's measured clear space past the symbol measures it from
+// the last pixel the symbol covers, which is this.
 func SearchDrawingSizePx(gtx layout.Context, sizePx int) float32 {
 	w := float64(widening(gtx.Metric.PxPerDp, sizePx)) / 1000
 	return float32(SearchDrawingSize*float64(sizePx) + w)

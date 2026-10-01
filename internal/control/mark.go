@@ -24,7 +24,7 @@ import (
 // between them.
 //
 // The size is FIXED and not a ratio of the control it stands in. The Finder
-// toolbar draws the same glyph at the same eight by eleven in a control 36 px
+// toolbar draws the same symbol at the same eight by eleven in a control 36 px
 // tall (finder-window-light.png, x 726–733, upper y 21–25, lower y 27–31),
 // where the dialog draws it in one 24 px tall: the platform sizes this mark by
 // its point size, so a taller control gets the same mark with more room around
@@ -107,7 +107,7 @@ func DrawMark(gtx layout.Context, box image.Rectangle, col color.NRGBA) {
 // runs y 336-359 and its pair covers y 343-353 — seven rows above it and six
 // below, an exact centring of eleven rows in twenty-four falling half a pixel
 // low. The two numbers are the platform's own and not a ratio: the Finder
-// toolbar's 36 px pop-up draws the same eight by eleven glyph with the room
+// toolbar's 36 px pop-up draws the same eight by eleven symbol with the room
 // growing around it.
 const (
 	// MarkClearTopDp is what the control leaves clear above the mark.

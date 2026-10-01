@@ -58,7 +58,7 @@ type ToolbarState struct {
 	Focused bool
 
 	// Surface is the opaque fill the trigger stands on — its band. The half
-	// of a focused trigger's halo that lies past its own box is flattened
+	// of a focused trigger's ring that lies past its own box is flattened
 	// onto it; alpha zero is no answer.
 	Surface color.NRGBA
 }
@@ -88,7 +88,7 @@ type ToolbarProps struct {
 	// key.FocusCmd, key.Filter{Focus: …} and an external Tab cycle — and may
 	// detect activation via Clickable.Clicked(gtx). This is what lets a
 	// container that drives focus itself — a popover anchored on this control
-	// — avoid a doubled focus halo. When nil the trigger allocates and owns its
+	// — avoid a doubled focus ring. When nil the trigger allocates and owns its
 	// own clickable, which survives every theme emission.
 	Clickable *widget.Clickable
 
@@ -243,7 +243,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 // seam, the drop shadow the control casts on the band it stands on, and the
 // value and the pop-up mark both in the platform's control text. When
 // s.Focused, the control keeps that rim and wears the library's one focus
-// halo on its outline.
+// ring on its outline.
 //
 // The shadow reaches past the control on every side, so what this
 // layout.Widget paints is wider and taller than what it reports. In the light appearance
@@ -251,7 +251,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 // platform drawing no edge there and filling the control with the band's own
 // white.
 //
-// It takes no glyph, and that is the point rather than an omission: the mark
+// It takes no symbol, and that is the point rather than an omission: the mark
 // on a pop-up trigger is not the caller's to choose, and it does not change
 // when the menu opens. A pair of chevrons pointing opposite ways says the
 // control holds one of several values and cannot say a direction; a caller

@@ -37,7 +37,7 @@ import (
 // to the sub-pixel edges of that disc — every row's two ends and every
 // column's, 60 points — lands on a centre of (261.00, 704.00) with r = 8.17,
 // rms 0.084 px, light and r = 8.12, rms 0.073 px, dark. The centre falls on
-// the glyph's own middle to the hundredth in both appearances, and the fit
+// the symbol's own middle to the hundredth in both appearances, and the fit
 // sits a fifth of a pixel over 8 for the same reason a circular fit sits
 // over every corner in this reference: it is reading an antialiased rim.
 //
@@ -45,7 +45,7 @@ import (
 // captures: the same fit to the white dot inside that accent disc reads
 // 5.00 px across — centre (261.00, 704.00), r = 2.50 at an rms of 0.025 px
 // light and 0.024 px dark over 16 edges — which is five sixteenths of the
-// glyph. The dot's centre is the disc's own to the hundredth, and the dot
+// symbol. The dot's centre is the disc's own to the hundredth, and the dot
 // straddles the pixel boundary that centre falls on: four full columns with a
 // half-covered one at each end.
 const (
@@ -66,10 +66,10 @@ type RadioRenderState struct {
 	// the disc alone.
 	Label string
 
-	// Surface is the opaque fill the control stands on. Its focus halo rides
-	// in the slack around the glyph, so the platform's keyboard focus
+	// Surface is the opaque fill the control stands on. Its focus ring rides
+	// in the slack around the symbol, so the platform's keyboard focus
 	// indicator — a coverage rather than a colour — lands on this, and so
-	// does the glyph's own edge, which is drawn as a shape the fill is inset
+	// does the symbol's own edge, which is drawn as a shape the fill is inset
 	// inside. The zero value — no colour — is the window's own plane.
 	Surface color.NRGBA
 }
@@ -160,7 +160,7 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 				foc := !dis && gtx.Focused(&b)
 
 				// The pointer area is the whole control — the
-				// footprint the glyph is centred in plus the label
+				// footprint the symbol is centred in plus the label
 				// beside it, both of which operate it, as they do on
 				// the platform.
 				// The focus band rings the disc and straddles it, and a
@@ -219,8 +219,8 @@ func RenderRadio(
 // drawRadio renders the radio button into gtx. All visual state comes from s;
 // no event queries are performed here.
 func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layout.Dimensions {
-	// Sizing rule: the visual glyph keeps its 16 dp circle at every density;
-	// the footprint (the row the glyph is centred in) is the density's
+	// Sizing rule: the visual symbol keeps its 16 dp circle at every density;
+	// the footprint (the row the symbol is centred in) is the density's
 	// checkbox row, which the radio stands in beside the box, and the
 	// footprint is the pointer target — the platform gives a pointer the
 	// button's row, never its circle.
@@ -238,7 +238,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		Max: image.Pt(cx+circleSz/2, cy+circleSz/2),
 	}
 
-	// Three drawings, not one with a colour swapped. Unselected, the glyph is
+	// Three drawings, not one with a colour swapped. Unselected, the symbol is
 	// an edge with the control's own fill inside it — the same pair the box
 	// and the field wear at rest. Selected, the whole circle is the accent
 	// the platform paints a chosen control in, with the dot in the
@@ -246,7 +246,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	// and no edge, as the box beside it is. Nested fills throughout:
 	// clip.Stroke's anti-aliasing varies between GPU context initialisations
 	// and these are golden-tested.
-	// Every name the glyph draws that carries a coverage is flattened onto
+	// Every name the symbol draws that carries a coverage is flattened onto
 	// what lies under it: the surface for the edge and the ring, which are
 	// shapes the fill is inset inside, and the fill for the dot.
 	standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
@@ -274,7 +274,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	case s.Disabled:
 		// The switched-off drawing the checkbox measures, for the reason
 		// given in drawCheckbox: the platform's control fill at
-		// tokens.DisabledCoverage over the surface the glyph stands on, and
+		// tokens.DisabledCoverage over the surface the symbol stands on, and
 		// no edge. The Save dialog holds no switched-off radio, so this is
 		// the checkbox's reading carried across — the two controls stand
 		// beside each other in one form and the platform draws them as one
@@ -312,28 +312,28 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		paint.FillShape(gtx.Ops, control.Fill(tok.platform), clip.Ellipse(innerRect).Op(gtx.Ops))
 	}
 
-	// The focus halo, drawn exactly as the checkbox draws it: the library's
-	// one band on the 16 dp glyph's own outline, riding in the slack the
+	// The focus ring, drawn exactly as the checkbox draws it: the library's
+	// one band on the 16 dp symbol's own outline, riding in the slack the
 	// density's footprint holds around it.
 	//
-	// The disc keeps its own edge under the halo whatever it is doing. A
+	// The disc keeps its own edge under the ring whatever it is doing. A
 	// selected radio's edge is already the accent — it is what says the
 	// radio is chosen — and recolouring it on focus would leave a focused
-	// chosen radio looking like an unfocused one; the halo does not recolour
+	// chosen radio looking like an unfocused one; the ring does not recolour
 	// anything, it composites over it.
 	if s.Focused && !s.Disabled {
 		discEdge := control.Border(tok.platform)
 		if s.Selected {
 			discEdge = tok.platform.ControlAccent
 		}
-		focus.HaloEllipse(gtx, outerRect,
-			focus.Ring(tok.platform, standsOn), focus.Ring(tok.platform, discEdge))
+		focus.RingEllipse(gtx, outerRect,
+			focus.RingColor(tok.platform, standsOn), focus.RingColor(tok.platform, discEdge))
 	}
 
 	// The label is part of the control, as it is on the platform, drawn
 	// exactly as the checkbox draws it: the measured gap after the circle,
-	// the platform's label colour over the surface the glyph stands on, and
-	// faded with the glyph.
+	// the platform's label colour over the surface the symbol stands on, and
+	// faded with the symbol.
 	label := vgcolor.Flatten(tok.platform.Label, standsOn)
 	if s.Disabled {
 		label = vgcolor.Flatten(tok.platform.TertiaryLabel, standsOn)

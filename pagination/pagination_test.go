@@ -186,7 +186,7 @@ type stray struct {
 // spanOf walks r and reports the first pixel outside the per-channel span
 // from a to b — the two colours a cell is drawn from, the surface and the text
 // composited over it — and whether any pixel left a at all, which is how a
-// drawn glyph is told from an empty cell.
+// drawn symbol is told from an empty cell.
 func spanOf(img *image.RGBA, r image.Rectangle, a, b color.NRGBA) (*stray, bool) {
 	moved := false
 	within := func(v, lo, hi uint8) bool {
@@ -239,7 +239,7 @@ func densityTheme(d tokens.Density) theme.Theme {
 // TestPaginationCompactGolden records or diffs the compact-density golden
 // through the LIVE pipeline (the static Render path is frozen at
 // tokens.Comfortable): the page squares densify to the 28 dp
-// ControlHeight and the chevron glyphs to the 16 dp icon size.
+// ControlHeight and the chevron symbols to the 16 dp icon size.
 func TestPaginationCompactGolden(t *testing.T) {
 	lightBG := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
 	props := pagination.Props{Page: 3, PageCount: 5, Shaper: defaultShaper(t)}

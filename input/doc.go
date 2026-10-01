@@ -30,12 +30,12 @@
 // keyboard focus indicator. None of them measures, walks or derives a colour
 // of its own.
 //
-// A checkbox and a radio are the glyph and the label together: the label is
+// A checkbox and a radio are the symbol and the label together: the label is
 // part of the control, as it is on the platform, so the whole row operates
 // the box and the label fades with it when the control is switched off. It
-// stands at the platform's measured gap after the glyph, in the platform's
-// label colour, with its cap band centred on the glyph's row. A control with
-// no label draws the glyph alone.
+// stands at the platform's measured gap after the symbol, in the platform's
+// label colour, with its cap band centred on the symbol's row. A control with
+// no label draws the symbol alone.
 //
 // A text field takes the density's field height rather than its control
 // height: the platform draws a field shorter than the button standing beside
@@ -72,7 +72,7 @@
 //
 // On a sidebar the leading cluster is that sidebar's own: the looking glass
 // stands 9 px in from the field's edge with the prompt 5 px after its last
-// pixel, and the glyph is the platform's — a round lens on a hairline band,
+// pixel, and the symbol is the platform's — a round lens on a hairline band,
 // its centre on the field's centre row rather than its bounding box centred
 // there. A field on a form and one in a toolbar spend the toolbar field's
 // measured pair instead, 10 px and 8 px, which Mail's toolbar and Finder's

@@ -115,7 +115,7 @@ func coveredRows(img *image.RGBA, fromX, toX int) (first, last int) {
 }
 
 // TestLabelStandsAtTheMeasuredGap asserts the label's first covered column is
-// six clear of the glyph's last, which is what the platform draws.
+// six clear of the symbol's last, which is what the platform draws.
 //
 // MEASURED, save-dialog-{light,dark}.png: both "Options:" squares end at
 // column 279 and both labels' first covered column is 286 — six columns
@@ -146,35 +146,35 @@ func TestLabelStandsAtTheMeasuredGap(t *testing.T) {
 			if len(cols) < 2 {
 				t.Fatalf("%s: the capture carries no drawing", tc.name)
 			}
-			// The glyph and the label are the only two runs of drawing
+			// The symbol and the label are the only two runs of drawing
 			// in the row, so the one break between consecutive covered
 			// columns is the gap.
-			glyphLast, labelFirst := -1, -1
+			symbolLast, labelFirst := -1, -1
 			for i := 1; i < len(cols); i++ {
 				if cols[i] != cols[i-1]+1 {
-					glyphLast, labelFirst = cols[i-1], cols[i]
+					symbolLast, labelFirst = cols[i-1], cols[i]
 					break
 				}
 			}
-			if glyphLast < 0 {
-				t.Fatalf("%s: the glyph and its label are not separated by clear columns", tc.name)
+			if symbolLast < 0 {
+				t.Fatalf("%s: the symbol and its label are not separated by clear columns", tc.name)
 			}
-			if clear := labelFirst - glyphLast - 1; clear != 6 {
-				t.Errorf("%s: %d clear columns between the glyph (last column %d) and its label (first column %d), want 6 as the save dialog measures",
-					tc.name, clear, glyphLast, labelFirst)
+			if clear := labelFirst - symbolLast - 1; clear != 6 {
+				t.Errorf("%s: %d clear columns between the symbol (last column %d) and its label (first column %d), want 6 as the save dialog measures",
+					tc.name, clear, symbolLast, labelFirst)
 			}
 		})
 	}
 }
 
-// TestLabelCapBandIsCentredOnTheGlyphsRow asserts the label's cap band is
-// centred on the row the glyph stands in, with the platform's rounding.
+// TestLabelCapBandIsCentredOnTheSymbolsRow asserts the label's cap band is
+// centred on the row the symbol stands in, with the platform's rounding.
 //
 // MEASURED, save-dialog-{light,dark}.png: "Show startup screen" caps run
 // y 375–385 against a square of y 372–387 — a band centre of 380.0 against
 // the square's 379.5 — and "Stay open after run handler" agrees. The band is
 // centred on the square and the rounding falls half a pixel low, never high.
-func TestLabelCapBandIsCentredOnTheGlyphsRow(t *testing.T) {
+func TestLabelCapBandIsCentredOnTheSymbolsRow(t *testing.T) {
 	shaper := defaultShaper(t)
 	// Capitals only: the band the reading is taken on runs from the baseline
 	// up to the cap height, so a descender or an x-height letter would cover
@@ -186,16 +186,16 @@ func TestLabelCapBandIsCentredOnTheGlyphsRow(t *testing.T) {
 		return
 	}
 	row := int(tokens.Comfortable.CheckboxRowHeight)
-	glyphFirst, glyphLast := coveredRows(img, 0, row)
+	symbolFirst, symbolLast := coveredRows(img, 0, row)
 	labelFirst, labelLast := coveredRows(img, row+4, labelledSize.X)
 	if labelFirst < 0 {
 		t.Fatal("the label drew nothing")
 	}
-	glyphCentre := float64(glyphFirst+glyphLast+1) / 2
+	symbolCentre := float64(symbolFirst+symbolLast+1) / 2
 	labelCentre := float64(labelFirst+labelLast+1) / 2
-	if d := labelCentre - glyphCentre; d < 0 || d > 1 {
-		t.Errorf("the label's cap band runs y %d–%d (centre %.1f) against a glyph of y %d–%d (centre %.1f): the band must be centred on the glyph's row, the rounding falling low and never high",
-			labelFirst, labelLast, labelCentre, glyphFirst, glyphLast, glyphCentre)
+	if d := labelCentre - symbolCentre; d < 0 || d > 1 {
+		t.Errorf("the label's cap band runs y %d–%d (centre %.1f) against a symbol of y %d–%d (centre %.1f): the band must be centred on the symbol's row, the rounding falling low and never high",
+			labelFirst, labelLast, labelCentre, symbolFirst, symbolLast, symbolCentre)
 	}
 }
 
@@ -243,9 +243,9 @@ func TestLabelIsPartOfThePointerTarget(t *testing.T) {
 
 			row := float32(tokens.Comfortable.CheckboxRowHeight)
 			if float32(dims.Size.X) <= row {
-				t.Fatalf("a labelled %s measures %v, no wider than the glyph's %v px row", tc.name, dims.Size, row)
+				t.Fatalf("a labelled %s measures %v, no wider than the symbol's %v px row", tc.name, dims.Size, row)
 			}
-			// Well inside the label, clear of the glyph and of the gap.
+			// Well inside the label, clear of the symbol and of the gap.
 			pos := f32.Pt(float32(dims.Size.X)-2, row/2)
 			r.Queue(
 				pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
@@ -260,11 +260,11 @@ func TestLabelIsPartOfThePointerTarget(t *testing.T) {
 	}
 }
 
-// TestSwitchedOffLabelFadesWithItsGlyph asserts the label of a switched-off
+// TestSwitchedOffLabelFadesWithItsSymbol asserts the label of a switched-off
 // control is drawn in the platform's tertiary label rather than its label
-// colour — the same fade the glyph beside it takes, and the colour both
+// colour — the same fade the symbol beside it takes, and the colour both
 // checkbox labels read on the save dialog's sheet.
-func TestSwitchedOffLabelFadesWithItsGlyph(t *testing.T) {
+func TestSwitchedOffLabelFadesWithItsSymbol(t *testing.T) {
 	shaper := defaultShaper(t)
 	for _, sc := range switchedOffReadings {
 		t.Run(sc.name, func(t *testing.T) {
@@ -279,7 +279,7 @@ func TestSwitchedOffLabelFadesWithItsGlyph(t *testing.T) {
 			full := vgcolor.Flatten(sc.platform.Label, sc.sheet)
 
 			// The label's darkest pixel against the sheet is the one the
-			// reading is taken on: anti-aliasing only moves a glyph's pixels
+			// reading is taken on: anti-aliasing only moves a symbol's pixels
 			// toward the surface, never past the colour it was stroked in.
 			row := int(tokens.Comfortable.CheckboxRowHeight)
 			best, found := stdcolor.RGBA{}, false

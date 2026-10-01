@@ -102,7 +102,7 @@ func TestToolbarGoldenOnEverySurface(t *testing.T) {
 // TestToolbarStateGolden records the trigger's states on the chrome in both
 // schemes. The focused image is the one worth storing twice over: the ring
 // replaces the rim at the trigger's corner too, so a ring drawn at the pill's
-// Full radius over a rounded-rect fill would show here as a halo that misses
+// Full radius over a rounded-rect fill would show here as a ring that misses
 // its corners.
 func TestToolbarStateGolden(t *testing.T) {
 	states := []struct {

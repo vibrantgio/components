@@ -236,15 +236,15 @@ func TestHeightIsTheLineBoxAndNothingElse(t *testing.T) {
 		for _, tc := range []struct {
 			name  string
 			label string
-			glyph badge.Glyph
+			symbol badge.Symbol
 		}{
 			{"word", "Popular", nil},
 			{"count", "9", nil},
-			{"glyph", "", check},
+			{"symbol", "", check},
 			{"both", "Verified", check},
 		} {
 			t.Run(d.name+" "+tc.name, func(t *testing.T) {
-				got := measure(t, badge.Render(shaper, tc.label, tc.glyph, badge.Neutral,
+				got := measure(t, badge.Render(shaper, tc.label, tc.symbol, badge.Neutral,
 					tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, badge.RenderState{}))
 				if got.Y != want {
 					t.Errorf("height = %d dp, want the %g dp line box of the %s role",
@@ -314,8 +314,8 @@ func TestBadgeIsSizedToItsContent(t *testing.T) {
 func TestTheSignCostsTheLineBoxAndOneStop(t *testing.T) {
 	shaper := defaultShaper(t)
 	style := badgeStyle()
-	render := func(glyph badge.Glyph) layout.Widget {
-		return badge.Render(shaper, "Verified", glyph, badge.Neutral,
+	render := func(symbol badge.Symbol) layout.Widget {
+		return badge.Render(shaper, "Verified", symbol, badge.Neutral,
 			tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, badge.RenderState{})
 	}
 	bare := measure(t, render(nil))
@@ -428,7 +428,7 @@ func dimensions(t *testing.T, w layout.Widget) layout.Dimensions {
 // the line box while the words beside it are set in a larger role lands a few
 // pixels off the line it belongs on.
 //
-// A glyph badge reports none on purpose. A sign has no baseline to offer, and
+// A symbol badge reports none on purpose. A sign has no baseline to offer, and
 // zero is what Gio reads as "align me by my box".
 func TestTheBadgeReportsItsLabelsBaseline(t *testing.T) {
 	shaper := defaultShaper(t)
@@ -449,10 +449,10 @@ func TestTheBadgeReportsItsLabelsBaseline(t *testing.T) {
 	if got, want := worded.Baseline, typesetBaseline(t, shaper, style, "Popular"); got != want {
 		t.Errorf("the badge reports baseline %d and its own typesetting reports %d", got, want)
 	}
-	glyphOnly := dimensions(t, badge.Render(shaper, "", check, badge.Neutral,
+	symbolOnly := dimensions(t, badge.Render(shaper, "", check, badge.Neutral,
 		tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, badge.RenderState{}))
-	if glyphOnly.Baseline != 0 {
-		t.Errorf("a glyph badge reports baseline %d: a sign has none to report", glyphOnly.Baseline)
+	if symbolOnly.Baseline != 0 {
+		t.Errorf("a symbol badge reports baseline %d: a sign has none to report", symbolOnly.Baseline)
 	}
 }
 
@@ -556,11 +556,11 @@ func TestAWordedBadgeWearsItsFill(t *testing.T) {
 	}
 }
 
-// TestAGlyphBadgeStandsBare is the exception the ruling carved out: the
+// TestASymbolBadgeStandsBare is the exception the ruling carved out: the
 // invariant is that hue is never the badge's only channel, and a sign already
-// carries its meaning in its shape, so a glyph badge wears no fill and no
+// carries its meaning in its shape, so a symbol badge wears no fill and no
 // padding. Its whole box is the page it stands on, plus the sign.
-func TestAGlyphBadgeStandsBare(t *testing.T) {
+func TestASymbolBadgeStandsBare(t *testing.T) {
 	shaper := defaultShaper(t)
 	style := badgeStyle()
 	for _, sc := range goldenSchemes {
@@ -568,14 +568,14 @@ func TestAGlyphBadgeStandsBare(t *testing.T) {
 			sc.p, tokens.Spacing, tokens.Radius, style, badge.RenderState{})
 		size := measure(t, w)
 		if want := int(style.LineHeight); size.X != want || size.Y != want {
-			t.Errorf("%s: a glyph badge measured %v, want the %d dp line box square — a fill or a padding term has crept in",
+			t.Errorf("%s: a symbol badge measured %v, want the %d dp line box square — a fill or a padding term has crept in",
 				sc.name, size, want)
 		}
 		img := golden.Capture(t, goldenSize, onPage(sc.p, w))
 		page := sc.p.ControlBackground
 		for _, p := range []image.Point{{X: 0, Y: 0}, {X: size.X - 1, Y: 0}, {X: 0, Y: size.Y - 1}} {
 			if got := badgePixel(t, img, p.X, p.Y); !sameColour(got, page) {
-				t.Errorf("%s: the glyph badge's corner pixel %v is %v, want the page %v — a bare badge has grown a fill",
+				t.Errorf("%s: the symbol badge's corner pixel %v is %v, want the page %v — a bare badge has grown a fill",
 					sc.name, p, got, page)
 			}
 		}

@@ -32,7 +32,7 @@ import (
 // Emphasis is how pronounced a button is — how strongly it competes for
 // attention on the surface it sits on. It is a colour property and nothing
 // else: the drawn control keeps the density's size, the pointer target keeps
-// that size with it, and the focus halo keeps its shape, width and place in
+// that size with it, and the focus ring keeps its shape, width and place in
 // every variant. Keyboard visibility is not an emphasis property.
 //
 // The three variants are the three buttons the platform draws: the default
@@ -56,12 +56,12 @@ const (
 	Tonal
 
 	// Ghost is the least pronounced variant: the platform's borderless
-	// button — no fill and no edge, the label or glyph in the
+	// button — no fill and no edge, the label or symbol in the
 	// platform's control text. For affordances that must be present without
 	// being the subject — a dialog's close X, a toolbar of icons, a "Learn
 	// more". A ghost is less pronounced, not small: it draws the same square
 	// as a filled button, so it offers the same pointer target, and it keeps
-	// the full focus halo.
+	// the full focus ring.
 	Ghost
 )
 
@@ -183,7 +183,7 @@ type RenderState struct {
 	// platform's press overlay while the button is held, still keeps the
 	// pin at rest, under the pointer and under focus, and still gives way
 	// to the platform's disabled pair when the button is disabled; and the
-	// focus halo is the platform's own, which composites over whatever fill
+	// focus ring is the platform's own, which composites over whatever fill
 	// came back.
 	//
 	// The two are one pin and are honoured together. Leave either half
@@ -231,8 +231,8 @@ type Props struct {
 	// the one action a surface is about, Tonal for a secondary action,
 	// Ghost for an affordance that must be present without being the
 	// subject. It changes colour only — never the drawn size, never the
-	// pointer target, never the focus halo. Composes with Icon: a ghost
-	// icon button is a less pronounced glyph over the same square.
+	// pointer target, never the focus ring. Composes with Icon: a ghost
+	// icon button is a less pronounced symbol over the same square.
 	Emphasis Emphasis
 
 	// Variant is where the button stands: [Form] (the zero value) among
@@ -270,11 +270,11 @@ type Props struct {
 
 	// Icon, when non-nil and Label is empty, renders the button as a compact
 	// icon-only affordance: a square the density's control height on a side
-	// with the glyph centred, instead of a fill-width text label; that square
+	// with the symbol centred, instead of a fill-width text label; that square
 	// is the pointer target. The painter draws into
 	// a sizePx×sizePx box at the current origin in colour col, via
 	// clip.Path / clip.Stroke, so output stays golden-deterministic (no font or
-	// SVG rasterisation). components/icon is the registry for named glyphs;
+	// SVG rasterisation). components/icon is the registry for named symbols;
 	// determinism-sensitive callers pass a clip.Path painter directly.
 	Icon func(gtx layout.Context, sizePx int, col color.NRGBA)
 
@@ -296,7 +296,7 @@ type Props struct {
 	// The caller then owns &Clickable as the button's focus tag — usable with
 	// key.FocusCmd, key.Filter{Focus: …} and an external Tab cycle — and may
 	// detect activation via Clickable.Clicked(gtx). This lets a container (e.g.
-	// patterns/modal) drive focus and trap Tab without a doubled focus halo.
+	// patterns/modal) drive focus and trap Tab without a doubled focus ring.
 	// When nil the button allocates and owns its own clickable.
 	Clickable *widget.Clickable
 
@@ -506,10 +506,10 @@ func Render(
 }
 
 // RenderIcon produces a layout.Widget for a compact icon-only button in an
-// explicit visual state, without event processing or rx machinery. The glyph
+// explicit visual state, without event processing or rx machinery. The symbol
 // is drawn by icon into a square d.ControlHeight on a side, inset by
 // d.PaddingY, in the emphasis s carries — a ghost icon button is the less
-// pronounced glyph patterns/modal's close affordance wants, over the same
+// pronounced symbol patterns/modal's close affordance wants, over the same
 // square as a filled one, which is the pointer target in both.
 // Pass tokens.Comfortable for the default desktop look. Intended
 // for golden-image testing and static demonstrations; production code should
@@ -559,7 +559,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	// radius drawn, the platform's corner being a continuous curve.
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
 
-	bg, fg, haloOut, haloOver := buttonColors(tok.platform, s)
+	bg, fg, ringOut, ringOver := buttonColors(tok.platform, s)
 
 	// Record the label's paint material — replayed inside the label layout.
 	mColor := op.Record(gtx.Ops)
@@ -612,12 +612,12 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 	rrect := clip.RRect{Rect: image.Rectangle{Max: btnSize}, SE: rad, SW: rad, NE: rad, NW: rad}
 	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
 
-	// The focus halo, on the button's own outline: same shape, same width
+	// The focus ring, on the button's own outline: same shape, same width
 	// and same place in every emphasis — keyboard visibility is not a
-	// prominence property, so a ghost button's halo is exactly a filled
+	// prominence property, so a ghost button's ring is exactly a filled
 	// one's, and neither grows the box the button reports.
 	if s.Focused {
-		focus.Halo(gtx, image.Rectangle{Max: btnSize}, rad, haloOut, haloOver)
+		focus.Ring(gtx, image.Rectangle{Max: btnSize}, rad, ringOut, ringOver)
 	}
 
 	// Replay the label centered within the button.
@@ -636,40 +636,40 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 
 // drawIconButton renders a compact, square icon-only button: a square the
 // density's control height on a side, filled with the button background, the
-// focus halo when focused, and the glyph (drawn by icon) centred inside the
+// focus ring when focused, and the symbol (drawn by icon) centred inside the
 // padding. Shares buttonColors with the text button so the emphasis and the
 // press, focus and disabled treatments match. All visual state comes from s;
 // no event queries are performed here.
 func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int, col color.NRGBA), tok resolvedTokens, s RenderState) layout.Dimensions {
-	// Sizing rule: side = Density.ControlHeight, glyph inset =
-	// Density.PaddingY, so the glyph gets ControlHeight − 2·PaddingY — the
+	// Sizing rule: side = Density.ControlHeight, symbol inset =
+	// Density.PaddingY, so the symbol gets ControlHeight − 2·PaddingY — the
 	// same content-box rule icon.Size documents. That square is the pointer
 	// target in every emphasis: emphasis reaches the colours and stops
-	// there, so the glyph grows less pronounced and the square does not
+	// there, so the symbol grows less pronounced and the square does not
 	// shrink.
 	pad := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	side := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	rad := gtx.Dp(unit.Dp(tok.radius.Md)) // the measured push-button corner; see drawButton
 	sz := image.Pt(side, side)
 
-	bg, fg, haloOut, haloOver := buttonColors(tok.platform, s)
+	bg, fg, ringOut, ringOver := buttonColors(tok.platform, s)
 
 	rrect := clip.RRect{Rect: image.Rectangle{Max: sz}, SE: rad, SW: rad, NE: rad, NW: rad}
 	paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
 
-	// The focus halo, matching drawButton.
+	// The focus ring, matching drawButton.
 	if s.Focused {
-		focus.Halo(gtx, image.Rectangle{Max: sz}, rad, haloOut, haloOver)
+		focus.Ring(gtx, image.Rectangle{Max: sz}, rad, ringOut, ringOver)
 	}
 
-	// Glyph, centred within the padded square.
+	// Symbol, centred within the padded square.
 	if icon != nil {
-		glyph := side - 2*pad
-		if glyph < 1 {
-			glyph, pad = side, 0
+		symbol := side - 2*pad
+		if symbol < 1 {
+			symbol, pad = side, 0
 		}
 		off := op.Offset(image.Pt(pad, pad)).Push(gtx.Ops)
-		icon(gtx, glyph, fg)
+		icon(gtx, symbol, fg)
 		off.Pop()
 	}
 
@@ -680,8 +680,8 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 }
 
 // buttonColors returns what the button paints for the given variant and
-// interaction state: the fill, the foreground of the label or glyph, and the
-// two colours the halo of a focused button takes — the half past its box and
+// interaction state: the fill, the foreground of the label or symbol, and the
+// two colours the ring of a focused button takes — the half past its box and
 // the half over it. An unused part comes back at alpha zero, which is no
 // colour a fill could use.
 //
@@ -754,8 +754,8 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 // is no pair.
 //
 // Focus is a persistent state and not a treatment that replaces another: in
-// every variant it keeps the resting fill and adds the halo.
-func buttonColors(p tokens.PlatformColors, s RenderState) (bg, fg, haloOut, haloOver color.NRGBA) {
+// every variant it keeps the resting fill and adds the ring.
+func buttonColors(p tokens.PlatformColors, s RenderState) (bg, fg, ringOut, ringOver color.NRGBA) {
 	standsOn := surface.Or(s.Surface, p.WindowBackground)
 
 	switch s.Emphasis {
@@ -794,7 +794,7 @@ func buttonColors(p tokens.PlatformColors, s RenderState) (bg, fg, haloOut, halo
 		}
 	}
 	beneath := fillOr(bg, standsOn)
-	return bg, vgcolor.Flatten(fg, beneath), focus.Ring(p, standsOn), focus.Ring(p, beneath)
+	return bg, vgcolor.Flatten(fg, beneath), focus.RingColor(p, standsOn), focus.RingColor(p, beneath)
 }
 
 // fillOr returns the button's own fill, or what it stands on where it has

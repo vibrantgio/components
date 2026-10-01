@@ -57,7 +57,7 @@ func TestTheTriggerTakesThePlatformsNames(t *testing.T) {
 			t.Errorf("light: Rim = %v, want no edge at all — the platform draws none over this fill", rim)
 		}
 		// The toolbar's own label colour, and not the control text a FORM
-		// control draws: MEASURED off the band's bare title and its glyphs,
+		// control draws: MEASURED off the band's bare title and its symbols,
 		// which hold one plateau the control text does not land.
 		if got, want := Label(p, fill), p.ToolbarLabel; got != want {
 			t.Errorf("%s: Label = %v, want the toolbar's measured label %v", sc.name, got, want)

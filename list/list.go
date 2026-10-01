@@ -42,9 +42,9 @@
 //
 // A list shows its focus as the platform does for the place it stands in,
 // and the caller says the place by wrapping its layout or leaving it bare. A
-// list standing in the content or at the front of a dialog wraps in [Halo],
-// which draws the one focus ring every control in this library wears on the
-// list's own box. A chrome rail says it in the pill's colour
+// list standing in the content or at the front of a dialog wraps in
+// [FocusRing], which draws the one focus ring every control in this library
+// wears on the list's own box. A chrome rail says it in the pill's colour
 // (github.com/vibrantgio/patterns/sidebar) and a menu in the held row
 // (github.com/vibrantgio/components/picker), so neither wraps and neither
 // draws a ring.
@@ -111,7 +111,7 @@ type State struct {
 	viewport int
 
 	// rows is the index and size of every row the most recent selectable
-	// layout drew, which is what [Halo] reads to say which fill each pixel
+	// layout drew, which is what [FocusRing] reads to say which fill each pixel
 	// of its band stands on. Only the rows that layout drew are in it: a row
 	// virtualisation skipped has no geometry, and the band cannot cross it.
 	rows []rowGeometry
@@ -267,9 +267,9 @@ func LayoutSelectable[T any](
 }
 
 // measuring wraps rowFn so that every row it lays out leaves its index and
-// size behind in s. [Halo] reads them: the band's half over the list's box
-// lies on the fill of whichever row it crosses, and only the rows a layout
-// drew can be crossed.
+// size behind in s. [FocusRing] reads them: the band's half over the list's
+// box lies on the fill of whichever row it crosses, and only the rows a
+// layout drew can be crossed.
 //
 // The rows are recorded rather than derived because a list imposes no row
 // height — a caller's rows may each be a different one — and they are looked
@@ -293,7 +293,7 @@ type rowBox struct {
 }
 
 // rowBoxes answers the box every row the most recent layout drew fills, in
-// the viewport's own coordinates. [Halo] reads it to say which fill each
+// the viewport's own coordinates. [FocusRing] reads it to say which fill each
 // pixel of its band stands on.
 //
 // The scroll position is final once the layout returns: the rows run from

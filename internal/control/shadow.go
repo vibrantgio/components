@@ -234,8 +234,8 @@ func shadowTile(gtx layout.Context, rect image.Rectangle, stop1 f32.Point, c1 co
 // either appearance's measured numbers.
 //
 // cut is the control's own box at rest, rounded to cutRadius. While the
-// control is FOCUSED it is the footprint the focus halo covers instead, which
-// straddles that box: the halo is painted before this pass and the ramp would
+// control is FOCUSED it is the footprint the focus ring covers instead, which
+// straddles that box: the ring is painted before this pass and the ramp would
 // otherwise run over it, which reads as a shadow lying on the band rather than
 // under it.
 func DrawToolbarShadowAround(gtx layout.Context, bounds image.Rectangle, radius int, cut image.Rectangle, cutRadius int, sh tokens.DropShadow) {

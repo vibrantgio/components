@@ -118,7 +118,7 @@ var goldenSize = image.Pt(660, 60)
 
 // render is the pure path at the comfortable default, which is what every
 // golden here draws through.
-func render(shaper *text.Shaper, label string, i chip.Purpose, icon chip.Glyph,
+func render(shaper *text.Shaper, label string, i chip.Purpose, icon chip.Symbol,
 	p tokens.PlatformColors, s chip.RenderState,
 ) layout.Widget {
 	return chip.Render(shaper, label, i, icon, p, tokens.Spacing, tokens.Radius,
@@ -255,7 +255,7 @@ func TestChipHeightIsTheDensityChipHeightOrTheLabelsBox(t *testing.T) {
 			for _, in := range []struct {
 				name string
 				i    chip.Purpose
-				icon chip.Glyph
+				icon chip.Symbol
 				s    chip.RenderState
 			}{
 				{"assist with a mark", chip.Assist, chevron, chip.RenderState{}},
@@ -319,7 +319,7 @@ func TestEachMarkCostsItsOwnSlot(t *testing.T) {
 	avatar := min(chip.AvatarDp, int(tokens.Comfortable.ChipHeight())-2)
 	avatarInset := (drawn.Y - avatar) / 2
 	textInset := int(tokens.Comfortable.PaddingX)
-	width := func(i chip.Purpose, icon chip.Glyph, s chip.RenderState) int {
+	width := func(i chip.Purpose, icon chip.Symbol, s chip.RenderState) int {
 		return measure(t, render(shaper, "Model", i, icon, tokens.PlatformLight, s)).X
 	}
 	bare := width(chip.Suggestion, nil, chip.RenderState{})

@@ -43,8 +43,8 @@ const (
 )
 
 // square fills the whole box a mark is handed, so what is read back off a
-// capture is the box the control gave the symbol and not a glyph's own
-// keyline.
+// capture is the box the control gave the symbol and not the keyline a drawn
+// symbol would hold inside it.
 func square(gtx layout.Context, sizePx int, col stdcolor.NRGBA) {
 	paint.FillShape(gtx.Ops, col, clip.Rect{Max: image.Pt(sizePx, sizePx)}.Op())
 }

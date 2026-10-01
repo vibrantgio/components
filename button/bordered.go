@@ -23,7 +23,7 @@ import (
 // control labelled with a symbol, drawn in an explicit visual state without
 // event processing or rx machinery.
 //
-// The glyph is drawn by icon into a square the control's variant names,
+// The symbol is drawn by icon into a square the control's variant names,
 // centred in a shape that variant names too — the chrome variant's capsule at
 // d.ToolbarControlHeight, the form variant's push button at d.ControlHeight
 // and rad.Md — and that shape is the pointer target. It takes no text style:

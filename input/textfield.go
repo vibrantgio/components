@@ -43,7 +43,7 @@ type RenderState struct {
 	// field's interior is filled with: the platform draws a field as a
 	// hairline around the surface beneath it rather than as a box of its
 	// own, which the Save dialog's field measures in both appearances. The
-	// focus halo — the platform's keyboard focus indicator, which carries a
+	// focus ring — the platform's keyboard focus indicator, which carries a
 	// coverage rather than a colour — composites over it too. The zero value
 	// — no colour — is the window's own plane.
 	Surface color.NRGBA
@@ -448,7 +448,7 @@ const hairlineDp unit.Dp = 1
 //
 // Focus replaces nothing: the field keeps the edge it draws at rest — its
 // hairline, the toolbar recess's rim, or in the light appearance the recess's
-// nothing at all — and wears the library's one halo on that outline.
+// nothing at all — and wears the library's one ring on that outline.
 //
 // The box is two nested fills rather than a stroke, which keeps the corner's
 // antialiasing out of the golden images.
@@ -485,11 +485,11 @@ func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size im
 	// band is cut by the window rather than by whichever column the field
 	// stands over. The field's own box is cut out of it, which is what makes
 	// a shadow painted after the field land what one painted under it landed
-	// — and while the field is FOCUSED the cut is the focus halo's footprint
+	// — and while the field is FOCUSED the cut is the focus ring's footprint
 	// instead, the box grown by the half of the band that lies past it. The
-	// halo is drawn below and the shadow after it, so without the larger cut
+	// ring is drawn below and the shadow after it, so without the larger cut
 	// the ramp runs over the band: this recess measured up to 11 of 255 of
-	// shadow lying on its own halo.
+	// shadow lying on its own ring.
 	if s.onToolbar() {
 		box := image.Rectangle{Max: size}
 		cut, cutRad := box, rad
@@ -520,12 +520,12 @@ func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size im
 		SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad,
 	}.Op(gtx.Ops))
 
-	// The halo, on the box the field just drew, over what it drew there and
+	// The ring, on the box the field just drew, over what it drew there and
 	// past it onto the surface the field stands on.
 	if s.Focused && !s.Disabled {
 		standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
-		focus.Halo(gtx, image.Rectangle{Max: size}, rad,
-			focus.Ring(tok.platform, standsOn), focus.Ring(tok.platform, fill))
+		focus.Ring(gtx, image.Rectangle{Max: size}, rad,
+			focus.RingColor(tok.platform, standsOn), focus.RingColor(tok.platform, fill))
 	}
 }
 
@@ -1003,7 +1003,7 @@ func staticSelection(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens
 // same surface already, not a fill of the field's own, so there is nothing
 // there to fade.
 //
-// Focus reaches none of them: the halo is laid on the outline the field
+// Focus reaches none of them: the ring is laid on the outline the field
 // already draws, so a focused field keeps the edge it has at rest.
 func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, edge, placeholder color.NRGBA, shadow tokens.DropShadow) {
 	fill = fieldFill(p, s)
@@ -1037,7 +1037,7 @@ func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, 
 // further in. The toolbar recess spends the column in both appearances even
 // though the platform draws its rim in the dark one alone: it is the same
 // control in both schemes and only whether the rim is visible moves, which is
-// the rule adorn.glyphX spends at the leading end.
+// the rule adorn.symbolX spends at the leading end.
 func trailPad(gtx layout.Context, s RenderState) int {
 	if s.Variant == Chrome && s.Region == Sidebar {
 		return gtx.Dp(control.TextTrailDp)

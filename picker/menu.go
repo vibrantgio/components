@@ -140,8 +140,8 @@ type MenuProps struct {
 // What the keyboard does NOT draw here is a ring. A list shows its focus as
 // the platform does for the place it stands in, and a menu's answer is the
 // held row: the pill moves, and nothing is drawn around the surface. So the
-// rows are wrapped in no halo — see components/list's Halo, which is where a
-// list standing in the content or at the front of a dialog takes one.
+// rows are wrapped in no ring — see components/list's FocusRing, which is
+// where a list standing in the content or at the front of a dialog takes one.
 func Menu(th rx.Observable[theme.Theme], props MenuProps) rx.Observable[layout.Widget] {
 	resolved := menuTokens(th)
 

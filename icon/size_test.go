@@ -14,7 +14,7 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// TestSizeFollowsDensity pins the content-box rule: the default glyph size is
+// TestSizeFollowsDensity pins the content-box rule: the default symbol size is
 // ControlHeight − 2·PaddingY — 20 dp Comfortable, 19 dp Compact — so the icon
 // scales in lockstep with the control it sits in. The two are close because
 // Compact has no vertical padding to spend: its control height is already
@@ -31,7 +31,7 @@ func TestSizeFollowsDensity(t *testing.T) {
 	}
 }
 
-// TestIconDensityGolden records or diffs a deterministic glyph stand-in (a
+// TestIconDensityGolden records or diffs a deterministic symbol stand-in (a
 // solid square, no SVG/IVG rasterisation) at each density's default icon
 // size: 20 px Comfortable, 19 px Compact at 1:1 scale.
 func TestIconDensityGolden(t *testing.T) {

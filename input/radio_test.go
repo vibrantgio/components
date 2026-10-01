@@ -42,7 +42,7 @@ func TestRadioGolden(t *testing.T) {
 // ---- Accessibility tests ----
 
 // TestRadioFootprintIsItsMeasuredRow checks the radio's visual footprint is
-// the density's measured checkbox row, a square with the 16 dp glyph centred
+// the density's measured checkbox row, a square with the 16 dp symbol centred
 // in it — the checkbox's measured side length, which the radio's circle
 // follows so the two read as one row. That footprint is the pointer target
 // too — the button's row, not its circle — the same rule
@@ -70,7 +70,7 @@ func TestRadioFootprintIsItsMeasuredRow(t *testing.T) {
 }
 
 // TestRadioCompactGolden records or diffs the radio at tokens.Compact through
-// the live pipeline: the 16 dp glyph centred in the Compact control height.
+// the live pipeline: the 16 dp symbol centred in the Compact control height.
 func TestRadioCompactGolden(t *testing.T) {
 	w := materialize(t, input.Radio(rx.Of(densityTheme(tokens.Compact)), input.RadioProps{
 		Description: "choice",
@@ -145,7 +145,7 @@ func TestRadioFocusRingIsVisuallyDistinct(t *testing.T) {
 func TestTheSwitchedOffRadioIsOneFillAndNoEdge(t *testing.T) {
 	const size = 44
 
-	// The glyph's 16 dp circle, centred in the density's checkbox row, at the
+	// The symbol's 16 dp circle, centred in the density's checkbox row, at the
 	// 1:1 metric golden.Capture renders at.
 	circle := 16
 	row := int(tokens.Comfortable.CheckboxRowHeight)

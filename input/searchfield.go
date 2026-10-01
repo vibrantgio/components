@@ -39,7 +39,7 @@ import (
 const ClearHitDp = 24
 
 // markDp and clearMarkDp are the squares the search field draws its two marks
-// in; the lead and gap pairs place the leading glyph and the text after it,
+// in; the lead and gap pairs place the leading symbol and the text after it,
 // one pair per variant; and clearTrailDp is the clear space the platform
 // leaves past the clear mark. Each is measured; the provenance is on the
 // method that spends it.
@@ -71,7 +71,7 @@ type SearchFieldProps struct {
 	// [Chrome] on a sidebar or a toolbar, where the platform draws the field
 	// as a flat recess instead of a bordered box. The zero value is Form.
 	//
-	// State Surface with it: the recess is opaque, but the focus halo and
+	// State Surface with it: the recess is opaque, but the focus ring and
 	// the marks around it still composite onto the chrome material the
 	// field stands on.
 	Variant Variant
@@ -407,7 +407,7 @@ func (a adorn) shapeCount(gtx layout.Context, shaper *text.Shaper, tok resolvedT
 // markPx is the square the looking glass is drawn in.
 //
 // It is the field's own number, not the density's control icon size, because
-// the platform draws this glyph at a size of its own and that size is
+// the platform draws this symbol at a size of its own and that size is
 // measured: MEASURED, mail-window.png (x 878-890) and voicememos-window.png
 // (x 657-669) — the magnifier covers 12.33 px across its marks, its lens
 // 10.29 px across outside and its band 1.32 px.
@@ -420,7 +420,7 @@ func (a adorn) shapeCount(gtx layout.Context, shaper *text.Shaper, tok resolvedT
 // nearest it and covers 12.42 px by that arithmetic and 12.27 px read off a
 // render, which is the platform's own to a sixth of a pixel. The 16 dp this
 // field drew until CG5.12 covered 11.19, a pixel and an eighth under the
-// glyph the capture holds.
+// symbol the capture holds.
 //
 // Density does not move it: no stored capture holds a search field at the
 // platform's small size, and the checkbox carries its own side length for the
@@ -451,7 +451,7 @@ func (a adorn) clearPx(gtx layout.Context) int { return gtx.Dp(clearMarkDp) }
 // the one reading there is and it is spent as read.
 //
 // A field with an edge spends that edge's width before the clearance, the way
-// adorn.glyphX spends it at the leading end; the sidebar recess has no edge to
+// adorn.symbolX spends it at the leading end; the sidebar recess has no edge to
 // spend.
 func (a adorn) clearEndPx(gtx layout.Context, s RenderState) int {
 	if s.Variant == Chrome && s.Region == Sidebar {
@@ -472,19 +472,19 @@ func (a adorn) drawingPx(gtx layout.Context) float32 {
 	return icons.SearchDrawingSizePx(gtx, a.markPx(gtx))
 }
 
-// glyphX is the field's leading edge to the looking glass's first pixel.
+// symbolX is the field's leading edge to the looking glass's first pixel.
 //
 // Every reading is taken from the field's INNER edge, which is where the
 // platform sets them. MEASURED,
 // system-settings-grouped-box-{light,dark}.png: the sidebar recess carries no
-// edge, so its inner edge is its own at x=18, and the glyph's first pixel is
+// edge, so its inner edge is its own at x=18, and the symbol's first pixel is
 // at x=27 — 9 px in. MEASURED, mail-window.png: a toolbar search field's
-// stroke is at x=867 and its fill begins at x=868, with the glyph's first
+// stroke is at x=867 and its fill begins at x=868, with the symbol's first
 // pixel at x=878 — 10 px in from that inner edge.
 //
 // A field with an edge spends that edge's width before the inset, and spends
 // it whatever the field's state, so focus — which replaces the edge with a
-// wider ring — does not move the glyph. The form field's edge is [hairlineDp]
+// wider ring — does not move the symbol. The form field's edge is [hairlineDp]
 // and the toolbar recess's rim is drawn at the same hairline, so the two
 // spend one expression; the sidebar recess has no edge to spend.
 //
@@ -493,11 +493,11 @@ func (a adorn) drawingPx(gtx layout.Context) float32 {
 // schemes and only whether the rim is visible moves, and no stored light
 // toolbar outside Voice Memos holds a field to read the inset off.
 //
-// Voice Memos' own capsule sets its glyph 13 px in from its fill in both
+// Voice Memos' own capsule sets its symbol 13 px in from its fill in both
 // appearances — x 644 to x 657 dark, x 700 to x 713 light — which is that
 // application's number and not the platform's; Finder's dark toolbar field
-// agrees with Mail's ten (fill from x=1158, glyph from x=1167).
-func (a adorn) glyphX(gtx layout.Context, s RenderState) float32 {
+// agrees with Mail's ten (fill from x=1158, symbol from x=1167).
+func (a adorn) symbolX(gtx layout.Context, s RenderState) float32 {
 	if s.Variant == Chrome && s.Region == Sidebar {
 		return float32(gtx.Dp(sidebarLeadDp))
 	}
@@ -507,11 +507,11 @@ func (a adorn) glyphX(gtx layout.Context, s RenderState) float32 {
 // promptGapPx is the clear space between the looking glass's last pixel and
 // the first of the text beside it.
 //
-// MEASURED, system-settings-grouped-box-{light,dark}.png: the glyph's last
+// MEASURED, system-settings-grouped-box-{light,dark}.png: the symbol's last
 // pixel is at x=41 and the prompt's first at x=47, five clear columns between
-// them. MEASURED, mail-window.png the same way: the glyph's last pixel is at
+// them. MEASURED, mail-window.png the same way: the symbol's last pixel is at
 // x=890 and the prompt's first at x=899, eight clear columns. Voice Memos'
-// own field leaves seven (the glyph ends at x=669 and the prompt opens at
+// own field leaves seven (the symbol ends at x=669 and the prompt opens at
 // x=677), the same third place's drawing its 13 px inset is.
 func (a adorn) promptGapPx(gtx layout.Context, s RenderState) int {
 	if s.Variant == Chrome && s.Region == Sidebar {
@@ -532,7 +532,7 @@ func (a adorn) trailGapPx(gtx layout.Context, tok resolvedTokens) int {
 // field as well.
 //
 // The gap is spent from the last pixel column the looking glass covers, not
-// from the fraction of a column its drawing ends on: the glyph is placed at a
+// from the fraction of a column its drawing ends on: the symbol is placed at a
 // fraction of a pixel so its lens lands where the platform draws it, and a
 // drawing ending mid-column still covers that column. Rounding the end down
 // would spend one of the gap's columns on the drawing and leave the
@@ -541,7 +541,7 @@ func (a adorn) insets(gtx layout.Context, tok resolvedTokens, s RenderState, pad
 	lead = gtx.Dp(hairlineDp) + gtx.Dp(control.TextLeadDp)
 	trail = padH
 	if a.search {
-		end := int(math.Ceil(float64(a.glyphX(gtx, s) + a.drawingPx(gtx))))
+		end := int(math.Ceil(float64(a.symbolX(gtx, s) + a.drawingPx(gtx))))
 		lead = end + a.promptGapPx(gtx, s)
 	}
 	if a.clear {
@@ -585,11 +585,11 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 		if g := icons.Mark(icons.Search); g != nil {
 			// The square is placed off the drawing inside it rather than off
 			// its own edges, and at a fraction of a pixel, because both
-			// numbers the platform gives are the glyph's: its first pixel 9
+			// numbers the platform gives are the symbol's: its first pixel 9
 			// in, and its lens — not its bounding box — on the field's centre
 			// row. Rounding the square to whole pixels instead would split
 			// the lens's band across two columns and draw it grey.
-			x := a.glyphX(gtx, s) - icons.SearchDrawingOriginPx(gtx, slot)
+			x := a.symbolX(gtx, s) - icons.SearchDrawingOriginPx(gtx, slot)
 			y := float32(field.Y)/2 - icons.SearchLensCentre*float32(slot)
 			st := op.Affine(f32.Affine2D{}.Offset(f32.Pt(x, y))).Push(gtx.Ops)
 			g(gtx, slot, col)

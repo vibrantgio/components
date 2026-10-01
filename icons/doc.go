@@ -84,9 +84,9 @@
 // 13.06 px — the leading outer edge at x 965.02 and the trailing one at
 // 978.08 on the lens's own centre row, the top at y 18.85 and the foot at
 // 31.90 down its own centre column — against the tag's 19 px square in the
-// same band, so the lens is 0.687 of the keyline. The two field glyphs agree
+// same band, so the lens is 0.687 of the keyline. The two field symbols agree
 // at their own size: Mail's and Voice Memos' search fields each draw a lens
-// 10.29 px across outside in a glyph 12.33 px wide, which against the toolbar
+// 10.29 px across outside in a symbol 12.33 px wide, which against the toolbar
 // symbol's own 15.75 px width is 13.14 units. 13 is the reading, and the set
 // draws its round forms to it — the search mark's lens and the refresh mark's
 // ring. It replaces an unmeasured 20 the set carried before, which stood
@@ -117,7 +117,7 @@
 // 19 IS THE KEYLINE OF A SYMBOL STANDING ON ITS OWN — the tag in a toolbar
 // band, the marks a sidebar row is drawn with. A mark drawn INSIDE a control
 // is that control's own measurement instead, and the set draws each at what
-// its own capture reads: the pull-down's glyph at 18, the pop-up's chevron
+// its own capture reads: the pull-down's symbol at 18, the pop-up's chevron
 // pair at 8 by 11, its single chevron at 8 by 5, the history chevron at 8 by
 // 14. The density heights work the same way — the platform draws a control in
 // a toolbar band taller than one in a dialog, and neither reading corrects the

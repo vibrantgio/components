@@ -77,10 +77,10 @@
 // coverage folded into a translucent fill is not the pixel the platform
 // draws.
 //
-// The focus halo is components/internal/focus's, the platform's keyboard
+// The focus ring is components/internal/focus's, the platform's keyboard
 // focus indicator, one colour per appearance on every surface. A focused chip
 // keeps the rim it has at rest — or the rim a selected one has dropped — and
-// wears the halo on its own outline: half the band past the chip's box and
+// wears the ring on its own outline: half the band past the chip's box and
 // half over it. The chip measures the same box focused as at rest and the
 // label does not shift; the half past the box is painted outside the clip the
 // chip's own Clickable puts around what it wraps, so reporting a larger box to

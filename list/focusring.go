@@ -10,7 +10,7 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// Halo lays w out and draws the keyboard focus halo on the box w filled
+// FocusRing lays w out and draws the keyboard focus ring on the box w filled
 // while state holds the keyboard. w is the list's own layout —
 // [LayoutSelectable] or [LayoutSelectableScrollbar] over state — so the box
 // the band straddles is the list's viewport.
@@ -25,7 +25,7 @@ import (
 //
 // A list shows its focus as the platform does for the place it stands in,
 // and this wrapper is where that place is said: a list standing in the
-// content or at the front of a dialog is wrapped in Halo, and a list
+// content or at the front of a dialog is wrapped in FocusRing, and a list
 // standing anywhere the platform answers differently is not. A chrome rail
 // says it in the pill's colour (patterns/sidebar) and a menu in the held
 // row (components/picker), so neither wraps, and neither draws a ring.
@@ -58,10 +58,10 @@ import (
 // translucent: see [focus.Fill].
 //
 // The band is drawn after w and in w's own coordinate space, so it lands
-// over the rows and no sink of its own is published: a halo a control inside
+// over the rows and no sink of its own is published: a ring a control inside
 // a row draws must stay inside the list's viewport, and collecting it here
 // would carry it out past the viewport's edge.
-func Halo(
+func FocusRing(
 	gtx layout.Context,
 	state *State,
 	p tokens.PlatformColors,
@@ -74,7 +74,7 @@ func Halo(
 		return dims
 	}
 	box := image.Rectangle{Max: dims.Size}
-	ring := focus.Ring(p, standsOn)
+	ring := focus.RingColor(p, standsOn)
 	var fills []focus.Fill
 	if rowFill != nil {
 		for _, r := range state.rowBoxes() {
@@ -86,9 +86,9 @@ func Halo(
 			if clipped.Empty() {
 				continue
 			}
-			fills = append(fills, focus.Fill{Box: clipped, Band: focus.Ring(p, fill)})
+			fills = append(fills, focus.Fill{Box: clipped, Band: focus.RingColor(p, fill)})
 		}
 	}
-	focus.Halo(gtx, box, 0, ring, ring, fills...)
+	focus.Ring(gtx, box, 0, ring, ring, fills...)
 	return dims
 }

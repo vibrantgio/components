@@ -514,27 +514,27 @@ func drawStrikethrough(gtx layout.Context, s segment) {
 	}.Op())
 }
 
-// drawFocusRing paints the keyboard-focus halo around a focused link segment:
+// drawFocusRing paints the keyboard-focus ring around a focused link segment:
 // the library's one band, on the segment's own box padded clear of the glyphs.
 //
 // A link has neither fill nor edge to lay the band on, so the box it is laid
-// on is the glyphs' own, padded by what the halo spends past a box — which
+// on is the glyphs' own, padded by what the ring spends past a box — which
 // puts the whole band clear of the words and leaves the idiom one idiom. The
-// halo and the link are both the platform's blue, so a band laid straight onto
+// ring and the link are both the platform's blue, so a band laid straight onto
 // the glyphs would read as a box around a word in one colour; the clear page
-// between them is what separates the halo from the thing it circles.
+// between them is what separates the ring from the thing it circles.
 func drawFocusRing(gtx layout.Context, style Style, off image.Point, s segment) {
 	pad := gtx.Dp(focus.Outside)
 	r := image.Rectangle{
 		Min: off.Sub(image.Pt(pad, pad)),
 		Max: off.Add(image.Pt(s.width+pad, s.height+pad)),
 	}
-	// Corners turn at the halo's own width. Every other halo in the library
+	// Corners turn at the ring's own width. Every other ring in the library
 	// takes the corner of the control it marks, and a paragraph has none to
 	// take — but a square-cornered box around a word does not read as one of
 	// the same family; it reads as a selection or a debug outline. Rounding by
-	// the band's width is the one radius the halo can name out of itself.
-	focus.Halo(gtx, r, gtx.Dp(focus.Width), style.FocusColor, style.FocusColor)
+	// the band's width is the one radius the ring can name out of itself.
+	focus.Ring(gtx, r, gtx.Dp(focus.Width), style.FocusColor, style.FocusColor)
 }
 
 // registerLinkArea registers one link segment's interactive area: the hover

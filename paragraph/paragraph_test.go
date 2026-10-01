@@ -699,7 +699,7 @@ func TestFromTokensDefaults(t *testing.T) {
 		if st.LinkColor != s.p.Link {
 			t.Errorf("%s: LinkColor = %v, want Link %v", s.name, st.LinkColor, s.p.Link)
 		}
-		if want := focus.Ring(s.p, s.p.WindowBackground); st.FocusColor != want {
+		if want := focus.RingColor(s.p, s.p.WindowBackground); st.FocusColor != want {
 			t.Errorf("%s: FocusColor = %v, want the ring %v", s.name, st.FocusColor, want)
 		}
 		if st.Size != unit.Sp(tokens.DefaultTypography.BodyLarge.Size) {

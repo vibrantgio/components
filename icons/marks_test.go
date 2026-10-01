@@ -117,7 +117,7 @@ func TestBuiltOpsAreKeyedBySizeAlone(t *testing.T) {
 	}
 }
 
-// TestNothingIsBuiltForAnEmptySquare: a control with no room for a glyph asks
+// TestNothingIsBuiltForAnEmptySquare: a control with no room for a symbol asks
 // for none, and gets no ops and no cache entry rather than a zero-sized one.
 func TestNothingIsBuiltForAnEmptySquare(t *testing.T) {
 	s := New("darwin")

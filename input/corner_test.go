@@ -12,10 +12,10 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// The glyph's measured 16 dp box or disc, centred in the density's checkbox
+// The symbol's measured 16 dp box or disc, centred in the density's checkbox
 // row, at the 1:1 metric golden.Capture renders at.
 const (
-	glyphSide  = 16
+	symbolSide  = 16
 	cornerRows = 8 // the corner's own half-height: every row it can reach into
 )
 
@@ -33,7 +33,7 @@ var (
 // TestTheBoxDrawsTheMeasuredCornerAndEdge reads the checkbox's corner and its
 // edge off a capture of the component, in both appearances.
 //
-// The corner: the per-row coverage of the glyph's leading edge, fitted by a
+// The corner: the per-row coverage of the symbol's leading edge, fitted by a
 // circle with the box's own extremes pinned — CG4.8's fit to the sidebar
 // recess's ends — must answer the 5 dp checkboxCornerRadius measures off the
 // save dialog's switched-off boxes, where the same fit reads 5.04 light (rms
@@ -46,8 +46,8 @@ var (
 func TestTheBoxDrawsTheMeasuredCornerAndEdge(t *testing.T) {
 	const size = 44
 	row := int(tokens.Comfortable.CheckboxRowHeight)
-	lo := (row - glyphSide) / 2
-	mid := lo + glyphSide/2
+	lo := (row - symbolSide) / 2
+	mid := lo + symbolSide/2
 
 	for _, sc := range switchedOffReadings {
 		t.Run(sc.name, func(t *testing.T) {
@@ -81,12 +81,12 @@ func TestTheBoxDrawsTheMeasuredCornerAndEdge(t *testing.T) {
 				at   func(i int) (x, y int)
 			}{
 				{"across its middle row, from the leading side", func(i int) (int, int) { return lo + i, mid }},
-				{"across its middle row, from the trailing side", func(i int) (int, int) { return lo + glyphSide - 1 - i, mid }},
+				{"across its middle row, from the trailing side", func(i int) (int, int) { return lo + symbolSide - 1 - i, mid }},
 				{"down its middle column, from the top", func(i int) (int, int) { return mid, lo + i }},
-				{"down its middle column, from the bottom", func(i int) (int, int) { return mid, lo + glyphSide - 1 - i }},
+				{"down its middle column, from the bottom", func(i int) (int, int) { return mid, lo + symbolSide - 1 - i }},
 			} {
 				n := 0
-				for i := 0; i < glyphSide; i++ {
+				for i := 0; i < symbolSide; i++ {
 					x, y := run.at(i)
 					if !nearlyEqual(img.RGBAAt(x, y), edge) {
 						break
@@ -109,9 +109,9 @@ func TestTheBoxDrawsTheMeasuredCornerAndEdge(t *testing.T) {
 // component, in both appearances.
 //
 // The disc is a circle, so the fit is a circle rather than a corner's arc: the
-// leading and trailing sub-pixel edge of every row of the glyph, least squares
+// leading and trailing sub-pixel edge of every row of the symbol, least squares
 // against a centre and a radius. It must answer the 8 dp half of the measured
-// 16 dp diameter, on the glyph's own centre, where the same fit reads r = 8.17
+// 16 dp diameter, on the symbol's own centre, where the same fit reads r = 8.17
 // (rms 0.084 px) light and 8.12 (rms 0.073 px) dark off System Settings'
 // selected radio.
 //
@@ -121,8 +121,8 @@ func TestTheBoxDrawsTheMeasuredCornerAndEdge(t *testing.T) {
 func TestTheDiscIsTheMeasuredCircle(t *testing.T) {
 	const size = 44
 	row := int(tokens.Comfortable.CheckboxRowHeight)
-	lo := (row - glyphSide) / 2
-	mid := lo + glyphSide/2
+	lo := (row - symbolSide) / 2
+	mid := lo + symbolSide/2
 
 	for _, sc := range switchedOffReadings {
 		t.Run(sc.name, func(t *testing.T) {
@@ -137,7 +137,7 @@ func TestTheDiscIsTheMeasuredCircle(t *testing.T) {
 			}
 
 			var px, py []float64
-			for y := lo; y < lo+glyphSide; y++ {
+			for y := lo; y < lo+symbolSide; y++ {
 				cov := coverageRow(img, y, size)
 				l, ok := leadingEdge(cov)
 				if !ok {
@@ -149,13 +149,13 @@ func TestTheDiscIsTheMeasuredCircle(t *testing.T) {
 			}
 			cx, cy, r, rms := fitCircle(px, py)
 
-			const wantR = glyphSide / 2.0
+			const wantR = symbolSide / 2.0
 			wantC := float64(lo) + wantR
 			if math.Abs(r-wantR) > 0.3 || rms > 0.2 {
 				t.Errorf("the disc fits r = %.2f (rms %.3f px over %d edges), want the measured %.0f", r, rms, len(px), wantR)
 			}
 			if math.Abs(cx-wantC) > 0.15 || math.Abs(cy-wantC) > 0.15 {
-				t.Errorf("the disc centres on (%.2f, %.2f), want the glyph's own (%.1f, %.1f)", cx, cy, wantC, wantC)
+				t.Errorf("the disc centres on (%.2f, %.2f), want the symbol's own (%.1f, %.1f)", cx, cy, wantC, wantC)
 			}
 
 			edge := control.Border(sc.platform)
@@ -167,7 +167,7 @@ func TestTheDiscIsTheMeasuredCircle(t *testing.T) {
 				{"down its middle column, from the top", func(i int) (int, int) { return mid, lo + i }},
 			} {
 				n := 0
-				for i := 0; i < glyphSide; i++ {
+				for i := 0; i < symbolSide; i++ {
 					x, y := run.at(i)
 					if !nearlyEqual(img.RGBAAt(x, y), edge) {
 						break
@@ -187,7 +187,7 @@ func TestTheDiscIsTheMeasuredCircle(t *testing.T) {
 //
 // The dot is not drawn onto a clear window the way the disc is — it is drawn
 // onto the disc's own accent, which is opaque, so the alpha channel is 255
-// across the whole glyph and carries no coverage. The reading is the pixel's
+// across the whole symbol and carries no coverage. The reading is the pixel's
 // distance from the accent along the channel the accent and the dot stand
 // furthest apart on, which is the fraction of the pixel the dot reached. The
 // disc's own antialiased rim, and the clear window outside it, sit at or
@@ -232,13 +232,13 @@ func linear(v uint8) float64 {
 // least-squares circle through the dot's sub-pixel edges answers a centre of
 // (261.00, 704.00) and r = 2.50 — a diameter of 5.00 px in a 16 px disc whose
 // own centre is (261.00, 704.00), at an rms of 0.025 px light and 0.024 px
-// dark. The dot is five sixteenths of the glyph and stands on the disc's own
+// dark. The dot is five sixteenths of the symbol and stands on the disc's own
 // centre, which puts its edges on the half pixel: four fully covered columns
 // with a half-covered one at each end.
 func TestTheDotIsTheMeasuredFiveSixteenths(t *testing.T) {
 	const size = 44
 	row := int(tokens.Comfortable.CheckboxRowHeight)
-	lo := (row - glyphSide) / 2
+	lo := (row - symbolSide) / 2
 
 	for _, sc := range switchedOffReadings {
 		t.Run(sc.name, func(t *testing.T) {
@@ -253,12 +253,12 @@ func TestTheDotIsTheMeasuredFiveSixteenths(t *testing.T) {
 			}
 
 			base, dot := sc.platform.ControlAccent, sc.platform.AlternateSelectedControlText
-			if got := img.RGBAAt(lo+glyphSide/2, lo+glyphSide/2); !nearlyEqual(got, dot) {
+			if got := img.RGBAAt(lo+symbolSide/2, lo+symbolSide/2); !nearlyEqual(got, dot) {
 				t.Errorf("the dot's own centre reads %v, want the platform's %v the accent is named against", got, dot)
 			}
 
 			var px, py []float64
-			for y := lo; y < lo+glyphSide; y++ {
+			for y := lo; y < lo+symbolSide; y++ {
 				cov := dotCoverageRow(img, y, size, base, dot)
 				l, ok := leadingEdge(cov)
 				if !ok {
@@ -271,7 +271,7 @@ func TestTheDotIsTheMeasuredFiveSixteenths(t *testing.T) {
 			cx, cy, r, rms := fitCircle(px, py)
 
 			const wantR = 2.5
-			wantC := float64(lo) + glyphSide/2.0
+			wantC := float64(lo) + symbolSide/2.0
 			t.Logf("the dot fits centre (%.2f, %.2f), r = %.2f, rms %.3f px over %d edges", cx, cy, r, rms, len(px))
 			if math.Abs(r-wantR) > 0.15 || rms > 0.1 {
 				t.Errorf("the dot fits r = %.2f (rms %.3f px over %d edges), want the measured %.2f", r, rms, len(px), wantR)

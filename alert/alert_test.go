@@ -116,7 +116,7 @@ func TestAlertGolden(t *testing.T) {
 }
 
 // TestAlertStatusesDiffer confirms each status produces visibly distinct
-// pixels in the same appearance. The status is carried by the glyph alone
+// pixels in the same appearance. The status is carried by the symbol alone
 // now, so this is also the gate on that: four alerts whose only coloured
 // part is a 20 dp chevron still have to be four.
 func TestAlertStatusesDiffer(t *testing.T) {

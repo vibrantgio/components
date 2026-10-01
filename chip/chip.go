@@ -49,7 +49,7 @@ const (
 
 	// Input is a token the reader entered themselves — a recipient, a tag, a
 	// file they picked. It carries the trailing dismiss mark, and its leading
-	// slot is the avatar slot: whatever glyph it is given is drawn at
+	// slot is the avatar slot: whatever symbol it is given is drawn at
 	// [AvatarDp] behind a full-round corner rather than in the cap band, because
 	// what leads a token the reader entered is a picture of the thing.
 	Input
@@ -90,7 +90,7 @@ func (i Purpose) Dismissible() bool { return i == Input }
 // and not a number.
 func MarkDp(style tokens.TextStyle) float32 { return style.FaceMetrics().CapHeight }
 
-// AvatarDp is the square an [Input] chip's leading glyph is drawn in, behind a
+// AvatarDp is the square an [Input] chip's leading symbol is drawn in, behind a
 // full-round corner. Larger than [MarkDp] because it is a picture of a thing
 // rather than a sign for one, and round because that is what separates the two
 // at a glance.
@@ -119,10 +119,10 @@ const edgeDp = unit.Dp(1)
 // its angle and its band is not.
 func MarkStrokeDp(style tokens.TextStyle) float32 { return style.FaceMetrics().Stem }
 
-// Glyph is the painter a chip draws its leading mark with: it fills a
+// Symbol is the painter a chip draws its leading mark with: it fills a
 // sizePx×sizePx box at the current origin in colour col. It is the same
 // signature components/button gives an icon-only button and the same one
-// components/icon's registry hands out, so a named glyph, a clip.Path drawn by
+// components/icon's registry hands out, so a named symbol, a clip.Path drawn by
 // hand and a picture built for one screen are interchangeable here.
 //
 // That box is the label's cap band — see [MarkDp] — everywhere but an [Input]
@@ -131,11 +131,11 @@ func MarkStrokeDp(style tokens.TextStyle) float32 { return style.FaceMetrics().S
 // occupy, which is what a mark inside a chip is for; one that draws a small
 // figure in the middle of it reads as a chip with a hole at its leading end.
 //
-// A nil Glyph draws no leading mark; the chip loses the mark and the gap after
+// A nil Symbol draws no leading mark; the chip loses the mark and the gap after
 // it and nothing else. A painter that draws its own picture may ignore col;
 // one that draws a sign must honour it, because col is what reads on the body
 // the chip drew.
-type Glyph func(gtx layout.Context, sizePx int, col color.NRGBA)
+type Symbol func(gtx layout.Context, sizePx int, col color.NRGBA)
 
 // RenderState holds the explicit visual state a static chip render draws in.
 // The zero value is a resting, unselected chip, so RenderState{} is the
@@ -149,7 +149,7 @@ type RenderState struct {
 	Selected bool
 
 	// Surface is the opaque fill the chip stands on. The chip's rim is
-	// painted as a shape the body is then inset inside and its focus halo
+	// painted as a shape the body is then inset inside and its focus ring
 	// lies half out here, so both land on this rather than on the chip's own
 	// fill, and the platform's seam and focus indicator carry a coverage
 	// rather than a colour. The zero value — no colour — is the window's own
@@ -177,13 +177,13 @@ type Colors struct {
 
 	// Outline is the rim the body wears, and Outlined is whether it is drawn
 	// at all. A selected chip has no rim: the fill has arrived and the edge is
-	// not needed twice. Ring is the focus halo's colour where it lies past
+	// not needed twice. Ring is the focus ring's colour where it lies past
 	// the chip's box, which is on the surface the chip stands on.
 	Outline  color.NRGBA
 	Outlined bool
 	Ring     color.NRGBA
 
-	// Label is the colour the words are set in. Mark is the leading glyph's
+	// Label is the colour the words are set in. Mark is the leading symbol's
 	// and the selected filter's checkmark's, which is the same colour: a mark
 	// in the leading slot is part of the label's own line.
 	Label color.NRGBA
@@ -225,7 +225,7 @@ type Colors struct {
 // control-pressed-{light,dark}.png reads #d5d5d5 and #474d52 for a held push
 // button over the push button's own fill, with no hover under it.
 //
-// Ring is the colour the half of a focused chip's halo that lies past its box
+// Ring is the colour the half of a focused chip's ring that lies past its box
 // takes; the draw applies it rather than this.
 func Resolve(p tokens.PlatformColors, i Purpose, s RenderState) Colors {
 	standsOn := surface.Or(s.Surface, p.WindowBackground)
@@ -246,7 +246,7 @@ func Resolve(p tokens.PlatformColors, i Purpose, s RenderState) Colors {
 		Fill:     fill,
 		Outline:  vgcolor.Flatten(p.Separator, standsOn),
 		Outlined: outlined,
-		Ring:     focus.Ring(p, standsOn),
+		Ring:     focus.RingColor(p, standsOn),
 		Label:    vgcolor.Flatten(label, fill),
 		Mark:     vgcolor.Flatten(mark, fill),
 		Dismiss:  vgcolor.Flatten(p.SecondaryLabel, fill),
@@ -334,7 +334,7 @@ type Props struct {
 	// A selected [Filter] chip draws the checkmark here instead — the mark
 	// that says it is selected takes the slot rather than standing beside a
 	// second one.
-	Icon Glyph
+	Icon Symbol
 
 	// Selected is the selection a [Filter] chip is seeded with on subscribe.
 	// The live chip keeps its own selection from there — a later Selected does
@@ -357,7 +357,7 @@ type Props struct {
 	// The caller then owns &Clickable as the chip's focus tag — usable with
 	// key.FocusCmd, key.Filter{Focus: …} and an external Tab cycle — and may
 	// detect activation via Clickable.Clicked(gtx). This is what lets a
-	// container that drives focus itself avoid a doubled focus halo. When nil
+	// container that drives focus itself avoid a doubled focus ring. When nil
 	// the chip allocates and owns its own clickable, which survives every
 	// theme emission.
 	Clickable *widget.Clickable
@@ -440,7 +440,7 @@ type resolvedTokens struct {
 //
 // Keyboard activation is gioui.org/widget.Clickable's: the chip is focusable,
 // Space and Enter activate it, and gtx.Focused drives [RenderState.Focused] —
-// so a focused chip wears the halo the package doc describes. Both integration
+// so a focused chip wears the ring the package doc describes. Both integration
 // paths are supported and both are read off the one poll of the clickable:
 //   - FRP: set Props.OnClick, Props.OnSelect, Props.OnDismiss.
 //   - MVU: set Props.Message and Props.DismissMessage.
@@ -584,7 +584,7 @@ func Render(
 	shaper *text.Shaper,
 	label string,
 	i Purpose,
-	icon Glyph,
+	icon Symbol,
 	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
@@ -607,7 +607,7 @@ func draw(
 	shaper *text.Shaper,
 	label string,
 	i Purpose,
-	icon Glyph,
+	icon Symbol,
 	tok resolvedTokens,
 	s RenderState,
 	desc string,
@@ -628,7 +628,7 @@ func draw(
 	iconPx := min(gtx.Dp(unit.Dp(MarkDp(tok.label))), chipH-2*band)
 
 	// The leading slot: the checkmark on a selected filter, the avatar on an
-	// input chip that was given a glyph, the icon otherwise.
+	// input chip that was given a symbol, the icon otherwise.
 	lead, avatar := 0, false
 	switch {
 	case selected:
@@ -710,7 +710,7 @@ func draw(
 	//
 	// A focused chip keeps the rim it has at rest — or the rim it does not
 	// have, a selected one having dropped it — and wears the library's one
-	// halo on its outline. Nothing else moves: the chip measures the same box
+	// ring on its outline. Nothing else moves: the chip measures the same box
 	// focused as at rest, and the label does not shift.
 	radius := min(gtx.Dp(unit.Dp(tok.radius.Lg)), h/2)
 	edgeColor, edged := col.Outline, col.Outlined
@@ -723,14 +723,14 @@ func draw(
 	}
 	paint.FillShape(gtx.Ops, col.Fill, rrect(gtx.Ops, inner, innerRad))
 	if s.Focused {
-		// What the halo's inner half lands on: the chip's own outermost
+		// What the ring's inner half lands on: the chip's own outermost
 		// band, which is its rim where it draws one and its body where it
 		// does not.
 		over := col.Fill
 		if edged {
 			over = edgeColor
 		}
-		focus.Halo(gtx, box, radius, col.Ring, focus.Ring(tok.platform, over))
+		focus.Ring(gtx, box, radius, col.Ring, focus.RingColor(tok.platform, over))
 	}
 
 	// One row, leading edge to trailing: mark, label, dismiss mark. The row is
