@@ -233,7 +233,9 @@ type resolvedTokens struct {
 // The three values are what this field needs and a drawn line is not: a
 // widget.Editor takes the font and the size directly, and [staticSelection]
 // measures through text.Parameters built off the label's own MaxLines,
-// Truncator, Alignment, WrapPolicy and line height.
+// Truncator, Alignment, WrapPolicy and line height. Nor is it a measured line:
+// what [staticSelection] answers is one run's columns inside the line, not the
+// line's own width, which is what [typeset.LineWidth] answers.
 func bodyLabel(tok resolvedTokens) (font.Font, widget.Label, unit.Sp) {
 	style := tok.body
 	return typeset.Font(style, font.Normal), typeset.Label(style, 1), unit.Sp(style.Size)
