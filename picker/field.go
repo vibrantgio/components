@@ -785,8 +785,6 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	lead := gtx.Dp(control.PopupLeadDp)
 	trail := gtx.Dp(control.PopupMarkTrailDp)
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
-	// Shape with the BodyLarge role's typeface, weight, size and line height.
-	f, wl, textSize := bodyLabel(tok)
 	fieldW := gtx.Constraints.Max.X
 	markW := gtx.Dp(control.MarkWDp)
 
@@ -874,12 +872,8 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 		Max: image.Pt(innerW, minH),
 	}
 
-	mTextCol := op.Record(gtx.Ops)
-	paint.ColorOp{Color: textCol}.Add(gtx.Ops)
-	textMat := mTextCol.Stop()
-
 	mTitle := op.Record(gtx.Ops)
-	titleDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, title, textMat)
+	titleDims := typeset.Text(innerGtx, shaper, title, tok.body, textCol, 1)
 	titleCall := mTitle.Stop()
 
 	// The pop-up's height is the control height and nothing else: MEASURED,

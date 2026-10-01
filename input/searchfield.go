@@ -12,7 +12,6 @@ import (
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
 	"gioui.org/op"
-	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
@@ -386,20 +385,15 @@ func (a adorn) shapeCount(gtx layout.Context, shaper *text.Shaper, tok resolvedT
 		a.count = ""
 		return a
 	}
-	f, wl, textSize := bodyLabel(tok)
 	fill := fieldFill(tok.platform, s)
 	col := vgcolor.Flatten(tok.platform.SecondaryLabel, fill)
 	if s.Disabled {
 		col = vgcolor.Flatten(tok.platform.DisabledControlText, fill)
 	}
-	mMat := op.Record(gtx.Ops)
-	paint.ColorOp{Color: col}.Add(gtx.Ops)
-	mat := mMat.Stop()
-
 	inner := gtx
 	inner.Constraints = layout.Constraints{Max: image.Pt(gtx.Constraints.Max.X, gtx.Constraints.Max.Y)}
 	m := op.Record(gtx.Ops)
-	a.countDims = typeset.Layout(inner, shaper, wl, f, textSize, a.count, mat)
+	a.countDims = typeset.Text(inner, shaper, a.count, tok.body, col, 1)
 	a.countCall = m.Stop()
 	return a
 }

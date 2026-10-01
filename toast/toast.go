@@ -33,7 +33,6 @@ import (
 	"image"
 	"image/color"
 
-	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -204,20 +203,12 @@ func draw(gtx layout.Context, shaper *text.Shaper, props Props, tok resolvedToke
 	// Pre-record the text so we can size the surface around its dims. The
 	// leading edge takes its width off the text's, so the trailing margin
 	// stays one padH and the text stands one padH clear of the edge.
-	mColor := op.Record(gtx.Ops)
-	paint.ColorOp{Color: fg}.Add(gtx.Ops)
-	material := mColor.Stop()
 	mText := op.Record(gtx.Ops)
 	textGtx := gtx
 	textGtx.Constraints = layout.Constraints{
 		Max: image.Pt(w-edgeW-2*padH, gtx.Constraints.Max.Y),
 	}
-	// Shape with the LabelMedium role's typeface, weight, size and line
-	// height. Zero fields fall back to the shaper's defaults.
-	style := tok.style
-	f := typeset.Font(style, font.Normal)
-	wl := typeset.Label(style, 1)
-	textDims := typeset.Layout(textGtx, shaper, wl, f, unit.Sp(style.Size), props.Text, material)
+	textDims := typeset.Text(textGtx, shaper, props.Text, tok.style, fg, 1)
 	textCall := mText.Stop()
 
 	h := textDims.Size.Y + 2*padV

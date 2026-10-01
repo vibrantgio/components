@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/color"
 
-	"gioui.org/font"
 	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
@@ -561,11 +560,6 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, title string, tok resol
 
 	bg, fg, ringOut, ringOver := buttonColors(tok.platform, s)
 
-	// Record the title's paint material — replayed inside the title layout.
-	mColor := op.Record(gtx.Ops)
-	paint.ColorOp{Color: fg}.Add(gtx.Ops)
-	textMaterial := mColor.Stop()
-
 	// Record the title render to obtain its size before drawing the background.
 	//
 	// The title is measured with the width it needs rather than the width the
@@ -577,16 +571,8 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, title string, tok resol
 	titleGtx.Constraints.Min = image.Pt(0, 0)
 	titleGtx.Constraints.Max.X = titleRoom
 
-	// Shape with the LabelLarge role's typeface, weight, size and line height.
-	// Zero fields fall back to the shaper's defaults. typeset.Layout, not
-	// widget.Label.Layout, because the role's line height has to be the height
-	// of the title box and Gio alone reports the drawn glyph extent instead — see
-	// theme/typeset.
-	style := tok.title
-	f := typeset.Font(style, font.Normal)
-	wl := typeset.Label(style, 1)
 	mTitle := op.Record(gtx.Ops)
-	titleDims := typeset.Layout(titleGtx, shaper, wl, f, unit.Sp(style.Size), title, textMaterial)
+	titleDims := typeset.Text(titleGtx, shaper, title, tok.title, fg, 1)
 	titleCall := mTitle.Stop()
 
 	// Button dimensions: fill the available width, and never draw narrower

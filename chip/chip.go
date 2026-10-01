@@ -5,7 +5,6 @@ import (
 	"image/color"
 
 	"gioui.org/f32"
-	"gioui.org/font"
 	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
@@ -651,26 +650,17 @@ func draw(
 		trailGap = gap
 	}
 
-	// Record the title's material and its layout to learn its size before
-	// anything is painted. typeset.Layout rather than widget.Label.Layout
-	// because the role's line height has to be the height of the title box and
-	// Gio alone reports the drawn glyph extent instead — see theme/typeset.
+	// Record the title's layout to learn its size before anything is painted.
 	titleDims := layout.Dimensions{}
 	var titleCall op.CallOp
 	if title != "" {
-		mColor := op.Record(gtx.Ops)
-		paint.ColorOp{Color: col.Label}.Add(gtx.Ops)
-		material := mColor.Stop()
-
 		titleGtx := gtx
 		titleGtx.Constraints.Min = image.Point{}
 		if w := gtx.Constraints.Max.X - 2*padH - lead - leadGap - trailGap - trail; w > 0 {
 			titleGtx.Constraints.Max.X = w
 		}
 		mTitle := op.Record(gtx.Ops)
-		titleDims = typeset.Layout(titleGtx, shaper,
-			typeset.Label(tok.title, 1), typeset.Font(tok.title, font.Normal),
-			unit.Sp(tok.title.Size), title, material)
+		titleDims = typeset.Text(titleGtx, shaper, title, tok.title, col.Label, 1)
 		titleCall = mTitle.Stop()
 	}
 

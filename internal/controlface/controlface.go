@@ -18,7 +18,6 @@ import (
 	"image"
 	"image/color"
 
-	"gioui.org/font"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -289,14 +288,6 @@ func Draw(
 	gap := gtx.Dp(unit.Dp(sp.S3))
 	mark := gtx.Dp(control.MarkWDp)
 
-	// Record the title's material and its layout to learn its size before
-	// anything is painted. typeset.Layout rather than widget.Label.Layout
-	// because the role's line height has to be the height of the title box
-	// and Gio alone reports the drawn glyph extent instead — see theme/typeset.
-	mColor := op.Record(gtx.Ops)
-	paint.ColorOp{Color: titleForeground}.Add(gtx.Ops)
-	material := mColor.Stop()
-
 	// The line box is capped to the control's height, as the form trigger's
 	// is: a pop-up is not sized by the text it carries, and a Compact control
 	// is shorter than the line box its role declares.
@@ -307,9 +298,7 @@ func Draw(
 		titleGtx.Constraints.Max.X = maxTitleW
 	}
 	mTitle := op.Record(gtx.Ops)
-	titleDims := typeset.Layout(titleGtx, shaper,
-		typeset.Label(titleStyle, 1), typeset.Font(titleStyle, font.Normal),
-		unit.Sp(titleStyle.Size), title, material)
+	titleDims := typeset.Text(titleGtx, shaper, title, titleStyle, titleForeground, 1)
 	titleCall := mTitle.Stop()
 
 	// Sized to content across, not to the width it was given: the control

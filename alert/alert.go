@@ -245,16 +245,9 @@ func contentColumn(shaper *text.Shaper, props Props, colors tokens.PlatformColor
 
 func titleWidget(shaper *text.Shaper, title string, fg color.NRGBA, style tokens.TextStyle) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		mColor := op.Record(gtx.Ops)
-		paint.ColorOp{Color: fg}.Add(gtx.Ops)
-		material := mColor.Stop()
-		// Shape with the TitleMedium role's typeface, weight, size and
-		// line height. A zero weight in style falls back to SemiBold, so
-		// the title keeps its emphasis against the body even when style
-		// carries only a size.
-		f := typeset.Font(style, font.SemiBold)
-		wl := typeset.Label(style, 1)
-		return typeset.Layout(gtx, shaper, wl, f, unit.Sp(style.Size), title, material)
+		// SemiBold is the fallback so the title keeps its emphasis against
+		// the body when style carries only a size.
+		return typeset.TextWeight(gtx, shaper, title, style, fg, 1, font.SemiBold)
 	}
 }
 

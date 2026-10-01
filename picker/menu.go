@@ -470,7 +470,6 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	markLead, markBox, lead := rowColumns(gtx)
 	trail := gtx.Dp(selectionInsetDp) + gtx.Dp(control.TextTrailDp)
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
-	f, wl, textSize := bodyLabel(tok)
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	fieldW := gtx.Constraints.Max.X
 
@@ -485,12 +484,8 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 		Max: image.Pt(innerW, gtx.Constraints.Max.Y),
 	}
 
-	mTextCol := op.Record(gtx.Ops)
-	paint.ColorOp{Color: textCol}.Add(gtx.Ops)
-	textMat := mTextCol.Stop()
-
 	mTitle := op.Record(gtx.Ops)
-	titleDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, title, textMat)
+	titleDims := typeset.Text(innerGtx, shaper, title, tok.body, textCol, 1)
 	titleCall := mTitle.Stop()
 
 	rowH := titleDims.Size.Y + 2*padV

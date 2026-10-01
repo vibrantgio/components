@@ -27,7 +27,6 @@ import (
 	"strconv"
 
 	"gioui.org/f32"
-	"gioui.org/font"
 	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
@@ -270,22 +269,12 @@ func drawPageCell(gtx layout.Context, shaper *text.Shaper, title string, bg, fg 
 		paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
 	}
 
-	mColor := op.Record(gtx.Ops)
-	paint.ColorOp{Color: fg}.Add(gtx.Ops)
-	material := mColor.Stop()
-
 	titleGtx := gtx
 	titleGtx.Constraints.Min = image.Point{}
 	titleGtx.Constraints.Max = image.Pt(side, side)
 
-	// Shape with the LabelLarge role's typeface, weight, size and line
-	// height. Zero fields (the Render path may pass a size-only style) fall
-	// back to the shaper's defaults.
-	style := tok.title
-	f := typeset.Font(style, font.Normal)
-	wl := typeset.Label(style, 1)
 	mTitle := op.Record(gtx.Ops)
-	titleDims := typeset.Layout(titleGtx, shaper, wl, f, unit.Sp(style.Size), title, material)
+	titleDims := typeset.Text(titleGtx, shaper, title, tok.title, fg, 1)
 	titleCall := mTitle.Stop()
 
 	offX := (side - titleDims.Size.X) / 2

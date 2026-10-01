@@ -6,7 +6,6 @@ import (
 	"math"
 
 	"gioui.org/f32"
-	"gioui.org/font"
 	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
@@ -548,22 +547,13 @@ func draw(
 	labelDims := layout.Dimensions{}
 	var labelCall op.CallOp
 	if txt != "" {
-		mColor := op.Record(gtx.Ops)
-		paint.ColorOp{Color: fg}.Add(gtx.Ops)
-		material := mColor.Stop()
-
 		labelGtx := gtx
 		labelGtx.Constraints.Min = image.Point{}
 		if maxLabelW := gtx.Constraints.Max.X - 2*pad - sign - signGap - markGap - mark; maxLabelW > 0 {
 			labelGtx.Constraints.Max.X = maxLabelW
 		}
 		mLabel := op.Record(gtx.Ops)
-		// typeset.Layout rather than widget.Label.Layout because the role's
-		// line height has to be the height of the text box, and Gio alone
-		// reports the drawn symbol extent instead — see theme/typeset.
-		labelDims = typeset.Layout(labelGtx, shaper,
-			typeset.Label(tok.style, 1), typeset.Font(tok.style, font.Normal),
-			unit.Sp(tok.style.Size), txt, material)
+		labelDims = typeset.Text(labelGtx, shaper, txt, tok.style, fg, 1)
 		labelCall = mLabel.Stop()
 	}
 

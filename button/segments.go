@@ -4,7 +4,6 @@ import (
 	"image"
 	"image/color"
 
-	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -268,18 +267,13 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 
 // shapeSegmentTitle measures a segment's word at its own width rather than
 // at the width a caller left it, and returns the recorded drawing with
-// the size it measured to. typeset.Layout, not widget.Label.Layout, because
-// the role's line height has to be the height of the title box.
+// the size it measured to.
 func shapeSegmentTitle(gtx layout.Context, shaper *text.Shaper, style tokens.TextStyle, title string, fg color.NRGBA) (op.CallOp, image.Point) {
-	mColor := op.Record(gtx.Ops)
-	paint.ColorOp{Color: fg}.Add(gtx.Ops)
-	material := mColor.Stop()
-
 	lg := gtx
 	lg.Constraints.Min = image.Point{}
 	lg.Constraints.Max.X = segmentTitleRoom
 
 	m := op.Record(gtx.Ops)
-	dims := typeset.Layout(lg, shaper, typeset.Label(style, 1), typeset.Font(style, font.Normal), unit.Sp(style.Size), title, material)
+	dims := typeset.Text(lg, shaper, title, style, fg, 1)
 	return m.Stop(), dims.Size
 }

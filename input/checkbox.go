@@ -311,7 +311,6 @@ func titleBeside(gtx layout.Context, tok resolvedTokens, symbolRight, rowH int, 
 		return 0
 	}
 	gap := gtx.Dp(controlTitleGap)
-	f, wl, textSize := bodyLabel(tok)
 
 	inner := gtx
 	inner.Constraints = layout.Constraints{Max: image.Pt(gtx.Constraints.Max.X-symbolRight-gap, gtx.Constraints.Max.Y)}
@@ -319,12 +318,8 @@ func titleBeside(gtx layout.Context, tok resolvedTokens, symbolRight, rowH int, 
 		inner.Constraints.Max.X = 1
 	}
 
-	mMat := op.Record(gtx.Ops)
-	paint.ColorOp{Color: fg}.Add(gtx.Ops)
-	mat := mMat.Stop()
-
 	mTitle := op.Record(gtx.Ops)
-	dims := typeset.Layout(inner, tok.shaper, wl, f, textSize, title, mat)
+	dims := typeset.Text(inner, tok.shaper, title, tok.body, fg, 1)
 	call := mTitle.Stop()
 
 	st := op.Offset(image.Pt(symbolRight+gap, capBandOffset(gtx, tok, rowH, dims))).Push(gtx.Ops)

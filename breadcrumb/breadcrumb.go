@@ -35,11 +35,9 @@ import (
 	"image/color"
 
 	"gioui.org/f32"
-	"gioui.org/font"
 	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
-	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/text"
@@ -277,15 +275,7 @@ func segmentWidget(shaper *text.Shaper, item Item, click *widget.Clickable, fg c
 
 func titleWidget(shaper *text.Shaper, title string, fg color.NRGBA, style tokens.TextStyle) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		mColor := op.Record(gtx.Ops)
-		paint.ColorOp{Color: fg}.Add(gtx.Ops)
-		material := mColor.Stop()
-		// Shape with the TitleSmall role's typeface, weight, size and line
-		// height. Zero fields (the legacy Render path synthesizes a
-		// size-only style) fall back to the shaper's defaults.
-		f := typeset.Font(style, font.Normal)
-		wl := typeset.Label(style, 1)
-		return typeset.Layout(gtx, shaper, wl, f, unit.Sp(style.Size), title, material)
+		return typeset.Text(gtx, shaper, title, style, fg, 1)
 	}
 }
 

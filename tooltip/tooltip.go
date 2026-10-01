@@ -43,7 +43,6 @@ import (
 	"image/color"
 	"time"
 
-	"gioui.org/font"
 	"gioui.org/gesture"
 	"gioui.org/io/event"
 	"gioui.org/io/key"
@@ -386,22 +385,14 @@ func drawSurface(
 	padV := gtx.Dp(unit.Dp(tok.spacing.S1))
 	gap := gtx.Dp(unit.Dp(tok.spacing.S1))
 
-	// Pre-record the text with its paint material so we can replay it inside
-	// the surface at a known offset after measuring it.
-	mColor := op.Record(gtx.Ops)
-	paint.ColorOp{Color: vgcolor.Flatten(tok.platform.Label, tok.platform.WindowBackground)}.Add(gtx.Ops)
-	material := mColor.Stop()
+	// Pre-record the text so it can be replayed inside the surface at a known
+	// offset after measuring it.
 	textGtx := gtx
 	textGtx.Constraints = layout.Constraints{Max: image.Pt(frame.X*3/4, frame.Y/4)}
 	textGtx.Constraints.Min = image.Point{}
-	// Shape with the LabelSmall role's typeface, weight, size and line
-	// height. Zero fields (the legacy Render path synthesizes a size-only
-	// style) fall back to the shaper's defaults.
-	style := tok.style
-	f := typeset.Font(style, font.Normal)
-	wl := typeset.Label(style, 1)
+	fg := vgcolor.Flatten(tok.platform.Label, tok.platform.WindowBackground)
 	mText := op.Record(gtx.Ops)
-	textDims := typeset.Layout(textGtx, shaper, wl, f, unit.Sp(style.Size), props.Text, material)
+	textDims := typeset.Text(textGtx, shaper, props.Text, tok.style, fg, 1)
 	textCall := mText.Stop()
 
 	surfW := textDims.Size.X + 2*padH

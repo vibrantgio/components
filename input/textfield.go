@@ -229,6 +229,11 @@ type resolvedTokens struct {
 // defaults. Lay the returned label out with typeset.Layout rather than
 // widget.Label.Layout: the role's line height is the height of the line box,
 // which Gio does not give a single line on its own.
+//
+// The three values are what this field needs and a drawn line is not: a
+// widget.Editor takes the font and the size directly, and [staticSelection]
+// measures through text.Parameters built off the label's own MaxLines,
+// Truncator, Alignment, WrapPolicy and line height.
 func bodyLabel(tok resolvedTokens) (font.Font, widget.Label, unit.Sp) {
 	style := tok.body
 	return typeset.Font(style, font.Normal), typeset.Label(style, 1), unit.Sp(style.Size)
