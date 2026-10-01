@@ -43,11 +43,11 @@ const segmentLabelRoom = 1 << 20
 // carries, the state it is drawn in, and the target that makes it pressable.
 type BorderedSegment struct {
 	// Icon draws the segment's symbol into the square it is handed. A nil
-	// Icon draws an empty segment. It is not reached while Label carries a
+	// Icon draws an empty segment. It is not reached while Title carries a
 	// word: a segment carries one or the other.
 	Icon func(gtx layout.Context, sizePx int, col color.NRGBA)
 
-	// Label is the word this segment carries instead of a symbol.
+	// Title is the word this segment carries instead of a symbol.
 	//
 	// NOT MEASURED, and the one thing here that is not: not one control in
 	// the five stored toolbar bands carries a word (controls.md, "What a
@@ -56,7 +56,7 @@ type BorderedSegment struct {
 	// plus the clearance the symbol path spends at either side
 	// ([control.ChromeMarkSideDp]), which is the nearest measured number
 	// this control holds.
-	Label string
+	Title string
 
 	// State is this segment's own interaction state. Hovered and Pressed
 	// tint this segment and not the control, which is what the platform
@@ -154,14 +154,14 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 				fills[i] = variantFill(p, variant, st)
 			}
 		}
-		if s.Label == "" {
+		if s.Title == "" {
 			continue
 		}
 		fg := variantForeground(p, variant, fills[i])
 		if s.State.Disabled {
 			fg = vgcolor.Flatten(p.DisabledControlText, fills[i])
 		}
-		labels[i], labelSize[i] = shapeSegmentLabel(gtx, shaper, labelStyle, s.Label, fg)
+		labels[i], labelSize[i] = shapeSegmentLabel(gtx, shaper, labelStyle, s.Title, fg)
 		if w := labelSize[i].X + 2*side; w > segW {
 			segW = w
 		}
@@ -235,7 +235,7 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 			paint.FillShape(gtx.Ops, p.ToolbarControlSeam, clip.Rect(line).Op())
 		}
 		switch {
-		case s.Label != "":
+		case s.Title != "":
 			area := outer.Push(gtx.Ops)
 			off := op.Offset(image.Pt(
 				x+(seg.Dx()-labelSize[i].X)/2,

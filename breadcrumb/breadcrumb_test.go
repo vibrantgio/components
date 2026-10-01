@@ -46,7 +46,7 @@ func scene(w layout.Widget, bgColor color.NRGBA) layout.Widget {
 // rasterises identically on every machine and no symbol reaches a stored
 // image.
 func trail() []breadcrumb.Item {
-	return []breadcrumb.Item{{Label: "Home"}, {Label: "Design"}, {Label: "Tokens"}}
+	return []breadcrumb.Item{{Title: "Home"}, {Title: "Design"}, {Title: "Tokens"}}
 }
 
 // TestBreadcrumbGolden records or diffs the three Measurable goldens. The
@@ -60,7 +60,7 @@ func TestBreadcrumbGolden(t *testing.T) {
 	darkBG := color.NRGBA{R: 20, G: 20, B: 20, A: 255}
 
 	threeItems := trail()
-	singleItem := []breadcrumb.Item{{Label: "Home"}}
+	singleItem := []breadcrumb.Item{{Title: "Home"}}
 
 	cases := []struct {
 		name     string
@@ -95,7 +95,7 @@ func TestBreadcrumbThreeVsSingle(t *testing.T) {
 	}
 
 	three := render(trail())
-	single := render([]breadcrumb.Item{{Label: "Home"}})
+	single := render([]breadcrumb.Item{{Title: "Home"}})
 	if n := golden.PixelDiff(three, single); n == 0 {
 		t.Errorf("three-segment and single-segment render identically; expected chevrons in three-segment")
 	}
@@ -134,7 +134,7 @@ func TestChevronSizeIsTheCallersOrTheDefault(t *testing.T) {
 	items := trail()
 	segs := make([]breadcrumb.Segment, len(items))
 	for i, it := range items {
-		segs[i] = breadcrumb.Segment{Key: it.Label, Label: it.Label}
+		segs[i] = breadcrumb.Segment{Key: it.Title, Title: it.Title}
 	}
 	loose := layout.Constraints{Max: image.Pt(1<<14, 1<<14)}
 

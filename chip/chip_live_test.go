@@ -74,7 +74,7 @@ func driver(w layout.Widget, r *gioinput.Router, size image.Point) func() layout
 func TestChipTargetIsTheChip(t *testing.T) {
 	var clicked int
 	w := live(t, chip.Props{
-		Label:   "gpt-5",
+		Title:   "gpt-5",
 		OnClick: func(_ layout.Context) { clicked++ },
 	})
 
@@ -123,7 +123,7 @@ func TestChipActivatesFromTheKeyboard(t *testing.T) {
 	var clicked int
 	var click widget.Clickable
 	w := live(t, chip.Props{
-		Label:     "main",
+		Title:     "main",
 		Icon:      chevron,
 		Clickable: &click,
 		Message:   "chip-activated",
@@ -184,7 +184,7 @@ func TestChipActivatesFromTheKeyboard(t *testing.T) {
 func TestFocusedChipMeasuresTheSameBox(t *testing.T) {
 	var click widget.Clickable
 	w := live(t, chip.Props{
-		Label:     "main",
+		Title:     "main",
 		Icon:      chevron,
 		Clickable: &click,
 	})
@@ -237,7 +237,7 @@ func TestPinnedChipDrawsAtTheEdgeOfTheBox(t *testing.T) {
 	box := image.Pt(300, 120)
 
 	// The chip's own width, which the pin must not change.
-	pill := driver(live(t, chip.Props{Label: label, Icon: chevron}), new(gioinput.Router), box)()
+	pill := driver(live(t, chip.Props{Title: label, Icon: chevron}), new(gioinput.Router), box)()
 	if pill.Size.X >= box.X {
 		t.Fatalf("the unpinned chip measured %d px in a %d px box; there is no slack to pin across",
 			pill.Size.X, box.X)
@@ -255,7 +255,7 @@ func TestPinnedChipDrawsAtTheEdgeOfTheBox(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var clicked int
 			w := live(t, chip.Props{
-				Label:   label,
+				Title:   label,
 				Icon:    chevron,
 				Pin:     tc.pin,
 				OnClick: func(_ layout.Context) { clicked++ },
@@ -306,7 +306,7 @@ func TestFilterChipTogglesAndReports(t *testing.T) {
 	var moves []bool
 	var clicked int
 	w := live(t, chip.Props{
-		Label:    "Unread",
+		Title:    "Unread",
 		Purpose:  chip.Filter,
 		OnSelect: func(_ layout.Context, selected bool) { moves = append(moves, selected) },
 		OnClick:  func(_ layout.Context) { clicked++ },
@@ -346,7 +346,7 @@ func TestOnlyAFilterReportsSelection(t *testing.T) {
 		t.Run(in.name, func(t *testing.T) {
 			moved := 0
 			w := live(t, chip.Props{
-				Label:    "Token",
+				Title:    "Token",
 				Purpose:  in.i,
 				Selected: true, // ignored: this purpose carries no selection
 				OnSelect: func(_ layout.Context, _ bool) { moved++ },
@@ -370,7 +370,7 @@ func TestOnlyAFilterReportsSelection(t *testing.T) {
 func TestInputChipDismissesFromItsOwnTarget(t *testing.T) {
 	var dismissed, clicked int
 	w := live(t, chip.Props{
-		Label:     "recipient@example.com",
+		Title:     "recipient@example.com",
 		Purpose:   chip.Input,
 		OnDismiss: func(_ layout.Context) { dismissed++ },
 		OnClick:   func(_ layout.Context) { clicked++ },

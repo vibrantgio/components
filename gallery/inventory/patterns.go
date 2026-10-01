@@ -203,7 +203,7 @@ func (inv *Inventory) groups(c tokens.PlatformColors) layout.Widget {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(260))
 		gtx.Constraints.Min = gtx.Constraints.Max
 		return group.Render(inv.shaper, group.Props{
-			Label:   "Density",
+			Title:   "Density",
 			Content: []layout.Widget{first, second},
 		}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge)(gtx)
 	}
@@ -229,9 +229,9 @@ func (inv *Inventory) accordion(c tokens.PlatformColors) layout.Widget {
 func (inv *Inventory) tabs(c tokens.PlatformColors) layout.Widget {
 	props := tabs.Props{
 		Tabs: []tabs.Tab{
-			{Label: "Overview", Content: inv.prose(c, "The first tab's content.")},
-			{Label: "Tokens", Content: inv.prose(c, "The selected tab's content shows below the strip.")},
-			{Label: "History", Content: inv.prose(c, "The third tab's content.")},
+			{Title: "Overview", Content: inv.prose(c, "The first tab's content.")},
+			{Title: "Tokens", Content: inv.prose(c, "The selected tab's content shows below the strip.")},
+			{Title: "History", Content: inv.prose(c, "The third tab's content.")},
 		},
 		Shaper: inv.shaper,
 	}
@@ -246,9 +246,9 @@ func (inv *Inventory) navbarProps(c tokens.PlatformColors) navbar.Props {
 	return navbar.Props{
 		Brand: inv.prose(c, "Vibrant Gio"),
 		Links: []navbar.Link{
-			{Label: "Gallery", Active: true},
-			{Label: "Tokens"},
-			{Label: "Patterns"},
+			{Title: "Gallery", Active: true},
+			{Title: "Tokens"},
+			{Title: "Patterns"},
 		},
 		Actions: []layout.Widget{
 			// The bar wears the chrome material, and a badge with no fill of
@@ -283,10 +283,10 @@ func (inv *Inventory) navbar(c tokens.PlatformColors) layout.Widget {
 func (inv *Inventory) sidebarProps(tokens.PlatformColors) patsidebar.Props {
 	return patsidebar.Props{
 		Items: []patsidebar.Item{
-			{Icon: inv.marks.Mark(icons.Folder), Label: "Everything", Count: "128", Active: true},
-			{Icon: inv.marks.Mark(icons.Folder), Label: "Components", Count: "46", Section: "Library"},
-			{Icon: inv.marks.Mark(icons.Folder), Label: "Patterns", Count: "16"},
-			{Icon: inv.marks.Mark(icons.Document), Label: "Markdown"},
+			{Icon: inv.marks.Mark(icons.Folder), Title: "Everything", Count: "128", Active: true},
+			{Icon: inv.marks.Mark(icons.Folder), Title: "Components", Count: "46", Section: "Library"},
+			{Icon: inv.marks.Mark(icons.Folder), Title: "Patterns", Count: "16"},
+			{Icon: inv.marks.Mark(icons.Document), Title: "Markdown"},
 		},
 		Shaper: inv.shaper,
 	}
@@ -546,8 +546,8 @@ func (inv *Inventory) hero(c tokens.PlatformColors) layout.Widget {
 		Eyebrow:      "The design system",
 		Title:        "Judge a theme whole",
 		Subtitle:     "Every family on one page, re-rendered on the theme you are trying.",
-		PrimaryCTA:   &hero.CTA{Label: "Try a colour"},
-		SecondaryCTA: &hero.CTA{Label: "Read the docs"},
+		PrimaryCTA:   &hero.CTA{Title: "Try a colour"},
+		SecondaryCTA: &hero.CTA{Title: "Read the docs"},
 		Shaper:       inv.shaper,
 	}
 	return func(gtx layout.Context) layout.Dimensions {
@@ -577,11 +577,11 @@ func (inv *Inventory) pricing(c tokens.PlatformColors) layout.Widget {
 	props := pricing.Props{
 		Tiers: []pricing.Tier{
 			{Name: "Sketch", Price: "Free", Cadence: "forever",
-				Features: []string{"One theme", "Both appearances"}, CTA: &pricing.CTA{Label: "Start"}},
+				Features: []string{"One theme", "Both appearances"}, CTA: &pricing.CTA{Title: "Start"}},
 			{Name: "Studio", Price: "$12", Cadence: "per month", Recommended: true,
-				Features: []string{"Unlimited themes", "Both appearances", "Export"}, CTA: &pricing.CTA{Label: "Choose"}},
+				Features: []string{"Unlimited themes", "Both appearances", "Export"}, CTA: &pricing.CTA{Title: "Choose"}},
 			{Name: "Team", Price: "$40", Cadence: "per month",
-				Features: []string{"Everything in Studio", "Shared themes"}, CTA: &pricing.CTA{Label: "Contact"}},
+				Features: []string{"Everything in Studio", "Shared themes"}, CTA: &pricing.CTA{Title: "Contact"}},
 		},
 		Shaper: inv.shaper,
 	}

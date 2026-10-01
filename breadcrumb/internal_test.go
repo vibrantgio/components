@@ -47,22 +47,22 @@ func TestLabelColorSingleSegment(t *testing.T) {
 	}
 }
 
-// TestSegmentIdentityFallsBackToLabel pins the rule a caller can trip over
-// silently: a Segment with no Key is addressed by its Label, which is stable
+// TestSegmentIdentityFallsBackToTitle pins the rule a caller can trip over
+// silently: a Segment with no Key is addressed by its Title, which is stable
 // enough while labels are the path and not stable at all once two places
 // share one.
-func TestSegmentIdentityFallsBackToLabel(t *testing.T) {
+func TestSegmentIdentityFallsBackToTitle(t *testing.T) {
 	for _, tc := range []struct {
 		seg  Segment
 		want string
 	}{
-		{Segment{Key: "/design", Label: "Design"}, "/design"},
-		{Segment{Label: "Design"}, "Design"},
+		{Segment{Key: "/design", Title: "Design"}, "/design"},
+		{Segment{Title: "Design"}, "Design"},
 		{Segment{}, ""},
 	} {
 		if got := tc.seg.identity(); got != tc.want {
-			t.Errorf("Segment{Key:%q, Label:%q}.identity() = %q, want %q",
-				tc.seg.Key, tc.seg.Label, got, tc.want)
+			t.Errorf("Segment{Key:%q, Title:%q}.identity() = %q, want %q",
+				tc.seg.Key, tc.seg.Title, got, tc.want)
 		}
 	}
 }
@@ -75,11 +75,11 @@ func TestSegmentIdentityFallsBackToLabel(t *testing.T) {
 func TestTrailStateKeepsAndRetiresIdentities(t *testing.T) {
 	noop := func(layout.Context) {}
 	deep := []Segment{
-		{Key: "/", Label: "Home", OnClick: noop},
-		{Key: "/design", Label: "Design", OnClick: noop},
-		{Key: "/design/tokens", Label: "Tokens"},
+		{Key: "/", Title: "Home", OnClick: noop},
+		{Key: "/design", Title: "Design", OnClick: noop},
+		{Key: "/design/tokens", Title: "Tokens"},
 	}
-	shallow := []Segment{{Key: "/", Label: "Home", OnClick: noop}}
+	shallow := []Segment{{Key: "/", Title: "Home", OnClick: noop}}
 
 	var s trailState
 	if _, clicks := s.adopt(deep); len(s.segs) != 3 || clicks[2] != nil {
@@ -116,9 +116,9 @@ func TestTrailStateKeepsAndRetiresIdentities(t *testing.T) {
 func TestTrailStateSharesOneAffordancePerIdentity(t *testing.T) {
 	var first, second int
 	segs := []Segment{
-		{Key: "/", Label: "Home", OnClick: func(layout.Context) { first++ }},
-		{Key: "/", Label: "Home again", OnClick: func(layout.Context) { second++ }},
-		{Key: "/design", Label: "Design"},
+		{Key: "/", Title: "Home", OnClick: func(layout.Context) { first++ }},
+		{Key: "/", Title: "Home again", OnClick: func(layout.Context) { second++ }},
+		{Key: "/design", Title: "Design"},
 	}
 
 	var s trailState

@@ -40,31 +40,31 @@ func TestLabelledControlGolden(t *testing.T) {
 	}{
 		{"checkbox-light-labelled", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
 			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
-				input.CheckboxRenderState{Label: "Show startup screen"})
+				input.CheckboxRenderState{Title: "Show startup screen"})
 		}},
 		{"checkbox-dark-labelled", tokens.PlatformDark, func(p tokens.PlatformColors) layout.Widget {
 			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
-				input.CheckboxRenderState{Label: "Show startup screen"})
+				input.CheckboxRenderState{Title: "Show startup screen"})
 		}},
 		{"checkbox-light-labelled-checked", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
 			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
-				input.CheckboxRenderState{Checked: true, Label: "Show startup screen"})
+				input.CheckboxRenderState{Checked: true, Title: "Show startup screen"})
 		}},
 		{"checkbox-light-labelled-disabled", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
 			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
-				input.CheckboxRenderState{Disabled: true, Label: "Show startup screen"})
+				input.CheckboxRenderState{Disabled: true, Title: "Show startup screen"})
 		}},
 		{"checkbox-dark-labelled-disabled", tokens.PlatformDark, func(p tokens.PlatformColors) layout.Widget {
 			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
-				input.CheckboxRenderState{Disabled: true, Label: "Show startup screen"})
+				input.CheckboxRenderState{Disabled: true, Title: "Show startup screen"})
 		}},
 		{"radio-light-labelled-selected", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
 			return input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
-				input.RadioRenderState{Selected: true, Label: "Based on the pointer"})
+				input.RadioRenderState{Selected: true, Title: "Based on the pointer"})
 		}},
 		{"radio-dark-labelled-disabled", tokens.PlatformDark, func(p tokens.PlatformColors) layout.Widget {
 			return input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
-				input.RadioRenderState{Disabled: true, Label: "Based on the pointer"})
+				input.RadioRenderState{Disabled: true, Title: "Based on the pointer"})
 		}},
 	}
 	for _, tc := range cases {
@@ -133,9 +133,9 @@ func TestLabelStandsAtTheMeasuredGap(t *testing.T) {
 		w    layout.Widget
 	}{
 		{"checkbox", input.RenderCheckbox(shaper, tokens.PlatformLight, tokens.Spacing,
-			tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Label: capturedLabel})},
+			tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Title: capturedLabel})},
 		{"radio", input.RenderRadio(shaper, tokens.PlatformLight, tokens.Spacing,
-			tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Label: capturedLabel})},
+			tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Title: capturedLabel})},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			img := golden.Capture(t, labelledSize, tc.w)
@@ -180,7 +180,7 @@ func TestLabelCapBandIsCentredOnTheSymbolsRow(t *testing.T) {
 	// up to the cap height, so a descender or an x-height letter would cover
 	// rows beyond it.
 	w := input.RenderCheckbox(shaper, tokens.PlatformLight, tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Label: "HI"})
+		tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Title: "HI"})
 	img := golden.Capture(t, labelledSize, w)
 	if img == nil {
 		return
@@ -210,13 +210,13 @@ func TestLabelIsPartOfThePointerTarget(t *testing.T) {
 	}{
 		{"checkbox", func(n *int) rx.Observable[layout.Widget] {
 			return input.Checkbox(rx.Of(theme.Default()), input.CheckboxProps{
-				Label:    label,
+				Title:    label,
 				OnChange: func(_ layout.Context, _ bool) { *n++ },
 			})
 		}},
 		{"radio", func(n *int) rx.Observable[layout.Widget] {
 			return input.Radio(rx.Of(theme.Default()), input.RadioProps{
-				Label:    label,
+				Title:    label,
 				OnChange: func(_ layout.Context, _ bool) { *n++ },
 			})
 		}},
@@ -270,7 +270,7 @@ func TestSwitchedOffLabelFadesWithItsSymbol(t *testing.T) {
 		t.Run(sc.name, func(t *testing.T) {
 			img := golden.Capture(t, labelledSize, onSheet(sc.sheet, input.RenderCheckbox(
 				shaper, sc.platform, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
-				input.CheckboxRenderState{Disabled: true, Label: "Show startup screen", Surface: sc.sheet},
+				input.CheckboxRenderState{Disabled: true, Title: "Show startup screen", Surface: sc.sheet},
 			)))
 			if img == nil {
 				return
@@ -328,12 +328,12 @@ func dist(got stdcolor.RGBA, c stdcolor.NRGBA) int {
 func TestLiveAndStaticDrawTheSameLabel(t *testing.T) {
 	label := "Show startup screen"
 	live := golden.Capture(t, labelledSize, materialize(t, input.Checkbox(rx.Of(theme.Default()), input.CheckboxProps{
-		Label: label,
+		Title: label,
 	})))
 	static := golden.Capture(t, labelledSize, input.RenderCheckbox(
 		tokens.DefaultTypography.Shaper(),
 		tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
-		input.CheckboxRenderState{Label: label},
+		input.CheckboxRenderState{Title: label},
 	))
 	if live == nil || static == nil {
 		return

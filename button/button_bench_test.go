@@ -50,7 +50,7 @@ func BenchmarkButtonRenderFocused(b *testing.B) {
 // the paint. Every dark-mode toggle, density change and first subscription in a
 // running application pays exactly this.
 func BenchmarkButtonThemeEmission(b *testing.B) {
-	props := button.Props{Label: "Benchmark"}
+	props := button.Props{Title: "Benchmark"}
 	b.ReportAllocs()
 	for b.Loop() {
 		var w layout.Widget

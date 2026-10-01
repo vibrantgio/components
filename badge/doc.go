@@ -47,7 +47,7 @@
 //
 // and there is one structure underneath all three: the type's line box tall,
 // sized to what it says, in the platform's colours for its status. A count is a
-// [Props.Label] of digits and needs no field of its own. A symbol is
+// [Props.Title] of digits and needs no field of its own. A symbol is
 // [Props.Symbol] with no label, drawn in the line box's own square. A symbol set
 // beside a label leads it across the spacing scale's S1 stop — the sign comes
 // before the word it stands for, which is also what keeps the badge from

@@ -126,9 +126,9 @@ type CheckboxRenderState struct {
 	Focused  bool
 	Disabled bool
 
-	// Label is the control's own text, drawn beside the box. Empty draws
+	// Title is the control's own text, drawn beside the box. Empty draws
 	// the box alone.
-	Label string
+	Title string
 
 	// Surface is the opaque fill the control stands on. Its focus ring rides
 	// in the slack around the symbol, so the platform's keyboard focus
@@ -140,11 +140,11 @@ type CheckboxRenderState struct {
 
 // CheckboxProps configures a Checkbox instance.
 type CheckboxProps struct {
-	// Label is the control's own text, drawn beside the box and part of the
+	// Title is the control's own text, drawn beside the box and part of the
 	// control: the whole row operates the box. Empty draws the box alone.
-	Label string
+	Title string
 
-	// Description is the screen-reader label. Empty falls back to Label.
+	// Description is the screen-reader label. Empty falls back to Title.
 	Description string
 
 	// Checked is the initial checked state established on subscribe.
@@ -237,9 +237,9 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 				return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
 					return b.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						semantic.CheckBox.Add(gtx.Ops)
-						if desc := props.Description; desc != "" || props.Label != "" {
+						if desc := props.Description; desc != "" || props.Title != "" {
 							if desc == "" {
-								desc = props.Label
+								desc = props.Title
 							}
 							semantic.DescriptionOp(desc).Add(gtx.Ops)
 						}
@@ -247,7 +247,7 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 							Checked:  b.Value,
 							Focused:  foc,
 							Disabled: dis,
-							Label:    props.Label,
+							Title:    props.Title,
 						})
 					})
 				})
@@ -261,7 +261,7 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 // testing and static demonstrations; production code should use Checkbox,
 // which reads both of the parameters below off the theme.
 //
-// shaper and body draw CheckboxRenderState.Label — the whole text style, so
+// shaper and body draw CheckboxRenderState.Title — the whole text style, so
 // typeface, weight, size and line height all reach the shaper. Pass
 // tokens.DefaultTypography.BodyLarge and a shaper for the default desktop
 // look; a state with no label reaches neither, and a nil shaper is then
@@ -458,7 +458,7 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		label = vgcolor.Flatten(tok.platform.TertiaryLabel, standsOn)
 	}
 	w := ctlSz
-	if beside := labelBeside(gtx, tok, boxRect.Max.X, ctlSz, s.Label, label); beside > 0 {
+	if beside := labelBeside(gtx, tok, boxRect.Max.X, ctlSz, s.Title, label); beside > 0 {
 		// The control ends at the label's last column; the row's height
 		// stays the measured one whatever the label's line box is.
 		w = boxRect.Max.X + beside

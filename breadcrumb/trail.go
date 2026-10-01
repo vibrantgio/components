@@ -12,7 +12,7 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// Segment is one segment of a trail handed over per frame. Label and OnClick
+// Segment is one segment of a trail handed over per frame. Title and OnClick
 // are the same two facts Item carries — the segment is clickable exactly when
 // its own OnClick is non-nil, and the trailing segment by position still takes
 // the current-location colour whatever its OnClick says.
@@ -23,12 +23,12 @@ import (
 // string the caller can produce again next frame for the same destination.
 // Key is never drawn.
 //
-// A Segment with an empty Key takes its Label as its identity, which is right
+// A Segment with an empty Key takes its Title as its identity, which is right
 // while labels are the path and wrong as soon as two places share a label; a
 // trail whose segments can collide should say so with a Key.
 type Segment struct {
 	Key     string
-	Label   string
+	Title   string
 	OnClick func(gtx layout.Context)
 }
 
@@ -37,7 +37,7 @@ func (s Segment) identity() string {
 	if s.Key != "" {
 		return s.Key
 	}
-	return s.Label
+	return s.Title
 }
 
 // TrailLayout draws one frame of a trail: the caller passes the segments as
@@ -216,7 +216,7 @@ func (s *trailState) adopt(segments []Segment) ([]Item, []*widget.Clickable) {
 	items := make([]Item, len(segments))
 	clicks := make([]*widget.Clickable, len(segments))
 	for i, seg := range segments {
-		items[i] = Item{Label: seg.Label, OnClick: seg.OnClick}
+		items[i] = Item{Title: seg.Title, OnClick: seg.OnClick}
 
 		key := seg.identity()
 		st := s.segs[key]

@@ -226,15 +226,15 @@ func (s RenderState) overlay(p tokens.PlatformColors, beneath color.NRGBA) color
 // Props configures a [Badge] instance: what it says, which status it
 // indicates, what it stands on, and whether it can be dismissed.
 type Props struct {
-	// Label is what the badge says — a word, or the digits of a count. An
-	// empty Label with a non-nil Symbol is the symbol utterance.
-	Label string
+	// Title is what the badge says — a word, or the digits of a count. An
+	// empty Title with a non-nil Symbol is the symbol utterance.
+	Title string
 
 	// Symbol is the sign the badge draws, in the label's own line box, leading
 	// the label across the spacing scale's S1 stop. A nil Symbol draws none.
 	Symbol Symbol
 
-	// Disc asks a symbol badge — a non-nil Symbol with an empty Label — to
+	// Disc asks a symbol badge — a non-nil Symbol with an empty Title — to
 	// stand on the status's fill: a circle the symbol's line box across, the
 	// sign centred in it and drawn smaller to fit. Copied straight into
 	// [RenderState.Disc]. A badge with a label ignores it.
@@ -249,7 +249,7 @@ type Props struct {
 	// a badge given no status is Neutral.
 	Status Status
 
-	// Description is the screen-reader label. Falls back to Label when empty,
+	// Description is the screen-reader label. Falls back to Title when empty,
 	// which is what a symbol badge needs — a sign with no words has nothing
 	// for a reader to say unless the caller says it.
 	Description string
@@ -381,13 +381,13 @@ func Badge(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 			}
 			desc := props.Description
 			if desc == "" {
-				desc = props.Label
+				desc = props.Title
 			}
 
 			return func(gtx layout.Context) layout.Dimensions {
 				s := RenderState{Disc: props.Disc, Surface: props.Surface}
 				if props.OnDismiss == nil {
-					return draw(gtx, shaper, props.Label, props.Symbol, props.Status,
+					return draw(gtx, shaper, props.Title, props.Symbol, props.Status,
 						tok, s, desc, false, nil)
 				}
 				// Drained to empty and reported once: a double click on a
@@ -408,7 +408,7 @@ func Badge(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 				}
 				s.DismissHovered = dismiss.Hovered()
 				s.DismissPressed = dismiss.Pressed()
-				return draw(gtx, shaper, props.Label, props.Symbol, props.Status,
+				return draw(gtx, shaper, props.Title, props.Symbol, props.Status,
 					tok, s, desc, true, &dismiss)
 			}
 		})

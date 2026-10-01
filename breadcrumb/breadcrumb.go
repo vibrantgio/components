@@ -61,7 +61,7 @@ import (
 // Conventionally the last item carries OnClick == nil; the package does not
 // enforce this — interactivity follows the OnClick field per item.
 type Item struct {
-	Label   string
+	Title   string
 	OnClick func(gtx layout.Context)
 }
 
@@ -260,13 +260,13 @@ func clickFor(clicks []*widget.Clickable, i int) *widget.Clickable {
 }
 
 func segmentWidget(shaper *text.Shaper, item Item, click *widget.Clickable, fg color.NRGBA, style tokens.TextStyle) layout.Widget {
-	label := labelWidget(shaper, item.Label, fg, style)
+	label := labelWidget(shaper, item.Title, fg, style)
 	if click == nil || item.OnClick == nil {
 		return label
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			semantic.LabelOp(item.Label).Add(gtx.Ops)
+			semantic.LabelOp(item.Title).Add(gtx.Ops)
 			semantic.EnabledOp(true).Add(gtx.Ops)
 			dims := label(gtx)
 			pointershape.OverSize(gtx.Ops, dims.Size, pointer.CursorPointer)

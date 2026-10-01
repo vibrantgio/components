@@ -45,7 +45,7 @@ func newTrail(t *testing.T) breadcrumb.TrailLayout {
 func segments(fired map[string]int, pairs ...[2]string) []breadcrumb.Segment {
 	segs := make([]breadcrumb.Segment, len(pairs))
 	for i, p := range pairs {
-		segs[i] = breadcrumb.Segment{Key: p[0], Label: p[1]}
+		segs[i] = breadcrumb.Segment{Key: p[0], Title: p[1]}
 		if i < len(pairs)-1 {
 			key := p[0]
 			segs[i].OnClick = func(_ layout.Context) { fired[key]++ }
@@ -87,7 +87,7 @@ func rowWidth(t *testing.T, shaper *text.Shaper, labels ...string) int {
 	t.Helper()
 	items := make([]breadcrumb.Item, len(labels))
 	for i, l := range labels {
-		items[i] = breadcrumb.Item{Label: l}
+		items[i] = breadcrumb.Item{Title: l}
 	}
 	w := breadcrumb.Render(shaper, breadcrumb.Props{Items: items, Shaper: shaper},
 		tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)

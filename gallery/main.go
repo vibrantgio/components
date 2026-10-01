@@ -205,7 +205,7 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 
 	var err error
 	g.btnLive, err = button.Button(th, button.Props{
-		Label:   "Click me",
+		Title:   "Click me",
 		OnClick: func(_ layout.Context) { g.btnClicks++; w.Invalidate() },
 	}).First()
 	if err != nil {
@@ -213,7 +213,7 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 	}
 
 	g.btnCompare, err = button.Button(th, button.Props{
-		Label:   "Click me",
+		Title:   "Click me",
 		OnClick: func(_ layout.Context) { g.btnCompareClicks++; w.Invalidate() },
 	}).First()
 	if err != nil {
@@ -221,7 +221,7 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 	}
 
 	g.springBtnLive, err = springbutton.SpringButton(th, button.Props{
-		Label:   "Click me",
+		Title:   "Click me",
 		OnClick: func(_ layout.Context) { g.springBtnClicks++; w.Invalidate() },
 	}, springbutton.Options{}).First()
 	if err != nil {
@@ -236,7 +236,7 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 	for i, lv := range chipSpecimens {
 		i, lv := i, lv
 		g.chipLive[i], err = chip.Chip(th, chip.Props{
-			Label:       lv.label,
+			Title:       lv.label,
 			Icon:        chip.Symbol(icons.Mark(icons.Disclosure)),
 			Description: lv.desc,
 			Surface:     lv.fill,
@@ -263,14 +263,14 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 	}
 
 	g.cbLive, err = input.Checkbox(th, input.CheckboxProps{
-		Label: "Accept terms",
+		Title: "Accept terms",
 	}).First()
 	if err != nil {
 		log.Printf("checkbox: %v", err)
 	}
 
 	g.rbALive, err = input.Radio(th, input.RadioProps{
-		Label:    "Option A",
+		Title:    "Option A",
 		Selected: true,
 	}).First()
 	if err != nil {
@@ -278,7 +278,7 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 	}
 
 	g.rbBLive, err = input.Radio(th, input.RadioProps{
-		Label: "Option B",
+		Title: "Option B",
 	}).First()
 	if err != nil {
 		log.Printf("radio B: %v", err)

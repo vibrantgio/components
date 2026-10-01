@@ -62,9 +62,9 @@ type RadioRenderState struct {
 	Focused  bool
 	Disabled bool
 
-	// Label is the option's own text, drawn beside the disc. Empty draws
+	// Title is the option's own text, drawn beside the disc. Empty draws
 	// the disc alone.
-	Label string
+	Title string
 
 	// Surface is the opaque fill the control stands on. Its focus ring rides
 	// in the slack around the symbol, so the platform's keyboard focus
@@ -76,11 +76,11 @@ type RadioRenderState struct {
 
 // RadioProps configures a Radio instance.
 type RadioProps struct {
-	// Label is the option's own text, drawn beside the disc and part of the
+	// Title is the option's own text, drawn beside the disc and part of the
 	// control: the whole row operates it. Empty draws the disc alone.
-	Label string
+	Title string
 
-	// Description is the screen-reader label. Empty falls back to Label.
+	// Description is the screen-reader label. Empty falls back to Title.
 	Description string
 
 	// Selected is the initial selected state established on subscribe.
@@ -169,9 +169,9 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 				return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
 					return b.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						semantic.RadioButton.Add(gtx.Ops)
-						if desc := props.Description; desc != "" || props.Label != "" {
+						if desc := props.Description; desc != "" || props.Title != "" {
 							if desc == "" {
-								desc = props.Label
+								desc = props.Title
 							}
 							semantic.DescriptionOp(desc).Add(gtx.Ops)
 						}
@@ -179,7 +179,7 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 							Selected: b.Value,
 							Focused:  foc,
 							Disabled: dis,
-							Label:    props.Label,
+							Title:    props.Title,
 						})
 					})
 				})
@@ -193,7 +193,7 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 // testing and static demonstrations; production code should use Radio.
 //
 // The parameters are [RenderCheckbox]'s and mean the same things: shaper and
-// body draw RadioRenderState.Label, and density is not among them.
+// body draw RadioRenderState.Title, and density is not among them.
 func RenderRadio(
 	shaper *text.Shaper,
 	p tokens.PlatformColors,
@@ -339,7 +339,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		label = vgcolor.Flatten(tok.platform.TertiaryLabel, standsOn)
 	}
 	w := ctlSz
-	if beside := labelBeside(gtx, tok, outerRect.Max.X, ctlSz, s.Label, label); beside > 0 {
+	if beside := labelBeside(gtx, tok, outerRect.Max.X, ctlSz, s.Title, label); beside > 0 {
 		w = outerRect.Max.X + beside
 	}
 

@@ -629,7 +629,7 @@ func materialize(t *testing.T, obs rx.Observable[layout.Widget]) layout.Widget {
 // 36 dp light-normal golden is the density divergence landing.
 func TestButtonCompactGolden(t *testing.T) {
 	w := materialize(t, button.Button(rx.Of(densityTheme(tokens.Compact)), button.Props{
-		Label: "Save Changes",
+		Title: "Save Changes",
 		// The live path would otherwise take the theme's fallback Shaper,
 		// which resolves against the machine's fonts. A golden pins its faces.
 		Shaper: defaultShaper(t),
@@ -716,7 +716,7 @@ func TestCompactButtonClearsTheControlHeightFloor(t *testing.T) {
 func TestButtonTargetIsTheControl(t *testing.T) {
 	var clicked int
 	w := materialize(t, button.Button(rx.Of(theme.Default()), button.Props{
-		Label:   "OK",
+		Title:   "OK",
 		OnClick: func(_ layout.Context) { clicked++ },
 		Shaper:  defaultShaper(t),
 	}))

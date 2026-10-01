@@ -321,8 +321,8 @@ func (p Pin) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 // either: a chip is clickable by construction, and something a reader can only
 // read is components/badge.
 type Props struct {
-	// Label is the text the chip carries.
-	Label string
+	// Title is the text the chip carries.
+	Title string
 
 	// Purpose is what this chip is for. The zero value is [Assist].
 	Purpose Purpose
@@ -343,7 +343,7 @@ type Props struct {
 	// other purpose ignores it.
 	Selected bool
 
-	// Description is the screen-reader label. Falls back to Label when empty.
+	// Description is the screen-reader label. Falls back to Title when empty.
 	Description string
 
 	// Pin is the edge of the offered box the chip is drawn at. The zero value
@@ -483,7 +483,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 			}
 			desc := props.Description
 			if desc == "" {
-				desc = props.Label
+				desc = props.Title
 			}
 
 			return func(gtx layout.Context) layout.Dimensions {
@@ -556,7 +556,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 					return props.Pin.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 						return click.Layout(gtx,
 							func(gtx layout.Context) layout.Dimensions {
-								return draw(gtx, shaper, props.Label, props.Purpose, props.Icon,
+								return draw(gtx, shaper, props.Title, props.Purpose, props.Icon,
 									tok, s, desc, &dismiss)
 							})
 					})

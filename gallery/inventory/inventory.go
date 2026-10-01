@@ -703,9 +703,9 @@ func (inv *Inventory) pinnedButtonRow(c tokens.PlatformColors) layout.Widget {
 const (
 	chipPanePadX unit.Dp = 16
 	chipPanePadY unit.Dp = 12
-	chipRowGap    unit.Dp = 16
-	chipChipGap   unit.Dp = 12
-	chipCaptionW  unit.Dp = 108
+	chipRowGap   unit.Dp = 16
+	chipChipGap  unit.Dp = 12
+	chipCaptionW unit.Dp = 108
 )
 
 // The section's own height, derived from the chip rather than chosen: the
@@ -713,7 +713,7 @@ const (
 // to be re-guessed the day that changed.
 var (
 	chipH      = unit.Dp(tokens.Comfortable.ChipHeight())
-	chipPaneH = chipH + 2*chipPanePadY
+	chipPaneH  = chipH + 2*chipPanePadY
 	chipBlockH = 3*chipPaneH + 2*chipH + 4*chipRowGap
 )
 
@@ -1387,12 +1387,12 @@ func (inv *Inventory) labelledToggleRow(c tokens.PlatformColors) layout.Widget {
 	// The first two labels are the save dialog's own, so the row can be held
 	// against the capture the measurements come from.
 	cells := []layout.Widget{
-		box(input.CheckboxRenderState{Label: "Show startup screen"}),
-		box(input.CheckboxRenderState{Checked: true, Label: "Stay open"}),
-		box(input.CheckboxRenderState{Disabled: true, Label: "Switched off"}),
-		disc(input.RadioRenderState{Selected: true, Label: "Chosen"}),
-		disc(input.RadioRenderState{Label: "Not chosen"}),
-		disc(input.RadioRenderState{Disabled: true, Label: "Switched off"}),
+		box(input.CheckboxRenderState{Title: "Show startup screen"}),
+		box(input.CheckboxRenderState{Checked: true, Title: "Stay open"}),
+		box(input.CheckboxRenderState{Disabled: true, Title: "Switched off"}),
+		disc(input.RadioRenderState{Selected: true, Title: "Chosen"}),
+		disc(input.RadioRenderState{Title: "Not chosen"}),
+		disc(input.RadioRenderState{Disabled: true, Title: "Switched off"}),
 	}
 	// The break falls where the family changes, which is after the third cell.
 	const firstDisc = 3
@@ -1859,9 +1859,9 @@ func (inv *Inventory) tooltip(c tokens.PlatformColors) layout.Widget {
 func (inv *Inventory) breadcrumb(c tokens.PlatformColors) layout.Widget {
 	props := breadcrumb.Props{
 		Items: []breadcrumb.Item{
-			{Label: "Design system"},
-			{Label: "Components"},
-			{Label: "Breadcrumb"},
+			{Title: "Design system"},
+			{Title: "Components"},
+			{Title: "Breadcrumb"},
 		},
 		Shaper: inv.shaper,
 	}

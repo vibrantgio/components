@@ -162,8 +162,8 @@ func TestAWordedControlDividesTheWidthItIsAskedFor(t *testing.T) {
 	p := tokens.PlatformLight
 	chrome := button.RenderState{Variant: button.Chrome}
 	segs := []button.BorderedSegment{
-		{Label: "OpenAI", State: chrome}, {Label: "xAI", State: chrome},
-		{Label: "OpenRouter", State: chrome}, {Label: "Groq", State: chrome},
+		{Title: "OpenAI", State: chrome}, {Title: "xAI", State: chrome},
+		{Title: "OpenRouter", State: chrome}, {Title: "Groq", State: chrome},
 	}
 	const width = 360
 	img, box := segmentRow(t, p, segs, image.Pt(420, 60), width)
@@ -211,8 +211,8 @@ func TestTheChosenSegmentWearsTheMeasuredPatch(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			p := tc.p
 			segs := []button.BorderedSegment{
-				{Label: "One", State: button.RenderState{Variant: button.Chrome}},
-				{Label: "Two", State: button.RenderState{Variant: button.Chrome, Checked: true}},
+				{Title: "One", State: button.RenderState{Variant: button.Chrome}},
+				{Title: "Two", State: button.RenderState{Variant: button.Chrome, Checked: true}},
 			}
 			const width = 200
 			img, _ := segmentRow(t, p, segs, image.Pt(260, 60), width)

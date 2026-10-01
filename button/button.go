@@ -221,10 +221,10 @@ type RenderState struct {
 
 // Props configures a Button instance.
 type Props struct {
-	// Label is the text rendered inside the button.
-	Label string
+	// Title is the text rendered inside the button.
+	Title string
 
-	// Description is the screen-reader label. Falls back to Label when empty.
+	// Description is the screen-reader label. Falls back to Title when empty.
 	Description string
 
 	// Emphasis is how pronounced the button is: Filled (the zero value) for
@@ -268,7 +268,7 @@ type Props struct {
 	// RenderState.Checked.
 	Checked bool
 
-	// Icon, when non-nil and Label is empty, renders the button as a compact
+	// Icon, when non-nil and Title is empty, renders the button as a compact
 	// icon-only affordance: a square the density's control height on a side
 	// with the symbol centred, instead of a fill-width text label; that square
 	// is the pointer target. The painter draws into
@@ -409,10 +409,10 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 
 					desc := props.Description
 					if desc == "" {
-						desc = props.Label
+						desc = props.Title
 					}
 
-					iconOnly := props.Icon != nil && props.Label == ""
+					iconOnly := props.Icon != nil && props.Title == ""
 
 					state := RenderState{
 						Emphasis:   props.Emphasis,
@@ -438,7 +438,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 					body := func(gtx layout.Context) layout.Dimensions {
 						return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 							semantic.ClassOp(semantic.Button).Add(gtx.Ops)
-							semantic.LabelOp(props.Label).Add(gtx.Ops)
+							semantic.LabelOp(props.Title).Add(gtx.Ops)
 							semantic.DescriptionOp(desc).Add(gtx.Ops)
 							semantic.EnabledOp(!dis).Add(gtx.Ops)
 							if chromeSymbol {
@@ -447,7 +447,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 							if iconOnly {
 								return drawIconButton(gtx, props.Icon, tok, state)
 							}
-							return drawButton(gtx, shaper, props.Label, tok, state)
+							return drawButton(gtx, shaper, props.Title, tok, state)
 						})
 					}
 					if chromeSymbol {

@@ -126,7 +126,7 @@ is absent: no `Shaper` prop, because the theme supplies it:
 
 ```go
 submit := button.Button(th, button.Props{
-	Label:     "Rename",
+	Title:     "Rename",
 	Clickable: &submitClick,
 	OnClick:   func(gtx layout.Context) { /* validate, then mvu.MessageOp */ },
 })
