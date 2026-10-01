@@ -474,7 +474,7 @@ func (inv *Inventory) modal(c tokens.PlatformColors) layout.Widget {
 		// The footer buttons are the caller's own layout.Widget values on both
 		// the live and the static path, so a static dialog hands them over
 		// already rendered rather than expecting the pattern to invent them.
-		// Neither states a width: the footer owns the save dialog's measured
+		// Neither states a width: the footer owns the save panel's measured
 		// push button width and lays both out in it, which is why the two
 		// stand equal here.
 		Actions: []layout.Widget{

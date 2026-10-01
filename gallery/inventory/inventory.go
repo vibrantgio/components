@@ -1384,7 +1384,7 @@ func (inv *Inventory) labelledToggleRow(c tokens.PlatformColors) layout.Widget {
 	disc := func(s input.RadioRenderState) layout.Widget {
 		return input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, s)
 	}
-	// The first two labels are the save dialog's own, so the row can be held
+	// The first two labels are the save panel's own, so the row can be held
 	// against the capture the measurements come from.
 	cells := []layout.Widget{
 		box(input.CheckboxRenderState{Title: "Show startup screen"}),

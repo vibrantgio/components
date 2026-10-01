@@ -52,7 +52,7 @@ const checkboxBoxSize = unit.Dp(16)
 const checkboxCornerRadius = unit.Dp(5)
 
 // controlEdgeWidth is the width a control draws its own edge at: 1 dp,
-// MEASURED off the save dialog's "Tags:" text field, the sheet's one
+// MEASURED off the save panel's "Tags:" text field, the sheet's one
 // unfocused enabled control that draws an edge at all.
 //
 // The field's box runs x 264–495 and y 243–269. A run across its straight

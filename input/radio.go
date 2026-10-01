@@ -275,7 +275,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		// The switched-off drawing the checkbox measures, for the reason
 		// given in drawCheckbox: the platform's control fill at
 		// tokens.DisabledCoverage over the surface the symbol stands on, and
-		// no edge. The Save dialog holds no switched-off radio, so this is
+		// no edge. The Save panel holds no switched-off radio, so this is
 		// the checkbox's reading carried across — the two controls stand
 		// beside each other in one form and the platform draws them as one
 		// family.
@@ -298,7 +298,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 
 	default:
 		// The edge is one pixel of the platform's field hairline, the width
-		// and colour controlEdgeWidth reads off the save dialog's "Tags:"
+		// and colour controlEdgeWidth reads off the save panel's "Tags:"
 		// field. System Settings' radio is accent-filled and draws no edge of
 		// its own, and its capture holds no unselected sibling to read one
 		// off, so the disc spends the same hairline the box beside it does;

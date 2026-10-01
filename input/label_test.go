@@ -74,7 +74,7 @@ func TestLabelledControlGolden(t *testing.T) {
 	}
 }
 
-// capturedLabel is the save dialog's own first checkbox label. The gap the
+// capturedLabel is the save panel's own first checkbox label. The gap the
 // control spends is the reading itself rather than an origin behind it, so
 // the capture's string is what can be compared to it column for column: its
 // S carries no left side bearing in the body role's face, and the reference
@@ -160,7 +160,7 @@ func TestLabelStandsAtTheMeasuredGap(t *testing.T) {
 				t.Fatalf("%s: the symbol and its label are not separated by clear columns", tc.name)
 			}
 			if clear := labelFirst - symbolLast - 1; clear != 6 {
-				t.Errorf("%s: %d clear columns between the symbol (last column %d) and its label (first column %d), want 6 as the save dialog measures",
+				t.Errorf("%s: %d clear columns between the symbol (last column %d) and its label (first column %d), want 6 as the save panel measures",
 					tc.name, clear, symbolLast, labelFirst)
 			}
 		})
@@ -263,7 +263,7 @@ func TestLabelIsPartOfThePointerTarget(t *testing.T) {
 // TestSwitchedOffLabelFadesWithItsSymbol asserts the label of a switched-off
 // control is drawn in the platform's tertiary label rather than its label
 // colour — the same fade the symbol beside it takes, and the colour both
-// checkbox labels read on the save dialog's sheet.
+// checkbox labels read on the save panel's sheet.
 func TestSwitchedOffLabelFadesWithItsSymbol(t *testing.T) {
 	shaper := defaultShaper(t)
 	for _, sc := range switchedOffReadings {

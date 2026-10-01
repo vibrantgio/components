@@ -883,7 +883,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	labelCall := mLabel.Stop()
 
 	// The pop-up's height is the control height and nothing else: MEASURED,
-	// 24 px in both appearances of the save dialog, which is the same number
+	// 24 px in both appearances of the save panel, which is the same number
 	// the push button beside it draws and the same the chrome variant draws.
 	// A pop-up is not sized by the line box it carries — the text field above
 	// it in that capture is the control that is, and it measures 27.

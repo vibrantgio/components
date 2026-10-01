@@ -229,7 +229,7 @@ func TestAFocusedListWearsTheRingOnItsOwnBox(t *testing.T) {
 // under each of its pixels, not one fill for the whole band.
 //
 // The platform's keyboard focus indicator carries a coverage of its own —
-// 127 of 255 — and the save dialog's own ring shows what that means: the two
+// 127 of 255 — and the save panel's own ring shows what that means: the two
 // columns of the band lying over the focused field keep the field's edge
 // column showing through them. A list's box carries more than one fill the
 // moment a row is selected at its edge, which is how a list at the front of

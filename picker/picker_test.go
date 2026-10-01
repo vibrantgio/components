@@ -920,7 +920,7 @@ func TestCompactTriggerKeepsItsLabelInside(t *testing.T) {
 }
 
 // TestBothTriggersDrawOneMark holds the two variants to one drawing at one
-// size. MEASURED: the Save dialog's pop-up and the Finder toolbar's both draw
+// size. MEASURED: the Save panel's pop-up and the Finder toolbar's both draw
 // the pair 8 px wide and 11 px tall, in controls 24 px and 36 px tall, so the
 // mark is sized by its point size and not by the control it stands in. The
 // form trigger's mark and the chrome trigger's are therefore the same pixels,

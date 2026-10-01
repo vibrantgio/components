@@ -48,7 +48,7 @@ const edgeDp = unit.Dp(1)
 //
 // MEASURED, finder-window-light.png: the Finder toolbar's view pop-up draws
 // the pair 8 px wide and 11 px tall (x 726-733, upper y 21-25, lower y 27-31)
-// in a control 36 px tall, which is the same eight by eleven the Save dialog's
+// in a control 36 px tall, which is the same eight by eleven the Save panel's
 // pop-up draws in one 24 px tall. The mark does not scale with the control it
 // stands in, so this trigger draws no ratio of its own. The single chevron
 // beside it in that capture (x 792-799, y 24-28) is the group control's, a
@@ -189,7 +189,7 @@ func Label(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
 // capsule's magnifier (x 965-980, y 18-34) over 15 — the same plateau the
 // band's title holds, so it is the drawn colour and not the partial coverage
 // a thin stroke reaches. finder-window-untinted-dark.png reads #e9e9e9 for the
-// same symbols. A FORM control is a different reading: the Save dialog's pop-up
+// same symbols. A FORM control is a different reading: the Save panel's pop-up
 // draws its mark at ControlText exactly (36 light and (224,225,226) dark on
 // fills of #ececec and #333a3f), which is why components/picker's form trigger
 // keeps that name and this one answers for the toolbar.

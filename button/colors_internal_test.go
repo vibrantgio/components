@@ -146,7 +146,7 @@ func TestEveryVariantTintsUnderThePointer(t *testing.T) {
 // A switched-off button is no longer the pixel an enabled Tonal one is. Both
 // carry the push button's fill, and the switched-off one fades it toward the
 // surface it stands on at the platform's measured coverage — the whole point
-// of the reading: the Save dialog's switched-off checkbox reads #f2f2f2 where
+// of the reading: the Save panel's switched-off checkbox reads #f2f2f2 where
 // the enabled pop-up seventeen rows above it reads #ececec.
 func TestSwitchedOffPartsFromTheEnabledTonal(t *testing.T) {
 	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {

@@ -79,11 +79,11 @@
 //	              rectangle at rad.Md, 6      own height
 //	mark's room   seven rows above and six    the band's 24 dp box, centred
 //	              below, the room the         in the control
-//	              Save dialog's pop-up
+//	              Save panel's pop-up
 //	              leaves its own
 //
 // Every number there is measured: 36 px in every stored toolbar band against
-// the 24 the same machine's Save dialog draws a push button and a pop-up at,
+// the 24 the same machine's Save panel draws a push button and a pop-up at,
 // the capsule against "Cancel"'s r = 6.11 light and 6.17 dark, and the mark's
 // room off the "File Format:" pop-up on that same sheet, where the band's
 // 24 dp mark box in a 24 dp control would leave none. The drop shadow goes

@@ -30,7 +30,7 @@ const TextLeadDp unit.Dp = 6
 // TextTrailDp is the trailing inset, [TextLeadDp] mirrored.
 //
 // MIRRORED, not measured: no stored capture holds a value that reaches a
-// field's trailing edge. The save dialog's only filled field is the focused
+// field's trailing edge. The save panel's only filled field is the focused
 // "Save As:", whose "Untitled" ends at x=317 against an inner edge at x=494;
 // its "Tags:" field is empty; and the trailing mark of the File Format
 // pop-up beside them is a chevron the control draws rather than a value. A

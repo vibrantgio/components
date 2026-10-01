@@ -124,7 +124,7 @@ const (
 //
 // The platform draws one bordered control in two variants and at two heights:
 // MEASURED, every bordered control in the five stored toolbar bands runs 36 px
-// where the same machine's Save dialog draws its push button and its pop-up at
+// where the same machine's Save panel draws its push button and its pop-up at
 // 24 (controls.md, "The toolbar control's height, capture by capture"). So a
 // caller names the variant and the height follows it, rather than naming a
 // height of its own.

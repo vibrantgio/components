@@ -22,7 +22,7 @@ import (
 
 // Border is the hairline a control draws around itself at rest — the
 // unchecked box, the unselected radio, the text field, the picker's field
-// trigger: the platform's field edge, measured off the Save dialog's
+// trigger: the platform's field edge, measured off the Save panel's
 // unfocused field in both appearances.
 func Border(p tokens.PlatformColors) color.NRGBA { return p.FieldEdge }
 
@@ -135,7 +135,7 @@ func Placeholder(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
 //
 // Text does not go through here. A switched-off control's wording is
 // [tokens.PlatformColors.DisabledControlText], the platform's own reduced
-// coverage, which the Save dialog's two switched-off checkboxes read at
+// coverage, which the Save panel's two switched-off checkboxes read at
 // without any further fading.
 func Faded(part, beneath color.NRGBA) color.NRGBA {
 	return vgcolor.Flatten(vgcolor.Fade(part, tokens.DisabledCoverage), beneath)

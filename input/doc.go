@@ -56,7 +56,7 @@
 // A search field has two variants, and which one it draws is the region it
 // stands in rather than a choice about prominence. On a form — a dialog, a
 // pane, a grouped box — it is the platform's bordered field, the hairline
-// around the surface beneath it that the Save dialog measures. On chrome — a
+// around the surface beneath it that the Save panel measures. On chrome — a
 // sidebar, a toolbar — it is the platform's flat recess: a fill of its own,
 // its ends fully rounded. A text field that is not a search field wears the
 // edge wherever it stands.

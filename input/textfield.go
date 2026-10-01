@@ -42,7 +42,7 @@ type RenderState struct {
 	// Surface is the opaque fill the field stands on, and it is what the
 	// field's interior is filled with: the platform draws a field as a
 	// hairline around the surface beneath it rather than as a box of its
-	// own, which the Save dialog's field measures in both appearances. The
+	// own, which the Save panel's field measures in both appearances. The
 	// focus ring — the platform's keyboard focus indicator, which carries a
 	// coverage rather than a colour — composites over it too. The zero value
 	// — no colour — is the window's own plane.
@@ -64,7 +64,7 @@ type RenderState struct {
 
 	// Variant is where the field stands. It is read by the search field
 	// alone: a text field that is not a search field wears the platform's
-	// edge wherever it stands, which is what the Save dialog's field
+	// edge wherever it stands, which is what the Save panel's field
 	// measures. The zero value is [Form].
 	Variant Variant
 
@@ -92,7 +92,7 @@ type Variant uint8
 const (
 	// Form is the field on the content's surface — in a dialog, a pane, a
 	// grouped box: the platform's hairline around the surface the field
-	// stands on, measured off the Save dialog's unfocused field.
+	// stands on, measured off the Save panel's unfocused field.
 	Form Variant = iota
 	// Chrome is the field standing on chrome — a sidebar, a toolbar: the
 	// platform's flat recess, its ends fully rounded, measured off the field

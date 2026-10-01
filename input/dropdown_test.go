@@ -117,7 +117,7 @@ func TestDropdownGolden(t *testing.T) {
 // TestDropdownTriggerDrawsThePopUpsHeight checks that the deprecated forwarder
 // carries components/picker's own answer: the trigger is the platform's pop-up
 // button and draws the density's control height, MEASURED at 24 px off the
-// save dialog's "File Format:" pop-up. It is not the text field's height —
+// save panel's "File Format:" pop-up. It is not the text field's height —
 // that control measures 27 in the same capture — so the forwarder must not be
 // asserting the field's arithmetic. The drawn trigger is the pointer target,
 // and an option row is its own row, so neither claims a neighbour's pixels.

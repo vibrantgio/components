@@ -134,7 +134,7 @@ func TestRadioFocusRingIsVisuallyDistinct(t *testing.T) {
 // TestTheSwitchedOffRadioIsOneFillAndNoEdge reads the switched-off radio off a
 // capture of the component, in both appearances, against the same reference
 // the box is read against (switchedOffReadings, in checkbox_test.go): the
-// Save dialog holds no switched-off radio, so the radio takes the checkbox's
+// Save panel holds no switched-off radio, so the radio takes the checkbox's
 // reading, the two standing beside each other in one form.
 //
 // The edge is read at the widest point of the circle, the one column the

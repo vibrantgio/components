@@ -36,12 +36,12 @@ var (
 // The corner: the per-row coverage of the symbol's leading edge, fitted by a
 // circle with the box's own extremes pinned — CG4.8's fit to the sidebar
 // recess's ends — must answer the 5 dp checkboxCornerRadius measures off the
-// save dialog's switched-off boxes, where the same fit reads 5.04 light (rms
+// save panel's switched-off boxes, where the same fit reads 5.04 light (rms
 // 0.038 px) and 5.34 dark (rms 0.070 px).
 //
 // The edge: a run across the box's middle row, and one down its middle column,
 // must cross exactly one pixel of the platform's field hairline before the
-// box's own interior — the width and colour the save dialog's "Tags:" field
+// box's own interior — the width and colour the save panel's "Tags:" field
 // measures, which is what a control with no capture of its own spends.
 func TestTheBoxDrawsTheMeasuredCornerAndEdge(t *testing.T) {
 	const size = 44
