@@ -125,7 +125,7 @@ func centre(r image.Rectangle) (float64, float64) {
 }
 
 // TestTheDiscIsTheLineBoxAcross is the geometry ruling in one assertion: the
-// disc is a circle the symbol's line box across, which is the box a labelled
+// disc is a circle the symbol's line box across, which is the box a titled
 // badge's line already reserves at that density. So a disc badge measures the
 // same line-box square a bare one does, and a row that held one holds the
 // other unmoved — which is the whole reason the disc costs a caller nothing.
@@ -234,7 +234,7 @@ func TestTheDiscWearsItsStatusFillAndForeground(t *testing.T) {
 	style := badgeStyle()
 	for _, sc := range goldenSchemes {
 		for _, st := range goldenStatuses {
-			t.Run(sc.name+" "+st.label, func(t *testing.T) {
+			t.Run(sc.name+" "+st.title, func(t *testing.T) {
 				fill := badge.Fill(sc.p, st.status)
 				fg := badge.Foreground(sc.p)
 				page := sc.p.ControlBackground
@@ -276,7 +276,7 @@ func TestTheDiscWearsItsStatusFillAndForeground(t *testing.T) {
 					t.Errorf("the sign on the disc is %v, want the status's foreground over its fill %v", got, fg)
 				}
 				if fg == fill {
-					t.Errorf("the %s disc's fill and foreground are the same colour %v: nothing on it can be read", st.label, fill)
+					t.Errorf("the %s disc's fill and foreground are the same colour %v: nothing on it can be read", st.title, fill)
 				}
 			})
 		}
@@ -321,8 +321,8 @@ func TestALabelIgnoresTheDisc(t *testing.T) {
 	shaper := defaultShaper(t)
 	style := badgeStyle()
 	for _, tc := range []struct {
-		name  string
-		label string
+		name   string
+		title  string
 		symbol badge.Symbol
 	}{
 		{"word", "Passing", nil},
@@ -330,13 +330,13 @@ func TestALabelIgnoresTheDisc(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			render := func(s badge.RenderState) layout.Widget {
-				return badge.Render(shaper, tc.label, tc.symbol, badge.Success,
+				return badge.Render(shaper, tc.title, tc.symbol, badge.Success,
 					tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, s)
 			}
 			plain := render(badge.RenderState{})
 			asked := render(badge.RenderState{Disc: true})
 			if got, want := measure(t, asked), measure(t, plain); got != want {
-				t.Errorf("a labelled badge asked for a disc measured %v and one not asked %v", got, want)
+				t.Errorf("a titled badge asked for a disc measured %v and one not asked %v", got, want)
 			}
 			a := golden.Capture(t, goldenSize, onPage(tokens.PlatformLight, plain))
 			b := golden.Capture(t, goldenSize, onPage(tokens.PlatformLight, asked))
@@ -344,7 +344,7 @@ func TestALabelIgnoresTheDisc(t *testing.T) {
 				return // headless unavailable; Capture called t.Skip
 			}
 			if n := golden.PixelDiff(a, b); n != 0 {
-				t.Errorf("a labelled badge drew %d pixels differently when asked for a disc: a label ignores it", n)
+				t.Errorf("a titled badge drew %d pixels differently when asked for a disc: a title ignores it", n)
 			}
 		})
 	}

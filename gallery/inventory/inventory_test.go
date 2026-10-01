@@ -155,7 +155,7 @@ func TestThePinnedFillHoldsWhileTheAppearanceFlips(t *testing.T) {
 		return // headless unavailable; Capture called t.Skip
 	}
 
-	// A pixel inside each cell's button and left of its label: the row is
+	// A pixel inside each cell's button and left of its title: the row is
 	// laid out from the section's own margin, one cell wide with the gap
 	// between, and the button is the full cell width and 36 dp tall.
 	y := int(SectionPadY) + 18

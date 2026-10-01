@@ -39,7 +39,7 @@ const TextLeadDp unit.Dp = 6
 const TextTrailDp unit.Dp = 6
 
 // PopupLeadDp is the leading inset the platform's pop-up button spends on its
-// own label — a different control from the text field above, and a deeper
+// own title — a different control from the text field above, and a deeper
 // inset. The picker's form trigger is drawn as that pop-up, so it spends this
 // rather than [TextLeadDp]; the rows of the menu it opens are not pop-ups and
 // take columns of their own, which lead with the one the check stands in.
@@ -48,7 +48,7 @@ const TextTrailDp unit.Dp = 6
 // fill runs x 264–451 with no edge column — a run down x=350 gives #ececec
 // light and #333a3f dark from the control's first row to its last, so its
 // outer edge and its inner edge are one — and the first covered column of its
-// label, "Script", is x=276 in both appearances: twelve columns in, five
+// title, "Script", is x=276 in both appearances: twelve columns in, five
 // further than the field's seven.
 //
 // The same rule the field's inset is spent by: what a control spends is the
@@ -57,7 +57,7 @@ const TextTrailDp unit.Dp = 6
 // carries — eleven. The bearing is taken from the "Untitled" of the field
 // above, where the selection behind the value exposes the origin (x=271) one
 // column before the first covered pixel (x=272, 90% covered): the "Script"
-// label opens on a capital S, a curve whose own leading column carries only a
+// title opens on a capital S, a curve whose own leading column carries only a
 // 16% fringe light and 28% dark — that places where the glyph starts but
 // cannot separate the origin from the bearing on its own.
 const PopupLeadDp unit.Dp = 11

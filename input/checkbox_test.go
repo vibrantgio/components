@@ -491,7 +491,7 @@ func TestTheSwitchedOffBoxIsOneFillAndNoEdge(t *testing.T) {
 
 // TestTheSwitchedOffBoxKeepsItsMark asserts that a switched-off box and radio
 // still say whether a value is set, and say it in the colour the switched-off
-// label beside them is drawn in rather than in the accent the platform draws
+// title beside them is drawn in rather than in the accent the platform draws
 // on no switched-off control at all.
 //
 // No stored capture holds a switched-off checked box or a switched-off

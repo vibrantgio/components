@@ -536,14 +536,14 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 	}
 }
 
-// buttonCell is one button in a row, its label doubling as the button's own
-// text — which is what lets a row of them be read without a caption under
+// buttonCell is one button in a row, its title naming the state that cell
+// shows — which is what lets a row of them be read without a caption under
 // each.
 type buttonCell struct {
-	label string
+	title string
 	st    button.RenderState
 	// icon, when set, makes the cell the icon-only face: the symbol the button
-	// draws in place of a label. Such a cell is laid out at the square the
+	// draws in place of a title. Such a cell is laid out at the square the
 	// density gives it rather than at the row's cell width — an icon button
 	// stretched to a text cell's width is a text button with no text in it,
 	// which is the one thing this face is not.
@@ -560,11 +560,11 @@ const (
 
 func (inv *Inventory) buttonRow(c tokens.PlatformColors) layout.Widget {
 	return inv.buttonCells(c, []buttonCell{
-		{label: "Rest", st: button.RenderState{}},
-		{label: "Hover", st: button.RenderState{Hovered: true}},
-		{label: "Focus", st: button.RenderState{Focused: true}},
-		{label: "Press", st: button.RenderState{Pressed: true}},
-		{label: "Disabled", st: button.RenderState{Disabled: true}},
+		{title: "Rest", st: button.RenderState{}},
+		{title: "Hover", st: button.RenderState{Hovered: true}},
+		{title: "Focus", st: button.RenderState{Focused: true}},
+		{title: "Press", st: button.RenderState{Pressed: true}},
+		{title: "Disabled", st: button.RenderState{Disabled: true}},
 	})
 }
 
@@ -578,21 +578,21 @@ func (inv *Inventory) buttonRow(c tokens.PlatformColors) layout.Widget {
 // is a judgement made on three still buttons next to each other. The state
 // walk is the row above, which Filled already carries for all three.
 //
-// The name of each is the button's label, the way the state row's labels are
+// The name of each is the button's title, the way the state row's titles are
 // its states: a caption under a button that already says "Tonal" is the same
 // word twice.
 //
 // The icon face closes the row rather than standing in a section of its own,
-// because it is the same button with a symbol where the label was — same
+// because it is the same button with a symbol where the title was — same
 // emphasis, same corner, same target — and the one thing worth seeing about it
 // is how its square sits beside the rectangles it is cut from. It is drawn at
 // Filled emphasis so the square itself is visible; the ghost cell to its left
 // already shows what a button with no fill at rest looks like.
 func (inv *Inventory) emphasisButtonRow(c tokens.PlatformColors) layout.Widget {
 	return inv.buttonCells(c, []buttonCell{
-		{label: "Filled", st: button.RenderState{Emphasis: button.Filled}},
-		{label: "Tonal", st: button.RenderState{Emphasis: button.Tonal}},
-		{label: "Ghost", st: button.RenderState{Emphasis: button.Ghost}},
+		{title: "Filled", st: button.RenderState{Emphasis: button.Filled}},
+		{title: "Tonal", st: button.RenderState{Emphasis: button.Tonal}},
+		{title: "Ghost", st: button.RenderState{Emphasis: button.Ghost}},
 		{icon: inv.marks.Mark(icons.Sidebar), st: button.RenderState{Emphasis: button.Filled}},
 	})
 }
@@ -606,7 +606,7 @@ func (inv *Inventory) emphasisButtonRow(c tokens.PlatformColors) layout.Widget {
 // stands in, and one shown on the page's plane would be showing a step nobody
 // drew.
 //
-// A symbol is its whole label, which is the case this variant is for — no
+// A symbol is its whole title, which is the case this variant is for — no
 // stored toolbar band holds a control with a word in it — so the cells carry
 // no captions and the row is read as a row of controls.
 func (inv *Inventory) chromeButtonRow(c tokens.PlatformColors) layout.Widget {
@@ -660,7 +660,7 @@ func (inv *Inventory) buttonCells(c tokens.PlatformColors, cells []buttonCell) l
 				gtx.Constraints.Min.X = gtx.Dp(ButtonCellW)
 				gtx.Constraints.Max.X = gtx.Dp(ButtonCellW)
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-					layout.Rigid(button.Render(inv.shaper, s.label, c, tokens.Spacing, tokens.Radius,
+					layout.Rigid(button.Render(inv.shaper, s.title, c, tokens.Spacing, tokens.Radius,
 						tokens.DefaultTypography.LabelLarge, tokens.Comfortable, s.st)),
 				)
 			}))
@@ -689,8 +689,8 @@ var (
 // which the button package's own goldens carry state by state.
 func (inv *Inventory) pinnedButtonRow(c tokens.PlatformColors) layout.Widget {
 	return inv.buttonCells(c, []buttonCell{
-		{label: "Filled", st: button.RenderState{}},
-		{label: "Pinned", st: button.RenderState{Fill: PinnedFill, Foreground: PinnedForeground}},
+		{title: "Filled", st: button.RenderState{}},
+		{title: "Pinned", st: button.RenderState{Fill: PinnedFill, Foreground: PinnedForeground}},
 	})
 }
 
@@ -743,14 +743,14 @@ func chipSurfaces(c tokens.PlatformColors) []struct {
 }
 
 // chipPurposes are the four purposes a chip can be given, each drawn doing its
-// own job and labelled as a caller would really label it: the assist chip
+// own job and titled as a caller would really title it: the assist chip
 // offering an action behind a sign for it, the filter chip twice because
 // selection is the one state only it has, the input chip with the avatar slot
 // and the dismiss mark it always carries, and the suggestion chip as words
-// alone. Placeholder labels would leave a reader unable to tell which of the
+// alone. Placeholder titles would leave a reader unable to tell which of the
 // four to reach for.
 var chipPurposes = []struct {
-	label    string
+	title    string
 	purpose  chip.Purpose
 	icon     chip.Symbol
 	selected bool
@@ -765,8 +765,8 @@ var chipPurposes = []struct {
 // chipPlus is the sign the assist specimen leads with, drawn as a vector
 // rather than rasterised from a font or an SVG so the stored images hold
 // still. Its arms span the box the chip reserves edge to edge and it is
-// stroked at the label's own stem width, which is what the Symbol contract asks
-// now that the box is the label's cap band.
+// stroked at the title's own stem width, which is what the Symbol contract asks
+// now that the box is the title's cap band.
 //
 // The stem is taken in pixels WITHOUT rounding to a whole one, which is the
 // difference between this sign and the marks the chip draws itself. Rounded to
@@ -824,21 +824,21 @@ func chipAvatar(gtx layout.Context, sizePx int, col color.NRGBA) {
 // press tint each carry a coverage and land as whatever they are composited
 // onto, so a specimen on one fill says nothing about the others. The state rows below stand on the page: what they
 // ask a reader to judge — whether the body that arrives under the pointer
-// still holds its label, and whether the focus ring reads apart from the rim — is the
+// still holds its title, and whether the focus ring reads apart from the rim — is the
 // same question on every surface, and asking it three times would bury the
 // two rows that are not the same. Both rests are there because the two walk from
 // different places: an unselected chip walks from the surface it stands on, a
 // selected one from the container it wears.
 func (inv *Inventory) chipBlock(c tokens.PlatformColors) layout.Widget {
-	specimen := func(label string, purpose chip.Purpose, icon chip.Symbol, st chip.RenderState) layout.Widget {
-		return chip.Render(inv.shaper, label, purpose, icon, c,
+	specimen := func(title string, purpose chip.Purpose, icon chip.Symbol, st chip.RenderState) layout.Widget {
+		return chip.Render(inv.shaper, title, purpose, icon, c,
 			tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
 			tokens.Comfortable, st)
 	}
-	// The state rows label each chip with the state it is in, so the row reads
-	// without a caption under every cell.
+	// The state rows give each chip the state it is in as its title, so the row
+	// reads without a caption under every cell.
 	states := []struct {
-		label string
+		title string
 		st    chip.RenderState
 	}{
 		{"Rest", chip.RenderState{}},
@@ -851,7 +851,7 @@ func (inv *Inventory) chipBlock(c tokens.PlatformColors) layout.Widget {
 		for _, s := range states {
 			st := s.st
 			st.Selected = selected
-			cells = append(cells, specimen(s.label, chip.Filter, nil, st))
+			cells = append(cells, specimen(s.title, chip.Filter, nil, st))
 		}
 		return cells
 	}
@@ -871,7 +871,7 @@ func (inv *Inventory) chipBlock(c tokens.PlatformColors) layout.Widget {
 	}) layout.Widget {
 		cells := make([]layout.Widget, 0, len(chipPurposes))
 		for _, p := range chipPurposes {
-			cells = append(cells, specimen(p.label, p.purpose, p.icon,
+			cells = append(cells, specimen(p.title, p.purpose, p.icon,
 				chip.RenderState{Surface: lv.fill, Selected: p.selected}))
 		}
 		band := func(gtx layout.Context) layout.Dimensions {
@@ -1022,7 +1022,7 @@ func (inv *Inventory) badgeStyle() tokens.TextStyle {
 // the states the pointer puts it in.
 //
 // Every row stands on the page, and no row is repeated on a second surface.
-// On this platform a badge with a label wears its status's own colour, which
+// On this platform a badge with a title wears its status's own colour, which
 // is one value whatever is beneath it, and a bare sign is that colour read
 // for the surface rather than derived from it — so a second pane of the same
 // five comes out the same byte and promises an adaptation that is not there.
@@ -1032,7 +1032,7 @@ func (inv *Inventory) badgeStyle() tokens.TextStyle {
 func (inv *Inventory) badgeBlock(c tokens.PlatformColors) layout.Widget {
 	style := inv.badgeStyle()
 	statuses := []struct {
-		label  string
+		title  string
 		status badge.Status
 	}{
 		{"Neutral", badge.Neutral},
@@ -1041,8 +1041,8 @@ func (inv *Inventory) badgeBlock(c tokens.PlatformColors) layout.Widget {
 		{"Error", badge.Error},
 		{"Info", badge.Info},
 	}
-	plain := func(label string, symbol badge.Symbol, status badge.Status) layout.Widget {
-		return badge.Render(inv.shaper, label, symbol, status, c, tokens.Spacing, tokens.Radius, style,
+	plain := func(title string, symbol badge.Symbol, status badge.Status) layout.Widget {
+		return badge.Render(inv.shaper, title, symbol, status, c, tokens.Spacing, tokens.Radius, style,
 			badge.RenderState{})
 	}
 	// A disc is a symbol badge asked to stand on its status's fill instead of
@@ -1077,7 +1077,7 @@ func (inv *Inventory) badgeBlock(c tokens.PlatformColors) layout.Widget {
 		{caption: "Statuses", cells: func() []layout.Widget {
 			cells := make([]layout.Widget, 0, len(statuses))
 			for _, bs := range statuses {
-				cells = append(cells, plain(bs.label, nil, bs.status))
+				cells = append(cells, plain(bs.title, nil, bs.status))
 			}
 			return cells
 		}()},
@@ -1355,15 +1355,15 @@ func (inv *Inventory) toggleRow(c tokens.PlatformColors) layout.Widget {
 				return layout.Flex{}.Layout(gtx, cs...)
 			}),
 			layout.Rigid(complayout.VSpacer(toggleRowGap)),
-			layout.Rigid(inv.labelledToggleRow(c)),
+			layout.Rigid(inv.titledToggleRow(c)),
 		)
 	}
 }
 
-// The labelled row's measurements.
+// The titled row's measurements.
 const (
 	// toggleRowGap is the air between the row of bare symbols and the row of
-	// labelled controls under it.
+	// titled controls under it.
 	toggleRowGap = 14
 	// toggleCellGap is the air between two controls of one family, and
 	// toggleFamilyGap the wider break between the checkboxes and the radios,
@@ -1372,19 +1372,19 @@ const (
 	toggleFamilyGap = 44
 )
 
-// labelledToggleRow draws the controls as the platform draws them in a form:
-// the box or the disc with its own label, which is part of the control. Every
-// state the label itself moves in stands here — set, unset and switched off,
-// for both families — because the label fades with the symbol and that is what
+// titledToggleRow draws the controls as the platform draws them in a form:
+// the box or the disc with its own title, which is part of the control. Every
+// state the title itself moves in stands here — set, unset and switched off,
+// for both families — because the title fades with the symbol and that is what
 // a reader has to be able to check.
-func (inv *Inventory) labelledToggleRow(c tokens.PlatformColors) layout.Widget {
+func (inv *Inventory) titledToggleRow(c tokens.PlatformColors) layout.Widget {
 	box := func(s input.CheckboxRenderState) layout.Widget {
 		return input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, s)
 	}
 	disc := func(s input.RadioRenderState) layout.Widget {
 		return input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, s)
 	}
-	// The first two labels are the save panel's own, so the row can be held
+	// The first two titles are the save panel's own, so the row can be held
 	// against the capture the measurements come from.
 	cells := []layout.Widget{
 		box(input.CheckboxRenderState{Title: "Show startup screen"}),
@@ -1902,7 +1902,7 @@ func LabelAt(gtx layout.Context, shaper *text.Shaper, s string, col color.NRGBA,
 
 // specimenName is the accessible name the trigger and the anchor both carry,
 // and the words the tooltip shows. One string for both halves: an icon-only
-// control has no label to fall back on, so the name a reader hovers for and
+// control has no title to fall back on, so the name a reader hovers for and
 // the name a screen reader announces are the same name or they disagree.
 const specimenName = "Show the sidebar"
 
@@ -1916,8 +1916,8 @@ const specimenName = "Show the sidebar"
 // takes the platform's hover overlay over the surface it stands on under the
 // pointer, and an apex aimed at a square with no fill points at empty air.
 //
-// The name is emitted as a semantic description because the label is empty by
-// construction, and an icon-only button has no label to fall back on.
+// The name is emitted as a semantic description because the title is empty by
+// construction, and an icon-only button has no title to fall back on.
 func (inv *Inventory) specimenControl(c tokens.PlatformColors) layout.Widget {
 	w := button.RenderIcon(inv.marks.Mark(icons.Sidebar), c, tokens.Spacing,
 		tokens.Radius, tokens.Comfortable,

@@ -145,7 +145,7 @@ func Toast(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 // Production code that has a theme observable should use Toast, which takes
 // the shaper and the text style off it.
 //
-// label is the LabelMedium role's whole text style — typeface, weight, size
+// style is the LabelMedium role's whole text style — typeface, weight, size
 // and line height all reach the shaper, exactly as they do on the live path.
 // Pass tokens.DefaultTypography.LabelMedium for the default desktop look.
 // There is no density parameter: a toast's height is a legibility floor
@@ -156,9 +156,9 @@ func Render(
 	colors tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
-	label tokens.TextStyle,
+	style tokens.TextStyle,
 ) layout.Widget {
-	tok := resolvedTokens{platform: colors, spacing: sp, radius: rad, style: label}
+	tok := resolvedTokens{platform: colors, spacing: sp, radius: rad, style: style}
 	return func(gtx layout.Context) layout.Dimensions {
 		return draw(gtx, shaper, props, tok)
 	}
@@ -201,15 +201,15 @@ func draw(gtx layout.Context, shaper *text.Shaper, props Props, tok resolvedToke
 	edge := withAlpha(Edge(tok.platform, props.Status), alpha)
 	fg := withAlpha(Foreground(tok.platform), alpha)
 
-	// Pre-record the label so we can size the surface around its dims. The
-	// leading edge takes its width off the label's, so the trailing margin
+	// Pre-record the text so we can size the surface around its dims. The
+	// leading edge takes its width off the text's, so the trailing margin
 	// stays one padH and the text stands one padH clear of the edge.
 	mColor := op.Record(gtx.Ops)
 	paint.ColorOp{Color: fg}.Add(gtx.Ops)
 	material := mColor.Stop()
-	mLabel := op.Record(gtx.Ops)
-	labelGtx := gtx
-	labelGtx.Constraints = layout.Constraints{
+	mText := op.Record(gtx.Ops)
+	textGtx := gtx
+	textGtx.Constraints = layout.Constraints{
 		Max: image.Pt(w-edgeW-2*padH, gtx.Constraints.Max.Y),
 	}
 	// Shape with the LabelMedium role's typeface, weight, size and line
@@ -217,10 +217,10 @@ func draw(gtx layout.Context, shaper *text.Shaper, props Props, tok resolvedToke
 	style := tok.style
 	f := typeset.Font(style, font.Normal)
 	wl := typeset.Label(style, 1)
-	labelDims := typeset.Layout(labelGtx, shaper, wl, f, unit.Sp(style.Size), props.Text, material)
-	labelCall := mLabel.Stop()
+	textDims := typeset.Layout(textGtx, shaper, wl, f, unit.Sp(style.Size), props.Text, material)
+	textCall := mText.Stop()
 
-	h := labelDims.Size.Y + 2*padV
+	h := textDims.Size.Y + 2*padV
 	minH := gtx.Dp(unit.Dp(MinHeightDp))
 	if minH < gtx.Constraints.Min.Y {
 		minH = gtx.Constraints.Min.Y
@@ -237,13 +237,13 @@ func draw(gtx layout.Context, shaper *text.Shaper, props Props, tok resolvedToke
 	paint.FillShape(gtx.Ops, edge, clip.Rect{Max: image.Pt(edgeW, h)}.Op())
 	clipped.Pop()
 
-	labelY := padV
-	if labelDims.Size.Y < h-2*padV {
-		labelY = (h - labelDims.Size.Y) / 2
+	textY := padV
+	if textDims.Size.Y < h-2*padV {
+		textY = (h - textDims.Size.Y) / 2
 	}
-	labelOff := op.Offset(image.Pt(edgeW+padH, labelY)).Push(gtx.Ops)
-	labelCall.Add(gtx.Ops)
-	labelOff.Pop()
+	textOff := op.Offset(image.Pt(edgeW+padH, textY)).Push(gtx.Ops)
+	textCall.Add(gtx.Ops)
+	textOff.Pop()
 
 	return layout.Dimensions{Size: image.Pt(w, h)}
 }

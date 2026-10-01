@@ -49,7 +49,7 @@
 // A button also carries a [Variant] — where it stands, never how it behaves
 // and never how pronounced it is. [Form] is the default: the button among
 // content, at the density's control height, wearing its emphasis. [Chrome] is
-// the button in a chrome region, and there a button whose label is a SYMBOL is
+// the button in a chrome region, and there a button whose title is a SYMBOL is
 // the platform's bordered toolbar control: a capsule at the toolbar control's
 // measured height with the symbol centred in it, its own fill, its rim where
 // the platform draws one, and the drop shadow it casts on the band it stands
@@ -70,7 +70,7 @@
 //	              form                        chrome
 //	height        d.ControlHeight, 24         d.ToolbarControlHeight, 36
 //	face          PushButtonFill under the    ToolbarControlFill under the
-//	              platform's control text,    toolbar's own label colour,
+//	              platform's control text,    toolbar's own title colour,
 //	              no rim                      its measured rim in the dark
 //	                                          appearance and none in the light
 //	shadow        none                        the drop shadow the control
@@ -116,10 +116,10 @@
 // modal must own the focus tag instead. A button fills the width it is given
 // and is at least the density's control height tall — the platform's regular
 // and small push button, 24 dp and 19 dp — so a fixed-size button is laid out
-// inside a constrained box. That box is a budget and not a cap: a label that
-// does not fit it widens its own button by the label's measure rather than
+// inside a constrained box. That box is a budget and not a cap: a title that
+// does not fit it widens its own button by the title's measure rather than
 // being elided into it, the way the platform sizes a push button to its
-// label and holds a minimum under it. And
+// title and holds a minimum under it. And
 // Props.Shaper is not optional today — leave it nil and
 // the button builds a Go-fonts shaper for itself, with no warning, and renders
 // in the wrong typeface.

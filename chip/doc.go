@@ -15,10 +15,10 @@
 //
 // # The structure
 //
-//	[mark] label [dismiss]
+//	[mark] title [dismiss]
 //
 // Both brackets are optional and both are decided by the purpose rather than by
-// a flag. The leading slot holds the caller's [Props.Icon] in the label's cap
+// a flag. The leading slot holds the caller's [Props.Icon] in the title's cap
 // band ([MarkDp]); on an [Input] chip it is the avatar slot instead,
 // [AvatarDp] behind a full-round corner, because what leads a token the reader
 // entered is a picture of the thing rather than a sign for it. A selected
@@ -27,8 +27,8 @@
 // carries the trailing dismiss mark, and it always carries it.
 //
 // The marks and the words are ONE LINE OF TEXT. A mark stands in the band the
-// label's capitals stand in — baseline to cap height, read off the face the
-// label is set in — and is stroked at the width of the label's own stem, so
+// title's capitals stand in — baseline to cap height, read off the face the
+// title is set in — and is stroked at the width of the title's own stem, so
 // nothing inside a chip is heavier or taller than the words it is beside. See
 // [MarkDp] and [MarkStrokeDp] for the measurement that fixes both.
 //
@@ -82,7 +82,7 @@
 // keeps the rim it has at rest — or the rim a selected one has dropped — and
 // wears the ring on its own outline: half the band past the chip's box and
 // half over it. The chip measures the same box focused as at rest and the
-// label does not shift; the half past the box is painted outside the clip the
+// title does not shift; the half past the box is painted outside the clip the
 // chip's own Clickable puts around what it wraps, so reporting a larger box to
 // make room for it is not needed.
 //
@@ -90,12 +90,12 @@
 //
 // The height is [tokens.Density.ChipHeight] — the density's control height
 // less the system's chip drop, 20 dp Comfortable and 15 dp Compact — under the
-// label's own line box, which the chip takes wherever that box is taller. It
+// title's own line box, which the chip takes wherever that box is taller. It
 // is not a floor over the padding rule, which is the rule for controls in the
 // control family the chip has just left: a chip is smaller than a button by
 // construction and spends no padding on the axis. At Compact the line box is
-// taller than the chip height in both label roles, so a Compact chip measures
-// its label; a box shorter than the words in it is not a chip either.
+// taller than the chip height in both title roles, so a Compact chip measures
+// its title; a box shorter than the words in it is not a chip either.
 //
 // Horizontal padding is d.PaddingX at each end. The silhouette is the radius
 // scale's Lg stop, 8 dp, clamped to half the height — a rounded rectangle, not
@@ -107,7 +107,7 @@
 //
 // A chip is sized to its content and does not fill the width it is given. It
 // clamps to the constraints it is handed, so a chip in a box narrower than its
-// label is truncated by the box rather than overflowing it.
+// title is truncated by the box rather than overflowing it.
 //
 // # Pinning the chip to an edge
 //

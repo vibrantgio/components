@@ -96,7 +96,7 @@ func Pagination(th rx.Observable[theme.Theme], props Props) rx.Observable[layout
 					platform: n.First,
 					spacing:  n.Second,
 					radius:   n.Third,
-					label:    typ.LabelLarge,
+					title:    typ.LabelLarge,
 					density:  n.Fifth,
 					shaper:   typ.Shaper(),
 				}
@@ -142,7 +142,7 @@ func Pagination(th rx.Observable[theme.Theme], props Props) rx.Observable[layout
 // production code should use Pagination, which reads both of the
 // parameters below off the theme.
 //
-// label is the LabelLarge role's whole text style — typeface, weight,
+// title is the LabelLarge role's whole text style — typeface, weight,
 // size and line height all reach the shaper — and d is the density the
 // row draws at (every cell is a Density.ControlHeight square, and the
 // chevron symbol scales with it). Pass
@@ -154,10 +154,10 @@ func Render(
 	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
-	label tokens.TextStyle,
+	title tokens.TextStyle,
 	d tokens.Density,
 ) layout.Widget {
-	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, label: label, density: d}
+	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, title: title, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawPagination(gtx, shaper, props, nil, nil, nil, tok)
 	}
@@ -167,7 +167,7 @@ type resolvedTokens struct {
 	platform tokens.PlatformColors
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
-	label    tokens.TextStyle // the LabelLarge role: typeface, weight, size, line height
+	title    tokens.TextStyle // the LabelLarge role: typeface, weight, size, line height
 	density  tokens.Density   // cell square and chevron symbol source
 	shaper   *text.Shaper     // the theme's shaper; nil in the Render path
 }
@@ -237,20 +237,20 @@ func pageCellColors(current, navigable bool, p tokens.PlatformColors, standsOn c
 // is what makes the digit a link rather than a label.
 func pageCellWidget(shaper *text.Shaper, n int, current, navigable bool, click *widget.Clickable, tok resolvedTokens, standsOn color.NRGBA) layout.Widget {
 	bg, fg := pageCellColors(current, navigable, tok.platform, standsOn)
-	label := strconv.Itoa(n)
+	title := strconv.Itoa(n)
 
 	return func(gtx layout.Context) layout.Dimensions {
 		side := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 		cgtx := gtx
 		cgtx.Constraints = layout.Exact(image.Pt(side, side))
 		draw := func(gtx layout.Context) layout.Dimensions {
-			return drawPageCell(gtx, shaper, label, bg, fg, tok, side)
+			return drawPageCell(gtx, shaper, title, bg, fg, tok, side)
 		}
 		if click == nil {
 			return draw(cgtx)
 		}
 		return click.Layout(cgtx, func(gtx layout.Context) layout.Dimensions {
-			semantic.LabelOp(label).Add(gtx.Ops)
+			semantic.LabelOp(title).Add(gtx.Ops)
 			semantic.EnabledOp(true).Add(gtx.Ops)
 			pointershape.OverSize(gtx.Ops, image.Pt(side, side), pointer.CursorPointer)
 			return draw(gtx)
@@ -263,7 +263,7 @@ func pageCellWidget(shaper *text.Shaper, n int, current, navigable bool, click *
 // the digit shaped in the LabelLarge role and centred. The digit is never
 // truncated — the square is the control, the digit its symbol, mirroring the
 // icon-button rule rather than the text-button padding rule.
-func drawPageCell(gtx layout.Context, shaper *text.Shaper, label string, bg, fg color.NRGBA, tok resolvedTokens, side int) layout.Dimensions {
+func drawPageCell(gtx layout.Context, shaper *text.Shaper, title string, bg, fg color.NRGBA, tok resolvedTokens, side int) layout.Dimensions {
 	if bg.A != 0 {
 		rad := gtx.Dp(unit.Dp(tok.radius.Md))
 		rrect := clip.RRect{Rect: image.Rectangle{Max: image.Pt(side, side)}, SE: rad, SW: rad, NE: rad, NW: rad}
@@ -274,22 +274,22 @@ func drawPageCell(gtx layout.Context, shaper *text.Shaper, label string, bg, fg 
 	paint.ColorOp{Color: fg}.Add(gtx.Ops)
 	material := mColor.Stop()
 
-	labelGtx := gtx
-	labelGtx.Constraints.Min = image.Point{}
-	labelGtx.Constraints.Max = image.Pt(side, side)
+	titleGtx := gtx
+	titleGtx.Constraints.Min = image.Point{}
+	titleGtx.Constraints.Max = image.Pt(side, side)
 
 	// Shape with the LabelLarge role's typeface, weight, size and line
 	// height. Zero fields (the Render path may pass a size-only style) fall
 	// back to the shaper's defaults.
-	style := tok.label
+	style := tok.title
 	f := typeset.Font(style, font.Normal)
 	wl := typeset.Label(style, 1)
-	mLabel := op.Record(gtx.Ops)
-	labelDims := typeset.Layout(labelGtx, shaper, wl, f, unit.Sp(style.Size), label, material)
-	labelCall := mLabel.Stop()
+	mTitle := op.Record(gtx.Ops)
+	titleDims := typeset.Layout(titleGtx, shaper, wl, f, unit.Sp(style.Size), title, material)
+	titleCall := mTitle.Stop()
 
-	offX := (side - labelDims.Size.X) / 2
-	offY := (side - labelDims.Size.Y) / 2
+	offX := (side - titleDims.Size.X) / 2
+	offY := (side - titleDims.Size.Y) / 2
 	if offX < 0 {
 		offX = 0
 	}
@@ -297,7 +297,7 @@ func drawPageCell(gtx layout.Context, shaper *text.Shaper, label string, bg, fg 
 		offY = 0
 	}
 	st := op.Offset(image.Pt(offX, offY)).Push(gtx.Ops)
-	labelCall.Add(gtx.Ops)
+	titleCall.Add(gtx.Ops)
 	st.Pop()
 
 	return layout.Dimensions{Size: image.Pt(side, side)}

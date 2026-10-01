@@ -236,14 +236,14 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 	for i, lv := range chipSpecimens {
 		i, lv := i, lv
 		g.chipLive[i], err = chip.Chip(th, chip.Props{
-			Title:       lv.label,
+			Title:       lv.title,
 			Icon:        chip.Symbol(icons.Mark(icons.Disclosure)),
 			Description: lv.desc,
 			Surface:     lv.fill,
 			OnClick:     func(_ layout.Context) { g.chipClicks[i]++; w.Invalidate() },
 		}).First()
 		if err != nil {
-			log.Printf("chip %s: %v", lv.label, err)
+			log.Printf("chip %s: %v", lv.title, err)
 		}
 	}
 
@@ -585,15 +585,15 @@ func (g *gallery) buttonVariantRows() []layout.FlexChild {
 // plane, the platform's grouped box, and the chrome material. The chip's rim,
 // its focus ring and its press tint each carry a coverage rather than a
 // colour, so each lands as whatever it is composited onto and one specimen on
-// one fill demonstrates nothing about the component. Three do. The label on
+// one fill demonstrates nothing about the component. Three do. The title on
 // each is a summary rather than a verb, which is the whole of what separates a
 // chip from a button: what a pane is showing, what a list is filtered by,
 // which model a conversation is on.
 var chipSpecimens = []struct {
-	label string
-	desc  string
-	fill  color.NRGBA
-	title string
+	title   string
+	desc    string
+	fill    color.NRGBA
+	caption string
 }{
 	{"Claude Opus 5", "Choose a model", tokens.PlatformLight.ControlBackground, "The content plane"},
 	{"main", "Switch branch", tokens.PlatformLight.CardFill, "The platform's box"},
@@ -617,7 +617,7 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Min.X = gtx.Dp(unit.Dp(180))
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(180))
-							return g.label(gtx, lv.title, pageMuted, unit.Sp(12), font.Font{})
+							return g.label(gtx, lv.caption, pageMuted, unit.Sp(12), font.Font{})
 						}),
 						layout.Rigid(g.surfacePane(lv.fill, func(gtx layout.Context) layout.Dimensions {
 							return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -714,7 +714,7 @@ func (g *gallery) pageInputs(gtx layout.Context) layout.Dimensions {
 			g.sectionHeader("Radio — live (two options, independent state)"),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				return complayout.Inset(24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					// Each option draws its own label: it is part of
+					// Each option draws its own title: it is part of
 					// the control, and a label the page drew beside
 					// the disc would not operate it.
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,

@@ -27,7 +27,7 @@ func live(t *testing.T, props badge.Props) layout.Widget {
 	if props.Shaper == nil {
 		// The live path would otherwise take the theme's own shaper, which
 		// resolves against whatever fonts the machine has. Every measurement
-		// below is of a badge sized to its label, so the faces are pinned.
+		// below is of a badge sized to its title, so the faces are pinned.
 		props.Shaper = defaultShaper(t)
 	}
 	var w layout.Widget
@@ -110,7 +110,7 @@ func TestTheBadgeReportsItsTextAndTheMarkHitsTheFloor(t *testing.T) {
 }
 
 // TestAClickAwayFromTheMarkIsNotADismissal is the same contract read the other
-// way: the badge's own words take no pointer input, so a press on the label
+// way: the badge's own words take no pointer input, so a press on the title
 // reaches nothing. A badge whose whole box was clickable would be a control.
 func TestAClickAwayFromTheMarkIsNotADismissal(t *testing.T) {
 	var dismissed int
@@ -163,7 +163,7 @@ func TestABadgeWithoutDismissTakesNoInput(t *testing.T) {
 }
 
 // TestOneDoubleClickIsOneDismissal drains the clickable to empty and reports
-// once. Two clicks in one frame on a mark whose label the caller is about to
+// once. Two clicks in one frame on a mark whose title the caller is about to
 // take away must not fire twice, and the second must not be left queued to
 // fire on the frame after that.
 func TestOneDoubleClickIsOneDismissal(t *testing.T) {
@@ -220,23 +220,23 @@ func TestEachBadgeNamesItself(t *testing.T) {
 	}, r, image.Pt(400, 60))
 	drive()
 
-	labels := map[string]string{}
+	titles := map[string]string{}
 	var walk func([]gioinput.SemanticNode)
 	walk = func(ns []gioinput.SemanticNode) {
 		for _, n := range ns {
 			if n.Desc.Label != "" {
-				labels[n.Desc.Label] = n.Desc.Description
+				titles[n.Desc.Label] = n.Desc.Description
 			}
 			walk(n.Children)
 		}
 	}
 	walk(r.AppendSemantics(nil))
 
-	if _, ok := labels["Popular"]; !ok {
-		t.Errorf("no semantic node named %q: %v", "Popular", labels)
+	if _, ok := titles["Popular"]; !ok {
+		t.Errorf("no semantic node named %q: %v", "Popular", titles)
 	}
-	if got, ok := labels["Deprecated"]; !ok {
-		t.Errorf("no semantic node named %q: %v", "Deprecated", labels)
+	if got, ok := titles["Deprecated"]; !ok {
+		t.Errorf("no semantic node named %q: %v", "Deprecated", titles)
 	} else if got != "This model is deprecated" {
 		t.Errorf("the second badge's description is %q, want the one Props carried", got)
 	}

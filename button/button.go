@@ -44,7 +44,7 @@ type Emphasis int
 const (
 	// Filled is the most pronounced variant and the zero value: the
 	// platform's default action, filled with the default push button's own
-	// measured fill and labelled in the foreground the platform pairs with
+	// measured fill and its title in the foreground the platform pairs with
 	// it. One per surface —
 	// the action the screen is about.
 	Filled Emphasis = iota
@@ -56,7 +56,7 @@ const (
 	Tonal
 
 	// Ghost is the least pronounced variant: the platform's borderless
-	// button — no fill and no edge, the label or symbol in the
+	// button — no fill and no edge, the title or symbol in the
 	// platform's control text. For affordances that must be present without
 	// being the subject — a dialog's close X, a toolbar of icons, a "Learn
 	// more". A ghost is less pronounced, not small: it draws the same square
@@ -94,7 +94,7 @@ const (
 	Form Variant = iota
 
 	// Chrome is the button standing in a chrome region — a toolbar, a navbar.
-	// A button whose label is a SYMBOL is drawn there as the platform's
+	// A button whose title is a SYMBOL is drawn there as the platform's
 	// bordered toolbar control: a capsule at
 	// [tokens.Density.ToolbarControlHeight] with the symbol centred in it,
 	// wearing the toolbar control's own fill, its rim where the platform
@@ -103,7 +103,7 @@ const (
 	// components/internal/controlface.
 	//
 	// It reaches the symbol path alone. A button carrying TEXT draws the form
-	// variant whatever this says: every symbol-labelled control in the stored
+	// variant whatever this says: every control titled with a symbol in the stored
 	// toolbar bands is bordered, and no stored band holds a toolbar button
 	// with a word in it to measure one from.
 	//
@@ -191,7 +191,7 @@ type RenderState struct {
 	// use — and the emphasis takes the platform's default-button pair
 	// instead, so a
 	// half-written pin renders the stock button rather than an invisible
-	// label. Tonal and Ghost
+	// title. Tonal and Ghost
 	// ignore both: neither carries a fill of its own to pin.
 	Fill       color.NRGBA
 	Foreground color.NRGBA
@@ -201,7 +201,7 @@ type RenderState struct {
 	// coverage rather than a colour, so what each lands as depends on what is
 	// under it; the button flattens them and hands Gio opaque fills. It
 	// matters wherever the button carries no fill of its own — a Ghost
-	// button's label and a held Ghost button's tint stand straight on it. The
+	// button's title and a held Ghost button's tint stand straight on it. The
 	// zero value — no colour — is the window's own plane.
 	Surface color.NRGBA
 
@@ -237,7 +237,7 @@ type Props struct {
 
 	// Variant is where the button stands: [Form] (the zero value) among
 	// content, [Chrome] in a chrome region, copied straight into RenderState
-	// on every frame. A chrome button whose label is a symbol is drawn as the
+	// on every frame. A chrome button whose title is a symbol is drawn as the
 	// platform's bordered toolbar control; one carrying text draws the form
 	// variant. See [Chrome].
 	Variant Variant
@@ -270,7 +270,7 @@ type Props struct {
 
 	// Icon, when non-nil and Title is empty, renders the button as a compact
 	// icon-only affordance: a square the density's control height on a side
-	// with the symbol centred, instead of a fill-width text label; that square
+	// with the symbol centred, instead of a fill-width text title; that square
 	// is the pointer target. The painter draws into
 	// a sizePx×sizePx box at the current origin in colour col, via
 	// clip.Path / clip.Stroke, so output stays golden-deterministic (no font or
@@ -301,7 +301,7 @@ type Props struct {
 	Clickable *widget.Clickable
 
 	// Shaper is an explicit per-instance override of the text shaper. Leave it
-	// nil in normal use: the button then shapes its label with the theme's
+	// nil in normal use: the button then shapes its title with the theme's
 	// shaper (Typography.Shaper()), which is built once for the process and
 	// shared by every component reading that typography — the cache lives
 	// behind the Typography value, so it survives the copy this component's
@@ -318,7 +318,7 @@ type Props struct {
 // layout.Widget closure.
 type resolvedTokens struct {
 	platform tokens.PlatformColors
-	label    tokens.TextStyle // the LabelLarge role: typeface, weight, size, line height
+	title    tokens.TextStyle // the LabelLarge role: typeface, weight, size, line height
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
 	density  tokens.Density // control height and inner padding
@@ -349,7 +349,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 				typ := n.Second
 				return resolvedTokens{
 					platform: n.First,
-					label:    typ.LabelLarge,
+					title:    typ.LabelLarge,
 					spacing:  n.Third,
 					radius:   n.Fourth,
 					density:  n.Fifth,
@@ -468,7 +468,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 // testing and static demonstrations; production code should use Button, which
 // reads both of the parameters below off the theme.
 //
-// labelStyle is the LabelLarge role's whole text style and d is the density
+// titleStyle is the LabelLarge role's whole text style and d is the density
 // the button draws at (control height and inner padding). Pass
 // tokens.PlatformLight, tokens.DefaultTypography.LabelLarge and
 // tokens.Comfortable for the default desktop look. s carries the emphasis alongside the interaction state; its
@@ -476,31 +476,31 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 // draws what it always drew.
 //
 // All four properties of the style are honoured, and line height is honoured
-// in the sense a design system means: the label box is labelStyle.LineHeight
+// in the sense a design system means: the title box is titleStyle.LineHeight
 // tall, leading split evenly above and below the glyphs, so the button's
-// height derives from the type role rather than from which letters the label
+// height derives from the type role rather than from which letters the title
 // happens to contain. Handing the number to gioui.org/widget.Label does not
 // achieve that — it changes nothing on a single line — so the layout goes
 // through theme/typeset, which is where that discrepancy is documented.
 //
 // The drawn height is therefore max(d.ControlHeight, LineHeight + 2×d.PaddingY),
-// and the second term wins for Compact at any of the label roles: LabelLarge's
+// and the second term wins for Compact at any of the title roles: LabelLarge's
 // 20 dp line box against a 19 dp control height.
 // [tokens.Density.ControlHeight] is a floor, not a height.
 func Render(
 	shaper *text.Shaper,
-	label string,
+	title string,
 	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
-	labelStyle tokens.TextStyle,
+	titleStyle tokens.TextStyle,
 	d tokens.Density,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, label: labelStyle, density: d}
+	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, title: titleStyle, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
 		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
-			return drawButton(gtx, shaper, label, tok, s)
+			return drawButton(gtx, shaper, title, tok, s)
 		})
 	}
 }
@@ -534,15 +534,15 @@ func RenderIcon(
 	}
 }
 
-// labelRoom is the width a button's label is measured in: room enough that
-// no single-line label this library draws is broken or elided by it, which is
-// what makes the measured width the label's own. A button's own box is
+// titleRoom is the width a button's title is measured in: room enough that
+// no single-line title this library draws is broken or elided by it, which is
+// what makes the measured width the title's own. A button's own box is
 // applied after, as the minimum width the button draws at.
-const labelRoom = 1 << 20
+const titleRoom = 1 << 20
 
 // drawButton renders the button visual into gtx. All visual state comes from s;
 // no event queries are performed here.
-func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resolvedTokens, s RenderState) layout.Dimensions {
+func drawButton(gtx layout.Context, shaper *text.Shaper, title string, tok resolvedTokens, s RenderState) layout.Dimensions {
 	// Sizing rule: button height = Density.ControlHeight (24 dp
 	// Comfortable, 19 dp Compact — the platform's regular and small push
 	// button), inner padding = Density.PaddingX/PaddingY. The drawn box is
@@ -561,45 +561,45 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 
 	bg, fg, ringOut, ringOver := buttonColors(tok.platform, s)
 
-	// Record the label's paint material — replayed inside the label layout.
+	// Record the title's paint material — replayed inside the title layout.
 	mColor := op.Record(gtx.Ops)
 	paint.ColorOp{Color: fg}.Add(gtx.Ops)
 	textMaterial := mColor.Stop()
 
-	// Record the label render to obtain its size before drawing the background.
+	// Record the title render to obtain its size before drawing the background.
 	//
-	// The label is measured with the width it needs rather than the width the
+	// The title is measured with the width it needs rather than the width the
 	// caller's box leaves it: a button's box is a budget and not a cap, and a
-	// label that does not fit widens its own button by its own measure (see
-	// the width rule below). Capping the label here would have it elided into
+	// title that does not fit widens its own button by its own measure (see
+	// the width rule below). Capping the title here would have it elided into
 	// a box the platform would have widened instead.
-	labelGtx := gtx
-	labelGtx.Constraints.Min = image.Pt(0, 0)
-	labelGtx.Constraints.Max.X = labelRoom
+	titleGtx := gtx
+	titleGtx.Constraints.Min = image.Pt(0, 0)
+	titleGtx.Constraints.Max.X = titleRoom
 
 	// Shape with the LabelLarge role's typeface, weight, size and line height.
 	// Zero fields fall back to the shaper's defaults. typeset.Layout, not
 	// widget.Label.Layout, because the role's line height has to be the height
-	// of the label box and Gio alone reports the drawn glyph extent instead — see
+	// of the title box and Gio alone reports the drawn glyph extent instead — see
 	// theme/typeset.
-	style := tok.label
+	style := tok.title
 	f := typeset.Font(style, font.Normal)
 	wl := typeset.Label(style, 1)
-	mLabel := op.Record(gtx.Ops)
-	labelDims := typeset.Layout(labelGtx, shaper, wl, f, unit.Sp(style.Size), label, textMaterial)
-	labelCall := mLabel.Stop()
+	mTitle := op.Record(gtx.Ops)
+	titleDims := typeset.Layout(titleGtx, shaper, wl, f, unit.Sp(style.Size), title, textMaterial)
+	titleCall := mTitle.Stop()
 
 	// Button dimensions: fill the available width, and never draw narrower
-	// than the label plus its padding — the platform sizes a push button to
-	// its own label and holds a minimum under it, which is what a caller's
-	// box states here. So two short labels in one row stand equal at the box
+	// than the title plus its padding — the platform sizes a push button to
+	// its own title and holds a minimum under it, which is what a caller's
+	// box states here. So two short titles in one row stand equal at the box
 	// they are given, and a long one beside them is exactly as wide as it has
 	// to be. The density's control height is the minimum on the other axis.
 	btnW := gtx.Constraints.Max.X
-	if btnW < labelDims.Size.X+2*padH {
-		btnW = labelDims.Size.X + 2*padH
+	if btnW < titleDims.Size.X+2*padH {
+		btnW = titleDims.Size.X + 2*padH
 	}
-	btnH := labelDims.Size.Y + 2*padV
+	btnH := titleDims.Size.Y + 2*padV
 	if btnH < minH {
 		btnH = minH
 	}
@@ -620,11 +620,11 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, label string, tok resol
 		focus.Ring(gtx, image.Rectangle{Max: btnSize}, rad, ringOut, ringOver)
 	}
 
-	// Replay the label centered within the button.
-	offX := (btnW - labelDims.Size.X) / 2
-	offY := (btnH - labelDims.Size.Y) / 2
+	// Replay the title centered within the button.
+	offX := (btnW - titleDims.Size.X) / 2
+	offY := (btnH - titleDims.Size.Y) / 2
 	st := op.Offset(image.Pt(offX, offY)).Push(gtx.Ops)
-	labelCall.Add(gtx.Ops)
+	titleCall.Add(gtx.Ops)
 	st.Pop()
 
 	if !s.Disabled {
@@ -680,7 +680,7 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 }
 
 // buttonColors returns what the button paints for the given variant and
-// interaction state: the fill, the foreground of the label or symbol, and the
+// interaction state: the fill, the foreground of the title or symbol, and the
 // two colours the ring of a focused button takes — the half past its box and
 // the half over it. An unused part comes back at alpha zero, which is no
 // colour a fill could use.
@@ -811,7 +811,7 @@ func fillOr(bg, standsOn color.NRGBA) color.NRGBA {
 // emphasis should wear instead of the platform's default-button pair. Both
 // halves
 // must be there: a fill is no fill at alpha zero, and a foreground at alpha
-// zero would draw a label nobody can read, so a half-written pin is no pin.
+// zero would draw a title nobody can read, so a half-written pin is no pin.
 func pinnedFill(s RenderState) bool {
 	return s.Fill.A != 0 && s.Foreground.A != 0
 }

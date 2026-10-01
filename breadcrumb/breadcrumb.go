@@ -1,7 +1,7 @@
 // Package breadcrumb provides the breadcrumb control: going back up the
 // hierarchy — each step a link, the last where you are. It draws a
-// horizontal row of labels separated by chevron symbols. The last segment
-// renders as a label (the current location); the segments before it render
+// horizontal row of titles separated by chevron symbols. The last segment
+// renders as a title (the current location); the segments before it render
 // as links, and may invoke an OnClick callback to navigate.
 //
 // Breadcrumb is a callable Go function consuming a components theme
@@ -18,7 +18,7 @@
 // were where you already are.
 //
 // There is no overflow behaviour. Every Item renders, in one horizontal
-// row, each label clamped to a single line; a trail deeper than its
+// row, each title clamped to a single line; a trail deeper than its
 // constraint is clipped rather than collapsed to a leading ellipsis. An
 // empty Items renders to zero Dimensions.
 //
@@ -74,16 +74,16 @@ type Props struct {
 	// DefaultChevron, which is the size this row has always drawn at.
 	//
 	// It is stated rather than derived because the separator is drawn and
-	// not typeset: nothing in the label's text style says how tall a
+	// not typeset: nothing in the title's text style says how tall a
 	// triangle beside it should be, and a trail set in a smaller style than
 	// the desktop TitleSmall — or one whose separator should read as a
-	// hairline between labels rather than a mark of its own — wants a
+	// hairline between titles rather than a mark of its own — wants a
 	// smaller square than the default. The symbol fills the square's full
 	// height, so this is the separator's drawn height and not a box around it.
 	Chevron unit.Dp
 
 	// Shaper is an explicit per-instance override of the text shaper. Leave
-	// it nil in normal use: the breadcrumb then shapes its labels with the
+	// it nil in normal use: the breadcrumb then shapes its titles with the
 	// theme's shaper (Typography.Shaper()), which is built once for the
 	// process and shared by every component reading that typography — the
 	// cache lives behind the Typography value, so it survives the copy this
@@ -96,7 +96,7 @@ type Props struct {
 	Shaper *text.Shaper
 
 	// Surface is the opaque fill the trail stands on. It draws no fill of
-	// its own, so its labels and separators are drawn straight on this, and
+	// its own, so its titles and separators are drawn straight on this, and
 	// the platform's label and secondary label carry a coverage rather than
 	// a colour. The zero value — no colour — is the window's own plane.
 	Surface color.NRGBA
@@ -132,7 +132,7 @@ func Breadcrumb(th rx.Observable[theme.Theme], props Props) rx.Observable[layout
 						props.Items[i].OnClick(gtx)
 					}
 				}
-				return drawBreadcrumb(gtx, shaper, props.Items, clicks, tok.platform, props.Surface, tok.spacing, tok.label, props.Chevron)
+				return drawBreadcrumb(gtx, shaper, props.Items, clicks, tok.platform, props.Surface, tok.spacing, tok.title, props.Chevron)
 			}
 		})
 	})
@@ -143,7 +143,7 @@ func Breadcrumb(th rx.Observable[theme.Theme], props Props) rx.Observable[layout
 // production code should use Breadcrumb, which reads the shaper and the
 // same text style off the theme.
 //
-// label is the TitleSmall role's whole text style — typeface, weight,
+// title is the TitleSmall role's whole text style — typeface, weight,
 // size and line height all reach the shaper, exactly as they do on the
 // live path. Pass tokens.DefaultTypography.TitleSmall for the default
 // desktop look. There is no density parameter: a breadcrumb trail is a
@@ -153,17 +153,17 @@ func Render(
 	props Props,
 	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
-	label tokens.TextStyle,
+	title tokens.TextStyle,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
-		return drawBreadcrumb(gtx, shaper, props.Items, nil, p, props.Surface, sp, label, props.Chevron)
+		return drawBreadcrumb(gtx, shaper, props.Items, nil, p, props.Surface, sp, title, props.Chevron)
 	}
 }
 
 type resolvedTokens struct {
 	platform tokens.PlatformColors
 	spacing  tokens.SpacingScale
-	label    tokens.TextStyle // the TitleSmall role: typeface, weight, size, line height
+	title    tokens.TextStyle // the TitleSmall role: typeface, weight, size, line height
 	shaper   *text.Shaper     // the theme's shaper; nil in the Render path
 }
 
@@ -180,7 +180,7 @@ func resolveTokens(th rx.Observable[theme.Theme]) rx.Observable[resolvedTokens] 
 				return resolvedTokens{
 					platform: n.First,
 					spacing:  n.Second,
-					label:    typ.TitleSmall,
+					title:    typ.TitleSmall,
 					shaper:   typ.Shaper(),
 				}
 			},
@@ -224,7 +224,7 @@ func drawBreadcrumb(
 
 	children := make([]layout.FlexChild, 0, 2*len(items)-1)
 	for i, item := range items {
-		fg := labelColor(i, len(items), p, standsOn)
+		fg := titleColor(i, len(items), p, standsOn)
 		if i > 0 {
 			children = append(children,
 				layout.Rigid(complayout.HSpacer(sp.S2)),
@@ -237,12 +237,12 @@ func drawBreadcrumb(
 	return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx, children...)
 }
 
-// labelColor returns the foreground colour for the segment at index i in a
+// titleColor returns the foreground colour for the segment at index i in a
 // breadcrumb of n items. The last segment is where you are and takes the
 // label; the segments before it are the way back and take the link. The
 // separator between them is the secondary label, the row's one piece of text
 // that is neither.
-func labelColor(i, n int, p tokens.PlatformColors, standsOn color.NRGBA) color.NRGBA {
+func titleColor(i, n int, p tokens.PlatformColors, standsOn color.NRGBA) color.NRGBA {
 	if i == n-1 {
 		return vgcolor.Flatten(p.Label, standsOn)
 	}
@@ -260,22 +260,22 @@ func clickFor(clicks []*widget.Clickable, i int) *widget.Clickable {
 }
 
 func segmentWidget(shaper *text.Shaper, item Item, click *widget.Clickable, fg color.NRGBA, style tokens.TextStyle) layout.Widget {
-	label := labelWidget(shaper, item.Title, fg, style)
+	title := titleWidget(shaper, item.Title, fg, style)
 	if click == nil || item.OnClick == nil {
-		return label
+		return title
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			semantic.LabelOp(item.Title).Add(gtx.Ops)
 			semantic.EnabledOp(true).Add(gtx.Ops)
-			dims := label(gtx)
+			dims := title(gtx)
 			pointershape.OverSize(gtx.Ops, dims.Size, pointer.CursorPointer)
 			return dims
 		})
 	}
 }
 
-func labelWidget(shaper *text.Shaper, label string, fg color.NRGBA, style tokens.TextStyle) layout.Widget {
+func titleWidget(shaper *text.Shaper, title string, fg color.NRGBA, style tokens.TextStyle) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		mColor := op.Record(gtx.Ops)
 		paint.ColorOp{Color: fg}.Add(gtx.Ops)
@@ -285,7 +285,7 @@ func labelWidget(shaper *text.Shaper, label string, fg color.NRGBA, style tokens
 		// size-only style) fall back to the shaper's defaults.
 		f := typeset.Font(style, font.Normal)
 		wl := typeset.Label(style, 1)
-		return typeset.Layout(gtx, shaper, wl, f, unit.Sp(style.Size), label, material)
+		return typeset.Layout(gtx, shaper, wl, f, unit.Sp(style.Size), title, material)
 	}
 }
 

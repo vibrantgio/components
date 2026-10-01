@@ -30,7 +30,7 @@ func benchFrame(b *testing.B, w layout.Widget) {
 	}
 }
 
-// BenchmarkChipRender is the resting chip: one shaped label, one leading mark,
+// BenchmarkChipRender is the resting chip: one shaped title, one leading mark,
 // the outline and the body.
 func BenchmarkChipRender(b *testing.B) {
 	benchFrame(b, chip.Render(

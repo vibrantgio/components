@@ -20,7 +20,7 @@ import (
 type resolvedTokens struct {
 	platform tokens.PlatformColors
 	body     tokens.TextStyle // BodyLarge: the field and the menu rows
-	label    tokens.TextStyle // LabelLarge: the toolbar trigger
+	title    tokens.TextStyle // LabelLarge: the toolbar trigger
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
 	density  tokens.Density // control height and inner padding

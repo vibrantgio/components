@@ -20,7 +20,7 @@ import (
 )
 
 // RenderBordered produces a layout.Widget for the platform's bordered
-// control labelled with a symbol, drawn in an explicit visual state without
+// control whose title is a symbol, drawn in an explicit visual state without
 // event processing or rx machinery.
 //
 // The symbol is drawn by icon into a square the control's variant names,
@@ -85,7 +85,7 @@ func BorderedShadow(gtx layout.Context, p tokens.PlatformColors, s RenderState, 
 	return controlface.Cast(gtx, borderedShadow(p, s), s.Focused && !s.Disabled, w)
 }
 
-// drawBorderedSymbol renders the platform's bordered control whose label is a
+// drawBorderedSymbol renders the platform's bordered control whose title is a
 // symbol, drawn through the same internal/controlface the picker's chrome
 // trigger is drawn through, with the symbol centred in it.
 //
@@ -187,7 +187,7 @@ func variantRestingFill(p tokens.PlatformColors, v Variant) color.NRGBA {
 }
 
 // variantForeground is the colour a bordered control's mark and its wording
-// read in where it stands: the toolbar's own label in a chrome region, the
+// read in where it stands: the toolbar's own title in a chrome region, the
 // platform's control text in a form.
 func variantForeground(p tokens.PlatformColors, v Variant, fill color.NRGBA) color.NRGBA {
 	if v == Chrome {

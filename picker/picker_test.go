@@ -134,7 +134,7 @@ func TestFieldTriggerDrawsThePopUpsHeight(t *testing.T) {
 // TestOpenFieldStandsTheSharedMenuOverItsTrigger is this platform's pop-up
 // behaviour in pixels: the open menu does not drop below the trigger, it
 // stands OVER it with the row the picker is holding on the trigger's own
-// label, and the rows either side of it are laid out above and below.
+// title, and the rows either side of it are laid out above and below.
 //
 // What stands there is the SHARED menu — the same surface [picker.Menu] emits
 // standing alone — so the interior of the field's plane is a standalone menu
@@ -465,7 +465,7 @@ func TestMenuMarksTheRowUnderThePointer(t *testing.T) {
 // the picker is holding, which is a different question from where the pointer
 // is. It stands in the pill's own leading column, it moves only when the held
 // row moves, and a menu holding nothing draws none at all. Nothing else in the
-// row moves with it — the labels stand in one line whichever row is held.
+// row moves with it — the titles stand in one line whichever row is held.
 func TestTheCheckStandsBesideTheHeldRowAndNowhereElse(t *testing.T) {
 	row := rowHeight(tokens.Comfortable)
 	size := image.Pt(200, row*len(options))
@@ -516,7 +516,7 @@ func TestTheCheckStandsBesideTheHeldRowAndNowhereElse(t *testing.T) {
 	// Everything past the mark's own box is one drawing in all three.
 	for r := range options {
 		if differs(held0, none, r, markLead+markBox, size.X) || differs(held1, none, r, markLead+markBox, size.X) {
-			t.Errorf("row %d draws differently past the mark's box; the check moved the label beside it", r)
+			t.Errorf("row %d draws differently past the mark's box; the check moved the title beside it", r)
 		}
 	}
 }
@@ -699,14 +699,14 @@ func TestACappedMenuIsAnchoredByItsDrop(t *testing.T) {
 // THE TRIGGER is the platform's pop-up button. MEASURED,
 // save-dialog-{light,dark}.png at 1x: the "File Format:" pop-up's fill runs
 // x 264–451 with no edge column of any kind, and the first covered pixel of
-// its label is x=276 — twelve columns in from the fill's own edge, five
+// its title is x=276 — twelve columns in from the fill's own edge, five
 // further than the field beside it. What is spent is the origin,
 // [control.PopupLeadDp]'s eleven, and the face adds its first glyph's left
 // side bearing to reach the twelfth.
 //
 // THE MENU'S ROWS are not pop-ups either, and they are not bare text: a row is
 // read inside its pill, and the pill leads with the column the check stands
-// in. So a row's label starts at the pill's own inset from the plane — the
+// in. So a row's title starts at the pill's own inset from the plane — the
 // sidebar pill's measured 10 — plus the box the mark is drawn in (16, the
 // smallest of the three sizes components/icons is drawn at) plus the text
 // field's own leading inset, [control.TextLeadDp]. None of those three is read
@@ -719,7 +719,7 @@ func TestTheTriggerStandsOnThePopUpsColumnAndItsRowsOnTheFields(t *testing.T) {
 	// The face bears one column on this word, as input's own reading of the
 	// same inset does.
 	const bearing = 1
-	// The pill's inset and the mark's box, which the row's label follows.
+	// The pill's inset and the mark's box, which the row's title follows.
 	const selectionInset, markBox = 10, 16
 	for _, tc := range []struct {
 		name      string
@@ -874,7 +874,7 @@ func TestTheTriggersPressWinsOverItsHover(t *testing.T) {
 	}
 }
 
-// TestCompactTriggerKeepsItsLabelInside holds the Compact box. BodyLarge's
+// TestCompactTriggerKeepsItsTitleInside holds the Compact box. BodyLarge's
 // line box is 24 dp at every density and the platform's small control is
 // 19 px (controls.md's small control rows: the small push button's published
 // 19 pt, which is what CompactControlHeight carries — no stored capture holds
@@ -883,7 +883,7 @@ func TestTheTriggersPressWinsOverItsHover(t *testing.T) {
 // either side. What is cut is the leading the line box carries around that
 // band, and the trigger clips what it draws to its own shape, so nothing it
 // paints falls outside the box it reports.
-func TestCompactTriggerKeepsItsLabelInside(t *testing.T) {
+func TestCompactTriggerKeepsItsTitleInside(t *testing.T) {
 	const pad = 10
 	surface := color.NRGBA{R: 0xff, G: 0x00, B: 0x00, A: 0xff}
 	p := tokens.PlatformLight

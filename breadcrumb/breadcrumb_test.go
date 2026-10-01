@@ -42,7 +42,7 @@ func scene(w layout.Widget, bgColor color.NRGBA) layout.Widget {
 
 // trail is the three-segment fixture: a real path, in document order, so the
 // last segment is the current location and the two before it are the links
-// back up. Labels are ASCII only, so Latin text in Roboto
+// back up. Titles are ASCII only, so Latin text in Roboto
 // rasterises identically on every machine and no symbol reaches a stored
 // image.
 func trail() []breadcrumb.Item {
@@ -50,7 +50,7 @@ func trail() []breadcrumb.Item {
 }
 
 // TestBreadcrumbGolden records or diffs the three Measurable goldens. The
-// chevron separators are deterministic clip paths and the labels carry the
+// chevron separators are deterministic clip paths and the titles carry the
 // typography; the single-segment golden is the structural assertion ("no
 // chevrons when n == 1") and also shows that the lone segment takes the
 // current-location colour that internal_test asserts numerically.

@@ -32,8 +32,8 @@ const specimen = "Il1 Wm gj 018"
 // All four properties are exercised here, LineHeight included.
 // gioui.org/text's calculateYOffsets baselines the first line at that line's
 // own ascent and spends the line height only on the gap to the next one, and
-// widget.Label reports the drawn glyph extent as its size — so a MaxLines:1 label
-// rendered through widget.Label is identical at any LineHeight. The label
+// widget.Label reports the drawn glyph extent as its size — so a MaxLines:1 title
+// rendered through widget.Label is identical at any LineHeight. The title
 // box must instead be sized as the role's line box via theme/typeset, so the
 // property is observable exactly where it is documented to arrive.
 var typographyCases = []struct {
@@ -51,7 +51,7 @@ var typographyCases = []struct {
 	// face. On a role declaring a 20 dp line height set in Roboto Mono, that
 	// returns Roboto's 17 px instead of Roboto Mono's 19, a 2 px deficit that
 	// renders the button 38 px tall against the baseline's 36. Measuring the
-	// text actually being laid out puts the label box back on 20 and the
+	// text actually being laid out puts the title box back on 20 and the
 	// button back on the density's 36.
 	{"type-typeface-mono", withTypeface(tokens.DefaultTypography.LabelLarge, tokens.DefaultTypography.Code.Typeface)},
 	// Weight only: 400 instead of 500. Thinner stems.
@@ -62,7 +62,7 @@ var typographyCases = []struct {
 	// Line height only: 32 dp instead of 20, at the same 14 dp size. The
 	// glyphs are identical to the baseline's — same face, same weight, same
 	// scale — and everything that moves moves because the line box grew: the
-	// label box is 32 px rather than 20, so the button is 32 + 2×8 = 48 px
+	// title box is 32 px rather than 20, so the button is 32 + 2×8 = 48 px
 	// tall rather than the 36 the density floors it to, and the text sits
 	// lower by the extra leading above it. That is the whole of what a design
 	// system means by line height, and this image is where it is now visible.
@@ -93,7 +93,7 @@ func withLineHeight(s tokens.TextStyle, lh float32) tokens.TextStyle {
 // the same for all of them so the stored images are directly comparable.
 var typographySize = image.Pt(300, 60)
 
-// typographyWidget renders the specimen string as a button label in style, on
+// typographyWidget renders the specimen string as a button title in style, on
 // the light theme with sharp corners so nothing but the text moves between
 // cases.
 func typographyWidget(t *testing.T, style tokens.TextStyle) layout.Widget {
@@ -116,18 +116,18 @@ func TestTypographyGolden(t *testing.T) {
 	}
 }
 
-// TestLineHeightSizesTheLabelBox is the numeric half of the line-height
+// TestLineHeightSizesTheTitleBox is the numeric half of the line-height
 // constraint: gioui.org/widget.Label reports glyph ink as its size, and
 // gioui.org/text spends the line height only on the gap to a next line that
-// a MaxLines:1 label never has, so a naive label box does not move with
-// LineHeight at all. The label box must instead be sized as the role's line
+// a MaxLines:1 title never has, so a naive title box does not move with
+// LineHeight at all. The title box must instead be sized as the role's line
 // box, so the button's height is the line height plus its padding — and
 // every number below is derived from the tokens rather than from the
-// letters in the label.
+// letters in the title.
 //
 // The golden above shows the same fact in pixels; this one says which number
 // is wrong when it moves.
-func TestLineHeightSizesTheLabelBox(t *testing.T) {
+func TestLineHeightSizesTheTitleBox(t *testing.T) {
 	shaper := defaultShaper(t)
 	d := tokens.Comfortable
 

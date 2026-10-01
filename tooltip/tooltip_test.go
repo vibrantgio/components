@@ -60,7 +60,7 @@ func scene(w layout.Widget, bg color.NRGBA) layout.Widget {
 
 // TestTooltipGolden records or diffs the two Measurable goldens —
 // light-shown-top and dark-shown-bottom. The trigger is a small solid
-// rectangle and the surface contains a short label in the platform's label
+// rectangle and the surface contains short text in the platform's label
 // colour on the window's own plane, inside a separator hairline. Text is part
 // of the component's contract, so every case rasterises real glyphs and must
 // pass Props.Shaper to keep the rendered face pinned and deterministic.
@@ -109,7 +109,7 @@ func TestTooltipShownAndHiddenDiffer(t *testing.T) {
 	imgShown := golden.Capture(t, frameSize, scene(shown, bg))
 	imgHidden := golden.Capture(t, frameSize, scene(hidden, bg))
 	if n := golden.PixelDiff(imgShown, imgHidden); n == 0 {
-		t.Error("shown and hidden tooltip render identically; expected the bubble + label to appear when shown")
+		t.Error("shown and hidden tooltip render identically; expected the bubble + text to appear when shown")
 	}
 }
 

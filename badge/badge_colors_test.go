@@ -64,7 +64,7 @@ func TestABareSignIsTheSystemColourItself(t *testing.T) {
 				want = vgcolor.Flatten(sc.p.SecondaryLabel, sc.p.WindowBackground)
 			}
 			if got := badge.BareForeground(sc.p, st.status, sc.p.WindowBackground); got != want {
-				t.Errorf("%s %s: BareForeground = %v, want %v", sc.name, st.label, got, want)
+				t.Errorf("%s %s: BareForeground = %v, want %v", sc.name, st.title, got, want)
 			}
 		}
 	}
@@ -89,9 +89,9 @@ func TestTheFiveStayFive(t *testing.T) {
 			for _, st := range goldenStatuses {
 				c := get.fn(sc.p, st.status)
 				if prev, dup := seen[c]; dup {
-					t.Errorf("%s %s: %s and %s are both %v", sc.name, get.name, prev, st.label, c)
+					t.Errorf("%s %s: %s and %s are both %v", sc.name, get.name, prev, st.title, c)
 				}
-				seen[c] = st.label
+				seen[c] = st.title
 			}
 		}
 	}

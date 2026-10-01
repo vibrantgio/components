@@ -277,7 +277,7 @@ func (inv *Inventory) navbar(c tokens.PlatformColors) layout.Widget {
 //
 // The symbols are the icon set's own marks rather than stand-in shapes,
 // because the row's symbol carries a colour of its own — the sidebar's
-// measured symbol value, stronger than the label beside it and the pill's
+// measured symbol value, stronger than the title beside it and the pill's
 // foreground on the selected row — and a shape that paints itself would show
 // none of it.
 func (inv *Inventory) sidebarProps(tokens.PlatformColors) patsidebar.Props {
@@ -296,7 +296,7 @@ func (inv *Inventory) sidebarProps(tokens.PlatformColors) patsidebar.Props {
 // keyboard, expanded while it does not, and collapsed.
 //
 // The first two are the platform's two selection pills — the accent one
-// under a white label and the grey one under the label in the accent — and a
+// under a white title and the grey one under the title in the accent — and a
 // still render shows the grey one unless it says otherwise, which is what
 // Props.Focused is for.
 func (inv *Inventory) sidebar(c tokens.PlatformColors) layout.Widget {

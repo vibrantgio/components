@@ -45,7 +45,7 @@ const dismissReach = unit.Dp(8192)
 // Drop is the side an open [Field] PREFERS to spend its overflow on.
 //
 // An open menu does not drop. It stands OVER the trigger with the row the
-// picker is holding on the trigger's own label, which is what this platform's
+// picker is holding on the trigger's own title, which is what this platform's
 // pop-up button does: the choice the field is showing does not move when the
 // menu opens over it, and the rest of the catalogue is laid above and below it
 // — see [alignOverTrigger].
@@ -157,7 +157,7 @@ type FieldProps struct {
 	// Drop is the side the open menu PREFERS to spend its overflow on, copied
 	// straight into [FieldState.Drop] on every frame. The zero value is
 	// [DropDown]. The menu itself stands over the trigger with the held row on
-	// the trigger's label; Drop settles only where a menu the reported room
+	// the trigger's title; Drop settles only where a menu the reported room
 	// cannot hold is anchored. Either way the field reports its trigger alone
 	// and an open one is placed where a closed one is. See [Drop].
 	Drop Drop
@@ -520,7 +520,7 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 
 // alignOverTrigger is where the menu's plane starts, measured from the
 // trigger's own top edge, for the menu to stand OVER the trigger with the row
-// the picker is holding on the trigger's label: the rows above it are laid out
+// the picker is holding on the trigger's title: the rows above it are laid out
 // above the trigger, the rows below it below, and the held row covers the
 // trigger itself.
 //
@@ -529,8 +529,8 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 // the reader was looking at does not move and the pointer is already on it.
 //
 // The held row's own box is centred on the trigger's — both are set in the
-// same role at the same size, so their labels meet when their boxes do, and
-// the trigger's own label is centred in the trigger the same way
+// same role at the same size, so their titles meet when their boxes do, and
+// the trigger's own title is centred in the trigger the same way
 // ([drawTrigger]). A picker holding nothing has no row to align and puts the
 // top of the menu on the top of the trigger.
 //
@@ -774,7 +774,7 @@ func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fi
 // save-dialog-{light,dark}.png at 1x, the "File Format:" pop-up is 24 px tall
 // — the control height, not the field's 28 — its fill runs x 264–451 with no
 // edge column of any kind, and both of its insets are spent from that fill's
-// own edge: [control.PopupLeadDp] for the label and
+// own edge: [control.PopupLeadDp] for the title and
 // [control.PopupMarkTrailDp] for the mark. The rows of the menu it opens are
 // not pop-ups and take their own columns — see picker's rowColumns.
 func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s FieldState) layout.Dimensions {
@@ -795,15 +795,15 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	// drawn in the body foreground reads as answered. Two prompts, because
 	// "choose one" and "there is nothing to choose" are different sentences
 	// and only the caller knows either.
-	label := ""
+	title := ""
 	prompt := true
 	switch {
 	case len(s.Options) == 0:
-		label = s.NoOptions
+		title = s.NoOptions
 	case s.Selected >= 0 && s.Selected < len(s.Options):
-		label, prompt = s.Options[s.Selected], false
+		title, prompt = s.Options[s.Selected], false
 	default:
-		label = s.Placeholder
+		title = s.Placeholder
 	}
 
 	// The trigger is the platform's ordinary button, so its fill is the push
@@ -860,7 +860,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 		innerW = 1
 	}
 	// The pop-up's height is the control height and nothing else, so the line
-	// box the label is set in is capped to it: MEASURED, controls.md's small
+	// box the title is set in is capped to it: MEASURED, controls.md's small
 	// control rows give the platform 19 px for a Compact control, where
 	// BodyLarge's line box is 24 dp at every density. The role's SIZE does not
 	// move — its cap band measures 12 px and stands inside 19 with room to
@@ -878,9 +878,9 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	paint.ColorOp{Color: textCol}.Add(gtx.Ops)
 	textMat := mTextCol.Stop()
 
-	mLabel := op.Record(gtx.Ops)
-	labelDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, label, textMat)
-	labelCall := mLabel.Stop()
+	mTitle := op.Record(gtx.Ops)
+	titleDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, title, textMat)
+	titleCall := mTitle.Stop()
 
 	// The pop-up's height is the control height and nothing else: MEASURED,
 	// 24 px in both appearances of the save panel, which is the same number
@@ -907,13 +907,13 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 			focus.RingColor(tok.platform, standsOn), focus.RingColor(tok.platform, bg))
 	}
 
-	// Text label: vertically centred, and clipped to the control's own shape
+	// The title: vertically centred, and clipped to the control's own shape
 	// so a line box taller than the control it stands in is cut by the
 	// control rather than drawn past it.
-	offY := (triggerH - labelDims.Size.Y) / 2
+	offY := (triggerH - titleDims.Size.Y) / 2
 	area := rrectOuter.Push(gtx.Ops)
 	st := op.Offset(image.Pt(lead, offY)).Push(gtx.Ops)
-	labelCall.Add(gtx.Ops)
+	titleCall.Add(gtx.Ops)
 	st.Pop()
 	area.Pop()
 

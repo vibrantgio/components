@@ -24,7 +24,7 @@ import (
 // Key is never drawn.
 //
 // A Segment with an empty Key takes its Title as its identity, which is right
-// while labels are the path and wrong as soon as two places share a label; a
+// while titles are the path and wrong as soon as two places share a title; a
 // trail whose segments can collide should say so with a Key.
 type Segment struct {
 	Key     string
@@ -55,7 +55,7 @@ type TrailLayout func(gtx layout.Context, segments []Segment) layout.Dimensions
 // argument to each frame's TrailLayout.
 type TrailProps struct {
 	// Shaper is an explicit per-instance override of the text shaper. Leave
-	// it nil in normal use: the trail then shapes its labels with the theme's
+	// it nil in normal use: the trail then shapes its titles with the theme's
 	// shaper (Typography.Shaper()), exactly as Props.Shaper describes.
 	Shaper *text.Shaper
 
@@ -91,7 +91,7 @@ func Trail(th rx.Observable[theme.Theme], props TrailProps) rx.Observable[TrailL
 				shaper = tok.shaper
 			}
 			return func(gtx layout.Context, segments []Segment) layout.Dimensions {
-				return st.layout(gtx, shaper, segments, tok.platform, props.Surface, tok.spacing, tok.label, props.Chevron)
+				return st.layout(gtx, shaper, segments, tok.platform, props.Surface, tok.spacing, tok.title, props.Chevron)
 			}
 		})
 	})
@@ -107,18 +107,18 @@ func Trail(th rx.Observable[theme.Theme], props TrailProps) rx.Observable[TrailL
 // props carries the configuration that is not a token, as it does for
 // Render; its Shaper is unread here, the shaper being the first argument.
 //
-// label is the TitleSmall role's whole text style, as it is for Render; pass
+// title is the TitleSmall role's whole text style, as it is for Render; pass
 // tokens.DefaultTypography.TitleSmall for the default desktop look.
 func NewTrail(
 	shaper *text.Shaper,
 	props TrailProps,
 	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
-	label tokens.TextStyle,
+	title tokens.TextStyle,
 ) TrailLayout {
 	st := new(trailState)
 	return func(gtx layout.Context, segments []Segment) layout.Dimensions {
-		return st.layout(gtx, shaper, segments, p, props.Surface, sp, label, props.Chevron)
+		return st.layout(gtx, shaper, segments, p, props.Surface, sp, title, props.Chevron)
 	}
 }
 

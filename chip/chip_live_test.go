@@ -30,7 +30,7 @@ func live(t *testing.T, props chip.Props) layout.Widget {
 	if props.Shaper == nil {
 		// The live path would otherwise take the theme's own shaper, which
 		// resolves against whatever fonts the machine has. Every measurement
-		// below is of a pill sized to its label, so the faces are pinned.
+		// below is of a pill sized to its title, so the faces are pinned.
 		props.Shaper = defaultShaper(t)
 	}
 	var w layout.Widget
@@ -180,7 +180,7 @@ func TestChipActivatesFromTheKeyboard(t *testing.T) {
 // TestFocusedChipMeasuresTheSameBox: a focused chip's edge is the focus ring,
 // taking the outline's place rather than being drawn beside it, so nothing
 // about the box moves when focus arrives. A ring drawn outside or inside the
-// outline would show here as a chip that grew or a label that shifted.
+// outline would show here as a chip that grew or a title that shifted.
 func TestFocusedChipMeasuresTheSameBox(t *testing.T) {
 	var click widget.Clickable
 	w := live(t, chip.Props{
@@ -233,11 +233,11 @@ func TestFocusedChipMeasuresTheSameBox(t *testing.T) {
 // chip that reported the box but drew at the origin would pass a dimension
 // check and fail both of these.
 func TestPinnedChipDrawsAtTheEdgeOfTheBox(t *testing.T) {
-	const label = "OpenAI · gpt-5.5"
+	const title = "OpenAI · gpt-5.5"
 	box := image.Pt(300, 120)
 
 	// The chip's own width, which the pin must not change.
-	pill := driver(live(t, chip.Props{Title: label, Icon: chevron}), new(gioinput.Router), box)()
+	pill := driver(live(t, chip.Props{Title: title, Icon: chevron}), new(gioinput.Router), box)()
 	if pill.Size.X >= box.X {
 		t.Fatalf("the unpinned chip measured %d px in a %d px box; there is no slack to pin across",
 			pill.Size.X, box.X)
@@ -255,7 +255,7 @@ func TestPinnedChipDrawsAtTheEdgeOfTheBox(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var clicked int
 			w := live(t, chip.Props{
-				Title:   label,
+				Title:   title,
 				Icon:    chevron,
 				Pin:     tc.pin,
 				OnClick: func(_ layout.Context) { clicked++ },
@@ -393,13 +393,13 @@ func TestInputChipDismissesFromItsOwnTarget(t *testing.T) {
 		t.Errorf("a click on the dismiss mark also activated the chip %d times: the mark's target is on top", clicked)
 	}
 
-	// The label's own surface still activates the chip.
+	// The title's own surface still activates the chip.
 	press(r, int(tokens.Comfortable.PaddingX), dims.Size.Y/2)
 	drive()
 	if clicked != 1 {
-		t.Errorf("a click on the label activated the chip %d times, want 1", clicked)
+		t.Errorf("a click on the title activated the chip %d times, want 1", clicked)
 	}
 	if dismissed != 1 {
-		t.Errorf("a click on the label dismissed the chip %d times, want none beyond the first", dismissed-1)
+		t.Errorf("a click on the title dismissed the chip %d times, want none beyond the first", dismissed-1)
 	}
 }

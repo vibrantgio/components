@@ -211,7 +211,7 @@ func TestPinnedFillIsTheCallersPairInBothAppearances(t *testing.T) {
 }
 
 // Half a pin is no pin: the variant falls back to the platform's
-// default-button pair rather than drawing a fill nobody chose or a label
+// default-button pair rather than drawing a fill nobody chose or a title
 // nobody can read.
 func TestHalfAPinIsNoPin(t *testing.T) {
 	p := tokens.PlatformLight

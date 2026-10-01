@@ -34,10 +34,10 @@ const SegmentSeamClearDp unit.Dp = 8
 // Finder captures, which is the width every seam in this library is drawn at.
 const segmentSeamDp unit.Dp = 1
 
-// segmentLabelRoom is the width a segment's word is measured in: room enough
-// that no single-line label this library draws is broken or elided by it, so
-// the measured width is the label's own.
-const segmentLabelRoom = 1 << 20
+// segmentTitleRoom is the width a segment's word is measured in: room enough
+// that no single-line title this library draws is broken or elided by it, so
+// the measured width is the title's own.
+const segmentTitleRoom = 1 << 20
 
 // BorderedSegment is one segment of the platform's segmented control: what it
 // carries, the state it is drawn in, and the target that makes it pressable.
@@ -52,7 +52,7 @@ type BorderedSegment struct {
 	// NOT MEASURED, and the one thing here that is not: not one control in
 	// the five stored toolbar bands carries a word (controls.md, "What a
 	// toolbar control's symbol measures"), so no capture says what a worded
-	// segment insets its word by. A worded segment is drawn at its label
+	// segment insets its word by. A worded segment is drawn at its title
 	// plus the clearance the symbol path spends at either side
 	// ([control.ChromeMarkSideDp]), which is the nearest measured number
 	// this control holds.
@@ -118,7 +118,7 @@ type BorderedSegment struct {
 // The shadow the control casts on its band is not drawn here — it falls
 // outside the box this reports, the way [BorderedFace]'s does. Callers in a
 // band wrap this in [BorderedShadow]; a form control casts none.
-func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformColors, rad tokens.RadiusScale, labelStyle tokens.TextStyle, d tokens.Density, segs []BorderedSegment) layout.Dimensions {
+func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.PlatformColors, rad tokens.RadiusScale, titleStyle tokens.TextStyle, d tokens.Density, segs []BorderedSegment) layout.Dimensions {
 	if len(segs) == 0 {
 		return layout.Dimensions{}
 	}
@@ -143,8 +143,8 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 	// width of every segment, so nothing can be placed until all of them
 	// have been measured.
 	fills := make([]color.NRGBA, len(segs))
-	labels := make([]op.CallOp, len(segs))
-	labelSize := make([]image.Point, len(segs))
+	titles := make([]op.CallOp, len(segs))
+	titleSize := make([]image.Point, len(segs))
 	segW := mark + 2*side
 	rest := variantRestingFill(p, variant)
 	for i, s := range segs {
@@ -161,8 +161,8 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 		if s.State.Disabled {
 			fg = vgcolor.Flatten(p.DisabledControlText, fills[i])
 		}
-		labels[i], labelSize[i] = shapeSegmentLabel(gtx, shaper, labelStyle, s.Title, fg)
-		if w := labelSize[i].X + 2*side; w > segW {
+		titles[i], titleSize[i] = shapeSegmentTitle(gtx, shaper, titleStyle, s.Title, fg)
+		if w := titleSize[i].X + 2*side; w > segW {
 			segW = w
 		}
 	}
@@ -238,10 +238,10 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 		case s.Title != "":
 			area := outer.Push(gtx.Ops)
 			off := op.Offset(image.Pt(
-				x+(seg.Dx()-labelSize[i].X)/2,
-				(h-labelSize[i].Y)/2,
+				x+(seg.Dx()-titleSize[i].X)/2,
+				(h-titleSize[i].Y)/2,
 			)).Push(gtx.Ops)
-			labels[i].Add(gtx.Ops)
+			titles[i].Add(gtx.Ops)
 			off.Pop()
 			area.Pop()
 		case s.Icon != nil && mark > 0:
@@ -266,20 +266,20 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 	return layout.Dimensions{Size: size}
 }
 
-// shapeSegmentLabel measures a segment's word at its own width rather than
+// shapeSegmentTitle measures a segment's word at its own width rather than
 // at the width a caller left it, and returns the recorded drawing with
 // the size it measured to. typeset.Layout, not widget.Label.Layout, because
-// the role's line height has to be the height of the label box.
-func shapeSegmentLabel(gtx layout.Context, shaper *text.Shaper, style tokens.TextStyle, label string, fg color.NRGBA) (op.CallOp, image.Point) {
+// the role's line height has to be the height of the title box.
+func shapeSegmentTitle(gtx layout.Context, shaper *text.Shaper, style tokens.TextStyle, title string, fg color.NRGBA) (op.CallOp, image.Point) {
 	mColor := op.Record(gtx.Ops)
 	paint.ColorOp{Color: fg}.Add(gtx.Ops)
 	material := mColor.Stop()
 
 	lg := gtx
 	lg.Constraints.Min = image.Point{}
-	lg.Constraints.Max.X = segmentLabelRoom
+	lg.Constraints.Max.X = segmentTitleRoom
 
 	m := op.Record(gtx.Ops)
-	dims := typeset.Layout(lg, shaper, typeset.Label(style, 1), typeset.Font(style, font.Normal), unit.Sp(style.Size), label, material)
+	dims := typeset.Layout(lg, shaper, typeset.Label(style, 1), typeset.Font(style, font.Normal), unit.Sp(style.Size), title, material)
 	return m.Stop(), dims.Size
 }

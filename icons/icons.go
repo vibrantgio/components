@@ -70,23 +70,23 @@ const (
 
 	// Plus is the control that adds one more of what the window holds — a
 	// new note, a new chat. One mark serves every such control: what is
-	// added is the control's label to say, not the mark's.
+	// added is the control's title to say, not the mark's.
 	Plus Name = "plus"
 
 	// Minus is the control that takes one away from what the window holds,
 	// the partner of the plus: the pair the platform stands under a list it
-	// lets the reader edit. What is removed is the control's label to say.
+	// lets the reader edit. What is removed is the control's title to say.
 	Minus Name = "minus"
 
 	// Refresh is the control that reads again what the window is showing,
 	// from wherever it came from. One mark serves every such control: what
-	// is read again is the control's label to say.
+	// is read again is the control's title to say.
 	Refresh Name = "refresh"
 
 	// Folder is the folder: the thing an entry stands for when it holds
 	// other entries, and the picture on the control that chooses which
 	// folder a window is showing. A mark is named by what it depicts, so one
-	// folder serves both — what the control does is its label's to say.
+	// folder serves both — what the control does is its title's to say.
 	Folder Name = "folder"
 
 	// Document is the thing an entry stands for when it is one piece of

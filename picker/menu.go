@@ -349,7 +349,7 @@ func stackRows(gtx layout.Context, rows *list.State, n, capPx int, tok resolvedT
 		Max: image.Pt(fieldW, capPx),
 	}
 	// The list's items are the row indices, because what a row draws is a
-	// function of where it sits in the menu and not of its label alone —
+	// function of where it sits in the menu and not of its title alone —
 	// two providers may well offer the same model name.
 	idx := make([]int, n)
 	for i := range idx {
@@ -365,7 +365,7 @@ func stackRows(gtx layout.Context, rows *list.State, n, capPx int, tok resolvedT
 // adds, so a caller fitting the plane to the available room can end the plane
 // on a row's edge instead of through one row's letters. The rows are measured
 // at the width the menu will draw at, which is what a row's height is a
-// function of once a label is long enough to wrap.
+// function of once a title is long enough to wrap.
 func rowHeights(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s MenuState) []int {
 	hs := make([]int, len(s.Options))
 	measure := op.Record(gtx.Ops)
@@ -442,15 +442,15 @@ func highlightedRow(s MenuState) int {
 
 // rowColumns reports where the two things a row draws stand, as insets from
 // the plane's own leading edge: the box the check occupies and the column the
-// label starts on.
+// title starts on.
 //
 // Both are spent from the PILL rather than from the plane, because the pill is
 // what a row is read inside: the check stands at the pill's own leading edge,
-// and the label follows it after the text field's leading inset
+// and the title follows it after the text field's leading inset
 // ([control.TextLeadDp]). They do not move with the state — a row that carries
-// no check leaves the column clear, so the labels of a menu stand in one line
+// no check leaves the column clear, so the titles of a menu stand in one line
 // whichever row the picker is holding.
-func rowColumns(gtx layout.Context) (markLead, markBox, labelLead int) {
+func rowColumns(gtx layout.Context) (markLead, markBox, titleLead int) {
 	markLead = gtx.Dp(selectionInsetDp)
 	markBox = gtx.Dp(markBoxDp)
 	return markLead, markBox, markLead + markBox + gtx.Dp(control.TextLeadDp)
@@ -458,12 +458,12 @@ func rowColumns(gtx layout.Context) (markLead, markBox, labelLead int) {
 
 // drawOptionRow renders a single option row: the plane it stands on, the pill
 // where the row is highlighted, the check where the row is the one the picker
-// is holding, and the label.
+// is holding, and the title.
 //
 // current says the row is the one the picker holds and is what the check
 // answers to; highlighted says the row wears the pill. They are two questions
 // — see [highlightedRow] — and a row may answer either, both or neither.
-func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, current, highlighted bool, label string) layout.Dimensions {
+func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, current, highlighted bool, title string) layout.Dimensions {
 	// An option row draws max(the density's control height, its line box plus
 	// twice the density's vertical padding), the sizing rule every stacked row
 	// in the system takes.
@@ -489,11 +489,11 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	paint.ColorOp{Color: textCol}.Add(gtx.Ops)
 	textMat := mTextCol.Stop()
 
-	mLabel := op.Record(gtx.Ops)
-	labelDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, label, textMat)
-	labelCall := mLabel.Stop()
+	mTitle := op.Record(gtx.Ops)
+	titleDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, title, textMat)
+	titleCall := mTitle.Stop()
 
-	rowH := labelDims.Size.Y + 2*padV
+	rowH := titleDims.Size.Y + 2*padV
 	if rowH < minH {
 		rowH = minH
 	}
@@ -514,9 +514,9 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 		}
 	}
 
-	offY := (rowH - labelDims.Size.Y) / 2
+	offY := (rowH - titleDims.Size.Y) / 2
 	st := op.Offset(image.Pt(lead, offY)).Push(gtx.Ops)
-	labelCall.Add(gtx.Ops)
+	titleCall.Add(gtx.Ops)
 	st.Pop()
 
 	return layout.Dimensions{Size: rowSize}

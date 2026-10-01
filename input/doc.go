@@ -25,17 +25,17 @@
 // a switched-off box or radio is one fill and no edge at all — the platform's
 // control fill at its measured disabled coverage over the surface the control
 // stands on, which is what the push button draws switched off — with the mark
-// it still shows in the tertiary label its label takes; a disabled control's
+// it still shows in the tertiary label its title takes; a disabled control's
 // foreground is its disabled control text; and a focused control wears its
 // keyboard focus indicator. None of them measures, walks or derives a colour
 // of its own.
 //
-// A checkbox and a radio are the symbol and the label together: the label is
+// A checkbox and a radio are the symbol and the title together: the title is
 // part of the control, as it is on the platform, so the whole row operates
-// the box and the label fades with it when the control is switched off. It
+// the box and the title fades with it when the control is switched off. It
 // stands at the platform's measured gap after the symbol, in the platform's
 // label colour, with its cap band centred on the symbol's row. A control with
-// no label draws the symbol alone.
+// no title draws the symbol alone.
 //
 // A text field takes the density's field height rather than its control
 // height: the platform draws a field shorter than the button standing beside

@@ -65,10 +65,10 @@ func TestButtonGolden(t *testing.T) {
 	size := image.Pt(300, 60)
 
 	// Zero corner radius keeps the edges sharp: anti-aliased rounded corners
-	// vary slightly between GPU context initialisations. The label is real
+	// vary slightly between GPU context initialisations. The title is real
 	// text: Latin text in the pinned Roboto faces rasterises identically
 	// everywhere, so this exercises typography regressions that an empty
-	// label would hide.
+	// title would hide.
 	sharpRadius := tokens.RadiusScale{} // all zeros → sharp corners, no AA
 	cases := []struct {
 		name   string
@@ -233,7 +233,7 @@ func TestEmphasesAreVisuallyDistinct(t *testing.T) {
 // TestGhostRestsTransparent confirms the least pronounced emphasis paints no
 // fill:
 // a ghost button at rest is pixel-identical to the bare surface it sits on,
-// everywhere except where its label is.
+// everywhere except where its title is.
 func TestGhostRestsTransparent(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 60)
@@ -255,13 +255,13 @@ func TestGhostRestsTransparent(t *testing.T) {
 	if bare == nil || ghost == nil || filled == nil {
 		return
 	}
-	// The label is roughly a tenth of a 300×60 frame; the filled fill is
+	// The title is roughly a tenth of a 300×60 frame; the filled fill is
 	// most of it. The ghost must be far closer to the bare surface than the
-	// filled button is — and it must still draw a label.
+	// filled button is — and it must still draw a title.
 	ghostDiff := golden.PixelDiff(bare, ghost)
 	filledDiff := golden.PixelDiff(bare, filled)
 	if ghostDiff == 0 {
-		t.Error("a ghost button drew nothing at all; the label must still be there")
+		t.Error("a ghost button drew nothing at all; the title must still be there")
 	}
 	if ghostDiff*4 >= filledDiff {
 		t.Errorf("ghost differs from the bare surface in %d px against the filled button's %d: the ghost is painting a fill", ghostDiff, filledDiff)
@@ -673,13 +673,13 @@ func TestButtonVisualHeightIsControlHeight(t *testing.T) {
 // floor and not a height.
 //
 // The measurement that raised it found 29 px against a floor of 28 — the
-// drawn glyph box of 17 px plus 2×6 dp — and reproduced it with an empty label,
+// drawn glyph box of 17 px plus 2×6 dp — and reproduced it with an empty title,
 // so it was never text's doing. With the line box honoured the number is 32:
 // LabelLarge's 20 dp line height plus the same 12 dp of padding. Both are over
 // the floor; only the second is derivable from the tokens, which is why it is
 // the one worth pinning.
 //
-// The label is deliberately empty. A control's height must not depend on which
+// The title is deliberately empty. A control's height must not depend on which
 // letters it happens to contain, and this is the assertion that says so.
 func TestCompactButtonClearsTheControlHeightFloor(t *testing.T) {
 	shaper := defaultShaper(t)

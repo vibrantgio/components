@@ -22,15 +22,15 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// labelledSize is the plane a labelled control is captured on: wide enough
-// for the longest label below and tall enough that the body role's line box,
+// titledSize is the plane a control with a title is captured on: wide enough
+// for the longest title below and tall enough that the body role's line box,
 // which stands taller than the measured 22 px row, is not cut off.
-var labelledSize = image.Pt(220, 40)
+var titledSize = image.Pt(220, 40)
 
-// TestLabelledControlGolden records or diffs a checkbox and a radio carrying
-// their own labels, in both schemes and in every state the label itself
+// TestTitledControlGolden records or diffs a checkbox and a radio carrying
+// their own titles, in both schemes and in every state the title itself
 // moves in: set, unset and switched off.
-func TestLabelledControlGolden(t *testing.T) {
+func TestTitledControlGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 
 	cases := []struct {
@@ -38,48 +38,48 @@ func TestLabelledControlGolden(t *testing.T) {
 		platform tokens.PlatformColors
 		w        func(tokens.PlatformColors) layout.Widget
 	}{
-		{"checkbox-light-labelled", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
+		{"checkbox-light-with-title", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
 			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
 				input.CheckboxRenderState{Title: "Show startup screen"})
 		}},
-		{"checkbox-dark-labelled", tokens.PlatformDark, func(p tokens.PlatformColors) layout.Widget {
+		{"checkbox-dark-with-title", tokens.PlatformDark, func(p tokens.PlatformColors) layout.Widget {
 			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
 				input.CheckboxRenderState{Title: "Show startup screen"})
 		}},
-		{"checkbox-light-labelled-checked", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
+		{"checkbox-light-with-title-checked", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
 			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
 				input.CheckboxRenderState{Checked: true, Title: "Show startup screen"})
 		}},
-		{"checkbox-light-labelled-disabled", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
+		{"checkbox-light-with-title-disabled", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
 			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
 				input.CheckboxRenderState{Disabled: true, Title: "Show startup screen"})
 		}},
-		{"checkbox-dark-labelled-disabled", tokens.PlatformDark, func(p tokens.PlatformColors) layout.Widget {
+		{"checkbox-dark-with-title-disabled", tokens.PlatformDark, func(p tokens.PlatformColors) layout.Widget {
 			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
 				input.CheckboxRenderState{Disabled: true, Title: "Show startup screen"})
 		}},
-		{"radio-light-labelled-selected", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
+		{"radio-light-with-title-selected", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
 			return input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
 				input.RadioRenderState{Selected: true, Title: "Based on the pointer"})
 		}},
-		{"radio-dark-labelled-disabled", tokens.PlatformDark, func(p tokens.PlatformColors) layout.Widget {
+		{"radio-dark-with-title-disabled", tokens.PlatformDark, func(p tokens.PlatformColors) layout.Widget {
 			return input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
 				input.RadioRenderState{Disabled: true, Title: "Based on the pointer"})
 		}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			golden.Render(t, tc.name, labelledSize, tc.w(tc.platform))
+			golden.Render(t, tc.name, titledSize, tc.w(tc.platform))
 		})
 	}
 }
 
-// capturedLabel is the save panel's own first checkbox label. The gap the
+// capturedTitle is the save panel's own first checkbox title. The gap the
 // control spends is the reading itself rather than an origin behind it, so
 // the capture's string is what can be compared to it column for column: its
 // S carries no left side bearing in the body role's face, and the reference
 // reads that same letter.
-const capturedLabel = "Show startup screen"
+const capturedTitle = "Show startup screen"
 
 // coveredColumns and coveredRows answer which columns and which rows of img
 // carry a drawing, over the clear plane a capture with no surface leaves.
@@ -114,31 +114,31 @@ func coveredRows(img *image.RGBA, fromX, toX int) (first, last int) {
 	return
 }
 
-// TestLabelStandsAtTheMeasuredGap asserts the label's first covered column is
+// TestTitleStandsAtTheMeasuredGap asserts the title's first covered column is
 // six clear of the symbol's last, which is what the platform draws.
 //
 // MEASURED, save-dialog-{light,dark}.png: both "Options:" squares end at
-// column 279 and both labels' first covered column is 286 — six columns
+// column 279 and both titles' first covered column is 286 — six columns
 // clear, in both appearances and both rows.
 //
-// The gap is spent as the reading, so the capture's own label is what the
+// The gap is spent as the reading, so the capture's own title is what the
 // assertion uses: its S bears no column in the body role's face, and the six
-// lands the first covered column on the platform's exactly. A label whose
+// lands the first covered column on the platform's exactly. A title whose
 // first glyph does carry a bearing stands one column further out, as it
 // would on the platform.
-func TestLabelStandsAtTheMeasuredGap(t *testing.T) {
+func TestTitleStandsAtTheMeasuredGap(t *testing.T) {
 	shaper := defaultShaper(t)
 	for _, tc := range []struct {
 		name string
 		w    layout.Widget
 	}{
 		{"checkbox", input.RenderCheckbox(shaper, tokens.PlatformLight, tokens.Spacing,
-			tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Title: capturedLabel})},
+			tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Title: capturedTitle})},
 		{"radio", input.RenderRadio(shaper, tokens.PlatformLight, tokens.Spacing,
-			tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Title: capturedLabel})},
+			tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Title: capturedTitle})},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			img := golden.Capture(t, labelledSize, tc.w)
+			img := golden.Capture(t, titledSize, tc.w)
 			if img == nil {
 				return
 			}
@@ -146,77 +146,77 @@ func TestLabelStandsAtTheMeasuredGap(t *testing.T) {
 			if len(cols) < 2 {
 				t.Fatalf("%s: the capture carries no drawing", tc.name)
 			}
-			// The symbol and the label are the only two runs of drawing
+			// The symbol and the title are the only two runs of drawing
 			// in the row, so the one break between consecutive covered
 			// columns is the gap.
-			symbolLast, labelFirst := -1, -1
+			symbolLast, titleFirst := -1, -1
 			for i := 1; i < len(cols); i++ {
 				if cols[i] != cols[i-1]+1 {
-					symbolLast, labelFirst = cols[i-1], cols[i]
+					symbolLast, titleFirst = cols[i-1], cols[i]
 					break
 				}
 			}
 			if symbolLast < 0 {
-				t.Fatalf("%s: the symbol and its label are not separated by clear columns", tc.name)
+				t.Fatalf("%s: the symbol and its title are not separated by clear columns", tc.name)
 			}
-			if clear := labelFirst - symbolLast - 1; clear != 6 {
-				t.Errorf("%s: %d clear columns between the symbol (last column %d) and its label (first column %d), want 6 as the save panel measures",
-					tc.name, clear, symbolLast, labelFirst)
+			if clear := titleFirst - symbolLast - 1; clear != 6 {
+				t.Errorf("%s: %d clear columns between the symbol (last column %d) and its title (first column %d), want 6 as the save panel measures",
+					tc.name, clear, symbolLast, titleFirst)
 			}
 		})
 	}
 }
 
-// TestLabelCapBandIsCentredOnTheSymbolsRow asserts the label's cap band is
+// TestTitleCapBandIsCentredOnTheSymbolsRow asserts the title's cap band is
 // centred on the row the symbol stands in, with the platform's rounding.
 //
 // MEASURED, save-dialog-{light,dark}.png: "Show startup screen" caps run
 // y 375–385 against a square of y 372–387 — a band centre of 380.0 against
 // the square's 379.5 — and "Stay open after run handler" agrees. The band is
 // centred on the square and the rounding falls half a pixel low, never high.
-func TestLabelCapBandIsCentredOnTheSymbolsRow(t *testing.T) {
+func TestTitleCapBandIsCentredOnTheSymbolsRow(t *testing.T) {
 	shaper := defaultShaper(t)
 	// Capitals only: the band the reading is taken on runs from the baseline
 	// up to the cap height, so a descender or an x-height letter would cover
 	// rows beyond it.
 	w := input.RenderCheckbox(shaper, tokens.PlatformLight, tokens.Spacing,
 		tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Title: "HI"})
-	img := golden.Capture(t, labelledSize, w)
+	img := golden.Capture(t, titledSize, w)
 	if img == nil {
 		return
 	}
 	row := int(tokens.Comfortable.CheckboxRowHeight)
 	symbolFirst, symbolLast := coveredRows(img, 0, row)
-	labelFirst, labelLast := coveredRows(img, row+4, labelledSize.X)
-	if labelFirst < 0 {
-		t.Fatal("the label drew nothing")
+	titleFirst, titleLast := coveredRows(img, row+4, titledSize.X)
+	if titleFirst < 0 {
+		t.Fatal("the title drew nothing")
 	}
 	symbolCentre := float64(symbolFirst+symbolLast+1) / 2
-	labelCentre := float64(labelFirst+labelLast+1) / 2
-	if d := labelCentre - symbolCentre; d < 0 || d > 1 {
-		t.Errorf("the label's cap band runs y %d–%d (centre %.1f) against a symbol of y %d–%d (centre %.1f): the band must be centred on the symbol's row, the rounding falling low and never high",
-			labelFirst, labelLast, labelCentre, symbolFirst, symbolLast, symbolCentre)
+	titleCentre := float64(titleFirst+titleLast+1) / 2
+	if d := titleCentre - symbolCentre; d < 0 || d > 1 {
+		t.Errorf("the title's cap band runs y %d–%d (centre %.1f) against a symbol of y %d–%d (centre %.1f): the band must be centred on the symbol's row, the rounding falling low and never high",
+			titleFirst, titleLast, titleCentre, symbolFirst, symbolLast, symbolCentre)
 	}
 }
 
-// TestLabelIsPartOfThePointerTarget asserts a click on the label operates the
-// control, which is what the platform does: the label is part of the control
+// TestTitleIsPartOfThePointerTarget asserts a click on the title operates the
+// control, which is what the platform does: the title is part of the control
 // and not text standing beside it.
-func TestLabelIsPartOfThePointerTarget(t *testing.T) {
-	label := "Show startup screen"
+func TestTitleIsPartOfThePointerTarget(t *testing.T) {
+	title := "Show startup screen"
 	for _, tc := range []struct {
 		name string
 		make func(*int) rx.Observable[layout.Widget]
 	}{
 		{"checkbox", func(n *int) rx.Observable[layout.Widget] {
 			return input.Checkbox(rx.Of(theme.Default()), input.CheckboxProps{
-				Title:    label,
+				Title:    title,
 				OnChange: func(_ layout.Context, _ bool) { *n++ },
 			})
 		}},
 		{"radio", func(n *int) rx.Observable[layout.Widget] {
 			return input.Radio(rx.Of(theme.Default()), input.RadioProps{
-				Title:    label,
+				Title:    title,
 				OnChange: func(_ layout.Context, _ bool) { *n++ },
 			})
 		}},
@@ -243,9 +243,9 @@ func TestLabelIsPartOfThePointerTarget(t *testing.T) {
 
 			row := float32(tokens.Comfortable.CheckboxRowHeight)
 			if float32(dims.Size.X) <= row {
-				t.Fatalf("a labelled %s measures %v, no wider than the symbol's %v px row", tc.name, dims.Size, row)
+				t.Fatalf("a %s with a title measures %v, no wider than the symbol's %v px row", tc.name, dims.Size, row)
 			}
-			// Well inside the label, clear of the symbol and of the gap.
+			// Well inside the title, clear of the symbol and of the gap.
 			pos := f32.Pt(float32(dims.Size.X)-2, row/2)
 			r.Queue(
 				pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
@@ -254,21 +254,21 @@ func TestLabelIsPartOfThePointerTarget(t *testing.T) {
 			drive()
 
 			if operated != 1 {
-				t.Errorf("a click at %v, on the %s's label, operated it %d times; want 1", pos, tc.name, operated)
+				t.Errorf("a click at %v, on the %s's title, operated it %d times; want 1", pos, tc.name, operated)
 			}
 		})
 	}
 }
 
-// TestSwitchedOffLabelFadesWithItsSymbol asserts the label of a switched-off
+// TestSwitchedOffTitleFadesWithItsSymbol asserts the title of a switched-off
 // control is drawn in the platform's tertiary label rather than its label
 // colour — the same fade the symbol beside it takes, and the colour both
-// checkbox labels read on the save panel's sheet.
-func TestSwitchedOffLabelFadesWithItsSymbol(t *testing.T) {
+// checkbox titles read on the save panel's sheet.
+func TestSwitchedOffTitleFadesWithItsSymbol(t *testing.T) {
 	shaper := defaultShaper(t)
 	for _, sc := range switchedOffReadings {
 		t.Run(sc.name, func(t *testing.T) {
-			img := golden.Capture(t, labelledSize, onSheet(sc.sheet, input.RenderCheckbox(
+			img := golden.Capture(t, titledSize, onSheet(sc.sheet, input.RenderCheckbox(
 				shaper, sc.platform, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
 				input.CheckboxRenderState{Disabled: true, Title: "Show startup screen", Surface: sc.sheet},
 			)))
@@ -278,14 +278,14 @@ func TestSwitchedOffLabelFadesWithItsSymbol(t *testing.T) {
 			faded := vgcolor.Flatten(sc.platform.TertiaryLabel, sc.sheet)
 			full := vgcolor.Flatten(sc.platform.Label, sc.sheet)
 
-			// The label's darkest pixel against the sheet is the one the
+			// The title's darkest pixel against the sheet is the one the
 			// reading is taken on: anti-aliasing only moves a symbol's pixels
 			// toward the surface, never past the colour it was stroked in.
 			row := int(tokens.Comfortable.CheckboxRowHeight)
 			best, found := stdcolor.RGBA{}, false
 			bestD := -1
-			for y := 0; y < labelledSize.Y; y++ {
-				for x := row + 4; x < labelledSize.X; x++ {
+			for y := 0; y < titledSize.Y; y++ {
+				for x := row + 4; x < titledSize.X; x++ {
 					c := img.RGBAAt(x, y)
 					if d := dist(c, sc.sheet); d > bestD {
 						bestD, best, found = d, c, true
@@ -293,10 +293,10 @@ func TestSwitchedOffLabelFadesWithItsSymbol(t *testing.T) {
 				}
 			}
 			if !found || bestD == 0 {
-				t.Fatal("the label drew nothing on the sheet")
+				t.Fatal("the title drew nothing on the sheet")
 			}
 			if !nearerTo(best, faded, full) {
-				t.Errorf("the switched-off label's strongest pixel is %v, nearer the platform's label %v than its faded %v",
+				t.Errorf("the switched-off title's strongest pixel is %v, nearer the platform's label %v than its faded %v",
 					best, full, faded)
 			}
 		})
@@ -322,23 +322,23 @@ func dist(got stdcolor.RGBA, c stdcolor.NRGBA) int {
 	return dr*dr + dg*dg + db*db
 }
 
-// TestLiveAndStaticDrawTheSameLabel asserts the two paths draw one control.
+// TestLiveAndStaticDrawTheSameTitle asserts the two paths draw one control.
 // Both are given the same shaper — the theme's, which the live path takes on
 // its own — so any difference left is the drawing's.
-func TestLiveAndStaticDrawTheSameLabel(t *testing.T) {
-	label := "Show startup screen"
-	live := golden.Capture(t, labelledSize, materialize(t, input.Checkbox(rx.Of(theme.Default()), input.CheckboxProps{
-		Title: label,
+func TestLiveAndStaticDrawTheSameTitle(t *testing.T) {
+	title := "Show startup screen"
+	live := golden.Capture(t, titledSize, materialize(t, input.Checkbox(rx.Of(theme.Default()), input.CheckboxProps{
+		Title: title,
 	})))
-	static := golden.Capture(t, labelledSize, input.RenderCheckbox(
+	static := golden.Capture(t, titledSize, input.RenderCheckbox(
 		tokens.DefaultTypography.Shaper(),
 		tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
-		input.CheckboxRenderState{Title: label},
+		input.CheckboxRenderState{Title: title},
 	))
 	if live == nil || static == nil {
 		return
 	}
 	if n := golden.PixelDiff(live, static); n != 0 {
-		t.Errorf("the live and the static labelled checkbox differ in %d pixels; the two paths draw one control", n)
+		t.Errorf("the live and the static titled checkbox differ in %d pixels; the two paths draw one control", n)
 	}
 }

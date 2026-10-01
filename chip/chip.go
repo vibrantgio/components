@@ -55,7 +55,7 @@ const (
 	Input
 
 	// Suggestion is a generated prompt the reader may take up — clickable,
-	// usually label-only, never selected.
+	// usually title-only, never selected.
 	Suggestion
 )
 
@@ -72,21 +72,21 @@ func (i Purpose) Selectable() bool { return i == Filter }
 func (i Purpose) Dismissible() bool { return i == Input }
 
 // MarkDp is the square a chip's leading icon and its dismiss mark are drawn
-// in, in dp: the cap band of the label they stand beside — baseline to cap
-// height, measured off the face that label is set in.
+// in, in dp: the cap band of the title they stand beside — baseline to cap
+// height, measured off the face that title is set in.
 //
-// A mark inside a chip is read as part of the label's own line, so it rises no
+// A mark inside a chip is read as part of the title's own line, so it rises no
 // higher than the capitals and hangs no lower than the baseline. The platform
 // draws its marks in exactly that band: measured offscreen against a
-// system-font label at three sizes, its plus, check and cross measure 1.11
-// to 1.21 times the label's cap height, the excess being the half-stroke a
+// system-font title at three sizes, its plus, check and cross measure 1.11
+// to 1.21 times the title's cap height, the excess being the half-stroke a
 // line straddling the band leaves outside it. That excess is all the licence a
 // mark gets here too — the marks below stroke to the edge of this square and
 // nothing widens it.
 //
-// It does not move with the density: the band belongs to the label's size, and
+// It does not move with the density: the band belongs to the title's size, and
 // the height the chip loses at Compact comes out of its air rather than out of
-// its marks. It does move with the label's role, which is why it is a relation
+// its marks. It does move with the title's role, which is why it is a relation
 // and not a number.
 func MarkDp(style tokens.TextStyle) float32 { return style.FaceMetrics().CapHeight }
 
@@ -110,12 +110,12 @@ const DismissHitDp = 24
 const edgeDp = unit.Dp(1)
 
 // MarkStrokeDp is the line weight a chip's stroked marks are drawn at, in dp:
-// the width of the label's own upright stem.
+// the width of the title's own upright stem.
 //
 // The marks and the words are one utterance, so they are drawn at one
 // weight — which the platform bears out. Measured offscreen at three sizes,
 // its plus, check and cross carry a stroke band of 0.82 to 1.02 times their
-// label's stem, diagonals included: a diagonal's horizontal run is wider by
+// title's stem, diagonals included: a diagonal's horizontal run is wider by
 // its angle and its band is not.
 func MarkStrokeDp(style tokens.TextStyle) float32 { return style.FaceMetrics().Stem }
 
@@ -125,7 +125,7 @@ func MarkStrokeDp(style tokens.TextStyle) float32 { return style.FaceMetrics().S
 // components/icon's registry hands out, so a named symbol, a clip.Path drawn by
 // hand and a picture built for one screen are interchangeable here.
 //
-// That box is the label's cap band — see [MarkDp] — everywhere but an [Input]
+// That box is the title's cap band — see [MarkDp] — everywhere but an [Input]
 // chip's leading slot, which is the avatar slot at [AvatarDp]. A painter that
 // strokes to the edge of the box it is handed lands in the band the words
 // occupy, which is what a mark inside a chip is for; one that draws a small
@@ -185,7 +185,7 @@ type Colors struct {
 
 	// Label is the colour the words are set in. Mark is the leading symbol's
 	// and the selected filter's checkmark's, which is the same colour: a mark
-	// in the leading slot is part of the label's own line.
+	// in the leading slot is part of the title's own line.
 	Label color.NRGBA
 	Mark  color.NRGBA
 
@@ -327,8 +327,8 @@ type Props struct {
 	// Purpose is what this chip is for. The zero value is [Assist].
 	Purpose Purpose
 
-	// Icon is the mark drawn before the label, in the leading slot: the
-	// label's cap band ([MarkDp]) square, or [AvatarDp] behind a full-round
+	// Icon is the mark drawn before the title, in the leading slot: the
+	// title's cap band ([MarkDp]) square, or [AvatarDp] behind a full-round
 	// corner when the purpose is [Input]. A nil Icon draws none.
 	//
 	// A selected [Filter] chip draws the checkmark here instead — the mark
@@ -414,7 +414,7 @@ type Props struct {
 // closure draws from: the whole theme flattened to the values one frame needs.
 type resolvedTokens struct {
 	platform tokens.PlatformColors
-	label    tokens.TextStyle // the LabelLarge role
+	title    tokens.TextStyle // the LabelLarge role
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
 	density  tokens.Density
@@ -459,7 +459,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 				typ := n.Second
 				return resolvedTokens{
 					platform: n.First,
-					label:    typ.LabelLarge,
+					title:    typ.LabelLarge,
 					spacing:  n.Third,
 					radius:   n.Fourth,
 					density:  n.Fifth,
@@ -567,13 +567,13 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 }
 
 // Render produces a layout.Widget drawing the chip in an explicit visual
-// state, without event processing: the leading mark, the label and — for
+// state, without event processing: the leading mark, the title and — for
 // [Input] — the dismiss mark on one row, inside the body the purpose and the
 // state resolve to.
 //
-// icon may be nil, in which case the chip leads with its label; a selected
+// icon may be nil, in which case the chip leads with its title; a selected
 // [Filter] chip leads with the checkmark whether or not one was given.
-// labelStyle is the whole text style the label is set in; pass
+// titleStyle is the whole text style the title is set in; pass
 // tokens.DefaultTypography.LabelLarge, which is the role a chip is set in at
 // either density.
 //
@@ -582,30 +582,30 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 // box and the dismiss mark's target — is the live path's job; see [Chip].
 func Render(
 	shaper *text.Shaper,
-	label string,
+	title string,
 	i Purpose,
 	icon Symbol,
 	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
-	labelStyle tokens.TextStyle,
+	titleStyle tokens.TextStyle,
 	d tokens.Density,
 	s RenderState,
 ) layout.Widget {
-	tok := resolvedTokens{platform: p, label: labelStyle, spacing: sp, radius: rad, density: d}
+	tok := resolvedTokens{platform: p, title: titleStyle, spacing: sp, radius: rad, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
 		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
-			return draw(gtx, shaper, label, i, icon, tok, s, label, nil)
+			return draw(gtx, shaper, title, i, icon, tok, s, title, nil)
 		})
 	}
 }
 
 // draw paints one chip: the body the purpose resolves to, the leading mark,
-// the label, and the dismiss mark the [Input] purpose carries.
+// the title, and the dismiss mark the [Input] purpose carries.
 func draw(
 	gtx layout.Context,
 	shaper *text.Shaper,
-	label string,
+	title string,
 	i Purpose,
 	icon Symbol,
 	tok resolvedTokens,
@@ -625,7 +625,7 @@ func draw(
 	// the avatar slot are the same number; the cap band is well under both.
 	band := max(gtx.Dp(edgeDp), 1)
 	chipH := gtx.Dp(unit.Dp(tok.density.ChipHeight()))
-	iconPx := min(gtx.Dp(unit.Dp(MarkDp(tok.label))), chipH-2*band)
+	iconPx := min(gtx.Dp(unit.Dp(MarkDp(tok.title))), chipH-2*band)
 
 	// The leading slot: the checkmark on a selected filter, the avatar on an
 	// input chip that was given a symbol, the icon otherwise.
@@ -644,45 +644,45 @@ func draw(
 		trail = iconPx
 	}
 	leadGap, trailGap := 0, 0
-	if lead > 0 && label != "" {
+	if lead > 0 && title != "" {
 		leadGap = gap
 	}
 	if trail > 0 {
 		trailGap = gap
 	}
 
-	// Record the label's material and its layout to learn its size before
+	// Record the title's material and its layout to learn its size before
 	// anything is painted. typeset.Layout rather than widget.Label.Layout
-	// because the role's line height has to be the height of the label box and
+	// because the role's line height has to be the height of the title box and
 	// Gio alone reports the drawn glyph extent instead — see theme/typeset.
-	labelDims := layout.Dimensions{}
-	var labelCall op.CallOp
-	if label != "" {
+	titleDims := layout.Dimensions{}
+	var titleCall op.CallOp
+	if title != "" {
 		mColor := op.Record(gtx.Ops)
 		paint.ColorOp{Color: col.Label}.Add(gtx.Ops)
 		material := mColor.Stop()
 
-		labelGtx := gtx
-		labelGtx.Constraints.Min = image.Point{}
+		titleGtx := gtx
+		titleGtx.Constraints.Min = image.Point{}
 		if w := gtx.Constraints.Max.X - 2*padH - lead - leadGap - trailGap - trail; w > 0 {
-			labelGtx.Constraints.Max.X = w
+			titleGtx.Constraints.Max.X = w
 		}
-		mLabel := op.Record(gtx.Ops)
-		labelDims = typeset.Layout(labelGtx, shaper,
-			typeset.Label(tok.label, 1), typeset.Font(tok.label, font.Normal),
-			unit.Sp(tok.label.Size), label, material)
-		labelCall = mLabel.Stop()
+		mTitle := op.Record(gtx.Ops)
+		titleDims = typeset.Layout(titleGtx, shaper,
+			typeset.Label(tok.title, 1), typeset.Font(tok.title, font.Normal),
+			unit.Sp(tok.title.Size), title, material)
+		titleCall = mTitle.Stop()
 	}
 
 	// Sized to content, not to the width it was given: a chip is something
 	// content sprouted, and one that stretched would be a banner.
 	//
-	// The height is the density's chip height under the label's own line box,
+	// The height is the density's chip height under the title's own line box,
 	// and not a floor under max(content, ControlHeight + padding), which is
 	// the rule for the control family the chip has just left: a chip is
 	// shorter than a button by construction and spends no padding on this
 	// axis.
-	h := max(chipH, labelDims.Size.Y)
+	h := max(chipH, titleDims.Size.Y)
 	h = min(h, gtx.Constraints.Max.Y)
 
 	// The leading padding is the text padding, EXCEPT in front of the avatar,
@@ -697,7 +697,7 @@ func draw(
 		leadPad = (h - lead) / 2
 	}
 
-	w := leadPad + lead + leadGap + labelDims.Size.X + trailGap + trail + padH
+	w := leadPad + lead + leadGap + titleDims.Size.X + trailGap + trail + padH
 	w = min(w, gtx.Constraints.Max.X)
 	size := image.Pt(w, h)
 	box := image.Rectangle{Max: size}
@@ -711,7 +711,7 @@ func draw(
 	// A focused chip keeps the rim it has at rest — or the rim it does not
 	// have, a selected one having dropped it — and wears the library's one
 	// ring on its outline. Nothing else moves: the chip measures the same box
-	// focused as at rest, and the label does not shift.
+	// focused as at rest, and the title does not shift.
 	radius := min(gtx.Dp(unit.Dp(tok.radius.Lg)), h/2)
 	edgeColor, edged := col.Outline, col.Outlined
 	inner, innerRad := box, radius
@@ -733,24 +733,24 @@ func draw(
 		focus.Ring(gtx, box, radius, col.Ring, focus.RingColor(tok.platform, over))
 	}
 
-	// One row, leading edge to trailing: mark, label, dismiss mark. The row is
+	// One row, leading edge to trailing: mark, title, dismiss mark. The row is
 	// laid from the leading padding rather than centred in the box, because
 	// the structure is read from its leading edge and a chip clamped narrower
 	// than its content must lose its trailing end and not both.
 
-	// Where the cap band sits in the chip's own coordinates: the label's
+	// Where the cap band sits in the chip's own coordinates: the title's
 	// baseline, less the band's height. typeset reports the baseline from the
-	// bottom of the box it laid the label out in, and that report is the only
+	// bottom of the box it laid the title out in, and that report is the only
 	// place this is knowable — the line box is taller than the glyphs and the
 	// leading it adds is not split evenly around them. Centring the mark in
 	// the chip instead lands it a pixel low, because the band the capitals
 	// occupy is not centred on the line box that holds them.
 	//
-	// A label-less chip has no band to sit on, so its mark keeps the chip's own
+	// A title-less chip has no band to sit on, so its mark keeps the chip's own
 	// middle.
 	markY := (h - iconPx) / 2
-	if label != "" {
-		baseline := (h-labelDims.Size.Y)/2 + labelDims.Size.Y - labelDims.Baseline
+	if title != "" {
+		baseline := (h-titleDims.Size.Y)/2 + titleDims.Size.Y - titleDims.Baseline
 		markY = baseline - iconPx
 	}
 
@@ -765,7 +765,7 @@ func draw(
 		lo := op.Offset(image.Pt(x, leadY)).Push(gtx.Ops)
 		switch {
 		case selected:
-			drawCheck(gtx, lead, stroke(gtx, tok.label), col.Mark)
+			drawCheck(gtx, lead, stroke(gtx, tok.title), col.Mark)
 		case avatar:
 			// The avatar slot is corner-full, and the clip is the chip's to
 			// apply: a painter handed a square box would otherwise put square
@@ -780,16 +780,16 @@ func draw(
 		lo.Pop()
 		x += lead + leadGap
 	}
-	if label != "" {
-		lo := op.Offset(image.Pt(x, (h-labelDims.Size.Y)/2)).Push(gtx.Ops)
-		labelCall.Add(gtx.Ops)
+	if title != "" {
+		lo := op.Offset(image.Pt(x, (h-titleDims.Size.Y)/2)).Push(gtx.Ops)
+		titleCall.Add(gtx.Ops)
 		lo.Pop()
-		x += labelDims.Size.X
+		x += titleDims.Size.X
 	}
 
 	// The chip's own semantic node, scoped to the box it drew. A semantic op
 	// attaches to the innermost clip area around it, so a chip that emitted
-	// its label without an area of its own would write that label onto
+	// its title without an area of its own would write that title onto
 	// whatever area encloses it.
 	//
 	// A filter chip is a checkbox to a screen reader and says which way it is
@@ -804,7 +804,7 @@ func draw(
 	} else {
 		semantic.ClassOp(semantic.Button).Add(gtx.Ops)
 	}
-	semantic.LabelOp(label).Add(gtx.Ops)
+	semantic.LabelOp(title).Add(gtx.Ops)
 	semantic.DescriptionOp(desc).Add(gtx.Ops)
 	semantic.EnabledOp(true).Add(gtx.Ops)
 	sem.Pop()
@@ -814,7 +814,7 @@ func draw(
 	if trail > 0 {
 		origin := image.Pt(x+trailGap, markY)
 		mo := op.Offset(origin).Push(gtx.Ops)
-		drawCross(gtx, trail, stroke(gtx, tok.label), col.Dismiss)
+		drawCross(gtx, trail, stroke(gtx, tok.title), col.Dismiss)
 		mo.Pop()
 		registerDismissTarget(gtx, desc, origin, trail, dismiss)
 	}

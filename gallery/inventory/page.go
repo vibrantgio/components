@@ -87,7 +87,7 @@ func (inv *Inventory) GroupItems(c tokens.PlatformColors, grp Group) []layout.Wi
 // The banner is dropped because such a surface is already labelled. The
 // inventory bands its groups because in the whole column they run one after
 // another and a reader has to be told where one module's families end; where
-// a whole viewport is one group, the label that was clicked to reach it has
+// a whole viewport is one group, the title that was clicked to reach it has
 // said the word already, and a full-width band repeating it directly beneath
 // says nothing new.
 //
@@ -330,7 +330,7 @@ func schemeTrack(c tokens.PlatformColors) color.NRGBA { return c.PushButtonFill 
 // The current segment is the platform's selection: the emphasized selection
 // fill under the foreground the platform pairs with it. The other is the
 // platform's control text over the track — the same foreground a push
-// button's own label wears, which is not mistakable for the choice in force.
+// button's own title wears, which is not mistakable for the choice in force.
 func schemeSegmentColors(c tokens.PlatformColors, selected bool) (foreground, fill color.NRGBA) {
 	if selected {
 		return c.AlternateSelectedControlText, c.SelectedContentBackground

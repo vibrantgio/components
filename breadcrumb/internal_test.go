@@ -9,12 +9,12 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// TestLabelColorRule asserts the Specific contract: in a breadcrumb of n
+// TestTitleColorRule asserts the Specific contract: in a breadcrumb of n
 // items, the last segment is where you are and takes the label, and the
 // segments before it are the way back and take the link. The goldens carry
-// real labels and so do show the two foregrounds apart, but only as pixels;
+// real titles and so do show the two foregrounds apart, but only as pixels;
 // this pure-Go test guards the rule itself, in both recorded sets.
-func TestLabelColorRule(t *testing.T) {
+func TestTitleColorRule(t *testing.T) {
 	for _, c := range []struct {
 		name string
 		p    tokens.PlatformColors
@@ -24,7 +24,7 @@ func TestLabelColorRule(t *testing.T) {
 	} {
 		const n = 3
 		for i := 0; i < n; i++ {
-			got := labelColor(i, n, c.p, c.p.WindowBackground)
+			got := titleColor(i, n, c.p, c.p.WindowBackground)
 			want := vgcolor.Flatten(c.p.Link, c.p.WindowBackground)
 			if i == n-1 {
 				want = vgcolor.Flatten(c.p.Label, c.p.WindowBackground)
@@ -36,20 +36,20 @@ func TestLabelColorRule(t *testing.T) {
 	}
 }
 
-// TestLabelColorSingleSegment confirms that with one item the lone
+// TestTitleColorSingleSegment confirms that with one item the lone
 // segment is treated as the current location and takes the label, matching
 // the "last item" rule degenerate case.
-func TestLabelColorSingleSegment(t *testing.T) {
+func TestTitleColorSingleSegment(t *testing.T) {
 	p := tokens.PlatformLight
 	want := vgcolor.Flatten(p.Label, p.WindowBackground)
-	if got := labelColor(0, 1, p, p.WindowBackground); got != want {
+	if got := titleColor(0, 1, p, p.WindowBackground); got != want {
 		t.Errorf("single segment: got %v, want the label %v", got, want)
 	}
 }
 
 // TestSegmentIdentityFallsBackToTitle pins the rule a caller can trip over
 // silently: a Segment with no Key is addressed by its Title, which is stable
-// enough while labels are the path and not stable at all once two places
+// enough while titles are the path and not stable at all once two places
 // share one.
 func TestSegmentIdentityFallsBackToTitle(t *testing.T) {
 	for _, tc := range []struct {

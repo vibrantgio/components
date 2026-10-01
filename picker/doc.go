@@ -34,7 +34,7 @@
 // # Where the menu is placed
 //
 // [Field] floats its menu OVER its own trigger, with the row the picker is
-// holding on the trigger's own label, which is what this platform's pop-up
+// holding on the trigger's own title, which is what this platform's pop-up
 // button does and what its [FieldState.Open] draws: the value the reader was
 // looking at does not move when the menu opens over it, and the catalogue is
 // laid out around it. The box the field reports is the trigger's alone, so an
@@ -70,7 +70,7 @@
 //
 // Either way the surface is the same one: a floating, unscrimmed transient
 // plane whose rows take the platform's window background — the fill of every
-// floating surface on this platform — under its label, whose highlighted row
+// floating surface on this platform — under its title, whose highlighted row
 // wears an inset rounded pill in the platform's selection, and whose held row
 // carries a check in the pill's leading column. [Menu]'s optionRowColors names
 // the fills; none of them is read off an open menu, because no stored capture

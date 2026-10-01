@@ -24,7 +24,7 @@ func TestDropdownGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 
 	// Real option text: DeterministicShaper pins the faces, so Latin glyphs
-	// rasterise the same everywhere and the trigger's selected label and the
+	// rasterise the same everywhere and the trigger's selected title and the
 	// option rows are visible rather than implied.
 	opts := []string{"Alpha", "Beta", "Gamma"}
 	// Trigger and option rows are each one BodyLarge line box plus the
@@ -36,7 +36,7 @@ func TestDropdownGolden(t *testing.T) {
 		row = floor
 	}
 	// An open dropdown's menu stands OVER its trigger with the held row on
-	// the trigger's label, so the plane reaches above the trigger's own top
+	// the trigger's title, so the plane reaches above the trigger's own top
 	// edge: the open frames carry a row of room above the control and the
 	// control is laid out into it.
 	openTop := row

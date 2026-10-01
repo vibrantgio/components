@@ -65,11 +65,11 @@ const checkboxCornerRadius = unit.Dp(5)
 // list.
 const controlEdgeWidth = unit.Dp(1)
 
-// controlLabelGap is the leading gap a checkbox's square — or a radio's
-// circle — spends on the label beside it.
+// controlTitleGap is the leading gap a checkbox's square — or a radio's
+// circle — spends on the title beside it.
 //
 // MEASURED, save-dialog-{light,dark}.png: both "Options:" squares end at
-// column 279, so their edge is 280, and both labels' first covered column is
+// column 279, so their edge is 280, and both titles' first covered column is
 // 286 — six columns clear, in both appearances and both rows.
 //
 // It is spent whole, where [control.TextLeadDp] spends its reading less the
@@ -77,11 +77,11 @@ const controlEdgeWidth = unit.Dp(1)
 // shows: the field's selection fill stands behind its value, so the platform's
 // own origin is there to be read and the bearing can be told from it. Here
 // only the covered columns are visible, so the six is spent to the first of
-// them and the capture's own labels — which begin with an S the body role's
-// face bears no column on — are covered column for column. A label whose
+// them and the capture's own titles — which begin with an S the body role's
+// face bears no column on — are covered column for column. A title whose
 // first glyph does carry a bearing stands one column further out, as it
 // would on the platform.
-const controlLabelGap = unit.Dp(6)
+const controlTitleGap = unit.Dp(6)
 
 // The check mark is drawn on components/icons' grid rather than on one of
 // its own, so that the library has a single answer to "what does a stroke
@@ -178,9 +178,9 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 	}
 
 	// Flatten the nested theme observables into a concrete snapshot. The
-	// label is drawn in the body role, so the typography emission supplies
+	// title is drawn in the body role, so the typography emission supplies
 	// the text style, its cap band and the theme's cached shaper; a checkbox
-	// without a label never reaches them.
+	// without a title never reaches them.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
 			rx.CombineLatest4(t.Platform, t.Typography, t.Spacing, t.Density),
@@ -228,7 +228,7 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 				foc := !dis && gtx.Focused(&b)
 
 				// The pointer area is the whole control — the
-				// footprint the symbol is centred in plus the label
+				// footprint the symbol is centred in plus the title
 				// beside it, both of which operate the box, as they
 				// do on the platform.
 				// The focus band rings the symbol's box and straddles it,
@@ -264,7 +264,7 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 // shaper and body draw CheckboxRenderState.Title — the whole text style, so
 // typeface, weight, size and line height all reach the shaper. Pass
 // tokens.DefaultTypography.BodyLarge and a shaper for the default desktop
-// look; a state with no label reaches neither, and a nil shaper is then
+// look; a state with no title reaches neither, and a nil shaper is then
 // harmless.
 //
 // Density is not a parameter: the static path always renders at
@@ -293,10 +293,10 @@ func RenderCheckbox(
 	}
 }
 
-// labelBeside draws label in fg to the right of a symbol whose right edge is at
+// titleBeside draws title in fg to the right of a symbol whose right edge is at
 // symbolRight, in a row rowH px tall, and answers the width it took — the
-// measured gap plus the label's own — or zero when there is no label. It is
-// the one label a checkbox and a radio draw, so the two cannot drift.
+// measured gap plus the title's own — or zero when there is no title. It is
+// the one title a checkbox and a radio draw, so the two cannot drift.
 //
 // The cap band, baseline up to the cap height, is centred on the symbol's row.
 // MEASURED, save-dialog-{light,dark}.png: "Show startup screen" caps run
@@ -306,11 +306,11 @@ func RenderCheckbox(
 // capBandOffset's and may be negative: the body role's line box is taller
 // than the measured 22 px row, so the line box hangs above the row while the
 // band sits where the platform puts it.
-func labelBeside(gtx layout.Context, tok resolvedTokens, symbolRight, rowH int, label string, fg color.NRGBA) int {
-	if label == "" {
+func titleBeside(gtx layout.Context, tok resolvedTokens, symbolRight, rowH int, title string, fg color.NRGBA) int {
+	if title == "" {
 		return 0
 	}
-	gap := gtx.Dp(controlLabelGap)
+	gap := gtx.Dp(controlTitleGap)
 	f, wl, textSize := bodyLabel(tok)
 
 	inner := gtx
@@ -323,9 +323,9 @@ func labelBeside(gtx layout.Context, tok resolvedTokens, symbolRight, rowH int, 
 	paint.ColorOp{Color: fg}.Add(gtx.Ops)
 	mat := mMat.Stop()
 
-	mLabel := op.Record(gtx.Ops)
-	dims := typeset.Layout(inner, tok.shaper, wl, f, textSize, label, mat)
-	call := mLabel.Stop()
+	mTitle := op.Record(gtx.Ops)
+	dims := typeset.Layout(inner, tok.shaper, wl, f, textSize, title, mat)
+	call := mTitle.Stop()
 
 	st := op.Offset(image.Pt(symbolRight+gap, capBandOffset(gtx, tok, rowH, dims))).Push(gtx.Ops)
 	call.Add(gtx.Ops)
@@ -379,12 +379,12 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		paint.FillShape(gtx.Ops, fill, rrectOuter.Op(gtx.Ops))
 		if s.Checked {
 			// No stored capture holds a switched-off CHECKED box, so the
-			// mark takes the colour the switched-off label takes beside it:
+			// mark takes the colour the switched-off title takes beside it:
 			// the platform's tertiary label, which reproduces the measured
-			// #bdbdbd light and #595f62 dark of both checkbox labels on the
+			// #bdbdbd light and #595f62 dark of both checkbox titles on the
 			// sheet. The capture is on the reference's list. No contrast
 			// floor applies to either: the platform chose to draw its
-			// switched-off controls below any floor, and the label stands
+			// switched-off controls below any floor, and the title stands
 			// there as measured — |Lc| 35.6 light and -16.1 dark on the
 			// sheet. On this fill the mark reads |Lc| 33 light and 17 dark,
 			// the same order, which is the platform's relation between its
@@ -446,21 +446,21 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 			focus.RingColor(tok.platform, standsOn), focus.RingColor(tok.platform, boxEdge))
 	}
 
-	// The label is part of the control, as it is on the platform: it stands
+	// The title is part of the control, as it is on the platform: it stands
 	// at the measured gap after the square, in the platform's label colour
 	// over the surface the box stands on, and it fades with the box.
-	// MEASURED, save-dialog-{light,dark}.png: an enabled label on that sheet
+	// MEASURED, save-dialog-{light,dark}.png: an enabled title on that sheet
 	// reads #272727 and #dddfdf, which is what the platform's label lands on
-	// over it, where both switched-off checkbox labels read #bdbdbd and
+	// over it, where both switched-off checkbox titles read #bdbdbd and
 	// #595f62.
-	label := vgcolor.Flatten(tok.platform.Label, standsOn)
+	titleFg := vgcolor.Flatten(tok.platform.Label, standsOn)
 	if s.Disabled {
-		label = vgcolor.Flatten(tok.platform.TertiaryLabel, standsOn)
+		titleFg = vgcolor.Flatten(tok.platform.TertiaryLabel, standsOn)
 	}
 	w := ctlSz
-	if beside := labelBeside(gtx, tok, boxRect.Max.X, ctlSz, s.Title, label); beside > 0 {
-		// The control ends at the label's last column; the row's height
-		// stays the measured one whatever the label's line box is.
+	if beside := titleBeside(gtx, tok, boxRect.Max.X, ctlSz, s.Title, titleFg); beside > 0 {
+		// The control ends at the title's last column; the row's height
+		// stays the measured one whatever the title's line box is.
 		w = boxRect.Max.X + beside
 	}
 

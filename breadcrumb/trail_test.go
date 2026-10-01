@@ -24,7 +24,7 @@ import (
 
 // The trail every test here starts from: a real path, in document order, so
 // the trailing segment is the current location. Keys are the paths the
-// segments navigate to; labels are what the row draws.
+// segments navigate to; titles are what the row draws.
 const (
 	homeKey   = "/"
 	designKey = "/design"
@@ -39,7 +39,7 @@ func newTrail(t *testing.T) breadcrumb.TrailLayout {
 	return breadcrumb.NewTrail(defaultShaper(t), breadcrumb.TrailProps{}, tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
 }
 
-// segments builds a trail from key/label pairs, giving every segment but the
+// segments builds a trail from key/title pairs, giving every segment but the
 // last an OnClick that records its key — the conventional trail, where the
 // current location is inert.
 func segments(fired map[string]int, pairs ...[2]string) []breadcrumb.Segment {
@@ -79,14 +79,14 @@ func clickAt(r *gioinput.Router, x int) {
 	)
 }
 
-// rowWidth measures the natural width of a trail of labels through the static
+// rowWidth measures the natural width of a trail of titles through the static
 // Render path, which draws the same row without keeping any state. Loose
 // constraints are what make the answer the row's own width rather than the
 // frame's.
-func rowWidth(t *testing.T, shaper *text.Shaper, labels ...string) int {
+func rowWidth(t *testing.T, shaper *text.Shaper, titles ...string) int {
 	t.Helper()
-	items := make([]breadcrumb.Item, len(labels))
-	for i, l := range labels {
+	items := make([]breadcrumb.Item, len(titles))
+	for i, l := range titles {
 		items[i] = breadcrumb.Item{Title: l}
 	}
 	w := breadcrumb.Render(shaper, breadcrumb.Props{Items: items, Shaper: shaper},
@@ -99,18 +99,18 @@ func rowWidth(t *testing.T, shaper *text.Shaper, labels ...string) int {
 	return w(gtx).Size.X
 }
 
-// centreOf returns the x of the middle of segment i in a row of these labels,
+// centreOf returns the x of the middle of segment i in a row of these titles,
 // derived from measured widths rather than from restated spacing constants:
-// the separator's width is whatever two adjacent labels cost beyond the two
-// labels alone.
-func centreOf(t *testing.T, shaper *text.Shaper, i int, labels ...string) int {
+// the separator's width is whatever two adjacent titles cost beyond the two
+// titles alone.
+func centreOf(t *testing.T, shaper *text.Shaper, i int, titles ...string) int {
 	t.Helper()
-	sep := rowWidth(t, shaper, labels[0], labels[0]) - 2*rowWidth(t, shaper, labels[0])
+	sep := rowWidth(t, shaper, titles[0], titles[0]) - 2*rowWidth(t, shaper, titles[0])
 	x := 0
 	for j := 0; j < i; j++ {
-		x += rowWidth(t, shaper, labels[j]) + sep
+		x += rowWidth(t, shaper, titles[j]) + sep
 	}
-	return x + rowWidth(t, shaper, labels[i])/2
+	return x + rowWidth(t, shaper, titles[i])/2
 }
 
 // TestTrailClickRoutesToItsSegment is the base case: a trail that does not
@@ -119,7 +119,7 @@ func centreOf(t *testing.T, shaper *text.Shaper, i int, labels ...string) int {
 // carries no OnClick — answers for nobody.
 func TestTrailClickRoutesToItsSegment(t *testing.T) {
 	shaper := defaultShaper(t)
-	labels := []string{"Home", "Design", "Tokens"}
+	titles := []string{"Home", "Design", "Tokens"}
 
 	for _, tc := range []struct {
 		name string
@@ -133,9 +133,9 @@ func TestTrailClickRoutesToItsSegment(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			fired := map[string]int{}
 			segs := segments(fired,
-				[2]string{homeKey, labels[0]},
-				[2]string{designKey, labels[1]},
-				[2]string{tokensKey, labels[2]},
+				[2]string{homeKey, titles[0]},
+				[2]string{designKey, titles[1]},
+				[2]string{tokensKey, titles[2]},
 			)
 			w := breadcrumb.NewTrail(shaper, breadcrumb.TrailProps{}, tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
 
@@ -143,7 +143,7 @@ func TestTrailClickRoutesToItsSegment(t *testing.T) {
 			ops := new(op.Ops)
 			driveTrail(w, ops, r, frameSize, segs)
 
-			clickAt(r, centreOf(t, shaper, tc.idx, labels...))
+			clickAt(r, centreOf(t, shaper, tc.idx, titles...))
 			driveTrail(w, ops, r, frameSize, segs)
 
 			if len(fired) != len(tc.want) {
@@ -374,12 +374,12 @@ func TestTrailGrowsAndShrinks(t *testing.T) {
 // shares the one interaction state, so the click still lands.
 func TestTrailLiveRoutesAcrossTokenChange(t *testing.T) {
 	shaper := defaultShaper(t)
-	labels := []string{"Home", "Design", "Tokens"}
+	titles := []string{"Home", "Design", "Tokens"}
 	fired := map[string]int{}
 	segs := segments(fired,
-		[2]string{homeKey, labels[0]},
-		[2]string{designKey, labels[1]},
-		[2]string{tokensKey, labels[2]},
+		[2]string{homeKey, titles[0]},
+		[2]string{designKey, titles[1]},
+		[2]string{tokensKey, titles[2]},
 	)
 
 	// A theme whose colours go light then dark: the stream emits one layout
@@ -405,7 +405,7 @@ func TestTrailLiveRoutesAcrossTokenChange(t *testing.T) {
 	ops := new(op.Ops)
 	driveTrail(emitted[0], ops, r, frameSize, segs)
 
-	clickAt(r, centreOf(t, shaper, 1, labels...))
+	clickAt(r, centreOf(t, shaper, 1, titles...))
 	driveTrail(emitted[1], ops, r, frameSize, segs)
 
 	if fired[designKey] != 1 {

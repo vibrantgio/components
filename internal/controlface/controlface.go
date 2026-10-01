@@ -57,7 +57,7 @@ const edgeDp = unit.Dp(1)
 // triggers wear the pop-up's pair.
 //
 // The clearance between the mark's last column and the control's trailing
-// edge is the pop-up's own [control.PopupMarkTrailDp], and the label's origin is
+// edge is the pop-up's own [control.PopupMarkTrailDp], and the title's origin is
 // [control.PopupLeadDp]: the two triggers are one control drawn in two places
 // and spend one pair of insets.
 
@@ -258,14 +258,14 @@ func (p Pin) Layout(gtx layout.Context, w layout.Widget) layout.Dimensions {
 
 // Draw paints the chrome variant's trigger: the fill it stands off its band
 // with and tints under the pointer, the hairline and the focus ring that
-// replaces it, the label, and the pop-up mark.
+// replaces it, the title, and the pop-up mark.
 func Draw(
 	gtx layout.Context,
 	shaper *text.Shaper,
-	label string,
+	title string,
 	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
-	labelStyle tokens.TextStyle,
+	titleStyle tokens.TextStyle,
 	d tokens.Density,
 	s State,
 ) layout.Dimensions {
@@ -273,11 +273,11 @@ func Draw(
 	// coverage it draws over that fill is flattened onto it and nothing it
 	// draws depends on the band beneath.
 	fill := Fill(p, s.state())
-	labelForeground := Label(p, fill)
+	titleForeground := Label(p, fill)
 	markForeground := Mark(p, fill)
 
 	// The two triggers spend one pair of insets, both MEASURED off the Save
-	// dialog's "File Format:" pop-up: the label's origin eleven columns in
+	// dialog's "File Format:" pop-up: the title's origin eleven columns in
 	// from the fill's edge, and nine clear columns between the mark's last
 	// column and the trailing edge. The same nine stands in the Finder
 	// toolbar's 36 px pop-up (finder-window-light.png, the pair ending at
@@ -289,28 +289,28 @@ func Draw(
 	gap := gtx.Dp(unit.Dp(sp.S3))
 	mark := gtx.Dp(control.MarkWDp)
 
-	// Record the label's material and its layout to learn its size before
+	// Record the title's material and its layout to learn its size before
 	// anything is painted. typeset.Layout rather than widget.Label.Layout
-	// because the role's line height has to be the height of the label box
+	// because the role's line height has to be the height of the title box
 	// and Gio alone reports the drawn glyph extent instead — see theme/typeset.
 	mColor := op.Record(gtx.Ops)
-	paint.ColorOp{Color: labelForeground}.Add(gtx.Ops)
+	paint.ColorOp{Color: titleForeground}.Add(gtx.Ops)
 	material := mColor.Stop()
 
 	// The line box is capped to the control's height, as the form trigger's
 	// is: a pop-up is not sized by the text it carries, and a Compact control
 	// is shorter than the line box its role declares.
-	labelGtx := gtx
-	labelGtx.Constraints.Min = image.Point{}
-	labelGtx.Constraints.Max.Y = minH
-	if maxLabelW := gtx.Constraints.Max.X - lead - gap - mark - trail; maxLabelW > 0 {
-		labelGtx.Constraints.Max.X = maxLabelW
+	titleGtx := gtx
+	titleGtx.Constraints.Min = image.Point{}
+	titleGtx.Constraints.Max.Y = minH
+	if maxTitleW := gtx.Constraints.Max.X - lead - gap - mark - trail; maxTitleW > 0 {
+		titleGtx.Constraints.Max.X = maxTitleW
 	}
-	mLabel := op.Record(gtx.Ops)
-	labelDims := typeset.Layout(labelGtx, shaper,
-		typeset.Label(labelStyle, 1), typeset.Font(labelStyle, font.Normal),
-		unit.Sp(labelStyle.Size), label, material)
-	labelCall := mLabel.Stop()
+	mTitle := op.Record(gtx.Ops)
+	titleDims := typeset.Layout(titleGtx, shaper,
+		typeset.Label(titleStyle, 1), typeset.Font(titleStyle, font.Normal),
+		unit.Sp(titleStyle.Size), title, material)
+	titleCall := mTitle.Stop()
 
 	// Sized to content across, not to the width it was given: the control
 	// names a choice, and one that stretched would be a banner. Down, it is
@@ -321,7 +321,7 @@ func Draw(
 	// control in the stored Finder toolbars measures 36 where the same
 	// window's dialog pop-up measures 24. The two variants are one component
 	// drawn in two places, and the place settles the height.
-	w := lead + labelDims.Size.X + gap + mark + trail
+	w := lead + titleDims.Size.X + gap + mark + trail
 	w = min(w, gtx.Constraints.Max.X)
 	h := min(minH, gtx.Constraints.Max.Y)
 	size := image.Pt(w, h)
@@ -343,12 +343,12 @@ func Draw(
 	// bordered control in a toolbar band that way.
 	outer := Capsule(gtx, box, p, fill, s)
 
-	// The label at its own origin, clipped to the control's shape so a line
+	// The title at its own origin, clipped to the control's shape so a line
 	// box taller than the control is cut by the control rather than drawn
 	// past it.
 	area := outer.Push(gtx.Ops)
-	lo := op.Offset(image.Pt(lead, (h-labelDims.Size.Y)/2)).Push(gtx.Ops)
-	labelCall.Add(gtx.Ops)
+	lo := op.Offset(image.Pt(lead, (h-titleDims.Size.Y)/2)).Push(gtx.Ops)
+	titleCall.Add(gtx.Ops)
 	lo.Pop()
 	area.Pop()
 

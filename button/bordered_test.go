@@ -41,7 +41,7 @@ var chromeStates = []struct {
 }
 
 // TestChromeButtonGolden records the platform's bordered toolbar control with
-// a symbol for its label, standing on the chrome material in both appearances.
+// a symbol for its title, standing on the chrome material in both appearances.
 func TestChromeButtonGolden(t *testing.T) {
 	size := image.Pt(120, 90)
 	for _, sc := range []struct {

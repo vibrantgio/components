@@ -23,7 +23,7 @@
 // left-chevron. One picture therefore carries one name however many actions
 // it serves: the folder a row IS and the control that chooses which folder a
 // window shows are both drawn with a closed folder, so both ask for folder,
-// and what the control does is its label's to say. The drawing behind a name
+// and what the control does is its title's to say. The drawing behind a name
 // is free to change, and does change between platforms; the name is the part
 // call sites store, so it has to survive that. Names are lowercase ASCII with
 // words joined by "-", the qualifier last (history-back, history-forward),
@@ -292,7 +292,7 @@
 //
 // # A mark standing in chrome
 //
-// A mark that is the whole label of a control in a toolbar is drawn at 24 —
+// A mark that is the whole title of a control in a toolbar is drawn at 24 —
 // the top of the range above — and the grid is why. MEASURED at 1x off the
 // toolbar bands in the organization's macOS reference: a square symbol's
 // covered extent is 18 × 18 px (Finder's group pull-down) and 19 × 19 (its

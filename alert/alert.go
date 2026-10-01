@@ -243,7 +243,7 @@ func contentColumn(shaper *text.Shaper, props Props, colors tokens.PlatformColor
 	}
 }
 
-func titleWidget(shaper *text.Shaper, label string, fg color.NRGBA, style tokens.TextStyle) layout.Widget {
+func titleWidget(shaper *text.Shaper, title string, fg color.NRGBA, style tokens.TextStyle) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		mColor := op.Record(gtx.Ops)
 		paint.ColorOp{Color: fg}.Add(gtx.Ops)
@@ -254,7 +254,7 @@ func titleWidget(shaper *text.Shaper, label string, fg color.NRGBA, style tokens
 		// carries only a size.
 		f := typeset.Font(style, font.SemiBold)
 		wl := typeset.Label(style, 1)
-		return typeset.Layout(gtx, shaper, wl, f, unit.Sp(style.Size), label, material)
+		return typeset.Layout(gtx, shaper, wl, f, unit.Sp(style.Size), title, material)
 	}
 }
 

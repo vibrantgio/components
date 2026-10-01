@@ -87,7 +87,7 @@ type Props struct {
 	Placement Placement
 
 	// Shaper is an explicit per-instance override of the text shaper. Leave
-	// it nil in normal use: the tooltip then shapes its label with the
+	// it nil in normal use: the tooltip then shapes its text with the
 	// theme's shaper (Typography.Shaper()), which is built once for the
 	// process and shared by every component reading that typography — the
 	// cache lives behind the Typography value, so it survives the copy this
@@ -177,7 +177,7 @@ func Tooltip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wi
 // the trigger plus the floating surface, shown=false to render only the
 // trigger.
 //
-// label is the LabelSmall role's whole text style — typeface, weight,
+// style is the LabelSmall role's whole text style — typeface, weight,
 // size and line height all reach the shaper, exactly as they do on the
 // live path. Pass tokens.DefaultTypography.LabelSmall for the default
 // desktop look. There is no density parameter: a tooltip surface wraps
@@ -189,9 +189,9 @@ func Render(
 	colors tokens.PlatformColors,
 	sp tokens.SpacingScale,
 	rad tokens.RadiusScale,
-	label tokens.TextStyle,
+	style tokens.TextStyle,
 ) layout.Widget {
-	tok := resolvedTokens{platform: colors, spacing: sp, radius: rad, style: label}
+	tok := resolvedTokens{platform: colors, spacing: sp, radius: rad, style: style}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawStatic(gtx, shaper, props, tok, shown)
 	}
@@ -364,7 +364,7 @@ func drawStatic(
 	return layout.Dimensions{Size: frame}
 }
 
-// drawSurface paints the rounded tooltip bubble with the label inside,
+// drawSurface paints the rounded tooltip bubble with the text inside,
 // positioned adjacent to triggerRect per props.Placement. The bubble is
 // filled with the window's own plane inside a separator hairline.
 //
@@ -386,26 +386,26 @@ func drawSurface(
 	padV := gtx.Dp(unit.Dp(tok.spacing.S1))
 	gap := gtx.Dp(unit.Dp(tok.spacing.S1))
 
-	// Pre-record the label with its paint material so we can replay it inside
+	// Pre-record the text with its paint material so we can replay it inside
 	// the surface at a known offset after measuring it.
 	mColor := op.Record(gtx.Ops)
 	paint.ColorOp{Color: vgcolor.Flatten(tok.platform.Label, tok.platform.WindowBackground)}.Add(gtx.Ops)
 	material := mColor.Stop()
-	labelGtx := gtx
-	labelGtx.Constraints = layout.Constraints{Max: image.Pt(frame.X*3/4, frame.Y/4)}
-	labelGtx.Constraints.Min = image.Point{}
+	textGtx := gtx
+	textGtx.Constraints = layout.Constraints{Max: image.Pt(frame.X*3/4, frame.Y/4)}
+	textGtx.Constraints.Min = image.Point{}
 	// Shape with the LabelSmall role's typeface, weight, size and line
 	// height. Zero fields (the legacy Render path synthesizes a size-only
 	// style) fall back to the shaper's defaults.
 	style := tok.style
 	f := typeset.Font(style, font.Normal)
 	wl := typeset.Label(style, 1)
-	mLabel := op.Record(gtx.Ops)
-	labelDims := typeset.Layout(labelGtx, shaper, wl, f, unit.Sp(style.Size), props.Text, material)
-	labelCall := mLabel.Stop()
+	mText := op.Record(gtx.Ops)
+	textDims := typeset.Layout(textGtx, shaper, wl, f, unit.Sp(style.Size), props.Text, material)
+	textCall := mText.Stop()
 
-	surfW := labelDims.Size.X + 2*padH
-	surfH := labelDims.Size.Y + 2*padV
+	surfW := textDims.Size.X + 2*padH
+	surfH := textDims.Size.Y + 2*padV
 	minW := gtx.Dp(unit.Dp(24))
 	minH := gtx.Dp(unit.Dp(16))
 	if surfW < minW {
@@ -444,9 +444,9 @@ func drawSurface(
 	}
 	paint.FillShape(gtx.Ops, vgcolor.Flatten(tok.platform.Separator, surface.Or(props.Surface, tok.platform.WindowBackground)), rect.Op(gtx.Ops))
 	paint.FillShape(gtx.Ops, tok.platform.WindowBackground, inner.Op(gtx.Ops))
-	labelOff := op.Offset(image.Pt(padH, padV)).Push(gtx.Ops)
-	labelCall.Add(gtx.Ops)
-	labelOff.Pop()
+	textOff := op.Offset(image.Pt(padH, padV)).Push(gtx.Ops)
+	textCall.Add(gtx.Ops)
+	textOff.Pop()
 	surfOff.Pop()
 
 	op.Defer(gtx.Ops, floating.Stop())

@@ -114,9 +114,9 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 	}
 
 	// Flatten the nested theme observables into a concrete snapshot. The
-	// label is drawn in the body role, so the typography emission supplies
+	// title is drawn in the body role, so the typography emission supplies
 	// the text style, its cap band and the theme's cached shaper; a radio
-	// without a label never reaches them.
+	// without a title never reaches them.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
 			rx.CombineLatest4(t.Platform, t.Typography, t.Spacing, t.Density),
@@ -160,7 +160,7 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 				foc := !dis && gtx.Focused(&b)
 
 				// The pointer area is the whole control — the
-				// footprint the symbol is centred in plus the label
+				// footprint the symbol is centred in plus the title
 				// beside it, both of which operate it, as they do on
 				// the platform.
 				// The focus band rings the disc and straddles it, and a
@@ -283,10 +283,10 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		paint.FillShape(gtx.Ops, fill, clip.Ellipse(outerRect).Op(gtx.Ops))
 		if s.Selected {
 			// No stored capture holds a switched-off SELECTED radio, so the
-			// dot takes the colour the switched-off label takes beside it,
+			// dot takes the colour the switched-off title takes beside it,
 			// as the check does. The capture is on the reference's list. No
 			// contrast floor applies here either: the platform chose to draw
-			// its switched-off controls below any floor, and the label stands
+			// its switched-off controls below any floor, and the title stands
 			// there as measured — |Lc| 35.6 light and -16.1 dark on the
 			// sheet.
 			fillDot(vgcolor.Flatten(tok.platform.TertiaryLabel, fill))
@@ -330,16 +330,16 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 			focus.RingColor(tok.platform, standsOn), focus.RingColor(tok.platform, discEdge))
 	}
 
-	// The label is part of the control, as it is on the platform, drawn
+	// The title is part of the control, as it is on the platform, drawn
 	// exactly as the checkbox draws it: the measured gap after the circle,
 	// the platform's label colour over the surface the symbol stands on, and
 	// faded with the symbol.
-	label := vgcolor.Flatten(tok.platform.Label, standsOn)
+	titleFg := vgcolor.Flatten(tok.platform.Label, standsOn)
 	if s.Disabled {
-		label = vgcolor.Flatten(tok.platform.TertiaryLabel, standsOn)
+		titleFg = vgcolor.Flatten(tok.platform.TertiaryLabel, standsOn)
 	}
 	w := ctlSz
-	if beside := labelBeside(gtx, tok, outerRect.Max.X, ctlSz, s.Title, label); beside > 0 {
+	if beside := titleBeside(gtx, tok, outerRect.Max.X, ctlSz, s.Title, titleFg); beside > 0 {
 		w = outerRect.Max.X + beside
 	}
 

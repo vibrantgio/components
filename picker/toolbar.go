@@ -163,7 +163,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 				typ := n.Second
 				return resolvedTokens{
 					platform: n.First,
-					label:    typ.LabelLarge,
+					title:    typ.LabelLarge,
 					spacing:  n.Third,
 					radius:   n.Fourth,
 					density:  n.Fifth,
@@ -227,7 +227,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 								semantic.DescriptionOp(desc).Add(gtx.Ops)
 								semantic.EnabledOp(true).Add(gtx.Ops)
 								return controlface.Draw(gtx, shaper, props.Value, tok.platform,
-									tok.spacing, tok.label, tok.density, s)
+									tok.spacing, tok.title, tok.density, s)
 							})
 					})
 				})
@@ -258,7 +258,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 // that flipped one would be saying something in a vocabulary the platform
 // reserves for a disclosure triangle.
 //
-// labelStyle is the whole text style the value is set in; pass
+// titleStyle is the whole text style the value is set in; pass
 // tokens.DefaultTypography.LabelLarge with tokens.Comfortable for the default
 // desktop control. The height comes off d.ToolbarControlHeight, not
 // d.ControlHeight: the platform draws a control in a toolbar band taller than
@@ -270,13 +270,13 @@ func RenderToolbar(
 	value string,
 	p tokens.PlatformColors,
 	sp tokens.SpacingScale,
-	labelStyle tokens.TextStyle,
+	titleStyle tokens.TextStyle,
 	d tokens.Density,
 	s ToolbarState,
 ) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		return controlface.Cast(gtx, controlface.Shadow(p), s.face().Focused, func(gtx layout.Context) layout.Dimensions {
-			return controlface.Draw(gtx, shaper, value, p, sp, labelStyle, d, s.face())
+			return controlface.Draw(gtx, shaper, value, p, sp, titleStyle, d, s.face())
 		})
 	}
 }

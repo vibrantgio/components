@@ -28,9 +28,9 @@ import (
 // A painter that draws a small figure in the middle of the box it was given
 // leaves slack the chip cannot see — the chip reserves the box, so a mark that
 // under-fills it reads as extra padding — and one whose stroke is not centred on
-// the box drops below the label, because the box is what the chip centres. The
-// box is now the label's cap band, so spanning it is what puts the mark on the
-// label's own line.
+// the box drops below the title, because the box is what the chip centres. The
+// box is now the title's cap band, so spanning it is what puts the mark on the
+// title's own line.
 func chevron(gtx layout.Context, sizePx int, col color.NRGBA) {
 	w := float32(sizePx)
 	// Unrounded, like the marks the chip draws itself: a whole-pixel width on
@@ -118,17 +118,17 @@ var goldenSize = image.Pt(660, 60)
 
 // render is the pure path at the comfortable default, which is what every
 // golden here draws through.
-func render(shaper *text.Shaper, label string, i chip.Purpose, icon chip.Symbol,
+func render(shaper *text.Shaper, title string, i chip.Purpose, icon chip.Symbol,
 	p tokens.PlatformColors, s chip.RenderState,
 ) layout.Widget {
-	return chip.Render(shaper, label, i, icon, p, tokens.Spacing, tokens.Radius,
+	return chip.Render(shaper, title, i, icon, p, tokens.Spacing, tokens.Radius,
 		tokens.DefaultTypography.LabelLarge, tokens.Comfortable, s)
 }
 
 // purposeRow is the structure in one image: every purpose, and for the filter
 // both of its two rests. Left to right — assist with a leading mark, a filter
 // that is not selected, the same filter selected, an input chip with an avatar
-// and its dismiss mark, and a label-only suggestion.
+// and its dismiss mark, and a title-only suggestion.
 func purposeRow(shaper *text.Shaper, p tokens.PlatformColors) layout.Widget {
 	rest := chip.RenderState{}
 	picked := chip.RenderState{Selected: true}
@@ -160,7 +160,7 @@ func TestChipPurposes(t *testing.T) {
 func stateRow(shaper *text.Shaper, p tokens.PlatformColors, selected bool) layout.Widget {
 	ws := make([]layout.Widget, 0, 4)
 	for _, st := range []struct {
-		label string
+		title string
 		s     chip.RenderState
 	}{
 		{"Rest", chip.RenderState{}},
@@ -170,7 +170,7 @@ func stateRow(shaper *text.Shaper, p tokens.PlatformColors, selected bool) layou
 	} {
 		s := st.s
 		s.Selected = selected
-		ws = append(ws, render(shaper, st.label, chip.Filter, nil, p, s))
+		ws = append(ws, render(shaper, st.title, chip.Filter, nil, p, s))
 	}
 	return row(ws...)
 }
@@ -227,14 +227,14 @@ func measure(t *testing.T, w layout.Widget) image.Point {
 	return w(gtx).Size
 }
 
-// TestChipHeightIsTheDensityChipHeightOrTheLabelsBox is the gate on the number
+// TestChipHeightIsTheDensityChipHeightOrTheTitlesBox is the gate on the number
 // a reader is most likely to re-invent. A chip is off the control family's
 // padding rule: its height is tokens.Density.ChipHeight — the density's
 // control height less the system's chip drop, 20 dp Comfortable and 15 dp
-// Compact — under the label's own line box, which the chip takes wherever that
+// Compact — under the title's own line box, which the chip takes wherever that
 // box is taller. At Compact both roles' boxes are taller, so a Compact chip
-// measures its label.
-func TestChipHeightIsTheDensityChipHeightOrTheLabelsBox(t *testing.T) {
+// measures its title.
+func TestChipHeightIsTheDensityChipHeightOrTheTitlesBox(t *testing.T) {
 	shaper := defaultShaper(t)
 	for _, d := range []struct {
 		name string
@@ -287,7 +287,7 @@ func TestChipIsSizedToItsContent(t *testing.T) {
 	long := measure(t, render(shaper, "A considerably longer summary", chip.Assist, chevron,
 		tokens.PlatformLight, chip.RenderState{}))
 	if short.X >= long.X {
-		t.Errorf("a one-letter chip measured %d dp wide and a long one %d: the chip is not sized to its label",
+		t.Errorf("a one-letter chip measured %d dp wide and a long one %d: the chip is not sized to its title",
 			short.X, long.X)
 	}
 	if short.X >= 1000 {
@@ -295,7 +295,7 @@ func TestChipIsSizedToItsContent(t *testing.T) {
 	}
 }
 
-// markPx is the square a mark is drawn in at one pixel per dp: the label's cap
+// markPx is the square a mark is drawn in at one pixel per dp: the title's cap
 // band, which is what the chip reserves for every mark but the avatar.
 func markPx() int { return int(math.Round(float64(chip.MarkDp(tokens.DefaultTypography.LabelLarge)))) }
 
