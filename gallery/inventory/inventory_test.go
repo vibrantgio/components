@@ -74,8 +74,8 @@ func share(img *image.RGBA, want color.NRGBA) float64 {
 // specimen that is largely accent fill holds that share still by the
 // platform's own answer: the area floor had to come down, and a defect a
 // fifth of a slot across would clear it. The second question closes that —
-// the other appearance's own content plane may not survive into this one,
-// and a panel drawn from a default set is exactly that plane.
+// the other appearance's own content surface may not survive into this one,
+// and a pane drawn from a default set is exactly that surface.
 func TestNoSectionIsPinnedToAnAppearance(t *testing.T) {
 	inv := testInventory(t)
 	light, dark := tokens.PlatformLight, tokens.PlatformDark
@@ -115,7 +115,7 @@ func TestNoSectionIsPinnedToAnAppearance(t *testing.T) {
 // show: the pinned row carries a fill the caller chose from outside the set,
 // and the platform-set section prints both appearances at once, which is what
 // makes a coverage legible as the pair it is. Neither is excused from the
-// plane half — a default-set panel inside either would still be caught.
+// surface half — a default-set pane inside either would still be caught.
 var schemeFixedSections = map[string]bool{
 	"components-button-pinned": true,
 	"foundations-platform":     true,
@@ -197,7 +197,7 @@ const (
 	// pinned surface hide. White and near-black occur legitimately — the
 	// foreground the platform pairs with an accent fill is white, and a
 	// syntax highlighter style may name either — so the floor stands above what
-	// symbols and marks account for and far below what a panel would put there.
+	// symbols and marks account for and far below what a pane would put there.
 	planeFloor = 2.0
 )
 

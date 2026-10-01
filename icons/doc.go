@@ -19,7 +19,7 @@
 // # Names
 //
 // A name says what the mark depicts, never what the control using it does:
-// sidebar, disclosure, history-back — not panel-with-lines, triangle,
+// sidebar, disclosure, history-back — not rectangle-with-lines, triangle,
 // left-chevron. One picture therefore carries one name however many actions
 // it serves: the folder a row IS and the control that chooses which folder a
 // window shows are both drawn with a closed folder, so both ask for folder,

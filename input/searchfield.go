@@ -107,7 +107,7 @@ type SearchFieldProps struct {
 
 	// Clear, if non-nil, is called once when the field instance is created
 	// with a function that empties the field. It is how a query is taken back
-	// from outside the field — a key the application binds, a panel closing —
+	// from outside the field — a key the application binds, a pane closing —
 	// where the clear mark takes it back from inside.
 	//
 	// Emptying the field this way reports the empty query on the next frame,

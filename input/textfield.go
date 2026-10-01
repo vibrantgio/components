@@ -90,7 +90,7 @@ type RenderState struct {
 type Variant uint8
 
 const (
-	// Form is the field on the content's plane — in a dialog, a panel, a
+	// Form is the field on the content's surface — in a dialog, a pane, a
 	// grouped box: the platform's hairline around the surface the field
 	// stands on, measured off the Save dialog's unfocused field.
 	Form Variant = iota

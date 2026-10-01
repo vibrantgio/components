@@ -30,8 +30,8 @@ import (
 // around it.
 const (
 	focusSheetW            = 800 // the capture's width in px, at 1 px per dp
-	focusPanelPadX unit.Dp = 16  // air a surface panel holds left and right
-	focusPanelPadY unit.Dp = 14  // air a surface panel holds above and below
+	focusPanePadX unit.Dp = 16  // air a surface pane holds left and right
+	focusPanePadY unit.Dp = 14  // air a surface pane holds above and below
 	focusCaptionW  unit.Dp = 132 // the column the surface's name is set in
 	focusCellGap   unit.Dp = 14  // space between two specimens
 	focusFieldW    unit.Dp = 150 // the width the text field is laid out at
@@ -50,7 +50,7 @@ type surface struct {
 // move with the surface, and a specimen on one fill cannot carry a claim
 // about three. The focus ring carries a coverage rather than a colour, so
 // every cell has to say what it is composited onto or the ring lands on the
-// window's plane whatever the panel under it is painted in.
+// window's surface whatever the pane under it is painted in.
 //
 // Two of them can BE one fill: the card and the chrome material both read
 // #f7f7f7 in the light appearance, measured apart off different windows and
@@ -94,7 +94,7 @@ func TestFocusedSpecimensGolden(t *testing.T) {
 	}
 }
 
-// focusSheet builds the sheet: one surface panel per row, each carrying its own
+// focusSheet builds the sheet: one surface pane per row, each carrying its own
 // name and one focused specimen of every family that can take the keyboard.
 func focusSheet(t *testing.T, c tokens.PlatformColors) layout.Widget {
 	t.Helper()
@@ -102,16 +102,16 @@ func focusSheet(t *testing.T, c tokens.PlatformColors) layout.Widget {
 	surfaces := focusSurfaces(c)
 	rows := make([]layout.Widget, 0, len(surfaces))
 	for _, lv := range surfaces {
-		rows = append(rows, focusPanel(c, lv.name, lv.fill, shaper))
+		rows = append(rows, focusPane(c, lv.name, lv.fill, shaper))
 	}
 	return inventory.Column(rows)
 }
 
-// focusPanel is one surface's row: that fill behind a caption and the
-// specimens standing on it. The caption stands inside the panel rather than
+// focusPane is one surface's row: that fill behind a caption and the
+// specimens standing on it. The caption stands inside the pane rather than
 // beside it — a label naming a surface while sitting on a different one is a
 // label about the row and not about the surface.
-func focusPanel(c tokens.PlatformColors, name string, fill stdcolor.NRGBA, shaper *text.Shaper) layout.Widget {
+func focusPane(c tokens.PlatformColors, name string, fill stdcolor.NRGBA, shaper *text.Shaper) layout.Widget {
 	specimens := []layout.Widget{
 		fixedWidth(focusButtonW, button.Render(shaper, "Button", c, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
@@ -125,7 +125,7 @@ func focusPanel(c tokens.PlatformColors, name string, fill stdcolor.NRGBA, shape
 			tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
 			chip.RenderState{Focused: true, Surface: fill})),
 		// The trigger states no surface: it carries a fill of its own, so
-		// its ring composites onto that rather than onto the panel.
+		// its ring composites onto that rather than onto the pane.
 		fixedWidth(focusTriggerW, picker.RenderField(shaper, c, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
 			picker.FieldState{Focused: true, Options: []string{"Apple", "Banana"}})),
@@ -141,11 +141,11 @@ func focusPanel(c tokens.PlatformColors, name string, fill stdcolor.NRGBA, shape
 		}
 		return layout.Flex{Alignment: layout.Middle}.Layout(gtx, cs...)
 	}
-	return panelOn(fill, inset(focusPanelPadX, focusPanelPadY, body))
+	return paneOn(fill, inset(focusPanePadX, focusPanePadY, body))
 }
 
-// panelOn paints fill behind w, sized to what w draws.
-func panelOn(fill stdcolor.NRGBA, w layout.Widget) layout.Widget {
+// paneOn paints fill behind w, sized to what w draws.
+func paneOn(fill stdcolor.NRGBA, w layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		m := op.Record(gtx.Ops)
 		dims := w(gtx)

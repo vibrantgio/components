@@ -70,13 +70,13 @@ func (inv *Inventory) Patterns(c tokens.PlatformColors) []Section {
 			Body: inv.pane(c)},
 		{Name: "patterns-table", Title: "Table — sortable columns, sorted ascending on the first", Height: 176,
 			Body: inv.table(c)},
-		{Name: "patterns-modal", Title: "Modal — a decision answered from its footer, and a panel closed from the mark at its corner", Height: 260,
+		{Name: "patterns-modal", Title: "Modal — a decision answered from its footer, and a pane closed from the mark at its corner", Height: 260,
 			Body: inv.modal(c)},
-		// The slot stands the control in the middle and hangs the panel off
+		// The slot stands the control in the middle and hangs the pane off
 		// it, so it has to hold the control's whole square plus what hangs:
-		// a slot cut to the panel alone shears the surface off at the
+		// a slot cut to the pane alone shears the surface off at the
 		// band's edge.
-		{Name: "patterns-popover", Title: "Popover — a floating panel tied to its anchor", Height: 196,
+		{Name: "patterns-popover", Title: "Popover — a floating pane tied to its anchor", Height: 196,
 			Body: inv.popover(c)},
 		{Name: "patterns-hero", Title: "Hero — eyebrow, headline, subtitle and a pair of calls to action", Height: 208,
 			Body: inv.hero(c)},
@@ -323,10 +323,10 @@ func (inv *Inventory) sidebar(c tokens.PlatformColors) layout.Widget {
 // The pane is chrome inside a window, not a component on a page: the inset,
 // the corner radius, the rim and the shadow only say what they say when the
 // window's own plane shows around them. So the specimen draws a window of its
-// own inside the slot, and the panel stands in that.
+// own inside the slot, and the pane stands in that.
 //
 // The window needs no outline of its own: its plane and the content column
-// beside the panel are both painted, and the section row around it is a
+// beside the pane are both painted, and the section row around it is a
 // different fill again.
 const (
 	paneSpecimenW unit.Dp = 560
@@ -335,24 +335,24 @@ const (
 	// a document rather than half the window, which is what the pattern's own
 	// stored images show it at.
 	paneColumnW unit.Dp = 168
-	// paneGutter is the air between the panel's trailing edge and the
+	// paneGutter is the air between the pane's trailing edge and the
 	// document's own first column of prose.
 	paneGutter unit.Dp = 16
 )
 
-// pane draws the panel beside the content it stands over: the rounded column
+// pane draws the pane beside the content it stands over: the rounded column
 // set in from the window's leading, top and bottom edges with its rim and its
-// shadow, and a document column beginning where the panel stops.
+// shadow, and a document column beginning where the pane stops.
 //
-// The content beside it is what makes the specimen a specimen. A panel alone
-// in a box shows a rounded rectangle; a panel with a document flush against
+// The content beside it is what makes the specimen a specimen. A pane alone
+// in a box shows a rounded rectangle; a pane with a document flush against
 // it shows the one thing the pattern is for — one boundary, and what the
 // reader gets back when the column is sent away.
 func (inv *Inventory) pane(c tokens.PlatformColors) layout.Widget {
 	contents := func(gtx layout.Context) layout.Dimensions {
-		// The strip at the top of the panel is the window buttons' band. This
+		// The strip at the top of the pane is the window buttons' band. This
 		// specimen draws no window buttons — they belong to the window and
-		// not to the pattern — so the panel's own content starts under it,
+		// not to the pattern — so the pane's own content starts under it,
 		// which is where a caller's content starts too.
 		inset := gtx.Dp(12)
 		defer op.Offset(image.Pt(inset, gtx.Dp(pane.StripDp))).Push(gtx.Ops).Pop()
@@ -371,28 +371,28 @@ func (inv *Inventory) pane(c tokens.PlatformColors) layout.Widget {
 		// narrower than that, the way every other bounded specimen here is.
 		size := image.Pt(min(gtx.Constraints.Max.X, gtx.Dp(paneSpecimenW)), gtx.Dp(paneSpecimenH))
 		gtx.Constraints = layout.Exact(size)
-		// Clipped to the window it stands for: the panel's shadow reaches
-		// past the panel and a window cuts what its own chrome throws at its
+		// Clipped to the window it stands for: the pane's shadow reaches
+		// past the pane and a window cuts what its own chrome throws at its
 		// edge, so nothing here may paint into the page around the specimen.
 		defer clip.Rect{Max: size}.Push(gtx.Ops).Pop()
 		// The window's own plane under everything, which is what shows in the
-		// margins the panel stands off; then the document's surface from the
-		// panel's trailing edge to the window's, since the content is flush
-		// against the panel and runs to the window's other three edges.
+		// margins the pane stands off; then the document's surface from the
+		// pane's trailing edge to the window's, since the content is flush
+		// against the pane and runs to the window's other three edges.
 		paint.FillShape(gtx.Ops, c.WindowBackground, clip.Rect{Max: size}.Op())
 
 		b := pane.Bounds(gtx, size, paneColumnW, false)
 		paint.FillShape(gtx.Ops, c.TextBackground, clip.Rect(image.Rect(b.Max.X, 0, size.X, size.Y)).Op())
-		// Behind the panel's two trailing corner arcs stands the document, not
-		// the plane: the panel is flush with it on that side.
+		// Behind the pane's two trailing corner arcs stands the document, not
+		// the surface: the pane is flush with it on that side.
 		pane.FillTrailingCorners(gtx, c.TextBackground, b)
 		pane.Layout(gtx, c, b, contents)
-		// The shadow the panel casts on the plane and on the document beside
+		// The shadow the pane casts on the surface and on the document beside
 		// it. Nothing this specimen draws afterwards stands where the ramp
 		// falls, so it goes here rather than last.
 		pane.PaintShadow(gtx, c, b)
 
-		// The document, one gutter past the panel's trailing edge — the
+		// The document, one gutter past the pane's trailing edge — the
 		// reflow the pattern's hidden state completes by starting it at the
 		// window's own edge instead.
 		doc := gtx
@@ -456,7 +456,7 @@ func (inv *Inventory) modal(c tokens.PlatformColors) layout.Widget {
 	// affordances and one of them alone shows only half of that. The
 	// decision answers from its footer and carries no mark at its corner;
 	// its scrim absorbs a stray click without acting on it, because
-	// dismissal is one of the answers. The panel is a place, and every cheap
+	// dismissal is one of the answers. The pane is a place, and every cheap
 	// way out of it is offered at once: the mark, the key and the scrim.
 	//
 	// Neither is a modal you cannot leave from the keyboard — both bind the
@@ -486,15 +486,15 @@ func (inv *Inventory) modal(c tokens.PlatformColors) layout.Widget {
 		},
 		Shaper: inv.shaper,
 	}
-	// No Decision and no Actions: the panel's changes apply as they are
+	// No Decision and no Actions: the pane's changes apply as they are
 	// made, which is what leaves it nothing to ask and nothing to put in a
 	// footer, and what lets it be left at any moment.
 	//
 	// Its body says that and stops. A line telling the reader which corner to
 	// click would be a specimen's copy carrying its own layout: the mark
 	// moves for a mirrored reading direction and the sentence would not, and
-	// the panel has two other ways out that no corner names.
-	panel := modal.Props{
+	// the pane has two other ways out that no corner names.
+	pane := modal.Props{
 		Title: "Theme settings",
 		Body: inv.prose(c,
 			"Every change here applies as you make it.",
@@ -506,7 +506,7 @@ func (inv *Inventory) modal(c tokens.PlatformColors) layout.Widget {
 		return layout.Flex{}.Layout(gtx,
 			layout.Flexed(1, inv.modalScrim(c, decision)),
 			layout.Rigid(complayout.HSpacer(modalGap)),
-			layout.Flexed(1, inv.modalScrim(c, panel)),
+			layout.Flexed(1, inv.modalScrim(c, pane)),
 		)
 	}
 }

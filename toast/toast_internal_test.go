@@ -112,7 +112,7 @@ func nearColor(got color.RGBA, want color.NRGBA) bool {
 // width the desktop keeps for hairlines, separators and insets — one to
 // three pixels. The ceiling is the toast's own air: the message stands one
 // horizontal pad clear of the edge, and an edge as wide as that gap reads
-// as a panel the message sits beside rather than as the leading edge. So the
+// as a pane the message sits beside rather than as the leading edge. So the
 // assertion is not "8 px" for its own sake — it is that the mark is at
 // least twice the platform's hairline band and still narrower than the air
 // it holds the text off by, with the pixel value logged so a later change
@@ -136,7 +136,7 @@ func TestLeadingEdgeIsWiderThanTheHairlineBandAndNarrowerThanItsOwnAir(t *testin
 		}
 		air := int(tok.spacing.S3) // the message's inset from the edge
 		if edge.Dx() >= air {
-			t.Errorf("status %d edge is %d px wide against %d px of air before the message; an edge as wide as its own air reads as a panel",
+			t.Errorf("status %d edge is %d px wide against %d px of air before the message; an edge as wide as its own air reads as a pane",
 				status, edge.Dx(), air)
 		}
 		// The air is real, not just arithmetic: find the first column right

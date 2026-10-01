@@ -619,7 +619,7 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(180))
 							return g.label(gtx, lv.title, pageMuted, unit.Sp(12), font.Font{})
 						}),
-						layout.Rigid(g.surfacePanel(lv.fill, func(gtx layout.Context) layout.Dimensions {
+						layout.Rigid(g.surfacePane(lv.fill, func(gtx layout.Context) layout.Dimensions {
 							return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 								if g.chipLive[i] == nil {
 									return layout.Dimensions{}
@@ -647,10 +647,10 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 	})
 }
 
-// surfacePanel draws content over a fill of its own, sized to what the
+// surfacePane draws content over a fill of its own, sized to what the
 // content measured — the fill goes down after the content is recorded,
-// because the panel's size is the content's and nothing knows it sooner.
-func (g *gallery) surfacePanel(fill color.NRGBA, content layout.Widget) layout.Widget {
+// because the pane's size is the content's and nothing knows it sooner.
+func (g *gallery) surfacePane(fill color.NRGBA, content layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		m := op.Record(gtx.Ops)
 		dims := content(gtx)

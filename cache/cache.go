@@ -4,7 +4,7 @@
 // # Problem
 //
 // Gio components re-record their draw commands every frame. When a
-// component's visual state is unchanged — a settled panel, a read-only data
+// component's visual state is unchanged — a settled pane, a read-only data
 // grid, a static label — that re-recording is wasted work.
 // Indicator.Compute-style allocations inside the layout.Widget closure run
 // even when nothing changed.

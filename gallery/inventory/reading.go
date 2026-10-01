@@ -167,7 +167,7 @@ func (inv *Inventory) codeBody(c tokens.PlatformColors) layout.Widget {
 	// line of it is hard to read; code is not prose — a line wrapped or
 	// scrolled out of sight is a line the style cannot be judged on — and a
 	// capped plate leaves its own section's heading running past it on one
-	// side, which reads as a panel that failed to fill rather than as a
+	// side, which reads as a pane that failed to fill rather than as a
 	// measure somebody chose.
 	return func(gtx layout.Context) layout.Dimensions {
 		return inv.code.LayoutColumn(gtx, inv.shaper, style)

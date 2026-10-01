@@ -698,11 +698,11 @@ func (inv *Inventory) pinnedButtonRow(c tokens.PlatformColors) layout.Widget {
 // and the surface it stands on has to show all round it — a chip captured
 // flush with the edge of that surface is a chip nobody can judge the rim of,
 // which is the whole of what the light scheme has to carry it with. So each
-// surface is drawn as a panel with the chips inset inside it, and the state
+// surface is drawn as a pane with the chips inset inside it, and the state
 // rows stand on the page below them.
 const (
-	chipPanelPadX unit.Dp = 16
-	chipPanelPadY unit.Dp = 12
+	chipPanePadX unit.Dp = 16
+	chipPanePadY unit.Dp = 12
 	chipRowGap    unit.Dp = 16
 	chipChipGap   unit.Dp = 12
 	chipCaptionW  unit.Dp = 108
@@ -713,8 +713,8 @@ const (
 // to be re-guessed the day that changed.
 var (
 	chipH      = unit.Dp(tokens.Comfortable.ChipHeight())
-	chipPanelH = chipH + 2*chipPanelPadY
-	chipBlockH = 3*chipPanelH + 2*chipH + 4*chipRowGap
+	chipPaneH = chipH + 2*chipPanePadY
+	chipBlockH = 3*chipPaneH + 2*chipH + 4*chipRowGap
 )
 
 // chipSurfaces are the fills the section shows the chip on: the content a
@@ -725,7 +725,7 @@ var (
 // one fill says nothing about the others.
 //
 // On macOS 26 the content and the chrome material are one white in the light
-// appearance, so two of the three panels read as one there; in the dark
+// appearance, so two of the three panes read as one there; in the dark
 // appearance the three are #1e1e1e, #2a3034 and #232a2e. That is the
 // platform's own answer and not a fault of the specimen.
 func chipSurfaces(c tokens.PlatformColors) []struct {
@@ -865,7 +865,7 @@ func (inv *Inventory) chipBlock(c tokens.PlatformColors) layout.Widget {
 	// The caption stands inside the band rather than beside it. A label naming
 	// a surface while sitting on a different one is a label about the row and
 	// not about the surface.
-	panel := func(lv struct {
+	pane := func(lv struct {
 		name string
 		fill color.NRGBA
 	}) layout.Widget {
@@ -875,10 +875,10 @@ func (inv *Inventory) chipBlock(c tokens.PlatformColors) layout.Widget {
 				chip.RenderState{Surface: lv.fill, Selected: p.selected}))
 		}
 		band := func(gtx layout.Context) layout.Dimensions {
-			return complayout.InsetXY(float32(chipPanelPadX), float32(chipPanelPadY)).Layout(gtx,
+			return complayout.InsetXY(float32(chipPanePadX), float32(chipPanePadY)).Layout(gtx,
 				chipLine(inv, c, lv.name, cells))
 		}
-		return surfacePanel(lv.fill, band)
+		return surfacePane(lv.fill, band)
 	}
 	surfaces := chipSurfaces(c)
 	return func(gtx layout.Context) layout.Dimensions {
@@ -887,15 +887,15 @@ func (inv *Inventory) chipBlock(c tokens.PlatformColors) layout.Widget {
 			if len(cs) > 0 {
 				cs = append(cs, layout.Rigid(complayout.VSpacer(float32(chipRowGap))))
 			}
-			cs = append(cs, layout.Rigid(panel(lv)))
+			cs = append(cs, layout.Rigid(pane(lv)))
 		}
 		for _, r := range rows {
 			line := chipLine(inv, c, r.caption, r.cells)
 			cs = append(cs, layout.Rigid(complayout.VSpacer(float32(chipRowGap))))
 			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				// Indented by the panel's own padding so every caption in the
-				// section starts at one x, panel or page.
-				return complayout.InsetXY(float32(chipPanelPadX), 0).Layout(gtx, line)
+				// Indented by the pane's own padding so every caption in the
+				// section starts at one x, pane or page.
+				return complayout.InsetXY(float32(chipPanePadX), 0).Layout(gtx, line)
 			}))
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
@@ -923,11 +923,11 @@ func chipLine(inv *Inventory, c tokens.PlatformColors, caption string, cells []l
 	}
 }
 
-// surfacePanel draws content over a fill of its own, sized to what the
+// surfacePane draws content over a fill of its own, sized to what the
 // content measured. The fill is painted after the content is recorded and
-// replayed over it, because the panel's size is the content's and there is no
+// replayed over it, because the pane's size is the content's and there is no
 // way to know it before laying the content out.
-func surfacePanel(fill color.NRGBA, content layout.Widget) layout.Widget {
+func surfacePane(fill color.NRGBA, content layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		m := op.Record(gtx.Ops)
 		dims := content(gtx)
@@ -1024,7 +1024,7 @@ func (inv *Inventory) badgeStyle() tokens.TextStyle {
 // Every row stands on the page, and no row is repeated on a second surface.
 // On this platform a badge with a label wears its status's own colour, which
 // is one value whatever is beneath it, and a bare sign is that colour read
-// for the surface rather than derived from it — so a second panel of the same
+// for the surface rather than derived from it — so a second pane of the same
 // five comes out the same byte and promises an adaptation that is not there.
 // A sheet labelling three rows with three surfaces and drawing one row three
 // times is worse than one that draws the row once (fresh-eyes review,
@@ -1046,10 +1046,10 @@ func (inv *Inventory) badgeBlock(c tokens.PlatformColors) layout.Widget {
 			badge.RenderState{})
 	}
 	// A disc is a symbol badge asked to stand on its status's fill instead of
-	// bare. The fill is the same one the vocabulary panels above show on three
+	// bare. The fill is the same one the vocabulary panes above show on three
 	// surfaces, so the disc rows are drawn on the page like the other
 	// structure rows: what they ask a reader to judge is the shape, not a
-	// derivation the panels already answer.
+	// derivation the panes already answer.
 	discs := func(symbol badge.Symbol) []layout.Widget {
 		cells := make([]layout.Widget, 0, len(statuses))
 		for _, bs := range statuses {
@@ -1219,7 +1219,7 @@ func (inv *Inventory) toasts(c tokens.PlatformColors) layout.Widget {
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(toastBandW))
-		return surfacePanel(c.CardFill, func(gtx layout.Context) layout.Dimensions {
+		return surfacePane(c.CardFill, func(gtx layout.Context) layout.Dimensions {
 			return complayout.InsetXY(float32(toastBandPad), float32(toastBandPad)).Layout(gtx, column)
 		})(gtx)
 	}
