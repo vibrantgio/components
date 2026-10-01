@@ -27,7 +27,7 @@ import (
 // Its stroke spans most of the box and is centred on it, both deliberately:
 // the badge reserves the box, so a sign that under-fills it reads as a gap in
 // the line, and one whose stroke is not centred on the box sits off the
-// baseline the title keeps.
+// baseline the text keeps.
 func check(gtx layout.Context, sizePx int, col color.NRGBA) {
 	w := float32(sizePx)
 	stroke := float32(gtx.Dp(unit.Dp(1.5)))
@@ -97,9 +97,9 @@ var goldenSchemes = []struct {
 }
 
 // goldenStatuses is the whole vocabulary, each carrying its own name as its
-// title so the row reads without a caption under it.
+// text so the row reads without a caption under it.
 var goldenStatuses = []struct {
-	title  string
+	txt    string
 	status badge.Status
 }{
 	{"Neutral", badge.Neutral},
@@ -130,7 +130,7 @@ func TestBadgeGolden(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ws := make([]layout.Widget, 0, len(goldenStatuses))
 			for _, st := range goldenStatuses {
-				ws = append(ws, badge.Render(shaper, st.title, nil, st.status,
+				ws = append(ws, badge.Render(shaper, st.txt, nil, st.status,
 					sc.p, tokens.Spacing, tokens.Radius, badgeStyle(),
 					badge.RenderState{}))
 			}
@@ -169,8 +169,8 @@ func TestUtterancesGolden(t *testing.T) {
 func TestDismissGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	states := []struct {
-		title string
-		s     badge.RenderState
+		txt string
+		s   badge.RenderState
 	}{
 		{"Rest", badge.RenderState{}},
 		{"Hover", badge.RenderState{DismissHovered: true}},
@@ -181,7 +181,7 @@ func TestDismissGolden(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ws := make([]layout.Widget, 0, len(states))
 			for _, st := range states {
-				ws = append(ws, badge.RenderDismissible(shaper, st.title, nil, badge.Neutral,
+				ws = append(ws, badge.RenderDismissible(shaper, st.txt, nil, badge.Neutral,
 					nil, sc.p, tokens.Spacing, tokens.Radius, badgeStyle(), st.s))
 			}
 			golden.Render(t, name, goldenSize, onPage(sc.p, row(ws...)))
@@ -198,7 +198,7 @@ func TestCompactGolden(t *testing.T) {
 	style := badge.Style(tokens.DefaultTypography, tokens.Compact)
 	ws := make([]layout.Widget, 0, len(goldenStatuses))
 	for _, st := range goldenStatuses {
-		ws = append(ws, badge.Render(shaper, st.title, nil, st.status,
+		ws = append(ws, badge.Render(shaper, st.txt, nil, st.status,
 			tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, badge.RenderState{}))
 	}
 	golden.Render(t, "badge-light-compact", goldenSize,
@@ -234,7 +234,7 @@ func TestHeightIsTheLineBoxAndNothingElse(t *testing.T) {
 		want := int(style.LineHeight)
 		for _, tc := range []struct {
 			name   string
-			title  string
+			txt    string
 			symbol badge.Symbol
 		}{
 			{"word", "Popular", nil},
@@ -243,7 +243,7 @@ func TestHeightIsTheLineBoxAndNothingElse(t *testing.T) {
 			{"both", "Verified", check},
 		} {
 			t.Run(d.name+" "+tc.name, func(t *testing.T) {
-				got := measure(t, badge.Render(shaper, tc.title, tc.symbol, badge.Neutral,
+				got := measure(t, badge.Render(shaper, tc.txt, tc.symbol, badge.Neutral,
 					tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, badge.RenderState{}))
 				if got.Y != want {
 					t.Errorf("height = %d dp, want the %g dp line box of the %s role",
@@ -292,14 +292,14 @@ func TestTheDensityPicksTheTypeRole(t *testing.T) {
 // not stretch. A badge that filled its box would be a banner.
 func TestBadgeIsSizedToItsContent(t *testing.T) {
 	shaper := defaultShaper(t)
-	render := func(title string) layout.Widget {
-		return badge.Render(shaper, title, nil, badge.Neutral,
+	render := func(txt string) layout.Widget {
+		return badge.Render(shaper, txt, nil, badge.Neutral,
 			tokens.PlatformLight, tokens.Spacing, tokens.Radius, badgeStyle(), badge.RenderState{})
 	}
 	short := measure(t, render("A"))
 	long := measure(t, render("A considerably longer statement"))
 	if short.X >= long.X {
-		t.Errorf("a one-letter badge measured %d dp wide and a long one %d: the badge is not sized to its title",
+		t.Errorf("a one-letter badge measured %d dp wide and a long one %d: the badge is not sized to its txt",
 			short.X, long.X)
 	}
 	if short.X >= 1000 {
@@ -308,7 +308,7 @@ func TestBadgeIsSizedToItsContent(t *testing.T) {
 }
 
 // TestTheSignCostsTheLineBoxAndOneStop pins the geometry the package doc
-// states for the sign: it is the title's own line box, and it leads the title
+// states for the sign: it is the text's own line box, and it leads the text
 // across the spacing scale's S1 stop.
 func TestTheSignCostsTheLineBoxAndOneStop(t *testing.T) {
 	shaper := defaultShaper(t)
@@ -331,7 +331,7 @@ func TestTheSignCostsTheLineBoxAndOneStop(t *testing.T) {
 }
 
 // TestTheCloseMarkCostsHalfTheLineBoxAndOneStop pins the other end: the mark
-// is half the line box, one S1 stop after the title, and it does not make the
+// is half the line box, one S1 stop after the text, and it does not make the
 // badge taller. What it costs the badge in width is the drawn mark only — the
 // 24 dp target under it is slop and belongs to no layout.
 func TestTheCloseMarkCostsHalfTheLineBoxAndOneStop(t *testing.T) {
@@ -421,7 +421,7 @@ func dimensions(t *testing.T, w layout.Widget) layout.Dimensions {
 	return w(gtx)
 }
 
-// TestTheBadgeReportsItsLabelsBaseline is the fix for a row that could not be
+// TestTheBadgeReportsItsTextsBaseline is the fix for a row that could not be
 // set on one line: layout.Baseline aligns on Dimensions.Baseline, a badge that
 // reports zero there is aligned by its box instead, and a badge whose box is
 // the line box while the text beside it is set in a larger role lands a few
@@ -429,23 +429,23 @@ func dimensions(t *testing.T, w layout.Widget) layout.Dimensions {
 //
 // A symbol badge reports none on purpose. A sign has no baseline to offer, and
 // zero is what Gio reads as "align me by my box".
-func TestTheBadgeReportsItsLabelsBaseline(t *testing.T) {
+func TestTheBadgeReportsItsTextsBaseline(t *testing.T) {
 	shaper := defaultShaper(t)
 	style := badgeStyle()
-	hasTitle := dimensions(t, badge.Render(shaper, "Popular", nil, badge.Neutral,
+	hasText := dimensions(t, badge.Render(shaper, "Popular", nil, badge.Neutral,
 		tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, badge.RenderState{}))
-	if hasTitle.Baseline <= 0 {
-		t.Errorf("a badge with a title reports baseline %d: a row aligned on it has nothing to align on", hasTitle.Baseline)
+	if hasText.Baseline <= 0 {
+		t.Errorf("a badge with a txt reports baseline %d: a row aligned on it has nothing to align on", hasText.Baseline)
 	}
-	if hasTitle.Baseline >= hasTitle.Size.Y {
-		t.Errorf("a badge with a title %d dp tall reports baseline %d, which is at or above its own top edge",
-			hasTitle.Size.Y, hasTitle.Baseline)
+	if hasText.Baseline >= hasText.Size.Y {
+		t.Errorf("a badge with a txt %d dp tall reports baseline %d, which is at or above its own top edge",
+			hasText.Size.Y, hasText.Baseline)
 	}
-	// The baseline is measured up from the bottom, and the title fills the
+	// The baseline is measured up from the bottom, and the text fills the
 	// badge's whole height, so the two are the same number by construction —
 	// which is the claim: the badge passes on what the shaper told it rather
 	// than inventing a line of its own.
-	if got, want := hasTitle.Baseline, typesetBaseline(t, shaper, style, "Popular"); got != want {
+	if got, want := hasText.Baseline, typesetBaseline(t, shaper, style, "Popular"); got != want {
 		t.Errorf("the badge reports baseline %d and its own typesetting reports %d", got, want)
 	}
 	symbolOnly := dimensions(t, badge.Render(shaper, "", check, badge.Neutral,
@@ -455,9 +455,9 @@ func TestTheBadgeReportsItsLabelsBaseline(t *testing.T) {
 	}
 }
 
-// typesetBaseline is what the title alone reports, laid out the way the badge
+// typesetBaseline is what the text alone reports, laid out the way the badge
 // lays it out.
-func typesetBaseline(t *testing.T, shaper *text.Shaper, style tokens.TextStyle, title string) int {
+func typesetBaseline(t *testing.T, shaper *text.Shaper, style tokens.TextStyle, txt string) int {
 	t.Helper()
 	var ops op.Ops
 	gtx := layout.Context{
@@ -466,7 +466,7 @@ func typesetBaseline(t *testing.T, shaper *text.Shaper, style tokens.TextStyle, 
 		Ops:         &ops,
 	}
 	return typeset.Layout(gtx, shaper, typeset.Label(style, 1), typeset.Font(style, font.Normal),
-		unit.Sp(style.Size), title, op.CallOp{}).Baseline
+		unit.Sp(style.Size), txt, op.CallOp{}).Baseline
 }
 
 // onCard paints the frame in the platform's box fill and draws w inset in it.
@@ -510,7 +510,7 @@ func badgePixel(t *testing.T, img *image.RGBA, dx, dy int) color.NRGBA {
 
 // TestAWordedBadgeWearsItsFill is the structure in pixels: the fill is there,
 // it is the platform's system colour for the status, it is inset from the
-// title by the padding stop, it stops at the badge's own reported edge, and
+// text by the padding stop, it stops at the badge's own reported edge, and
 // its corner is cut.
 //
 // Sampled rather than diffed because what is being asserted is which colour
@@ -521,7 +521,7 @@ func TestAWordedBadgeWearsItsFill(t *testing.T) {
 	pad := int(tokens.Spacing.S2)
 	for _, sc := range goldenSchemes {
 		for _, st := range goldenStatuses {
-			w := badge.Render(shaper, st.title, nil, st.status,
+			w := badge.Render(shaper, st.txt, nil, st.status,
 				sc.p, tokens.Spacing, tokens.Radius, style, badge.RenderState{})
 			size := measure(t, w)
 			img := golden.Capture(t, goldenSize, onPage(sc.p, w))
@@ -533,23 +533,23 @@ func TestAWordedBadgeWearsItsFill(t *testing.T) {
 			for _, dx := range []int{0, pad - 1} {
 				if got := badgePixel(t, img, dx, mid); !sameColour(got, fill) {
 					t.Errorf("%s %s: the pixel %d in from the badge's left edge is %v, want the fill %v",
-						sc.name, st.title, dx, got, fill)
+						sc.name, st.txt, dx, got, fill)
 				}
 			}
 			// Outside it, on both sides, where only the page can be.
 			if got := badgePixel(t, img, -1, mid); !sameColour(got, page) {
 				t.Errorf("%s %s: the pixel before the badge's left edge is %v, want the page %v — the fill overruns the box the badge reported",
-					sc.name, st.title, got, page)
+					sc.name, st.txt, got, page)
 			}
 			if got := badgePixel(t, img, size.X, mid); !sameColour(got, page) {
 				t.Errorf("%s %s: the pixel after the badge's right edge is %v, want the page %v — the fill overruns the box the badge reported",
-					sc.name, st.title, got, page)
+					sc.name, st.txt, got, page)
 			}
 			// The corner is cut, which is the silhouette half of telling a
 			// badge from a chip: a square fill here would be the other one.
 			if got := badgePixel(t, img, 0, 0); sameColour(got, fill) {
 				t.Errorf("%s %s: the badge's top-left pixel is the fill — the fill is not rounded",
-					sc.name, st.title)
+					sc.name, st.txt)
 			}
 		}
 	}

@@ -27,7 +27,7 @@ func live(t *testing.T, props badge.Props) layout.Widget {
 	if props.Shaper == nil {
 		// The live path would otherwise take the theme's own shaper, which
 		// resolves against whatever fonts the machine has. Every measurement
-		// below is of a badge sized to its title, so the faces are pinned.
+		// below is of a badge sized to its text, so the faces are pinned.
 		props.Shaper = defaultShaper(t)
 	}
 	var w layout.Widget
@@ -82,7 +82,7 @@ func press(r *gioinput.Router, x, y int) {
 func TestTheBadgeReportsItsTextAndTheMarkHitsTheFloor(t *testing.T) {
 	var dismissed int
 	w := live(t, badge.Props{
-		Title:     "Filtered by owner",
+		Text:      "Filtered by owner",
 		Status:    badge.Info,
 		OnDismiss: func(_ layout.Context) { dismissed++ },
 	})
@@ -110,12 +110,12 @@ func TestTheBadgeReportsItsTextAndTheMarkHitsTheFloor(t *testing.T) {
 }
 
 // TestAClickAwayFromTheMarkIsNotADismissal is the same contract read the other
-// way: the badge's own text takes no pointer input, so a press on the title
+// way: the badge's own text takes no pointer input, so a press on the text
 // reaches nothing. A badge whose whole box was clickable would be a control.
 func TestAClickAwayFromTheMarkIsNotADismissal(t *testing.T) {
 	var dismissed int
 	w := live(t, badge.Props{
-		Title:     "Filtered by owner",
+		Text:      "Filtered by owner",
 		Status:    badge.Info,
 		OnDismiss: func(_ layout.Context) { dismissed++ },
 	})
@@ -135,10 +135,10 @@ func TestAClickAwayFromTheMarkIsNotADismissal(t *testing.T) {
 // mark and registers no pointer area, so nothing anywhere in its box — or in
 // the air a target would have overhung — answers a press.
 func TestABadgeWithoutDismissTakesNoInput(t *testing.T) {
-	plain := live(t, badge.Props{Title: "Popular", Status: badge.Info})
+	plain := live(t, badge.Props{Text: "Popular", Status: badge.Info})
 	var dismissed int
 	dismissible := live(t, badge.Props{
-		Title:     "Popular",
+		Text:      "Popular",
 		Status:    badge.Info,
 		OnDismiss: func(_ layout.Context) { dismissed++ },
 	})
@@ -163,13 +163,13 @@ func TestABadgeWithoutDismissTakesNoInput(t *testing.T) {
 }
 
 // TestOneDoubleClickIsOneDismissal drains the clickable to empty and reports
-// once. Two clicks in one frame on a mark whose title the caller is about to
+// once. Two clicks in one frame on a mark whose text the caller is about to
 // take away must not fire twice, and the second must not be left queued to
 // fire on the frame after that.
 func TestOneDoubleClickIsOneDismissal(t *testing.T) {
 	var dismissed int
 	w := live(t, badge.Props{
-		Title:     "Beta",
+		Text:      "Beta",
 		OnDismiss: func(_ layout.Context) { dismissed++ },
 	})
 
@@ -198,7 +198,7 @@ func TestTheLiveBadgeDrawsWhatRenderDraws(t *testing.T) {
 	pure := measure(t, badge.Render(shaper, "Popular", nil, badge.Success,
 		tokens.PlatformLight, tokens.Spacing, tokens.Radius, badgeStyle(), badge.RenderState{}))
 
-	w := live(t, badge.Props{Title: "Popular", Status: badge.Success, Shaper: shaper})
+	w := live(t, badge.Props{Text: "Popular", Status: badge.Success, Shaper: shaper})
 	got := driver(w, new(gioinput.Router), image.Pt(1000, 1000))()
 	if got.Size != pure {
 		t.Errorf("the live badge measured %v and Render measured %v", got.Size, pure)
@@ -210,8 +210,8 @@ func TestTheLiveBadgeDrawsWhatRenderDraws(t *testing.T) {
 // around it, so two badges laid out side by side must come back as two named
 // nodes rather than one label overwriting the other on whatever encloses them.
 func TestEachBadgeNamesItself(t *testing.T) {
-	first := live(t, badge.Props{Title: "Popular", Status: badge.Info})
-	second := live(t, badge.Props{Title: "Deprecated", Status: badge.Warning,
+	first := live(t, badge.Props{Text: "Popular", Status: badge.Info})
+	second := live(t, badge.Props{Text: "Deprecated", Status: badge.Warning,
 		Description: "This model is deprecated"})
 
 	r := new(gioinput.Router)

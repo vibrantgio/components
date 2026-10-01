@@ -40,7 +40,7 @@ func TestEveryStatusIsThePlatformsColourForIt(t *testing.T) {
 }
 
 // TestAFilledBadgeReadsInTheForegroundThePlatformPairsWithAFill: the content
-// of a badge with a title or a count is alternateSelectedControlTextColor and does
+// of a badge with text or a count is alternateSelectedControlTextColor and does
 // not vary with the status, because the platform's own badge does not.
 func TestAFilledBadgeReadsInTheForegroundThePlatformPairsWithAFill(t *testing.T) {
 	for _, sc := range goldenSchemes {
@@ -64,7 +64,7 @@ func TestABareSignIsTheSystemColourItself(t *testing.T) {
 				want = vgcolor.Flatten(sc.p.SecondaryLabel, sc.p.WindowBackground)
 			}
 			if got := badge.BareForeground(sc.p, st.status, sc.p.WindowBackground); got != want {
-				t.Errorf("%s %s: BareForeground = %v, want %v", sc.name, st.title, got, want)
+				t.Errorf("%s %s: BareForeground = %v, want %v", sc.name, st.txt, got, want)
 			}
 		}
 	}
@@ -89,9 +89,9 @@ func TestTheFiveStayFive(t *testing.T) {
 			for _, st := range goldenStatuses {
 				c := get.fn(sc.p, st.status)
 				if prev, dup := seen[c]; dup {
-					t.Errorf("%s %s: %s and %s are both %v", sc.name, get.name, prev, st.title, c)
+					t.Errorf("%s %s: %s and %s are both %v", sc.name, get.name, prev, st.txt, c)
 				}
-				seen[c] = st.title
+				seen[c] = st.txt
 			}
 		}
 	}

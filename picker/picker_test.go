@@ -93,16 +93,16 @@ const planeInset = 10
 // the plane's own fill and nothing else.
 func standsThere(img *image.RGBA, x, y int) bool { return px(img, x, y).G > 0 }
 
-// TestFieldTriggerShowsTheValue is the single-choice contract in pixels: the
+// TestFieldTriggerShowsTheTitle is the single-choice contract in pixels: the
 // closed trigger draws the option Selected names and nothing else about the
 // list, so a picker holding the second of three is indistinguishable from one
 // whose only option is that same string.
-func TestFieldTriggerShowsTheValue(t *testing.T) {
+func TestFieldTriggerShowsTheTitle(t *testing.T) {
 	size := image.Pt(200, 44)
 	ofThree := golden.Capture(t, size, field(t, picker.FieldState{Options: options, Selected: 1}))
 	ofOne := golden.Capture(t, size, field(t, picker.FieldState{Options: []string{"Beta"}}))
 	if n := golden.PixelDiff(ofThree, ofOne); n != 0 {
-		t.Errorf("a closed trigger holding %q out of three differs from one holding it alone in %d pixels; the trigger shows the value and nothing else", options[1], n)
+		t.Errorf("a closed trigger holding %q out of three differs from one holding it alone in %d pixels; the trigger shows the title and nothing else", options[1], n)
 	}
 }
 
@@ -347,12 +347,12 @@ func TestCappedFieldFloatsExactlyTheCap(t *testing.T) {
 	}
 }
 
-// TestTriggerDrawsItsPromptApartFromItsValue is the empty-state contract: a
+// TestTriggerDrawsItsPromptApartFromItsTitle is the empty-state contract: a
 // field holding no value says so, in the prompt's own foreground, and the two prompts
 // are two sentences — a field with options and none picked asks the reader to
 // choose, and one with no options reports that there is nothing to choose.
 // None of the three drawings may be the same image.
-func TestTriggerDrawsItsPromptApartFromItsValue(t *testing.T) {
+func TestTriggerDrawsItsPromptApartFromItsTitle(t *testing.T) {
 	size := image.Pt(200, 44)
 	picked := golden.Capture(t, size, field(t, picker.FieldState{
 		Options: options, Selected: 1, Placeholder: "Choose one…", NoOptions: "Nothing to pick",
@@ -371,12 +371,12 @@ func TestTriggerDrawsItsPromptApartFromItsValue(t *testing.T) {
 	}
 
 	// The prompt is drawn in the prompt's foreground, not the body's: the same
-	// wording as a VALUE is a different image.
-	asValue := golden.Capture(t, size, field(t, picker.FieldState{
+	// wording as a TITLE is a different image.
+	asTitle := golden.Capture(t, size, field(t, picker.FieldState{
 		Options: []string{"Choose one…"},
 	}))
-	if n := golden.PixelDiff(unpicked, asValue); n == 0 {
-		t.Error("a prompt is drawn in the same colour as a value; an unanswered field reads as answered")
+	if n := golden.PixelDiff(unpicked, asTitle); n == 0 {
+		t.Error("a prompt is drawn in the same colour as a title; an unanswered field reads as answered")
 	}
 }
 

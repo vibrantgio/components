@@ -133,7 +133,7 @@ type FieldState struct {
 	// says otherwise. See [FieldProps.AvailableRoom].
 	AvailableRoom func(gtx layout.Context) (above, below int)
 
-	// Placeholder is the wording the trigger shows in place of a value while
+	// Placeholder is the wording the trigger shows in place of a title while
 	// the field holds none — Selected naming no option. See
 	// [FieldProps.Placeholder].
 	Placeholder string
@@ -524,8 +524,8 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 // above the trigger, the rows below it below, and the held row covers the
 // trigger itself.
 //
-// That is this platform's pop-up button. The control shows a value; pressing
-// it opens the catalogue around that value rather than beside it, so the thing
+// That is this platform's pop-up button. The control shows a title; pressing
+// it opens the catalogue around that title rather than beside it, so the thing
 // the reader was looking at does not move and the pointer is already on it.
 //
 // The held row's own box is centred on the trigger's — both are set in the
@@ -791,7 +791,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	markW := gtx.Dp(control.MarkWDp)
 
 	// A trigger says one of three things, and which foreground it says it in
-	// is the difference between a value and a prompt: an unanswered field
+	// is the difference between a title and a prompt: an unanswered field
 	// drawn in the body foreground reads as answered. Two prompts, because
 	// "choose one" and "there is nothing to choose" are different sentences
 	// and only the caller knows either.
@@ -852,8 +852,8 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	}
 
 	// The mark stands in the trailing inset's slot, and the room held
-	// between it and the value is the trigger's own gap rather than one of
-	// its two ends: it is what stops a long value running into the mark.
+	// between it and the title is the trigger's own gap rather than one of
+	// its two ends: it is what stops a long title running into the mark.
 	gap := gtx.Dp(unit.Dp(tok.spacing.S3))
 	innerW := fieldW - lead - gap - markW - trail
 	if innerW < 1 {

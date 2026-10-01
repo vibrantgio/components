@@ -1,5 +1,6 @@
 // Package picker provides the Vibrant Gio pick-one-from-many affordance: a
-// trigger that names the current value and a menu that offers the alternatives.
+// trigger that shows the chosen item's title and a menu that offers the
+// alternatives.
 //
 // It is one component with two triggers and one open surface, because the two
 // triggers differ only in which variant they are drawn for:
@@ -25,7 +26,7 @@
 //
 // # Single choice by contract
 //
-// The trigger shows the value, so there is exactly one. Few-of-few selection
+// The trigger shows the title, so there is exactly one. Few-of-few selection
 // is not this component's — it is the Filter chip's, drawn as a row a reader
 // can see the state of at a glance, and a picker that summarised several
 // choices on its trigger would be describing a set through a control shaped
@@ -35,7 +36,7 @@
 //
 // [Field] floats its menu OVER its own trigger, with the row the picker is
 // holding on the trigger's own title, which is what this platform's pop-up
-// button does and what its [FieldState.Open] draws: the value the reader was
+// button does and what its [FieldState.Open] draws: the title the reader was
 // looking at does not move when the menu opens over it, and the catalogue is
 // laid out around it. The box the field reports is the trigger's alone, so an
 // open field is placed exactly where a closed one is, and the trigger draws
@@ -88,7 +89,7 @@
 // [Toolbar] is the same pop-up drawn for a chrome region, from the measured
 // geometry components/internal/controlface holds: the platform's own toolbar
 // control fill at rest and that fill under the platform's overlays under the
-// pointer and while held, the rim of its seam, the value and the mark both in
+// pointer and while held, the rim of its seam, the title and the mark both in
 // its control text, the focus ring it wears on that rim, the density's
 // height, the pointer target that control is, the pin. [ToolbarFill] is the
 // fill the trigger draws, for a caller that must know. Two things are the

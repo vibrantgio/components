@@ -116,7 +116,7 @@ func Row(typ Type, th rx.Observable[theme.Theme], p Palette, item Todo) layout.W
 		Checked:     item.Completed,
 		Message:     ToggleTodo{Id: item.Id},
 	}).First()
-	// ... the label and the delete icon, then a Flex row over the three.
+	// ... the todo text and the delete icon, then a Flex row over the three.
 }
 ```
 

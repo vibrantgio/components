@@ -34,7 +34,7 @@ import (
 type Status uint8
 
 const (
-	// Neutral is the plain category title, and the zero value: a badge
+	// Neutral is the plain category word, and the zero value: a badge
 	// given no status is Neutral, naming a kind rather than reporting a
 	// status. It is the one value the platform has no status colour for,
 	// so it wears the platform's grey instead.
@@ -86,7 +86,7 @@ const closeStrokeDp = 1.25
 // components/icon's registry all use, so a named symbol, a clip.Path drawn by
 // hand and a verdict mark built for one screen are interchangeable here.
 //
-// A nil Symbol draws no sign; the badge is then its title alone.
+// A nil Symbol draws no sign; the badge is then its text alone.
 type Symbol func(gtx layout.Context, sizePx int, col color.NRGBA)
 
 // Style returns the type role a badge is set in at density d: LabelMedium at
@@ -109,7 +109,7 @@ func Style(t tokens.Typography, d tokens.Density) tokens.TextStyle {
 // for [Neutral], which the platform gives no status colour.
 //
 // A bare badge is the symbol utterance — see [Fill] for why only that one
-// stands without a fill. A badge with a title or a count reads in [Foreground]
+// stands without a fill. A badge with text or a count reads in [Foreground]
 // against the fill it wears instead.
 //
 // The platform's system colours are read on every fill a window carries,
@@ -123,7 +123,7 @@ func BareForeground(p tokens.PlatformColors, status Status, standsOn color.NRGBA
 	return status.systemColor(p)
 }
 
-// Fill is the fill a badge with a title or a count wears: the platform's system
+// Fill is the fill a badge with text or a count wears: the platform's system
 // colour for the status, at full strength, which is how the platform draws
 // a count badge. A [Neutral] badge wears systemGray, the platform's answer
 // where no status is carried.
@@ -162,7 +162,7 @@ func Fill(p tokens.PlatformColors, status Status) color.NRGBA {
 	return status.systemColor(p)
 }
 
-// Foreground is the colour a badge with a title or a count reads its content in: the
+// Foreground is the colour a badge with text or a count reads its content in: the
 // foreground the platform pairs with a fill its accent or a system colour
 // paints, alternateSelectedControlTextColor — white in both appearances.
 //
@@ -193,8 +193,8 @@ type RenderState struct {
 	// a circle the symbol's line box across, the sign centred in it in
 	// [Foreground] rather than [BareForeground] and drawn in the square
 	// inscribed in that circle. It is a request and not a structure of its
-	// own — a badge with a title already wears its fill and ignores this,
-	// and a badge with neither title nor symbol has nothing to put a disc
+	// own — a badge with text already wears its fill and ignores this,
+	// and a badge with neither text nor symbol has nothing to put a disc
 	// behind.
 	//
 	// The bare sign is the default, so the zero value leaves every badge
@@ -226,18 +226,18 @@ func (s RenderState) overlay(p tokens.PlatformColors, beneath color.NRGBA) color
 // Props configures a [Badge] instance: what it says, which status it
 // indicates, what it stands on, and whether it can be dismissed.
 type Props struct {
-	// Title is what the badge says — a word, or the digits of a count. An
-	// empty Title with a non-nil Symbol is the symbol utterance.
-	Title string
+	// Text is what the badge says — a word, or the digits of a count. An
+	// empty Text with a non-nil Symbol is the symbol utterance.
+	Text string
 
-	// Symbol is the sign the badge draws, in the title's own line box, leading
-	// the title across the spacing scale's S1 stop. A nil Symbol draws none.
+	// Symbol is the sign the badge draws, in the text's own line box, leading
+	// the text across the spacing scale's S1 stop. A nil Symbol draws none.
 	Symbol Symbol
 
-	// Disc asks a symbol badge — a non-nil Symbol with an empty Title — to
+	// Disc asks a symbol badge — a non-nil Symbol with an empty Text — to
 	// stand on the status's fill: a circle the symbol's line box across, the
 	// sign centred in it and drawn smaller to fit. Copied straight into
-	// [RenderState.Disc]. A badge with a title ignores it.
+	// [RenderState.Disc]. A badge with text ignores it.
 	Disc bool
 
 	// Surface is the opaque fill the badge stands on, copied straight into
@@ -249,7 +249,7 @@ type Props struct {
 	// a badge given no status is Neutral.
 	Status Status
 
-	// Description is the screen-reader label. Falls back to Title when empty,
+	// Description is the screen-reader label. Falls back to Text when empty,
 	// which is what a symbol badge needs — a sign with no text has nothing
 	// for a reader to say unless the caller says it.
 	Description string
@@ -258,8 +258,8 @@ type Props struct {
 	// draws its close mark and calls this on a click; when it is nil the
 	// badge draws no mark and registers no pointer area.
 	//
-	// It reports that the reader asked for this title to go away, and nothing
-	// more. Dismissing a badge removes the title, never behaviour: the badge
+	// It reports that the reader asked for this text to go away, and nothing
+	// more. Dismissing a badge removes the text, never behaviour: the badge
 	// does not hide itself on the next frame, and whatever it was about is
 	// untouched.
 	OnDismiss func(gtx layout.Context)
@@ -319,7 +319,7 @@ func discSign(px int) int {
 //
 // There is no vertical padding, and none is missing: the type role's line box
 // carries its own leading — 16 dp of box around a 12 sp face — so a fill drawn
-// at the line box already stands about 3 dp clear of the title's cap and
+// at the line box already stands about 3 dp clear of the text's cap and
 // descender. Padding on top of that would take the badge off its own line.
 func fillPad(sp tokens.SpacingScale) float32 { return sp.S2 }
 
@@ -381,18 +381,18 @@ func Badge(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 			}
 			desc := props.Description
 			if desc == "" {
-				desc = props.Title
+				desc = props.Text
 			}
 
 			return func(gtx layout.Context) layout.Dimensions {
 				s := RenderState{Disc: props.Disc, Surface: props.Surface}
 				if props.OnDismiss == nil {
-					return draw(gtx, shaper, props.Title, props.Symbol, props.Status,
+					return draw(gtx, shaper, props.Text, props.Symbol, props.Status,
 						tok, s, desc, false, nil)
 				}
 				// Drained to empty and reported once: a double click on a
 				// close mark is one dismissal, not two, and the second click
-				// left queued would fire on the next frame against a title
+				// left queued would fire on the next frame against a text
 				// the caller has already taken away.
 				dismissed := false
 				for dismiss.Clicked(gtx) {
@@ -408,7 +408,7 @@ func Badge(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 				}
 				s.DismissHovered = dismiss.Hovered()
 				s.DismissPressed = dismiss.Pressed()
-				return draw(gtx, shaper, props.Title, props.Symbol, props.Status,
+				return draw(gtx, shaper, props.Text, props.Symbol, props.Status,
 					tok, s, desc, true, &dismiss)
 			}
 		})
@@ -416,12 +416,12 @@ func Badge(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 }
 
 // Render produces a layout.Widget drawing the badge in an explicit visual
-// state, without event processing: the symbol and the title on one line, at the
+// state, without event processing: the symbol and the text on one line, at the
 // line box of the style handed in and no taller.
 //
-// symbol may be nil, in which case the badge is its title alone; title may be
+// symbol may be nil, in which case the badge is its text alone; text may be
 // empty, in which case it is its symbol alone. That choice is also the choice
-// of structure: a badge with a title wears its status's [Fill] and reads in
+// of structure: a badge with text wears its status's [Fill] and reads in
 // [Foreground], and a symbol-only badge stands bare and reads in
 // [BareForeground] — unless s.Disc asks the symbol badge to
 // stand on a disc, which puts it back on [Fill] and [Foreground]. style is the
@@ -429,13 +429,13 @@ func Badge(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 // which is tokens.DefaultTypography.LabelMedium at tokens.Comfortable.
 //
 // The badge is sized to its content and clamped to the constraints it is
-// handed, and reports the baseline of its title so a row can set it on the
+// handed, and reports the baseline of its text so a row can set it on the
 // same line as the text beside it. Registering the close mark's pointer target
 // is the live path's job — see [Badge] — or [RenderDismissible]'s, for a
 // caller that owns the clickable.
 func Render(
 	shaper *text.Shaper,
-	title string,
+	txt string,
 	symbol Symbol,
 	status Status,
 	colors tokens.PlatformColors,
@@ -446,7 +446,7 @@ func Render(
 ) layout.Widget {
 	tok := resolvedTokens{platform: colors, spacing: sp, radius: rad, style: style}
 	return func(gtx layout.Context) layout.Dimensions {
-		return draw(gtx, shaper, title, symbol, status, tok, s, title, false, nil)
+		return draw(gtx, shaper, txt, symbol, status, tok, s, txt, false, nil)
 	}
 }
 
@@ -461,7 +461,7 @@ func Render(
 // mark and answers no pointer, which is what a still image wants.
 func RenderDismissible(
 	shaper *text.Shaper,
-	title string,
+	txt string,
 	symbol Symbol,
 	status Status,
 	dismiss *widget.Clickable,
@@ -473,17 +473,17 @@ func RenderDismissible(
 ) layout.Widget {
 	tok := resolvedTokens{platform: colors, spacing: sp, radius: rad, style: style}
 	return func(gtx layout.Context) layout.Dimensions {
-		return draw(gtx, shaper, title, symbol, status, tok, s, title, true, dismiss)
+		return draw(gtx, shaper, txt, symbol, status, tok, s, txt, true, dismiss)
 	}
 }
 
-// draw paints one badge: the line box tall, sized to the symbol, the title and
+// draw paints one badge: the line box tall, sized to the symbol, the text and
 // the close mark it actually carries, over the fill the utterance calls for
 // and in the foreground the platform pairs with that fill.
 func draw(
 	gtx layout.Context,
 	shaper *text.Shaper,
-	title string,
+	txt string,
 	symbol Symbol,
 	status Status,
 	tok resolvedTokens,
@@ -496,15 +496,15 @@ func draw(
 	// fill, a sign on its own stands bare unless the caller asked for the
 	// disc. See [Fill].
 	//
-	// A title ignores [RenderState.Disc] rather than being refused it: the
+	// Text ignores [RenderState.Disc] rather than being refused it: the
 	// fill the text already wears IS the fill the disc would add, so
 	// honouring both would mean a badge inside a badge, and there is exactly
 	// one structure branch here.
-	hasTitle := title != ""
-	disc := !hasTitle && symbol != nil && s.Disc
+	hasText := txt != ""
+	disc := !hasText && symbol != nil && s.Disc
 	standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
 	var fill, fg color.NRGBA
-	if hasTitle || disc {
+	if hasText || disc {
 		fill, fg = Fill(tok.platform, status), Foreground(tok.platform)
 	} else {
 		fg = BareForeground(tok.platform, status, standsOn)
@@ -519,11 +519,11 @@ func draw(
 	// square, so a disc badge's box is the same line-box square a bare sign
 	// reports and a row that reserved room for one holds the other unmoved.
 	pad := 0
-	if hasTitle {
+	if hasText {
 		pad = gtx.Dp(unit.Dp(fillPad(tok.spacing)))
 	}
 
-	// The symbol's square is the title's own line box, the rule every inline
+	// The symbol's square is the text's own line box, the rule every inline
 	// mark in this library follows.
 	sign := 0
 	if symbol != nil {
@@ -538,7 +538,7 @@ func draw(
 	}
 
 	signGap, markGap := 0, 0
-	if sign > 0 && title != "" {
+	if sign > 0 && txt != "" {
 		signGap = gap
 	}
 	if mark > 0 {
@@ -547,7 +547,7 @@ func draw(
 
 	labelDims := layout.Dimensions{}
 	var labelCall op.CallOp
-	if title != "" {
+	if txt != "" {
 		mColor := op.Record(gtx.Ops)
 		paint.ColorOp{Color: fg}.Add(gtx.Ops)
 		material := mColor.Stop()
@@ -559,11 +559,11 @@ func draw(
 		}
 		mLabel := op.Record(gtx.Ops)
 		// typeset.Layout rather than widget.Label.Layout because the role's
-		// line height has to be the height of the title box, and Gio alone
+		// line height has to be the height of the text box, and Gio alone
 		// reports the drawn symbol extent instead — see theme/typeset.
 		labelDims = typeset.Layout(labelGtx, shaper,
 			typeset.Label(tok.style, 1), typeset.Font(tok.style, font.Normal),
-			unit.Sp(tok.style.Size), title, material)
+			unit.Sp(tok.style.Size), txt, material)
 		labelCall = mLabel.Stop()
 	}
 
@@ -577,7 +577,7 @@ func draw(
 	// constraints rounds to a stadium rather than drawing a corner larger
 	// than the box it belongs to.
 	radius := min(gtx.Dp(unit.Dp(fillRadius(tok.radius))), h/2)
-	if hasTitle {
+	if hasText {
 		paint.FillShape(gtx.Ops, fill, clip.RRect{
 			Rect: image.Rectangle{Max: size},
 			NW:   radius, NE: radius, SE: radius, SW: radius,
@@ -601,17 +601,17 @@ func draw(
 		so.Pop()
 		x += sign + signGap
 	}
-	if title != "" {
+	if txt != "" {
 		lo := op.Offset(image.Pt(x, (h-labelDims.Size.Y)/2)).Push(gtx.Ops)
 		labelCall.Add(gtx.Ops)
 		lo.Pop()
 		x += labelDims.Size.X
 	}
 
-	// The title's baseline, re-reported against the badge's own bottom edge.
+	// The text's baseline, re-reported against the badge's own bottom edge.
 	// layout.Dimensions.Baseline is measured up from the bottom, so what the
 	// badge owes is what typeset reported plus whatever the badge left under
-	// the title — which is nothing at all while the line box is the height,
+	// the text — which is nothing at all while the line box is the height,
 	// and is the rounding of an odd remainder when a caller's constraints
 	// squeeze it. A badge that reported no baseline is why a row aligned on
 	// layout.Baseline had nothing to align on and fell back to the box.
@@ -619,14 +619,14 @@ func draw(
 	// A symbol-only badge reports none: a sign has no baseline to offer, and
 	// zero is what Gio reads as "align me by my box".
 	baseline := 0
-	if title != "" {
+	if txt != "" {
 		below := h - labelDims.Size.Y
 		baseline = labelDims.Baseline + below - below/2
 	}
 
 	// The badge's own semantic node, scoped to the box it drew. A semantic op
 	// attaches to the innermost clip area around it, so a badge that emitted
-	// its title without an area of its own would write that title onto
+	// its text without an area of its own would write that text onto
 	// whatever area encloses it — and a page of badges would leave one
 	// surviving name between them.
 	//
@@ -634,7 +634,7 @@ func draw(
 	// clipped by the areas above it, and the mark's target is deliberately
 	// larger than the badge.
 	sem := clip.Rect{Max: size}.Push(gtx.Ops)
-	semantic.LabelOp(title).Add(gtx.Ops)
+	semantic.LabelOp(txt).Add(gtx.Ops)
 	semantic.DescriptionOp(desc).Add(gtx.Ops)
 	sem.Pop()
 
@@ -644,7 +644,7 @@ func draw(
 
 	origin := image.Pt(x+markGap, (h-mark)/2)
 	markFg := fg
-	if !hasTitle {
+	if !hasText {
 		// A bare sign's mark is not on the sign's own colour: it is an
 		// affordance on a piece of text, so it takes the platform's
 		// secondary label like every other small mark beside a word,
@@ -655,17 +655,17 @@ func draw(
 	// The close mark's REGION is what answers the pointer, not the 8 dp x
 	// inside it: a field is what makes a 24 dp target findable at all. On a
 	// badge that wears a fill the region is that fill's trailing cap — from
-	// the middle of the gap that separates the mark from the title out to
+	// the middle of the gap that separates the mark from the text out to
 	// the fill's own edge and corner; on a bare badge it is the mark's own
 	// square. The platform's hover and press overlays carry a coverage, so
 	// each is flattened onto what it actually lands on: the status fill on a
-	// badge with a title, the surface a bare one stands on.
+	// badge with a text, the surface a bare one stands on.
 	overlayOn := standsOn
-	if hasTitle {
+	if hasText {
 		overlayOn = fill
 	}
 	if overlay := s.overlay(tok.platform, overlayOn); overlay.A != 0 {
-		if hasTitle {
+		if hasText {
 			left := origin.X - markGap/2
 			paint.FillShape(gtx.Ops, overlay, clip.RRect{
 				Rect: image.Rectangle{Min: image.Pt(left, 0), Max: size},
@@ -728,8 +728,8 @@ func registerCloseTarget(gtx layout.Context, desc string, origin image.Point, ma
 	dismiss.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		semantic.ClassOp(semantic.Button).Add(gtx.Ops)
 		// The badge's own text names the target: what the mark removes is
-		// this title, and a reader reaching the mark should be told which
-		// title rather than a word this package invented for it.
+		// this text, and a reader reaching the mark should be told which
+		// text rather than a word this package invented for it.
 		semantic.LabelOp(desc).Add(gtx.Ops)
 		semantic.EnabledOp(true).Add(gtx.Ops)
 		pointershape.OverSize(gtx.Ops, image.Pt(target, target), pointer.CursorPointer)

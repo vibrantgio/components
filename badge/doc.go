@@ -28,7 +28,7 @@
 // is offered.
 //
 // The one thing that answers a pointer is the close mark, and what it removes
-// is the title. A badge that switched something off would be a control wearing
+// is the text. A badge that switched something off would be a control wearing
 // a badge's clothes; the affordance says "stop telling me this" and nothing
 // else, and the caller owns what happens next.
 //
@@ -47,11 +47,11 @@
 //
 // and there is one structure underneath all three: the type's line box tall,
 // sized to what it says, in the platform's colours for its status. A count is a
-// [Props.Title] of digits and needs no field of its own. A symbol is
-// [Props.Symbol] with no title, drawn in the line box's own square. A symbol set
-// beside a title leads it across the spacing scale's S1 stop — the sign comes
+// [Props.Text] of digits and needs no field of its own. A symbol is
+// [Props.Symbol] with no text, drawn in the line box's own square. A symbol set
+// beside text leads it across the spacing scale's S1 stop — the sign comes
 // before the word it stands for, which is also what keeps the badge from
-// reading as a chip, whose mark trails its title.
+// reading as a chip, whose mark trails its text.
 //
 // The utterance picks the structure in one place, and it is the only branch in
 // the component: anything with text in it wears the fill, and a sign on
@@ -70,7 +70,8 @@
 //
 //	diameter = style.LineHeight
 //
-// which is the box a titled badge's line already reserves at that density.
+// which is the box the line of a badge with text already reserves at that
+// density.
 // So the disc costs the badge nothing — same reported size, same baseline of
 // none — and a row that held a bare sign holds a disc without moving. The
 // [Neutral] disc takes the badge's Neutral fill, systemGray, like every other
@@ -81,9 +82,9 @@
 // its own; the disc is for where a sign has to hold its own against what is
 // set around it, and it is asked for rather than assumed.
 //
-// A title ignores the disc. The fill a badge with a title already wears IS the
+// Text ignores the disc. The fill a badge with text already wears IS the
 // fill the disc would add, so there is still exactly one structure branch,
-// and a titled badge that also asked for a disc would be a badge inside a
+// and a badge with text that also asked for a disc would be a badge inside a
 // badge.
 //
 // The sign itself is handed the square inscribed in that circle, centred on
@@ -105,7 +106,7 @@
 // # Colour: the platform's system colours
 //
 // Five values and they differ in hue alone: [Neutral] for a plain category
-// title carrying no status, [Success], [Warning], [Error] and [Info] for the
+// word carrying no status, [Success], [Warning], [Error] and [Info] for the
 // four statuses. There is no emphasis axis and there will not be one —
 // emphasis belongs where interaction does, and nothing here is interactive.
 //
@@ -119,7 +120,7 @@
 //	Info       systemBlue
 //	Neutral    systemGray filled, secondaryLabelColor bare
 //
-// A badge with a title or a count is that colour filled, with its content in
+// A badge with text or a count is that colour filled, with its content in
 // alternateSelectedControlTextColor — white in both appearances, the
 // foreground the platform pairs with a fill it paints in a system colour
 // ([Fill], [Foreground]). A symbol badge standing bare draws its sign in the
@@ -141,11 +142,11 @@
 // with no vertical padding, no minimum and no floor. The fill is drawn at that
 // height and needs no padding of its own: the line box carries its own leading
 // — 16 dp of box around a 12 sp face — so the fill already stands about 3 dp
-// clear of the title's cap and descender, and adding to it would take the
+// clear of the text's cap and descender, and adding to it would take the
 // badge off its line.
 //
 // Horizontally the badge is its content between two S2 stops: the padding, the
-// symbol's square, the S1 gap, the shaped title, the S1 gap, the close mark and
+// symbol's square, the S1 gap, the shaped text, the S1 gap, the close mark and
 // the padding, each present only when it has something to draw. S2 rather than
 // S1 because the gap inside the utterance and the gap to its edge must not be
 // the same number, or the sign and the word stop reading as one thing in one
@@ -160,7 +161,7 @@
 // not have to do, since nothing sits beside a Dock icon's badge that could be
 // mistaken for it.
 //
-// The badge reports its title's baseline, so a row carrying a badge beside
+// The badge reports its text's baseline, so a row carrying a badge beside
 // text in a larger role can be set on one line with layout.Baseline. A symbol
 // badge reports none; a sign has no baseline to offer.
 //
@@ -184,7 +185,7 @@
 // # The close mark
 //
 // A badge with a non-nil [Props.OnDismiss] draws a small close mark after its
-// title; one without draws none and registers no pointer area at all.
+// text; one without draws none and registers no pointer area at all.
 //
 // The mark is half the line box — 8 dp on a 16 dp line — and the pointer
 // target under it is [CloseHitDp] square, centred on the mark and free to
@@ -194,7 +195,7 @@
 //
 // What answers the pointer is a region and not the 8 dp x inside it: on a
 // badge that wears a fill, that fill's trailing cap — from the middle of the
-// gap that separates the mark from the title out to the fill's own edge and
+// gap that separates the mark from the text out to the fill's own edge and
 // corner; on a bare badge, the mark's own square. Under the pointer the
 // region takes the platform's hover overlay and held it takes the press
 // overlay, each a coverage of black in the light appearance and white in the

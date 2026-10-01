@@ -234,7 +234,7 @@ func TestTheDiscWearsItsStatusFillAndForeground(t *testing.T) {
 	style := badgeStyle()
 	for _, sc := range goldenSchemes {
 		for _, st := range goldenStatuses {
-			t.Run(sc.name+" "+st.title, func(t *testing.T) {
+			t.Run(sc.name+" "+st.txt, func(t *testing.T) {
 				fill := badge.Fill(sc.p, st.status)
 				fg := badge.Foreground(sc.p)
 				page := sc.p.ControlBackground
@@ -253,7 +253,7 @@ func TestTheDiscWearsItsStatusFillAndForeground(t *testing.T) {
 				}
 				// The corner is outside an inscribed circle, so what is
 				// there is the surface: a square fill here would be the
-				// container a badge with a title wears, drawn on the wrong
+				// container a badge with text wears, drawn on the wrong
 				// utterance.
 				if got := badgePixel(t, img, 0, 0); !sameColour(got, page) {
 					t.Errorf("the disc badge's top-left pixel is %v, want the page %v — the disc is not a circle", got, page)
@@ -277,7 +277,7 @@ func TestTheDiscWearsItsStatusFillAndForeground(t *testing.T) {
 					t.Errorf("the sign on the disc is %v, want the status's foreground over its fill %v", got, fg)
 				}
 				if fg == fill {
-					t.Errorf("the %s disc's fill and foreground are the same colour %v: nothing on it can be read", st.title, fill)
+					t.Errorf("the %s disc's fill and foreground are the same colour %v: nothing on it can be read", st.txt, fill)
 				}
 			})
 		}
@@ -315,15 +315,15 @@ func TestTheBareSignStaysTheDefault(t *testing.T) {
 	}
 }
 
-// TestALabelIgnoresTheDisc pins the documented answer to the case that is not
+// TestTextIgnoresTheDisc pins the documented answer to the case that is not
 // a form: a badge with text already wears the container the disc would add,
 // so asking for both changes nothing rather than nesting one inside the other.
-func TestALabelIgnoresTheDisc(t *testing.T) {
+func TestTextIgnoresTheDisc(t *testing.T) {
 	shaper := defaultShaper(t)
 	style := badgeStyle()
 	for _, tc := range []struct {
 		name   string
-		title  string
+		txt    string
 		symbol badge.Symbol
 	}{
 		{"word", "Passing", nil},
@@ -331,7 +331,7 @@ func TestALabelIgnoresTheDisc(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			render := func(s badge.RenderState) layout.Widget {
-				return badge.Render(shaper, tc.title, tc.symbol, badge.Success,
+				return badge.Render(shaper, tc.txt, tc.symbol, badge.Success,
 					tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, s)
 			}
 			plain := render(badge.RenderState{})
@@ -345,7 +345,7 @@ func TestALabelIgnoresTheDisc(t *testing.T) {
 				return // headless unavailable; Capture called t.Skip
 			}
 			if n := golden.PixelDiff(a, b); n != 0 {
-				t.Errorf("a titled badge drew %d pixels differently when asked for a disc: a title ignores it", n)
+				t.Errorf("a titled badge drew %d pixels differently when asked for a disc: a txt ignores it", n)
 			}
 		})
 	}
