@@ -20,11 +20,19 @@
                      1.240, 6.29 px into the page; its crossbar's top edge at
                      y 263.135 on a band of 1.315, 6.76 px below the top
 
-       THE FOOT'S STROKE READS HEAVIER THAN THE SIDES'. MEASURED on the same
-       capture, the coverage summed over the nine columns standing clear of
-       the rounds and the fold: the foot reads 1.470 px, where the leading
-       side reads 1.390 and the trailing side 1.400 over the rows standing
-       clear of them. The set's one stroke is drawn on all three.
+       THE TOP AND THE FOOT READ HEAVIER THAN THE SIDES, and the set's one
+       stroke is drawn on all four and covers the reading. MEASURED on the
+       same capture, the coverage summed down each column standing clear of
+       the rounds and the fold: the foot reads 1.47 px over the nine such
+       columns and the top the same 1.47 over the three it has, where the
+       leading side reads 1.390 and the trailing 1.400 over the rows standing
+       clear of the rounds. The 0.08 px between the two pairs is below what
+       one capture at 1x can state: what a coverage sum reads off an encoded
+       capture moves with where a stroke's edges fall on the pixel grid, and
+       the set's other stored capture of a stroke this thin — the folder on
+       voicememos-multi-folder-2026-09-18.png — reads its two sides at
+       1.50 px against 1.49 across, the other way about. So nothing here is
+       redrawn.
 
        The page's top-trailing corner is cut on a diagonal from
        (94,257) to (100,263) — six columns against seven rows, so a

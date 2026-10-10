@@ -11,9 +11,9 @@
        the trailing 101.50-103.00, and down x=92 the body's top band runs
        212.61-214.09, the flap 215.33-216.70 and the foot 225.51-227.00. So
        the body is 20.00 px across by 14.39 down, the tab rises 1.61 above it
-       to y=211.00, every band measures 1.37 to 1.50, the tab runs 6.7 px of
-       the body's 20, and the flap stands 1.24 px clear of the body's inner
-       top face.
+       to y=211.00, every band measures 1.37 to 1.50, the tab's top edge
+       runs 5.91 px of the body's 20 before its shoulder starts down, and the
+       flap stands 1.24 px clear of the body's inner top face.
 
        THIS MARK'S OWN BAND IS THE EXCEPTION THE SET RECORDS: its capture
        reads 1.37 to 1.50 where the set draws one measured 1.4 everywhere, so
@@ -28,12 +28,15 @@
        bands where the capture puts them, drawn from 6 to 19.5. The tab is the
        measured 1.61 px proud, drawn at 1.5 units — an extent the capture
        gives and not a band — which takes the whole figure to 15 units, from
-       4.5 to 19.5, centred on both axes. The tab runs to 9: the measured
-       6.7 px of the body's 20 is 6.37 units and 9 is the unit nearest the end
-       of that. The flap's leading edge stands at 8.6: the measured 1.24 px of
-       air over a mean band of 1.42 is 0.87 of a band, which against the set's
-       1.4 is 1.22 units below the body's inner top face at 7.4, and 8.6 puts
-       the flap's trailing edge on the whole unit 10.
+       4.5 to 19.5, centred on both axes. The tab's top edge runs to 8 and
+       its shoulder from there to the body's top at 10.5: the measured
+       5.91 px of the body's 20 is 5.61 units of top edge and the shoulder's
+       own 2.62 px is 2.49 more, each drawn at the nearest unit of this grid
+       that the whole figure can stand on. The flap's leading edge stands at
+       8.6: the measured 1.24 px of air over a mean band of 1.42 is 0.87 of a
+       band, which against the set's 1.4 is 1.22 units below the body's inner
+       top face at 7.4, and 8.6 puts the flap's trailing edge on the whole
+       unit 10.
 
        Where each band lands. The set's band is a DEVICE width — 1.32 px
        below 20 dp and 1.40 from 20 up — and half its widening is spent
@@ -74,7 +77,8 @@
        a root-mean-square of 0.014 of a pixel's coverage. Against the body's
        own 20.00 px drawn at 19 units those are 2.33, 2.52, 2.47 and 2.49
        units; 2.4 is drawn, which also puts the band's inner round on the
-       whole unit 1. The TAB'S TRAILING corner carries none.
+       whole unit 1. WHERE THE TAB MEETS THE BODY there is no corner to
+       round: the shoulder slopes from the one to the other.
 
        THE TAB IS OPEN. MEASURED on the same capture, down the columns under
        the tab: the figure covers the tab's own band alone, y 211.00 to
@@ -86,29 +90,44 @@
        capture puts its own two edges 0.13 px apart, which is 0.12 units on a
        body 20.00 px across drawn at 19.
 
-       THE TAB'S JUNCTION IS THE MITRE two bands meeting at a right angle
-       give, and what the capture reads there is recorded. MEASURED on the
-       same capture, the coverage summed down each column over the tab's band
-       and the body's top band: 1.48 px under the tab and 1.48 trailing of the
-       junction, against 1.64, 1.98, 1.84 and 1.52 over the four columns
-       between them — about one square pixel of material in the corner, half
-       of it in one column. The capture's two edges descend over those columns
-       rather than turning: its outer edge reads 211.00, 211.37, 212.14,
-       212.56 and 212.61 and its inner edge 212.48, 212.67, 213.35, 213.92 and
-       214.09, a shoulder running down 1.6 px over 2.5 across. The mitre drawn
-       here is square: the post stands from the tab's top at 4.5 to the body's
-       inner face at 7.4 over the band from 7.6 to 9, which is 2.1 square
-       units, and a render at 24 dp reads 2.01 and 2.89 px down the two
-       columns it crosses against 1.39 on either side of them.
+       THE TAB'S SHOULDER SLOPES from the tab's top edge to the body's top,
+       and the capture draws it as a shape rather than an edge's blur: the
+       coverage summed down each column over the tab's band and the body's top
+       band reads 1.48 px under the tab and 1.48 trailing of the junction
+       against 1.63, 1.98, 1.84 and 1.52 over the four columns between them,
+       and both of the band's edges descend over those columns rather than
+       turning. MEASURED on the same capture, the outer edge reads 211.00,
+       211.00, 211.04, 211.37, 211.95, 212.56 and 212.61 over x 86 to 92 and
+       the inner edge 212.48, 212.48, 212.67, 213.35, 213.79, 214.08 and
+       214.09. Each was fitted against a straight edge whose column average is
+       what a coverage sum reads: the OUTER edge leaves the tab's top at
+       x 88.91 and reaches the body's top at 91.53, a run of 2.62 px down
+       1.61, to a root-mean-square of 0.020 of a pixel; the INNER edge leaves
+       the tab's inner face at 88.08 and reaches the body's at 90.96, 2.88 px,
+       to 0.036. On this grid the outer run is 2.49 units down 1.51, from the
+       top edge's end at 8.11 to the body's top at 10.60, and the new-folder
+       control of the same capture reads the same shoulder at 2.34 units from
+       8.01 to 10.35 against its own figure. The outer edge is drawn from
+       (8, 4.5) to (10.5, 6): the folder rows are the mark at the set's own
+       19-unit keyline, so their reading is the one drawn to.
+
+       THE SHOULDER CARRIES THE SET'S ONE BAND PERPENDICULAR TO ITS OWN RUN,
+       so the interior follows 1.4 inside the slope rather than 1.4 below it:
+       the inner contour's two mitres stand at (10.1122, 7.4) and
+       (7.6122, 5.9), which puts 1.63 units of material down any column the
+       slope crosses. The capture's own shoulder is about a tenth of a band
+       heavier than that — its two fitted edges stand 1.47 to 1.60 units apart
+       perpendicular, against the 1.39 its own bands measure — and the set
+       draws one band, so the reading is recorded and not drawn.
 
        Two contours in one path, and the flap in its own. The silhouette is
        ONE contour — the tab's bar and the body, which abutted before this —
        because the round at the top leading corner runs from the tab's top
        edge into the body's leading side and a corner cannot be cut across
        two contours. The body's inner edge is wound back inside the same
-       path: it steps up into the tab at 7.6, runs the tab's inner face at
-       5.9, and carries four rounds concentric with the outer ones at 2.4
-       less the band. -->
-  <path fill="#000000" d="M4.9 4.5 L9 4.5 L9 6 L19.1 6 C20.4255 6 21.5 7.0745 21.5 8.4 L21.5 17.1 C21.5 18.4255 20.4255 19.5 19.1 19.5 L4.9 19.5 C3.5745 19.5 2.5 18.4255 2.5 17.1 L2.5 6.9 C2.5 5.5745 3.5745 4.5 4.9 4.5 Z M3.9 6.9 L3.9 17.1 C3.9 17.6523 4.3477 18.1 4.9 18.1 L19.1 18.1 C19.6523 18.1 20.1 17.6523 20.1 17.1 L20.1 8.4 C20.1 7.8477 19.6523 7.4 19.1 7.4 L7.6 7.4 L7.6 5.9 L4.9 5.9 C4.3477 5.9 3.9 6.3477 3.9 6.9 Z"/>
+       path: it rises along the shoulder from 10.1122 on the body's inner top
+       face to 7.6122 on the tab's inner face at 5.9, and carries four rounds
+       concentric with the outer ones at 2.4 less the band. -->
+  <path fill="#000000" d="M4.9 4.5 L8 4.5 L10.5 6 L19.1 6 C20.4255 6 21.5 7.0745 21.5 8.4 L21.5 17.1 C21.5 18.4255 20.4255 19.5 19.1 19.5 L4.9 19.5 C3.5745 19.5 2.5 18.4255 2.5 17.1 L2.5 6.9 C2.5 5.5745 3.5745 4.5 4.9 4.5 Z M3.9 6.9 L3.9 17.1 C3.9 17.6523 4.3477 18.1 4.9 18.1 L19.1 18.1 C19.6523 18.1 20.1 17.6523 20.1 17.1 L20.1 8.4 C20.1 7.8477 19.6523 7.4 19.1 7.4 L10.1122 7.4 L7.6122 5.9 L4.9 5.9 C4.3477 5.9 3.9 6.3477 3.9 6.9 Z"/>
   <path fill="#000000" d="M5.15 8.6 L18.85 8.6 L18.85 10 L5.15 10 Z"/>
 </svg>
