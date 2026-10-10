@@ -113,7 +113,7 @@
 // Three things it assumes. Interaction state is allocated inside the
 // component's rx.Defer scope, so press and focus survive the view rebuilds an
 // MVU loop drives; pass Props.Clickable when an enclosing container such as a
-// modal must own the focus tag instead. A button fills the width it is given
+// dialog must own the focus tag instead. A button fills the width it is given
 // and is at least the density's control height tall — the platform's regular
 // and small push button, 24 dp and 19 dp — so a fixed-size button is laid out
 // inside a constrained box. That box is a budget and not a cap: a title that

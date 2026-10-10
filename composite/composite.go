@@ -24,7 +24,7 @@
 // per pixel and one texture upload, each frame the overlay is up: 2 ms at
 // 320x240 and 27 ms at 1440x900 on an Apple M1 Max, 23 of those 27 the
 // readback alone, which is the only part no public Gio API can make cheaper.
-// It is paid per frame, not per second — a window with a modal open draws
+// It is paid per frame, not per second — a window with a dialog open draws
 // only when something in it changes — but it is why an overlay declares
 // itself here rather than the whole frame going through it, and why the
 // overlays that use it are the ones a window shows while it waits: a scrim

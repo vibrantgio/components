@@ -336,7 +336,7 @@ func TestOpenFieldClosesOnAPressLandingElsewhere(t *testing.T) {
 // sees the key. Closed, the field asks for nothing and the same key reaches
 // the dialog untouched.
 //
-// The stand-in dialog below asks the way patterns/modal asks — a key.Filter
+// The stand-in dialog below asks the way patterns/dialog asks — a key.Filter
 // for Escape, drained after its content has been laid out — so what is
 // measured is the ordering the real one has.
 func TestEscapeClosesTheMenuAndGoesNoFurther(t *testing.T) {

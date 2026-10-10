@@ -52,7 +52,7 @@ and [svg](https://github.com/vibrantgio/svg);
 [patterns](https://github.com/vibrantgio/patterns) and
 [markdown](https://github.com/vibrantgio/markdown) are built on it —
 `effects/springbutton` is `components/button` with a physics-driven press, `patterns`'s
-table is built on `components/list` and its modal on `components/button`.
+table is built on `components/list` and its dialog on `components/button`.
 The [organization page](https://github.com/vibrantgio) has the full tier table.
 
 ```sh
@@ -72,7 +72,7 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 | `bench` | `BenchFrame`, the shared per-frame benchmark harness every component's benchmarks run through. |
 | `button` | The button: text or icon-only, in three emphases (filled, tonal, ghost — the filled one able to wear a fill and foreground pinned by its caller), hover/focus/press/disabled, keyboard activation, density-sized, the drawn control its own pointer target; clicks arrive as a callback or as an MVU message. |
 | `cache` | `FrameCache`, an op-recording cache that replays a component's recorded draw commands on frames where its inputs have not changed. |
-| `coordination` | **Deprecated** — use [`mvu/stream`](https://github.com/vibrantgio/mvu)`.Value`. `Subject`, the typed broadcast channel for cross-component signals. ADR-008 retired the concerns it was built for: drag, modal and tooltip arbitration are frame state now, toasts are messages, and the one genuine stream left (`theme/preferences`) is a tier below and could never import it. It has no users left in the organization; it is removed at **v1.0.0**, with ADR-001's and ADR-003's alias shims, so that every removal lands on one version boundary. |
+| `coordination` | **Deprecated** — use [`mvu/stream`](https://github.com/vibrantgio/mvu)`.Value`. `Subject`, the typed broadcast channel for cross-component signals. ADR-008 retired the concerns it was built for: drag, dialog and tooltip arbitration are frame state now, toasts are messages, and the one genuine stream left (`theme/preferences`) is a tier below and could never import it. It has no users left in the organization; it is removed at **v1.0.0**, with ADR-001's and ADR-003's alias shims, so that every removal lands on one version boundary. |
 | `golden` | The organization's headless-Gio golden-image harness: `Capture`, `Render` and `PixelDiff`. Exported so callers outside components drive one capture path instead of inlining their own. |
 | `icon` | A name→icon registry holding icons in either SVG (`vibrantgio/svg`) or IVG (`vibrantgio/ivg`) form. |
 | `initial` | `Value[T]`, a typed "not set yet" cell for state that cannot be computed until the first frame has laid out — instead of a magic sentinel. |
@@ -121,7 +121,7 @@ func Row(typ Type, th rx.Observable[theme.Theme], p Palette, item Todo) layout.W
 ```
 
 A button is the same shape — this one is from `watchlist/renamemodal.go`,
-where the modal owns the focus tag by passing its own `Clickable`. Note what
+where the dialog owns the focus tag by passing its own `Clickable`. Note what
 is absent: no `Shaper` prop, because the theme supplies it:
 
 ```go

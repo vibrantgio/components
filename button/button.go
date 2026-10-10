@@ -295,7 +295,7 @@ type Props struct {
 	// The caller then owns &Clickable as the button's focus tag — usable with
 	// key.FocusCmd, key.Filter{Focus: …} and an external Tab cycle — and may
 	// detect activation via Clickable.Clicked(gtx). This lets a container (e.g.
-	// patterns/modal) drive focus and trap Tab without a doubled focus ring.
+	// patterns/dialog) drive focus and trap Tab without a doubled focus ring.
 	// When nil the button allocates and owns its own clickable.
 	Clickable *widget.Clickable
 
@@ -508,7 +508,7 @@ func Render(
 // explicit visual state, without event processing or rx machinery. The symbol
 // is drawn by icon into a square d.ControlHeight on a side, inset by
 // d.PaddingY, in the emphasis s carries — a ghost icon button is the less
-// pronounced symbol patterns/modal's close affordance wants, over the same
+// pronounced symbol patterns/dialog's close affordance wants, over the same
 // square as a filled one, which is the pointer target in both.
 // Pass tokens.Comfortable for the default desktop look. Intended
 // for golden-image testing and static demonstrations; production code should

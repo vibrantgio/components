@@ -26,10 +26,10 @@ import (
 	"github.com/vibrantgio/components/toast"
 	"github.com/vibrantgio/patterns/accordion"
 	"github.com/vibrantgio/patterns/card"
+	"github.com/vibrantgio/patterns/dialog"
 	"github.com/vibrantgio/patterns/feature"
 	"github.com/vibrantgio/patterns/group"
 	"github.com/vibrantgio/patterns/hero"
-	"github.com/vibrantgio/patterns/modal"
 	"github.com/vibrantgio/patterns/navbar"
 	"github.com/vibrantgio/patterns/notifications"
 	"github.com/vibrantgio/patterns/pane"
@@ -70,8 +70,8 @@ func (inv *Inventory) Patterns(c tokens.PlatformColors) []Section {
 			Body: inv.pane(c)},
 		{Name: "patterns-table", Title: "Table — sortable columns, sorted ascending on the first", Height: 176,
 			Body: inv.table(c)},
-		{Name: "patterns-modal", Title: "Modal — a decision answered from its footer, and a pane closed from the mark at its corner", Height: 260,
-			Body: inv.modal(c)},
+		{Name: "patterns-dialog", Title: "Dialog — a decision answered from its footer, and a pane closed from the mark at its corner", Height: 260,
+			Body: inv.dialog(c)},
 		// The slot stands the control in the middle and hangs the pane off
 		// it, so it has to hold the control's whole square plus what hangs:
 		// a slot cut to the pane alone shears the surface off at the
@@ -446,12 +446,12 @@ func (inv *Inventory) table(c tokens.PlatformColors) layout.Widget {
 	}
 }
 
-// modalGap is the run of page surface between the two dialogs. It is wide
+// dialogGap is the run of page surface between the two dialogs. It is wide
 // enough that the two scrims read as two windows rather than as one scrim
 // with two dialogs standing on it, and no wider: the pair is one specimen.
-const modalGap = 24
+const dialogGap = 24
 
-func (inv *Inventory) modal(c tokens.PlatformColors) layout.Widget {
+func (inv *Inventory) dialog(c tokens.PlatformColors) layout.Widget {
 	// Two archetypes, side by side, because they are told apart by their
 	// affordances and one of them alone shows only half of that. The
 	// decision answers from its footer and carries no mark at its corner;
@@ -459,18 +459,18 @@ func (inv *Inventory) modal(c tokens.PlatformColors) layout.Widget {
 	// dismissal is one of the answers. The pane is a place, and every cheap
 	// way out of it is offered at once: the mark, the key and the scrim.
 	//
-	// Neither is a modal you cannot leave from the keyboard — both bind the
+	// Neither is a dialog you cannot leave from the keyboard — both bind the
 	// dismissing key, which is why neither body below tells a reader to
 	// reach for the pointer. Which archetype a caller gets is derived from
 	// whether it states a decision, so the pair also shows that the mark and
 	// the footer are not two checkboxes that could both be ticked.
-	decision := modal.Props{
+	decision := dialog.Props{
 		Title: "Discard this theme?",
 		Body: inv.prose(c,
 			"The colour you picked has not been saved.",
 			"Discarding restores the default theme.",
 		),
-		Decision: &modal.Decision{Destructive: true},
+		Decision: &dialog.Decision{Destructive: true},
 		// The footer buttons are the caller's own layout.Widget values on both
 		// the live and the static path, so a static dialog hands them over
 		// already rendered rather than expecting the pattern to invent them.
@@ -494,7 +494,7 @@ func (inv *Inventory) modal(c tokens.PlatformColors) layout.Widget {
 	// click would be a specimen's copy carrying its own layout: the mark
 	// moves for a mirrored reading direction and the sentence would not, and
 	// the pane has two other ways out that no corner names.
-	pane := modal.Props{
+	pane := dialog.Props{
 		Title: "Theme settings",
 		Body: inv.prose(c,
 			"Every change here applies as you make it.",
@@ -504,23 +504,23 @@ func (inv *Inventory) modal(c tokens.PlatformColors) layout.Widget {
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{}.Layout(gtx,
-			layout.Flexed(1, inv.modalScrim(c, decision)),
-			layout.Rigid(complayout.HSpacer(modalGap)),
-			layout.Flexed(1, inv.modalScrim(c, pane)),
+			layout.Flexed(1, inv.dialogScrim(c, decision)),
+			layout.Rigid(complayout.HSpacer(dialogGap)),
+			layout.Flexed(1, inv.dialogScrim(c, pane)),
 		)
 	}
 }
 
-// modalScrim draws one dialog over a scrim of its own.
+// dialogScrim draws one dialog over a scrim of its own.
 //
 // The scrim covers whatever box it is handed, and the box is a whole half of
 // the section: a scrim that stops short of the bottom reads as a stray
 // rectangle, not as a window under a dialog. A flexed child is handed no
 // height of its own, so the height is taken here.
-func (inv *Inventory) modalScrim(c tokens.PlatformColors, props modal.Props) layout.Widget {
+func (inv *Inventory) dialogScrim(c tokens.PlatformColors, props dialog.Props) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Min = gtx.Constraints.Max
-		return modal.Render(inv.shaper, props, true, c, tokens.Spacing, tokens.Radius,
+		return dialog.Render(inv.shaper, props, true, c, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.TitleMedium, tokens.Comfortable)(gtx)
 	}
 }

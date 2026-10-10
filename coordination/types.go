@@ -5,7 +5,7 @@
 //
 //  1. One-frame lag. Subject delivery is asynchronous. Cross-component state
 //     changes are visible on the frame AFTER the emitting frame. This is
-//     correct for drag, modal, and tooltip concerns and is imperceptible at
+//     correct for drag, dialog, and tooltip concerns and is imperceptible at
 //     ≥30 fps.
 //
 //  2. Mutable per-component state must be hoisted outside FRP closures. Gesture
@@ -15,7 +15,7 @@
 //
 //  3. Buffer capacity must exceed maximum burst. For pointer-event emitters,
 //     BufCapPointer prevents frame-goroutine blocking. For infrequent signals
-//     (modals, tooltips) BufCapSignal suffices.
+//     (dialogs, tooltips) BufCapSignal suffices.
 //
 //  4. Intermediate emissions are silently dropped under burst. The
 //     mvu.Window atomic snapshot retains only the most recent layout.Widget closure
@@ -81,7 +81,7 @@ import (
 const BufCapPointer = 128
 
 // BufCapSignal is the recommended producer-side buffer depth for infrequent
-// coordination signals (modal depth, focus owner, tooltip arbitration).
+// coordination signals (dialog depth, focus owner, tooltip arbitration).
 const BufCapSignal = 8
 
 // MaxSubscribers is the number of subscriptions a Subject will hold at once.

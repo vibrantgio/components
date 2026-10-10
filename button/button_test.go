@@ -533,7 +533,7 @@ func nearlyEqual(got color.RGBA, want color.NRGBA) bool {
 	return !off(got.R, want.R) && !off(got.G, want.G) && !off(got.B, want.B) && got.A == want.A
 }
 
-// TestGhostIconButtonKeepsFullTarget is the rule the modal's close button
+// TestGhostIconButtonKeepsFullTarget is the rule the dialog's close button
 // depends on next: making a button's colours less pronounced must not shrink
 // what the pointer can land on. A ghost icon button draws the density's
 // control-height square and accepts a click anywhere inside it.
@@ -927,7 +927,7 @@ func TestIconButtonFocusRingIsVisuallyDistinct(t *testing.T) {
 // TestButtonInjectedClickableFocusAndActivate proves the caller-owned-clickable
 // path (GX.3): a container drives focus to the supplied *widget.Clickable via
 // key.FocusCmd, and Space activation flows through it to OnClick. This is the
-// mechanism patterns/modal's focus trap relies on for the close button.
+// mechanism patterns/dialog's focus trap relies on for the close button.
 func TestButtonInjectedClickableFocusAndActivate(t *testing.T) {
 	shaper := defaultShaper(t)
 	var clicked int
