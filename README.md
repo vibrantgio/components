@@ -120,8 +120,8 @@ func Row(typ Type, th rx.Observable[theme.Theme], p Palette, item Todo) layout.W
 }
 ```
 
-A button is the same shape — this one is from `watchlist/renamemodal.go`,
-where the dialog owns the focus tag by passing its own `Clickable`. Note what
+A button is the same shape — this one is from a rename dialog, where the
+dialog owns the focus tag by passing its own `Clickable`. Note what
 is absent: no `Shaper` prop, because the theme supplies it:
 
 ```go
