@@ -33,7 +33,7 @@ which one a package uses follows from what it owns:
 Both shapes have a pure render path — `button.Render`, `input.RenderCheckbox`,
 `paragraph.Render`, … — that takes resolved tokens and an explicit state struct
 and draws one frame with no event handling. That is what the golden-image
-tests drive. As of v0.2.0 these signatures take the same token types the live
+tests drive. These signatures take the same token types the live
 paths do — a `tokens.TextStyle` for the role they draw text in and a
 `tokens.Density` for the control height and padding — so a static caller gets
 the full metrics, not sizes only. Pass `tokens.DefaultTypography.LabelLarge`
@@ -72,7 +72,7 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 | `bench` | `BenchFrame`, the shared per-frame benchmark harness every component's benchmarks run through. |
 | `button` | The button: text or icon-only, in three emphases (filled, tonal, ghost — the filled one able to wear a fill and foreground pinned by its caller), hover/focus/press/disabled, keyboard activation, density-sized, the drawn control its own pointer target; clicks arrive as a callback or as an MVU message. |
 | `cache` | `FrameCache`, an op-recording cache that replays a component's recorded draw commands on frames where its inputs have not changed. |
-| `coordination` | **Deprecated** — use [`mvu/stream`](https://github.com/vibrantgio/mvu)`.Value`. `Subject`, the typed broadcast channel for cross-component signals. ADR-008 retired the concerns it was built for: drag, dialog and tooltip arbitration are frame state now, toasts are messages, and the one genuine stream left (`theme/preferences`) is a tier below and could never import it. It has no users left in the organization; it is removed at **v1.0.0**, with ADR-001's and ADR-003's alias shims, so that every removal lands on one version boundary. |
+| `coordination` | **Deprecated** — use [`mvu/stream`](https://github.com/vibrantgio/mvu)`.Value`. `Subject`, the typed broadcast channel for cross-component signals. The concerns it was built for are answered without it: drag, dialog and tooltip arbitration are frame state, toasts are messages, and the one genuine stream (`theme/preferences`) is a tier below and could never import it. It has no users in the organization and is removed at **v1.0.0**. |
 | `golden` | The organization's headless-Gio golden-image harness: `Capture`, `Render` and `PixelDiff`. Exported so callers outside components drive one capture path instead of inlining their own. |
 | `icon` | A name→icon registry holding icons in either SVG (`vibrantgio/svg`) or IVG (`vibrantgio/ivg`) form. |
 | `initial` | `Value[T]`, a typed "not set yet" cell for state that cannot be computed until the first frame has laid out — instead of a magic sentinel. |
@@ -87,20 +87,13 @@ github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 | `toast` | The status signal for an event: a small surface floating at level 2 that appears when a notification is raised and leaves by itself after a set time. Level 2 is where it is placed, not what it is filled with: a floating surface on this platform is the window's own plane, so that is its fill and the platform's label colour its message. Its status speaks through the leading edge, in the platform's system colour for it, and never through the fill. It draws one toast and no queue; the column that receives notifications, places, stacks and times them is [`patterns/notifications`](https://github.com/vibrantgio/patterns), and the cast shadow that says a toast floats belongs to that placement. |
 | `tooltip` | The signal naming a control or explaining another signal on demand: a small annotation floating at level 3 beside its trigger, appearing by itself after a short delay on hover or focus and leaving when they do. Level 3 is where it is placed, not what it is filled with: it is the window's own surface inside the platform's separator hairline, with its text in the platform's label colour, the same in both appearances, so it reads as an annotation about the thing rather than as a pane. It holds text only, never a control: anything the user must operate is the job for a popover. Arbitration is frame state rather than a bus — `Props.Arbiter` names the set, one per window, and a tooltip is visible exactly while it holds that set's top, so the claim a finished dwell makes *is* the previous tooltip's dismissal. A nil `Arbiter` gets the tooltip one of its own, so sharing one is the explicit act. `DefaultDelay` resolves from the token motion scale's `DurXSlow` stop (500 ms), and the live form re-times from the theme's `Motion` observable. |
 
-`theme`, `tokens` and `a11y` moved down into
-[theme](https://github.com/vibrantgio/theme) so the theme runtime sits
-beneath the components it themes. They stayed here as deprecated alias
-packages for one deprecation window; **v0.2.0 deletes all three**. Import
-`theme/theme`, `theme/tokens` and `theme/a11y`.
-
 ## Usage
 
-The theme owns the typeface (ADR-003): every component that draws text shapes
+The theme owns the typeface: every component that draws text shapes
 with the theme's `Typography.Shaper()`, so there is no shaper to build and
 `Props.Shaper` stays nil except as a deliberate per-instance override. The
 no-gofont lint in this repository fails `go test` on any
-`gioui.org/font/gofont` import, so the old fallback practice no longer merely
-looks wrong — it fails the build.
+`gioui.org/font/gofont` import, so a component cannot fall back to gofont.
 
 Condensed from `list.go` in the smallest complete Vibrant Gio application —
 one row's checkbox:
@@ -166,15 +159,6 @@ golden-image commands.
 
 Honest about what does not work yet:
 
-- **v0.2.0 is a breaking release.** The three alias packages — `prism/tokens`,
-  `prism/theme`, `prism/a11y` — are gone; import the `theme/…` paths. And
-  the static render surface no longer takes `tokens.TypeScale`:
-  `button.Render`, `input.Render` and `input.RenderDropdown` take a
-  `tokens.TextStyle` and a `tokens.Density`, `button.RenderIcon` takes a
-  `tokens.Density` (it draws no text), and `richtext.FromTokens` takes a
-  `tokens.TextStyle`. Old call: `…, tokens.Radius, tokens.DefaultTypeScale,
-  state)`. New call: `…, tokens.Radius, tokens.DefaultTypography.LabelLarge,
-  tokens.Comfortable, state)`.
 - **`icon.Registry` ships empty.** Nothing populates it yet. For Material Symbols
   icons today, render `golang.org/x/exp/shiny/materialdesign/icons` data
   through `ivg/raster/gio`; `button.Props.Icon` wants a `clip.Path` painter,
