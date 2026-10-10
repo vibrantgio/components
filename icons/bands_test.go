@@ -167,6 +167,21 @@ var markBands = map[string][]band{
 		{"the leading side", down, 2.5, 0, 6, 19.5, 15, 1},
 		{"the trailing side", down, 20.1, 0, 6, 19.5, 15, 1},
 	},
+	// The same folder moved 2 units leading, with the badge on its top
+	// trailing corner. The move takes the two sides to 0.5 and 18.1, and the
+	// badge's round cut takes the trailing side's run to 13.9 and the top
+	// band's and the flap's to where each meets it. The badge itself states
+	// no band: its disc is a measured extent and its plus a hole in that
+	// disc, which the landing rule has no edge to read.
+	// folder-plus.svg records all six bands and the cut.
+	"folder-plus": {
+		{"the tab's top", across, 4.5, 1.5, 0.5, 7, 4, 0},
+		{"the body's top", across, 6, 0, 0.5, 14.2, 10, 1},
+		{"the flap", across, 8.6, 0, 3.15, 14.1, 10, 2},
+		{"the body's foot", across, 18.1, 0, 0.5, 19.5, 10, 1},
+		{"the leading side", down, 0.5, 0, 6, 19.5, 15, 1},
+		{"the trailing side", down, 18.1, 0, 13.9, 19.5, 15, 1},
+	},
 	// The page measured off finder-window-untinted-dark.png. The cut itself
 	// runs at 45 degrees and the rule reaches it no more than it reaches the
 	// chevron. document.svg records all six bands and the cut.

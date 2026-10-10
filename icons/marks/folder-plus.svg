@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Folder-plus: a closed folder with a plus badge on the trailing corner
+       of its body. It is the platform's own picture for the control that
+       makes a folder; a mark is named by what it depicts, so what is created
+       is the control's title to say, not the mark's.
+
+       MEASURED at 1x off voicememos-multi-folder-2026-09-18.png, the
+       new-folder control of a Voice Memos toolbar, the mark at x 209-230,
+       y 57-72, on the window's #f9f9f9 fill against the figure's own #4b4b4b
+       plateau. Sub-pixel edges are the coverage summed along a cut:
+
+         the folder   18.44 px across by 14.82 down, every band 1.12 to 1.13,
+                      the leading outer edge at x 209.00 and the trailing one
+                      at 227.44, the body's top band at y 58.68 to 59.81
+         the badge    a filled disc 8.11 px across, centred (226.81, 60.98)
+         the plus     knocked out of that disc, its arms 0.93 px across and
+                      4.9 to 5.0 px tip to tip, centred on the disc's own
+                      centre to a twentieth of a pixel on both axes
+         the break    the folder's outline stops short of the disc, read on
+                      each band's own centre line and from the disc's centre:
+                      5.02 px where the trailing side resumes, 5.09 where the
+                      flap ends, 5.17 where the body's top band ends
+
+       Grid: the set's own folder, moved 2 units leading so the badge fits
+       the box. The folder is folder.svg's figure at 0.5 to 19.5 across and
+       the disc carries the figure to 23.5, which leaves the same half unit
+       at either edge the folder alone leaves — 23 units against the
+       capture's 21.87, because the set draws its folder to the 19-unit
+       keyline and the capture's is 18.44 px across.
+
+       THE BADGE IS CENTRED AT (19.5, 8.5): the trailing edge of the body's
+       outline, 2.5 units below its top, which is the capture's own 2.30 px.
+       WHAT THE CAPTURE PUTS ELSEWHERE is the centre across. It reads 226.81,
+       which is the trailing band's own centre line at 226.88 and not its
+       outer edge at 227.44 — 18.8 units here rather than 19.5. The figure is
+       drawn to the outer edge and the reading is recorded.
+
+       THE DISC IS 8 UNITS across against the capture's 8.11 px. The library
+       draws this mark at 24 dp, where one grid unit is one device pixel, so
+       the whole unit nearest the reading comes out at the platform's own
+       size — the step clear.svg takes for its own disc. The set's round and
+       curved allowance of 13 is what a round form STANDING ALONE takes, and
+       this disc stands on a folder.
+
+       THE PLUS TAKES THE SET'S BAND AND THE CAPTURE'S IS THINNER: 0.93 px
+       against the figure's own 1.12, which is 0.83 of a band, where the set
+       draws one band of 1.4 everywhere. Its span is the capture's: 5 units
+       against 4.9 to 5.0 px.
+
+       THE BADGE IS SNAPPED TO WHOLE DEVICE PIXELS at 1x and 2x, where the
+       mark covers 24 and 48 px and the band takes no widening. The SPAN is
+       snapped by its centre: 5 device pixels at 1x, an odd width, and the
+       centre at 19.5 and 8.5 stands on a pixel's middle; 10 at 2x, an even
+       width, and the centre at 39 and 17 stands on a pixel's edge. Both put
+       the four arm ends on a device pixel's edge, at the whole units 17, 22,
+       6 and 11. The two BARS are 1.4 wide, which is neither, so each is laid
+       with its TRAILING edge on a whole unit rather than centred: the
+       crossbar runs 7.6 to 9 and the upright 18.6 to 20, which holds a whole
+       device pixel inside both at 24 px and two at 48. A bar centred on the
+       badge's own centre starts six tenths of a unit below the pixel above
+       it, and a band of 1.4 holds a whole one only from four tenths. What
+       moves is where the two bars sit inside the figure, by two tenths of a
+       unit, which is plus.svg's own step at a fifth of its size. The disc's
+       edge is a curve and takes no such snapping, as clear.svg's does not.
+
+       THE OUTLINE IS CUT ROUND THE BADGE, not painted over it. A painter is
+       handed one colour and the mark is drawn in it, so a mark cannot paint
+       the fill it stands on — it does not know it. The cut is a round of 5.4
+       about the badge's centre: the disc's 4 and the set's own band. The
+       capture gives 5.02 to 5.17 px at the three places its outline meets
+       the cut, which against this figure's own 0.97 px to the unit is 5.17
+       to 5.33 units, so the drawn round stands a tenth of a unit outside the
+       widest of the three.
+
+       THE CAPTURE'S CORNERS ARE ROUNDED AND THIS FIGURE'S ARE SQUARE. The
+       same capture rounds the plain folder's corners too — about 0.8 px of
+       the outer corner is missing here and 1.15 px on the folder beside it,
+       which is a round of roughly two pixels on each — and folder.svg draws
+       that folder square. This is that folder with a badge, so it follows
+       it; one drawing serves every platform and the two agree in the sheet
+       they are read in.
+
+       Where each band lands. The six bands are folder.svg's, and moving them
+       2 units leading moves what the two SIDES land. They now stand at 0.5
+       and 18.1 rather than 2.5 and 20.1: the leading side holds a whole
+       device pixel at none of the three sizes, reaching 0.900 of its best
+       pixel at 24 dp, 0.700 at 20 and 0.860 at 16; the trailing side holds
+       one at 20 and at 16 and reaches 0.900 at 24. The four bands that run
+       ACROSS keep folder.svg's own landings, because a move along the grid's
+       x axis cannot change where a band running that way falls: the body's
+       TOP at 6 lands a whole pixel at all three sizes, the FLAP at 8.6 lands
+       one at 24 dp and reaches 0.950 at 20 and 0.860 at 16, and the tab's
+       top at 4.5 and the body's FOOT at 18.1 land one at 16 and at 20 and
+       reach 0.900 at 24. The plus's two bars are not bands of the figure's
+       outline but a hole in the badge, and the knockout narrows by the whole
+       widening below 24 dp as the figure's bands grow by it: the arm is
+       1.40 px across at 24 dp, 0.93 at 20 and 0.55 at 16.
+
+       Four contours in four paths: the tab's bar, the body's outline cut by
+       the round, the flap cut by the same round, and the badge. The body is
+       ONE contour rather than an outline with its inner edge wound back,
+       because the round reaches from outside the box into the space the
+       outline encloses and leaves a single open strip, closed here through
+       its two arcs. A round wound against the box instead would leave that
+       enclosed space at a winding of -1 and fill it solid, which is the trap
+       clear.svg's single cross contour avoids. The badge is the disc wound
+       clockwise with the plus wound against it inside one path, so the fill
+       the mark stands on shows through the plus and nothing is painted in
+       the surface's colour; the plus is ONE contour around the union of its
+       two bars, because two each wound against the disc would leave the
+       crossing at -1 and fill it solid. -->
+  <path fill="#000000" d="M0.5 4.5 L7 4.5 L7 6 L0.5 6 Z"/>
+  <path fill="#000000" d="M14.7136 6 C14.483 6.4414 14.3147 6.9125 14.2132 7.4 L1.9 7.4 L1.9 18.1 L18.1 18.1 L18.1 13.7154 C18.5566 13.8379 19.0273 13.9 19.5 13.9 L19.5 19.5 L0.5 19.5 L0.5 6 Z"/>
+  <path fill="#000000" d="M3.15 8.6 L14.1009 8.6 C14.1097 9.0739 14.1808 9.5446 14.3125 10 L3.15 10 Z"/>
+  <path fill="#000000" d="M19.5 4.5 C21.7091 4.5 23.5 6.2909 23.5 8.5 C23.5 10.7091 21.7091 12.5 19.5 12.5 C17.2909 12.5 15.5 10.7091 15.5 8.5 C15.5 6.2909 17.2909 4.5 19.5 4.5 Z M18.6 6 L18.6 7.6 L17 7.6 L17 9 L18.6 9 L18.6 11 L20 11 L20 9 L22 9 L22 7.6 L20 7.6 L20 6 Z"/>
+</svg>

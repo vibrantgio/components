@@ -89,6 +89,13 @@ const (
 	// folder serves both — what the control does is its title's to say.
 	Folder Name = "folder"
 
+	// FolderPlus is a folder with a plus badge on it: the platform's own
+	// picture for the control that makes a folder. One mark serves every
+	// such control — what is created is the control's title to say, not the
+	// mark's — and the badge is what separates it from Folder, which is the
+	// thing rather than the making of one.
+	FolderPlus Name = "folder-plus"
+
 	// Document is the thing an entry stands for when it is one piece of
 	// content — a note, a file, a page. It names a thing, as Folder does.
 	Document Name = "document"
