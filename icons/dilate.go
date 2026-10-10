@@ -191,6 +191,116 @@ func bandedPath(cs []contour, band float64) bool {
 	return true
 }
 
+// holdClear opens the air between a path and a figure knocked out of a solid
+// one to need, moving only what stands closer than that.
+//
+// It is what keeps that air open at every size. A band's edges are offset
+// outward by half the widening, and the cut a band is drawn with round such a
+// figure is one of those edges: offset, it moves INWARD, and the air closes by
+// that much while the figure itself holds the extents the grid gives it. Run
+// before the offset with need standing half the widening outside the air that
+// is to be left, the cut comes out of the offset exactly that far from the
+// figure, and the corners where it meets the rest of the drawing are mitred by
+// the offset as they are everywhere else.
+//
+// A point closer than need is moved out to need along the line from the
+// nearest point of the figure, which on a round figure is the round grown. A
+// SEGMENT running from outside need to inside it is cut where it crosses,
+// and the crossing is kept: without it the segment's far end would be dragged
+// along with the point, tilting an edge the length of the mark away from
+// where the grid puts it.
+func holdClear(cs []contour, from []contour, need float64) ([]contour, bool) {
+	var moved bool
+	out := make([]contour, 0, len(cs))
+	for _, c := range cs {
+		o := make(contour, 0, len(c)+8)
+		for i := range c {
+			a, b := c[i], c[(i+1)%len(c)]
+			pa, ina := hold(from, a, need)
+			o = append(o, pa)
+			moved = moved || ina
+			if _, inb := hold(from, b, need); ina != inb {
+				o = append(o, crossing(from, a, b, need))
+			}
+		}
+		out = append(out, o)
+	}
+	return out, moved
+}
+
+// hold is p held at need from the nearest point of the figure, and whether it
+// stood closer than that.
+func hold(from []contour, p f32.Point, need float64) (f32.Point, bool) {
+	// Air that meets the need to within a twentieth of a device pixel IS the
+	// drawn air, and the path is laid down as the file gives it. That is the
+	// precision the drawing arrives at rather than a tolerance chosen here:
+	// the walk hands its points over on a 64th of a pixel and cuts every
+	// curve into chords, which puts a point of the set's one cut up to a
+	// fiftieth of a pixel off the air the file's own numbers give. What this
+	// opens falls short by a tenth of a pixel and more.
+	const slack = 0.05
+	q, d := nearestPoint(from, p)
+	if d < slack || d >= need-slack {
+		return p, false
+	}
+	return f32.Point{
+		X: q.X + float32(float64(p.X-q.X)*need/d),
+		Y: q.Y + float32(float64(p.Y-q.Y)*need/d),
+	}, true
+}
+
+// crossing is the point of the segment a-b standing need from the figure,
+// bisected: the distance to a figure runs continuously along the segment and
+// one end stands inside need and the other outside.
+func crossing(from []contour, a, b f32.Point, need float64) f32.Point {
+	lo, hi := 0.0, 1.0
+	at := func(t float64) f32.Point {
+		return f32.Point{X: a.X + float32(float64(b.X-a.X)*t), Y: a.Y + float32(float64(b.Y-a.Y)*t)}
+	}
+	_, da := nearestPoint(from, a)
+	for range 40 {
+		mid := (lo + hi) / 2
+		_, d := nearestPoint(from, at(mid))
+		if (d < need) == (da < need) {
+			lo = mid
+		} else {
+			hi = mid
+		}
+	}
+	return at((lo + hi) / 2)
+}
+
+// nearestPoint is the closest point of any of the contours to p, and how far
+// off it stands.
+func nearestPoint(cs []contour, p f32.Point) (f32.Point, float64) {
+	var (
+		at   f32.Point
+		best = math.Inf(1)
+	)
+	for _, c := range cs {
+		for i := range c {
+			a, b := c[i], c[(i+1)%len(c)]
+			q := onSegment(p, a, b)
+			if d := span(p, q); d < best {
+				best, at = d, q
+			}
+		}
+	}
+	return at, best
+}
+
+// onSegment is the point of the segment a-b closest to p.
+func onSegment(p, a, b f32.Point) f32.Point {
+	dx, dy := float64(b.X-a.X), float64(b.Y-a.Y)
+	l := dx*dx + dy*dy
+	t := 0.0
+	if l > 0 {
+		t = (float64(p.X-a.X)*dx + float64(p.Y-a.Y)*dy) / l
+		t = min(max(t, 0), 1)
+	}
+	return f32.Point{X: a.X + float32(t*dx), Y: a.Y + float32(t*dy)}
+}
+
 // clearance is how far p stands from the nearest point of every contour in
 // the path but the one it was taken from.
 func clearance(cs []contour, i int, p f32.Point) float64 {
@@ -209,16 +319,7 @@ func clearance(cs []contour, i int, p f32.Point) float64 {
 }
 
 // toSegment is the distance from p to the segment a-b.
-func toSegment(p, a, b f32.Point) float64 {
-	dx, dy := float64(b.X-a.X), float64(b.Y-a.Y)
-	l := dx*dx + dy*dy
-	t := 0.0
-	if l > 0 {
-		t = (float64(p.X-a.X)*dx + float64(p.Y-a.Y)*dy) / l
-		t = min(max(t, 0), 1)
-	}
-	return math.Hypot(float64(p.X-a.X)-t*dx, float64(p.Y-a.Y)-t*dy)
-}
+func toSegment(p, a, b f32.Point) float64 { return span(p, onSegment(p, a, b)) }
 
 // signedArea is twice the area a contour encloses, signed by the way it
 // turns: positive where edgeNormal's normal points away from what it encloses.

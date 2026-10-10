@@ -161,3 +161,57 @@ func TestTheBadgeHoldsItsKnockoutAtEverySize(t *testing.T) {
 		}
 	}
 }
+
+// TestTheBadgeKeepsItsClearanceAtEverySize reads the air between the folder's
+// outline and the badge's disc, which is what tells the badge from the folder
+// it stands on. The outline is cut round the badge rather than painted over
+// it, so the cut's own round is the only thing holding that air open.
+//
+// The reading runs STRAIGHT DOWN from the badge's centre, where the cut's arc
+// dips to its lowest and the folder's trailing side stands under it: that is
+// the line from the disc's centre through the nearest point of the outline,
+// and the air read along it is the air itself rather than a chord of it. It
+// is the coverage MISSING between the two, summed over the device pixels of
+// the column the centre falls in — a sub-pixel reading, because the air comes
+// to about a pixel and no whole pixel of the column need be clear of both.
+//
+// The window starts under the plus's foot, so that the hole the plus leaves
+// in the disc is not read as air, and ends at the first pixel boundary past
+// where the outline is owed to stand.
+func TestTheBadgeKeepsItsClearanceAtEverySize(t *testing.T) {
+	// folder-plus.svg's own numbers: the disc of 4 about (18.8, 8.5), the
+	// plus's upright reaching its foot at 11, and the cut a round of 5.4 —
+	// the disc and one band — about the same centre.
+	const (
+		discRadius = 4.0
+		badgeX     = 18.8
+		badgeY     = 8.5
+		plusFoot   = 11.0
+		// A reading summed over whole pixels each of which the rasterizer
+		// rounds to a 255th. This is the slack that leaves.
+		clearSlack = 0.03
+	)
+	mark := icons.New("darwin").Mark(icons.FolderPlus)
+	if mark == nil {
+		t.Fatal("no painter for the folder-plus mark")
+	}
+	for _, px := range []int{16, 20, 24, 48} {
+		scale := float64(px) / gridUnits
+		// want is the air the mark's own rule owes at this size: the band of
+		// air the grid draws between the cut and the disc, and never less
+		// than one device pixel.
+		want := max(1, bandUnits*scale)
+		cov := coverage(shoot(t, px, func(gtx layout.Context) { mark(gtx, px, black) }))
+		col := cov.col(int(badgeX * scale))
+		from := int(math.Ceil(plusFoot * scale))
+		to := int(math.Ceil((badgeY+discRadius)*scale + want))
+		var clear float64
+		for y := from; y < to; y++ {
+			clear += 1 - col[y]
+		}
+		if clear+clearSlack < want {
+			t.Errorf("folder-plus at %d px: the outline stands %.3f px clear of the disc, want the %.3f its own band of air gives, and never under a device pixel",
+				px, clear, want)
+		}
+	}
+}

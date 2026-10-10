@@ -29,10 +29,17 @@
 
        Grid: the set's own folder, moved 2 units leading so the badge fits
        the box. The folder is folder.svg's figure at 0.5 to 19.5 across and
-       the disc carries the figure to 22.8, which leaves half a unit at the
-       leading edge and 1.2 at the trailing: 22.3 units against the capture's
+       the disc carries the figure to 22.8: 22.3 units against the capture's
        21.87, because the set draws its folder to the 19-unit keyline and the
        capture's is 18.44 px across.
+
+       THE FIGURE STANDS OFF-CENTRE ACROSS, from 0.5 to 22.8 in a box of 24,
+       half a unit of air at the leading edge and 1.2 at the trailing. That is
+       the measured placement rather than a miss: the badge's centre is the
+       capture's own 18.8 and the folder is folder.svg's figure, so the two
+       readings together stand the figure where it stands, and centring it
+       would carry one of them off its own. Down, the figure is folder.svg's
+       own, 4.5 to 19.5, centred as that one is.
 
        THE BADGE IS CENTRED AT (18.8, 8.5). Across, that is the capture's own
        reading of 226.81 placed on this grid: the trailing band's own centre
@@ -64,9 +71,12 @@
        bar sits inside the figure, by a tenth of a unit. The CROSSBAR keeps
        folder.svg's rule and runs 7.6 to 9, its trailing edge on the whole
        unit 9. The SPAN is the measured 5 units centred on the badge, so the
-       two arm ends across stand at 16.3 and 21.3 and land no pixel edge at
-       any size, which the centre's own reading costs; the two down stand at
-       the whole units 6 and 11. The disc's edge is a curve and takes no such
+       two arm ends across stand at 16.3 and 21.3 — three tenths of a unit
+       past the whole unit below each, which at 24 dp is three tenths of a
+       device pixel off the nearest pixel boundary — and they land none at
+       any size. That is what the measured span costs against a centre read
+       at 18.8, and the span is what is kept. The two ends down stand on the
+       whole units 6 and 11. The disc's edge is a curve and takes no such
        snapping, as clear.svg's does not.
 
        THE OUTLINE IS CUT ROUND THE BADGE, not painted over it. A painter is
@@ -80,6 +90,30 @@
        its inner top face at 13.5132, the flap at 13.4009 and 13.6125, and
        the trailing side at y 13.8544 on both of that band's edges, the arc
        dipping to 13.9 between them.
+
+       THE CUT GROWS WITH THE WIDENING AND LEAVES A WHOLE DEVICE PIXEL CLEAR
+       AT EVERY SIZE. The air between the cut and the disc is one band on the
+       grid — the cut's 5.4 less the disc's 4 — and the capture reads it at
+       0.97 to 1.12 px, one device pixel at the size that figure stands at.
+       The folder's own bands are drawn at a device width below 24 dp, half of
+       that widening spent outward on every edge the drawing lays down, and
+       the cut is one of those edges: left to it the cut moves INWARD, and the
+       air would come to 1.05 px at 20 dp and 0.74 at 16 — under the device
+       pixel it takes for two figures to read as two. So the cut is grown
+       ahead of the widening instead, by half of it and by whatever more
+       leaves a whole device pixel clear: 5.54 units at 20 dp and 5.79 at 16
+       against the 5.4 drawn here, the last of which is the OUTLINE yielding a
+       further 0.07 px of its own where the grid's band of air comes to 0.93.
+       The badge yields nothing — its disc is the measured 8 units and its
+       plus the measured span knocked out of that disc — and below 24 dp every
+       band the cut meets ends sooner than the numbers above, which are this
+       drawing's own.
+
+       THE GROWN CUT IS NOT DRAWN HERE and cannot be: it is a device width,
+       as the band itself is, and one drawing serves every size. The
+       renderer's widening step computes it from the device pixel, holding
+       what this path draws clear of what the badge's path draws by the air
+       the grid gives between them and never by less than one device pixel.
 
        THE OUTER CORNERS ARE ROUNDED AT 2.4 UNITS, which is folder.svg's own
        round: this capture gives 2.30 px at the one corner it reads cleanly,
@@ -107,10 +141,10 @@
        extent and its plus a measured span knocked out of that disc, so the
        path is drawn as the grid gives it at every size and the plus's arm
        comes out 1.40 px at 24 dp, 1.17 at 20 and 0.93 at 16. The folder's
-       own bands do take the widening, and they carry the cut with them: the
-       outline's round moves inward by half of it, so the air between the
-       outline and the disc comes to 1.40 px at 24 dp, 1.05 at 20 and 0.74 at
-       16 against the band's own 1.40, 1.40 and 1.32 there.
+       own bands do take the widening, and the cut is grown ahead of it, so
+       the air between the outline and the disc comes out 1.40 px at 24 dp,
+       1.17 at 20 and 1.00 at 16: the band of air the grid draws between the
+       two, and never under a device pixel.
 
        Three paths. The SILHOUETTE is one contour: the tab's bar and the
        body, because the round at the top leading corner runs from the tab's

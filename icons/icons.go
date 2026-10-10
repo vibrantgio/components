@@ -312,6 +312,26 @@ func widening(pxPerDp float32, px int) int {
 	return int(math.Round(extra * 1000))
 }
 
+// clearancePx is the air a mark's band keeps from a figure knocked out of a
+// solid one, in device pixels for a mark drawn at sizePx: the band of air the
+// grid draws between the two, and never less than one device pixel.
+//
+// MEASURED at 1x off voicememos-multi-folder-2026-09-18.png, the only figure
+// in the set a band is cut round: the new-folder control's outline stops 5.02
+// to 5.17 px from the badge's centre and its disc is 8.11 px across, so the
+// platform holds 0.97 to 1.12 px of air there — one device pixel at the size
+// that capture stands at. The grid draws it as one band, which comes to less
+// than a device pixel below 24 dp, and a gap under a device pixel is a gap
+// the rasterizer can only report as part coverage of the band beside it: the
+// two figures read as one. So the band of air is what the drawing gives and
+// one device pixel is the floor.
+//
+// It is a DEVICE width, like the band itself, so it holds at every scale: a
+// mark at 16 dp on a 2x window is 32 px and takes the band's own air.
+func clearancePx(px int) float64 {
+	return max(1, bandUnitsAt24*float64(px)/gridUnits)
+}
+
 // Painter draws a mark into a square of sizePx at the current origin, in col.
 // It is the shape this library's controls take for an icon slot.
 type Painter func(gtx layout.Context, sizePx int, col color.NRGBA)

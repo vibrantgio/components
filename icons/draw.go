@@ -36,11 +36,14 @@ func (s *Set) drawing(entry string, px, widen int) op.CallOp {
 
 	macro := op.Record(s.ops)
 	mark.SetTarget(mark.ViewBox.AspectMeet(float64(px), float64(px), 0.5, 0.5))
-	svgdriver.Draw(&recorder{
+	rec := &recorder{
 		ops:   s.ops,
 		widen: float64(widen) / 1000,
 		band:  bandUnitsAt24 * float64(px) / gridUnits,
-	}, mark, 1)
+		clear: clearancePx(px),
+	}
+	svgdriver.Draw(rec, mark, 1)
+	rec.flush()
 	call := macro.Stop()
 
 	s.cache[key] = call
@@ -60,6 +63,10 @@ type recorder struct {
 	ops    *op.Ops
 	path   []svg.Operation
 	stroke svgdriver.StrokeOptions
+	// held is every path the walk handed over, kept until the walk is done:
+	// what a band is held clear of is another path of the same mark, and the
+	// drawing is not known to be complete until the last of them is in.
+	held []held
 	// widen is how much wider than the grid's own 1.4 units every band this
 	// drawing lays down is, in device pixels. It is spent as an offset of
 	// half its own width on every edge, so a band grows by the whole of it
@@ -69,6 +76,18 @@ type recorder struct {
 	// tells a band's inner edge from a figure knocked out of a solid one, so
 	// that a path drawing the second takes no widening.
 	band float64
+	// clear is the air a band keeps from a figure knocked out of a solid one,
+	// in device pixels at this size.
+	clear float64
+}
+
+// held is one path of the mark as the walk handed it over, with the coverage
+// it is to be filled or stroked at.
+type held struct {
+	path    []svg.Operation
+	stroke  svgdriver.StrokeOptions
+	alpha   float32
+	stroked bool
 }
 
 // assert interface conformance
@@ -97,17 +116,54 @@ func (r *recorder) CubeBezier(b, c, d fixed.Point26_6) {
 func (r *recorder) Close() { r.path = append(r.path, svg.OpClose{}) }
 
 func (r *recorder) Fill(col svg.Pattern, opacity float64) {
-	r.cover(clip.Outline{Path: r.spec()}.Op(), coverage(col, opacity))
+	r.hold(held{alpha: coverage(col, opacity)})
 }
 
 // Stroke is here for completeness — marks are authored as outlines, because
 // the backend cannot set line cap or join — and renders butt-capped and
 // mitred when a file uses it anyway.
 func (r *recorder) Stroke(col svg.Pattern, opacity float64) {
-	r.cover(clip.Stroke{
-		Path:  r.spec(),
-		Width: float32(r.stroke.LineWidth) / 64,
-	}.Op(), coverage(col, opacity))
+	r.hold(held{stroke: r.stroke, alpha: coverage(col, opacity), stroked: true})
+}
+
+// hold keeps one path of the walk, copied because the buffer is reused.
+func (r *recorder) hold(h held) {
+	h.path = append([]svg.Operation(nil), r.path...)
+	r.held = append(r.held, h)
+}
+
+// flush lays down every path the walk handed over, in the order it drew them.
+//
+// It is one step rather than a path at a time because the widening is spent
+// against the WHOLE drawing: a path that takes the widening is held clear of
+// every path that takes none, and the one it is held clear of may not have
+// been walked yet when it is itself laid down.
+func (r *recorder) flush() {
+	var (
+		paths     = make([][]contour, len(r.held))
+		banded    = make([]bool, len(r.held))
+		knockouts []contour
+	)
+	for i, h := range r.held {
+		if h.stroked {
+			continue
+		}
+		paths[i] = flattenPath(h.path)
+		banded[i] = bandedPath(paths[i], r.band)
+		if !banded[i] {
+			knockouts = append(knockouts, paths[i]...)
+		}
+	}
+	for i, h := range r.held {
+		if h.stroked {
+			r.cover(clip.Stroke{
+				Path:  r.replay(h.path),
+				Width: float32(h.stroke.LineWidth) / 64,
+			}.Op(), h.alpha)
+			continue
+		}
+		r.cover(clip.Outline{Path: r.spec(h.path, paths[i], knockouts, banded[i])}.Op(), h.alpha)
+	}
 }
 
 // cover paints the shape with whatever colour is selected at replay time,
@@ -123,22 +179,44 @@ func (r *recorder) cover(shape clip.Op, alpha float32) {
 	paint.PaintOp{}.Add(r.ops)
 }
 
-// spec replays the buffered path into a fresh clip.Path, which is what the
-// single-use clip.PathSpec forces: a path filled and stroked is built twice.
+// spec is one filled path as it is laid down at this size.
 //
 // The widening is spent PER PATH, on the paths that draw bands: a path whose
 // hole is a figure knocked out of a solid one is laid down as the grid gives
-// it, because an offset there would thicken the figure while closing the
-// hole and both are measured extents.
-func (r *recorder) spec() clip.PathSpec {
-	if r.widen > 0 {
-		if cs := flattenPath(r.path); bandedPath(cs, r.band) {
-			return r.offsetSpec(cs)
-		}
+// it, because an offset there would thicken the figure while closing the hole
+// and both are measured extents.
+//
+// A path that does take the widening is first held clear of the knocked-out
+// figures of the same mark, so the air between the two is never closed by it:
+// the cut a band is drawn with round such a figure GROWS with the widening,
+// and grows further where the grid's own band of air comes to less than a
+// device pixel at this size. The clearance cannot be drawn in the file
+// because it is a device width and the file is one drawing for every size, so
+// the widening step computes it here.
+func (r *recorder) spec(path []svg.Operation, cs, knockouts []contour, banded bool) clip.PathSpec {
+	if !banded {
+		return r.replay(path)
 	}
+	var moved bool
+	if len(knockouts) > 0 {
+		cs, moved = holdClear(cs, knockouts, r.clear+r.widen/2)
+	}
+	switch {
+	case r.widen > 0:
+		return r.flatSpec(offsetContours(cs, r.widen/2))
+	case moved:
+		return r.flatSpec(cs)
+	}
+	return r.replay(path)
+}
+
+// replay builds a fresh clip.Path from the operations as the file draws them,
+// which is what the single-use clip.PathSpec forces: a path filled and
+// stroked is built twice.
+func (r *recorder) replay(path []svg.Operation) clip.PathSpec {
 	var p clip.Path
 	p.Begin(r.ops)
-	for _, o := range r.path {
+	for _, o := range path {
 		switch o := o.(type) {
 		case svg.OpMoveTo:
 			p.MoveTo(pt(fixed.Point26_6(o)))
@@ -155,13 +233,12 @@ func (r *recorder) spec() clip.PathSpec {
 	return p.End()
 }
 
-// offsetSpec is the flattened path with every edge moved outward by half the
-// widening, filled as one path, so the coverage a render reads is the offset
-// geometry's own and not two shapes composited over each other.
-func (r *recorder) offsetSpec(cs []contour) clip.PathSpec {
+// flatSpec fills the flattened contours as one path, so the coverage a render
+// reads is that geometry's own and not two shapes composited over each other.
+func (r *recorder) flatSpec(cs []contour) clip.PathSpec {
 	var p clip.Path
 	p.Begin(r.ops)
-	for _, c := range offsetContours(cs, r.widen/2) {
+	for _, c := range cs {
 		p.MoveTo(c[0])
 		for _, q := range c[1:] {
 			p.LineTo(q)

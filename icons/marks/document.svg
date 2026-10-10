@@ -5,40 +5,59 @@
 
        MEASURED at 1x, the page symbol on Finder's "Documents" row in
        finder-window-untinted-dark.png (the panel at x 64, the row's mark over
-       x 87-99, y 256-274). The page is 13 px across by 19 down, its bands
-       about 1.4 px, and its top-trailing corner is cut on a diagonal from
+       x 87-99, y 256-274). Sub-pixel edges are a fit of the coverage, each
+       stroke fitted over the rows or columns that stand clear of the rounds
+       and the fold against a band of one width at one place:
+
+         across      the leading side's outer edge at x 86.000 on a band of
+                     1.390 and the trailing side's inner edge at 98.478 on one
+                     of 1.400, to a root-mean-square of 0.003 and 0.001 of a
+                     pixel's coverage over seven rows. THE PAGE IS 13.88 PX
+                     ACROSS, from 86.000 to 99.878
+         down        the top at y 256.380 and the foot's outer edge at
+                     275.000, 18.62 down, on bands of 1.47 to 1.55
+         the fold    its upright's leading edge at x 92.293 on a band of
+                     1.240, 6.29 px into the page; its crossbar's top edge at
+                     y 263.135 on a band of 1.315, 6.76 px below the top
+
+       The page's top-trailing corner is cut on a diagonal from
        (94,257) to (100,263) — six columns against seven rows, so a
-       45-degree cut. The fold is closed from inside by two lines: a vertical
-       at x 93-94 running from under the top edge down to the cut's end, and a
-       horizontal at y 263-264 running from there out to the trailing edge.
+       45-degree cut. The fold is closed from inside by those two lines: the
+       upright runs from under the top edge down to the cut's end, and the
+       crossbar from there out to the trailing edge.
 
        THIS MARK'S OWN EXTENT IS THE EXCEPTION THE SET RECORDS: its capture
-       reads the page 13 PX ACROSS where the set's square keyline is 19, so
-       the figure takes the keyline in its long direction only and its own
-       measured 13 across it. Its band, on the other hand, is the set's own:
+       reads the page 13.88 PX ACROSS where the set's square keyline is 19,
+       so the figure takes the keyline in its long direction only and its own
+       fitted extent across it. Its band, on the other hand, is the set's own:
        the capture's 1.4 px is the reading the whole set is drawn to.
 
        Grid: an axis-aligned form with one diagonal, so it fills the set's
        square keyline in its long direction — 2.5 to 21.5 down, 19 units —
-       and takes the set's one band of 1.4. The page's 13 by 19 proportion
-       puts it 13 units across against those 19 down, drawn from 5.5 to 18.5,
-       which centres the figure on both axes. The corner is cut 6 by 6, the
-       measured 45 degrees.
+       and takes the set's one band of 1.4. ACROSS IT TAKES THE FITTED 13.88
+       AT THE WHOLE UNIT NEAREST IT, 14, drawn from 5 to 19, which centres the
+       figure on both axes and stands both sides on a whole unit: the library
+       draws this mark at 24 dp, where one grid unit is one device pixel, so
+       the whole unit nearest the reading comes out at the platform's own
+       size. The corner is cut 6 by 6, the measured 45 degrees, which the two
+       fitted extents put at 6.05 units across and 6.12 down.
 
        The cut runs at 45 degrees and is drawn at the set's one band like
        every other edge here: the capture reads the diagonal at the same
        1.4 px perpendicular as the four straight edges, and one measured band
        is what the whole set draws whichever way an edge runs.
 
-       The fold's crossbar is drawn where the capture puts it: its leading
-       edge stands 7 px into a 19 px page, which is 7 units into this one at
-       9.5. The fold's UPRIGHT is not. The capture stands it 6 px into a 13 px
-       page, which is 11.5 here, and it is drawn at 11 — the whole unit beside
-       that — because a band of 1.4 holds a whole device pixel only from an
+       The fold's crossbar is drawn where the capture puts it: its top edge
+       stands 6.76 px below a page 18.62 px down, which is 6.90 units into
+       this one, and it is drawn at 9.5. The fold's UPRIGHT is drawn at the
+       whole unit beside its own reading. The capture stands its leading edge
+       6.29 px into a page 13.88 px across, which is 11.35 here, and 11 is
+       drawn — because a band of 1.4 holds a whole device pixel only from an
        edge on a whole unit or just under one, and a figure whose every band
        misses reads grey at the small sizes against a label drawn in the same
-       colour. 11 still stands under the cut: the inner diagonal reaches
-       x 11.9201 at the inner top face, which the band at 11 to 12.4 meets.
+       colour. 11 stands under the cut, and the fold closes at its own apex:
+       the inner diagonal reaches x 12.4201 at the inner top face, two
+       hundredths of a unit past the upright's trailing edge at 12.4.
 
        Where each band lands. The set's band is a DEVICE width — 1.32 px
        below 20 dp and 1.40 from 20 up — and half its widening is spent
@@ -48,8 +67,8 @@
        at 16. So the fold's
        UPRIGHT at 11 lands a whole pixel at 24 dp and reaches 0.950 at 20 and
        0.860 at 16; the fold's CROSSBAR at 9.5 lands one at 20 dp and reaches
-       0.900 at 24 and 0.860 at 16. The two SIDES at 5.5 and 17.1 land none,
-       reaching 0.900 at 24, 0.867 at 20 and 0.793 at 16. The page's TOP at
+       0.900 at 24 and 0.860 at 16. The two SIDES at 5 and 17.6 land one at
+       24 dp and reach 0.950 at 20 and 0.860 at 16. The page's TOP at
        2.5 and its FOOT at 20.1 stand on the keyline, which the keyline's 19
        odd units keeps off every whole unit: they land one at 20 dp alone,
        reaching 0.900 at 24 and 0.793 at 16. That is what a figure
@@ -63,22 +82,26 @@
        swept from 0 to 4 px in fortieths and read over a 6 by 6 px box about
        the corner. The page's top leading gives 2.450 px and its two foot
        corners 2.525 each, to a root-mean-square of 0.028 of a pixel's
-       coverage. This page is drawn 13 units across against the capture's
-       13.875 and 19 down against its 18.62, so one measured pixel is 0.937
-       of a unit on the one axis and 1.020 on the other, which puts a round
-       of 2.50 px at 2.34 units and 2.55; 2.4 is drawn, inside both, and it
-       is the round the folder's own capture gives. The CUT'S two ends carry
+       coverage. This page is drawn 14 units across against the fitted 13.88
+       and 19 down against the fitted 18.62, so one measured pixel is 1.009
+       of a unit on the one axis and 1.020 on the other, which puts the top
+       leading corner's round at 2.47 units and 2.50 and each foot corner's
+       at 2.55 and 2.58. 2.4 IS DRAWN, the round the folder's own capture
+       gives at 2.33 to 2.52 units and the one the whole set is drawn to,
+       which also puts the band's inner round on the whole unit 1. This
+       page's own readings stand about a tenth of a unit above it, and the
+       tenth is recorded rather than drawn. The CUT'S two ends carry
        no round: they are not square corners, and the capture's diagonal
        meets the top edge and the trailing side as the figure draws it.
 
        Three contours. The page is one outline with its inner edge wound back,
        the inner edge offset 1.4 perpendicular everywhere — which puts the
-       inner diagonal's corners at 11.9201,3.9 and 17.1,9.0799 and the inner
+       inner diagonal's corners at 12.4201,3.9 and 17.6,9.0799 and the inner
        rounds at 1.0, concentric with the outer ones. The fold's two
        lines are drawn in the same direction as the outer contour, so where
        one crosses the cut's own band the overlap fills solid under the
        non-zero winding rule rather than cutting a hole in it. -->
-  <path fill="#000000" d="M7.9 2.5 L12.5 2.5 L18.5 8.5 L18.5 19.1 C18.5 20.4255 17.4255 21.5 16.1 21.5 L7.9 21.5 C6.5745 21.5 5.5 20.4255 5.5 19.1 L5.5 4.9 C5.5 3.5745 6.5745 2.5 7.9 2.5 Z M6.9 4.9 L6.9 19.1 C6.9 19.6523 7.3477 20.1 7.9 20.1 L16.1 20.1 C16.6523 20.1 17.1 19.6523 17.1 19.1 L17.1 9.0799 L11.9201 3.9 L7.9 3.9 C7.3477 3.9 6.9 4.3477 6.9 4.9 Z"/>
+  <path fill="#000000" d="M7.4 2.5 L13 2.5 L19 8.5 L19 19.1 C19 20.4255 17.9255 21.5 16.6 21.5 L7.4 21.5 C6.0745 21.5 5 20.4255 5 19.1 L5 4.9 C5 3.5745 6.0745 2.5 7.4 2.5 Z M6.4 4.9 L6.4 19.1 C6.4 19.6523 6.8477 20.1 7.4 20.1 L16.6 20.1 C17.1523 20.1 17.6 19.6523 17.6 19.1 L17.6 9.0799 L12.4201 3.9 L7.4 3.9 C6.8477 3.9 6.4 4.3477 6.4 4.9 Z"/>
   <path fill="#000000" d="M11 3.9 L12.4 3.9 L12.4 9.5 L11 9.5 Z"/>
-  <path fill="#000000" d="M11 9.5 L18.5 9.5 L18.5 10.9 L11 10.9 Z"/>
+  <path fill="#000000" d="M11 9.5 L19 9.5 L19 10.9 L11 10.9 Z"/>
 </svg>

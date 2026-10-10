@@ -74,9 +74,21 @@
        a root-mean-square of 0.014 of a pixel's coverage. Against the body's
        own 20.00 px drawn at 19 units those are 2.33, 2.52, 2.47 and 2.49
        units; 2.4 is drawn, which also puts the band's inner round on the
-       whole unit 1. The TAB'S TRAILING corner carries none: the capture
-       steps the tab's band down into the body's top band over about a pixel
-       there rather than rounding it, and the set draws that step square.
+       whole unit 1. The TAB'S TRAILING corner carries none.
+
+       THE TAB'S JUNCTION STAYS AS DRAWN, and what the capture reads there is
+       recorded. MEASURED on the same capture, the coverage summed down each
+       column over the tab's band and the body's top band: 1.48 px under the
+       tab and 1.48 trailing of the junction, against 1.64, 1.98, 1.84 and
+       1.52 over the four columns between them. So the capture carries about
+       one square pixel of material in the corner, half of it in one column,
+       rather than rounding the corner or cutting it square. The capture also
+       leaves the tab OPEN: under the tab the figure covers the tab's own band
+       alone, y 211.00 to 212.48, and the folder's interior reaches that inner
+       face, where this drawing fills the tab's rise solid from its top edge
+       at 4.5 to the body's inner face at 7.4. The set draws one figure for
+       the mark, the tab's rise is an extent the capture gives, and the two
+       readings stand recorded against it.
 
        Two contours in one path, and the flap in its own. The silhouette is
        ONE contour — the tab's bar and the body, which abutted before this —

@@ -184,9 +184,11 @@ var markBands = map[string][]band{
 	// The same folder moved 2 units leading, with the badge on its top
 	// trailing corner. The move takes the two sides to 0.5 and 18.1, and the
 	// badge's round cut takes the trailing side's run to 13.8544 and the top
-	// band's and the flap's to where each meets it. The badge itself states
-	// no band: its disc is a measured extent and its plus a hole in that
-	// disc, which the landing rule has no edge to read.
+	// band's and the flap's to where each meets it. Below 24 dp that cut
+	// stands further out, so each of those runs ends sooner there; every line
+	// read here stands clear of it at all three sizes. The badge itself
+	// states no band: its disc is a measured extent and its plus a hole in
+	// that disc, which the landing rule has no edge to read.
 	// folder-plus.svg records all six bands and the cut.
 	"folder-plus": {
 		{"the tab's top", across, 4.5, 1.5, 0.5, 7, 4, 0},
@@ -200,11 +202,11 @@ var markBands = map[string][]band{
 	// runs at 45 degrees and the rule reaches it no more than it reaches the
 	// chevron. document.svg records all six bands and the cut.
 	"document": {
-		{"the page's top", across, 2.5, 0, 5.5, 12.5, 9, 0},
-		{"the page's foot", across, 20.1, 0, 5.5, 18.5, 9, 0},
-		{"the fold's crossbar", across, 9.5, 0, 11, 18.5, 15, 2},
-		{"the leading side", down, 5.5, 0, 2.5, 21.5, 15, 0},
-		{"the trailing side", down, 17.1, 0, 9.08, 21.5, 15, 0},
+		{"the page's top", across, 2.5, 0, 5, 13, 9, 0},
+		{"the page's foot", across, 20.1, 0, 5, 19, 9, 0},
+		{"the fold's crossbar", across, 9.5, 0, 11, 19, 15, 2},
+		{"the leading side", down, 5, 0, 2.5, 21.5, 15, 0},
+		{"the trailing side", down, 17.6, 0, 9.08, 21.5, 15, 0},
 		{"the fold's upright", down, 11, 0, 3.9, 9.5, 6, 1},
 	},
 	// Drawn on the diagonal or the curve throughout: no edge runs along the
