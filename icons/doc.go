@@ -92,6 +92,16 @@
 // ring. It replaces an unmeasured 20 the set carried before, which stood
 // seven units over the platform's own lens.
 //
+// WHERE TWO STROKES OF THE ONE WEIGHT MEET AT AN ANGLE THE EXTRA MATERIAL IS
+// THE JOIN, not a second weight: the platform draws its symbols with one
+// stroke weight and round joins and caps, and a round join of a 1.4 band
+// covers about a tenth of a band more along the bend than the band does on
+// the straight, which is what the folder's shoulder reads (1.47 to 1.60
+// against 1.39 on voicememos-multi-folder-2026-09-18.png). Marks are
+// authored as outlines, so a join's material is drawn into the outline where
+// the capture shows it and is never a reading of its own; chevron, check and
+// search carry theirs the same way and need no reading.
+//
 // A SQUARE FORM'S OUTER CORNERS ARE ROUNDED at the radius its own capture
 // measures, and the measurement is taken the same way everywhere: the
 // coverage of the corner's own square is fitted against a band of the
