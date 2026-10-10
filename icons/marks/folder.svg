@@ -76,27 +76,39 @@
        units; 2.4 is drawn, which also puts the band's inner round on the
        whole unit 1. The TAB'S TRAILING corner carries none.
 
-       THE TAB'S JUNCTION STAYS AS DRAWN, and what the capture reads there is
-       recorded. MEASURED on the same capture, the coverage summed down each
-       column over the tab's band and the body's top band: 1.48 px under the
-       tab and 1.48 trailing of the junction, against 1.64, 1.98, 1.84 and
-       1.52 over the four columns between them. So the capture carries about
-       one square pixel of material in the corner, half of it in one column,
-       rather than rounding the corner or cutting it square. The capture also
-       leaves the tab OPEN: under the tab the figure covers the tab's own band
-       alone, y 211.00 to 212.48, and the folder's interior reaches that inner
-       face, where this drawing fills the tab's rise solid from its top edge
-       at 4.5 to the body's inner face at 7.4. The set draws one figure for
-       the mark, the tab's rise is an extent the capture gives, and the two
-       readings stand recorded against it.
+       THE TAB IS OPEN. MEASURED on the same capture, down the columns under
+       the tab: the figure covers the tab's own band alone, y 211.00 to
+       212.48, and the interior reaches that inner face. The body's top band
+       runs 212.61 to 214.09 trailing of the junction and does not run under
+       the tab. So the tab carries one band of the set's 1.4 from its top edge
+       at 4.5 to an inner face at 5.9, against the body's top edge at 6, and
+       the interior runs from the body into the tab up to that face. The
+       capture puts its own two edges 0.13 px apart, which is 0.12 units on a
+       body 20.00 px across drawn at 19.
+
+       THE TAB'S JUNCTION IS THE MITRE two bands meeting at a right angle
+       give, and what the capture reads there is recorded. MEASURED on the
+       same capture, the coverage summed down each column over the tab's band
+       and the body's top band: 1.48 px under the tab and 1.48 trailing of the
+       junction, against 1.64, 1.98, 1.84 and 1.52 over the four columns
+       between them — about one square pixel of material in the corner, half
+       of it in one column. The capture's two edges descend over those columns
+       rather than turning: its outer edge reads 211.00, 211.37, 212.14,
+       212.56 and 212.61 and its inner edge 212.48, 212.67, 213.35, 213.92 and
+       214.09, a shoulder running down 1.6 px over 2.5 across. The mitre drawn
+       here is square: the post stands from the tab's top at 4.5 to the body's
+       inner face at 7.4 over the band from 7.6 to 9, which is 2.1 square
+       units, and a render at 24 dp reads 2.01 and 2.89 px down the two
+       columns it crosses against 1.39 on either side of them.
 
        Two contours in one path, and the flap in its own. The silhouette is
        ONE contour — the tab's bar and the body, which abutted before this —
        because the round at the top leading corner runs from the tab's top
        edge into the body's leading side and a corner cannot be cut across
        two contours. The body's inner edge is wound back inside the same
-       path, its three rounds concentric with the outer ones at 2.4 less the
-       band. -->
-  <path fill="#000000" d="M4.9 4.5 L9 4.5 L9 6 L19.1 6 C20.4255 6 21.5 7.0745 21.5 8.4 L21.5 17.1 C21.5 18.4255 20.4255 19.5 19.1 19.5 L4.9 19.5 C3.5745 19.5 2.5 18.4255 2.5 17.1 L2.5 6.9 C2.5 5.5745 3.5745 4.5 4.9 4.5 Z M3.9 7.4 L3.9 17.1 C3.9 17.6523 4.3477 18.1 4.9 18.1 L19.1 18.1 C19.6523 18.1 20.1 17.6523 20.1 17.1 L20.1 8.4 C20.1 7.8477 19.6523 7.4 19.1 7.4 L3.9 7.4 Z"/>
+       path: it steps up into the tab at 7.6, runs the tab's inner face at
+       5.9, and carries four rounds concentric with the outer ones at 2.4
+       less the band. -->
+  <path fill="#000000" d="M4.9 4.5 L9 4.5 L9 6 L19.1 6 C20.4255 6 21.5 7.0745 21.5 8.4 L21.5 17.1 C21.5 18.4255 20.4255 19.5 19.1 19.5 L4.9 19.5 C3.5745 19.5 2.5 18.4255 2.5 17.1 L2.5 6.9 C2.5 5.5745 3.5745 4.5 4.9 4.5 Z M3.9 6.9 L3.9 17.1 C3.9 17.6523 4.3477 18.1 4.9 18.1 L19.1 18.1 C19.6523 18.1 20.1 17.6523 20.1 17.1 L20.1 8.4 C20.1 7.8477 19.6523 7.4 19.1 7.4 L7.6 7.4 L7.6 5.9 L4.9 5.9 C4.3477 5.9 3.9 6.3477 3.9 6.9 Z"/>
   <path fill="#000000" d="M5.15 8.6 L18.85 8.6 L18.85 10 L5.15 10 Z"/>
 </svg>

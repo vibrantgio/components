@@ -12,6 +12,10 @@
          the folder   18.44 px across by 14.82 down, every band 1.12 to 1.13,
                       the leading outer edge at x 209.00 and the trailing one
                       at 227.44, the body's top band at y 58.68 to 59.81
+         the tab      open: under it the figure covers the tab's own band
+                      alone, y 57.18 to 58.30, and the interior reaches that
+                      inner face. The body's top band stands below it and
+                      does not run under it
          the badge    a filled disc 8.11 px across, centred (226.81, 60.98)
          the plus     knocked out of that disc, its arms 0.93 px across and
                       4.9 to 5.0 px tip to tip, centred on the disc's own
@@ -32,6 +36,14 @@
        the disc carries the figure to 22.8: 22.3 units against the capture's
        21.87, because the set draws its folder to the 19-unit keyline and the
        capture's is 18.44 px across.
+
+       THE TAB IS OPEN, as folder.svg's is and as this capture reads it: one
+       band of the set's 1.4 from the tab's top edge at 4.5 to an inner face
+       at 5.9, the body's top edge at 6, and the interior running from the
+       body into the tab up to that face. The junction is the square mitre
+       two bands meeting at a right angle give, the post standing from the
+       tab's top at 4.5 to the body's inner face at 7.4 over the band from
+       5.6 to 7.
 
        THE FIGURE STANDS OFF-CENTRE ACROSS, from 0.5 to 22.8 in a box of 24,
        half a unit of air at the leading edge and 1.2 at the trailing. That is
@@ -153,13 +165,14 @@
        single open strip, closed here through its arcs. A round wound against
        the box instead would leave that enclosed space at a winding of -1 and
        fill it solid, which is the trap clear.svg's single cross contour
-       avoids. The FLAP is its own contour, cut by the same round. The BADGE
+       avoids. Its inner edge steps up into the tab at 5.6 and runs the tab's
+       inner face at 5.9. The FLAP is its own contour, cut by the same round. The BADGE
        is the disc wound clockwise with the plus wound against it inside one
        path, so the fill the mark stands on shows through the plus and
        nothing is painted in the surface's colour; the plus is ONE contour
        around the union of its two bars, because two each wound against the
        disc would leave the crossing at -1 and fill it solid. -->
-  <path fill="#000000" d="M14.0136 6 C13.783 6.4414 13.6147 6.9125 13.5132 7.4 L1.9 7.4 L1.9 17.1 C1.9 17.6523 2.3477 18.1 2.9 18.1 L17.1 18.1 C17.6523 18.1 18.1 17.6523 18.1 17.1 L18.1 13.8544 C18.5647 13.9152 19.0353 13.9152 19.5 13.8544 L19.5 17.1 C19.5 18.4255 18.4255 19.5 17.1 19.5 L2.9 19.5 C1.5745 19.5 0.5 18.4255 0.5 17.1 L0.5 6.9 C0.5 5.5745 1.5745 4.5 2.9 4.5 L7 4.5 L7 6 Z"/>
+  <path fill="#000000" d="M14.0136 6 C13.783 6.4414 13.6147 6.9125 13.5132 7.4 L5.6 7.4 L5.6 5.9 L2.9 5.9 C2.3477 5.9 1.9 6.3477 1.9 6.9 L1.9 17.1 C1.9 17.6523 2.3477 18.1 2.9 18.1 L17.1 18.1 C17.6523 18.1 18.1 17.6523 18.1 17.1 L18.1 13.8544 C18.5647 13.9152 19.0353 13.9152 19.5 13.8544 L19.5 17.1 C19.5 18.4255 18.4255 19.5 17.1 19.5 L2.9 19.5 C1.5745 19.5 0.5 18.4255 0.5 17.1 L0.5 6.9 C0.5 5.5745 1.5745 4.5 2.9 4.5 L7 4.5 L7 6 Z"/>
   <path fill="#000000" d="M3.15 8.6 L13.4009 8.6 C13.4097 9.0739 13.4808 9.5446 13.6125 10 L3.15 10 Z"/>
   <path fill="#000000" d="M18.8 4.5 C21.0091 4.5 22.8 6.2909 22.8 8.5 C22.8 10.7091 21.0091 12.5 18.8 12.5 C16.5909 12.5 14.8 10.7091 14.8 8.5 C14.8 6.2909 16.5909 4.5 18.8 4.5 Z M18 6 L18 7.6 L16.3 7.6 L16.3 9 L18 9 L18 11 L19.4 11 L19.4 9 L21.3 9 L21.3 7.6 L19.4 7.6 L19.4 6 Z"/>
 </svg>

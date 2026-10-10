@@ -168,21 +168,36 @@ var markBands = map[string][]band{
 		{"the third list line", across, 12.385, secondBand, 5.15, 7.68, 6.5, 2},
 	},
 	// The folder, measured off voicememos-multi-folder-2026-09-18.png. The
-	// tab's 1.5-unit rise is an extent the capture gives rather than a band,
-	// and it meets the body's own top band, so a column through the tab reads
-	// the two as one run — in one path, since the round at the figure's top
-	// leading corner runs from the tab's top edge into the body's leading
-	// side and the two are one contour. folder.svg records all six.
+	// tab is OPEN, so its top carries the set's own band from 4.5 to 5.9
+	// rather than the 1.5-unit rise filled solid; the body's top band starts
+	// at the tab's trailing side at 9 instead of running under the tab, and
+	// the leading side runs from the tab's top edge. All six stand in one
+	// path, since the round at the figure's top leading corner runs from the
+	// tab's top edge into the body's leading side and the two are one
+	// contour. folder.svg records them.
+	//
+	// THE TAB'S TRAILING SIDE CARRIES NO ENTRY. It is a band running down
+	// from 4.5 to 7.4 at 7.6, and every row crossing it also crosses the
+	// tab's top band or the body's top band, which run the other way: this
+	// model sums the bands of ONE axis along a line, so there is no row where
+	// the trailing side's own span is what the render covers. The junction is
+	// read off a render in folder.svg's comment instead, as the knocked-out
+	// figures are read in badge_test.go. The tab's top is read at 5, the one
+	// column standing clear of both the leading round and that post at all
+	// three sizes.
 	"folder": {
-		{"the tab's top", across, 4.5, 1.5, 2.5, 9, 6, 0},
-		{"the body's top", across, 6, 0, 2.5, 21.5, 12, 0},
+		{"the tab's top", across, 4.5, 0, 2.5, 9, 5, 0},
+		{"the body's top", across, 6, 0, 9, 21.5, 12, 0},
 		{"the flap", across, 8.6, 0, 5.15, 18.85, 12, 1},
 		{"the body's foot", across, 18.1, 0, 2.5, 21.5, 12, 0},
-		{"the leading side", down, 2.5, 0, 6, 19.5, 15, 0},
+		{"the leading side", down, 2.5, 0, 4.5, 19.5, 15, 0},
 		{"the trailing side", down, 20.1, 0, 6, 19.5, 15, 0},
 	},
 	// The same folder moved 2 units leading, with the badge on its top
-	// trailing corner. The move takes the two sides to 0.5 and 18.1, and the
+	// trailing corner. Its tab is open as folder.svg's is, so the tab's top
+	// carries the set's band and the body's top runs from the tab's trailing
+	// side at 7; its trailing side carries no entry for the same reason.
+	// The move takes the two sides to 0.5 and 18.1, and the
 	// badge's round cut takes the trailing side's run to 13.8544 and the top
 	// band's and the flap's to where each meets it. Below 24 dp that cut
 	// stands further out, so each of those runs ends sooner there; every line
@@ -191,11 +206,11 @@ var markBands = map[string][]band{
 	// that disc, which the landing rule has no edge to read.
 	// folder-plus.svg records all six bands and the cut.
 	"folder-plus": {
-		{"the tab's top", across, 4.5, 1.5, 0.5, 7, 4, 0},
-		{"the body's top", across, 6, 0, 0.5, 13.51, 10, 0},
+		{"the tab's top", across, 4.5, 0, 0.5, 7, 4, 0},
+		{"the body's top", across, 6, 0, 7, 13.51, 10, 0},
 		{"the flap", across, 8.6, 0, 3.15, 13.4, 10, 1},
 		{"the body's foot", across, 18.1, 0, 0.5, 19.5, 10, 0},
-		{"the leading side", down, 0.5, 0, 6, 19.5, 15, 0},
+		{"the leading side", down, 0.5, 0, 4.5, 19.5, 15, 0},
 		{"the trailing side", down, 18.1, 0, 13.8544, 19.5, 15, 0},
 	},
 	// The page measured off finder-window-untinted-dark.png. The cut itself
