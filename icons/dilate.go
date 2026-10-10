@@ -33,6 +33,13 @@ const flattenChord = 0.25
 // rather than run to a spike.
 const mitreLimit = 4
 
+// knockoutBands is how far a hole may stand from the contour around it and
+// still be a band's inner edge, in bands. A band's inner edge lies exactly
+// one band from its outer edge; the farthest point of a figure knocked out
+// of a solid one lies two bands and more away in this set, so the two are
+// told apart at one and a half.
+const knockoutBands = 1.5
+
 // contour is one closed loop of a mark's drawing, flattened to straight
 // segments in device pixels.
 type contour []f32.Point
@@ -150,6 +157,67 @@ func offsetContours(cs []contour, d float64) []contour {
 		}
 	}
 	return out
+}
+
+// bandedPath reports whether every hole this path draws is a band's inner
+// edge, which is the only thing the widening is spent on.
+//
+// A hole standing a band from the contour around it IS that band's inner
+// edge: the same signed offset shrinks it while the outer edge grows, and
+// the band between the two comes out the device width its size's capture
+// gives. A hole standing further away is a FIGURE knocked out of a solid one
+// — the folder-plus badge's plus, the clear mark's cross — where the figure
+// and the hole are both measured extents rather than a weight, and the
+// offset would thicken the one while closing the other. Such a path is drawn
+// at the extents the grid gives it at every size.
+//
+// The judgement is the DRAWING's rather than the mark's: one mark carries
+// both kinds, the folder-plus's bands widening while its badge holds its
+// measured 8 units and its plus the measured span knocked out of it.
+func bandedPath(cs []contour, band float64) bool {
+	if band <= 0 {
+		return true
+	}
+	for i := range cs {
+		if !enclosed(cs, i) {
+			continue
+		}
+		for _, p := range cs[i] {
+			if clearance(cs, i, p) > band*knockoutBands {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// clearance is how far p stands from the nearest point of every contour in
+// the path but the one it was taken from.
+func clearance(cs []contour, i int, p f32.Point) float64 {
+	best := math.Inf(1)
+	for j, c := range cs {
+		if j == i {
+			continue
+		}
+		for k := range c {
+			if d := toSegment(p, c[k], c[(k+1)%len(c)]); d < best {
+				best = d
+			}
+		}
+	}
+	return best
+}
+
+// toSegment is the distance from p to the segment a-b.
+func toSegment(p, a, b f32.Point) float64 {
+	dx, dy := float64(b.X-a.X), float64(b.Y-a.Y)
+	l := dx*dx + dy*dy
+	t := 0.0
+	if l > 0 {
+		t = (float64(p.X-a.X)*dx + float64(p.Y-a.Y)*dy) / l
+		t = min(max(t, 0), 1)
+	}
+	return math.Hypot(float64(p.X-a.X)-t*dx, float64(p.Y-a.Y)-t*dy)
 }
 
 // signedArea is twice the area a contour encloses, signed by the way it

@@ -119,6 +119,18 @@ func (b band) reaches(u float64) bool { return u >= b.from && u <= b.to }
 // entirely on the diagonal or the curve carries no entry in the slice — the
 // rule has no edge to reach — and its file says so.
 //
+// A KNOCKED-OUT FIGURE CANNOT BE STATED HERE and is not: covered below
+// composites the spans a + b - ab, which can only add coverage, so a hole in
+// a solid figure — the clear mark's cross, the folder-plus badge's plus — has
+// no entry the model could hold. Those two are read by their own tests
+// instead: badge_test.go reads the badge's plus as the coverage the disc is
+// missing along a cut through each of its bars, which is this reading with
+// the subtraction the model lacks.
+//
+// Where a band's own run is shortened by a corner's round, the run stated is
+// the band's, not the straight part of it: every reading below is taken along
+// a line standing clear of the rounds.
+//
 // The keys are registry keys, so a platform's own drawing is held to its own
 // row: the two sidebar drawings are one figure and both are read.
 var markBands = map[string][]band{
@@ -158,29 +170,31 @@ var markBands = map[string][]band{
 	// The folder, measured off voicememos-multi-folder-2026-09-18.png. The
 	// tab's 1.5-unit rise is an extent the capture gives rather than a band,
 	// and it meets the body's own top band, so a column through the tab reads
-	// the two as one run. folder.svg records all six.
+	// the two as one run — in one path, since the round at the figure's top
+	// leading corner runs from the tab's top edge into the body's leading
+	// side and the two are one contour. folder.svg records all six.
 	"folder": {
 		{"the tab's top", across, 4.5, 1.5, 2.5, 9, 6, 0},
-		{"the body's top", across, 6, 0, 2.5, 21.5, 12, 1},
-		{"the flap", across, 8.6, 0, 5.15, 18.85, 12, 2},
-		{"the body's foot", across, 18.1, 0, 2.5, 21.5, 12, 1},
-		{"the leading side", down, 2.5, 0, 6, 19.5, 15, 1},
-		{"the trailing side", down, 20.1, 0, 6, 19.5, 15, 1},
+		{"the body's top", across, 6, 0, 2.5, 21.5, 12, 0},
+		{"the flap", across, 8.6, 0, 5.15, 18.85, 12, 1},
+		{"the body's foot", across, 18.1, 0, 2.5, 21.5, 12, 0},
+		{"the leading side", down, 2.5, 0, 6, 19.5, 15, 0},
+		{"the trailing side", down, 20.1, 0, 6, 19.5, 15, 0},
 	},
 	// The same folder moved 2 units leading, with the badge on its top
 	// trailing corner. The move takes the two sides to 0.5 and 18.1, and the
-	// badge's round cut takes the trailing side's run to 13.9 and the top
+	// badge's round cut takes the trailing side's run to 13.8544 and the top
 	// band's and the flap's to where each meets it. The badge itself states
 	// no band: its disc is a measured extent and its plus a hole in that
 	// disc, which the landing rule has no edge to read.
 	// folder-plus.svg records all six bands and the cut.
 	"folder-plus": {
 		{"the tab's top", across, 4.5, 1.5, 0.5, 7, 4, 0},
-		{"the body's top", across, 6, 0, 0.5, 14.2, 10, 1},
-		{"the flap", across, 8.6, 0, 3.15, 14.1, 10, 2},
-		{"the body's foot", across, 18.1, 0, 0.5, 19.5, 10, 1},
-		{"the leading side", down, 0.5, 0, 6, 19.5, 15, 1},
-		{"the trailing side", down, 18.1, 0, 13.9, 19.5, 15, 1},
+		{"the body's top", across, 6, 0, 0.5, 13.51, 10, 0},
+		{"the flap", across, 8.6, 0, 3.15, 13.4, 10, 1},
+		{"the body's foot", across, 18.1, 0, 0.5, 19.5, 10, 0},
+		{"the leading side", down, 0.5, 0, 6, 19.5, 15, 0},
+		{"the trailing side", down, 18.1, 0, 13.8544, 19.5, 15, 0},
 	},
 	// The page measured off finder-window-untinted-dark.png. The cut itself
 	// runs at 45 degrees and the rule reaches it no more than it reaches the

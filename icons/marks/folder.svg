@@ -63,10 +63,28 @@
        figure's 19; it is drawn at 1.25 in from each side of the inner pane,
        so it runs 5.15 to 18.85.
 
-       Three contours, abutting rather than winding against each other: the
-       tab's bar, the body as an outline with its inner edge wound back, and
-       the flap. -->
-  <path fill="#000000" d="M2.5 4.5 L9 4.5 L9 6 L2.5 6 Z"/>
-  <path fill="#000000" d="M2.5 6 L21.5 6 L21.5 19.5 L2.5 19.5 Z M3.9 7.4 L3.9 18.1 L20.1 18.1 L20.1 7.4 Z"/>
+       THE OUTER CORNERS ARE ROUNDED AT 2.4 UNITS. MEASURED off the same
+       capture, corner by corner: the pixel coverage of the corner's own
+       square was fitted against a band of the measured width whose outer
+       edge is rounded and whose inner edge is concentric with it, over a
+       radius swept from 0 to 5 px in fortieths, each fit read over a 6 by 6
+       px box about the corner. The figure's four corners give 2.450 px at
+       the tab's top leading, 2.650 at the body's top trailing, 2.600 at its
+       foot trailing and 2.625 at its foot leading, the three closed ones to
+       a root-mean-square of 0.014 of a pixel's coverage. Against the body's
+       own 20.00 px drawn at 19 units those are 2.33, 2.52, 2.47 and 2.49
+       units; 2.4 is drawn, which also puts the band's inner round on the
+       whole unit 1. The TAB'S TRAILING corner carries none: the capture
+       steps the tab's band down into the body's top band over about a pixel
+       there rather than rounding it, and the set draws that step square.
+
+       Two contours in one path, and the flap in its own. The silhouette is
+       ONE contour — the tab's bar and the body, which abutted before this —
+       because the round at the top leading corner runs from the tab's top
+       edge into the body's leading side and a corner cannot be cut across
+       two contours. The body's inner edge is wound back inside the same
+       path, its three rounds concentric with the outer ones at 2.4 less the
+       band. -->
+  <path fill="#000000" d="M4.9 4.5 L9 4.5 L9 6 L19.1 6 C20.4255 6 21.5 7.0745 21.5 8.4 L21.5 17.1 C21.5 18.4255 20.4255 19.5 19.1 19.5 L4.9 19.5 C3.5745 19.5 2.5 18.4255 2.5 17.1 L2.5 6.9 C2.5 5.5745 3.5745 4.5 4.9 4.5 Z M3.9 7.4 L3.9 17.1 C3.9 17.6523 4.3477 18.1 4.9 18.1 L19.1 18.1 C19.6523 18.1 20.1 17.6523 20.1 17.1 L20.1 8.4 C20.1 7.8477 19.6523 7.4 19.1 7.4 L3.9 7.4 Z"/>
   <path fill="#000000" d="M5.15 8.6 L18.85 8.6 L18.85 10 L5.15 10 Z"/>
 </svg>

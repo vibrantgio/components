@@ -56,13 +56,29 @@
        measured on both axes costs on this grid; the readings stand and the
        misses are recorded.
 
+       THE THREE SQUARE CORNERS ARE ROUNDED AT 2.4 UNITS. MEASURED off the
+       same capture: the pixel coverage of each corner's own square was
+       fitted against a band of the measured width whose outer edge is
+       rounded and whose inner edge is concentric with it, over a radius
+       swept from 0 to 4 px in fortieths and read over a 6 by 6 px box about
+       the corner. The page's top leading gives 2.450 px and its two foot
+       corners 2.525 each, to a root-mean-square of 0.028 of a pixel's
+       coverage. This page is drawn 13 units across against the capture's
+       13.875 and 19 down against its 18.62, so one measured pixel is 0.937
+       of a unit on the one axis and 1.020 on the other, which puts a round
+       of 2.50 px at 2.34 units and 2.55; 2.4 is drawn, inside both, and it
+       is the round the folder's own capture gives. The CUT'S two ends carry
+       no round: they are not square corners, and the capture's diagonal
+       meets the top edge and the trailing side as the figure draws it.
+
        Three contours. The page is one outline with its inner edge wound back,
        the inner edge offset 1.4 perpendicular everywhere — which puts the
-       inner diagonal's corners at 11.9201,3.9 and 17.1,9.0799. The fold's two
+       inner diagonal's corners at 11.9201,3.9 and 17.1,9.0799 and the inner
+       rounds at 1.0, concentric with the outer ones. The fold's two
        lines are drawn in the same direction as the outer contour, so where
        one crosses the cut's own band the overlap fills solid under the
        non-zero winding rule rather than cutting a hole in it. -->
-  <path fill="#000000" d="M5.5 2.5 L12.5 2.5 L18.5 8.5 L18.5 21.5 L5.5 21.5 Z M6.9 3.9 L6.9 20.1 L17.1 20.1 L17.1 9.0799 L11.9201 3.9 Z"/>
+  <path fill="#000000" d="M7.9 2.5 L12.5 2.5 L18.5 8.5 L18.5 19.1 C18.5 20.4255 17.4255 21.5 16.1 21.5 L7.9 21.5 C6.5745 21.5 5.5 20.4255 5.5 19.1 L5.5 4.9 C5.5 3.5745 6.5745 2.5 7.9 2.5 Z M6.9 4.9 L6.9 19.1 C6.9 19.6523 7.3477 20.1 7.9 20.1 L16.1 20.1 C16.6523 20.1 17.1 19.6523 17.1 19.1 L17.1 9.0799 L11.9201 3.9 L7.9 3.9 C7.3477 3.9 6.9 4.3477 6.9 4.9 Z"/>
   <path fill="#000000" d="M11 3.9 L12.4 3.9 L12.4 9.5 L11 9.5 Z"/>
   <path fill="#000000" d="M11 9.5 L18.5 9.5 L18.5 10.9 L11 10.9 Z"/>
 </svg>

@@ -92,6 +92,19 @@
 // ring. It replaces an unmeasured 20 the set carried before, which stood
 // seven units over the platform's own lens.
 //
+// A SQUARE FORM'S OUTER CORNERS ARE ROUNDED at the radius its own capture
+// measures, and the measurement is taken the same way everywhere: the
+// coverage of the corner's own square is fitted against a band of the
+// measured width whose outer edge is rounded and whose inner edge is
+// concentric with it, the radius swept in fortieths of a pixel. The folder
+// reads 2.33 to 2.52 units over its four corners and the folder-plus 2.37
+// over the one its badge leaves standing, so both are drawn at 2.4; the page
+// reads 2.34 to 2.55 and takes the same, which puts every band's inner round
+// on the whole unit 1. The sidebar's pane carries its own 3 — a pane is a
+// window and not a symbol — and the two bars, the plus and the minus, have
+// ends rather than corners: a round of 2.4 cannot stand on a band of 1.4,
+// and the set cuts a bar's end square because a cap only thickens it.
+//
 // THE DIAGONAL ALLOWANCE IS NOT MEASURED. No stored capture holds a bare
 // diagonal band standing alone in a toolbar band; Notes' compose covers
 // 17 × 17, the nearest reading, and it is a figure rather than a band. The
@@ -281,14 +294,23 @@
 // line. The second band is not a lighter version of the band to
 // reach for: it is what a list line, a rule inside a pane and nothing else is.
 //
-// A MARK THAT LAYS DOWN NO BAND TAKES NO WIDENING. The widening exists to
-// hold a band to a device width, and the clear mark has none: it is a solid
-// disc with a cross knocked out of it, and both the disc's extent and the
-// cross's are measured figures rather than a weight. Offsetting its edges
-// would thicken the one while closing the other — at 16 dp the cross's arms
-// would come to 0.31 px against the 0.79 the grid gives them — so the mark
-// scales with the grid and nothing else. It is the only mark in the set drawn
-// that way, and the package's own rule is one predicate: bandless.
+// A PATH THAT LAYS DOWN NO BAND TAKES NO WIDENING. The widening exists to
+// hold a band to a device width, and a figure knocked out of a solid one is
+// no band: the clear mark is a disc with a cross knocked out of it and the
+// folder-plus badge a disc with a plus, and in each the figure's extent and
+// the hole's are measured rather than a weight. Offsetting their edges would
+// thicken the one while closing the other — at 16 dp the clear mark's arms
+// would come to 0.31 px against the 0.79 the grid gives them, and the
+// badge's plus to 0.55 against 0.93 — so both scale with the grid and
+// nothing else.
+//
+// The judgement is the drawing's and not the mark's, because one mark
+// carries both kinds: the folder-plus's bands widen while its badge holds
+// the extents its capture gives. So the rule is read off each path as it is
+// laid down — a hole standing a band from the contour around it is that
+// band's inner edge and shrinks as the outer edge grows; a hole standing
+// further away is a knocked-out figure and the whole path is drawn as the
+// grid gives it.
 //
 // # A mark standing in chrome
 //

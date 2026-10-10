@@ -188,9 +188,9 @@ const (
 )
 
 // ClearDiscOriginPx and ClearDiscSizePx are those two in device pixels for a
-// mark drawn at sizePx in this window. The clear mark lays down no band, so it
-// takes none of the widening the set spends on one and both are the fraction
-// scaled.
+// mark drawn at sizePx in this window. The clear mark draws a solid figure
+// with another knocked out of it and no band at all, so it takes none of the
+// widening the set spends on one and both are the fraction scaled.
 func ClearDiscOriginPx(sizePx int) float32 { return float32(ClearDiscOrigin * float64(sizePx)) }
 
 // ClearDiscSizePx is the disc's outer extent in device pixels. A control
@@ -312,27 +312,6 @@ func widening(pxPerDp float32, px int) int {
 	return int(math.Round(extra * 1000))
 }
 
-// bandless reports whether the mark under this registry key lays down no band
-// at all, and so takes none of the widening.
-//
-// The widening holds a BAND to a device width. The clear mark has none: it is
-// a solid disc with a cross knocked out of it, and both the disc's extent and
-// the cross's are measured figures rather than a weight, so both scale with
-// the grid and the offset would thicken the one while closing the other.
-func bandless(entry string) bool {
-	name, _, _ := strings.Cut(entry, platformSep)
-	return Name(name) == Clear
-}
-
-// widenFor is widening for one mark: the size's own reading, or nothing for a
-// mark that draws no band.
-func widenFor(entry string, pxPerDp float32, px int) int {
-	if bandless(entry) {
-		return 0
-	}
-	return widening(pxPerDp, px)
-}
-
 // Painter draws a mark into a square of sizePx at the current origin, in col.
 // It is the shape this library's controls take for an icon slot.
 type Painter func(gtx layout.Context, sizePx int, col color.NRGBA)
@@ -439,7 +418,7 @@ func (s *Set) Mark(name Name) Painter {
 		if sizePx <= 0 {
 			return
 		}
-		call := s.drawing(entry, sizePx, widenFor(entry, gtx.Metric.PxPerDp, sizePx))
+		call := s.drawing(entry, sizePx, widening(gtx.Metric.PxPerDp, sizePx))
 		paint.ColorOp{Color: col}.Add(gtx.Ops)
 		call.Add(gtx.Ops)
 	}

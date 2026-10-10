@@ -36,7 +36,11 @@ func (s *Set) drawing(entry string, px, widen int) op.CallOp {
 
 	macro := op.Record(s.ops)
 	mark.SetTarget(mark.ViewBox.AspectMeet(float64(px), float64(px), 0.5, 0.5))
-	svgdriver.Draw(&recorder{ops: s.ops, widen: float64(widen) / 1000}, mark, 1)
+	svgdriver.Draw(&recorder{
+		ops:   s.ops,
+		widen: float64(widen) / 1000,
+		band:  bandUnitsAt24 * float64(px) / gridUnits,
+	}, mark, 1)
 	call := macro.Stop()
 
 	s.cache[key] = call
@@ -61,6 +65,10 @@ type recorder struct {
 	// half its own width on every edge, so a band grows by the whole of it
 	// and keeps its centreline.
 	widen float64
+	// band is the grid's own band at this size, in device pixels. It is what
+	// tells a band's inner edge from a figure knocked out of a solid one, so
+	// that a path drawing the second takes no widening.
+	band float64
 }
 
 // assert interface conformance
@@ -117,9 +125,16 @@ func (r *recorder) cover(shape clip.Op, alpha float32) {
 
 // spec replays the buffered path into a fresh clip.Path, which is what the
 // single-use clip.PathSpec forces: a path filled and stroked is built twice.
+//
+// The widening is spent PER PATH, on the paths that draw bands: a path whose
+// hole is a figure knocked out of a solid one is laid down as the grid gives
+// it, because an offset there would thicken the figure while closing the
+// hole and both are measured extents.
 func (r *recorder) spec() clip.PathSpec {
 	if r.widen > 0 {
-		return r.offsetSpec()
+		if cs := flattenPath(r.path); bandedPath(cs, r.band) {
+			return r.offsetSpec(cs)
+		}
 	}
 	var p clip.Path
 	p.Begin(r.ops)
@@ -140,14 +155,13 @@ func (r *recorder) spec() clip.PathSpec {
 	return p.End()
 }
 
-// offsetSpec is the buffered path with every edge moved outward by half the
-// widening: the contours flattened, offset and filled as one path, so the
-// coverage a render reads is the offset geometry's own and not two shapes
-// composited over each other.
-func (r *recorder) offsetSpec() clip.PathSpec {
+// offsetSpec is the flattened path with every edge moved outward by half the
+// widening, filled as one path, so the coverage a render reads is the offset
+// geometry's own and not two shapes composited over each other.
+func (r *recorder) offsetSpec(cs []contour) clip.PathSpec {
 	var p clip.Path
 	p.Begin(r.ops)
-	for _, c := range offsetContours(flattenPath(r.path), r.widen/2) {
+	for _, c := range offsetContours(cs, r.widen/2) {
 		p.MoveTo(c[0])
 		for _, q := range c[1:] {
 			p.LineTo(q)
