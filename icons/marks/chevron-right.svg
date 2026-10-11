@@ -1,7 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <!-- History back: the mark on the control that returns to what was shown
-       before. A chevron pointing at where the reader came from, and the
-       mirror of its forward sibling, so a pair of them reads as one control.
+  <!-- Chevron right: one chevron pointing trailing. The mark is the
+       picture, and what a control does with it is that control's title's to
+       say: a sidebar's disclosure draws it as the row stands closed and
+       turns it a quarter turn when the row opens, a breadcrumb stands it
+       between two segments, and the forward half of a history pair points on
+       with it.
+
+       The set draws ONE chevron, at the one extent a stored capture holds a
+       chevron at: chevron-left.svg is this figure mirrored, and
+       chevron-down.svg is the stacked pair's lower half at its own measured
+       extent.
 
        MEASURED at 1x, finder-window-light.png, the back/forward pair at the
        leading end of that window's content column (the control x 326-398, the
@@ -26,7 +34,7 @@
        square keyline nor the round form's 13 units — a chevron standing in a
        band is not a form filling the mark box, and the platform draws it a
        third of the box's width. It stands at x 8 to 16 and y 5 to 19, centred
-       on both axes. The band's centre line runs from 15.3,5.7 to 8.7,12 to 15.3,18.3: two arms 6.6 across
+       on both axes. The band's centre line runs from 8.7,5.7 to 15.3,12 to 8.7,18.3: two arms 6.6 across
        by 6.3 down, at atan(6.3/6.6) = 43.7 degrees off the horizontal, which
        is the capture's OWN centre line — its covered 8 by 14 less a band of
        1.53 on each axis is 6.47 by 12.47, an arm of 6.47 by 6.235 at 43.9
@@ -44,9 +52,9 @@
        has a leading edge on a whole unit to land a whole device pixel inside.
        A band at 45 degrees covers 1.000 of the pixel it runs through at 24 dp
        and at 20, and 0.996 at 16 — the set's band is a DEVICE width, 1.32 px
-       below 20 dp and 1.40 from 20 up — and these arms stand
-       within a degree and a half of that; the mark is drawn at 24 dp wherever
+       below 20 dp and 1.40 from 20 up — and these arms stand within a degree
+       and a half of that; the mark is drawn at 24 dp wherever
        the library draws it, where one unit is one device pixel and the
        measured extent comes out exact. -->
-  <path fill="#000000" d="M15.7833 6.2063 L9.7138 12 L15.7833 17.7937 C16.063 18.0606 16.0733 18.5037 15.8063 18.7833 C15.5394 19.063 15.0963 19.0733 14.8167 18.8063 L7.6862 12 L14.8167 5.1937 C15.0963 4.9267 15.5394 4.937 15.8063 5.2167 C16.0733 5.4963 16.063 5.9394 15.7833 6.2063 Z"/>
+  <path fill="#000000" d="M9.1833 5.1937 L16.3138 12 L9.1833 18.8063 C8.9037 19.0733 8.4606 19.063 8.1937 18.7833 C7.9267 18.5037 7.937 18.0606 8.2167 17.7937 L14.2862 12 L8.2167 6.2063 C7.937 5.9394 7.9267 5.4963 8.1937 5.2167 C8.4606 4.937 8.9037 4.9267 9.1833 5.1937 Z"/>
 </svg>

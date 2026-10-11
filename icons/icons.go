@@ -33,29 +33,18 @@ const markDir = "marks"
 // names are lowercase words joined by "-" — so the two halves stay separable.
 const platformSep = "@"
 
-// Name identifies a mark by the control it belongs to.
+// Name identifies a mark by what it depicts.
 type Name string
 
-// The marks the set carries. Each names a control, not a picture: what the
-// drawing behind one looks like is free to change and does change between
-// platforms, and these are the strings call sites store.
+// The marks the set carries. Each names a picture and never what a control
+// does with it: one mark serves several controls, and what the drawing behind
+// a name looks like is free to change and does change between platforms, so
+// the name is the part call sites store.
 const (
 	// Sidebar is the control that shows and hides a window's sidebar. One
 	// mark serves both directions — which way the control is about to go is
 	// the control's to signal, and a mark that morphs cannot be recognised.
 	Sidebar Name = "sidebar"
-
-	// Disclosure is the control that opens and closes a row's children. The
-	// mark is drawn as the row stands closed; a control showing an open row
-	// turns it a quarter turn rather than swapping in a second drawing.
-	Disclosure Name = "disclosure"
-
-	// HistoryBack is the control that returns to what was shown before.
-	HistoryBack Name = "history-back"
-
-	// HistoryForward is the control that goes back to what the reader had
-	// stepped away from.
-	HistoryForward Name = "history-forward"
 
 	// Search is the looking glass a search field leads with. It names the
 	// control at a glance and is the one mark in this set that operates
@@ -107,16 +96,29 @@ const (
 	// fill's to say.
 	Check Name = "check"
 
-	// ChevronPair is the mark on a control that holds one of several values:
-	// two chevrons stacked point to point, the upper pointing up and the
-	// lower down. It says the value can move either way and never which way
-	// the menu opens, which is why the platform draws a pair here.
-	ChevronPair Name = "chevron-pair"
+	// ChevronRight is one chevron pointing trailing, the set's one
+	// right-pointing chevron. What a control does with the picture is that
+	// control's title's to say: a sidebar's disclosure draws it as the row
+	// stands closed and turns it a quarter turn when the row opens, a
+	// breadcrumb stands it between two segments as the separator, and the
+	// forward half of a history pair points on with it.
+	ChevronRight Name = "chevron-right"
 
-	// Chevron is the mark on a control that opens a menu of actions: one
-	// chevron pointing down, the pair's lower half. It says the menu goes
-	// down from here, which is the one thing the pair cannot say.
-	Chevron Name = "chevron"
+	// ChevronLeft is one chevron pointing leading, ChevronRight's figure
+	// mirrored. The back half of a history pair points at where the reader
+	// came from with it, and the two drawn side by side read as one control.
+	ChevronLeft Name = "chevron-left"
+
+	// ChevronDown is one chevron pointing down, the stacked pair's lower
+	// half. A pull-down draws it to say its menu of actions goes down from
+	// here, which is the one thing the pair cannot say.
+	ChevronDown Name = "chevron-down"
+
+	// ChevronPair is two chevrons stacked point to point, the upper pointing
+	// up and the lower down. It says a value can move either way and never
+	// which way a menu opens, which is why the platform draws a pair where a
+	// control holds one of several values.
+	ChevronPair Name = "chevron-pair"
 )
 
 // The search mark's drawing, as fractions of the square it is drawn in. A

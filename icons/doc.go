@@ -1,5 +1,5 @@
 // Package icons is the design system's own icon set: marks drawn on one grid
-// at one weight, addressed by a name that says what the control does, and
+// at one weight, addressed by a name that says what the mark depicts, and
 // resolved to the host operating system's drawing at run time.
 //
 // A name yields a painter with the signature the library's controls take for
@@ -19,15 +19,17 @@
 // # Names
 //
 // A name says what the mark depicts, never what the control using it does:
-// sidebar, disclosure, history-back — not rectangle-with-lines, triangle,
-// left-chevron. One picture therefore carries one name however many actions
-// it serves: the folder a row IS and the control that chooses which folder a
-// window shows are both drawn with a closed folder, so both ask for folder,
-// and what the control does is its title's to say. The drawing behind a name
-// is free to change, and does change between platforms; the name is the part
+// chevron-right, folder, sidebar — not disclosure, history-back, pull-down.
+// One picture therefore carries one name however many actions it serves: the
+// folder a row IS and the control that chooses which folder a window shows
+// are both drawn with a closed folder, so both ask for folder, and the one
+// right-pointing chevron serves a row's disclosure, a breadcrumb's separator
+// and a history pair's forward half, so all three ask for chevron-right —
+// what each control does is its title's to say. The drawing behind a name is
+// free to change, and does change between platforms; the name is the part
 // call sites store, so it has to survive that. Names are lowercase ASCII with
-// words joined by "-", the qualifier last (history-back, history-forward),
-// and they are stable once published.
+// words joined by "-", the qualifier last (chevron-right, folder-plus), and
+// they are stable once published.
 //
 // # One name, one drawing per platform
 //

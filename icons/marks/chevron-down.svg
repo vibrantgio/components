@@ -1,8 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <!-- Chevron: one chevron pointing down, the mark the platform puts on a
-       control that opens a menu of ACTIONS — a pull-down. It says the menu
-       goes down from here, which is the one thing the stacked pair cannot
-       say.
+  <!-- Chevron down: one chevron pointing down, the stacked pair's lower
+       half. The mark is the picture, and what a control does with it is that
+       control's title's to say: a pull-down — the control that opens a menu
+       of ACTIONS — draws it to say the menu goes down from here, which is
+       the one thing the stacked pair cannot say.
 
        MEASURED at 1x, finder-window-light.png, the group pull-down beside
        Finder's view pop-up: the mark spans x 792-799 and y 24-28 — eight

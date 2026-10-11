@@ -64,8 +64,8 @@ func TestRegistryKeyFromFileName(t *testing.T) {
 	}{
 		{file: "sidebar.svg", want: "sidebar"},
 		{file: "sidebar.darwin.svg", want: "sidebar@darwin"},
-		{file: "history-back.svg", want: "history-back"},
-		{file: "history-back.windows.svg", want: "history-back@windows"},
+		{file: "chevron-left.svg", want: "chevron-left"},
+		{file: "chevron-left.windows.svg", want: "chevron-left@windows"},
 		{file: "Sidebar.svg", wantErr: true},
 		{file: "side_bar.svg", wantErr: true},
 		{file: "sidebar-.svg", wantErr: true},

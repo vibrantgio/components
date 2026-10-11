@@ -237,7 +237,7 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 		i, lv := i, lv
 		g.chipLive[i], err = chip.Chip(th, chip.Props{
 			Title:       lv.title,
-			Icon:        chip.Symbol(icons.Mark(icons.Disclosure)),
+			Icon:        chip.Symbol(icons.Mark(icons.ChevronRight)),
 			Description: lv.desc,
 			Surface:     lv.fill,
 			OnClick:     func(_ layout.Context) { g.chipClicks[i]++; w.Invalidate() },

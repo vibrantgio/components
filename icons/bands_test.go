@@ -229,15 +229,14 @@ var markBands = map[string][]band{
 	// grid, so the rule reaches none of them and each file says so, with what
 	// it has instead — the set's one band spent perpendicular, whichever way
 	// the edge runs.
-	"check":           nil,
-	"chevron":         nil,
-	"chevron-pair":    nil,
-	"clear":           nil,
-	"disclosure":      nil,
-	"history-back":    nil,
-	"history-forward": nil,
-	"refresh":         nil,
-	"search":          nil,
+	"check":         nil,
+	"chevron-down":  nil,
+	"chevron-left":  nil,
+	"chevron-pair":  nil,
+	"chevron-right": nil,
+	"clear":         nil,
+	"refresh":       nil,
+	"search":        nil,
 }
 
 // TestEveryBandLandsWhereItsFileSaysItDoes walks the whole set and reads every

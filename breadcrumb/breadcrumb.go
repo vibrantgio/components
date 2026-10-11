@@ -326,15 +326,15 @@ func titleWidget(shaper *text.Shaper, title string, fg color.NRGBA, style tokens
 
 // chevronWidget draws one separator into a square of sizeDp: the set's
 // chevron pointing the way the row reads, parent to child, in col. The
-// drawing is the set's disclosure mark — the one right-pointing chevron the
-// set carries, measured off Finder's own toolbar chevrons at 8 by 14 px in
-// the 24-unit mark box. A set that cannot resolve the name leaves the square
-// empty rather than drawing a figure of this package's own, so the row's
-// measure does not move with the set.
+// drawing is the set's chevron-right mark — the one right-pointing chevron
+// the set carries, measured off Finder's own toolbar chevrons at 8 by 14 px
+// in the 24-unit mark box. A set that cannot resolve the name leaves the
+// square empty rather than drawing a figure of this package's own, so the
+// row's measure does not move with the set.
 func chevronWidget(sizeDp unit.Dp, col color.NRGBA) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		sz := gtx.Dp(sizeDp)
-		if mark := icons.Mark(icons.Disclosure); mark != nil {
+		if mark := icons.Mark(icons.ChevronRight); mark != nil {
 			mark(gtx, sz, col)
 		}
 		return layout.Dimensions{Size: image.Pt(sz, sz)}

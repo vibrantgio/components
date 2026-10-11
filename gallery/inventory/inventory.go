@@ -1753,9 +1753,8 @@ func (inv *Inventory) iconBlock(c tokens.PlatformColors) layout.Widget {
 		which icons.Name
 	}{
 		{"sidebar", icons.Sidebar},
-		{"disclosure", icons.Disclosure},
-		{"back", icons.HistoryBack},
-		{"forward", icons.HistoryForward},
+		{"chevron-right", icons.ChevronRight},
+		{"chevron-left", icons.ChevronLeft},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		cell := func(name string, w layout.Widget) layout.FlexChild {
