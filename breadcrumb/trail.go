@@ -108,7 +108,8 @@ func Trail(th rx.Observable[theme.Theme], props TrailProps) rx.Observable[TrailL
 // Render; its Shaper is unread here, the shaper being the first argument.
 //
 // title is the TitleSmall role's whole text style, as it is for Render; pass
-// tokens.DefaultTypography.TitleSmall for the default desktop look.
+// tokens.DefaultTypography.TitleSmall for the default desktop look. sp is
+// unread here for the reason Render gives.
 func NewTrail(
 	shaper *text.Shaper,
 	props TrailProps,

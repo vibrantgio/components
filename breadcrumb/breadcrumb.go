@@ -10,6 +10,10 @@
 // and its section headings at #7b7b7b, which is the secondary label over
 // that fill to within a byte.
 //
+// The pointer over it stays the arrow. A trail stands on chrome, where the
+// platform's path bar leaves the arrow over every place it holds; the
+// pointing hand belongs to links in the content.
+//
 // Breadcrumb is a callable Go function consuming a components theme
 // observable, returning a stream of layout.Widget. Source is intentionally
 // short and free of opaque configuration — copy it into your own app and
@@ -38,7 +42,6 @@ import (
 	"image"
 	"image/color"
 
-	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
 	"gioui.org/text"
@@ -49,7 +52,6 @@ import (
 	"github.com/vibrantgio/components/icons"
 	"github.com/vibrantgio/components/internal/surface"
 	complayout "github.com/vibrantgio/components/layout"
-	"github.com/vibrantgio/components/pointershape"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
@@ -149,6 +151,10 @@ func Breadcrumb(th rx.Observable[theme.Theme], props Props) rx.Observable[layout
 // live path. Pass tokens.DefaultTypography.TitleSmall for the default
 // desktop look. There is no density parameter: a breadcrumb trail is a
 // text row, not a control.
+//
+// sp is unread: the row's one gap is [separatorGapDp], stated rather than
+// taken off the scale. It stays in the signature, which is the shape the
+// library's static render paths share.
 func Render(
 	shaper *text.Shaper,
 	props Props,
@@ -208,6 +214,35 @@ func chevronSize(d unit.Dp) unit.Dp {
 	return d
 }
 
+// separatorGapDp is the clear room the row leaves between a place's title
+// and the separator's drawn figure, on each side of it.
+//
+// It is a stated number: no capture in the reference holds the platform's
+// path bar, so the room that bar leaves around its separator is unmeasured,
+// and this is the eight the platform leaves beside a mark in its sidebar —
+// the nearest reading the reference carries — standing in until a path bar
+// capture exists. It is stated rather than taken as a step of the spacing
+// scale because what it measures from is the drawn figure, which the square
+// the mark stands in says nothing about.
+const separatorGapDp unit.Dp = 8
+
+// separatorSpacer is the gap the row actually lays out beside the
+// separator's square: the clear room above, less the room that square
+// already leaves around the figure drawn into it. The chevron covers 8 of
+// the mark box's 24 units across, so a square of c leaves c/3 clear on each
+// side of the figure and the row owes only the rest. A square wide enough to
+// leave the whole clearance by itself takes no gap at all.
+func separatorSpacer(chevron unit.Dp) unit.Dp {
+	if gap := separatorGapDp - chevron/3; gap > 0 {
+		return gap
+	}
+	return 0
+}
+
+// drawBreadcrumb lays the row out: the places parted by the separator and
+// its two gaps. It spends no step of the spacing scale — the row's one gap
+// is [separatorGapDp], measured from the figure the separator draws rather
+// than from the square it stands in — so the scale reaches it and is unread.
 func drawBreadcrumb(
 	gtx layout.Context,
 	shaper *text.Shaper,
@@ -215,7 +250,7 @@ func drawBreadcrumb(
 	clicks []*widget.Clickable,
 	p tokens.PlatformColors,
 	standsOn color.NRGBA,
-	sp tokens.SpacingScale,
+	_ tokens.SpacingScale,
 	style tokens.TextStyle,
 	chevron unit.Dp,
 ) layout.Dimensions {
@@ -230,13 +265,16 @@ func drawBreadcrumb(
 
 	fg := titleColor(p, standsOn)
 
+	square := chevronSize(chevron)
+	gap := float32(separatorSpacer(square))
+
 	children := make([]layout.FlexChild, 0, 2*len(items)-1)
 	for i, item := range items {
 		if i > 0 {
 			children = append(children,
-				layout.Rigid(complayout.HSpacer(sp.S2)),
-				layout.Rigid(chevronWidget(chevronSize(chevron), chevronCol)),
-				layout.Rigid(complayout.HSpacer(sp.S2)),
+				layout.Rigid(complayout.HSpacer(gap)),
+				layout.Rigid(chevronWidget(square, chevronCol)),
+				layout.Rigid(complayout.HSpacer(gap)),
 			)
 		}
 		children = append(children, layout.Rigid(segmentWidget(shaper, item, clickFor(clicks, i), fg, style)))
@@ -273,9 +311,9 @@ func segmentWidget(shaper *text.Shaper, item Item, click *widget.Clickable, fg c
 		return click.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			semantic.LabelOp(item.Title).Add(gtx.Ops)
 			semantic.EnabledOp(true).Add(gtx.Ops)
-			dims := title(gtx)
-			pointershape.OverSize(gtx.Ops, dims.Size, pointer.CursorPointer)
-			return dims
+			// No shape is declared over a place: the trail stands on
+			// chrome, and the platform's path bar keeps the arrow there.
+			return title(gtx)
 		})
 	}
 }

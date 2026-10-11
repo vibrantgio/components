@@ -119,11 +119,16 @@ func TestBreadcrumbLightDarkDiffer(t *testing.T) {
 	}
 }
 
-// TestChevronSizeIsTheCallersOrTheDefault pins the separator's square: a
-// caller that states one gets it, and a caller that states nothing gets the
-// size the row has always drawn at. The row's width is the measure, because
-// the separator occupies its square: a stated size that never reached the
-// drawing would leave two rows the same width.
+// TestChevronSizeIsTheCallersOrTheDefault pins the separator's square and
+// the room beside it: a caller that states a square gets it, a caller that
+// states nothing gets the default, and the gap each side closes up by what
+// the square itself leaves clear, so the figure keeps its eight either way.
+//
+// The row's width is the measure. What a separator costs the row is the
+// square plus its two gaps — c + 2*(8 - c/3), the chevron covering a third
+// of its square across — so the arithmetic is stated per square rather than
+// derived from a width taken at another one. At 24 dp and up the square
+// leaves the whole clearance by itself and the gaps are nothing.
 //
 // Both shapes are checked. They draw the same row, and a knob that reached
 // only one of them would be a knob that works depending on which
@@ -150,7 +155,14 @@ func TestChevronSizeIsTheCallersOrTheDefault(t *testing.T) {
 		return w(gtx, segs).Size.X
 	}
 
-	const smaller = breadcrumb.DefaultChevron - 4
+	// What one separator costs the row at 1x, square by square: the square
+	// itself plus the two gaps, each 8 less the c/3 the square leaves clear
+	// of the figure, rounded to the device as the row lays it out.
+	blocks := map[unit.Dp]int{
+		breadcrumb.DefaultChevron: 20 + 2*1, // 8 - 6.67 = 1.33 a side
+		8:                         8 + 2*5,  // 8 - 2.67 = 5.33 a side
+		24:                        24,       // the square leaves the whole 8
+	}
 	for _, tc := range []struct {
 		name  string
 		width func(unit.Dp) int
@@ -168,12 +180,14 @@ func TestChevronSizeIsTheCallersOrTheDefault(t *testing.T) {
 				t.Errorf("a negative size drew %dpx wide, the default %dpx: it is no size at all, "+
 					"not an invisible separator", negative, deflt)
 			}
-			// Two separators in a three-segment trail, each four dp narrower.
-			want := deflt - 2*int(breadcrumb.DefaultChevron-smaller)
-			if got := tc.width(smaller); got != want {
-				t.Errorf("at %ddp the row drew %dpx wide, want %dpx (the default's %dpx less the "+
-					"two separators' %ddp)", int(smaller), got, want, deflt,
-					int(breadcrumb.DefaultChevron-smaller))
+			// Two separators in a three-segment trail.
+			for square, block := range blocks {
+				want := deflt + 2*(block-blocks[breadcrumb.DefaultChevron])
+				if got := tc.width(square); got != want {
+					t.Errorf("at %ddp the row drew %dpx wide, want %dpx: a separator there costs "+
+						"%dpx against the default's %dpx, twice over",
+						int(square), got, want, block, blocks[breadcrumb.DefaultChevron])
+				}
 			}
 		})
 	}
