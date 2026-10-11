@@ -9,12 +9,11 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// TestTitleColorRule asserts the Specific contract: in a breadcrumb of n
-// items, the last segment is where you are and takes the label, and the
-// segments before it are the way back and take the link. The goldens carry
-// real titles and so do show the two foregrounds apart, but only as pixels;
-// this pure-Go test guards the rule itself, in both recorded sets.
-func TestTitleColorRule(t *testing.T) {
+// TestEveryPlaceTakesTheLabel asserts the path bar's rule: every place in
+// the row is set in the platform's label, the one before the last as much as
+// the last, and the link never reaches a title. The goldens show it as
+// pixels; this pure-Go test guards the rule itself, in both recorded sets.
+func TestEveryPlaceTakesTheLabel(t *testing.T) {
 	for _, c := range []struct {
 		name string
 		p    tokens.PlatformColors
@@ -22,28 +21,14 @@ func TestTitleColorRule(t *testing.T) {
 		{"light", tokens.PlatformLight},
 		{"dark", tokens.PlatformDark},
 	} {
-		const n = 3
-		for i := 0; i < n; i++ {
-			got := titleColor(i, n, c.p, c.p.WindowBackground)
-			want := vgcolor.Flatten(c.p.Link, c.p.WindowBackground)
-			if i == n-1 {
-				want = vgcolor.Flatten(c.p.Label, c.p.WindowBackground)
-			}
-			if got != want {
-				t.Errorf("idx %d of %d (%s): got %v, want %v", i, n, c.name, got, want)
-			}
+		got := titleColor(c.p, c.p.WindowBackground)
+		want := vgcolor.Flatten(c.p.Label, c.p.WindowBackground)
+		if got != want {
+			t.Errorf("%s: got %v, want the label %v", c.name, got, want)
 		}
-	}
-}
-
-// TestTitleColorSingleSegment confirms that with one item the lone
-// segment is treated as the current location and takes the label, matching
-// the "last item" rule degenerate case.
-func TestTitleColorSingleSegment(t *testing.T) {
-	p := tokens.PlatformLight
-	want := vgcolor.Flatten(p.Label, p.WindowBackground)
-	if got := titleColor(0, 1, p, p.WindowBackground); got != want {
-		t.Errorf("single segment: got %v, want the label %v", got, want)
+		if link := vgcolor.Flatten(c.p.Link, c.p.WindowBackground); got == link {
+			t.Errorf("%s: a title is drawn in the link %v; the path bar colours no place as a web link", c.name, link)
+		}
 	}
 }
 

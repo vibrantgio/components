@@ -41,19 +41,17 @@ func scene(w layout.Widget, bgColor color.NRGBA) layout.Widget {
 }
 
 // trail is the three-segment fixture: a real path, in document order, so the
-// last segment is the current location and the two before it are the links
-// back up. Titles are ASCII only, so Latin text in Roboto
-// rasterises identically on every machine and no symbol reaches a stored
-// image.
+// last segment is where you are and the two before it are the places back
+// up. Titles are ASCII only, so Latin text in Roboto rasterises identically
+// on every machine.
 func trail() []breadcrumb.Item {
 	return []breadcrumb.Item{{Title: "Home"}, {Title: "Design"}, {Title: "Tokens"}}
 }
 
-// TestBreadcrumbGolden records or diffs the three Measurable goldens. The
-// chevron separators are deterministic clip paths and the titles carry the
-// typography; the single-segment golden is the structural assertion ("no
-// chevrons when n == 1") and also shows that the lone segment takes the
-// current-location colour that internal_test asserts numerically.
+// TestBreadcrumbGolden records or diffs the three Measurable goldens. They
+// are what shows the path bar's look: every place in the label colour,
+// parted by the set's chevron in the secondary label colour. The single-segment golden is the
+// structural assertion ("no chevrons when n == 1").
 func TestBreadcrumbGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	lightBG := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
@@ -102,7 +100,8 @@ func TestBreadcrumbThreeVsSingle(t *testing.T) {
 }
 
 // TestBreadcrumbLightDarkDiffer confirms swapping the colour token set
-// changes the rendered output.
+// changes the rendered output: the label and the secondary label are both
+// a different colour between the two.
 func TestBreadcrumbLightDarkDiffer(t *testing.T) {
 	shaper := defaultShaper(t)
 	bg := color.NRGBA{R: 128, G: 128, B: 128, A: 255}

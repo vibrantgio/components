@@ -1,21 +1,25 @@
 // Package breadcrumb provides the breadcrumb control: going back up the
-// hierarchy — each step a link, the last where you are. It draws a
-// horizontal row of titles separated by chevron symbols. The last segment
-// renders as a title (the current location); the segments before it render
-// as links, and may invoke an OnClick callback to navigate.
+// hierarchy — each earlier place a link to its place, the last where you
+// are. It draws a horizontal row of titles parted by the icon set's chevron.
+//
+// It is drawn as the platform's path bar: every place in the label colour,
+// the last of them plain text, and the chevron between two places in the
+// secondary label colour. No capture in the reference holds a path bar, so
+// those two are the nearest measured readings — Finder's own window at 1x,
+// where the sidebar's row titles plateau at #191919 over the pane's #fafaf9
+// and its section headings at #7b7b7b, which is the secondary label over
+// that fill to within a byte.
 //
 // Breadcrumb is a callable Go function consuming a components theme
 // observable, returning a stream of layout.Widget. Source is intentionally
 // short and free of opaque configuration — copy it into your own app and
 // modify as needed.
 //
-// Colour and interactivity are decided independently and can disagree.
-// The "current location" colour goes to the last Item by
-// position, whatever its OnClick; a segment is clickable exactly when its
-// own OnClick is non-nil. The conventional trail — every segment but the
-// last carrying an OnClick — is the caller's to build, and nothing here
-// enforces it, so a clickable final segment still renders as though it
-// were where you already are.
+// Colour says nothing about which segments answer a press: the path bar
+// sets every place in the one colour, and which place you are at is told by
+// position. A segment is clickable exactly when its own OnClick is non-nil.
+// The conventional trail — every segment but the last carrying an OnClick —
+// is the caller's to build, and nothing here enforces it.
 //
 // There is no overflow behaviour. Every Item renders, in one horizontal
 // row, each title clamped to a single line; a trail deeper than its
@@ -34,17 +38,15 @@ import (
 	"image"
 	"image/color"
 
-	"gioui.org/f32"
 	"gioui.org/io/pointer"
 	"gioui.org/io/semantic"
 	"gioui.org/layout"
-	"gioui.org/op/clip"
-	"gioui.org/op/paint"
 	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/icons"
 	"github.com/vibrantgio/components/internal/surface"
 	complayout "github.com/vibrantgio/components/layout"
 	"github.com/vibrantgio/components/pointershape"
@@ -69,15 +71,16 @@ type Props struct {
 	Items []Item
 
 	// Chevron is the square each separator is drawn in. Zero takes
-	// DefaultChevron, which is the size this row has always drawn at.
+	// DefaultChevron, the square a mark standing beside text takes.
 	//
 	// It is stated rather than derived because the separator is drawn and
-	// not typeset: nothing in the title's text style says how tall a
-	// triangle beside it should be, and a trail set in a smaller style than
-	// the desktop TitleSmall — or one whose separator should read as a
-	// hairline between titles rather than a mark of its own — wants a
-	// smaller square than the default. The symbol fills the square's full
-	// height, so this is the separator's drawn height and not a box around it.
+	// not typeset: nothing in the title's text style says how large a mark
+	// beside it should be, and a trail set in a smaller style than the
+	// desktop TitleSmall — or one whose separator should read as a hairline
+	// between titles rather than a mark of its own — wants a smaller square
+	// than the default. The chevron is drawn into the square and covers 8 of
+	// its 24 units across and 14 down, so this is the square the mark stands
+	// in and not the drawn figure's own extent.
 	Chevron unit.Dp
 
 	// Shaper is an explicit per-instance override of the text shaper. Leave
@@ -187,8 +190,13 @@ func resolveTokens(th rx.Observable[theme.Theme]) rx.Observable[resolvedTokens] 
 }
 
 // DefaultChevron is the square a separator is drawn in when the caller
-// states no size of its own.
-const DefaultChevron unit.Dp = 12
+// states no size of its own: the size a mark standing beside text is drawn
+// at everywhere else in this library — components/icon's own size at the
+// comfortable density, and the box patterns/sidebar gives this same chevron.
+// No capture in the reference holds the platform's path bar, so the square
+// its separator stands in is unmeasured and this is the nearest reading the
+// reference carries. The figure covers 6.7 by 11.7 px of it.
+const DefaultChevron unit.Dp = 20
 
 // chevronSize answers which square this row's separators take: the caller's
 // where it stated one, and the default otherwise. A zero or negative size is
@@ -220,9 +228,10 @@ func drawBreadcrumb(
 	standsOn = surface.Or(standsOn, p.WindowBackground)
 	chevronCol := vgcolor.Flatten(p.SecondaryLabel, standsOn)
 
+	fg := titleColor(p, standsOn)
+
 	children := make([]layout.FlexChild, 0, 2*len(items)-1)
 	for i, item := range items {
-		fg := titleColor(i, len(items), p, standsOn)
 		if i > 0 {
 			children = append(children,
 				layout.Rigid(complayout.HSpacer(sp.S2)),
@@ -235,16 +244,14 @@ func drawBreadcrumb(
 	return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx, children...)
 }
 
-// titleColor returns the foreground colour for the segment at index i in a
-// breadcrumb of n items. The last segment is where you are and takes the
-// label; the segments before it are the way back and take the link. The
-// separator between them is the secondary label, the row's one piece of text
-// that is neither.
-func titleColor(i, n int, p tokens.PlatformColors, standsOn color.NRGBA) color.NRGBA {
-	if i == n-1 {
-		return vgcolor.Flatten(p.Label, standsOn)
-	}
-	return vgcolor.Flatten(p.Link, standsOn)
+// titleColor returns the foreground every segment's title is drawn in: the
+// platform's label, flattened onto the surface the row stands on. It takes
+// no index because the path bar sets every place in the one colour — where
+// you are is told by standing last and by answering nothing, never by a
+// second colour. The separator between two places is the secondary label,
+// the row's one mark that is neither a place nor set in type.
+func titleColor(p tokens.PlatformColors, standsOn color.NRGBA) color.NRGBA {
+	return vgcolor.Flatten(p.Label, standsOn)
 }
 
 // clickFor returns the clickable drawing segment i, or nil when the caller
@@ -279,28 +286,19 @@ func titleWidget(shaper *text.Shaper, title string, fg color.NRGBA, style tokens
 	}
 }
 
+// chevronWidget draws one separator into a square of sizeDp: the set's
+// chevron pointing the way the row reads, parent to child, in col. The
+// drawing is the set's disclosure mark — the one right-pointing chevron the
+// set carries, measured off Finder's own toolbar chevrons at 8 by 14 px in
+// the 24-unit mark box. A set that cannot resolve the name leaves the square
+// empty rather than drawing a figure of this package's own, so the row's
+// measure does not move with the set.
 func chevronWidget(sizeDp unit.Dp, col color.NRGBA) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		sz := gtx.Dp(sizeDp)
-		drawChevron(gtx, sz/2, sz/2, sz, col)
+		if mark := icons.Mark(icons.Disclosure); mark != nil {
+			mark(gtx, sz, col)
+		}
 		return layout.Dimensions{Size: image.Pt(sz, sz)}
 	}
-}
-
-// drawChevron paints a right-pointing filled triangle centred at (cx, cy)
-// fitting within an sz × sz square. The apex points along +X — i.e., in the
-// reading direction of the breadcrumb trail (parent → child).
-func drawChevron(gtx layout.Context, cx, cy, sz int, col color.NRGBA) {
-	half := float32(sz) / 2
-	quarter := float32(sz) / 4
-	fcx := float32(cx)
-	fcy := float32(cy)
-
-	var p clip.Path
-	p.Begin(gtx.Ops)
-	p.MoveTo(f32.Pt(fcx-quarter, fcy-half))
-	p.LineTo(f32.Pt(fcx+quarter, fcy))
-	p.LineTo(f32.Pt(fcx-quarter, fcy+half))
-	p.Close()
-	paint.FillShape(gtx.Ops, col, clip.Outline{Path: p.End()}.Op())
 }
