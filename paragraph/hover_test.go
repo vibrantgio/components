@@ -34,7 +34,7 @@ func hoverSpans() []paragraph.SpanStyle {
 // the links rather than at widths it guessed. It drives its own state and
 // router and reports no hover of its own.
 func linkRuns(shaper *text.Shaper, style paragraph.Style, spans []paragraph.SpanStyle, size image.Point) [][2]int {
-	style.OnLinkHover = nil
+	style.OnLink = nil
 	state := paragraph.NewState()
 	w := func(gtx layout.Context) layout.Dimensions {
 		return paragraph.Layout(gtx, state, shaper, style, spans)
@@ -76,9 +76,9 @@ func TestLinkHoverReportsEveryChangeAndNothingElse(t *testing.T) {
 	mid := func(run [2]int) int { return (run[0] + run[1]) / 2 }
 
 	var got []string
-	style.OnLinkHover = func(gtx layout.Context, u string) {
+	style.OnLink = func(gtx layout.Context, u string) {
 		if gtx.Ops == nil {
-			t.Error("OnLinkHover received a layout.Context without Ops; callbacks must carry the live gtx")
+			t.Error("OnLink received a layout.Context without Ops; callbacks must carry the live gtx")
 		}
 		got = append(got, u)
 	}
@@ -334,7 +334,7 @@ func TestTheKeyboardReportsTheLinkItReaches(t *testing.T) {
 	size := image.Pt(400, 100)
 
 	var got []string
-	style.OnLinkHover = func(_ layout.Context, u string) { got = append(got, u) }
+	style.OnLink = func(_ layout.Context, u string) { got = append(got, u) }
 	state := paragraph.NewState()
 	// A focusable beside the paragraph, so the keyboard has somewhere to go
 	// after the last link instead of wrapping back onto the first.
@@ -401,7 +401,7 @@ func TestThePointerWinsOverTheKeyboard(t *testing.T) {
 	}
 
 	var got []string
-	style.OnLinkHover = func(_ layout.Context, u string) { got = append(got, u) }
+	style.OnLink = func(_ layout.Context, u string) { got = append(got, u) }
 	state := paragraph.NewState()
 	w := func(gtx layout.Context) layout.Dimensions {
 		return paragraph.Layout(gtx, state, shaper, style, spans)
