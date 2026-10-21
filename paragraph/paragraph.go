@@ -10,8 +10,8 @@
 //
 //   - [Layout] is the live path: it drains link events (pointer clicks,
 //     keyboard activation, focus changes) from state, fires
-//     [Style].OnLinkClick, and renders hover/focus treatments from the real
-//     interaction state.
+//     [Style].OnLinkClick and [Style].OnLinkHover, and renders hover/focus
+//     treatments from the real interaction state.
 //   - [Render] is the static path: it renders an explicit [RenderState]
 //     without any event processing. Intended for golden-image testing and
 //     static demonstrations.
@@ -203,6 +203,19 @@ type Style struct {
 	// active on the frame the activation is processed, allowing consumers to
 	// emit mvu.MessageOp{Message: ...}.Add(gtx.Ops) inside the callback.
 	OnLinkClick func(gtx layout.Context, url string)
+	// OnLinkHover is called when the link under the pointer changes, and only
+	// then: with the link's URL on the frame the pointer enters it, with the
+	// empty string on the frame it leaves, and with the new URL on a frame the
+	// pointer crosses straight from one link onto another. A frame on which
+	// the same link is still under the pointer calls nothing, so a consumer
+	// may do real work in it.
+	//
+	// It is how a window says where a link goes while the pointer is on it —
+	// the address at the foot of the window every browser on this platform
+	// shows. The gtx argument is the live layout.Context of that frame, so
+	// consumers can emit mvu.MessageOp{Message: ...}.Add(gtx.Ops) inside the
+	// callback as they do from OnLinkClick.
+	OnLinkHover func(gtx layout.Context, url string)
 }
 
 // FromTokens derives the default paragraph style from the platform's colour
@@ -259,6 +272,14 @@ func Idle() RenderState {
 // Allocate once per paragraph instance and reuse on every frame.
 type State struct {
 	links []*linkState
+	// hover is the link last reported to [Style].OnLinkHover, offset by one:
+	// zero is no link, i+1 is link i. The offset is what lets the zero value
+	// mean nothing has been reported, so a paragraph the pointer has never
+	// been on reports no departure from it.
+	hover int
+	// hoverURL is that link's URL as reported, so a link whose URL changes
+	// under a resting pointer is reported again.
+	hoverURL string
 }
 
 // NewState returns a State for a paragraph with no interaction history.
@@ -313,8 +334,9 @@ func (s *State) FocusedLink(gtx layout.Context) int {
 }
 
 // Layout is the live path: it processes link input (clicks, keyboard
-// activation, focus), fires style.OnLinkClick, and lays out the wrapped
-// paragraph with hover and focus treatments from the real interaction state.
+// activation, focus), fires style.OnLinkClick and style.OnLinkHover, and lays
+// out the wrapped paragraph with hover and focus treatments from the real
+// interaction state.
 //
 // Spans wrap within gtx.Constraints.Max.X. The returned baseline is that of
 // the paragraph's last line.
@@ -347,7 +369,8 @@ func Render(shaper *text.Shaper, style Style, spans []SpanStyle, s RenderState) 
 
 // processInput drains this frame's events for every link registered on the
 // previous frame and dispatches them: pointer click or Space/Enter while
-// focused → style.OnLinkClick(gtx, url). It returns the live RenderState
+// focused → style.OnLinkClick(gtx, url), and a change of the link under the
+// pointer → style.OnLinkHover(gtx, url). It returns the live RenderState
 // (hovered and focused link indices) for the subsequent draw.
 func processInput(gtx layout.Context, state *State, style Style) RenderState {
 	rs := Idle()
@@ -411,5 +434,25 @@ func processInput(gtx layout.Context, state *State, style Style) RenderState {
 			rs.FocusedLink = i
 		}
 	}
+	reportHover(gtx, state, style, rs)
 	return rs
+}
+
+// reportHover calls style.OnLinkHover on a change of the link under the
+// pointer and on nothing else. The comparison is against what the state last
+// reported rather than against the previous frame, which is what keeps the
+// two drains [Layout] makes per frame to one call between them.
+func reportHover(gtx layout.Context, state *State, style Style, rs RenderState) {
+	if style.OnLinkHover == nil {
+		return
+	}
+	hover, url := 0, ""
+	if rs.HoveredLink != NoLink {
+		hover, url = rs.HoveredLink+1, state.links[rs.HoveredLink].url
+	}
+	if hover == state.hover && url == state.hoverURL {
+		return
+	}
+	state.hover, state.hoverURL = hover, url
+	style.OnLinkHover(gtx, url)
 }
