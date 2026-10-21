@@ -89,6 +89,8 @@ func (inv *Inventory) Patterns(c tokens.PlatformColors) []Section {
 			Body: inv.testimonial(c)},
 		{Name: "patterns-shell-two-column", Title: "Shell, two-column — the pane, the toolbar over the content column, the inspector and the status bar", Height: twoColSpecimenH,
 			Body: inv.twoColumnShell(c)},
+		{Name: "patterns-shell-three-column", Title: "Shell, three-column — the pane, the list column on its splitter, the content column taking the rest, one toolbar with a share each", Height: threeColSpecimenH,
+			Body: inv.threeColumnShell(c)},
 	}
 }
 
@@ -350,6 +352,20 @@ const (
 	// the specimen, cut to the slot rather than to a window.
 	twoColPaneW      unit.Dp = 168
 	twoColInspectorW unit.Dp = 132
+
+	// The three-column arrangement is a whole window too, and a wider one:
+	// three columns beside each other need room the two-column specimen
+	// does not. The widths are cut to the slot rather than to a window —
+	// the platform's own measured list is 447 dp, which would leave this
+	// specimen's content column narrower than the list beside it.
+	threeColSpecimenW unit.Dp = 760
+	threeColSpecimenH unit.Dp = 260
+	threeColPaneW     unit.Dp = 156
+	threeColListW     unit.Dp = 212
+	// threeColListInsetDp is the one column the list's share of the
+	// toolbar and the list's own rows both lead from, which is what makes
+	// the collection's name read as the name of the rows under it.
+	threeColListInsetDp unit.Dp = 20
 )
 
 // pane draws the pane beside the content it stands over: the rounded column
@@ -708,6 +724,136 @@ func (inv *Inventory) twoColumnShell(c tokens.PlatformColors) layout.Widget {
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		size := image.Pt(min(gtx.Constraints.Max.X, gtx.Dp(twoColSpecimenW)), gtx.Dp(twoColSpecimenH))
+		gtx.Constraints = layout.Exact(size)
+		// Clipped to the window it stands for: the pane's shadow reaches
+		// past the pane and a window cuts what its own chrome throws at its
+		// edge.
+		defer clip.Rect{Max: size}.Push(gtx.Ops).Pop()
+		dims, _ := f.Layout(gtx, c)
+		return dims
+	}
+}
+
+// threeColumnShell draws the shell's three-column arrangement as the
+// platform's own windows of this shape are built: the pane down the
+// leading edge with its bare marks, a list column of absolute width beside
+// it behind a splitter, and the content column absorbing the rest, with
+// one toolbar lying across the list and the content and one share per
+// column.
+//
+// The two shares are what the specimen is for. MEASURED off Mail, the
+// share over the list holds the collection's name at its leading end and
+// the controls that act on the LIST at its trailing — the filter and the
+// view options — while the share over the content holds the acts on the
+// document and the search field at the window's own trailing edge. The
+// seam between the two columns runs the window's whole height, the toolbar
+// included, so the one strip reads as two shares without a second line
+// being drawn to say so.
+//
+// The list column's own header and footer slots stand empty here for the
+// same reason they do in Mail: the collection names itself in the toolbar
+// above it, not in a row of its own.
+//
+// The window's three control buttons belong to the window and not to the
+// pattern, so this specimen states that it has none and both shares and
+// the pane's strip lead from their own gutters.
+func (inv *Inventory) threeColumnShell(c tokens.PlatformColors) layout.Widget {
+	var (
+		addClick     widget.Clickable
+		toggleClick  widget.Clickable
+		optionsClick widget.Clickable
+		replyClick   widget.Clickable
+		findClick    widget.Clickable
+	)
+	noButtons := func() unit.Dp { return 0 }
+	bare := func(click *widget.Clickable, name icons.Name, title string) layout.Widget {
+		return func(gtx layout.Context) layout.Dimensions {
+			return shell.PaneMark(gtx, c, click, icons.Mark(name), title)
+		}
+	}
+	bordered := func(click *widget.Clickable, name icons.Name, title string) layout.Widget {
+		return func(gtx layout.Context) layout.Dimensions {
+			return shell.ToolbarControl(gtx, c, tokens.Radius, tokens.Comfortable,
+				click, icons.Mark(name), title, false)
+		}
+	}
+	inset := func(w layout.Widget) layout.Widget {
+		return func(gtx layout.Context) layout.Dimensions {
+			return complayout.Inset(12).Layout(gtx, w)
+		}
+	}
+	f := shell.ThreeColumn{
+		PaneWidth:   threeColPaneW,
+		ListWidth:   threeColListW,
+		Surface:     c.WindowBackground,
+		ContentFill: c.TextBackground,
+		Radius:      tokens.Radius,
+		Density:     tokens.Comfortable,
+		Pane: shell.PaneColumn{
+			Marks: []layout.Widget{bare(&addClick, icons.Plus, "New Folder")},
+			Rows:  inset(inv.prose(c, "Inbox", "Drafts", "Archive")),
+		},
+		Toggle: &shell.ToggleSidebar{
+			Click:        &toggleClick,
+			Mark:         icons.Mark(icons.Sidebar),
+			PaneTitle:    "Hide the sidebar",
+			ToolbarTitle: "Show the sidebar",
+		},
+		// The list's share: the collection's name leading, at the measured
+		// 20 dp in from the seam the pane leaves, and the control that acts
+		// on the LIST trailing. Mail carries two there, a filter beside the
+		// view options; the set has no filter mark, so the specimen shows
+		// the one it can draw.
+		ListToolbar: shell.Toolbar{
+			Lead: threeColListInsetDp,
+			Center: func(gtx layout.Context) layout.Dimensions {
+				return LabelAt(gtx, inv.shaper, "Drafts", sectionText(c), 13, font.Font{})
+			},
+			Trailing: []layout.Widget{bordered(&optionsClick, icons.ChevronDown, "View options")},
+		},
+		// The list's rows stand in the same window column its share of the
+		// toolbar leads from. MEASURED off Mail: the mailbox name's first
+		// painted column is x=352 and so is its rows' own, both 20 past
+		// the seam the pane leaves at x=332.
+		List: shell.ListColumn{
+			Rows: func(gtx layout.Context) layout.Dimensions {
+				return complayout.InsetXY(float32(threeColListInsetDp), 12).Layout(gtx, inv.prose(c,
+					"The list column.",
+					"",
+					"Absolute width, kept when",
+					"the window is resized.",
+				))
+			},
+		},
+		Toolbar: shell.Toolbar{
+			Lead:     16,
+			Leading:  []layout.Widget{bordered(&replyClick, icons.ChevronLeft, "Reply")},
+			Trailing: []layout.Widget{bordered(&findClick, icons.Search, "Search")},
+		},
+		Main: inset(inv.prose(c,
+			"The content column.",
+			"",
+			"It absorbs whatever the window has left",
+			"once the pane and the list have taken",
+			"their own widths.",
+		)),
+		Footer: func(gtx layout.Context) layout.Dimensions {
+			return complayout.InsetXY(12, 4).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return LabelAt(gtx, inv.shaper, "48 messages — Drafts", sectionMuted(c), 11, font.Font{})
+			})
+		},
+		FooterDepth: 22,
+		// Both boundaries are the reader's to move in a window; a specimen
+		// has no hand in it, so each is stated with no state and draws its
+		// resting line alone — the pane's own rim leading, the plain seam
+		// between the list and the content.
+		PaneResize:       &shell.PaneResize{Min: 120, Max: 220, Floor: 160},
+		ListResize:       &shell.ListResize{Min: 160},
+		ContentFloor:     200,
+		WindowButtonsEnd: noButtons,
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		size := image.Pt(min(gtx.Constraints.Max.X, gtx.Dp(threeColSpecimenW)), gtx.Dp(threeColSpecimenH))
 		gtx.Constraints = layout.Exact(size)
 		// Clipped to the window it stands for: the pane's shadow reaches
 		// past the pane and a window cuts what its own chrome throws at its
