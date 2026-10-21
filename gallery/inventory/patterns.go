@@ -87,8 +87,6 @@ func (inv *Inventory) Patterns(c tokens.PlatformColors) []Section {
 			Body: inv.pricing(c)},
 		{Name: "patterns-testimonial", Title: "Testimonial — a quote with its attribution", Height: 212,
 			Body: inv.testimonial(c)},
-		{Name: "patterns-shell", Title: "Shell — the three-column frame: sidebar, content, aside", Height: 300,
-			Body: inv.shell(c)},
 		{Name: "patterns-shell-two-column", Title: "Shell, two-column — the pane, the toolbar over the content column, the inspector and the status bar", Height: twoColSpecimenH,
 			Body: inv.twoColumnShell(c)},
 	}
@@ -623,49 +621,6 @@ func (inv *Inventory) testimonial(c tokens.PlatformColors) layout.Widget {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(560))
 		return testimonial.Render(inv.shaper, props, c, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography)(gtx)
-	}
-}
-
-// shell draws the three-column frame with its aside occupied, which is the
-// only place the aside's own frame shows.
-func (inv *Inventory) shell(c tokens.PlatformColors) layout.Widget {
-	props := shell.Props{
-		Layout: shell.ThreeColumn,
-		Navbar: inv.navbarProps(c),
-		Main: func(gtx layout.Context) layout.Dimensions {
-			return complayout.Inset(16).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return inv.prose(c,
-					"The main column.",
-					"",
-					"A shell frames a window: a sidebar",
-					"on the leading edge, a navbar across",
-					"the top, an aside on the trailing edge,",
-					"and a footer under all of it.",
-				)(gtx)
-			})
-		},
-		Footer: func(gtx layout.Context) layout.Dimensions {
-			return complayout.InsetXY(16, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return LabelAt(gtx, inv.shaper, "Footer — status and counts", sectionMuted(c), 11, font.Font{})
-			})
-		},
-	}
-	sidebarW := patsidebar.Render(inv.shaper, inv.sidebarProps(c), false, c, tokens.Spacing,
-		tokens.DefaultTypography.LabelLarge, patsidebar.SectionStyle(tokens.DefaultTypography), tokens.Comfortable)
-	asideW := func(gtx layout.Context) layout.Dimensions {
-		// An aside is an inspector, which is a chrome region: it wears the
-		// platform's chrome material, the same fill the frame around it
-		// paints.
-		paint.FillShape(gtx.Ops, c.SidebarMaterial, clip.Rect{Max: gtx.Constraints.Max}.Op())
-		return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return inv.prose(c, "Aside", "", "Inspector, outline", "or details.")(gtx)
-		})
-	}
-	return func(gtx layout.Context) layout.Dimensions {
-		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(720))
-		gtx.Constraints.Min = gtx.Constraints.Max
-		return shell.RenderThreeColumn(inv.shaper, props, sidebarW, asideW, c, tokens.Spacing,
-			tokens.DefaultTypography.LabelLarge, tokens.Comfortable, 180)(gtx)
 	}
 }
 
