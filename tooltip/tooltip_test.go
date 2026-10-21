@@ -3,6 +3,7 @@ package tooltip_test
 import (
 	"image"
 	"image/color"
+	"strings"
 	"testing"
 
 	"gioui.org/layout"
@@ -290,5 +291,125 @@ func TestAnchoredAnnotationStandsOnTheSideWithRoom(t *testing.T) {
 	}
 	if bottom > low.Min.Y {
 		t.Errorf("against the frame's foot the annotation reaches row %d, below the anchor's top at %d; it did not take the side with room", bottom, low.Min.Y)
+	}
+}
+
+// annotationColumns reads back the leading and trailing column the
+// annotation covers, by the same difference the rows are read by.
+func annotationColumns(shown, hidden *image.RGBA) (int, int) {
+	left, right := -1, -1
+	b := shown.Bounds()
+	for x := b.Min.X; x < b.Max.X; x++ {
+		for y := b.Min.Y; y < b.Max.Y; y++ {
+			if shown.RGBAAt(x, y) == hidden.RGBAAt(x, y) {
+				continue
+			}
+			if left < 0 {
+				left = x
+			}
+			right = x
+			break
+		}
+	}
+	return left, right
+}
+
+// anchoredText renders an anchored annotation saying txt, for the cases that
+// ask what a long line does to the surface's own width and place.
+func anchoredText(shaper *text.Shaper, box image.Rectangle, txt string, shown bool) layout.Widget {
+	return tooltip.Render(
+		shaper,
+		tooltip.Props{
+			Text:      txt,
+			Placement: tooltip.Bottom,
+			Anchor:    func(layout.Context) image.Rectangle { return box },
+			Shaper:    shaper,
+		},
+		shown,
+		tokens.PlatformLight,
+		tokens.Spacing,
+		sharpRadius,
+		tokens.DefaultTypography.LabelSmall,
+	)
+}
+
+// TestTheAnnotationStaysInsideTheFramesSides anchors the same annotation in
+// the middle of the frame and hard against each of its sides, and compares
+// what was drawn: centred on a trigger near an edge the surface would run
+// off it and be cut by the window, so the one that stands is as wide as the
+// one in the middle and begins and ends inside the frame. A reader cannot
+// read what is outside the window.
+func TestTheAnnotationStaysInsideTheFramesSides(t *testing.T) {
+	shaper := defaultShaper(t)
+	bg := color.NRGBA{R: 245, G: 245, B: 245, A: 255}
+	const txt = "https://example.test/a/longer/path"
+
+	span := func(box image.Rectangle) (int, int) {
+		shown := golden.Capture(t, frameSize, scene(anchoredText(shaper, box, txt, true), bg))
+		hidden := golden.Capture(t, frameSize, scene(anchoredText(shaper, box, txt, false), bg))
+		return annotationColumns(shown, hidden)
+	}
+
+	midLeft, midRight := span(image.Rect(frameW/2-6, 40, frameW/2+6, 56))
+	if midLeft < 0 {
+		t.Fatal("the annotation in the middle of the frame painted nothing at all")
+	}
+	want := midRight - midLeft
+
+	sides := map[string]image.Rectangle{
+		"leading":  image.Rect(0, 40, 12, 56),
+		"trailing": image.Rect(frameW-12, 40, frameW, 56),
+	}
+	for name, box := range sides {
+		t.Run(name, func(t *testing.T) {
+			left, right := span(box)
+			if left < 0 {
+				t.Fatal("the annotation painted nothing at all")
+			}
+			if left < 1 || right > frameW-2 {
+				t.Errorf("the annotation spans columns %d..%d, against the frame's own edges 0..%d", left, right, frameW-1)
+			}
+			if got := right - left; got != want {
+				t.Errorf("the annotation is %d wide against this side and %d wide in the middle of the frame; it was cut by the window", got, want)
+			}
+		})
+	}
+}
+
+// TestALineTooLongForTheWindowIsElidedInItsMiddle says an address far wider
+// than the frame and reads the surface back: it is inside the frame's sides,
+// and it is not simply the opening of the address — the middle is what went.
+func TestALineTooLongForTheWindowIsElidedInItsMiddle(t *testing.T) {
+	shaper := defaultShaper(t)
+	bg := color.NRGBA{R: 245, G: 245, B: 245, A: 255}
+	long := "https://example.test/" + strings.Repeat("a-rather-long-segment/", 8) + "page.html"
+
+	box := image.Rect(140, 40, 180, 56)
+	shown := golden.Capture(t, frameSize, scene(anchoredText(shaper, box, long, true), bg))
+	hidden := golden.Capture(t, frameSize, scene(anchoredText(shaper, box, long, false), bg))
+	left, right := annotationColumns(shown, hidden)
+	if left < 0 {
+		t.Fatal("the annotation painted nothing at all")
+	}
+	if left < 0 || right > frameW-1 {
+		t.Errorf("the annotation spans columns %d..%d, outside the frame's 0..%d", left, right, frameW-1)
+	}
+
+	// The end of the address is kept, so the surface says something the
+	// opening alone does not: two addresses sharing an opening and differing
+	// at their ends do not draw the same annotation.
+	other := "https://example.test/" + strings.Repeat("a-rather-long-segment/", 8) + "other.html"
+	another := golden.Capture(t, frameSize, scene(anchoredText(shaper, box, other, true), bg))
+	same := true
+	for y := 0; y < frameH && same; y++ {
+		for x := 0; x < frameW; x++ {
+			if shown.RGBAAt(x, y) != another.RGBAAt(x, y) {
+				same = false
+				break
+			}
+		}
+	}
+	if same {
+		t.Error("two addresses differing only at their ends drew the same annotation; the end was cut rather than the middle")
 	}
 }

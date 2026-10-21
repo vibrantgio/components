@@ -544,14 +544,22 @@ func drawFocusRing(gtx layout.Context, style Style, off image.Point, s segment) 
 //
 // It is also where the link's own box is accumulated, since the area and the
 // box are the same rectangle: what the pointer is tested against is what a
-// caller is told the link stands at. See [State.HoveredLinkBox].
+// caller is told the link stands at. The segment's own rectangle is kept
+// beside it with a hover of its own, so the link can say which of its runs
+// the pointer is on and not only that it is on one. See
+// [State.HoveredLinkBox] and [State.FocusedLinkBox].
 func registerLinkArea(gtx layout.Context, l *linkState, off image.Point, s segment) {
-	l.box = l.box.Union(image.Rectangle{Min: off, Max: off.Add(image.Pt(s.width, s.height))})
+	area := image.Rectangle{Min: off, Max: off.Add(image.Pt(s.width, s.height))}
+	l.box = l.box.Union(area)
+	run := l.run(l.nruns)
+	run.box = area
+	l.nruns++
 	st := op.Offset(off).Push(gtx.Ops)
 	cl := clip.Rect{Max: image.Pt(s.width, s.height)}.Push(gtx.Ops)
 	semantic.Button.Add(gtx.Ops)
 	semantic.DescriptionOp(l.url).Add(gtx.Ops)
 	l.click.Add(gtx.Ops)
+	run.hov.Add(gtx.Ops)
 	event.Op(gtx.Ops, l)
 	pointershape.OverSize(gtx.Ops, image.Pt(s.width, s.height), pointer.CursorPointer)
 	cl.Pop()

@@ -43,6 +43,17 @@ package tooltip
 // level would have a tooltip hidden by a later claimant take top straight
 // back on its next layout, and the two would trade the register every
 // frame. Callers claim once per dwell; tooltipState.claimed is the latch.
+//
+// # A tooltip that goes while it is up
+//
+// A caller that rebuilds its tooltip for every value it says — one
+// subscription per address — can drop the one holding top mid-show. That
+// tooltip is never laid out again, so it cannot release what it holds and
+// the set would carry a holder nothing can hide. Its subscription marks it
+// dropped as it goes, from whatever goroutine ended it, and the next frame
+// in which any tooltip of the set asks who is top clears it. The flag is an
+// atomic because the two ends are two goroutines; top itself stays a plain
+// field written only during layout.
 type Arbiter struct {
 	// top is the tooltip currently visible, or nil. The state pointer is
 	// the identity: it is unique per subscription for as long as anything
@@ -69,5 +80,12 @@ func (a *Arbiter) release(st *tooltipState) {
 }
 
 // isTop reports whether st currently holds top, which for a tooltip is the
-// same question as whether it is visible.
-func (a *Arbiter) isTop(st *tooltipState) bool { return a.top == st }
+// same question as whether it is visible. It is also where a holder whose
+// subscription has gone is swept out, since this is what every tooltip of
+// the set calls on every frame it lays out.
+func (a *Arbiter) isTop(st *tooltipState) bool {
+	if a.top != nil && a.top.dropped.Load() {
+		a.top = nil
+	}
+	return a.top == st
+}

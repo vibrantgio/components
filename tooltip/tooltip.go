@@ -36,15 +36,27 @@
 // already stands for a caller that drew its own; the tooltip surface is
 // placed adjacent per Placement, taking the opposite side when the side
 // asked for has no room left in the frame and the opposite side holds it
-// whole. A centred trigger has the same room on both sides, so it is an
-// anchored one that the flip is for. Show/hide is instantaneous in this package;
-// entrance/exit transitions are deferred to a later Effects-integration
-// goal. Touch long-press is out of scope.
+// whole, and shifted inward when it would otherwise cross the frame's
+// leading or trailing edge. A centred trigger has the same room on both
+// sides, so it is an anchored one that the flip is for. Show/hide is
+// instantaneous in this package; entrance/exit transitions are deferred to a
+// later Effects-integration goal. Touch long-press is out of scope.
+//
+// AN ANCHORED TRIGGER IS THE CALLER'S. The component registers no hit area
+// and no focus tag over an anchor: the thing standing there is already a
+// control of the caller's own, hit-tested and focusable by whatever drew
+// it,
+// and a second area over it would be an invisible tab stop and a hover that
+// competes with the real one. What an anchored tooltip stands on instead is
+// the anchor itself — a non-empty rectangle is the trigger standing, the
+// empty rectangle is it gone — so the caller that knows its trigger holds
+// the pointer or the keyboard says so by saying where it is.
 package tooltip
 
 import (
 	"image"
 	"image/color"
+	"sync/atomic"
 	"time"
 
 	"gioui.org/gesture"
@@ -58,6 +70,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/elide"
 	"github.com/vibrantgio/components/internal/surface"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
@@ -105,6 +118,13 @@ type Props struct {
 	// trigger that has room (see drawSurface). Props.Trigger is then
 	// optional, and a trigger that is given is drawn at the anchor rather
 	// than centred.
+	//
+	// The anchor is also what says the trigger is there at all: the
+	// component registers no area over it and hit-tests nothing, so an
+	// anchor that comes back empty is the trigger gone and the annotation
+	// leaves with it. A caller lays an anchored tooltip out while its own
+	// trigger holds the pointer or the keyboard, and gives the empty
+	// rectangle when it holds neither.
 	//
 	// A nil Anchor centres Props.Trigger in the frame, which is what a
 	// tooltip wrapping its own control wants.
@@ -172,9 +192,24 @@ func Tooltip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wi
 			},
 		)
 	})
-	return rx.Defer(func() rx.Observable[layout.Widget] {
+	return func(observe rx.Observer[layout.Widget], sched rx.Scheduler, sub rx.Subscriber) {
+		// rx.Defer's scope with a teardown: the state is per subscription,
+		// and a subscription that goes while its tooltip is up has to say
+		// so, or the arbiter it is top of would hold a tooltip nothing can
+		// hide. The flag is read on the next frame a tooltip of that set
+		// lays out; see [Arbiter].
 		st := newState(props)
-		return rx.Map(resolved, func(tok resolvedTokens) layout.Widget {
+		// A stream that ran out is not a tooltip that went: the last
+		// layout.Widget it emitted is still the caller's and is still laid
+		// out, so only an unsubscription arriving before the completion is
+		// a drop.
+		var complete atomic.Bool
+		sub.OnUnsubscribe(func() {
+			if !complete.Load() {
+				st.dropped.Store(true)
+			}
+		})
+		widgets := rx.Map(resolved, func(tok resolvedTokens) layout.Widget {
 			// Props.Shaper is an explicit override; the theme's shaper is
 			// the default. Same for Props.Delay over the theme's motion
 			// stop.
@@ -190,7 +225,13 @@ func Tooltip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wi
 				return drawTooltip(gtx, shaper, props, delay, tok, st, true)
 			}
 		})
-	})
+		widgets(func(next layout.Widget, err error, done bool) {
+			if done {
+				complete.Store(true)
+			}
+			observe(next, err, done)
+		}, sched, sub)
+	}
 }
 
 // Render produces a layout.Widget for a tooltip with pre-resolved tokens
@@ -229,6 +270,13 @@ func Render(
 // shown flag here to fall out of step with the arbiter.
 type tooltipState struct {
 	arb *Arbiter
+
+	// dropped says this tooltip's subscription is gone. It is set from
+	// whichever goroutine unsubscribed — a caller that rebuilds its tooltip
+	// for every value it says does so from its own stream — and read on the
+	// frame goroutine, which is the one that then drops the arbitration this
+	// tooltip was holding when it went. See [Arbiter].
+	dropped atomic.Bool
 
 	// entryAt is when hover/focus entry happened, zero while the trigger
 	// has neither. It is both the dwell timer's start and the edge
@@ -277,9 +325,15 @@ func drawTooltip(
 
 	// 2. Drain hover and focus events. The drains must happen before the
 	//    hit-area registration in step 4, so the gesture/focus trackers
-	//    reflect this frame's state.
+	//    reflect this frame's state. An anchored trigger is hit-tested by
+	//    nothing here: the caller owns it, and the anchor standing is the
+	//    whole of what this component knows about it.
 	var active bool
-	if live {
+	switch {
+	case !live:
+	case props.Anchor != nil:
+		active = !triggerRect.Empty()
+	default:
 		for {
 			if _, ok := gtx.Event(key.FocusFilter{Target: &st.focusTag}); !ok {
 				break
@@ -323,12 +377,14 @@ func drawTooltip(
 		}
 	}
 
-	// 4. Paint the trigger at the centred offset. When live it registers the
-	//    hover gesture and a focus tag clipped to the trigger rect so
-	//    Enter/Leave and focus events fire for this hit area.
+	// 4. Paint the trigger at the centred offset. When live and unanchored
+	//    it registers the hover gesture and a focus tag clipped to the
+	//    trigger rect so Enter/Leave and focus events fire for this hit
+	//    area. An anchored trigger gets neither: it is the caller's own
+	//    control, already hit-tested and already in the window's Tab order.
 	{
 		triggerOff := op.Offset(triggerPos).Push(gtx.Ops)
-		if live {
+		if live && props.Anchor == nil {
 			triggerClip := clip.Rect{Max: triggerDims.Size}.Push(gtx.Ops)
 			st.hov.Add(gtx.Ops)
 			event.Op(gtx.Ops, &st.focusTag)
@@ -425,12 +481,19 @@ func drawSurface(
 
 	// Pre-record the text so it can be replayed inside the surface at a known
 	// offset after measuring it.
+	//
+	// THE TEXT FITS THE WINDOW. The surface is three quarters of the frame
+	// at the widest, and never wider than the frame has room for; an address
+	// longer than that is elided in its middle rather than cut at its end,
+	// because the host at one end and the leaf at the other are what a
+	// reader is looking for. See [github.com/vibrantgio/components/elide].
+	room := min(frame.X*3/4, frame.X-2*padH-2*gap)
 	textGtx := gtx
-	textGtx.Constraints = layout.Constraints{Max: image.Pt(frame.X*3/4, frame.Y/4)}
+	textGtx.Constraints = layout.Constraints{Max: image.Pt(max(room, 0), frame.Y/4)}
 	textGtx.Constraints.Min = image.Point{}
 	fg := vgcolor.Flatten(tok.platform.Label, tok.platform.WindowBackground)
 	mText := op.Record(gtx.Ops)
-	textDims := typeset.Text(textGtx, shaper, props.Text, tok.style, fg, 1)
+	textDims := typeset.Text(textGtx, shaper, elide.Middle(gtx, shaper, props.Text, tok.style, room), tok.style, fg, 1)
 	textCall := mText.Stop()
 
 	surfW := textDims.Size.X + 2*padH
@@ -486,6 +549,21 @@ func drawSurface(
 		if after+surfW > frame.X && before >= 0 {
 			pos.X = before
 		}
+	}
+
+	// AND IT STAYS INSIDE THE WINDOW'S SIDES. Above or below a trigger near
+	// a side of the frame, a surface centred on that trigger runs off the
+	// edge; it is shifted inward until it is inside instead, which keeps
+	// what it says readable and is what the platform does with an annotation
+	// against a word near a margin. It keeps the step from the window's side
+	// that it keeps from its own trigger, since a surface laid flush against
+	// the edge reads as a thing cut off by it. The sides only: the ends of
+	// the frame above and below are the flip's business, and a caller whose
+	// frame is its own trigger places the annotation outside that frame on
+	// purpose.
+	if props.Placement == Top || props.Placement == Bottom {
+		pos.X = min(pos.X, frame.X-surfW-gap)
+		pos.X = max(pos.X, gap)
 	}
 
 	surfOff := op.Offset(pos).Push(gtx.Ops)

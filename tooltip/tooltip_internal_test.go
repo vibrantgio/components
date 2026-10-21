@@ -1,6 +1,7 @@
 package tooltip
 
 import (
+	"context"
 	"image"
 	"image/color"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"gioui.org/f32"
 	"gioui.org/io/event"
 	gioinput "gioui.org/io/input"
+	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -16,6 +18,9 @@ import (
 	"gioui.org/op/paint"
 	"gioui.org/unit"
 
+	"github.com/reactivego/rx"
+
+	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -382,5 +387,162 @@ func TestTriggerScrolledOutOfViewDismisses(t *testing.T) {
 	}
 	if st.claimed || !st.entryAt.IsZero() {
 		t.Fatalf("the dwell was left armed: claimed = %v, entryAt zero = %v; want false, true", st.claimed, st.entryAt.IsZero())
+	}
+}
+
+// anchorRig builds a live anchored tooltip over its own Arbiter, with the
+// anchor the test moves: the caller draws its own trigger, and the tooltip
+// is told where it stands and nothing else.
+func anchorRig(delay time.Duration, box *image.Rectangle) (*Arbiter, *tooltipState, layout.Widget) {
+	shaper := tokens.DefaultTypography.DeterministicShaper()
+	arb := NewArbiter()
+	props := Props{
+		Text:      "https://example.test/page",
+		Placement: Bottom,
+		Shaper:    shaper,
+		Arbiter:   arb,
+		Anchor:    func(layout.Context) image.Rectangle { return *box },
+	}
+	st := newState(props)
+	return arb, st, func(gtx layout.Context) layout.Dimensions {
+		return drawTooltip(gtx, shaper, props, delay, intTok(), st, true)
+	}
+}
+
+// TestAnAnchoredTooltipTakesNoFocusOfItsOwn moves the keyboard through a
+// frame holding nothing but an anchored tooltip: the component registers no
+// focus tag over an anchor, so there is nothing there to stop at. The thing
+// standing at the anchor is the caller's own control and is already in the
+// window's Tab order; a second tag over it would be an invisible stop
+// between the control and whatever follows it.
+func TestAnAnchoredTooltipTakesNoFocusOfItsOwn(t *testing.T) {
+	box := image.Rect(40, 40, 140, 56)
+	_, st, w := anchorRig(50*time.Millisecond, &box)
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	t0 := time.Unix(1700000000, 0)
+	driveFrameAt(w, ops, r, intFrame, t0)
+	r.MoveFocus(key.FocusForward)
+	driveFrameAt(w, ops, r, intFrame, t0)
+	if r.Source().Focused(&st.focusTag) {
+		t.Error("the keyboard stopped on an anchored tooltip's own focus tag")
+	}
+
+	// The unanchored tooltip is the contrast: it draws the trigger itself,
+	// so it registers a tag of its own and the keyboard does stop there.
+	_, stOwn, wOwn := hoverRig(50 * time.Millisecond)
+	r2 := new(gioinput.Router)
+	ops2 := new(op.Ops)
+	driveFrameAt(wOwn, ops2, r2, intFrame, t0)
+	r2.MoveFocus(key.FocusForward)
+	driveFrameAt(wOwn, ops2, r2, intFrame, t0)
+	if !r2.Source().Focused(&stOwn.focusTag) {
+		t.Error("a tooltip that draws its own trigger did not take the keyboard")
+	}
+}
+
+// TestAnAnchoredTooltipStandsWhileItsAnchorDoes lays an anchored tooltip out
+// at a box and then at none: the anchor standing is what the component takes
+// for the trigger standing, since it hit-tests nothing of its own, and the
+// annotation leaves when the anchor does.
+func TestAnAnchoredTooltipStandsWhileItsAnchorDoes(t *testing.T) {
+	const delay = 50 * time.Millisecond
+	box := image.Rect(40, 40, 140, 56)
+	arb, st, w := anchorRig(delay, &box)
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	t0 := time.Unix(1700000000, 0)
+
+	driveFrameAt(w, ops, r, intFrame, t0)
+	if st.entryAt.IsZero() {
+		t.Fatal("the anchor stands and the dwell did not start")
+	}
+	if arb.isTop(st) {
+		t.Fatal("the annotation stands before the delay has run out")
+	}
+	driveFrameAt(w, ops, r, intFrame, t0.Add(delay).Add(time.Millisecond))
+	if !arb.isTop(st) {
+		t.Fatal("the delay ran out at a standing anchor and the annotation did not take top")
+	}
+
+	box = image.Rectangle{}
+	driveFrameAt(w, ops, r, intFrame, t0.Add(time.Second))
+	if arb.isTop(st) {
+		t.Error("the anchor is gone and the annotation still holds top")
+	}
+	if st.claimed || !st.entryAt.IsZero() {
+		t.Errorf("the anchor going left the dwell armed: claimed = %v, entryAt zero = %v; want false, true", st.claimed, st.entryAt.IsZero())
+	}
+}
+
+// liveTooltip subscribes a tooltip to a theme stream that stays open, as a
+// window's own does, and hands back the layout.Widget it emitted and the
+// subscription the caller can end. The stream is driven on a goroutine
+// scheduler, which is what a window's layer streams run on; the
+// layout.Widget comes over a channel so the frames the test then drives are
+// the only reader of it.
+func liveTooltip(t *testing.T, th rx.Observable[theme.Theme], props Props) (layout.Widget, rx.Subscription) {
+	t.Helper()
+	widgets := make(chan layout.Widget, 8)
+	sub := Tooltip(th, props).Subscribe(rx.GoroutineContext(context.Background()),
+		func(next layout.Widget, _ error, done bool) {
+			if !done && next != nil {
+				widgets <- next
+			}
+		})
+	select {
+	case w := <-widgets:
+		return w, sub
+	case <-time.After(5 * time.Second):
+		t.Fatal("the tooltip emitted no layout.Widget")
+		return nil, sub
+	}
+}
+
+// TestATooltipDroppedWhileUpReleasesWhatItHeld builds a tooltip the way a
+// caller that says one value per subscription does, shows it, and drops the
+// subscription while it is up. That tooltip is never laid out again and
+// cannot release the top it holds, so the next frame any tooltip of the set
+// asks who is top clears it; without that, the set would carry a holder
+// nothing can hide.
+func TestATooltipDroppedWhileUpReleasesWhatItHeld(t *testing.T) {
+	const delay = 50 * time.Millisecond
+	shaper := tokens.DefaultTypography.DeterministicShaper()
+	arb := NewArbiter()
+	box := image.Rect(40, 40, 140, 56)
+	emit, th := rx.Subject[theme.Theme](time.Minute, 1)
+	emit(theme.Default(), nil, false)
+	props := func(text string) Props {
+		return Props{
+			Text:      text,
+			Placement: Bottom,
+			Delay:     delay,
+			Shaper:    shaper,
+			Arbiter:   arb,
+			Anchor:    func(layout.Context) image.Rectangle { return box },
+		}
+	}
+
+	first, sub := liveTooltip(t, th, props("https://example.test/one"))
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	t0 := time.Unix(1700000000, 0)
+	driveFrameAt(first, ops, r, intFrame, t0)
+	driveFrameAt(first, ops, r, intFrame, t0.Add(delay).Add(time.Millisecond))
+	if arb.top == nil {
+		t.Fatal("the annotation did not take top after its delay")
+	}
+
+	sub.Unsubscribe()
+	sub.Wait()
+
+	// The tooltip the caller built for the next value, sharing the set.
+	second, sub2 := liveTooltip(t, th, props("https://example.test/two"))
+	defer func() { sub2.Unsubscribe(); sub2.Wait() }()
+	driveFrameAt(second, ops, r, intFrame, t0.Add(time.Second))
+	if arb.top != nil {
+		t.Error("the set still holds the dropped tooltip; nothing can hide it")
 	}
 }

@@ -203,18 +203,28 @@ type Style struct {
 	// active on the frame the activation is processed, allowing consumers to
 	// emit mvu.MessageOp{Message: ...}.Add(gtx.Ops) inside the callback.
 	OnLinkClick func(gtx layout.Context, url string)
-	// OnLinkHover is called when the link under the pointer changes, and only
-	// then: with the link's URL on the frame the pointer enters it, with the
-	// empty string on the frame it leaves, and with the new URL on a frame the
-	// pointer crosses straight from one link onto another. A frame on which
-	// the same link is still under the pointer calls nothing, so a consumer
-	// may do real work in it.
+	// OnLinkHover is called when the link the paragraph is saying the address
+	// of changes, and only then: with the link's URL on the frame it is
+	// reached, with the empty string on the frame it is left, and with the
+	// new URL on a frame one link is left for another. A frame that reaches
+	// the same link again calls nothing, so a consumer may do real work in
+	// it.
 	//
-	// It is how a window says where a link goes while the pointer is on it —
+	// A link is reached by the pointer moving onto it or by the keyboard
+	// focus landing on it, and left when that pointer or that focus goes.
+	// THE POINTER WINS WHILE BOTH STAND: a reader moving the pointer over
+	// the prose is reading the address of what is under it, and the link the
+	// keyboard left behind is not what they are asking about. A change in
+	// either is evaluated against that rule, so focus moving between two
+	// links under a resting pointer says nothing and the pointer leaving the
+	// prose gives the address back to the focused link.
+	//
+	// It is how a window says where a link goes while the reader is on it —
 	// the address at the foot of the window every browser on this platform
-	// shows. The gtx argument is the live layout.Context of that frame, so
-	// consumers can emit mvu.MessageOp{Message: ...}.Add(gtx.Ops) inside the
-	// callback as they do from OnLinkClick.
+	// shows, for a hovered link and a focused one alike. The gtx argument is
+	// the live layout.Context of that frame, so consumers can emit
+	// mvu.MessageOp{Message: ...}.Add(gtx.Ops) inside the callback as they do
+	// from OnLinkClick.
 	OnLinkHover func(gtx layout.Context, url string)
 }
 
@@ -272,14 +282,15 @@ func Idle() RenderState {
 // Allocate once per paragraph instance and reuse on every frame.
 type State struct {
 	links []*linkState
-	// hover is the link last reported to [Style].OnLinkHover, offset by one:
-	// zero is no link, i+1 is link i. The offset is what lets the zero value
-	// mean nothing has been reported, so a paragraph the pointer has never
-	// been on reports no departure from it.
-	hover int
-	// hoverURL is that link's URL as reported, so a link whose URL changes
+	// reported is the link last reported to [Style].OnLinkHover, offset by
+	// one: zero is no link, i+1 is link i. The offset is what lets the zero
+	// value mean nothing has been reported, so a paragraph neither the
+	// pointer nor the keyboard has ever been on reports no departure from
+	// it.
+	reported int
+	// reportedURL is that link's URL as reported, so a link whose URL changes
 	// under a resting pointer is reported again.
-	hoverURL string
+	reportedURL string
 }
 
 // NewState returns a State for a paragraph with no interaction history.
@@ -297,6 +308,32 @@ type linkState struct {
 	// line reports the block around both. It is reset at the top of every
 	// draw and filled as the runs are registered.
 	box image.Rectangle
+	// runs are the link's runs as the last draw placed them, one per line it
+	// reaches, and nruns how many of them that draw filled in. They are kept
+	// by index across frames and never dropped, because each run's hover
+	// tracks its own area by the address of that entry.
+	runs  []*linkRun
+	nruns int
+}
+
+// linkRun is one line's worth of a link: the rectangle that line's run of the
+// link occupies and the hover over that rectangle alone. The pointer stands
+// on a run, not on a link, which is what lets a wrapped link report the run
+// under the pointer rather than the block around all of them.
+type linkRun struct {
+	hov gesture.Hover
+	box image.Rectangle
+	on  bool
+}
+
+// run returns the i-th run of this link, growing the slice to reach it. The
+// entries are pointers so that growing the slice moves no [gesture.Hover]:
+// its address is the tag its area is registered under.
+func (l *linkState) run(i int) *linkRun {
+	for len(l.runs) <= i {
+		l.runs = append(l.runs, &linkRun{})
+	}
+	return l.runs[i]
 }
 
 // sync makes the state track exactly n links, preserving the identity (and
@@ -310,7 +347,7 @@ func (s *State) sync(resolved []resolvedSpan, n int) {
 		s.links = append(s.links, &linkState{})
 	}
 	for _, l := range s.links {
-		l.box = image.Rectangle{}
+		l.box, l.nruns = image.Rectangle{}, 0
 	}
 	for _, r := range resolved {
 		if r.link >= 0 {
@@ -330,14 +367,15 @@ func (s *State) HoveredLink() int {
 	return NoLink
 }
 
-// HoveredLinkBox returns where the last layout drew the link under the
-// pointer, in the paragraph's own coordinates, and false when no link is
-// under it or the paragraph has not been laid out yet.
+// HoveredLinkBox returns where the last layout drew the run of the link the
+// pointer is on, in the paragraph's own coordinates, and false when no link
+// is under the pointer or the paragraph has not been laid out yet.
 //
-// The box is the union of the link's runs: a link carried onto a second line
-// reports the block around all of it, because the box is what a caller
-// places something beside and a link is one thing however many lines it runs
-// through.
+// The box is the run under the pointer and not the union of the link's runs:
+// a link carried onto a second line is annotated beside the line the reader
+// is pointing at, which is where they are looking. The union answers for the
+// keyboard instead, where there is no run to point at; see
+// [State.FocusedLinkBox].
 //
 // It is how a window says where the link under the pointer IS, as
 // [Style].OnLinkHover says where it GOES: a tooltip or any other annotation
@@ -349,6 +387,34 @@ func (s *State) HoveredLink() int {
 func (s *State) HoveredLinkBox() (image.Rectangle, bool) {
 	for _, l := range s.links {
 		if !l.click.Hovered() {
+			continue
+		}
+		for i := 0; i < l.nruns; i++ {
+			if r := l.runs[i]; r.on && !r.box.Empty() {
+				return r.box, true
+			}
+		}
+		// The pointer is on the link and on none of the runs the last draw
+		// placed: the wrapping moved under it on this very frame. The block
+		// around all of them is where the link is either way.
+		if l.box.Empty() {
+			return image.Rectangle{}, false
+		}
+		return l.box, true
+	}
+	return image.Rectangle{}, false
+}
+
+// FocusedLinkBox returns where the last layout drew the link holding the
+// keyboard focus, in the paragraph's own coordinates, and false when no link
+// holds it or the paragraph has not been laid out yet.
+//
+// The box is the union of the link's runs. A link carried onto a second line
+// reports the block around all of it, because the keyboard reached the link
+// and not one line of it: nothing picks a run when no pointer points at one.
+func (s *State) FocusedLinkBox(gtx layout.Context) (image.Rectangle, bool) {
+	for _, l := range s.links {
+		if !gtx.Focused(l) {
 			continue
 		}
 		if l.box.Empty() {
@@ -464,6 +530,9 @@ func processInput(gtx layout.Context, state *State, style Style) RenderState {
 				}
 			}
 		}
+		for j := 0; j < l.nruns; j++ {
+			l.runs[j].on = l.runs[j].hov.Update(gtx.Source)
+		}
 		if l.click.Hovered() {
 			rs.HoveredLink = i
 		}
@@ -471,25 +540,31 @@ func processInput(gtx layout.Context, state *State, style Style) RenderState {
 			rs.FocusedLink = i
 		}
 	}
-	reportHover(gtx, state, style, rs)
+	reportLink(gtx, state, style, rs)
 	return rs
 }
 
-// reportHover calls style.OnLinkHover on a change of the link under the
-// pointer and on nothing else. The comparison is against what the state last
-// reported rather than against the previous frame, which is what keeps the
-// two drains [Layout] makes per frame to one call between them.
-func reportHover(gtx layout.Context, state *State, style Style, rs RenderState) {
+// reportLink calls style.OnLinkHover on a change of the link the paragraph is
+// saying the address of and on nothing else. That link is the one under the
+// pointer while there is one and the one holding the focus otherwise; see
+// [Style].OnLinkHover for why the pointer wins. The comparison is against
+// what the state last reported rather than against the previous frame, which
+// is what keeps the two drains [Layout] makes per frame to one call between
+// them.
+func reportLink(gtx layout.Context, state *State, style Style, rs RenderState) {
 	if style.OnLinkHover == nil {
 		return
 	}
-	hover, url := 0, ""
-	if rs.HoveredLink != NoLink {
-		hover, url = rs.HoveredLink+1, state.links[rs.HoveredLink].url
+	link, url := 0, ""
+	switch {
+	case rs.HoveredLink != NoLink:
+		link, url = rs.HoveredLink+1, state.links[rs.HoveredLink].url
+	case rs.FocusedLink != NoLink:
+		link, url = rs.FocusedLink+1, state.links[rs.FocusedLink].url
 	}
-	if hover == state.hover && url == state.hoverURL {
+	if link == state.reported && url == state.reportedURL {
 		return
 	}
-	state.hover, state.hoverURL = hover, url
+	state.reported, state.reportedURL = link, url
 	style.OnLinkHover(gtx, url)
 }

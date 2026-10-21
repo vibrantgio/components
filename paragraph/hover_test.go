@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"gioui.org/f32"
+	"gioui.org/io/event"
 	gioinput "gioui.org/io/input"
+	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -227,10 +229,11 @@ func TestHoveredLinkBoxIsTheLinkUnderThePointer(t *testing.T) {
 	}
 }
 
-// TestHoveredLinkBoxSpansEveryLineOfAWrappedLink wraps one link across two
-// lines and reads the box: it is the block around both runs, taller than one
-// line, which is what a caller placing something beside the link needs.
-func TestHoveredLinkBoxSpansEveryLineOfAWrappedLink(t *testing.T) {
+// TestHoveredLinkBoxIsTheRunUnderThePointer wraps one link across two lines
+// and points at each of them in turn: the box is the run pointed at and not
+// the block around both, so an annotation placed against it stands beside the
+// line the reader is pointing at.
+func TestHoveredLinkBoxIsTheRunUnderThePointer(t *testing.T) {
 	shaper := defaultShaper(t)
 	spans := []paragraph.SpanStyle{
 		{Content: "one two three four five six seven", URL: "https://a.example/long"},
@@ -248,19 +251,187 @@ func TestHoveredLinkBoxSpansEveryLineOfAWrappedLink(t *testing.T) {
 	}
 	r := new(gioinput.Router)
 	ops := new(op.Ops)
+	move := func(y int) {
+		r.Queue(pointer.Event{Kind: pointer.Move, Position: f32.Pt(4, float32(y)), Source: pointer.Mouse})
+		driveFrame(w, ops, r, size)
+	}
 	driveFrame(w, ops, r, size)
-	driveFrame(w, ops, r, size)
-	r.Queue(pointer.Event{Kind: pointer.Move, Position: f32.Pt(4, 8), Source: pointer.Mouse})
 	driveFrame(w, ops, r, size)
 
-	box, ok := state.HoveredLinkBox()
+	move(4)
+	first, ok := state.HoveredLinkBox()
 	if !ok {
-		t.Fatal("the wrapped link is hovered and reports no box")
+		t.Fatal("the wrapped link is hovered on its first line and reports no box")
+	}
+	if first.Dy() >= height {
+		t.Fatalf("the first line's box is %d tall against a paragraph %d tall; it is not one run", first.Dy(), height)
+	}
+
+	move(height - 4)
+	second, ok := state.HoveredLinkBox()
+	if !ok {
+		t.Fatal("the wrapped link is hovered on its second line and reports no box")
+	}
+	if second == first {
+		t.Fatalf("both lines of the link report the same box %v; the box is not the run under the pointer", first)
+	}
+	if second.Min.Y < first.Max.Y {
+		t.Errorf("the second line's box %v begins above the first line's foot at %d", second, first.Max.Y)
+	}
+}
+
+// TestFocusedLinkBoxSpansEveryLineOfAWrappedLink gives the keyboard to a link
+// wrapped across two lines and reads its box: the block around both runs,
+// since nothing picks a run when no pointer points at one.
+func TestFocusedLinkBoxSpansEveryLineOfAWrappedLink(t *testing.T) {
+	shaper := defaultShaper(t)
+	spans := []paragraph.SpanStyle{
+		{Content: "one two three four five six seven", URL: "https://a.example/long"},
+	}
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	size := image.Pt(120, 120)
+
+	state := paragraph.NewState()
+	var (
+		height int
+		box    image.Rectangle
+		boxed  bool
+	)
+	w := func(gtx layout.Context) layout.Dimensions {
+		dims := paragraph.Layout(gtx, state, shaper, style, spans)
+		height = dims.Size.Y
+		box, boxed = state.FocusedLinkBox(gtx)
+		return dims
+	}
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	driveFrame(w, ops, r, size)
+	driveFrame(w, ops, r, size)
+	if boxed {
+		t.Fatal("a paragraph the keyboard has not reached reports a focused box")
+	}
+
+	r.MoveFocus(key.FocusForward)
+	driveFrame(w, ops, r, size)
+	if !boxed {
+		t.Fatal("the link holds the keyboard and reports no box")
 	}
 	if box.Dy() >= height {
-		t.Fatalf("the link's box is %d tall against a paragraph %d tall; it was not laid out over more than one line", box.Dy(), height)
+		t.Fatalf("the focused link's box is %d tall against a paragraph %d tall; it is taller than the link", box.Dy(), height)
 	}
 	if box.Dy() <= height/3 {
-		t.Errorf("the link's box is %d tall in a paragraph %d tall, so it holds one line and not every line of the link", box.Dy(), height)
+		t.Errorf("the focused link's box is %d tall in a paragraph %d tall, so it holds one line and not every line of the link", box.Dy(), height)
+	}
+}
+
+// TestTheKeyboardReportsTheLinkItReaches tabs onto each link in turn and off
+// the end of them, counting the reports: the address of the link the keyboard
+// lands on, and the empty string when it leaves the last one.
+func TestTheKeyboardReportsTheLinkItReaches(t *testing.T) {
+	shaper := defaultShaper(t)
+	spans := hoverSpans()
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	size := image.Pt(400, 100)
+
+	var got []string
+	style.OnLinkHover = func(_ layout.Context, u string) { got = append(got, u) }
+	state := paragraph.NewState()
+	// A focusable beside the paragraph, so the keyboard has somewhere to go
+	// after the last link instead of wrapping back onto the first.
+	var beyond int
+	w := func(gtx layout.Context) layout.Dimensions {
+		dims := paragraph.Layout(gtx, state, shaper, style, spans)
+		for {
+			if _, ok := gtx.Event(key.FocusFilter{Target: &beyond}); !ok {
+				break
+			}
+		}
+		event.Op(gtx.Ops, &beyond)
+		return dims
+	}
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	driveFrame(w, ops, r, size)
+	driveFrame(w, ops, r, size)
+	if len(got) != 0 {
+		t.Fatalf("a paragraph nothing has reached reported %v", got)
+	}
+
+	r.MoveFocus(key.FocusForward)
+	driveFrame(w, ops, r, size)
+	if want := []string{"https://a.example/one"}; !equalStrings(got, want) {
+		t.Fatalf("the keyboard reaching the first link reported %v, want %v", got, want)
+	}
+	// Frames in which the focus does not move are not changes.
+	driveFrame(w, ops, r, size)
+	driveFrame(w, ops, r, size)
+	if len(got) != 1 {
+		t.Fatalf("a link holding the keyboard reported %v, want one call", got)
+	}
+
+	r.MoveFocus(key.FocusForward)
+	driveFrame(w, ops, r, size)
+	if want := []string{"https://a.example/one", "https://b.example/two"}; !equalStrings(got, want) {
+		t.Fatalf("the keyboard reaching the second link reported %v, want %v", got, want)
+	}
+
+	// Off the last link onto the focusable beyond the paragraph: the
+	// keyboard leaves the links and the address goes with it.
+	r.MoveFocus(key.FocusForward)
+	driveFrame(w, ops, r, size)
+	want := []string{"https://a.example/one", "https://b.example/two", ""}
+	if !equalStrings(got, want) {
+		t.Fatalf("the keyboard leaving the links reported %v, want %v", got, want)
+	}
+}
+
+// TestThePointerWinsOverTheKeyboard rests the pointer on one link and moves
+// the keyboard focus between the two: the address stays the pointer's for as
+// long as it is on a link, and the focused link's address is said only once
+// the pointer leaves the prose.
+func TestThePointerWinsOverTheKeyboard(t *testing.T) {
+	shaper := defaultShaper(t)
+	spans := hoverSpans()
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	size := image.Pt(400, 100)
+
+	runs := linkRuns(shaper, style, spans, size)
+	if len(runs) != 2 {
+		t.Fatalf("the line declares %d link runs, want 2: %v", len(runs), runs)
+	}
+
+	var got []string
+	style.OnLinkHover = func(_ layout.Context, u string) { got = append(got, u) }
+	state := paragraph.NewState()
+	w := func(gtx layout.Context) layout.Dimensions {
+		return paragraph.Layout(gtx, state, shaper, style, spans)
+	}
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	move := func(x int) {
+		r.Queue(pointer.Event{Kind: pointer.Move, Position: f32.Pt(float32(x), 8), Source: pointer.Mouse})
+		driveFrame(w, ops, r, size)
+	}
+	driveFrame(w, ops, r, size)
+	driveFrame(w, ops, r, size)
+
+	// The pointer on the first link, then the keyboard onto the second.
+	move((runs[0][0] + runs[0][1]) / 2)
+	r.MoveFocus(key.FocusForward)
+	driveFrame(w, ops, r, size)
+	r.MoveFocus(key.FocusForward)
+	driveFrame(w, ops, r, size)
+	if want := []string{"https://a.example/one"}; !equalStrings(got, want) {
+		t.Fatalf("with the pointer resting on the first link the keyboard reported %v, want %v", got, want)
+	}
+	if box, ok := state.HoveredLinkBox(); !ok || box.Min.X > runs[0][0] || box.Max.X < runs[0][1] {
+		t.Errorf("the box %v (reported %v) is not the first link's run [%d,%d]", box, ok, runs[0][0], runs[0][1])
+	}
+
+	// The pointer leaves the prose and the focused link gets the address.
+	move(runs[1][1] + 2)
+	want := []string{"https://a.example/one", "https://b.example/two"}
+	if !equalStrings(got, want) {
+		t.Fatalf("the pointer leaving reported %v, want %v", got, want)
 	}
 }
