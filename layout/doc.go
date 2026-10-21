@@ -16,5 +16,5 @@
 // One thing to know before importing: this package is named layout and so
 // collides with gioui.org/layout, whose Context, Widget and Dimensions its own
 // signatures use. Applications conventionally import one of the two under an
-// alias; the workbench launcher example imports this one as pllayout.
+// alias; the workbench example imports this one as pllayout.
 package layout
