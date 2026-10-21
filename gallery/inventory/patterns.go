@@ -18,6 +18,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
+	"gioui.org/widget"
 
 	"github.com/vibrantgio/components/badge"
 	"github.com/vibrantgio/components/button"
@@ -88,6 +89,8 @@ func (inv *Inventory) Patterns(c tokens.PlatformColors) []Section {
 			Body: inv.testimonial(c)},
 		{Name: "patterns-shell", Title: "Shell — the three-column frame: sidebar, content, aside", Height: 300,
 			Body: inv.shell(c)},
+		{Name: "patterns-shell-two-column", Title: "Shell, two-column — the pane, the toolbar over the content column, the inspector and the status bar", Height: twoColSpecimenH,
+			Body: inv.twoColumnShell(c)},
 	}
 }
 
@@ -338,6 +341,17 @@ const (
 	// paneGutter is the air between the pane's trailing edge and the
 	// document's own first column of prose.
 	paneGutter unit.Dp = 16
+
+	// The two-column arrangement is a whole window, so it is drawn at the
+	// size a window would show it at — deep enough for the toolbar, a
+	// document row and the status bar under it, and narrowed only where the
+	// column itself is narrower.
+	twoColSpecimenW unit.Dp = 640
+	twoColSpecimenH unit.Dp = 260
+	// twoColPaneW and twoColInspectorW are the two chrome columns' widths in
+	// the specimen, cut to the slot rather than to a window.
+	twoColPaneW      unit.Dp = 168
+	twoColInspectorW unit.Dp = 132
 )
 
 // pane draws the pane beside the content it stands over: the rounded column
@@ -652,5 +666,99 @@ func (inv *Inventory) shell(c tokens.PlatformColors) layout.Widget {
 		gtx.Constraints.Min = gtx.Constraints.Max
 		return shell.RenderThreeColumn(inv.shaper, props, sidebarW, asideW, c, tokens.Spacing,
 			tokens.DefaultTypography.LabelLarge, tokens.Comfortable, 180)(gtx)
+	}
+}
+
+// twoColumnShell draws the shell's two-column arrangement with the
+// inspector filled: the pane down the leading edge with its own column and
+// its bare marks, the toolbar across the content column's top with the
+// platform's bordered controls at either end, the inspector behind its
+// seam, and the status bar under the column.
+//
+// The window's three control buttons belong to the window and not to the
+// pattern, so this specimen states that it has none and the toolbar and the
+// pane's strip both lead from their own gutters.
+func (inv *Inventory) twoColumnShell(c tokens.PlatformColors) layout.Widget {
+	var (
+		addClick    widget.Clickable
+		toggleClick widget.Clickable
+		backClick   widget.Clickable
+		findClick   widget.Clickable
+	)
+	noButtons := func() unit.Dp { return 0 }
+	bare := func(click *widget.Clickable, name icons.Name, title string) layout.Widget {
+		return func(gtx layout.Context) layout.Dimensions {
+			return shell.PaneMark(gtx, c, click, icons.Mark(name), title)
+		}
+	}
+	bordered := func(click *widget.Clickable, name icons.Name, title string) layout.Widget {
+		return func(gtx layout.Context) layout.Dimensions {
+			return shell.ToolbarControl(gtx, c, tokens.Radius, tokens.Comfortable,
+				click, icons.Mark(name), title, false)
+		}
+	}
+	inset := func(w layout.Widget) layout.Widget {
+		return func(gtx layout.Context) layout.Dimensions {
+			return complayout.Inset(12).Layout(gtx, w)
+		}
+	}
+	f := shell.TwoColumn{
+		PaneWidth:     twoColPaneW,
+		Surface:       c.WindowBackground,
+		ContentFill:   c.TextBackground,
+		InspectorFill: pane.Surface(c),
+		Radius:        tokens.Radius,
+		Density:       tokens.Comfortable,
+		Pane: shell.PaneColumn{
+			Marks: []layout.Widget{bare(&addClick, icons.Plus, "New Folder")},
+			Rows:  inset(inv.prose(c, "Notes", "Drafts", "Archive")),
+		},
+		Toggle: &shell.ToggleSidebar{
+			Click:        &toggleClick,
+			Mark:         icons.Mark(icons.Sidebar),
+			PaneTitle:    "Hide the sidebar",
+			ToolbarTitle: "Show the sidebar",
+		},
+		Toolbar: shell.Toolbar{
+			Lead:    16,
+			Leading: []layout.Widget{bordered(&backClick, icons.ChevronLeft, "Back")},
+			Center: func(gtx layout.Context) layout.Dimensions {
+				return LabelAt(gtx, inv.shaper, "Drafts", sectionText(c), 13, font.Font{})
+			},
+			Trailing: []layout.Widget{bordered(&findClick, icons.Search, "Search")},
+		},
+		Main: inset(inv.prose(c,
+			"The content column.",
+			"",
+			"The pane stands down the leading edge, the",
+			"toolbar across this column's top, and the",
+			"inspector behind the seam on the trailing side.",
+		)),
+		Inspector:      inset(inv.prose(c, "Inspector", "", "Outline", "Backlinks")),
+		InspectorWidth: twoColInspectorW,
+		InspectorGap:   6,
+		Footer: func(gtx layout.Context) layout.Dimensions {
+			return complayout.InsetXY(12, 4).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+				return LabelAt(gtx, inv.shaper, "48 lines — Drafts", sectionMuted(c), 11, font.Font{})
+			})
+		},
+		FooterDepth: 22,
+		// Both boundaries are the reader's to move in a window; a specimen
+		// has no hand in it, so each is stated with no state and draws its
+		// resting line alone — the pane's own rim leading, the plain seam
+		// trailing.
+		PaneResize:       &shell.PaneResize{Min: 120, Max: 240, Floor: 160},
+		InspectorResize:  &shell.InspectorResize{Min: 100, Max: 200, Floor: 160},
+		WindowButtonsEnd: noButtons,
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		size := image.Pt(min(gtx.Constraints.Max.X, gtx.Dp(twoColSpecimenW)), gtx.Dp(twoColSpecimenH))
+		gtx.Constraints = layout.Exact(size)
+		// Clipped to the window it stands for: the pane's shadow reaches
+		// past the pane and a window cuts what its own chrome throws at its
+		// edge.
+		defer clip.Rect{Max: size}.Push(gtx.Ops).Pop()
+		dims, _ := f.Layout(gtx, c)
+		return dims
 	}
 }
