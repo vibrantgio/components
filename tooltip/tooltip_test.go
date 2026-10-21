@@ -216,3 +216,79 @@ func TestAnnotationIsWholeOverALaterSibling(t *testing.T) {
 		}
 	}
 }
+
+// annotationRows returns the rows of img the annotation painted on, found by
+// comparing it against the same scene with the annotation hidden: every row
+// holding a pixel the two images differ at.
+func annotationRows(shown, hidden *image.RGBA) (top, bottom int) {
+	b := shown.Bounds()
+	top, bottom = -1, -1
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			if shown.RGBAAt(x, y) == hidden.RGBAAt(x, y) {
+				continue
+			}
+			if top < 0 {
+				top = y
+			}
+			bottom = y
+			break
+		}
+	}
+	return top, bottom
+}
+
+// anchored renders a tooltip whose trigger is said to stand at box, with
+// nothing drawn for it: the caller's own trigger is already on the page.
+func anchored(shaper *text.Shaper, box image.Rectangle, placement tooltip.Placement, shown bool) layout.Widget {
+	return tooltip.Render(
+		shaper,
+		tooltip.Props{
+			Text:      "Where this goes",
+			Placement: placement,
+			Anchor:    func(layout.Context) image.Rectangle { return box },
+			Shaper:    shaper,
+		},
+		shown,
+		tokens.PlatformLight,
+		tokens.Spacing,
+		sharpRadius,
+		tokens.DefaultTypography.LabelSmall,
+	)
+}
+
+// TestAnchoredAnnotationStandsOnTheSideWithRoom places the same annotation
+// against two anchors in one frame — one with the whole frame below it, one
+// hard against the frame's foot — and reads back which side of each the
+// annotation landed on. A tooltip asked for the side below takes the side
+// above when the side below is too short to hold it, which is what keeps an
+// annotation about a word near the foot of a column on the screen.
+func TestAnchoredAnnotationStandsOnTheSideWithRoom(t *testing.T) {
+	shaper := defaultShaper(t)
+	bg := color.NRGBA{R: 245, G: 245, B: 245, A: 255}
+
+	high := image.Rect(40, 20, 140, 36)
+	rows := func(box image.Rectangle) (int, int) {
+		shown := golden.Capture(t, frameSize, scene(anchored(shaper, box, tooltip.Bottom, true), bg))
+		hidden := golden.Capture(t, frameSize, scene(anchored(shaper, box, tooltip.Bottom, false), bg))
+		return annotationRows(shown, hidden)
+	}
+
+	top, bottom := rows(high)
+	if top < 0 {
+		t.Fatal("the annotation painted nothing at all")
+	}
+	if top < high.Max.Y {
+		t.Errorf("with the whole frame below it the annotation starts at row %d, above the anchor's foot at %d", top, high.Max.Y)
+	}
+
+	// Hard against the frame's foot: the side below holds nothing.
+	low := image.Rect(40, frameH-18, 140, frameH-2)
+	top, bottom = rows(low)
+	if top < 0 {
+		t.Fatal("the annotation against the frame's foot painted nothing at all")
+	}
+	if bottom > low.Min.Y {
+		t.Errorf("against the frame's foot the annotation reaches row %d, below the anchor's top at %d; it did not take the side with room", bottom, low.Min.Y)
+	}
+}

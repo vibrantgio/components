@@ -541,7 +541,12 @@ func drawFocusRing(gtx layout.Context, style Style, off image.Point, s segment) 
 // pointer cursor, the click gesture, the focus/event tag (making the link
 // Tab-focusable), and screen-reader semantics. A link wrapped across lines
 // registers one area per segment, all sharing the same tag.
+//
+// It is also where the link's own box is accumulated, since the area and the
+// box are the same rectangle: what the pointer is tested against is what a
+// caller is told the link stands at. See [State.HoveredLinkBox].
 func registerLinkArea(gtx layout.Context, l *linkState, off image.Point, s segment) {
+	l.box = l.box.Union(image.Rectangle{Min: off, Max: off.Add(image.Pt(s.width, s.height))})
 	st := op.Offset(off).Push(gtx.Ops)
 	cl := clip.Rect{Max: image.Pt(s.width, s.height)}.Push(gtx.Ops)
 	semantic.Button.Add(gtx.Ops)

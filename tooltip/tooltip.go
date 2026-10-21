@@ -32,8 +32,12 @@
 // view is no longer hit-tested, so the hover ends there and takes the
 // annotation with it.
 //
-// The trigger renders at the frame centre; the tooltip surface is placed
-// adjacent per Placement. Show/hide is instantaneous in this package;
+// The trigger renders at the frame centre, or where Props.Anchor says it
+// already stands for a caller that drew its own; the tooltip surface is
+// placed adjacent per Placement, taking the opposite side when the side
+// asked for has no room left in the frame and the opposite side holds it
+// whole. A centred trigger has the same room on both sides, so it is an
+// anchored one that the flip is for. Show/hide is instantaneous in this package;
 // entrance/exit transitions are deferred to a later Effects-integration
 // goal. Touch long-press is out of scope.
 package tooltip
@@ -67,7 +71,9 @@ import (
 // its Theme.Motion snapshot, so a themed motion scale retimes the delay.
 var DefaultDelay = tokens.Motion.DurXSlow
 
-// Placement is the side of the trigger on which the tooltip surface sits.
+// Placement is the side of the trigger the tooltip surface is asked for. A
+// surface with no room left on that side of the frame takes the opposite
+// side when that one holds it whole; see drawSurface.
 type Placement int
 
 const (
@@ -77,13 +83,32 @@ const (
 	Right
 )
 
-// Props configures a Tooltip. Trigger must be non-nil; Text may be empty
-// (the surface still renders, but at minimum padded size).
+// Props configures a Tooltip. Trigger must be non-nil unless Anchor says
+// where the trigger already stands; Text may be empty (the surface still
+// renders, but at minimum padded size).
 type Props struct {
 	Text      string
 	Trigger   layout.Widget
 	Delay     time.Duration
 	Placement Placement
+
+	// Anchor is where the trigger already stands inside the frame, for a
+	// caller that has drawn its own trigger and wants nothing from this
+	// component but the annotation placed against it — a word in a
+	// paragraph, a cell of a table, anything whose place is a result of a
+	// layout this component did not run. It is read once a frame, because
+	// such a place moves with the wrapping and the scroll.
+	//
+	// With an anchor the frame is no longer the trigger's own box: the
+	// trigger is where the anchor says and the frame is whatever room the
+	// caller gave, which is what lets the annotation take the side of the
+	// trigger that has room (see drawSurface). Props.Trigger is then
+	// optional, and a trigger that is given is drawn at the anchor rather
+	// than centred.
+	//
+	// A nil Anchor centres Props.Trigger in the frame, which is what a
+	// tooltip wrapping its own control wants.
+	Anchor func(gtx layout.Context) image.Rectangle
 
 	// Shaper is an explicit per-instance override of the text shaper. Leave
 	// it nil in normal use: the tooltip then shapes its text with the
@@ -243,19 +268,11 @@ func drawTooltip(
 ) layout.Dimensions {
 	frame := gtx.Constraints.Max
 
-	// 1. Record the trigger into a macro to measure its dims; centre it
-	//    on the frame. The trigger's centred rect is the basis for both
-	//    the hit area registered for hover/focus and the surface
-	//    positioning math below.
-	triggerMacro := op.Record(gtx.Ops)
-	triggerGtx := gtx
-	triggerGtx.Constraints = layout.Constraints{Max: frame}
-	var triggerDims layout.Dimensions
-	if props.Trigger != nil {
-		triggerDims = props.Trigger(triggerGtx)
-	}
-	triggerOps := triggerMacro.Stop()
-	triggerPos := image.Pt((frame.X-triggerDims.Size.X)/2, (frame.Y-triggerDims.Size.Y)/2)
+	// 1. Record the trigger into a macro to measure its dims; place it on
+	//    the frame, centred or where Props.Anchor says it already is. The
+	//    trigger's rect is the basis for both the hit area registered for
+	//    hover/focus and the surface positioning math below.
+	triggerDims, triggerPos, triggerOps := placeTrigger(gtx, props, frame)
 	triggerRect := image.Rectangle{Min: triggerPos, Max: triggerPos.Add(triggerDims.Size)}
 
 	// 2. Drain hover and focus events. The drains must happen before the
@@ -342,15 +359,7 @@ func drawStatic(
 	shown bool,
 ) layout.Dimensions {
 	frame := gtx.Constraints.Max
-	triggerMacro := op.Record(gtx.Ops)
-	triggerGtx := gtx
-	triggerGtx.Constraints = layout.Constraints{Max: frame}
-	var triggerDims layout.Dimensions
-	if props.Trigger != nil {
-		triggerDims = props.Trigger(triggerGtx)
-	}
-	triggerOps := triggerMacro.Stop()
-	triggerPos := image.Pt((frame.X-triggerDims.Size.X)/2, (frame.Y-triggerDims.Size.Y)/2)
+	triggerDims, triggerPos, triggerOps := placeTrigger(gtx, props, frame)
 	triggerRect := image.Rectangle{Min: triggerPos, Max: triggerPos.Add(triggerDims.Size)}
 
 	triggerOff := op.Offset(triggerPos).Push(gtx.Ops)
@@ -361,6 +370,35 @@ func drawStatic(
 		drawSurface(gtx, shaper, props, tok, triggerRect)
 	}
 	return layout.Dimensions{Size: frame}
+}
+
+// placeTrigger records the trigger and says where it stands in the frame:
+// centred, which is what a tooltip that wraps its own control does, or at
+// Props.Anchor, which is what a caller that drew its own trigger says. An
+// anchored trigger takes the anchor's size whether or not there is a
+// Props.Trigger to draw at it, because the anchor is the box the pointer is
+// tested against and the annotation is placed beside.
+func placeTrigger(gtx layout.Context, props Props, frame image.Point) (layout.Dimensions, image.Point, op.CallOp) {
+	var anchor image.Rectangle
+	if props.Anchor != nil {
+		anchor = props.Anchor(gtx)
+	}
+	triggerGtx := gtx
+	triggerGtx.Constraints = layout.Constraints{Max: frame}
+	if props.Anchor != nil {
+		triggerGtx.Constraints = layout.Exact(anchor.Size())
+	}
+	macro := op.Record(gtx.Ops)
+	var dims layout.Dimensions
+	if props.Trigger != nil {
+		dims = props.Trigger(triggerGtx)
+	}
+	call := macro.Stop()
+	if props.Anchor != nil {
+		dims.Size = anchor.Size()
+		return dims, anchor.Min, call
+	}
+	return dims, image.Pt((frame.X-dims.Size.X)/2, (frame.Y-dims.Size.Y)/2), call
 }
 
 // drawSurface paints the rounded tooltip bubble with the text inside,
@@ -408,16 +446,46 @@ func drawSurface(
 
 	midX := (triggerRect.Min.X + triggerRect.Max.X) / 2
 	midY := (triggerRect.Min.Y + triggerRect.Max.Y) / 2
+	above := triggerRect.Min.Y - gap - surfH
+	below := triggerRect.Max.Y + gap
+	before := triggerRect.Min.X - gap - surfW
+	after := triggerRect.Max.X + gap
 	var pos image.Point
 	switch props.Placement {
 	case Top:
-		pos = image.Pt(midX-surfW/2, triggerRect.Min.Y-gap-surfH)
+		pos = image.Pt(midX-surfW/2, above)
 	case Bottom:
-		pos = image.Pt(midX-surfW/2, triggerRect.Max.Y+gap)
+		pos = image.Pt(midX-surfW/2, below)
 	case Left:
-		pos = image.Pt(triggerRect.Min.X-gap-surfW, midY-surfH/2)
+		pos = image.Pt(before, midY-surfH/2)
 	case Right:
-		pos = image.Pt(triggerRect.Max.X+gap, midY-surfH/2)
+		pos = image.Pt(after, midY-surfH/2)
+	}
+
+	// THE SURFACE TAKES THE SIDE WITH ROOM. A trigger near the far edge of
+	// the frame leaves the side it was asked for too short to hold the
+	// annotation, and the annotation takes the opposite side — but only when
+	// that one holds it whole. A frame with room on neither side keeps the
+	// placement the caller asked for: a caller whose frame is its trigger is
+	// placing the annotation outside that frame on purpose, and flipping it
+	// there would move it onto the trigger rather than away from an edge.
+	switch props.Placement {
+	case Top:
+		if above < 0 && below+surfH <= frame.Y {
+			pos.Y = below
+		}
+	case Bottom:
+		if below+surfH > frame.Y && above >= 0 {
+			pos.Y = above
+		}
+	case Left:
+		if before < 0 && after+surfW <= frame.X {
+			pos.X = after
+		}
+	case Right:
+		if after+surfW > frame.X && before >= 0 {
+			pos.X = before
+		}
 	}
 
 	surfOff := op.Offset(pos).Push(gtx.Ops)

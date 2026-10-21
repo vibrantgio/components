@@ -292,6 +292,11 @@ type linkState struct {
 	click      gesture.Click
 	url        string
 	pressedKey key.Name
+	// box is where the last draw put this link, in the paragraph's own
+	// coordinates: the union of its runs, so a link carried onto a second
+	// line reports the block around both. It is reset at the top of every
+	// draw and filled as the runs are registered.
+	box image.Rectangle
 }
 
 // sync makes the state track exactly n links, preserving the identity (and
@@ -303,6 +308,9 @@ func (s *State) sync(resolved []resolvedSpan, n int) {
 	}
 	for len(s.links) < n {
 		s.links = append(s.links, &linkState{})
+	}
+	for _, l := range s.links {
+		l.box = image.Rectangle{}
 	}
 	for _, r := range resolved {
 		if r.link >= 0 {
@@ -320,6 +328,35 @@ func (s *State) HoveredLink() int {
 		}
 	}
 	return NoLink
+}
+
+// HoveredLinkBox returns where the last layout drew the link under the
+// pointer, in the paragraph's own coordinates, and false when no link is
+// under it or the paragraph has not been laid out yet.
+//
+// The box is the union of the link's runs: a link carried onto a second line
+// reports the block around all of it, because the box is what a caller
+// places something beside and a link is one thing however many lines it runs
+// through.
+//
+// It is how a window says where the link under the pointer IS, as
+// [Style].OnLinkHover says where it GOES: a tooltip or any other annotation
+// standing beside a link needs the rectangle, and the position is a result
+// of wrapping and is not knowable before the paragraph is laid out. Read it
+// after [Layout] for this frame's geometry; read from inside OnLinkHover it
+// holds the previous frame's, which is the layout the pointer was tested
+// against.
+func (s *State) HoveredLinkBox() (image.Rectangle, bool) {
+	for _, l := range s.links {
+		if !l.click.Hovered() {
+			continue
+		}
+		if l.box.Empty() {
+			return image.Rectangle{}, false
+		}
+		return l.box, true
+	}
+	return image.Rectangle{}, false
 }
 
 // FocusedLink returns the index of the link currently holding keyboard
