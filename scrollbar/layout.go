@@ -156,13 +156,19 @@ func (s Style) Layout(gtx layout.Context, state *State, axis layout.Axis, viewpo
 				func() {
 					offset := convert(image.Pt(viewStart, 0))
 					defer op.Offset(offset).Push(gtx.Ops).Pop()
-					paint.FillShape(gtx.Ops, thumbColor, clip.RRect{
-						Rect: image.Rectangle{Max: thumbDims},
-						SW:   radius,
-						NW:   radius,
-						NE:   radius,
-						SE:   radius,
-					}.Op(gtx.Ops))
+					// A thumb that has faded to alpha 0 is not painted,
+					// as the transparent track: the paint would change
+					// no pixel of the bar and still shift antialiased
+					// glyph edges elsewhere in the frame.
+					if thumbColor.A != 0 {
+						paint.FillShape(gtx.Ops, thumbColor, clip.RRect{
+							Rect: image.Rectangle{Max: thumbDims},
+							SW:   radius,
+							NW:   radius,
+							NE:   radius,
+							SE:   radius,
+						}.Op(gtx.Ops))
+					}
 
 					// Register the thumb's pointer hit area.
 					area := clip.Rect(image.Rectangle{Max: thumbDims})
