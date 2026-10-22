@@ -52,7 +52,16 @@
 // and has a line too long for the room elided in its middle. With no room
 // reported the surface keeps the side asked for and is bounded by the window
 // alone; an anchored tooltip with no room reported takes its frame as the
-// room. Show/hide is instantaneous in this package; entrance/exit transitions
+// room.
+//
+// A LAYOUT THAT PLACES ITS CHILD AFTER MEASURING IT PLACES THE SURFACE. Where a
+// layout set [Surfaces] on the context, the trigger's offset inside the window
+// is decided only after the tooltip is laid out, so the surface is not drawn
+// then: the tooltip records it in the Surfaces, and the layout draws it with
+// [PlaceSurfaces] in the area moved by the offset it placed its child at.
+// Without Surfaces set the surface is drawn as the tooltip is laid out.
+//
+// Show/hide is instantaneous in this package; entrance/exit transitions
 // are deferred to a later Effects-integration goal. Touch long-press is out of
 // scope.
 //
@@ -447,7 +456,7 @@ func drawTooltip(
 	//    is read straight off the arbiter rather than mirrored in a flag
 	//    beside it.
 	if st.arb.isTop(st) {
-		drawSurface(gtx, shaper, props, tok, triggerRect, frame)
+		placeSurface(gtx, shaper, props, tok, triggerRect, frame)
 	}
 
 	return layout.Dimensions{Size: size}
@@ -472,7 +481,7 @@ func drawStatic(
 	triggerOff.Pop()
 
 	if shown {
-		drawSurface(gtx, shaper, props, tok, triggerRect, frame)
+		placeSurface(gtx, shaper, props, tok, triggerRect, frame)
 	}
 	return layout.Dimensions{Size: size}
 }
@@ -527,9 +536,30 @@ func availableRoom(gtx layout.Context, props Props, frame image.Point) (image.Re
 	return image.Rect(-unbounded, -unbounded, unbounded, unbounded), false
 }
 
+// placeSurface draws the surface at once in the available room the props
+// report, or, where a layout set [Surfaces] on the context, records it there
+// to be drawn in the area that layout passes to [PlaceSurfaces].
+func placeSurface(
+	gtx layout.Context,
+	shaper *text.Shaper,
+	props Props,
+	tok resolvedTokens,
+	triggerRect image.Rectangle,
+	frame image.Point,
+) {
+	if s := surfacesFrom(gtx); s != nil {
+		s.draws = append(s.draws, func(gtx layout.Context, room image.Rectangle) {
+			drawSurface(gtx, shaper, props, tok, triggerRect, room, true)
+		})
+		return
+	}
+	area, bounded := availableRoom(gtx, props, frame)
+	drawSurface(gtx, shaper, props, tok, triggerRect, area, bounded)
+}
+
 // drawSurface paints the rounded tooltip bubble with the text inside,
-// positioned adjacent to triggerRect per props.Placement inside the
-// available room. The bubble is filled with the window's own plane inside a
+// positioned adjacent to triggerRect per props.Placement inside area, the
+// available room; bounded says whether area is a bound at all. The bubble is filled with the window's own plane inside a
 // separator hairline.
 //
 // Everything it draws is recorded and handed to op.Defer, so the annotation
@@ -541,11 +571,11 @@ func drawSurface(
 	props Props,
 	tok resolvedTokens,
 	triggerRect image.Rectangle,
-	frame image.Point,
+	area image.Rectangle,
+	bounded bool,
 ) {
 	floating := op.Record(gtx.Ops)
 
-	area, bounded := availableRoom(gtx, props, frame)
 	r := gtx.Dp(unit.Dp(tok.radius.Sm))
 	padH := gtx.Dp(unit.Dp(tok.spacing.S2))
 	padV := gtx.Dp(unit.Dp(tok.spacing.S1))

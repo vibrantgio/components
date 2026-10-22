@@ -509,3 +509,75 @@ func TestATooltipNearTheRoomsEdgeTakesTheSideWithRoom(t *testing.T) {
 		t.Errorf("the flipped annotation is %d wide, no wider than the sentence's own %d; it was cut", right-left+1, whole)
 	}
 }
+
+// placedAfterMeasuring lays a tooltip wrapped around a small trigger out the
+// way a row that centres what it holds does: under a context with
+// tooltip.Surfaces set, recorded, measured, and only then placed against the
+// frame's trailing edge at row y. place says whether the row then calls
+// tooltip.PlaceSurfaces with the frame moved by the offset it placed the
+// tooltip at.
+func placedAfterMeasuring(shaper *text.Shaper, y int, place, shown bool) layout.Widget {
+	w := tooltip.Render(
+		shaper,
+		tooltip.Props{
+			Text:      sentence,
+			Trigger:   fixedRect(color.NRGBA{R: 80, G: 160, B: 220, A: 255}, 24, 16),
+			Placement: tooltip.Bottom,
+			Shaper:    shaper,
+		},
+		shown,
+		tokens.PlatformLight,
+		tokens.Spacing,
+		sharpRadius,
+		tokens.DefaultTypography.LabelSmall,
+	)
+	return func(gtx layout.Context) layout.Dimensions {
+		cgtx, surfaces := tooltip.WithSurfaces(gtx)
+		cgtx.Constraints = layout.Constraints{}
+		rec := op.Record(gtx.Ops)
+		dims := w(cgtx)
+		call := rec.Stop()
+		at := image.Pt(gtx.Constraints.Max.X-dims.Size.X, y)
+		off := op.Offset(at).Push(gtx.Ops)
+		call.Add(gtx.Ops)
+		if place {
+			tooltip.PlaceSurfaces(gtx, surfaces, image.Rectangle{Max: gtx.Constraints.Max}.Sub(at))
+		}
+		off.Pop()
+		return layout.Dimensions{Size: gtx.Constraints.Max}
+	}
+}
+
+// TestASurfaceRecordedInSurfacesIsPlacedInTheAreaItIsGiven lays a tooltip
+// out under a context with tooltip.Surfaces set and places it against the
+// frame's trailing edge only after measuring it. Until the layout calls
+// tooltip.PlaceSurfaces nothing is drawn; once it does, with the frame moved
+// by the tooltip's offset, the surface is shifted inward from the trailing
+// edge and drawn whole.
+func TestASurfaceRecordedInSurfacesIsPlacedInTheAreaItIsGiven(t *testing.T) {
+	shaper := defaultShaper(t)
+	bg := color.NRGBA{R: 245, G: 245, B: 245, A: 255}
+	const y = 100
+	whole := typeset.LineWidth(layout.Context{Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}, Ops: new(op.Ops)}, shaper, sentence, tokens.DefaultTypography.LabelSmall, font.Normal)
+
+	hidden := golden.Capture(t, frameSize, scene(placedAfterMeasuring(shaper, y, true, false), bg))
+	unplaced := golden.Capture(t, frameSize, scene(placedAfterMeasuring(shaper, y, false, true), bg))
+	if n := golden.PixelDiff(unplaced, hidden); n != 0 {
+		t.Errorf("a tooltip under tooltip.Surfaces painted %d pixels before the layout placed its surface, want 0", n)
+	}
+
+	shown := golden.Capture(t, frameSize, scene(placedAfterMeasuring(shaper, y, true, true), bg))
+	left, right := annotationColumns(shown, hidden)
+	if left < 0 {
+		t.Fatal("the placed annotation painted nothing at all")
+	}
+	if got := right - left + 1; got <= whole {
+		t.Errorf("the annotation is %d wide, no wider than the sentence's own %d; it was cut at the frame's trailing edge", got, whole)
+	}
+	if right >= frameW-1 {
+		t.Errorf("the annotation reaches column %d, the frame's trailing edge; it was not kept inside the area", right)
+	}
+	if top, _ := annotationRows(shown, hidden); top < y+16 {
+		t.Errorf("the annotation starts at row %d, above the trigger's foot at %d; it was asked for below", top, y+16)
+	}
+}
