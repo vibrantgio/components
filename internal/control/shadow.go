@@ -42,6 +42,26 @@ import (
 // called there because the module graph runs the other way: effects imports
 // components.
 
+// ToolbarShadowRiseDp bounds how far ABOVE a bordered toolbar control its
+// shadow is drawn. The fitted rectangle carries its ramp 14 px up, which no
+// capture holds: the band gives the control 8 px above it and the window's
+// own top edge cuts the reading there.
+//
+// MEASURED at 1x on four controls in two light captures, the band flat at
+// #ffffff. finder-window-light.png, the view pop-up at x 694-742, y 8-43,
+// and mail-three-column-light.png, three of its bordered controls at y 8-43,
+// all read the same run above the control's top edge, 255ths of the band by
+// distance: 5, 5, 4, 4, 4, 3, 3, 2 — the eighth row being the window's own
+// top row, where the band still stands two 255ths down. Below those same
+// controls both captures read 11, 11, 10, 10, 10, 9, 9, 8, 8, 8, 7, 7, 6, 6,
+// 6, 5, 5, 5, 4, 4, 4, 3, 3, 3, 3, 2 and recover to #ffffff 39 rows down, so
+// the shadow carries onto whatever lies under the band and is bounded only
+// there.
+//
+// The ramp is cut at this distance rather than carried to the reach, which
+// leaves a step of the two 255ths the eighth row measures.
+const ToolbarShadowRiseDp unit.Dp = 8
+
 // ToolbarShadowOf is the shadow a bordered toolbar control casts under p's
 // appearance: the reading p carries, whole.
 //
@@ -238,6 +258,13 @@ func shadowTile(gtx layout.Context, rect image.Rectangle, stop1 f32.Point, c1 co
 // straddles that box: the ring is painted before this pass and the ramp would
 // otherwise run over it, which reads as a shadow lying on the band rather than
 // under it.
+//
+// The drawing is bounded above at [ToolbarShadowRiseDp] from the control's own
+// top edge — the rows the stored captures close — so the ramp reaches the
+// toolbar's top edge and no further. Below it is bounded by the reach alone:
+// the platform's shadow carries onto whatever lies under the band, which
+// finder-window-light.png reads four 255ths down fifteen rows past the band's
+// own foot.
 func DrawToolbarShadowAround(gtx layout.Context, bounds image.Rectangle, radius int, cut image.Rectangle, cutRadius int, sh tokens.DropShadow) {
 	extent := gtx.Dp(unit.Dp(sh.Reach))
 	if extent <= 0 || sh.Peak.A == 0 {
@@ -259,6 +286,12 @@ func DrawToolbarShadowAround(gtx layout.Context, bounds image.Rectangle, radius 
 	// and whatever is cut out of it, grown by the reach. One pixel of slack
 	// keeps the ramp's last column inside the outer contour.
 	reachAll := bounds.Union(cut).Union(bounds.Add(image.Pt(0, gtx.Dp(unit.Dp(sh.Offset))))).Inset(-extent - 1)
+	// Bounded above at the measured rise, never inside whatever the cut
+	// itself reaches: a hole lying outside the outer contour would be wound
+	// into the fill rather than out of it.
+	if top := min(bounds.Min.Y-gtx.Dp(ToolbarShadowRiseDp), cut.Min.Y); reachAll.Min.Y < top {
+		reachAll.Min.Y = top
+	}
 	defer clip.Outline{Path: ringPath(gtx.Ops, reachAll, cut, cutRadius)}.Op().Push(gtx.Ops).Pop()
 	DrawToolbarShadow(gtx, bounds, radius, sh)
 }

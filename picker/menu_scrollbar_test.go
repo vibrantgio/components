@@ -85,6 +85,32 @@ func suppressedCappedMenu(shaper *text.Shaper, tok resolvedTokens, s MenuState) 
 	}
 }
 
+// suppressedCappedMenuAt is suppressedCappedMenu with the rows standing at
+// first, so it can be compared against a menu whose own rows have been
+// scrolled there.
+func suppressedCappedMenuAt(shaper *text.Shaper, tok resolvedTokens, s MenuState, first int) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		n := len(s.Options)
+		fieldW := gtx.Constraints.Max.X
+		capPx := gtx.Dp(s.MaxHeight)
+		if capPx < 1 {
+			capPx = 1
+		}
+		viewGtx := gtx
+		viewGtx.Constraints = layout.Constraints{
+			Min: image.Pt(fieldW, 0),
+			Max: image.Pt(fieldW, capPx),
+		}
+		idx := make([]int, n)
+		for i := range idx {
+			idx[i] = i
+		}
+		return list.LayoutSelectable(viewGtx, list.NewStateAt(first), idx, func(gtx layout.Context, i int, _ bool) layout.Dimensions {
+			return drawOptionRow(gtx, shaper, tok, i == s.Selected, i == highlightedRow(s), s.Options[i])
+		})
+	}
+}
+
 // stackedRows reproduces stackRows' uncapped branch directly: n rows stacked
 // one after the other with no components/list and no bar anywhere near them.
 // That branch is untouched by this task, so a menu built through the public
@@ -110,12 +136,32 @@ func stackedRows(shaper *text.Shaper, tok resolvedTokens, s MenuState) layout.Wi
 	}
 }
 
+// cappedMenuRows reproduces the capped path the live menu takes, against a
+// rows state the caller keeps: the bar is an overlay bar and shows while the
+// rows move, so a test that wants to see it has to carry the state from one
+// frame to the next the way a running menu does.
+func cappedMenuRows(shaper *text.Shaper, tok resolvedTokens, s MenuState, rows *list.State) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		capPx := gtx.Dp(s.MaxHeight)
+		if capPx < 1 {
+			capPx = 1
+		}
+		return stackRows(gtx, rows, len(s.Options), capPx, tok, func(gtx layout.Context, i int) layout.Dimensions {
+			return drawOptionRow(gtx, shaper, tok, i == s.Selected, i == highlightedRow(s), s.Options[i])
+		})
+	}
+}
+
 // TestCappedOverflowingMenuDrawsTheBarOnlyInTheGutter is BI2.4's core claim in
 // pixels: a capped menu whose catalogue overflows the cap draws something the
 // same menu with the bar suppressed does not, and everything that differs
 // sits inside the bar's own gutter — the trailing scrollbar.Style.Width() of
 // the plane. Nothing about a row's own pixels moves to make room for it: the
 // bar is Overlay, not Occupy.
+//
+// The bar is caught on a SCROLLING frame, because that is the only frame an
+// overlay bar is drawn on: the first frame gives it a viewport to compare
+// against and the second moves the rows under it.
 func TestCappedOverflowingMenuDrawsTheBarOnlyInTheGutter(t *testing.T) {
 	shaper := tokens.DefaultTypography.DeterministicShaper()
 	tok := scrollTestTokens()
@@ -125,9 +171,11 @@ func TestCappedOverflowingMenuDrawsTheBarOnlyInTheGutter(t *testing.T) {
 	state := MenuState{Options: opts, Selected: 2, MaxHeight: cap}
 	size := image.Pt(200, row*5)
 
-	withBar := golden.Capture(t, size, RenderMenu(shaper, tok.platform, tok.spacing,
-		tok.body, tok.density, state))
-	suppressed := golden.Capture(t, size, suppressedCappedMenu(shaper, tok, state))
+	rows := list.NewState()
+	golden.Capture(t, size, cappedMenuRows(shaper, tok, state, rows))
+	rows.ScrollTo(8)
+	withBar := golden.Capture(t, size, cappedMenuRows(shaper, tok, state, rows))
+	suppressed := golden.Capture(t, size, suppressedCappedMenuAt(shaper, tok, state, 8))
 
 	if n := golden.PixelDiff(withBar, suppressed); n == 0 {
 		t.Fatal("a capped, overflowing menu drew identically to the same menu with the bar suppressed; the bar never rendered")

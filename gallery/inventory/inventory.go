@@ -1598,8 +1598,12 @@ func (inv *Inventory) textRow(gtx layout.Context, s string, c tokens.PlatformCol
 	return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, h)}
 }
 
+// The bar every specimen below draws is the one the platform's Always
+// setting asks for. An overlay bar at rest draws no thumb at all, and a
+// specimen OF the bar with no thumb in it shows nothing: the catalogue is
+// read as a still page, not scrolled.
 func (inv *Inventory) listBlock(c tokens.PlatformColors) layout.Widget {
-	bar := scrollbar.FromTokens(c, SectionSurface(c))
+	bar := scrollbar.FromTokens(c, SectionSurface(c)).Always()
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(520))
 		gtx.Constraints.Min = gtx.Constraints.Max
@@ -1611,7 +1615,7 @@ func (inv *Inventory) listBlock(c tokens.PlatformColors) layout.Widget {
 }
 
 func (inv *Inventory) scrollbarBlock(c tokens.PlatformColors) layout.Widget {
-	style := scrollbar.FromTokens(c, SectionSurface(c))
+	style := scrollbar.FromTokens(c, SectionSurface(c)).Always()
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(520))
 		gtx.Constraints.Min = gtx.Constraints.Max
@@ -1646,7 +1650,7 @@ func (inv *Inventory) scrollbarBlock(c tokens.PlatformColors) layout.Widget {
 // thumb sits on is painted over it, and a match far below the viewport is
 // painted all the same.
 func (inv *Inventory) scrollbarSearchBlock(c tokens.PlatformColors) layout.Widget {
-	style := scrollbar.FromTokens(c, SectionSurface(c))
+	style := scrollbar.FromTokens(c, SectionSurface(c)).Always()
 	style.Matches = []float32{0.04, 0.23, 0.5, 0.71, 0.96}
 	style.Current = 2
 	return func(gtx layout.Context) layout.Dimensions {
@@ -1676,7 +1680,7 @@ func (inv *Inventory) scrollbarSearchBlock(c tokens.PlatformColors) layout.Widge
 
 func (inv *Inventory) scrollAreaBlock(c tokens.PlatformColors) layout.Widget {
 	style := scrollarea.FromTokens(c)
-	bar := scrollbar.FromTokens(c, SectionSurface(c))
+	bar := scrollbar.FromTokens(c, SectionSurface(c)).Always()
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(520))
 		// The area rests mid-content rather than at its start, so both

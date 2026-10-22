@@ -119,9 +119,13 @@ func TestListDensityRowGolden(t *testing.T) {
 //     gutter along the east edge.
 //   - scrollbar-overlay: rows span the full viewport width, the bar floats
 //     over their trailing edge.
+//
+// Both are the bar the platform's Always setting asks for: a still frame of
+// a resting overlay bar holds no thumb, and what these two pin is where the
+// gutter puts it.
 func TestScrollbarGolden(t *testing.T) {
 	size := image.Pt(viewW, viewH)
-	bar := scrollbar.FromTokens(tokens.PlatformLight, tokens.PlatformLight.ControlBackground)
+	bar := scrollbar.FromTokens(tokens.PlatformLight, tokens.PlatformLight.ControlBackground).Always()
 	cases := []struct {
 		name   string
 		anchor list.Anchor

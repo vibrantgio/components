@@ -20,6 +20,10 @@ import (
 // light scheme, the same middle position in the dark scheme (the composite
 // must differ), and a near-zero viewport fraction proving the 16dp minimum
 // thumb length.
+//
+// Each is the bar the platform's Always setting asks for. A still frame of
+// a bar at rest holds no thumb at all, so a golden of the thumb's own
+// drawing has to be of a bar that does not fade.
 func TestScrollbarGolden(t *testing.T) {
 	size := image.Pt(24, 400)
 	cases := []struct {
@@ -36,7 +40,7 @@ func TestScrollbarGolden(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			state := NewState()
-			style := FromTokens(tc.p, tc.p.ControlBackground)
+			style := FromTokens(tc.p, tc.p.ControlBackground).Always()
 			surface := tc.p.ControlBackground
 			start, end := tc.start, tc.end
 			golden.Render(t, tc.name, size, func(gtx layout.Context) layout.Dimensions {
@@ -147,7 +151,7 @@ func TestTheThumbCarriesTheRecordedCoverage(t *testing.T) {
 			rides := tc.p.ControlBackground
 			size := image.Pt(24, 400)
 			state := NewState()
-			style := FromTokens(tc.p, rides)
+			style := FromTokens(tc.p, rides).Always()
 			img := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
 				gtx.Metric = unit.Metric{PxPerDp: 1, PxPerSp: 1}
 				paint.FillShape(gtx.Ops, rides, clip.Rect{Max: gtx.Constraints.Max}.Op())

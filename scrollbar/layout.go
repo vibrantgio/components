@@ -17,9 +17,11 @@ import (
 //
 // Activity is a change in the viewport fractions — the only signal a
 // scrollbar has that its content is moving — together with hover and drag on
-// its own areas. The first frame of a State's life counts as activity too,
-// so a bar is opaque the moment it appears and a single-frame capture (a
-// golden) never catches it mid-fade.
+// its own areas. The FIRST frame of a State's life is not activity: it has
+// nothing to compare against, and a bar that counted it would be drawn on
+// every window that merely overflows. So a bar that has not been scrolled or
+// hovered has no thumb at all, which is the platform's own at-rest state and
+// what a single-frame capture of it holds.
 //
 // It is a method on Style because the timings are the style's, and it writes
 // through the State pointer because the timeline is the state's.
@@ -27,12 +29,16 @@ func (s Style) fade(gtx layout.Context, state *State, viewportStart, viewportEnd
 	if s.FadeDelay <= 0 {
 		return 1
 	}
-	active := !state.seen ||
-		viewportStart != state.start || viewportEnd != state.end ||
-		state.IndicatorHovered() || state.TrackHovered() || state.Dragging()
+	first := !state.seen
+	moved := !first && (viewportStart != state.start || viewportEnd != state.end)
+	active := moved || state.IndicatorHovered() || state.TrackHovered() || state.Dragging()
 	state.seen, state.start, state.end = true, viewportStart, viewportEnd
 	if active {
-		state.lastActive = gtx.Now
+		state.woke, state.lastActive = true, gtx.Now
+	}
+	if !state.woke {
+		// Nothing has happened to this bar yet: it is at rest.
+		return 0
 	}
 	idle := gtx.Now.Sub(state.lastActive)
 	if idle < s.FadeDelay {

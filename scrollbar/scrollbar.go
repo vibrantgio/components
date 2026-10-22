@@ -28,10 +28,15 @@ type State struct {
 	widget.Scrollbar
 
 	// seen reports whether a frame has been laid out yet. The first frame
-	// of a scrollbar's life counts as activity, so a bar is fully opaque
-	// the moment it appears — which is also what keeps single-frame
-	// golden captures independent of the fade.
+	// has no previous viewport to compare against, so it is never counted
+	// as activity: a bar nothing has scrolled or hovered is at rest and
+	// draws no thumb.
 	seen bool
+	// woke reports whether this bar has ever been active. Until it has,
+	// the thumb is not drawn at all, and the field carries that rather
+	// than a zero lastActive so the answer does not depend on what clock
+	// the frames are run on.
+	woke bool
 	// start and end are the viewport fractions the previous frame drew.
 	// A change between frames is what "the content is scrolling" means
 	// here: the bar has no other way to know.
@@ -110,6 +115,18 @@ type Style struct {
 	FadeDuration time.Duration
 }
 
+// Always returns a copy of s whose bar never fades: it stands for as long as
+// the content overflows, thumb and all.
+//
+// It is what the platform's "Show scroll bars" setting asks for when it is
+// set to Always. The setting itself is read through the platform bridge —
+// this package is below it and cannot ask — so an application reads it once
+// and hands the answer here.
+func (s Style) Always() Style {
+	s.FadeDelay = 0
+	return s
+}
+
 // Width returns the total gutter width along the minor axis:
 // the thumb width plus padding on both sides.
 func (s Style) Width() unit.Dp {
@@ -139,9 +156,11 @@ const (
 //
 // The bar fades: it is fully present while the content scrolls or the pointer
 // is on the gutter, then fades out a second after the last of either, which is
-// how the desktop platforms' overlay scrollbars behave. The gutter keeps its
-// hit areas while faded, so moving the pointer onto it brings the bar back.
-// Set FadeDelay to zero for a bar that stays visible.
+// how the desktop platforms' overlay scrollbars behave. A bar that neither has
+// happened to yet draws no thumb at all — the platform's at-rest state, and
+// what a still capture of a resting window holds. The gutter keeps its hit
+// areas throughout, so moving the pointer onto it brings the bar back.
+// [Style.Always] is the bar the platform's Always setting asks for.
 //
 // The track is transparent by default: the platform's overlay bar shows no
 // gutter until it is being operated.

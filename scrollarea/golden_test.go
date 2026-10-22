@@ -33,13 +33,14 @@ func ruler(p tokens.PlatformColors, width int) layout.Widget {
 // exactly as it would be with no area at all), content resting at its start
 // (the trailing edge dissolves, the leading one does not), content in the
 // middle (both edges), and content at its end (only the leading edge). Each
-// overflowing band also carries the bar, which a first-frame capture catches
-// at full opacity.
+// overflowing band also carries the bar, asked for at the platform's Always
+// setting: a resting overlay bar draws no thumb, and what the image is for is
+// the gutter the area leaves it.
 func TestFadeGolden(t *testing.T) {
 	const viewport, content, band = 280, 900, 60
 	p := tokens.PlatformLight
 	style := FromTokens(p)
-	bar := scrollbar.FromTokens(p, p.ControlBackground)
+	bar := scrollbar.FromTokens(p, p.ControlBackground).Always()
 
 	bands := []struct {
 		width  int
