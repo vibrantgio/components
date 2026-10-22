@@ -17,6 +17,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
+	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
 
@@ -544,5 +545,59 @@ func TestATooltipDroppedWhileUpReleasesWhatItHeld(t *testing.T) {
 	driveFrameAt(second, ops, r, intFrame, t0.Add(time.Second))
 	if arb.top != nil {
 		t.Error("the set still holds the dropped tooltip; nothing can hide it")
+	}
+}
+
+// TestATriggerWithAClickAreaOfItsOwnShowsTheTooltip wraps a control that
+// registers a pointer area of its own — a widget.Clickable, which passes no
+// event on — and rests the pointer on it. The tooltip's hover area is
+// registered over the control as a pass-through area, so the hover reaches
+// the tooltip and the tooltip shows after its delay, and a press and release
+// on the same spot are still delivered to the control and click it.
+func TestATriggerWithAClickAreaOfItsOwnShowsTheTooltip(t *testing.T) {
+	const delay = 50 * time.Millisecond
+	shaper := tokens.DefaultTypography.DeterministicShaper()
+	arb := NewArbiter()
+	var click widget.Clickable
+	clicks := 0
+	trigger := func(gtx layout.Context) layout.Dimensions {
+		for click.Clicked(gtx) {
+			clicks++
+		}
+		return click.Layout(gtx, intTrigger())
+	}
+	props := Props{Text: "Save", Trigger: trigger, Placement: Bottom, Shaper: shaper, Arbiter: arb}
+	st := newState(props)
+	w := func(gtx layout.Context) layout.Dimensions {
+		return drawTooltip(gtx, shaper, props, delay, intTok(), st, true)
+	}
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	t0 := time.Unix(1700000000, 0)
+	mid := f32.Pt(intFrameW/2, intFrameH/2)
+
+	driveFrameAt(w, ops, r, intFrame, t0)
+	r.Queue(pointer.Event{Kind: pointer.Move, Position: mid, Source: pointer.Mouse})
+	driveFrameAt(w, ops, r, intFrame, t0)
+	if st.entryAt.IsZero() {
+		t.Fatal("the pointer resting on the control was not delivered to the tooltip's hover area")
+	}
+	if arb.isTop(st) {
+		t.Fatal("the tooltip shows before its delay")
+	}
+	driveFrameAt(w, ops, r, intFrame, t0.Add(delay).Add(time.Millisecond))
+	if !arb.isTop(st) {
+		t.Fatal("the tooltip on a control with a click area of its own did not show after the delay")
+	}
+
+	r.Queue(
+		pointer.Event{Kind: pointer.Press, Position: mid, Source: pointer.Mouse, Buttons: pointer.ButtonPrimary},
+		pointer.Event{Kind: pointer.Release, Position: mid, Source: pointer.Mouse},
+	)
+	driveFrameAt(w, ops, r, intFrame, t0.Add(delay).Add(2*time.Millisecond))
+	driveFrameAt(w, ops, r, intFrame, t0.Add(delay).Add(3*time.Millisecond))
+	if clicks != 1 {
+		t.Errorf("a press and release on the control under the tooltip clicked it %d times, want 1", clicks)
 	}
 }

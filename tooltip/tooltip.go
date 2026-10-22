@@ -32,15 +32,37 @@
 // view is no longer hit-tested, so the hover ends there and takes the
 // annotation with it.
 //
-// The trigger renders at the frame centre, or where Props.Anchor says it
-// already stands for a caller that drew its own; the tooltip surface is
-// placed adjacent per Placement, taking the opposite side when the side
-// asked for has no room left in the frame and the opposite side holds it
-// whole, and shifted inward when it would otherwise cross the frame's
-// leading or trailing edge. A centred trigger has the same room on both
-// sides, so it is an anchored one that the flip is for. Show/hide is
-// instantaneous in this package; entrance/exit transitions are deferred to a
-// later Effects-integration goal. Touch long-press is out of scope.
+// The trigger is laid out the way layout.Center lays out its child: centred
+// in the minimum size the caller gives, and the tooltip reports the larger of
+// that minimum and the trigger, so a tooltip wrapped around a control takes
+// exactly the control's place. A caller that drew its own trigger says where
+// it stands with Props.Anchor instead.
+//
+// THE SURFACE IS PLACED IN THE AVAILABLE ROOM, NOT IN THE TRIGGER'S BOX. The
+// surface is placed adjacent to the trigger per Placement, outside the box the
+// trigger was laid out in, and its text is drawn whole on one line unless the
+// available room is too narrow for it. A component cannot see past its own
+// box: Gio passes it constraints and no readback of the transform or of the
+// clip its ancestors set, so where the trigger stands inside the window is
+// known only where the window was laid out. The available room is therefore
+// passed in, as components/picker's field does with its menu: Props.AvailableRoom
+// reports it, and inside it the surface takes the opposite side when the side
+// asked for has no room left and the opposite side holds it whole, is shifted
+// inward when it would otherwise cross the room's leading or trailing edge,
+// and has a line too long for the room elided in its middle. With no room
+// reported the surface keeps the side asked for and is bounded by the window
+// alone; an anchored tooltip with no room reported takes its frame as the
+// room. Show/hide is instantaneous in this package; entrance/exit transitions
+// are deferred to a later Effects-integration goal. Touch long-press is out of
+// scope.
+//
+// THE HOVER AREA PASSES EVENTS THROUGH. A trigger that is a control registers
+// a pointer area of its own, and an area registered over another one takes
+// its events. The tooltip's hover area is registered after the trigger is
+// drawn, over it, as a pass-through area: the hover and focus events are
+// delivered to the tooltip, and every pointer event is also delivered to the
+// control under it, so a button wrapped in a tooltip is both pressed and
+// named.
 //
 // AN ANCHORED TRIGGER IS THE CALLER'S. The component registers no hit area
 // and no focus tag over an anchor: the thing standing there is already a
@@ -62,6 +84,7 @@ import (
 	"gioui.org/gesture"
 	"gioui.org/io/event"
 	"gioui.org/io/key"
+	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -85,8 +108,8 @@ import (
 var DefaultDelay = tokens.Motion.DurXSlow
 
 // Placement is the side of the trigger the tooltip surface is asked for. A
-// surface with no room left on that side of the frame takes the opposite
-// side when that one holds it whole; see drawSurface.
+// surface with no room left on that side of the available room takes the
+// opposite side when that one holds it whole; see drawSurface.
 type Placement int
 
 const (
@@ -126,9 +149,24 @@ type Props struct {
 	// trigger holds the pointer or the keyboard, and gives the empty
 	// rectangle when it holds neither.
 	//
-	// A nil Anchor centres Props.Trigger in the frame, which is what a
-	// tooltip wrapping its own control wants.
+	// A nil Anchor lays Props.Trigger out as layout.Center does, which is
+	// what a tooltip wrapping its own control wants.
 	Anchor func(gtx layout.Context) image.Rectangle
+
+	// AvailableRoom, if non-nil, is asked on every frame the surface is
+	// drawn for the rectangle the surface may occupy, in the coordinates the
+	// tooltip is laid out in: the trigger's box, or the anchor, lies inside
+	// it, and the rest of it is the space around the trigger up to the
+	// window's edges. The surface takes the side with room inside it, is kept
+	// inside its sides, and has a line too long for it elided in its middle.
+	//
+	// The caller is asked because a component cannot see past its own box;
+	// the rectangle is measured where the window was laid out, not picked.
+	//
+	// Nil leaves an unanchored surface on the side asked for, with its text
+	// whole, bounded by the window alone; an anchored one with nil takes the
+	// frame it is laid out in as its room.
+	AvailableRoom func(gtx layout.Context) image.Rectangle
 
 	// Shaper is an explicit per-instance override of the text shaper. Leave
 	// it nil in normal use: the tooltip then shapes its text with the
@@ -316,11 +354,11 @@ func drawTooltip(
 ) layout.Dimensions {
 	frame := gtx.Constraints.Max
 
-	// 1. Record the trigger into a macro to measure its dims; place it on
-	//    the frame, centred or where Props.Anchor says it already is. The
-	//    trigger's rect is the basis for both the hit area registered for
-	//    hover/focus and the surface positioning math below.
-	triggerDims, triggerPos, triggerOps := placeTrigger(gtx, props, frame)
+	// 1. Record the trigger into a macro to measure its dims; place it
+	//    centred in the minimum size, or where Props.Anchor says it already
+	//    is. The trigger's rect is the basis for both the hit area
+	//    registered for hover/focus and the surface positioning math below.
+	triggerDims, triggerPos, triggerOps, size := placeTrigger(gtx, props, frame)
 	triggerRect := image.Rectangle{Min: triggerPos, Max: triggerPos.Add(triggerDims.Size)}
 
 	// 2. Drain hover and focus events. The drains must happen before the
@@ -377,20 +415,25 @@ func drawTooltip(
 		}
 	}
 
-	// 4. Paint the trigger at the centred offset. When live and unanchored
-	//    it registers the hover gesture and a focus tag clipped to the
-	//    trigger rect so Enter/Leave and focus events fire for this hit
-	//    area. An anchored trigger gets neither: it is the caller's own
+	// 4. Paint the trigger at its offset. When live and unanchored, the
+	//    hover gesture and a focus tag are then registered over it, clipped
+	//    to the trigger rect, in a pass-through area: registered after the
+	//    trigger, the area is above the trigger's own areas in the hit
+	//    order, so Enter/Leave are delivered to the tooltip, and passing
+	//    through, every pointer event is also delivered to the control drawn
+	//    under it. An anchored trigger gets neither: it is the caller's own
 	//    control, already hit-tested and already in the window's Tab order.
 	{
 		triggerOff := op.Offset(triggerPos).Push(gtx.Ops)
+		triggerOps.Add(gtx.Ops)
 		if live && props.Anchor == nil {
+			pass := pointer.PassOp{}.Push(gtx.Ops)
 			triggerClip := clip.Rect{Max: triggerDims.Size}.Push(gtx.Ops)
 			st.hov.Add(gtx.Ops)
 			event.Op(gtx.Ops, &st.focusTag)
 			triggerClip.Pop()
+			pass.Pop()
 		}
-		triggerOps.Add(gtx.Ops)
 		triggerOff.Pop()
 	}
 
@@ -398,10 +441,10 @@ func drawTooltip(
 	//    is read straight off the arbiter rather than mirrored in a flag
 	//    beside it.
 	if st.arb.isTop(st) {
-		drawSurface(gtx, shaper, props, tok, triggerRect)
+		drawSurface(gtx, shaper, props, tok, triggerRect, frame)
 	}
 
-	return layout.Dimensions{Size: frame}
+	return layout.Dimensions{Size: size}
 }
 
 // drawStatic is the input-free variant used by Render: skips event
@@ -415,7 +458,7 @@ func drawStatic(
 	shown bool,
 ) layout.Dimensions {
 	frame := gtx.Constraints.Max
-	triggerDims, triggerPos, triggerOps := placeTrigger(gtx, props, frame)
+	triggerDims, triggerPos, triggerOps, size := placeTrigger(gtx, props, frame)
 	triggerRect := image.Rectangle{Min: triggerPos, Max: triggerPos.Add(triggerDims.Size)}
 
 	triggerOff := op.Offset(triggerPos).Push(gtx.Ops)
@@ -423,18 +466,20 @@ func drawStatic(
 	triggerOff.Pop()
 
 	if shown {
-		drawSurface(gtx, shaper, props, tok, triggerRect)
+		drawSurface(gtx, shaper, props, tok, triggerRect, frame)
 	}
-	return layout.Dimensions{Size: frame}
+	return layout.Dimensions{Size: size}
 }
 
-// placeTrigger records the trigger and says where it stands in the frame:
-// centred, which is what a tooltip that wraps its own control does, or at
-// Props.Anchor, which is what a caller that drew its own trigger says. An
+// placeTrigger records the trigger and says where it stands and what size
+// the tooltip reports: centred in the minimum size, which is what a tooltip
+// that wraps its own control does (layout.Center's rule, so it reports the
+// larger of the minimum and the trigger), or at Props.Anchor, which is what a
+// caller that drew its own trigger says, reporting the whole frame. An
 // anchored trigger takes the anchor's size whether or not there is a
 // Props.Trigger to draw at it, because the anchor is the box the pointer is
 // tested against and the annotation is placed beside.
-func placeTrigger(gtx layout.Context, props Props, frame image.Point) (layout.Dimensions, image.Point, op.CallOp) {
+func placeTrigger(gtx layout.Context, props Props, frame image.Point) (layout.Dimensions, image.Point, op.CallOp, image.Point) {
 	var anchor image.Rectangle
 	if props.Anchor != nil {
 		anchor = props.Anchor(gtx)
@@ -452,14 +497,34 @@ func placeTrigger(gtx layout.Context, props Props, frame image.Point) (layout.Di
 	call := macro.Stop()
 	if props.Anchor != nil {
 		dims.Size = anchor.Size()
-		return dims, anchor.Min, call
+		return dims, anchor.Min, call, frame
 	}
-	return dims, image.Pt((frame.X-dims.Size.X)/2, (frame.Y-dims.Size.Y)/2), call
+	size := image.Pt(max(gtx.Constraints.Min.X, dims.Size.X), max(gtx.Constraints.Min.Y, dims.Size.Y))
+	return dims, image.Pt((size.X-dims.Size.X)/2, (size.Y-dims.Size.Y)/2), call, size
+}
+
+// unbounded is the extent a surface with no available room reported is laid
+// out in: wide and tall enough that a one-line annotation is never shortened
+// by it.
+const unbounded = 1 << 20
+
+// availableRoom says where the surface may stand, in the tooltip's own
+// coordinates, and whether any bound is known: the room the caller reports,
+// else an anchored tooltip's frame, else no bound.
+func availableRoom(gtx layout.Context, props Props, frame image.Point) (image.Rectangle, bool) {
+	switch {
+	case props.AvailableRoom != nil:
+		return props.AvailableRoom(gtx), true
+	case props.Anchor != nil:
+		return image.Rectangle{Max: frame}, true
+	}
+	return image.Rect(-unbounded, -unbounded, unbounded, unbounded), false
 }
 
 // drawSurface paints the rounded tooltip bubble with the text inside,
-// positioned adjacent to triggerRect per props.Placement. The bubble is
-// filled with the window's own plane inside a separator hairline.
+// positioned adjacent to triggerRect per props.Placement inside the
+// available room. The bubble is filled with the window's own plane inside a
+// separator hairline.
 //
 // Everything it draws is recorded and handed to op.Defer, so the annotation
 // paints above every sibling the window lays out after the trigger's slot
@@ -470,10 +535,11 @@ func drawSurface(
 	props Props,
 	tok resolvedTokens,
 	triggerRect image.Rectangle,
+	frame image.Point,
 ) {
 	floating := op.Record(gtx.Ops)
 
-	frame := gtx.Constraints.Max
+	area, bounded := availableRoom(gtx, props, frame)
 	r := gtx.Dp(unit.Dp(tok.radius.Sm))
 	padH := gtx.Dp(unit.Dp(tok.spacing.S2))
 	padV := gtx.Dp(unit.Dp(tok.spacing.S1))
@@ -482,18 +548,24 @@ func drawSurface(
 	// Pre-record the text so it can be replayed inside the surface at a known
 	// offset after measuring it.
 	//
-	// THE TEXT FITS THE WINDOW. The surface is three quarters of the frame
-	// at the widest, and never wider than the frame has room for; an address
+	// THE TEXT FITS THE AVAILABLE ROOM. The surface is three quarters of the
+	// room at the widest, and never wider than the room holds; an address
 	// longer than that is elided in its middle rather than cut at its end,
 	// because the host at one end and the leaf at the other are what a
 	// reader is looking for. See [github.com/vibrantgio/components/elide].
-	room := min(frame.X*3/4, frame.X-2*padH-2*gap)
+	// With no room reported the line is drawn whole.
+	textMax := image.Pt(unbounded, unbounded)
+	elideAt := 0 // elide.Middle leaves the text whole at zero
+	if bounded {
+		room := max(min(area.Dx()*3/4, area.Dx()-2*padH-2*gap), 0)
+		textMax = image.Pt(room, area.Dy()/4)
+		elideAt = room
+	}
 	textGtx := gtx
-	textGtx.Constraints = layout.Constraints{Max: image.Pt(max(room, 0), frame.Y/4)}
-	textGtx.Constraints.Min = image.Point{}
+	textGtx.Constraints = layout.Constraints{Max: textMax}
 	fg := vgcolor.Flatten(tok.platform.Label, tok.platform.WindowBackground)
 	mText := op.Record(gtx.Ops)
-	textDims := typeset.Text(textGtx, shaper, elide.Middle(gtx, shaper, props.Text, tok.style, room), tok.style, fg, 1)
+	textDims := typeset.Text(textGtx, shaper, elide.Middle(gtx, shaper, props.Text, tok.style, elideAt), tok.style, fg, 1)
 	textCall := mText.Stop()
 
 	surfW := textDims.Size.X + 2*padH
@@ -526,44 +598,41 @@ func drawSurface(
 	}
 
 	// THE SURFACE TAKES THE SIDE WITH ROOM. A trigger near the far edge of
-	// the frame leaves the side it was asked for too short to hold the
-	// annotation, and the annotation takes the opposite side — but only when
-	// that one holds it whole. A frame with room on neither side keeps the
-	// placement the caller asked for: a caller whose frame is its trigger is
-	// placing the annotation outside that frame on purpose, and flipping it
-	// there would move it onto the trigger rather than away from an edge.
+	// the available room leaves the side it was asked for too short to hold
+	// the annotation, and the annotation takes the opposite side — but only
+	// when that one holds it whole. Room on neither side keeps the placement
+	// the caller asked for.
 	switch props.Placement {
 	case Top:
-		if above < 0 && below+surfH <= frame.Y {
+		if above < area.Min.Y && below+surfH <= area.Max.Y {
 			pos.Y = below
 		}
 	case Bottom:
-		if below+surfH > frame.Y && above >= 0 {
+		if below+surfH > area.Max.Y && above >= area.Min.Y {
 			pos.Y = above
 		}
 	case Left:
-		if before < 0 && after+surfW <= frame.X {
+		if before < area.Min.X && after+surfW <= area.Max.X {
 			pos.X = after
 		}
 	case Right:
-		if after+surfW > frame.X && before >= 0 {
+		if after+surfW > area.Max.X && before >= area.Min.X {
 			pos.X = before
 		}
 	}
 
-	// AND IT STAYS INSIDE THE WINDOW'S SIDES. Above or below a trigger near
-	// a side of the frame, a surface centred on that trigger runs off the
-	// edge; it is shifted inward until it is inside instead, which keeps
+	// AND IT STAYS INSIDE THE ROOM'S SIDES. Above or below a trigger near a
+	// side of the available room, a surface centred on that trigger runs off
+	// the edge; it is shifted inward until it is inside instead, which keeps
 	// what it says readable and is what the platform does with an annotation
-	// against a word near a margin. It keeps the step from the window's side
+	// against a word near a margin. It keeps the step from the room's side
 	// that it keeps from its own trigger, since a surface laid flush against
 	// the edge reads as a thing cut off by it. The sides only: the ends of
-	// the frame above and below are the flip's business, and a caller whose
-	// frame is its own trigger places the annotation outside that frame on
-	// purpose.
-	if props.Placement == Top || props.Placement == Bottom {
-		pos.X = min(pos.X, frame.X-surfW-gap)
-		pos.X = max(pos.X, gap)
+	// the room above and below are the flip's business. With no room
+	// reported there is no side to keep inside.
+	if bounded && (props.Placement == Top || props.Placement == Bottom) {
+		pos.X = min(pos.X, area.Max.X-surfW-gap)
+		pos.X = max(pos.X, area.Min.X+gap)
 	}
 
 	surfOff := op.Offset(pos).Push(gtx.Ops)

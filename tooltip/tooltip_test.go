@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"gioui.org/font"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
@@ -16,6 +17,7 @@ import (
 	"github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/tooltip"
 	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 )
 
 const (
@@ -411,5 +413,99 @@ func TestALineTooLongForTheWindowIsElidedInItsMiddle(t *testing.T) {
 	}
 	if same {
 		t.Error("two addresses differing only at their ends drew the same annotation; the end was cut rather than the middle")
+	}
+}
+
+// sentence is one line far wider than the small trigger the placement tests
+// wrap.
+const sentence = "Shows demo readings until you quit"
+
+// wrapped renders a tooltip wrapped around a small trigger the way a caller
+// wraps its own control: laid out at at, in the trigger's own size, and told
+// the room around it by room, given in the tooltip's own coordinates. A nil
+// room reports none.
+func wrapped(shaper *text.Shaper, at image.Point, placement tooltip.Placement, room func(layout.Context) image.Rectangle, shown bool) layout.Widget {
+	w := tooltip.Render(
+		shaper,
+		tooltip.Props{
+			Text:          sentence,
+			Trigger:       fixedRect(color.NRGBA{R: 80, G: 160, B: 220, A: 255}, 24, 16),
+			Placement:     placement,
+			AvailableRoom: room,
+			Shaper:        shaper,
+		},
+		shown,
+		tokens.PlatformLight,
+		tokens.Spacing,
+		sharpRadius,
+		tokens.DefaultTypography.LabelSmall,
+	)
+	return func(gtx layout.Context) layout.Dimensions {
+		off := op.Offset(at).Push(gtx.Ops)
+		tgtx := gtx
+		tgtx.Constraints = layout.Constraints{}
+		w(tgtx)
+		off.Pop()
+		return layout.Dimensions{Size: gtx.Constraints.Max}
+	}
+}
+
+// TestASentenceWiderThanTheTriggerIsDrawnWhole wraps a trigger 24 dp wide
+// in a tooltip laid out in nothing but the trigger's own size, and reads the
+// surface back: it is wider than the whole sentence on one line, so nothing
+// was cut, whether the window's room is reported or not.
+func TestASentenceWiderThanTheTriggerIsDrawnWhole(t *testing.T) {
+	shaper := defaultShaper(t)
+	bg := color.NRGBA{R: 245, G: 245, B: 245, A: 255}
+	at := image.Pt(148, 100)
+	whole := typeset.LineWidth(layout.Context{Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}, Ops: new(op.Ops)}, shaper, sentence, tokens.DefaultTypography.LabelSmall, font.Normal)
+
+	rooms := map[string]func(layout.Context) image.Rectangle{
+		"window reported": func(layout.Context) image.Rectangle {
+			return image.Rectangle{Min: at.Mul(-1), Max: frameSize.Sub(at)}
+		},
+		"no room reported": nil,
+	}
+	for name, room := range rooms {
+		t.Run(name, func(t *testing.T) {
+			shown := golden.Capture(t, frameSize, scene(wrapped(shaper, at, tooltip.Bottom, room, true), bg))
+			hidden := golden.Capture(t, frameSize, scene(wrapped(shaper, at, tooltip.Bottom, room, false), bg))
+			left, right := annotationColumns(shown, hidden)
+			if left < 0 {
+				t.Fatal("the annotation painted nothing at all")
+			}
+			if got := right - left + 1; got <= whole {
+				t.Errorf("the annotation is %d wide, no wider than the sentence's own %d on one line; it was cut", got, whole)
+			}
+			top, _ := annotationRows(shown, hidden)
+			if top < at.Y+16 {
+				t.Errorf("the annotation starts at row %d, above the trigger's foot at %d; it was asked for below", top, at.Y+16)
+			}
+		})
+	}
+}
+
+// TestATooltipNearTheRoomsEdgeTakesTheSideWithRoom wraps a trigger whose
+// reported room ends just under it and asks for the side below: the side
+// below holds nothing, so the surface is drawn whole above the trigger.
+func TestATooltipNearTheRoomsEdgeTakesTheSideWithRoom(t *testing.T) {
+	shaper := defaultShaper(t)
+	bg := color.NRGBA{R: 245, G: 245, B: 245, A: 255}
+	at := image.Pt(148, 120)
+	room := func(layout.Context) image.Rectangle {
+		return image.Rect(-at.X, -at.Y, frameW-at.X, 16+2)
+	}
+	shown := golden.Capture(t, frameSize, scene(wrapped(shaper, at, tooltip.Bottom, room, true), bg))
+	hidden := golden.Capture(t, frameSize, scene(wrapped(shaper, at, tooltip.Bottom, room, false), bg))
+	top, bottom := annotationRows(shown, hidden)
+	if top < 0 {
+		t.Fatal("the annotation painted nothing at all")
+	}
+	if bottom >= at.Y {
+		t.Errorf("near the foot of its room the annotation reaches row %d, at or below the trigger's top at %d; it did not take the side with room", bottom, at.Y)
+	}
+	whole := typeset.LineWidth(layout.Context{Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}, Ops: new(op.Ops)}, shaper, sentence, tokens.DefaultTypography.LabelSmall, font.Normal)
+	if left, right := annotationColumns(shown, hidden); right-left+1 <= whole {
+		t.Errorf("the flipped annotation is %d wide, no wider than the sentence's own %d; it was cut", right-left+1, whole)
 	}
 }
