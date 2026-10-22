@@ -750,9 +750,9 @@ func (inv *Inventory) twoColumnShell(c tokens.PlatformColors) layout.Widget {
 // included, so the one strip reads as two shares without a second line
 // being drawn to say so.
 //
-// The list column's own header and footer slots stand empty here for the
-// same reason they do in Mail: the collection names itself in the toolbar
-// above it, not in a row of its own.
+// The list column has no header at all, as Mail's has none: the
+// collection names itself in the toolbar above the column, not in a row
+// of its own. Its footer slot stands empty here.
 //
 // The window's three control buttons belong to the window and not to the
 // pattern, so this specimen states that it has none and both shares and
