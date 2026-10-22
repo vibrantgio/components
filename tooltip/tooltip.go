@@ -59,7 +59,12 @@
 // is decided only after the tooltip is laid out, so the surface is not drawn
 // then: the tooltip records it in the Surfaces, and the layout draws it with
 // [PlaceSurfaces] in the area moved by the offset it placed its child at.
-// Without Surfaces set the surface is drawn as the tooltip is laid out.
+// Without Surfaces set the surface is drawn as the tooltip is laid out. A
+// layout between that layout and the tooltip that pushes an offset moves
+// the Surfaces with [SurfacesAt] before it lays its child out, and moves
+// the available room it passes by the same offset; a layout that pushes an
+// offset without moving the Surfaces places the surface away from its
+// trigger.
 //
 // Show/hide is instantaneous in this package; entrance/exit transitions
 // are deferred to a later Effects-integration goal. Touch long-press is out of
