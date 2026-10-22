@@ -129,10 +129,10 @@ type SearchFieldProps struct {
 	Message any
 
 	// ClearMessage, if non-nil, is emitted in addition to Message when the
-	// clear mark empties the field — for a consumer that has something to do
-	// on the dismissal itself beyond seeing the query go empty. A nil
-	// ClearMessage means clearing is reported as the change it is and
-	// nothing more.
+	// clear mark or Escape empties the field — for a consumer that has
+	// something to do on the dismissal itself beyond seeing the query go
+	// empty. A nil ClearMessage means clearing is reported as the change it
+	// is and nothing more.
 	ClearMessage any
 
 	// Count, if non-nil, is asked on every frame what the query has found,
@@ -160,7 +160,9 @@ type SearchFieldProps struct {
 // The control is the text field looking as the reader types: the looking
 // glass names it, the text is the query, and the clear mark appears while
 // there is something to take back. Pressing the mark empties the editor and
-// reports the empty query on the same frame.
+// reports the empty query on the same frame. Escape in a field with text does
+// the same and the keyboard stays in the field; Escape in an empty field is
+// not taken.
 //
 // What is found and how the matches are marked is the consumer's — this
 // field holds a query and nothing else.
@@ -256,13 +258,44 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 					}
 				}
 
-				for {
-					ev, ok := editor.Update(gtx)
-					if !ok {
-						break
+				update := func() {
+					for {
+						ev, ok := editor.Update(gtx)
+						if !ok {
+							break
+						}
+						if _, isChange := ev.(widget.ChangeEvent); isChange {
+							emit(editor.Text())
+						}
 					}
-					if _, isChange := ev.(widget.ChangeEvent); isChange {
-						emit(editor.Text())
+				}
+				update()
+
+				// Escape does what the clear mark does: it empties the field
+				// and the keyboard stays in it. The filter is asked for only
+				// while there is text, read after the editor has taken this
+				// frame's edits, because a key event no filter asked for on
+				// the previous frame is not delivered at all. On an empty
+				// field the key is not taken and is delivered to the handlers
+				// around the field. The editor is updated again after it is
+				// emptied, so it posts the empty change once, on this frame.
+				if !dis && editor.Len() > 0 {
+					escaped := false
+					for {
+						ev, ok := gtx.Event(key.Filter{Focus: editor, Name: key.NameEscape})
+						if !ok {
+							break
+						}
+						if ke, isKey := ev.(key.Event); isKey && ke.State == key.Press {
+							escaped = true
+						}
+					}
+					if escaped {
+						editor.SetText("")
+						if props.ClearMessage != nil {
+							mvu.MessageOp{Message: props.ClearMessage}.Add(gtx.Ops)
+						}
+						update()
 					}
 				}
 

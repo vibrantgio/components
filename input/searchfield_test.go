@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	"gioui.org/f32"
+	"gioui.org/io/event"
 	gioinput "gioui.org/io/input"
+	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -683,5 +685,122 @@ func TestTheCountStandsInsideTheFieldAtItsTrailingEnd(t *testing.T) {
 	}
 	if added == 0 {
 		t.Error("a field given a count drew nothing the same field without one did not; the count is not reaching the drawing")
+	}
+}
+
+// escapeTestSize is the window the Escape tests lay the field out in.
+var escapeTestSize = image.Pt(300, 120)
+
+// focusSearchField presses in the middle of the field so it takes the
+// keyboard, the way a reader starts typing a query.
+func focusSearchField(w layout.Widget, ops *op.Ops, r *gioinput.Router) {
+	dims := driveTextFieldFrame(w, ops, r, escapeTestSize)
+	mid := f32.Pt(float32(dims.Size.X)/2, float32(dims.Size.Y)/2)
+	r.Queue(
+		pointer.Event{Kind: pointer.Press, Position: mid, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+		pointer.Event{Kind: pointer.Release, Position: mid, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+	)
+	driveTextFieldFrame(w, ops, r, escapeTestSize)
+}
+
+// TestSearchFieldEscapeEmptiesTheField drives Escape in a field with text
+// typed into it, the Escape on the frame right after the typing: the field
+// empties, posts the empty change once, and the keyboard stays in the field.
+// A second Escape, on the field now empty, posts nothing.
+func TestSearchFieldEscapeEmptiesTheField(t *testing.T) {
+	var (
+		changes []string
+		tag     event.Tag
+	)
+	w := materialize(t, input.SearchField(rx.Of(theme.Default()), input.SearchFieldProps{
+		Placeholder: "Search",
+		Shaper:      defaultShaper(t),
+		FocusTag:    func(t event.Tag) { tag = t },
+		OnChange:    func(_ layout.Context, s string) { changes = append(changes, s) },
+	}))
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	focusSearchField(w, ops, r)
+	if !r.Source().Focused(tag) {
+		t.Fatal("pressing in the field did not give it the keyboard")
+	}
+	r.Queue(key.EditEvent{Text: "meeting notes"})
+	driveTextFieldFrame(w, ops, r, escapeTestSize)
+	if n := len(changes); n == 0 || changes[n-1] != "meeting notes" {
+		t.Fatalf("typing into the field posted %q, want the typed text last", changes)
+	}
+	before := len(changes)
+
+	r.Queue(key.Event{Name: key.NameEscape, State: key.Press})
+	driveTextFieldFrame(w, ops, r, escapeTestSize)
+	driveTextFieldFrame(w, ops, r, escapeTestSize)
+
+	if got := changes[before:]; len(got) != 1 || got[0] != "" {
+		t.Fatalf("Escape in a field with text posted %q; it empties the field and posts the empty change once", got)
+	}
+	if !r.Source().Focused(tag) {
+		t.Error("Escape took the keyboard out of the field; it empties the field and the keyboard stays in it")
+	}
+
+	emptied := len(changes)
+	r.Queue(key.Event{Name: key.NameEscape, State: key.Press})
+	driveTextFieldFrame(w, ops, r, escapeTestSize)
+	driveTextFieldFrame(w, ops, r, escapeTestSize)
+	if len(changes) != emptied {
+		t.Errorf("Escape in an empty field posted %q; there is nothing to empty", changes[emptied:])
+	}
+}
+
+// TestSearchFieldEscapeOnAnEmptyFieldIsNotTaken drives Escape in a focused
+// field with nothing typed: the field posts nothing and does not take the
+// key, so a handler around the field receives it.
+func TestSearchFieldEscapeOnAnEmptyFieldIsNotTaken(t *testing.T) {
+	var (
+		changes []string
+		tag     event.Tag
+	)
+	field := materialize(t, input.SearchField(rx.Of(theme.Default()), input.SearchFieldProps{
+		Placeholder: "Search",
+		Shaper:      defaultShaper(t),
+		FocusTag:    func(t event.Tag) { tag = t },
+		OnChange:    func(_ layout.Context, s string) { changes = append(changes, s) },
+	}))
+
+	// The handler around the field asks for Escape after the field has laid
+	// out, so the field is offered the key first, and the handler receives
+	// it only when the field does not take it.
+	received := 0
+	w := func(gtx layout.Context) layout.Dimensions {
+		dims := field(gtx)
+		for {
+			ev, ok := gtx.Event(key.Filter{Name: key.NameEscape})
+			if !ok {
+				break
+			}
+			if ke, isKey := ev.(key.Event); isKey && ke.State == key.Press {
+				received++
+			}
+		}
+		return dims
+	}
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	focusSearchField(w, ops, r)
+	if !r.Source().Focused(tag) {
+		t.Fatal("pressing in the field did not give it the keyboard")
+	}
+	before := len(changes)
+
+	r.Queue(key.Event{Name: key.NameEscape, State: key.Press})
+	driveTextFieldFrame(w, ops, r, escapeTestSize)
+	driveTextFieldFrame(w, ops, r, escapeTestSize)
+
+	if len(changes) != before {
+		t.Errorf("Escape in an empty field posted %q; there is nothing to empty", changes[before:])
+	}
+	if received != 1 {
+		t.Errorf("the handler around the field received Escape %d times; an empty field does not take the key, so it is received once", received)
 	}
 }
