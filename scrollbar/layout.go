@@ -122,7 +122,12 @@ func (s Style) Layout(gtx layout.Context, state *State, axis layout.Axis, viewpo
 			defer pointerArea.Push(gtx.Ops).Pop()
 			state.AddTrack(gtx.Ops)
 
-			paint.FillShape(gtx.Ops, s.TrackColor, clip.Rect(area).Op())
+			// A track colour with alpha 0 is not painted: the paint
+			// would change no pixel and still add an operation to the
+			// frame.
+			if s.TrackColor.A != 0 {
+				paint.FillShape(gtx.Ops, s.TrackColor, clip.Rect(area).Op())
+			}
 			return layout.Dimensions{Size: gtx.Constraints.Min}
 		},
 		func(gtx layout.Context) layout.Dimensions {

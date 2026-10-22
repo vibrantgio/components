@@ -60,7 +60,7 @@ type Style struct {
 	// onto what the bar rides, so this is opaque; its alpha is what the fade
 	// scales, and nothing but the fade makes the bar translucent.
 	ThumbColor color.NRGBA
-	// TrackColor fills the track gutter. The zero value draws nothing.
+	// TrackColor fills the track gutter. A colour with alpha 0 is not painted.
 	TrackColor color.NRGBA
 
 	// ThumbMinorWidth is the thumb's extent along the minor axis.
