@@ -44,7 +44,7 @@
 // and the caller says the place by wrapping its layout or leaving it bare. A
 // list standing in the content or at the front of a dialog wraps in
 // [FocusRing], which draws the one focus ring every control in this library
-// wears on the list's own box. A chrome rail says it in the pill's colour
+// shows, around the list's own box. A chrome rail says it in the pill's colour
 // (github.com/vibrantgio/patterns/sidebar) and a menu in the held row
 // (github.com/vibrantgio/components/picker), so neither wraps and neither
 // draws a ring.
@@ -58,8 +58,6 @@
 package list
 
 import (
-	"image"
-
 	"gioui.org/io/event"
 	"gioui.org/io/key"
 	"gioui.org/layout"
@@ -109,18 +107,6 @@ type State struct {
 	// in, recorded so a caller can move the list by a viewport without
 	// having to hold a layout.Context of its own. See move.go.
 	viewport int
-
-	// rows is the index and size of every row the most recent selectable
-	// layout drew, which is what [FocusRing] reads to say which fill each pixel
-	// of its band stands on. Only the rows that layout drew are in it: a row
-	// virtualisation skipped has no geometry, and the band cannot cross it.
-	rows []rowGeometry
-}
-
-// rowGeometry is one laid-out row's index and the size it reported.
-type rowGeometry struct {
-	index int
-	size  image.Point
 }
 
 // focusTag is a non-zero-size type so its address is a unique event tag for
@@ -261,70 +247,9 @@ func LayoutSelectable[T any](
 	area.Pop()
 
 	sel := state.Selected()
-	return state.l.Layout(gtx, n, state.measuring(func(gtx layout.Context, i int) layout.Dimensions {
+	return state.l.Layout(gtx, n, func(gtx layout.Context, i int) layout.Dimensions {
 		return rowFn(gtx, items[i], i == sel)
-	}))
-}
-
-// measuring wraps rowFn so that every row it lays out leaves its index and
-// size behind in s. [FocusRing] reads them: the band's half over the list's
-// box lies on the fill of whichever row it crosses, and only the rows a
-// layout drew can be crossed.
-//
-// The rows are recorded rather than derived because a list imposes no row
-// height — a caller's rows may each be a different one — and they are looked
-// up by index rather than by the order they arrive in because
-// gioui.org/layout.List lays out backwards from its first visible row as well
-// as forwards.
-func (s *State) measuring(rowFn func(gtx layout.Context, i int) layout.Dimensions) func(layout.Context, int) layout.Dimensions {
-	s.rows = s.rows[:0]
-	return func(gtx layout.Context, i int) layout.Dimensions {
-		dims := rowFn(gtx, i)
-		s.rows = append(s.rows, rowGeometry{index: i, size: dims.Size})
-		return dims
-	}
-}
-
-// rowBox is one drawn row's index and the box it fills in the viewport's own
-// coordinates.
-type rowBox struct {
-	index int
-	box   image.Rectangle
-}
-
-// rowBoxes answers the box every row the most recent layout drew fills, in
-// the viewport's own coordinates. [FocusRing] reads it to say which fill each
-// pixel of its band stands on.
-//
-// The scroll position is final once the layout returns: the rows run from
-// Position.First down from -Position.Offset, each as tall as it reported, so
-// summing the recorded heights walks them. The walk stops at the first index
-// the layout did not draw, which is the row past the viewport's foot.
-func (s *State) rowBoxes() []rowBox {
-	if len(s.rows) == 0 {
-		return nil
-	}
-	boxes := make([]rowBox, 0, len(s.rows))
-	y := -s.l.Position.Offset
-	for i := s.l.Position.First; ; i++ {
-		size, ok := s.rowSize(i)
-		if !ok {
-			return boxes
-		}
-		boxes = append(boxes, rowBox{index: i, box: image.Rect(0, y, size.X, y+size.Y)})
-		y += size.Y
-	}
-}
-
-// rowSize answers the size row i reported to the most recent layout, and
-// whether that layout drew it.
-func (s *State) rowSize(i int) (image.Point, bool) {
-	for _, r := range s.rows {
-		if r.index == i {
-			return r.size, true
-		}
-	}
-	return image.Point{}, false
+	})
 }
 
 // dropStaleSelection clears a selection that the current item slice no longer
