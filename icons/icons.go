@@ -114,6 +114,12 @@ const (
 	// here, which is the one thing the pair cannot say.
 	ChevronDown Name = "chevron-down"
 
+	// SquareAndArrowUp is a box open at the top with an arrow rising out of
+	// it, the platform's own picture. One mark serves every control that
+	// hands what the window is showing to somewhere else — what is handed
+	// over, and to where, is the control's title to say.
+	SquareAndArrowUp Name = "square-and-arrow-up"
+
 	// ChevronPair is two chevrons stacked point to point, the upper pointing
 	// up and the lower down. It says a value can move either way and never
 	// which way a menu opens, which is why the platform draws a pair where a

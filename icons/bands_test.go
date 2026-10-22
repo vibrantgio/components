@@ -225,6 +225,21 @@ var markBands = map[string][]band{
 		{"the trailing side", down, 17.6, 0, 9.08, 21.5, 15, 0},
 		{"the fold's upright", down, 11, 0, 3.9, 9.5, 6, 1},
 	},
+	// The box measured off finder-window-light.png, 14.6 units across from
+	// 4.7 and standing on the keyline at 20.1, with its top edge at 8 cut
+	// from 9.2 to 14.8 for the arrow to pass. The two stubs that cut leaves
+	// are one band stated twice, each read where it stands clear of its own
+	// round. The arrow's shaft is the figure's one other axis-aligned band;
+	// its head runs on neither axis and carries no entry, as the chevrons do
+	// not. square-and-arrow-up.svg records all five bands and the air.
+	"square-and-arrow-up": {
+		{"the box's leading stub", across, 8, 0, 4.7, 9.2, 8, 0},
+		{"the box's trailing stub", across, 8, 0, 14.8, 19.3, 16, 0},
+		{"the box's foot", across, 20.1, 0, 4.7, 19.3, 12, 0},
+		{"the leading side", down, 4.7, 0, 8, 21.5, 15, 0},
+		{"the trailing side", down, 17.9, 0, 8, 21.5, 15, 0},
+		{"the arrow's shaft", down, 11.3, 0, 4, 14.8, 12, 1},
+	},
 	// Drawn on the diagonal or the curve throughout: no edge runs along the
 	// grid, so the rule reaches none of them and each file says so, with what
 	// it has instead — the set's one band spent perpendicular, whichever way

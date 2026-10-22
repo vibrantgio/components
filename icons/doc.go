@@ -255,6 +255,17 @@
 // stored capture holds the folder BELOW 24 dp, and it is not redrawn without
 // one — the gap is a measurement. The capture is on the reference's list.
 //
+// WHERE THE AIR CARRIES THE FIGURE it is drawn at the floor instead, and the
+// mark's file says so. holdClear opens air only between a band and a figure
+// knocked out of a solid one, which is a judgement the renderer can make off
+// the drawing; air between two bands of one mark it cannot tell from a join,
+// so nothing opens it and the drawing has to carry it. The square and arrow
+// up mark stands its arrow in a gap cut through the box's top edge, and a gap
+// closed below a device pixel there is not a thickened band but an arrow
+// welded to the box — so that file draws 2.1 units of air where its capture
+// reads 1.46, which is what leaves one device pixel at 16 dp once both bands
+// have taken their widening, and records the difference.
+//
 // WHAT ONE BAND COSTS THE DIAGONAL, and why the compensation went. A band at
 // 45 degrees crosses a pixel corner to corner, so it covers less of one than
 // an axis-aligned band of the same width. At the set's own widths it reaches
