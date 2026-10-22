@@ -22,6 +22,20 @@ const (
 	Overlay
 )
 
+// AnchorFor returns the anchor a region's rows are laid out with under bar:
+// [Occupy] when the bar stands, so the bar takes a lane of its own and the
+// rows stop short of it, and [Overlay] when it fades, so the bar lies over
+// the rows' trailing edge and takes no lane. A style with no fade delay is a
+// bar that stands, which is what a style is once [scrollbar.Style.Always]
+// has been applied to it for the platform's "Show scroll bars" setting
+// Always.
+func AnchorFor(bar scrollbar.Style) Anchor {
+	if bar.FadeDelay == 0 {
+		return Occupy
+	}
+	return Overlay
+}
+
 // LayoutScrollbar lays out items exactly like Layout and additionally draws
 // bar along the list's trailing (east) edge, wired to the list's scroll
 // position. Dragging the bar scrolls the list.

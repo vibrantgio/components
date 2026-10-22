@@ -184,3 +184,17 @@ func TestLayoutRevealsAPendingRow(t *testing.T) {
 		t.Errorf("revealing a row already in view moved the list from %+v to %+v", was, got)
 	}
 }
+
+// TestAnchorForOccupiesAStandingBarsLane holds the anchor against the bar: a
+// bar that stands takes a lane and the rows stop short of it, and a bar that
+// fades lies over the rows and takes none.
+func TestAnchorForOccupiesAStandingBarsLane(t *testing.T) {
+	c := tokens.PlatformLight
+	fading := scrollbar.FromTokens(c, c.ControlBackground)
+	if got := AnchorFor(fading.Always()); got != Occupy {
+		t.Errorf("a standing bar is anchored %v, want Occupy", got)
+	}
+	if got := AnchorFor(fading); got != Overlay {
+		t.Errorf("a fading bar is anchored %v, want Overlay", got)
+	}
+}

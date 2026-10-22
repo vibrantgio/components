@@ -324,13 +324,14 @@ func drawMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Men
 // reaching a catalogue longer than the window.
 //
 // The capped viewport is drawn through [list.LayoutSelectableScrollbar] with
-// [list.Overlay]: the same coupling components/gallery/inventory's list block
-// already draws its own bar through. The bar is the rows' own colours, spent
-// against the caller's [MenuProps.Scrollbar], and scrollbar.Style.Layout draws
-// nothing when the
-// viewport shows the whole of the content, so a capped menu whose rows all
-// fit is exactly as bare as an uncapped one; only a cap that actually cuts the
-// catalogue short earns the bar.
+// the anchor [list.AnchorFor] returns for the bar: the bar is the rows' own
+// colours, spent against the caller's [MenuProps.Scrollbar], so at the
+// setting Always it stands in a lane of its own and the rows stop short of
+// it, and at the other two settings it lies over the rows' trailing edge.
+// scrollbar.Style.Layout draws nothing when the viewport shows the whole of
+// the content, so a capped menu whose rows all fit is exactly as bare as an
+// uncapped one; only a cap that actually cuts the catalogue short earns the
+// bar.
 //
 // rows may be nil, and is where there are no frames to keep a position across.
 func stackRows(gtx layout.Context, rows *list.State, n, capPx int, tok resolvedTokens, row func(gtx layout.Context, i int) layout.Dimensions) layout.Dimensions {
@@ -374,7 +375,7 @@ func stackRows(gtx layout.Context, rows *list.State, n, capPx int, tok resolvedT
 	for i := range idx {
 		idx[i] = i
 	}
-	return list.LayoutSelectableScrollbar(viewGtx, rows, tok.bar, list.Overlay, idx, func(gtx layout.Context, i int, _ bool) layout.Dimensions {
+	return list.LayoutSelectableScrollbar(viewGtx, rows, tok.bar, list.AnchorFor(tok.bar), idx, func(gtx layout.Context, i int, _ bool) layout.Dimensions {
 		return row(gtx, i)
 	})
 }

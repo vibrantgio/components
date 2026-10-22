@@ -27,15 +27,15 @@ import (
 // once with the bar as the theme gives it.
 //
 // With "always" the thumb is there: the bar stands for as long as the rows
-// overflow the cap. With either of the other two settings it is the
-// platform's overlay bar, which a resting frame holds nothing of — so the
-// two renderings differ, and everything that differs sits inside the bar's
-// own trailing gutter, because the bar floats over the rows rather than
-// taking a lane out of them.
+// overflow the cap, in a lane of its own, and the rows stop short of the
+// lane — so left of the lane the standing menu draws what the fading menu
+// draws when it is offered only the width the lane leaves. With either of
+// the other two settings it is the platform's overlay bar, which a resting
+// frame holds nothing of.
 func TestTheMenuSpendsTheScrollBarSetting(t *testing.T) {
 	row := rowHeight(tokens.Comfortable)
 	size := image.Pt(200, row*5)
-	resting := func(spend func(scrollbar.Style) scrollbar.Style) *image.RGBA {
+	resting := func(width int, spend func(scrollbar.Style) scrollbar.Style) *image.RGBA {
 		w := materialize(t, picker.Menu(rx.Of(liveTheme()), picker.MenuProps{
 			Options:   catalogue(40),
 			Selected:  0,
@@ -43,25 +43,27 @@ func TestTheMenuSpendsTheScrollBarSetting(t *testing.T) {
 			Scrollbar: spend,
 			Shaper:    tokens.DefaultTypography.DeterministicShaper(),
 		}))
-		return golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
+		return golden.Capture(t, image.Pt(width, size.Y), func(gtx layout.Context) layout.Dimensions {
 			gtx.Metric = unit.Metric{PxPerDp: 1, PxPerSp: 1}
 			gtx.Now = time.Unix(1700000000, 0)
 			return w(gtx)
 		})
 	}
 
-	standing := resting(func(s scrollbar.Style) scrollbar.Style { return s.Always() })
-	fading := resting(nil)
+	barPx := unit.Metric{PxPerDp: 1, PxPerSp: 1}.Dp(scrollbar.FromTokens(tokens.PlatformLight, tokens.PlatformLight.WindowBackground).Width())
+	lane := size.X - barPx
+
+	standing := resting(size.X, func(s scrollbar.Style) scrollbar.Style { return s.Always() })
+	fading := resting(size.X, nil)
+	narrow := resting(lane, nil)
 
 	if n := golden.PixelDiff(standing, fading); n == 0 {
 		t.Fatal("with scroll bars always, a resting menu drew no thumb")
 	}
-	barPx := unit.Metric{PxPerDp: 1, PxPerSp: 1}.Dp(scrollbar.FromTokens(tokens.PlatformLight, tokens.PlatformLight.WindowBackground).Width())
-	gutter := size.X - barPx
 	for y := range size.Y {
-		for x := range gutter {
-			if standing.RGBAAt(x, y) != fading.RGBAAt(x, y) {
-				t.Fatalf("pixel (%d,%d) differs outside the %d px trailing gutter; the standing bar reached into a row's own pixels", x, y, barPx)
+		for x := range lane {
+			if standing.RGBAAt(x, y) != narrow.RGBAAt(x, y) {
+				t.Fatalf("pixel (%d,%d) differs from the rows laid out %d px wide; with scroll bars always the rows did not stop short of the %d px lane", x, y, lane, barPx)
 			}
 		}
 	}
