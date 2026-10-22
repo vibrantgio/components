@@ -21,6 +21,7 @@ import (
 
 	"github.com/reactivego/rx"
 
+	"github.com/vibrantgio/components/button"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -95,7 +96,7 @@ func TestHoverEntryAfterDelayShows(t *testing.T) {
 	ops := new(op.Ops)
 	t0 := time.Unix(1700000000, 0)
 
-	// Frame 1: register the hover and focus tags. Nothing in the queue yet.
+	// Frame 1: register the hover area. Nothing in the queue yet.
 	driveFrameAt(w, ops, r, intFrame, t0)
 	if arb.isTop(st) {
 		t.Fatalf("tooltip visible before any hover event; want hidden")
@@ -412,13 +413,13 @@ func anchorRig(delay time.Duration, box *image.Rectangle) (*Arbiter, *tooltipSta
 
 // TestAnAnchoredTooltipTakesNoFocusOfItsOwn moves the keyboard through a
 // frame holding nothing but an anchored tooltip: the component registers no
-// focus tag over an anchor, so there is nothing there to stop at. The thing
+// focus tag, so there is nothing there to stop at. The thing
 // standing at the anchor is the caller's own control and is already in the
 // window's Tab order; a second tag over it would be an invisible stop
 // between the control and whatever follows it.
 func TestAnAnchoredTooltipTakesNoFocusOfItsOwn(t *testing.T) {
 	box := image.Rect(40, 40, 140, 56)
-	_, st, w := anchorRig(50*time.Millisecond, &box)
+	_, _, w := anchorRig(50*time.Millisecond, &box)
 
 	r := new(gioinput.Router)
 	ops := new(op.Ops)
@@ -426,20 +427,9 @@ func TestAnAnchoredTooltipTakesNoFocusOfItsOwn(t *testing.T) {
 	driveFrameAt(w, ops, r, intFrame, t0)
 	r.MoveFocus(key.FocusForward)
 	driveFrameAt(w, ops, r, intFrame, t0)
-	if r.Source().Focused(&st.focusTag) {
-		t.Error("the keyboard stopped on an anchored tooltip's own focus tag")
-	}
-
-	// The unanchored tooltip is the contrast: it draws the trigger itself,
-	// so it registers a tag of its own and the keyboard does stop there.
-	_, stOwn, wOwn := hoverRig(50 * time.Millisecond)
-	r2 := new(gioinput.Router)
-	ops2 := new(op.Ops)
-	driveFrameAt(wOwn, ops2, r2, intFrame, t0)
-	r2.MoveFocus(key.FocusForward)
-	driveFrameAt(wOwn, ops2, r2, intFrame, t0)
-	if !r2.Source().Focused(&stOwn.focusTag) {
-		t.Error("a tooltip that draws its own trigger did not take the keyboard")
+	// Focused(nil) holds while no tag holds the focus.
+	if !r.Source().Focused(nil) {
+		t.Error("the keyboard stopped on a tag in a frame holding only an anchored tooltip")
 	}
 }
 
@@ -599,5 +589,124 @@ func TestATriggerWithAClickAreaOfItsOwnShowsTheTooltip(t *testing.T) {
 	driveFrameAt(w, ops, r, intFrame, t0.Add(delay).Add(3*time.Millisecond))
 	if clicks != 1 {
 		t.Errorf("a press and release on the control under the tooltip clicked it %d times, want 1", clicks)
+	}
+}
+
+// firstWidget subscribes obs on a goroutine scheduler and returns the first
+// layout.Widget it emits, with the subscription the caller ends.
+func firstWidget(t *testing.T, obs rx.Observable[layout.Widget]) (layout.Widget, rx.Subscription) {
+	t.Helper()
+	widgets := make(chan layout.Widget, 8)
+	sub := obs.Subscribe(rx.GoroutineContext(context.Background()),
+		func(next layout.Widget, _ error, done bool) {
+			if !done && next != nil {
+				widgets <- next
+			}
+		})
+	select {
+	case w := <-widgets:
+		return w, sub
+	case <-time.After(5 * time.Second):
+		t.Fatal("the stream emitted no layout.Widget")
+		return nil, sub
+	}
+}
+
+// tabFrame lays top out in the frame's upper half and a plain clickable
+// after it in the lower half, so a Tab that leaves the top half lands on a
+// tag the test can name.
+func tabFrame(top layout.Widget, after *widget.Clickable) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		half := image.Pt(gtx.Constraints.Max.X, gtx.Constraints.Max.Y/2)
+		upper := gtx
+		upper.Constraints = layout.Exact(half)
+		top(upper)
+		off := op.Offset(image.Pt(0, half.Y)).Push(gtx.Ops)
+		lower := gtx
+		lower.Constraints = layout.Exact(image.Pt(half.X, 28))
+		after.Layout(lower, intTrigger())
+		off.Pop()
+		return layout.Dimensions{Size: gtx.Constraints.Max}
+	}
+}
+
+// TestTabThroughATooltippedButtonStopsOnce moves the keyboard through a
+// button wrapped in a tooltip and a control after it. The tooltip
+// registers no focus tag, so the first Tab stops on the button, the second
+// on the control after it, and the third wraps round to the button: one
+// stop for the button, none for its tooltip. While the button holds the focus the
+// tooltip reads that focus through Props.TriggerTag and is shown after its
+// delay; when the focus moves on it is hidden.
+func TestTabThroughATooltippedButtonStopsOnce(t *testing.T) {
+	const delay = 50 * time.Millisecond
+	shaper := tokens.DefaultTypography.DeterministicShaper()
+	arb := NewArbiter()
+	emit, th := rx.Subject[theme.Theme](time.Minute, 1)
+	emit(theme.Default(), nil, false)
+
+	var save, next widget.Clickable
+	btn, bsub := firstWidget(t, button.Button(th, button.Props{Title: "Save", Clickable: &save}))
+	defer func() { bsub.Unsubscribe(); bsub.Wait() }()
+	tip, tsub := firstWidget(t, Tooltip(th, Props{
+		Text: "Save the note", Trigger: btn, Placement: Bottom,
+		Delay: delay, Shaper: shaper, Arbiter: arb, TriggerTag: &save,
+	}))
+	defer func() { tsub.Unsubscribe(); tsub.Wait() }()
+	w := tabFrame(tip, &next)
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	t0 := time.Unix(1700000000, 0)
+	driveFrameAt(w, ops, r, intFrame, t0)
+
+	r.MoveFocus(key.FocusForward)
+	driveFrameAt(w, ops, r, intFrame, t0)
+	if !r.Source().Focused(&save) {
+		t.Fatal("the first Tab did not stop on the tooltipped button")
+	}
+	if arb.top != nil {
+		t.Fatal("the tooltip shows before its delay")
+	}
+	driveFrameAt(w, ops, r, intFrame, t0.Add(delay).Add(time.Millisecond))
+	if arb.top == nil {
+		t.Fatal("the tooltip did not show while its button held the focus")
+	}
+
+	r.MoveFocus(key.FocusForward)
+	driveFrameAt(w, ops, r, intFrame, t0.Add(delay).Add(2*time.Millisecond))
+	if !r.Source().Focused(&next) {
+		t.Fatal("the second Tab did not stop on the control after the button; the tooltip added a stop of its own")
+	}
+	if arb.top != nil {
+		t.Error("the tooltip still shows after the focus moved off its button")
+	}
+
+	r.MoveFocus(key.FocusForward)
+	driveFrameAt(w, ops, r, intFrame, t0.Add(delay).Add(3*time.Millisecond))
+	if !r.Source().Focused(&save) {
+		t.Error("the third Tab did not wrap round to the button")
+	}
+}
+
+// TestATooltipOnATriggerThatIsNoControlIsNoTabStop moves the keyboard
+// through a tooltip whose trigger is a plain drawing and a control after it.
+// The trigger has no tag and the tooltip registers no tag either, so every
+// Tab stops on the control after it.
+func TestATooltipOnATriggerThatIsNoControlIsNoTabStop(t *testing.T) {
+	const delay = 50 * time.Millisecond
+	_, _, tip := hoverRig(delay)
+	var next widget.Clickable
+	w := tabFrame(tip, &next)
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	t0 := time.Unix(1700000000, 0)
+	driveFrameAt(w, ops, r, intFrame, t0)
+	for i := 1; i <= 2; i++ {
+		r.MoveFocus(key.FocusForward)
+		driveFrameAt(w, ops, r, intFrame, t0)
+		if !r.Source().Focused(&next) {
+			t.Fatalf("Tab %d did not stop on the control after the tooltip; the tooltip is a Tab stop", i)
+		}
 	}
 }

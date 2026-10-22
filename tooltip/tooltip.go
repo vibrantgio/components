@@ -59,20 +59,26 @@
 // THE HOVER AREA PASSES EVENTS THROUGH. A trigger that is a control registers
 // a pointer area of its own, and an area registered over another one takes
 // its events. The tooltip's hover area is registered after the trigger is
-// drawn, over it, as a pass-through area: the hover and focus events are
-// delivered to the tooltip, and every pointer event is also delivered to the
-// control under it, so a button wrapped in a tooltip is both pressed and
-// named.
+// drawn, over it, as a pass-through area: the hover events are delivered to
+// the tooltip, and every pointer event is also delivered to the control under
+// it, so a button wrapped in a tooltip is both pressed and named.
+//
+// A TOOLTIP REGISTERS NO FOCUS TAG. It is a signal: it takes no focus and
+// adds no Tab stop, so a Tab through a tooltipped control stops on the
+// control once. A trigger that is a control is focused through the control's
+// own tag, and the tooltip reads that focus through Props.TriggerTag: Gio
+// delivers a focus event only to the tag that gains or loses the focus, so
+// the hover area cannot observe it, and a tag the tooltip registered to
+// observe it would be a Tab stop of its own. A trigger that is not a control
+// has no tag; its tooltip is shown on hover alone.
 //
 // AN ANCHORED TRIGGER IS THE CALLER'S. The component registers no hit area
-// and no focus tag over an anchor: the thing standing there is already a
-// control of the caller's own, hit-tested and focusable by whatever drew
-// it,
-// and a second area over it would be an invisible tab stop and a hover that
-// competes with the real one. What an anchored tooltip stands on instead is
-// the anchor itself — a non-empty rectangle is the trigger standing, the
-// empty rectangle is it gone — so the caller that knows its trigger holds
-// the pointer or the keyboard says so by saying where it is.
+// over an anchor: the thing standing there is already a control of the
+// caller's own, hit-tested by whatever drew it, and a second area over it
+// would be a hover that competes with the real one. What an anchored
+// tooltip reads instead is the anchor itself — a non-empty rectangle is the
+// trigger standing, the empty rectangle is it gone — so a caller whose
+// trigger holds the pointer or the keyboard says so by saying where it is.
 package tooltip
 
 import (
@@ -83,7 +89,6 @@ import (
 
 	"gioui.org/gesture"
 	"gioui.org/io/event"
-	"gioui.org/io/key"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -153,6 +158,15 @@ type Props struct {
 	// what a tooltip wrapping its own control wants.
 	Anchor func(gtx layout.Context) image.Rectangle
 
+	// TriggerTag is the focus tag of the control the unanchored trigger is —
+	// for a button, the *widget.Clickable passed as its Props.Clickable.
+	// While that tag holds the focus the tooltip is shown as it is on hover.
+	// The tooltip only reads the focus: it registers no tag of its own, so
+	// the control stays the one Tab stop. Nil for a trigger that is not a
+	// control, which is then shown on hover alone. An anchored tooltip does
+	// not read it; its anchor says when the trigger holds the keyboard.
+	TriggerTag event.Tag
+
 	// AvailableRoom, if non-nil, is asked on every frame the surface is
 	// drawn for the rectangle the surface may occupy, in the coordinates the
 	// tooltip is laid out in: the trigger's box, or the anchor, lies inside
@@ -208,8 +222,7 @@ type resolvedTokens struct {
 
 // Tooltip returns an rx.Observable[layout.Widget] that emits a new one
 // whenever the theme changes. State (the arbitration set and hold, hover
-// gesture, focus tag, dwell stamp) persists across emissions in the
-// rx.Defer scope.
+// gesture, dwell stamp) persists across emissions in the rx.Defer scope.
 func Tooltip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widget] {
 	// Flatten the nested theme observables into a concrete snapshot. The
 	// typography emission supplies both the LabelSmall text style and the
@@ -300,12 +313,12 @@ func Render(
 	}
 }
 
-// tooltipState holds this tooltip's arbitration set, the hover/focus
-// trackers, and the dwell timer's start and latch. One instance is owned by
-// each Tooltip subscription. Its address is also the tooltip's identity
-// inside the Arbiter — and, because a tooltip is visible exactly while it
-// holds top, that identity is the whole of its visible state: there is no
-// shown flag here to fall out of step with the arbiter.
+// tooltipState holds this tooltip's arbitration set, the hover tracker, and
+// the dwell timer's start and latch. One instance is owned by each Tooltip
+// subscription. Its address is also the tooltip's identity inside the
+// Arbiter — and, because a tooltip is visible exactly while it holds top,
+// that identity is the whole of its visible state: there is no shown flag
+// here to fall out of step with the arbiter.
 type tooltipState struct {
 	arb *Arbiter
 
@@ -328,8 +341,7 @@ type tooltipState struct {
 	// buys one show; a fresh entry buys the next.
 	claimed bool
 
-	hov      gesture.Hover
-	focusTag int
+	hov gesture.Hover
 }
 
 func newState(props Props) *tooltipState {
@@ -361,10 +373,10 @@ func drawTooltip(
 	triggerDims, triggerPos, triggerOps, size := placeTrigger(gtx, props, frame)
 	triggerRect := image.Rectangle{Min: triggerPos, Max: triggerPos.Add(triggerDims.Size)}
 
-	// 2. Drain hover and focus events. The drains must happen before the
-	//    hit-area registration in step 4, so the gesture/focus trackers
-	//    reflect this frame's state. An anchored trigger is hit-tested by
-	//    nothing here: the caller owns it, and the anchor standing is the
+	// 2. Drain the hover events and read the trigger's focus. The drain
+	//    must happen before the hit-area registration in step 4, so the
+	//    gesture reflects this frame's state. An anchored trigger is
+	//    hit-tested by nothing here: the caller owns it, and the anchor standing is the
 	//    whole of what this component knows about it.
 	var active bool
 	switch {
@@ -372,13 +384,8 @@ func drawTooltip(
 	case props.Anchor != nil:
 		active = !triggerRect.Empty()
 	default:
-		for {
-			if _, ok := gtx.Event(key.FocusFilter{Target: &st.focusTag}); !ok {
-				break
-			}
-		}
 		hovered := st.hov.Update(gtx.Source)
-		focused := gtx.Focused(&st.focusTag)
+		focused := props.TriggerTag != nil && gtx.Focused(props.TriggerTag)
 		active = hovered || focused
 	}
 
@@ -416,13 +423,13 @@ func drawTooltip(
 	}
 
 	// 4. Paint the trigger at its offset. When live and unanchored, the
-	//    hover gesture and a focus tag are then registered over it, clipped
-	//    to the trigger rect, in a pass-through area: registered after the
-	//    trigger, the area is above the trigger's own areas in the hit
-	//    order, so Enter/Leave are delivered to the tooltip, and passing
-	//    through, every pointer event is also delivered to the control drawn
-	//    under it. An anchored trigger gets neither: it is the caller's own
-	//    control, already hit-tested and already in the window's Tab order.
+	//    hover gesture is then registered over it, clipped to the trigger
+	//    rect, in a pass-through area: registered after the trigger, the
+	//    area is above the trigger's own areas in the hit order, so
+	//    Enter/Leave are delivered to the tooltip, and passing through,
+	//    every pointer event is also delivered to the control drawn under
+	//    it. An anchored trigger gets no area: it is the caller's own
+	//    control, already hit-tested.
 	{
 		triggerOff := op.Offset(triggerPos).Push(gtx.Ops)
 		triggerOps.Add(gtx.Ops)
@@ -430,7 +437,6 @@ func drawTooltip(
 			pass := pointer.PassOp{}.Push(gtx.Ops)
 			triggerClip := clip.Rect{Max: triggerDims.Size}.Push(gtx.Ops)
 			st.hov.Add(gtx.Ops)
-			event.Op(gtx.Ops, &st.focusTag)
 			triggerClip.Pop()
 			pass.Pop()
 		}
