@@ -173,6 +173,41 @@ func TestSearchFieldClearMarkEmptiesTheField(t *testing.T) {
 	}
 }
 
+// TestSearchFieldClearMarkPostsTheEmptyChangeOnce presses the clear mark on a
+// field holding a query and counts what is posted: the empty change is posted
+// once on the frame of the press, the way Escape posts it.
+func TestSearchFieldClearMarkPostsTheEmptyChangeOnce(t *testing.T) {
+	type clearMsg struct{}
+	var changes []string
+	w := materialize(t, input.SearchField(rx.Of(theme.Default()), input.SearchFieldProps{
+		Placeholder:  "Search",
+		Seed:         "meeting notes",
+		Shaper:       defaultShaper(t),
+		ClearMessage: clearMsg{},
+		OnChange:     func(_ layout.Context, s string) { changes = append(changes, s) },
+	}))
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	size := image.Pt(300, 120)
+	dims := driveTextFieldFrame(w, ops, r, size)
+	driveTextFieldFrame(w, ops, r, size)
+	before := len(changes)
+
+	pos := f32.Pt(float32(dims.Size.X)-clearTrail-float32(icon.Size(tokens.Comfortable))/2,
+		float32(dims.Size.Y)/2)
+	r.Queue(
+		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+	)
+	driveTextFieldFrame(w, ops, r, size)
+	driveTextFieldFrame(w, ops, r, size)
+
+	if got := changes[before:]; len(got) != 1 || got[0] != "" {
+		t.Fatalf("pressing the clear mark posted %q; it empties the field and posts the empty change once", got)
+	}
+}
+
 // TestSearchFieldClearsFromOutside drives SearchFieldProps.Clear: the query is
 // taken back by the application rather than by the mark in the field, the
 // empty query is reported the way every other edit is, and the field is empty

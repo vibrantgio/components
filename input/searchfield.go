@@ -163,9 +163,13 @@ type SearchFieldProps struct {
 // The control is the text field looking as the reader types: the looking
 // glass names it, the text is the query, and the clear mark appears while
 // there is something to take back. Pressing the mark empties the editor and
-// reports the empty query on the same frame. Escape in a field with text does
-// the same and the keyboard stays in the field; Escape in an empty field is
-// not taken.
+// posts the empty change once, on the same frame. Escape in a field with text
+// does the same and the keyboard stays in the field; Escape in an empty field
+// is not taken.
+//
+// Gio gives a key event to the first request in the frame that matches it, so
+// a handler around the field that takes Escape when the field is empty asks
+// for the key after the field has laid out.
 //
 // What is found and how the matches are marked is the consumer's — this
 // field holds a query and nothing else.
@@ -237,10 +241,10 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 					}
 				}
 
-				// The mark is drained before the editor so a press that
-				// empties the field reports the empty query on the frame it
-				// was pressed on, rather than a frame late. A double click on
-				// a mark is one dismissal, so the presses collapse.
+				// The mark is read before the editor is updated, so the
+				// editor's update posts the empty change once, on the frame
+				// the mark was pressed on, as it does for Escape. A double
+				// click on a mark is one dismissal, so the presses collapse.
 				typing := gtx.Focused(editor)
 				cleared := false
 				for clear.Clicked(gtx) {
@@ -248,7 +252,6 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 				}
 				if cleared && !dis && editor.Len() > 0 {
 					editor.SetText("")
-					emit("")
 					if props.ClearMessage != nil {
 						mvu.MessageOp{Message: props.ClearMessage}.Add(gtx.Ops)
 					}
