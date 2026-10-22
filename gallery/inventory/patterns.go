@@ -239,6 +239,9 @@ func (inv *Inventory) tabs(c tokens.PlatformColors) layout.Widget {
 			{Title: "History", Content: inv.prose(c, "The third tab's content.")},
 		},
 		Shaper: inv.shaper,
+		// The strip has no fill of its own: it stands on the fill this
+		// section's body is laid out on.
+		Fill: SectionSurface,
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(460))
