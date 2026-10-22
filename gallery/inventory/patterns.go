@@ -91,6 +91,8 @@ func (inv *Inventory) Patterns(c tokens.PlatformColors) []Section {
 			Body: inv.twoColumnShell(c)},
 		{Name: "patterns-shell-three-column", Title: "Shell, three-column — the pane, the list column on its splitter, the content column taking the rest, one toolbar with a share each", Height: threeColSpecimenH,
 			Body: inv.threeColumnShell(c)},
+		{Name: "patterns-shell-stacked-page", Title: "Shell, stacked page — the navbar pinned across the top and the page's sections in the scroll under it", Height: stackedSpecimenH,
+			Body: inv.stackedPageShell(c)},
 	}
 }
 
@@ -731,6 +733,76 @@ func (inv *Inventory) twoColumnShell(c tokens.PlatformColors) layout.Widget {
 		defer clip.Rect{Max: size}.Push(gtx.Ops).Pop()
 		dims, _ := f.Layout(gtx, c)
 		return dims
+	}
+}
+
+// stackedSpecimenW and stackedSpecimenH are the page the stacked-page
+// specimen stands for: wide enough that the content column's clamp has
+// margins to show either side of it, and deep enough to hold the navbar,
+// the first section whole and the head of the one under it — which is what
+// says the sections are in a scroll rather than stacked to fit.
+const (
+	stackedSpecimenW unit.Dp = 640
+	stackedSpecimenH unit.Dp = 420
+
+	// stackedMaxWidthDp is the clamp the specimen states, narrower than the
+	// page so the centred column and the margins either side of it are both
+	// visible.
+	stackedMaxWidthDp unit.Dp = 520
+)
+
+// stackedPageShell draws the shell's stacked page: the navbar pinned across
+// the page's whole top edge, and under it the sections in a scroll the
+// shell owns, each clamped to the content column's width and centred on the
+// page.
+//
+// It is the marketing-page shell, and the one composition in this package
+// that is not a window with a pane: there is no chrome column, no toolbar
+// and no splitter — a page scrolls, and what stands still is the bar at its
+// top.
+//
+// The specimen is drawn through the static render path, which takes the
+// sections as built layout.Widget values rather than as streams, because
+// the gallery performs no input handling and schedules no invalidation.
+func (inv *Inventory) stackedPageShell(c tokens.PlatformColors) layout.Widget {
+	props := shell.Props{
+		Navbar:          inv.navbarProps(c),
+		ContentMaxWidth: stackedMaxWidthDp,
+		Footer:          inv.stackedFooter(c),
+	}
+	sections := []layout.Widget{
+		inv.stackedSection(c, inv.hero(c)),
+		inv.stackedSection(c, inv.feature(c)),
+	}
+	page := shell.RenderStackedPage(inv.shaper, props, sections, c, tokens.Spacing,
+		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+	return func(gtx layout.Context) layout.Dimensions {
+		size := image.Pt(min(gtx.Constraints.Max.X, gtx.Dp(stackedSpecimenW)), gtx.Dp(stackedSpecimenH))
+		gtx.Constraints = layout.Exact(size)
+		// Clipped to the page it stands for: the section below the fold is
+		// laid out whole and a page cuts what runs past its own foot.
+		defer clip.Rect{Max: size}.Push(gtx.Ops).Pop()
+		return page(gtx)
+	}
+}
+
+// stackedSection gives one section the air a page keeps above and below it,
+// since the sections are stacked with nothing between them and a section
+// states its own rhythm.
+func (inv *Inventory) stackedSection(_ tokens.PlatformColors, body layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		return complayout.InsetXY(0, 16).Layout(gtx, body)
+	}
+}
+
+// stackedFooter is the strip appended after the last section. It scrolls
+// with the content rather than pinning to the viewport, which is what parts
+// a page's footer from a window's status bar.
+func (inv *Inventory) stackedFooter(c tokens.PlatformColors) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		return complayout.InsetXY(0, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			return LabelAt(gtx, inv.shaper, "© Vibrant Gio", sectionMuted(c), 11, font.Font{})
+		})
 	}
 }
 
