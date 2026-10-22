@@ -3,6 +3,7 @@ package picker
 import (
 	"gioui.org/text"
 
+	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -21,4 +22,9 @@ type resolvedTokens struct {
 	radius   tokens.RadiusScale
 	density  tokens.Density // control height and inner padding
 	shaper   *text.Shaper   // the theme's shaper; nil in the Render* paths
+	// bar is the scrollbar a capped menu scrolls its rows under, already
+	// resolved for this frame: the theme's own bar after the caller has
+	// spent the platform's "Show scroll bars" setting on it. See menuBar
+	// and [MenuProps.Scrollbar].
+	bar scrollbar.Style
 }

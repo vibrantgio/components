@@ -21,6 +21,7 @@ import (
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/components/list"
+	"github.com/vibrantgio/components/scrollbar"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
@@ -233,6 +234,14 @@ type FieldProps struct {
 	// window's own plane.
 	Surface color.NRGBA
 
+	// Scrollbar, if non-nil, is handed the bar the open menu scrolls its
+	// rows under once the available room has capped it — the theme's own,
+	// built from the colours the menu is drawn in — and returns the bar to
+	// draw. It is [MenuProps.Scrollbar] for the menu this field drops, and
+	// it is where an application spends the platform's "Show scroll bars"
+	// setting.
+	Scrollbar func(scrollbar.Style) scrollbar.Style
+
 	// Shaper is an explicit per-instance override of the text shaper. Leave it
 	// nil in normal use: the field then shapes its text with the theme's
 	// shaper (Typography.Shaper()), which is built once for the process and
@@ -292,6 +301,7 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 					radius:   n.Fourth,
 					density:  n.Fifth,
 					shaper:   typ.Shaper(),
+					bar:      menuBar(n.First, props.Scrollbar),
 				}
 			},
 		)
@@ -457,7 +467,7 @@ func RenderField(
 	d tokens.Density,
 	s FieldState,
 ) layout.Widget {
-	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, body: body, density: d}
+	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, body: body, density: d, bar: menuBar(p, nil)}
 	return func(gtx layout.Context) layout.Dimensions {
 		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
 			return drawField(gtx, shaper, tok, s)

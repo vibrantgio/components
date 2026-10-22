@@ -32,13 +32,16 @@ func scrollTestOptions() []string {
 
 // scrollTestTokens is the resolvedTokens both references below draw with —
 // the platform's light colours at comfortable density, the same pair
-// RenderMenu hands drawMenu.
+// RenderMenu hands drawMenu, carrying the theme's own bar with nothing
+// spent on it: the fading overlay bar, which is what the WhenScrolling and
+// Automatic settings come to.
 func scrollTestTokens() resolvedTokens {
 	return resolvedTokens{
 		platform: tokens.PlatformLight,
 		body:     tokens.DefaultTypography.BodyLarge,
 		spacing:  tokens.Spacing,
 		density:  tokens.Comfortable,
+		bar:      menuBar(tokens.PlatformLight, nil),
 	}
 }
 

@@ -97,6 +97,23 @@ type MenuProps struct {
 	// noticed, so neither can dispatch twice.
 	Message any
 
+	// Scrollbar, if non-nil, is handed the bar a capped menu scrolls its
+	// rows under — the theme's own, built from the colours the menu is
+	// drawn in — and returns the bar to draw.
+	//
+	// It is where an application spends the platform's "Show scroll bars"
+	// setting: [scrollbar.Style.Always] for a reader who asked for the
+	// standing bar, and the style untouched for the other two settings,
+	// which are the fading overlay bar the colours alone already give. The
+	// application is asked because that setting is read through the
+	// platform bridge, which stands above this library — the same reason
+	// [scrollbar.Style.Always] exists at all.
+	//
+	// It is asked once per theme emission rather than given a style once,
+	// so the bar keeps the colours of the appearance the menu is standing
+	// in. Nil draws the theme's bar as it comes.
+	Scrollbar func(scrollbar.Style) scrollbar.Style
+
 	// Shaper is an explicit per-instance override of the text shaper. Leave it
 	// nil in normal use: the menu then shapes with the theme's shaper
 	// (tokens.Typography.Shaper()), built once for the process and shared by
@@ -143,7 +160,7 @@ type MenuProps struct {
 // rows are wrapped in no ring — see components/list's FocusRing, which is
 // where a list standing in the content or at the front of a dialog takes one.
 func Menu(th rx.Observable[theme.Theme], props MenuProps) rx.Observable[layout.Widget] {
-	resolved := menuTokens(th)
+	resolved := menuTokens(th, props.Scrollbar)
 
 	return rx.Defer(func() rx.Observable[layout.Widget] {
 		optClicks := make([]widget.Clickable, len(props.Options))
@@ -240,7 +257,7 @@ func RenderMenu(
 	d tokens.Density,
 	s MenuState,
 ) layout.Widget {
-	tok := resolvedTokens{platform: p, spacing: sp, body: body, density: d}
+	tok := resolvedTokens{platform: p, spacing: sp, body: body, density: d, bar: menuBar(p, nil)}
 	return func(gtx layout.Context) layout.Dimensions {
 		return drawMenu(gtx, shaper, tok, s, capPixels(gtx, s.MaxHeight))
 	}
@@ -250,7 +267,7 @@ func RenderMenu(
 // platform's colours, the BodyLarge style its rows are set in, the spacing
 // scale, the density, and the theme's cached shaper (the theme owns the
 // typeface).
-func menuTokens(th rx.Observable[theme.Theme]) rx.Observable[resolvedTokens] {
+func menuTokens(th rx.Observable[theme.Theme], spend func(scrollbar.Style) scrollbar.Style) rx.Observable[resolvedTokens] {
 	return rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
 			rx.CombineLatest4(t.Platform, t.Typography, t.Spacing, t.Density),
@@ -262,6 +279,7 @@ func menuTokens(th rx.Observable[theme.Theme]) rx.Observable[resolvedTokens] {
 					spacing:  n.Third,
 					density:  n.Fourth,
 					shaper:   typ.Shaper(),
+					bar:      menuBar(n.First, spend),
 				}
 			},
 		)
@@ -307,8 +325,9 @@ func drawMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Men
 //
 // The capped viewport is drawn through [list.LayoutSelectableScrollbar] with
 // [list.Overlay]: the same coupling components/gallery/inventory's list block
-// already draws its own bar through. The bar is the rows' own colours, and
-// scrollbar.Style.Layout draws nothing when the
+// already draws its own bar through. The bar is the rows' own colours, spent
+// against the caller's [MenuProps.Scrollbar], and scrollbar.Style.Layout draws
+// nothing when the
 // viewport shows the whole of the content, so a capped menu whose rows all
 // fit is exactly as bare as an uncapped one; only a cap that actually cuts the
 // catalogue short earns the bar.
@@ -355,10 +374,21 @@ func stackRows(gtx layout.Context, rows *list.State, n, capPx int, tok resolvedT
 	for i := range idx {
 		idx[i] = i
 	}
-	bar := scrollbar.FromTokens(tok.platform, tok.platform.WindowBackground)
-	return list.LayoutSelectableScrollbar(viewGtx, rows, bar, list.Overlay, idx, func(gtx layout.Context, i int, _ bool) layout.Dimensions {
+	return list.LayoutSelectableScrollbar(viewGtx, rows, tok.bar, list.Overlay, idx, func(gtx layout.Context, i int, _ bool) layout.Dimensions {
 		return row(gtx, i)
 	})
+}
+
+// menuBar is the scrollbar a capped menu scrolls its rows under: the theme's
+// own bar, built from the plane the rows are drawn on, offered to the caller
+// so an application can spend the platform's "Show scroll bars" setting on it
+// before a frame draws it. A nil spend draws the bar as the theme gives it.
+func menuBar(p tokens.PlatformColors, spend func(scrollbar.Style) scrollbar.Style) scrollbar.Style {
+	bar := scrollbar.FromTokens(p, p.WindowBackground)
+	if spend == nil {
+		return bar
+	}
+	return spend(bar)
 }
 
 // rowHeights measures every option row on its own, into a recording nothing
