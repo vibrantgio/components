@@ -90,9 +90,12 @@ type RenderState struct {
 type Variant uint8
 
 const (
-	// Form is the field on the content's surface — in a dialog, a pane, a
-	// grouped box: the platform's hairline around the surface the field
-	// stands on, measured off the Save panel's unfocused field.
+	// Form is the field on the content's surface — in a dialog, a sheet, a
+	// pane, a grouped box, a page on the window's own fill: the platform's
+	// hairline around the surface the field stands on, measured off the Save
+	// panel's unfocused field, its ends fully rounded and its looking glass
+	// and prompt placed as the search field on System Settings' "add an input
+	// source" sheet measures.
 	Form Variant = iota
 	// Chrome is the field standing on chrome — a sidebar, a toolbar: the
 	// platform's flat recess, its ends fully rounded, measured off the field
@@ -438,7 +441,14 @@ const hairlineDp unit.Dp = 1
 // drawFieldBox paints the box the field is drawn as, at the size the field
 // measured itself to: the platform's hairline around the surface beneath it
 // on a form, and on chrome the flat recess — no edge, its ends fully
-// rounded.
+// rounded. capsule rounds the ends fully, which every search field takes and
+// a plain text field does not.
+//
+// MEASURED, systemsettings-add-input-source-search-{light,dark}.png: the
+// search field on content is the form's hairline around the sheet's own
+// fill, and its corner is half its height, a circular fit to the edge at its
+// leading end giving a centreline radius of 12.34 against a 26 px height.
+// A plain text field keeps the radius scale's corner.
 //
 // MEASURED, system-settings-grouped-box-{light,dark}.png: the sidebar
 // recess's corner is half its height, a circular fit to its left end giving
@@ -459,9 +469,9 @@ const hairlineDp unit.Dp = 1
 //
 // The box is two nested fills rather than a stroke, which keeps the corner's
 // antialiasing out of the golden images.
-func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, size image.Point, fill, edge color.NRGBA, shadow tokens.DropShadow) {
+func drawFieldBox(gtx layout.Context, tok resolvedTokens, s RenderState, capsule bool, size image.Point, fill, edge color.NRGBA, shadow tokens.DropShadow) {
 	rad := gtx.Dp(unit.Dp(tok.radius.Md))
-	if s.Variant == Chrome {
+	if capsule {
 		rad = size.Y / 2
 	}
 	borderPx := 0
@@ -647,7 +657,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	}
 	fieldSize := image.Pt(fieldW, fieldH)
 
-	drawFieldBox(gtx, tok, s, fieldSize, fillColor, edgeColor, shadowColor)
+	drawFieldBox(gtx, tok, s, ad.capsule(s), fieldSize, fillColor, edgeColor, shadowColor)
 
 	offY := promptOffset(gtx, tok, fieldH, contentDims)
 
@@ -889,7 +899,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	}
 	fieldSize := image.Pt(fieldW, fieldH)
 
-	drawFieldBox(gtx, tok, s, fieldSize, fillColor, edgeColor, shadowColor)
+	drawFieldBox(gtx, tok, s, ad.capsule(s), fieldSize, fillColor, edgeColor, shadowColor)
 
 	offY := promptOffset(gtx, tok, fieldH, labelDims)
 	sel, selected := staticSelection(gtx, shaper, tok, s, labelText, innerW, labelDims.Size.Y)

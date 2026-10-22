@@ -54,6 +54,8 @@ const (
 	sidebarGapDp  unit.Dp = 5
 	toolbarLeadDp unit.Dp = 10
 	toolbarGapDp  unit.Dp = 8
+	formLeadDp    unit.Dp = 7
+	formGapDp     unit.Dp = 4
 )
 
 // SearchFieldProps configures a SearchField instance.
@@ -67,8 +69,9 @@ type SearchFieldProps struct {
 	Placeholder string
 
 	// Variant is where this field stands: [Form] on the content's plane,
-	// [Chrome] on a sidebar or a toolbar, where the platform draws the field
-	// as a flat recess instead of a bordered box. The zero value is Form.
+	// where the platform draws the field as a capsule with a hairline edge
+	// around the surface beneath it, [Chrome] on a sidebar or a toolbar,
+	// where it draws a flat recess. The zero value is Form.
 	//
 	// State Surface with it: the recess is opaque, but the focus ring and
 	// the marks around it still composite onto the chrome material the
@@ -378,6 +381,11 @@ func count(f func() string) string {
 	return f()
 }
 
+// capsule answers whether the field's ends are fully rounded: a search field
+// in either variant, and a field on chrome. A plain text field on a form
+// keeps the radius scale's corner.
+func (a adorn) capsule(s RenderState) bool { return a.search || s.Variant == Chrome }
+
 // adorn is the pair of slots the search field adds to the text field's
 // structure: the looking glass at the leading end and the clear mark at the
 // trailing one. The zero value is a plain text field — it reserves no width
@@ -507,7 +515,10 @@ func (a adorn) drawingPx(gtx layout.Context) float32 {
 // edge, so its inner edge is its own at x=18, and the symbol's first pixel is
 // at x=27 — 9 px in. MEASURED, mail-window.png: a toolbar search field's
 // stroke is at x=867 and its fill begins at x=868, with the symbol's first
-// pixel at x=878 — 10 px in from that inner edge.
+// pixel at x=878 — 10 px in from that inner edge. MEASURED,
+// systemsettings-add-input-source-search-{light,dark}.png: the field on
+// content has its edge column at x=19, so its inner edge is at x=20, and the
+// symbol's first pixel is at x=27 — 7 px in.
 //
 // A field with an edge spends that edge's width before the inset, and spends
 // it whatever the field's state, so focus — which replaces the edge with a
@@ -525,8 +536,11 @@ func (a adorn) drawingPx(gtx layout.Context) float32 {
 // application's number and not the platform's; Finder's dark toolbar field
 // agrees with Mail's ten (fill from x=1158, symbol from x=1167).
 func (a adorn) symbolX(gtx layout.Context, s RenderState) float32 {
-	if s.Variant == Chrome && s.Region == Sidebar {
+	switch {
+	case s.Variant == Chrome && s.Region == Sidebar:
 		return float32(gtx.Dp(sidebarLeadDp))
+	case s.Variant == Form:
+		return float32(gtx.Dp(hairlineDp) + gtx.Dp(formLeadDp))
 	}
 	return float32(gtx.Dp(hairlineDp) + gtx.Dp(toolbarLeadDp))
 }
@@ -539,10 +553,16 @@ func (a adorn) symbolX(gtx layout.Context, s RenderState) float32 {
 // them. MEASURED, mail-window.png the same way: the symbol's last pixel is at
 // x=890 and the prompt's first at x=899, eight clear columns. Voice Memos'
 // own field leaves seven (the symbol ends at x=669 and the prompt opens at
-// x=677), the same third place's drawing its 13 px inset is.
+// x=677), the same third place's drawing its 13 px inset is. MEASURED,
+// systemsettings-add-input-source-search-{light,dark}.png: on the field on
+// content the symbol's last pixel is at x=40 and the prompt's first at x=45,
+// four clear columns.
 func (a adorn) promptGapPx(gtx layout.Context, s RenderState) int {
-	if s.Variant == Chrome && s.Region == Sidebar {
+	switch {
+	case s.Variant == Chrome && s.Region == Sidebar:
 		return gtx.Dp(sidebarGapDp)
+	case s.Variant == Form:
+		return gtx.Dp(formGapDp)
 	}
 	return gtx.Dp(toolbarGapDp)
 }

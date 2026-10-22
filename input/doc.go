@@ -55,8 +55,9 @@
 //
 // A search field has two variants, and which one it draws is the region it
 // stands in rather than a choice about prominence. On a form — a dialog, a
-// pane, a grouped box — it is the platform's bordered field, the hairline
-// around the surface beneath it that the Save panel measures. On chrome — a
+// pane, a grouped box, a page on the window's own fill — it is the platform's
+// bordered field, the hairline around the surface beneath it that the Save
+// panel measures, with its ends fully rounded. On chrome — a
 // sidebar, a toolbar — it is the platform's flat recess: a fill of its own,
 // its ends fully rounded. A text field that is not a search field wears the
 // edge wherever it stands.
@@ -74,10 +75,11 @@
 // stands 9 px in from the field's edge with the prompt 5 px after its last
 // pixel, and the symbol is the platform's — a round lens on a hairline band,
 // its centre on the field's centre row rather than its bounding box centred
-// there. A field on a form and one in a toolbar spend the toolbar field's
-// measured pair instead, 10 px and 8 px, which Mail's toolbar and Finder's
-// both read. Voice Memos' own 13 and 7 are that application's drawing and
-// neither region takes them.
+// there. A field in a toolbar takes the toolbar field's measured pair
+// instead, 10 px and 8 px, which Mail's toolbar and Finder's both read;
+// Voice Memos' own 13 and 7 are that application's drawing and neither region
+// takes them. A field on a form takes the pair the field on System Settings' "add
+// an input source" sheet measures, 7 px inside its hairline and 4 px.
 //
 // The text field is uncontrolled. Props.Seed pre-fills a newly created
 // instance so an existing value can be edited rather than retyped, but a later

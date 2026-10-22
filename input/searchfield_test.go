@@ -397,7 +397,11 @@ func TestPromptCapBandIsOnTheFieldsCentreRow(t *testing.T) {
 // first at x=47, five clear columns. MEASURED, mail-window.png: the toolbar
 // field's stroke is at x=867 and its fill begins at x=868, with the symbol's
 // first pixel at x=878 — 10 px in; the symbol's last pixel is at x=890 and the
-// prompt's first at x=899, eight clear columns.
+// prompt's first at x=899, eight clear columns. MEASURED,
+// systemsettings-add-input-source-search-{light,dark}.png: the field on
+// content's edge column is at x=19, its inner edge at x=20, and the symbol's
+// first pixel is at x=27 — 7 px in; the symbol's last pixel is at x=40 and
+// the prompt's first at x=45, four clear columns.
 //
 // The gap is a count of clear columns, not a distance, which is what lets it
 // be read on both sides: this library draws the symbol a third of a column
@@ -415,7 +419,7 @@ func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
 		inset     int
 		gap       int
 	}{
-		{"form", input.Form, input.Sidebar, 28, 1, 10, 8},
+		{"form", input.Form, input.Sidebar, 28, 1, 7, 4},
 		{"chrome-sidebar", input.Chrome, input.Sidebar, 28, 0, 9, 5},
 		// The toolbar recess spends the rim's column before the inset, the
 		// way the form field spends its hairline, so its inner edge is one
@@ -802,5 +806,61 @@ func TestSearchFieldEscapeOnAnEmptyFieldIsNotTaken(t *testing.T) {
 	}
 	if received != 1 {
 		t.Errorf("the handler around the field received Escape %d times; an empty field does not take the key, so it is received once", received)
+	}
+}
+
+// TestSearchFieldOnContentIsTheMeasuredCapsule reads off the drawn pixels the
+// field on content's box: the form's hairline around the surface the field
+// stands on, its ends fully rounded, where a plain text field on the same
+// form keeps the radius scale's corner.
+//
+// MEASURED, systemsettings-add-input-source-search-{light,dark}.png: the
+// field's interior is the sheet's own fill, its edge is one row of
+// #f3f3f3 light, and a circular fit to the edge at its leading end gives a
+// centreline radius of 12.34 against a 26 px height — half the height. The
+// edge's top row therefore starts about half the height in from the field's
+// leading end, where a corner of the radius scale's 6 starts it six in.
+func TestSearchFieldOnContentIsTheMeasuredCapsule(t *testing.T) {
+	shaper := defaultShaper(t)
+	size := image.Pt(300, 40)
+	const fieldH = 28
+	for _, p := range []struct {
+		name string
+		col  tokens.PlatformColors
+	}{{"light", tokens.PlatformLight}, {"dark", tokens.PlatformDark}} {
+		t.Run(p.name, func(t *testing.T) {
+			stands := p.col.WindowBackground
+			search := golden.Capture(t, size, onChrome(stands, input.RenderSearch(
+				shaper, "Search",
+				p.col, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				input.RenderState{Variant: input.Form},
+			)))
+			plain := golden.Capture(t, size, onChrome(stands, input.Render(
+				shaper, "Name",
+				p.col, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				input.RenderState{Variant: input.Form},
+			)))
+			at := func(img *image.RGBA, x, y int) color.NRGBA {
+				c := img.RGBAAt(x, y)
+				return color.NRGBA{R: c.R, G: c.G, B: c.B, A: c.A}
+			}
+			if got, want := at(search, 200, 0), p.col.FieldEdge; got != want {
+				t.Errorf("the field's top row at x=200 = %v, want the form's hairline %v", got, want)
+			}
+			if got, want := at(search, 200, fieldH/2), stands; got != want {
+				t.Errorf("the field's interior at x=200 = %v, want the surface it stands on %v", got, want)
+			}
+			// x=8 is past a 6 px corner and well inside a 14 px one.
+			if got := at(search, 8, 0); got != stands {
+				t.Errorf("the search field's top row at x=8 = %v, want the surface %v: its ends are fully rounded", got, stands)
+			}
+			if got := at(plain, 8, 0); got != p.col.FieldEdge {
+				t.Errorf("the text field's top row at x=8 = %v, want its hairline %v: a plain field keeps the radius scale's corner", got, p.col.FieldEdge)
+			}
+			// The leading end's middle row is the edge itself.
+			if got := at(search, 0, fieldH/2); got != p.col.FieldEdge {
+				t.Errorf("the search field's leading column at its middle row = %v, want the hairline %v", got, p.col.FieldEdge)
+			}
+		})
 	}
 }
