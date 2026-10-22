@@ -1429,7 +1429,7 @@ const (
 	// trigger, so the step between the control's fill and the band it stands
 	// on is visible on every side of it. It is the platform's own placement:
 	// a 36 dp toolbar control is centred in a 52 px unified toolbar band with
-	// 8 px above it and 8 below (.github/reference/macos/controls.md).
+	// 8 px above it and 8 below (organisation/reference/macos/controls.md).
 	pickerChromePad = 8
 )
 
