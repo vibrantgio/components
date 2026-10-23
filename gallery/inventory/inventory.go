@@ -42,6 +42,7 @@ import (
 	"github.com/vibrantgio/components/pagination"
 	"github.com/vibrantgio/components/paragraph"
 	"github.com/vibrantgio/components/picker"
+	"github.com/vibrantgio/components/progress"
 	"github.com/vibrantgio/components/scrollarea"
 	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/components/toast"
@@ -508,6 +509,11 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 		// edge.
 		{Name: "components-tooltip", Title: "Tooltip — shown above its trigger", Height: 96,
 			Body: inv.tooltip(c)},
+		// The slot is the region shape's own frame: the indicator, the gap
+		// and the text's line, with room above and below to show that the
+		// group is centred in it.
+		{Name: "components-progress", Title: "Progress — the indeterminate indicator alone, in a row with its text at the leading end, and above its text in a region whose content is arriving", Height: progressBlockH,
+			Body: inv.progressBlock(c)},
 		{Name: "components-textfield", Title: "Text field — rest, focused, disabled", Height: 60,
 			Body: inv.textFieldRow(c)},
 		// The slot holds the toolbar recess's own drop shadow as well as the
@@ -1858,6 +1864,54 @@ func (inv *Inventory) tooltip(c tokens.PlatformColors) layout.Widget {
 		}
 		return tooltip.Render(inv.shaper, props, true, c, tokens.Spacing, tokens.Radius,
 			tokens.DefaultTypography.LabelSmall)(gtx)
+	}
+}
+
+// The progress section's measurements: the row is the platform's 36 px card
+// row with its 10 px padding at each end, MEASURED in the reference's "What
+// the indeterminate indicator measures"; the region's frame is wide enough
+// for its text and tall enough to show the group centred in it.
+const (
+	progressRowW    unit.Dp = 280
+	progressRowH    unit.Dp = 36
+	progressRowPad  unit.Dp = 10
+	progressRegionW unit.Dp = 240
+	progressBlockH  unit.Dp = 80
+	progressGap     unit.Dp = 24
+)
+
+// progressBlock shows the indicator alone, the row shape on the card fill and
+// the region shape in a frame of its own. The window's frame clock turns the
+// wheels; a stored image has no clock and draws them at the first step.
+func (inv *Inventory) progressBlock(c tokens.PlatformColors) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		page := c.WindowBackground
+		h := gtx.Dp(progressBlockH)
+		size := gtx.Dp(progress.Size)
+		x := 0
+		off := op.Offset(image.Pt(x, (h-size)/2)).Push(gtx.Ops)
+		progress.Indicator(gtx, progress.Props{Platform: c, Fill: page})
+		off.Pop()
+		x += size + gtx.Dp(progressGap)
+
+		row := image.Pt(gtx.Dp(progressRowW), gtx.Dp(progressRowH))
+		off = op.Offset(image.Pt(x, (h-row.Y)/2)).Push(gtx.Ops)
+		paint.FillShape(gtx.Ops, c.CardFill, clip.Rect{Max: row}.Op())
+		pad := gtx.Dp(progressRowPad)
+		inner := op.Offset(image.Pt(pad, 0)).Push(gtx.Ops)
+		rgtx := gtx
+		rgtx.Constraints = layout.Exact(image.Pt(row.X-2*pad, row.Y))
+		progress.Row(rgtx, progress.Props{Platform: c, Fill: c.CardFill, Text: "Checking for updates…", Shaper: inv.shaper})
+		inner.Pop()
+		off.Pop()
+		x += row.X + gtx.Dp(progressGap)
+
+		off = op.Offset(image.Pt(x, 0)).Push(gtx.Ops)
+		fgtx := gtx
+		fgtx.Constraints = layout.Exact(image.Pt(gtx.Dp(progressRegionW), h))
+		progress.Region(fgtx, progress.Props{Platform: c, Fill: page, Text: "Reading the memory slots…", Shaper: inv.shaper})
+		off.Pop()
+		return layout.Dimensions{Size: image.Pt(x+gtx.Dp(progressRegionW), h)}
 	}
 }
 
