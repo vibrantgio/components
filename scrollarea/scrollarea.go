@@ -23,10 +23,7 @@
 package scrollarea
 
 import (
-	"image/color"
-
 	"gioui.org/gesture"
-	"gioui.org/unit"
 
 	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/theme/tokens"
@@ -105,52 +102,18 @@ func (s *State) Fractions() (start, end float32) {
 	return float32(s.offset) / total, float32(s.offset+s.viewport) / total
 }
 
-// Style describes how a scroll area is drawn for one frame. Derive defaults
-// with FromTokens and override fields as needed.
-type Style struct {
-	// Fade is the length of the dissolve drawn over a cut edge while
-	// content remains hidden past it. The zero value draws no fade, leaving
-	// the cut hard.
-	Fade unit.Dp
-	// FadeColor is the colour the content dissolves into: the surface the
-	// area is drawn on, so the hidden end reads as passing under the edge
-	// rather than as a band laid over it. The zero value draws no fade.
-	FadeColor color.NRGBA
-}
+// Style describes how a scroll area is drawn for one frame. Derive it with
+// FromTokens.
+//
+// The area clips its content at its edges. What is past an edge is cut at
+// the edge and keeps its full contrast up to the cut, as the platform's
+// scroll views clip. The bar of [Style.LayoutScrollbar] says there is more.
+type Style struct{}
 
 // FromTokens derives the default scroll-area look from the platform's colour
-// set: the content dissolves into the surface the area stands on over an S4
-// run at each cut edge.
-//
-// # The fade is an overlay, not a surface
-//
-// It is painted over the content, inside the area's clip, as the area's own
-// fill run out to zero alpha, and its whole job is to be indistinguishable
-// from what lies behind the content so the hidden end reads as passing under
-// the edge. Any fill that is not what is behind the content paints a band
-// across it instead, which is what [Style.FadeColor] forbids.
-//
-// The default names the platform's content plane, which is what a scroll area
-// stands on unless its host says otherwise.
-//
-// The fade is the affordance, and it is deliberately not a scrollbar. A
-// desktop overlay bar is absent at rest — it appears while the content moves
-// and fades out a second later — so a bar alone leaves a resting viewport
-// saying nothing about the content it is hiding, and horizontal overflow is
-// exactly the case a reader has no other way to suspect: a wrapped column
-// announces itself by being tall, a clipped line looks like a line that ended.
-// The dissolve is on for as long as there is something past the edge, costs no
-// layout and no chrome, and stacks with a bar rather than replacing it — see
-// [Style.LayoutScrollbar].
-//
-// Override FadeColor whenever the area sits on something other than the
-// content plane: the fade must match what is behind the content or it reads
-// as a band laid across it.
+// set.
 func FromTokens(p tokens.PlatformColors) Style {
-	return Style{
-		Fade:      unit.Dp(tokens.Spacing.S4),
-		FadeColor: p.ControlBackground,
-	}
+	return Style{}
 }
 
 // clamp limits v to [lo, hi]. hi below lo yields lo, which is what an empty

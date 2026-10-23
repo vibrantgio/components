@@ -2,15 +2,12 @@ package scrollarea
 
 import (
 	"image"
-	"image/color"
 
-	"gioui.org/f32"
 	"gioui.org/gesture"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
-	"gioui.org/op/paint"
 
 	"github.com/vibrantgio/components/list"
 	"github.com/vibrantgio/components/scrollbar"
@@ -34,11 +31,9 @@ const inf = 1e6
 // without knowing whether this frame's content overflowed. The height is the
 // child's own.
 //
-// While content remains hidden past an edge, a [Style.Fade]-long dissolve into
-// [Style.FadeColor] is drawn over that edge — the leading edge once scrolled
-// off the start, the trailing edge while more remains, both in the middle.
+// Content past an edge is clipped at the edge and nothing is drawn over it.
 // Content that fits is drawn exactly as it would be without a scroll area:
-// no clip that bites, no fade, no reserved space.
+// the clip cuts nothing, and the area reserves no space.
 func (s Style) Layout(gtx layout.Context, state *State, w layout.Widget) layout.Dimensions {
 	return s.layout(gtx, state, w, nil)
 }
@@ -55,9 +50,8 @@ func (s Style) Layout(gtx layout.Context, state *State, w layout.Widget) layout.
 // that fades ([list.Overlay]) takes no lane: it is drawn over the content's
 // bottom rows, and the area's height is its content's.
 //
-// The bar and the edge fade are drawn together. The fade marks an edge with
-// hidden content. The bar shows how much content there is and where the
-// viewport is, and the user can drag it.
+// The bar shows how much content there is and where the viewport is. The
+// user can drag it.
 func (s Style) LayoutScrollbar(gtx layout.Context, state *State, bar scrollbar.Style, w layout.Widget) layout.Dimensions {
 	return s.layout(gtx, state, w, &bar)
 }
@@ -93,7 +87,6 @@ func (s Style) layout(gtx layout.Context, state *State, w layout.Widget, bar *sc
 	tr := op.Offset(image.Pt(-state.offset, 0)).Push(gtx.Ops)
 	call.Add(gtx.Ops)
 	tr.Pop()
-	s.fades(gtx, state, size)
 	area.Pop()
 
 	if bar != nil {
@@ -120,35 +113,6 @@ func (s Style) scrolled(gtx layout.Context, state *State) int {
 	return state.scroll.Update(gtx.Metric, gtx.Source, gtx.Now, gesture.Horizontal,
 		pointer.ScrollRange{Min: -state.offset, Max: state.MaxOffset() - state.offset},
 		pointer.ScrollRange{})
-}
-
-// fades draws the dissolve over each edge that is hiding content. It runs
-// inside the area's clip, so a fade never paints outside the viewport.
-func (s Style) fades(gtx layout.Context, state *State, size image.Point) {
-	run := gtx.Dp(s.Fade)
-	if run <= 0 || s.FadeColor.A == 0 || !state.Overflows() {
-		return
-	}
-	gone := s.FadeColor
-	gone.A = 0
-	if state.offset > 0 {
-		gradient(gtx, image.Rect(0, 0, min(run, size.X), size.Y), s.FadeColor, gone)
-	}
-	if state.offset < state.MaxOffset() {
-		gradient(gtx, image.Rect(max(size.X-run, 0), 0, size.X, size.Y), gone, s.FadeColor)
-	}
-}
-
-// gradient fills r with a horizontal linear gradient from left to right.
-func gradient(gtx layout.Context, r image.Rectangle, left, right color.NRGBA) {
-	defer clip.Rect(r).Push(gtx.Ops).Pop()
-	paint.LinearGradientOp{
-		Stop1:  f32.Pt(float32(r.Min.X), 0),
-		Stop2:  f32.Pt(float32(r.Max.X), 0),
-		Color1: left,
-		Color2: right,
-	}.Add(gtx.Ops)
-	paint.PaintOp{}.Add(gtx.Ops)
 }
 
 // scrollbar draws the horizontal bar at the area's bottom edge and folds this

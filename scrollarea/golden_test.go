@@ -15,8 +15,8 @@ import (
 )
 
 // ruler draws a band of evenly spaced marks, so where the content has been
-// scrolled to is readable off the image and a dissolved edge is obviously a
-// dissolve and not a clip.
+// scrolled to is readable off the image and a mark cut at an edge shows the
+// clip.
 func ruler(p tokens.PlatformColors, width int) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		const pitch, mark = 22, 14
@@ -28,15 +28,15 @@ func ruler(p tokens.PlatformColors, width int) layout.Widget {
 	}
 }
 
-// TestFadeGolden records or diffs everything a scroll area says about its
-// edges, stacked in one image: content that fits (no dissolve, no bar, drawn
-// exactly as it would be with no area at all), content resting at its start
-// (the trailing edge dissolves, the leading one does not), content in the
-// middle (both edges), and content at its end (only the leading edge). Each
-// overflowing band also carries the bar at the platform's Always setting.
+// TestEdgesGolden records or diffs everything a scroll area shows at its
+// edges, stacked in one image: content that fits (no clip that cuts, no bar,
+// drawn exactly as it would be with no area at all), content resting at its
+// start (the trailing edge cuts a mark), content in the middle (both edges
+// cut), and content at its end (the leading edge cuts). Each overflowing
+// band also has the bar at the platform's Always setting.
 // The bar stands in a lane of its own below the content, at the area's
 // bottom edge.
-func TestFadeGolden(t *testing.T) {
+func TestEdgesGolden(t *testing.T) {
 	const viewport, content, band = 280, 900, 60
 	p := tokens.PlatformLight
 	style := FromTokens(p)
@@ -62,11 +62,8 @@ func TestFadeGolden(t *testing.T) {
 		states[i].SetOffset(b.offset)
 	}
 
-	golden.Render(t, "fade-light", image.Pt(viewport, len(bands)*band), func(gtx layout.Context) layout.Dimensions {
-		// The backdrop is the surface FromTokens fades into: an area whose
-		// fade names a colour its host does not paint reads as a band laid
-		// across the content, so the image only shows a dissolve if the two
-		// are asked for together.
+	golden.Render(t, "edges-light", image.Pt(viewport, len(bands)*band), func(gtx layout.Context) layout.Dimensions {
+		// The backdrop is the surface the bar is derived against.
 		paint.FillShape(gtx.Ops, p.ControlBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
 		for i, b := range bands {
 			bgtx := gtx
@@ -87,7 +84,6 @@ func TestStandingBarHasALane(t *testing.T) {
 	const viewport, height = 200, 40
 	p := tokens.PlatformLight
 	style := FromTokens(p)
-	style.Fade = 0
 	standing := scrollbar.FromTokens(p, p.ControlBackground).Always()
 	fading := scrollbar.FromTokens(p, p.ControlBackground)
 	lane := int(standing.Width())

@@ -11,8 +11,10 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
+	"gioui.org/op/paint"
 	"gioui.org/unit"
 
+	"github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -265,31 +267,37 @@ func TestScrollbarDragScrolls(t *testing.T) {
 	}
 }
 
-// TestFadeIsNotLayout pins the fade's opt-out and its cost: either half of
-// the style at zero draws no dissolve, and none of the four combinations
-// moves anything.
-func TestFadeIsNotLayout(t *testing.T) {
-	base := FromTokens(tokens.PlatformLight)
-	cases := []struct {
-		name  string
-		style Style
-	}{
-		{"default", base},
-		{"no run", Style{FadeColor: base.FadeColor}},
-		{"no colour", Style{Fade: base.Fade}},
-		{"zero style", Style{}},
+// TestCutEdgeKeepsFullContrast pins the clip at both edges. A solid band of
+// the label colour rests in the middle of its content, so content is hidden
+// past both edges. The pixels in the first two and the last two columns of
+// the viewport are the same colour as the pixel in the viewport's middle,
+// the label colour at full contrast against the surface: nothing is drawn
+// over a cut edge.
+func TestCutEdgeKeepsFullContrast(t *testing.T) {
+	const viewport, content, height = 200, 600, 40
+	p := tokens.PlatformLight
+	style := FromTokens(p)
+	solid := func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, p.Label, clip.Rect{Max: image.Pt(content, height)}.Op())
+		return layout.Dimensions{Size: image.Pt(content, height)}
 	}
-	var want layout.Dimensions
-	for i, tc := range cases {
-		var ops op.Ops
-		state := NewState()
-		got := tc.style.Layout(testContext(&ops, image.Pt(200, 50)), state, block(image.Pt(400, 50)))
-		if i == 0 {
-			want = got
-			continue
-		}
-		if got != want {
-			t.Errorf("%s laid out %v, want the default's %v; the fade must not move anything", tc.name, got, want)
+	state := NewState()
+	var scratch op.Ops
+	style.Layout(testContext(&scratch, image.Pt(viewport, height)), state, solid)
+	state.SetOffset(state.MaxOffset() / 2)
+	if state.Offset() == 0 || state.Offset() == state.MaxOffset() {
+		t.Fatalf("offset %d of %d: the band must hide content past both edges", state.Offset(), state.MaxOffset())
+	}
+	img := golden.Capture(t, image.Pt(viewport, height), func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, p.ControlBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		return style.Layout(gtx, state, solid)
+	})
+	want := img.RGBAAt(viewport/2, height/2)
+	for _, x := range []int{0, 1, viewport - 2, viewport - 1} {
+		for y := 0; y < height; y++ {
+			if got := img.RGBAAt(x, y); got != want {
+				t.Fatalf("pixel (%d,%d) is %v, want the middle's %v: the cut edge lost contrast", x, y, got, want)
+			}
 		}
 	}
 }

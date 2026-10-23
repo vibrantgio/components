@@ -525,7 +525,7 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 			Body: inv.scrollbarBlock(c)},
 		{Name: "components-scrollbar-search", Title: "Scrollbar — while a search is on, where the matches lie in the content, the current one stronger", Height: 180,
 			Body: inv.scrollbarSearchBlock(c)},
-		{Name: "components-scrollarea", Title: "Scroll area — the edge dissolves while content is hidden past it", Height: 66,
+		{Name: "components-scrollarea", Title: "Scroll area — content past an edge is clipped at the edge, and the bar says there is more", Height: 66,
 			Body: inv.scrollAreaBlock(c)},
 		{Name: "components-paragraph", Title: "Paragraph — weight, style, face, colour, size and links in one run of text", Height: 151,
 			Body: inv.paragraphBlock(c)},
@@ -1683,9 +1683,8 @@ func (inv *Inventory) scrollAreaBlock(c tokens.PlatformColors) layout.Widget {
 	bar := scrollbar.FromTokens(c, SectionSurface(c)).Always()
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(520))
-		// The area rests mid-content rather than at its start, so both
-		// edges dissolve and the treatment is a treatment rather than one
-		// hard cut and one gradient.
+		// The area rests mid-content rather than at its start, so the
+		// clip cuts content at both edges.
 		if inv.areaSt.Overflows() && inv.areaSt.Offset() == 0 {
 			inv.areaSt.SetOffset(inv.areaSt.MaxOffset() / 2)
 		}

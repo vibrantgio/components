@@ -64,7 +64,7 @@ const readingSample = "" +
 	"---\n" +
 	"\n" +
 	"```go\n" +
-	"// The fenced block's longest line overflows on purpose, so the code area's horizontal scroll and its edge dissolve both show.\n" +
+	"// The fenced block's longest line overflows on purpose, so the code area's horizontal scroll and its bar both show.\n" +
 	"doc := markdown.NewDocument(markdown.Parse(source))\n" +
 	"doc.LayoutColumn(gtx, shaper, markdown.FromTokens(colors, typography))\n" +
 	"```\n"
