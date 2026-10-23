@@ -12,6 +12,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 
+	"github.com/vibrantgio/components/list"
 	"github.com/vibrantgio/components/scrollbar"
 )
 
@@ -42,20 +43,21 @@ func (s Style) Layout(gtx layout.Context, state *State, w layout.Widget) layout.
 	return s.layout(gtx, state, w, nil)
 }
 
-// LayoutScrollbar shows w exactly as [Style.Layout] does and additionally
-// draws bar along the area's trailing (south) edge, wired to the offset the
-// content resolved. Dragging the bar scrolls the area, and the bar draws
-// nothing at all while the content fits.
+// LayoutScrollbar shows w as [Style.Layout] does and draws bar at the area's
+// own bottom edge, inside the area, wired to the offset the content resolved.
+// Dragging the bar scrolls the area. The bar draws nothing while the content
+// fits, and the area then takes no lane.
 //
-// The bar floats over the content rather than reserving a gutter: an area's
-// height is its content's, and stealing a strip of it for a bar that a desktop
-// platform keeps hidden at rest would make every overflowing block taller than
-// its neighbours. Callers with padding of their own — a fenced code block, a
-// card — should place the area so the bar's [scrollbar.Style.Width] lands in
-// that padding, where it occludes nothing.
+// The area is the region that scrolls, so its bar is at the area's edge.
+// A bar that stands ([list.AnchorFor] answers [list.Occupy]) has a lane of
+// its own below the content: the area is taller than its content by the bar's
+// [scrollbar.Style.Width], and the content stops short of the lane. A bar
+// that fades ([list.Overlay]) takes no lane: it is drawn over the content's
+// bottom rows, and the area's height is its content's.
 //
-// It complements the edge fade rather than replacing it: the fade says there
-// is more, the bar says how much and where, and only the bar can be dragged.
+// The bar and the edge fade are drawn together. The fade marks an edge with
+// hidden content. The bar shows how much content there is and where the
+// viewport is, and the user can drag it.
 func (s Style) LayoutScrollbar(gtx layout.Context, state *State, bar scrollbar.Style, w layout.Widget) layout.Dimensions {
 	return s.layout(gtx, state, w, &bar)
 }
@@ -82,6 +84,10 @@ func (s Style) layout(gtx layout.Context, state *State, w layout.Widget, bar *sc
 	state.offset = clamp(state.offset+dist, 0, state.MaxOffset())
 
 	size := image.Pt(clamp(child.Size.X, gtx.Constraints.Min.X, viewport), child.Size.Y)
+	lane := 0
+	if bar != nil && state.Overflows() && list.AnchorFor(*bar) == list.Occupy {
+		lane = gtx.Dp(bar.Width())
+	}
 	area := clip.Rect{Max: size}.Push(gtx.Ops)
 	state.scroll.Add(gtx.Ops)
 	tr := op.Offset(image.Pt(-state.offset, 0)).Push(gtx.Ops)
@@ -91,9 +97,9 @@ func (s Style) layout(gtx layout.Context, state *State, w layout.Widget, bar *sc
 	area.Pop()
 
 	if bar != nil {
-		s.scrollbar(gtx, state, *bar, size)
+		s.scrollbar(gtx, state, *bar, size, lane)
 	}
-	return layout.Dimensions{Size: size, Baseline: child.Baseline}
+	return layout.Dimensions{Size: image.Pt(size.X, size.Y+lane), Baseline: child.Baseline}
 }
 
 // scrolled returns the pixels this frame's pointer events ask the viewport to
@@ -145,15 +151,16 @@ func gradient(gtx layout.Context, r image.Rectangle, left, right color.NRGBA) {
 	paint.PaintOp{}.Add(gtx.Ops)
 }
 
-// scrollbar draws the horizontal bar on the area's trailing edge and folds
-// this frame's drag on it back into the offset.
-func (s Style) scrollbar(gtx layout.Context, state *State, bar scrollbar.Style, size image.Point) {
+// scrollbar draws the horizontal bar at the area's bottom edge and folds this
+// frame's drag on it back into the offset. content is the size of the
+// content's viewport. With a lane, the bar is drawn in the lane below the
+// viewport; with none, it is drawn over the viewport's bottom rows.
+func (s Style) scrollbar(gtx layout.Context, state *State, bar scrollbar.Style, content image.Point, lane int) {
 	start, end := state.Fractions()
-	gtx.Constraints.Min = size
-	gtx.Constraints.Max = size
-	layout.S.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		return bar.Layout(gtx, &state.sb, layout.Horizontal, start, end)
-	})
+	h := gtx.Dp(bar.Width())
+	defer op.Offset(image.Pt(0, content.Y+lane-h)).Push(gtx.Ops).Pop()
+	gtx.Constraints = layout.Exact(image.Pt(content.X, h))
+	bar.Layout(gtx, &state.sb, layout.Horizontal, start, end)
 	if d := state.sb.ScrollDistance(); d != 0 {
 		state.ScrollBy(int(d * float32(state.content)))
 	}

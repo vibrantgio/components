@@ -525,7 +525,7 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 			Body: inv.scrollbarBlock(c)},
 		{Name: "components-scrollbar-search", Title: "Scrollbar — while a search is on, where the matches lie in the content, the current one stronger", Height: 180,
 			Body: inv.scrollbarSearchBlock(c)},
-		{Name: "components-scrollarea", Title: "Scroll area — the edge dissolves while content is hidden past it", Height: 56,
+		{Name: "components-scrollarea", Title: "Scroll area — the edge dissolves while content is hidden past it", Height: 66,
 			Body: inv.scrollAreaBlock(c)},
 		{Name: "components-paragraph", Title: "Paragraph — weight, style, face, colour, size and links in one run of text", Height: 151,
 			Body: inv.paragraphBlock(c)},
