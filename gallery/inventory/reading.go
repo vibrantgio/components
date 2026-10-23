@@ -17,6 +17,7 @@ package inventory
 import (
 	"gioui.org/layout"
 
+	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/markdown"
 	"github.com/vibrantgio/markdown/highlight"
 	"github.com/vibrantgio/theme/tokens"
@@ -161,8 +162,7 @@ const codeSectionName = "markdown-code"
 func CodeSectionName() string { return codeSectionName }
 
 func (inv *Inventory) codeBody(c tokens.PlatformColors) layout.Widget {
-	style := markdown.FromTokens(c, inv.typography(), SectionSurface(c))
-	inv.wear(&style, c)
+	style := inv.markdownStyle(c)
 	// No measure cap, unlike the prose sample. Prose is capped because a long
 	// line of it is hard to read; code is not prose — a line wrapped or
 	// scrolled out of sight is a line the style cannot be judged on — and a
@@ -207,14 +207,45 @@ func (inv *Inventory) wear(st *markdown.Style, c tokens.PlatformColors) {
 	}, c)
 }
 
-func (inv *Inventory) readingBody(c tokens.PlatformColors) layout.Widget {
+// markdownStyle is the style both markdown sections draw with. The chosen
+// highlighter style is used whole: the fence takes the fill its author drew
+// their colours on, and those colours as they were drawn. Everything around
+// it — the page, the prose, the chip an inline span sits on — stays the
+// theme's, which is what makes the two judgeable side by side on one screen.
+// The fence's bar and the table's bar follow the window's bar.
+func (inv *Inventory) markdownStyle(c tokens.PlatformColors) markdown.Style {
 	style := markdown.FromTokens(c, inv.typography(), SectionSurface(c))
-	// The chosen style, worn whole: the fence takes the fill its author drew
-	// their colours on, and those colours as they were drawn. Everything
-	// around it — the page, the prose, the chip an inline span sits on — stays
-	// the theme's, which is what makes the two judgeable side by side on one
-	// screen.
 	inv.wear(&style, c)
+	if inv.windowBar != nil {
+		style.CodeScrollbar = followBar(style.CodeScrollbar, *inv.windowBar)
+		style.TableScrollbar = followBar(style.TableScrollbar, *inv.windowBar)
+	}
+	return style
+}
+
+// SetScrollbar names the bar of the window that shows the inventory. The
+// window builds that bar from the platform's Show scroll bars setting, which
+// it reads once where it is composed. The bar inside an overflowing fence and
+// the bar under a wide table then fade or stand as the window's bar does.
+// Without a call both bars fade, which is the bar markdown's style draws.
+//
+// It is a setting on the inventory, as the highlighter style is, because the
+// inventory is in a module with no composition root of its own: the setting
+// belongs to whichever window shows the inventory, and a section is a
+// function of the tokens alone.
+func (inv *Inventory) SetScrollbar(bar scrollbar.Style) { inv.windowBar = &bar }
+
+// followBar returns own with the fading of the window's bar. The colours stay
+// own's: each bar is built from the fill it is drawn on, and the window's bar
+// is built from the window's column.
+func followBar(own, window scrollbar.Style) scrollbar.Style {
+	own.FadeDelay = window.FadeDelay
+	own.FadeDuration = window.FadeDuration
+	return own
+}
+
+func (inv *Inventory) readingBody(c tokens.PlatformColors) layout.Widget {
+	style := inv.markdownStyle(c)
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(560))
 		// LayoutColumn rather than Layout: the document is embedded in a

@@ -129,6 +129,10 @@ type Inventory struct {
 	// see Inventory.wear.
 	codeStyles highlight.StylePair
 
+	// windowBar is the bar of the window that shows the inventory, set by
+	// SetScrollbar. Nil means the fading bar markdown's own style draws.
+	windowBar *scrollbar.Style
+
 	// typo is the type roles the reading and code sections draw through.
 	// Empty is DefaultTypography. A caller that names a code face calls
 	// SetTypography; the parsed documents stay.

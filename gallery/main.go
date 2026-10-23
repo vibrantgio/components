@@ -33,6 +33,7 @@ import (
 	"github.com/vibrantgio/components/list"
 	"github.com/vibrantgio/components/paragraph"
 	"github.com/vibrantgio/components/scrollbar"
+	"github.com/vibrantgio/mvu/desktop"
 	"github.com/vibrantgio/mvu/stream"
 	"github.com/vibrantgio/theme/a11y"
 	vgcolor "github.com/vibrantgio/theme/color"
@@ -199,6 +200,13 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 		g.scrollSt[i] = list.NewState()
 	}
 	g.inv = inventory.New(shaper)
+	// The platform's Show scroll bars setting, read once where the window is
+	// composed. The inventory's fences and tables draw their bars with it.
+	bar := scrollbar.FromTokens(tokens.PlatformLight, pagePlane)
+	if desktop.ScrollBars() == desktop.ScrollBarsAlways {
+		bar = bar.Always()
+	}
+	g.inv.SetScrollbar(bar)
 
 	// Static theme observable — emits once synchronously, so First() returns immediately.
 	th := rx.Of(theme.Default())

@@ -23,6 +23,7 @@ require (
 	github.com/vibrantgio/ivg/raster/gio v0.2.0
 	github.com/vibrantgio/markdown v0.8.2
 	github.com/vibrantgio/mvu v1.1.1
+	github.com/vibrantgio/mvu/desktop v1.1.1
 	github.com/vibrantgio/patterns v1.4.1
 	github.com/vibrantgio/textdraw v0.0.7
 	github.com/vibrantgio/theme v1.5.0
@@ -37,7 +38,6 @@ require (
 	github.com/reactivego/scheduler v0.2.0 // indirect
 	github.com/vibrantgio/font v0.4.4 // indirect
 	github.com/vibrantgio/ivg v0.2.0 // indirect
-	github.com/vibrantgio/mvu/desktop v1.1.1 // indirect
 	github.com/vibrantgio/svg v0.1.2 // indirect
 	github.com/vibrantgio/traer v0.1.1 // indirect
 	github.com/yuin/goldmark v1.8.5 // indirect
