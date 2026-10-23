@@ -691,7 +691,7 @@ func (inv *Inventory) twoColumnShell(c tokens.PlatformColors) layout.Widget {
 		},
 		Toggle: &shell.ToggleSidebar{
 			Click:        &toggleClick,
-			Mark:         icons.Mark(icons.Sidebar),
+			Mark:         icons.Mark(icons.SidebarLeft),
 			PaneTitle:    "Hide the sidebar",
 			ToolbarTitle: "Show the sidebar",
 		},
@@ -701,7 +701,7 @@ func (inv *Inventory) twoColumnShell(c tokens.PlatformColors) layout.Widget {
 			Center: func(gtx layout.Context) layout.Dimensions {
 				return LabelAt(gtx, inv.shaper, "Drafts", sectionText(c), 13, font.Font{})
 			},
-			Trailing: []layout.Widget{bordered(&findClick, icons.Search, "Search")},
+			Trailing: []layout.Widget{bordered(&findClick, icons.MagnifyingGlass, "Search")},
 		},
 		Main: inset(inv.prose(c,
 			"The content column.",
@@ -870,7 +870,7 @@ func (inv *Inventory) threeColumnShell(c tokens.PlatformColors) layout.Widget {
 		},
 		Toggle: &shell.ToggleSidebar{
 			Click:        &toggleClick,
-			Mark:         icons.Mark(icons.Sidebar),
+			Mark:         icons.Mark(icons.SidebarLeft),
 			PaneTitle:    "Hide the sidebar",
 			ToolbarTitle: "Show the sidebar",
 		},
@@ -903,7 +903,7 @@ func (inv *Inventory) threeColumnShell(c tokens.PlatformColors) layout.Widget {
 		Toolbar: shell.Toolbar{
 			Lead:     16,
 			Leading:  []layout.Widget{bordered(&replyClick, icons.ChevronLeft, "Reply")},
-			Trailing: []layout.Widget{bordered(&findClick, icons.Search, "Search")},
+			Trailing: []layout.Widget{bordered(&findClick, icons.MagnifyingGlass, "Search")},
 		},
 		Main: inset(inv.prose(c,
 			"The content column.",

@@ -26,17 +26,17 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// clearTrail is where the clear mark's trailing edge stands: the field's
+// clearTrail is where the xmark-circle mark's trailing edge stands: the field's
 // outer edge less its trailing inset, which is the hairline the field is
 // drawn with plus the measured [control.TextTrailDp] inside it.
 const clearTrail = float32(1 + control.TextTrailDp)
 
 // TestSearchFieldGolden records or diffs the search field's three states in
-// both schemes: resting with its prompt, holding a query with the clear mark
+// both schemes: resting with its prompt, holding a query with the xmark-circle mark
 // beside it, and focused.
 //
 // The three are what separate this control from the text field it is built
-// on — the looking glass is in every one of them, and the clear mark is in
+// on — the looking glass is in every one of them, and the xmark-circle mark is in
 // exactly the one that has something to clear.
 func TestSearchFieldGolden(t *testing.T) {
 	shaper := defaultShaper(t)
@@ -84,7 +84,7 @@ func TestSearchFieldGolden(t *testing.T) {
 
 // TestSearchFieldReservesBothSlots asserts the structure is paid for in
 // layout and not merely painted: a search field spends the same width on its
-// marks whether or not the clear mark is in its slot, so the text a reader is
+// marks whether or not the xmark-circle mark is in its slot, so the text a reader is
 // typing does not reflow the moment the field stops being empty.
 //
 // It is read off the drawn width the placeholder is given, which is the field
@@ -118,7 +118,7 @@ func TestSearchFieldReservesBothSlots(t *testing.T) {
 	}
 }
 
-// TestSearchFieldClearMarkEmptiesTheField drives a press on the clear mark
+// TestSearchFieldClearMarkEmptiesTheField drives a press on the xmark-circle mark
 // through a live search field holding a query, and checks the two things the
 // mark promises: the field is empty afterwards, and the empty query is
 // reported the way a keystroke reports any other — which is what dismisses a
@@ -173,7 +173,7 @@ func TestSearchFieldClearMarkEmptiesTheField(t *testing.T) {
 	}
 }
 
-// TestSearchFieldClearMarkPostsTheEmptyChangeOnce presses the clear mark on a
+// TestSearchFieldClearMarkPostsTheEmptyChangeOnce presses the xmark-circle mark on a
 // field holding a query and counts what is posted: the empty change is posted
 // once on the frame of the press, the way Escape posts it.
 func TestSearchFieldClearMarkPostsTheEmptyChangeOnce(t *testing.T) {
@@ -657,15 +657,15 @@ func TestSearchFieldToolbarRecessIsTheMeasuredControl(t *testing.T) {
 
 // TestTheCountStandsInsideTheFieldAtItsTrailingEnd reads what a search field
 // reports about its query off the drawn pixels: it stands INSIDE the field,
-// between the text and the clear mark, and it moves neither.
+// between the text and the xmark-circle mark, and it moves neither.
 //
 // MEASURED, reference/macos/voicememos-multi-folder-search-2026-09-18.png —
 // a frontmost Voice Memos window whose toolbar field holds a query: the
-// field's fill runs x 700–1023 and the clear mark's disc x 996–1009, so the
+// field's fill runs x 700–1023 and the xmark-circle mark's disc x 996–1009, so the
 // mark stands fourteen clear of the field's trailing edge against the
 // magnifier's thirteen at its leading one. No stored capture holds a field
 // that reports a count, so where the count stands is composed from those two
-// readings: it takes the trailing end, the clear mark keeps its own inset,
+// readings: it takes the trailing end, the xmark-circle mark keeps its own inset,
 // and the clear space between them is the eight the platform leaves between
 // the magnifier and the prompt at the other end (mail-window.png).
 func TestTheCountStandsInsideTheFieldAtItsTrailingEnd(t *testing.T) {
@@ -708,7 +708,7 @@ func TestTheCountStandsInsideTheFieldAtItsTrailingEnd(t *testing.T) {
 			bare[0], counted[0])
 	}
 	// What the count adds is paint the bare field does not have, and all of it
-	// stands inside the field, leading of the clear mark.
+	// stands inside the field, leading of the xmark-circle mark.
 	added := 0
 	seen := map[int]bool{}
 	for _, x := range bare {

@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <!-- Document: the thing a sidebar row stands for when the entry is a single
-       piece of content — a note, a file, a page. It names a thing and not a
+  <!-- Document: a page with its top trailing corner folded down.
+       A sidebar row draws it when the entry is a single piece of content — a
+       note, a file, a page. It names a thing and not a
        control, as the folder mark does.
 
        MEASURED at 1x, the page symbol on Finder's "Documents" row in

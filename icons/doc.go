@@ -5,7 +5,7 @@
 // A name yields a painter with the signature the library's controls take for
 // an icon slot — func(gtx, sizePx, col) — so it drops straight into one:
 //
-//	mark := icons.Mark(icons.Sidebar)
+//	mark := icons.Mark(icons.SidebarLeft)
 //	if mark != nil {
 //		mark(gtx, gtx.Dp(20), fg)
 //	}
@@ -19,7 +19,7 @@
 // # Names
 //
 // A name says what the mark depicts, never what the control using it does:
-// chevron-right, folder, sidebar — not disclosure, history-back, pull-down.
+// chevron-right, folder, sidebar-left — not disclosure, history-back, pull-down.
 // One picture therefore carries one name however many actions it serves: the
 // folder a row IS and the control that chooses which folder a window shows
 // are both drawn with a closed folder, so both ask for folder, and the one
@@ -90,7 +90,7 @@
 // at their own size: Mail's and Voice Memos' search fields each draw a lens
 // 10.29 px across outside in a symbol 12.33 px wide, which against the toolbar
 // symbol's own 15.75 px width is 13.14 units. 13 is the reading, and the set
-// draws its round forms to it — the search mark's lens and the refresh mark's
+// draws its round forms to it — the magnifying-glass mark's lens and the arrow-clockwise mark's
 // ring. It replaces an unmeasured 20 the set carried before, which stood
 // seven units over the platform's own lens.
 //
@@ -124,7 +124,7 @@
 // capture that would settle it is on the reference's list.
 //
 // The one stored capture of a CLEAR control does not settle it, and what it
-// holds settles the clear mark instead. MEASURED at 1x off
+// holds settles the xmark-circle mark instead. MEASURED at 1x off
 // voicememos-multi-folder-search-2026-09-18.png, a least-squares fit of the
 // figure to the capture's own coverage over the mark's whole block (rms 0.007
 // of a pixel per pixel): the platform draws its clear control at x 996-1009
@@ -134,7 +134,7 @@
 // a solid figure and not a band standing on its own, so it gives the diagonal
 // allowance nothing — but the DISC is a round form at 13.04, which is the
 // round and curved allowance above read a second time, off a second
-// application, at a second place. The set draws that control: clear.svg is
+// application, at a second place. The set draws that control: xmark-circle.svg is
 // the disc and the knockout, and the bare cross it carried before is gone.
 //
 // # What a form is measured against, per place
@@ -286,7 +286,7 @@
 // three sizes.
 //
 // THE SECOND BAND is 0.93 units, and it is measured rather than derived:
-// the three list lines inside the sidebar mark's leading column carry 2.80
+// the three list lines inside the sidebar-left mark's leading column carry 2.80
 // units of coverage between them over a length of 2.53 (voicememos-window.png,
 // the sidebar toggle, x 108-111, y 21-31), which is 0.93 units each, and their
 // centres stand on a period of 2.20. It is what the platform gives an element
@@ -319,10 +319,10 @@
 //
 // A PATH THAT LAYS DOWN NO BAND TAKES NO WIDENING. The widening exists to
 // hold a band to a device width, and a figure knocked out of a solid one is
-// no band: the clear mark is a disc with a cross knocked out of it and the
+// no band: the xmark-circle mark is a disc with a cross knocked out of it and the
 // folder-plus badge a disc with a plus, and in each the figure's extent and
 // the hole's are measured rather than a weight. Offsetting their edges would
-// thicken the one while closing the other — at 16 dp the clear mark's arms
+// thicken the one while closing the other — at 16 dp the xmark-circle mark's arms
 // would come to 0.31 px against the 0.79 the grid gives them, and the
 // badge's plus to 0.55 against 0.93 — so both scale with the grid and
 // nothing else.
@@ -351,7 +351,7 @@
 // magnifier's lens is 13.06 px across outside there, so a round form drawn to
 // the set's 13 units at 24 dp covers the platform's own lens to a sixteenth
 // of a pixel. The whole magnifier, handle included, comes out 16.2 units
-// against the capture's 15.75 by 15.99. The clear mark's disc is the same
+// against the capture's 15.75 by 15.99. The xmark-circle mark's disc is the same
 // allowance drawn solid, and the platform's own clear control measures 13.04
 // px across. The DIAGONAL allowance is the one number here still unmeasured:
 // 20 units at 24 dp is 20 px where the nearest diagonal figure the reference

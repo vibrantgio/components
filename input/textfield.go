@@ -719,7 +719,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 		pointershape.OverSize(gtx.Ops, fieldSize, pointer.CursorText)
 	}
 
-	// The looking glass and the clear mark are drawn over the field's own
+	// The looking glass and the xmark-circle mark are drawn over the field's own
 	// fill and outside the editor's box, so neither can be typed over.
 	ad.paint(gtx, tok, s, fieldSize, padH)
 
@@ -1049,7 +1049,7 @@ func textFieldColors(p tokens.PlatformColors, s RenderState) (fill, foreground, 
 // A field that draws no edge spends none. The sidebar recess is that field —
 // MEASURED, system-settings-grouped-box-{light,dark}.png: it steps from the
 // sidebar to its fill in one row with no stroke row on any side — so its
-// trailing inset is the measured six and nothing else, and the clear mark
+// trailing inset is the measured six and nothing else, and the xmark-circle mark
 // standing in it lands where the measurement puts it rather than one column
 // further in. The toolbar recess spends the column in both appearances even
 // though the platform draws its rim in the dark one alone: it is the same

@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <!-- Clear: the control that empties a field of what was typed into it. It
-       is the platform's own drawing rather than a figure of this set's: a
-       FILLED DISC with a cross knocked out of it, so what shows through the
-       cross is the fill the control stands on.
+  <!-- Xmark-circle: a circle with an x in it. A field draws it on the
+       control that empties the field. It is the platform's own drawing rather
+       than a figure of this set's: a FILLED DISC with a cross knocked out of
+       it, so the fill the disc stands on shows through the cross.
 
        MEASURED at 1x off voicememos-multi-folder-search-2026-09-18.png, the
        one stored capture of a clear control — a focused Voice Memos toolbar
@@ -20,7 +20,7 @@
        The disc is a ROUND FORM and takes the set's measured round and curved
        allowance of 13 units, which at 24 dp is 13 px against the capture's
        13.04 — the same allowance and the same agreement Finder's toolbar
-       magnifier lens reads at (search.svg). The library draws this mark at
+       magnifier lens reads at (magnifying-glass.svg). The library draws this mark at
        24 dp, where one grid unit is one device pixel, so the disc comes out
        at the platform's own size.
 

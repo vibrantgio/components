@@ -42,7 +42,7 @@
 // it, and that is the one place in the library where the two heights part.
 //
 // The search field is the text field with two slots added to its structure:
-// the looking glass that names it, drawn leading, and the clear mark that
+// the looking glass that names it, drawn leading, and the xmark-circle mark that
 // empties it, drawn trailing while there is a query to take back. Both are
 // spent out of the field's own width, so a search field and a text field of
 // the same width are the same size and the text does not reflow when the

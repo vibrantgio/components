@@ -75,7 +75,7 @@
        THE DISC IS 8 UNITS across against the capture's 8.11 px. The library
        draws this mark at 24 dp, where one grid unit is one device pixel, so
        the whole unit nearest the reading comes out at the platform's own
-       size — the step clear.svg takes for its own disc. The set's round and
+       size — the step xmark-circle.svg takes for its own disc. The set's round and
        curved allowance of 13 is what a round form STANDING ALONE takes, and
        this disc stands on a folder.
 
@@ -102,7 +102,7 @@
        any size. That is what the measured span costs against a centre read
        at 18.8, and the span is what is kept. The two ends down stand on the
        whole units 6 and 11. The disc's edge is a curve and takes no such
-       snapping, as clear.svg's does not.
+       snapping, as xmark-circle.svg's does not.
 
        THE OUTLINE IS CUT ROUND THE BADGE, not painted over it. A painter is
        handed one colour and the mark is drawn in it, so a mark cannot paint
@@ -178,7 +178,7 @@
        from outside the box into the space the outline encloses and leaves a
        single open strip, closed here through its arcs. A round wound against
        the box instead would leave that enclosed space at a winding of -1 and
-       fill it solid, which is the trap clear.svg's single cross contour
+       fill it solid, which is the trap xmark-circle.svg's single cross contour
        avoids. Its inner edge rises along the shoulder from 8.1122 on the
        body's inner top face to 5.6122 on the tab's inner face at 5.9. The FLAP is its own contour, cut by the same round. The BADGE
        is the disc wound clockwise with the plus wound against it inside one

@@ -1,13 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <!-- Sidebar, the drawing every platform without one of its own gets: a
-       rounded pane divided into a narrow leading column and a wide trailing
-       one. One picture for the control in every state — showing and hiding a
-       sidebar is the control's business to signal, not the mark's, so nothing
-       here morphs.
-
-       The figure carries the platform-neutral structure only; the faint list
-       lines that stand for a source list are a macOS habit and live in that
-       platform's own file.
+  <!-- Sidebar-left, the drawing for macOS: a window with its leading pane
+       marked. It has the same pane and seam the fallback has, and the three
+       list lines that platform puts in the leading column. The mark is the
+       same in every state. The control that shows and hides a sidebar
+       signals which way it goes, so nothing here morphs.
 
        MEASURED at 1x, voicememos-window.png, the sidebar toggle standing in
        that window's toolbar band (the capsule x 96-135, the symbol x 106-125,
@@ -65,4 +61,35 @@
   <!-- The seam, one band wide, spanning the inner pane from top to
        bottom. -->
   <path fill="#000000" d="M8.75 5.9 L10.15 5.9 L10.15 18.1 L8.75 18.1 Z"/>
+  <!-- The list lines: three bars at the set's SECOND band, standing high
+       in the leading column the way a list that has not filled its pane does.
+       They say "a list lives here"; they are not the subject, and what sets
+       them apart is the weight the platform draws them at and not a fade
+       laid over the figure's own.
+
+       MEASURED off the same toggle, x 108-111, y 21-31: the three bars carry
+       2.80 units of coverage between them over a length of 2.53, so each is
+       0.93 units thick, and their centres stand 3.95, 6.15 and 8.35 units
+       below the pane's top edge — a period of 2.20 — ending 3.78 units in
+       from the inner pane. All four readings are drawn as measured: the bars
+       run x 5.15 to 7.68 and their centres fall at 8.45, 10.65 and 12.85
+       against a pane top of 4.5.
+
+       The ends are cut square. A cap on a band 0.93 units thick has a radius
+       of 0.465, which is 0.31 px at 16 dp and 0.47 at 24 — under half a device
+       pixel at every size the library draws, so the shape of the end is not
+       drawable and the geometry says so rather than carrying a curve nothing
+       renders.
+
+       Where each band lands. NONE of them, at any size, and that is the
+       second weight rather than a miss. It takes the same widening the first
+       does, so it comes out 1.01 px at 16 dp, 1.01 at 20 and 0.93 at 24
+       against the band's own 1.32, 1.40 and 1.40 — but the three leading
+       edges stand at 7.985, 10.185 and 12.385, on a period the device grid
+       does not divide, and no bar holds a whole device pixel at any of the
+       three. What each reaches is 0.870, 0.603 and 0.937 of its best pixel at
+       16 dp, 0.546, 0.629 and 0.796 at 20, and 0.915, 0.815 and 0.615 at 24.
+       Each is drawn at part coverage of the control's own colour, which is
+       what a line carried beside the figure reads as. -->
+  <path fill="#000000" d="M5.15 7.985 L7.68 7.985 L7.68 8.915 L5.15 8.915 Z M5.15 10.185 L7.68 10.185 L7.68 11.115 L5.15 11.115 Z M5.15 12.385 L7.68 12.385 L7.68 13.315 L5.15 13.315 Z"/>
 </svg>

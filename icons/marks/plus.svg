@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <!-- Plus: the control that adds one more of what the window holds — a new
-       note, a new chat, a new recording. One picture in every state; what is
-       about to be added is the control's label to say.
+  <!-- Plus: a plus sign, two equal bars crossed at their centres. A control
+       that adds one more of what the window holds draws it. The mark is the
+       same in every state. The control's title says what is added.
 
        Grid: an axis-aligned form, so it fills the set's square keyline — each
        arm runs from unit 2.5 to unit 21.5, a 19 by 19 box — and takes the
@@ -46,7 +46,7 @@
        at all three.
 
        The ends are cut square: a cross is read by its crossing, and a cap on
-       four arms only thickens the figure — the same rule the clear mark's two
+       four arms only thickens the figure — the same rule the xmark-circle mark's two
        bands are drawn by. Two contours, one per arm, abutting rather than
        winding against each other. -->
   <path fill="#000000" d="M2.5 10.6 L21.5 10.6 L21.5 12 L2.5 12 Z"/>

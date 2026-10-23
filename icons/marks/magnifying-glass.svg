@@ -1,7 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <!-- Search: the looking glass that names a search field at a glance. It is
-       not itself a control — pressing it operates nothing — but it stands in a
-       control's structure, so it is drawn to this set's grid like the rest.
+  <!-- Magnifying-glass: a round lens with a handle. A search field leads
+       with it. It is not itself a control, and pressing it operates nothing.
+       It is in a control's structure, so it is drawn to this set's grid like
+       the rest.
 
        MEASURED, mail-window.png and voicememos-window.png: the platform's
        magnifier is a round lens with the handle at 45 degrees to the lower
@@ -35,7 +36,7 @@
        The lens's centre is not the drawing's centre and cannot be: the lens
        stands leading and high, the handle runs to the lower trailing corner.
        A field aligning this mark on its centre row aligns the lens, which is
-       where the platform puts it — see SearchLensCentre.
+       where the platform puts it — see MagnifyingGlassLensCentre.
 
        The proportions inside the drawing are the capture's: the lens is 0.803
        of the drawing's extent against the toolbar symbol's measured 0.829 and

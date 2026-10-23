@@ -166,7 +166,7 @@ func offsetContours(cs []contour, d float64) []contour {
 // edge: the same signed offset shrinks it while the outer edge grows, and
 // the band between the two comes out the device width its size's capture
 // gives. A hole standing further away is a FIGURE knocked out of a solid one
-// — the folder-plus badge's plus, the clear mark's cross — where the figure
+// — the folder-plus badge's plus, the xmark-circle mark's cross — where the figure
 // and the hole are both measured extents rather than a weight, and the
 // offset would thicken the one while closing the other. Such a path is drawn
 // at the extents the grid gives it at every size.

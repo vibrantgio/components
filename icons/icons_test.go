@@ -24,11 +24,11 @@ var (
 // TestPlatformDrawingAnswersFirst is the hit half of the per-system rule: a
 // system the set carries a drawing for gets that drawing.
 func TestPlatformDrawingAnswersFirst(t *testing.T) {
-	got, ok := icons.New("darwin").Resolve(icons.Sidebar)
+	got, ok := icons.New("darwin").Resolve(icons.SidebarLeft)
 	if !ok {
-		t.Fatalf("%q does not resolve on darwin", icons.Sidebar)
+		t.Fatalf("%q does not resolve on darwin", icons.SidebarLeft)
 	}
-	if want := "sidebar@darwin"; got != want {
+	if want := "sidebar-left@darwin"; got != want {
 		t.Errorf("resolved to %q, want %q", got, want)
 	}
 }
@@ -38,12 +38,12 @@ func TestPlatformDrawingAnswersFirst(t *testing.T) {
 // than another system's idiom or nothing at all.
 func TestFallbackAnswersWhereThereIsNoPlatformDrawing(t *testing.T) {
 	for _, goos := range []string{"windows", "linux", "freebsd", "js"} {
-		got, ok := icons.New(goos).Resolve(icons.Sidebar)
+		got, ok := icons.New(goos).Resolve(icons.SidebarLeft)
 		if !ok {
-			t.Errorf("%s: %q does not resolve", goos, icons.Sidebar)
+			t.Errorf("%s: %q does not resolve", goos, icons.SidebarLeft)
 			continue
 		}
-		if want := string(icons.Sidebar); got != want {
+		if want := string(icons.SidebarLeft); got != want {
 			t.Errorf("%s: resolved to %q, want %q", goos, got, want)
 		}
 	}
@@ -53,14 +53,14 @@ func TestFallbackAnswersWhereThereIsNoPlatformDrawing(t *testing.T) {
 // package-level entry points answer for runtime.GOOS without being told what
 // that is, and without a build tag deciding it.
 func TestTheSetResolvesForTheRunningSystem(t *testing.T) {
-	if !icons.Has(icons.Sidebar) {
-		t.Fatalf("%q does not resolve on %s", icons.Sidebar, runtime.GOOS)
+	if !icons.Has(icons.SidebarLeft) {
+		t.Fatalf("%q does not resolve on %s", icons.SidebarLeft, runtime.GOOS)
 	}
-	if icons.Mark(icons.Sidebar) == nil {
-		t.Fatalf("no painter for %q on %s", icons.Sidebar, runtime.GOOS)
+	if icons.Mark(icons.SidebarLeft) == nil {
+		t.Fatalf("no painter for %q on %s", icons.SidebarLeft, runtime.GOOS)
 	}
-	got, _ := icons.Resolve(icons.Sidebar)
-	want, _ := icons.New(runtime.GOOS).Resolve(icons.Sidebar)
+	got, _ := icons.Resolve(icons.SidebarLeft)
+	want, _ := icons.New(runtime.GOOS).Resolve(icons.SidebarLeft)
 	if got != want {
 		t.Errorf("resolved to %q, want %q", got, want)
 	}
@@ -87,7 +87,7 @@ func TestUnknownNameHasNoMark(t *testing.T) {
 // drawings stand behind it.
 func TestNamesListEachMarkOnce(t *testing.T) {
 	got := icons.New("darwin").Names()
-	want := []icons.Name{icons.Check, icons.ChevronDown, icons.ChevronLeft, icons.ChevronPair, icons.ChevronRight, icons.Clear, icons.Document, icons.Folder, icons.FolderPlus, icons.Minus, icons.Plus, icons.Refresh, icons.Search, icons.Sidebar, icons.SquareAndArrowUp}
+	want := []icons.Name{icons.ArrowClockwise, icons.Check, icons.ChevronDown, icons.ChevronLeft, icons.ChevronPair, icons.ChevronRight, icons.Document, icons.Folder, icons.FolderPlus, icons.MagnifyingGlass, icons.Minus, icons.Plus, icons.SidebarLeft, icons.SquareAndArrowUp, icons.XmarkCircle}
 	if len(got) != len(want) {
 		t.Fatalf("names = %v, want %v", got, want)
 	}
@@ -104,7 +104,7 @@ func TestRegisterFillsRegistry(t *testing.T) {
 	r := icon.New()
 	icons.Register(r)
 
-	for _, key := range []string{"sidebar", "sidebar@darwin"} {
+	for _, key := range []string{"sidebar-left", "sidebar-left@darwin"} {
 		got, ok := r.Icon(key)
 		if !ok {
 			t.Errorf("%q missing from the registry", key)
@@ -127,8 +127,8 @@ func TestRegistriesDoNotShareDrawings(t *testing.T) {
 	icons.Register(a)
 	icons.Register(b)
 
-	x, _ := a.Icon("sidebar")
-	y, _ := b.Icon("sidebar")
+	x, _ := a.Icon("sidebar-left")
+	y, _ := b.Icon("sidebar-left")
 	if x.SVG() == y.SVG() {
 		t.Error("two registries were handed the same drawing")
 	}
@@ -197,9 +197,9 @@ func TestEveryMarkComesOutAtTheStrengthItsBandGives(t *testing.T) {
 	//
 	// The four figures that arrive at the colour everywhere are the ones with
 	// a solid junction in them: the plus's crossing, the folder's and the open
-	// folder's square corners, the refresh mark's arrowhead. The document
+	// folder's square corners, the arrow-clockwise mark's arrowhead. The document
 	// reaches it at 20 and 24 from its fold's two lines, which stand on 11 and
-	// 9.5; the search mark from the handle meeting the ring; the sidebar from
+	// 9.5; the magnifying-glass mark from the handle meeting the ring; the sidebar from
 	// the seam at 8.75, which lands at 24 dp alone.
 	//
 	// The diagonals are phase, not weight. A 45-degree band covers a whole
@@ -210,18 +210,18 @@ func TestEveryMarkComesOutAtTheStrengthItsBandGives(t *testing.T) {
 	// check's arms run x-y = -8 and x+y = 26, whole at 24 dp and neither at
 	// the other two. The right- and left-pointing chevrons' arms are steeper
 	// than 45 degrees and stand on no such line at all; what carries them at 24 dp is the mitre at
-	// the apex, which is solid. The clear mark carries no band at all — a
+	// the apex, which is solid. The xmark-circle mark carries no band at all — a
 	// solid disc with a cross knocked out of it — so it arrives at the colour
 	// at every size, and its entry went with the bare cross it replaced.
 	reaches := map[icons.Name]map[int]int{
-		icons.Check:        {16: 0x80, 20: 0x5d},
-		icons.ChevronDown:  {24: 0x2c},
-		icons.ChevronLeft:  {16: 0x5f, 20: 0x55},
-		icons.ChevronPair:  {24: 0x2c},
-		icons.ChevronRight: {16: 0x5f, 20: 0x58},
-		icons.Document:     {16: 0x5a},
-		icons.Search:       {16: 0x48},
-		icons.Sidebar:      {16: 0x45, 20: 0x46},
+		icons.Check:           {16: 0x80, 20: 0x5d},
+		icons.ChevronDown:     {24: 0x2c},
+		icons.ChevronLeft:     {16: 0x5f, 20: 0x55},
+		icons.ChevronPair:     {24: 0x2c},
+		icons.ChevronRight:    {16: 0x5f, 20: 0x58},
+		icons.Document:        {16: 0x5a},
+		icons.MagnifyingGlass: {16: 0x48},
+		icons.SidebarLeft:     {16: 0x45, 20: 0x46},
 	}
 
 	set := icons.New("darwin")
@@ -263,7 +263,7 @@ func TestEveryMarkComesOutAtTheStrengthItsBandGives(t *testing.T) {
 // TestMarkTakesTheColourItIsGiven: colour reaches the mark from the call site,
 // which is what keeps it out of the built ops.
 func TestMarkTakesTheColourItIsGiven(t *testing.T) {
-	mark := icons.New("windows").Mark(icons.Sidebar)
+	mark := icons.New("windows").Mark(icons.SidebarLeft)
 	if mark == nil {
 		t.Fatal("no painter for the sidebar")
 	}
@@ -311,7 +311,7 @@ var listLine = image.Pt(6, 8)
 func TestPlatformDrawingsDifferOnScreen(t *testing.T) {
 	const px = 24
 	shot := func(goos string) color.RGBA {
-		mark := icons.New(goos).Mark(icons.Sidebar)
+		mark := icons.New(goos).Mark(icons.SidebarLeft)
 		if mark == nil {
 			t.Fatalf("%s: no painter for the sidebar", goos)
 		}
@@ -332,7 +332,7 @@ func TestPlatformDrawingsDifferOnScreen(t *testing.T) {
 // survives being tinted.
 func TestFaintElementStaysFaint(t *testing.T) {
 	const px = 24
-	mark := icons.New("darwin").Mark(icons.Sidebar)
+	mark := icons.New("darwin").Mark(icons.SidebarLeft)
 	if mark == nil {
 		t.Fatal("no painter for the sidebar")
 	}
@@ -351,7 +351,7 @@ func TestFaintElementStaysFaint(t *testing.T) {
 // against: the drawing behind a name is resized in place, so two sizes in one
 // frame would fight over it if they shared one.
 func TestOneMarkAtTwoSizesInOneFrame(t *testing.T) {
-	mark := icons.New("darwin").Mark(icons.Sidebar)
+	mark := icons.New("darwin").Mark(icons.SidebarLeft)
 	if mark == nil {
 		t.Fatal("no painter for the sidebar")
 	}
@@ -404,35 +404,35 @@ func painted(img *image.RGBA) int {
 	return n
 }
 
-// TestSearchMarkIsDrawnWhereAFieldExpectsIt holds search.svg to the three
+// TestMagnifyingGlassMarkIsDrawnWhereAFieldExpectsIt holds magnifying-glass.svg to the three
 // numbers a search field places it by: the drawing fills the set's 20-unit
-// allowance exactly, so it starts [icons.SearchDrawingOrigin] into the square
-// and is [icons.SearchDrawingSize] of it, and its lens is centred on
-// [icons.SearchLensCentre] rather than on the drawing's own middle.
+// allowance exactly, so it starts [icons.MagnifyingGlassDrawingOrigin] into the square
+// and is [icons.MagnifyingGlassDrawingSize] of it, and its lens is centred on
+// [icons.MagnifyingGlassLensCentre] rather than on the drawing's own middle.
 //
 // The lens's centre is read off the pixels the only way a raster offers it:
 // the lens's leftmost pixel stands on the row through its centre, and its
 // topmost pixel on the column through it. A drawing that moved the lens would
 // move both, and a field aligning the mark on a field's centre row would put
 // the symbol high or low without anything else noticing.
-func TestSearchMarkIsDrawnWhereAFieldExpectsIt(t *testing.T) {
-	mark := icons.New("darwin").Mark(icons.Search)
+func TestMagnifyingGlassMarkIsDrawnWhereAFieldExpectsIt(t *testing.T) {
+	mark := icons.New("darwin").Mark(icons.MagnifyingGlass)
 	if mark == nil {
-		t.Fatal("the set carries no search mark")
+		t.Fatal("the set carries no magnifying-glass mark")
 	}
 	for _, px := range []int{16, 20, 24} {
 		img := shoot(t, px, func(gtx layout.Context) { mark(gtx, px, black) })
 		drawn := drawnBounds(img)
 		want := image.Rect(
-			int(icons.SearchDrawingOrigin*float64(px)),
-			int(icons.SearchDrawingOrigin*float64(px)),
-			int((icons.SearchDrawingOrigin+icons.SearchDrawingSize)*float64(px)+0.999),
-			int((icons.SearchDrawingOrigin+icons.SearchDrawingSize)*float64(px)+0.999),
+			int(icons.MagnifyingGlassDrawingOrigin*float64(px)),
+			int(icons.MagnifyingGlassDrawingOrigin*float64(px)),
+			int((icons.MagnifyingGlassDrawingOrigin+icons.MagnifyingGlassDrawingSize)*float64(px)+0.999),
+			int((icons.MagnifyingGlassDrawingOrigin+icons.MagnifyingGlassDrawingSize)*float64(px)+0.999),
 		)
 		if drawn != want {
 			t.Errorf("at %d px the drawing covered %v and the allowance it is authored to fill is %v", px, drawn, want)
 		}
-		centre := icons.SearchLensCentre * float64(px)
+		centre := icons.MagnifyingGlassLensCentre * float64(px)
 		if row := leftmostDrawnRow(img); !within(float64(row)+0.5, centre, 1) {
 			t.Errorf("at %d px the lens's leftmost pixel is on row %d, and its centre is stated at %.2f", px, row, centre)
 		}
@@ -442,28 +442,28 @@ func TestSearchMarkIsDrawnWhereAFieldExpectsIt(t *testing.T) {
 	}
 }
 
-// TestClearMarkIsDrawnWhereAFieldExpectsIt holds clear.svg to the two numbers
-// a search field places it by: the disc stands [icons.ClearDiscOrigin] into
-// the square and is [icons.ClearDiscSize] of it. The field places the mark by
+// TestXmarkCircleMarkIsDrawnWhereAFieldExpectsIt holds xmark-circle.svg to the two numbers
+// a search field places it by: the disc stands [icons.XmarkCircleDiscOrigin] into
+// the square and is [icons.XmarkCircleDiscSize] of it. The field places the mark by
 // the disc and not by the square, because the clearance the platform leaves
 // past it is measured to the disc's own last pixel.
 //
 // The knockout is read at the same time: the cross has to reach the surface
 // under the mark, and a mark that filled its disc solid would still land the
 // bounds above.
-func TestClearMarkIsDrawnWhereAFieldExpectsIt(t *testing.T) {
-	mark := icons.New("darwin").Mark(icons.Clear)
+func TestXmarkCircleMarkIsDrawnWhereAFieldExpectsIt(t *testing.T) {
+	mark := icons.New("darwin").Mark(icons.XmarkCircle)
 	if mark == nil {
-		t.Fatal("the set carries no clear mark")
+		t.Fatal("the set carries no xmark-circle mark")
 	}
 	for _, px := range []int{16, 20, 24} {
 		img := shoot(t, px, func(gtx layout.Context) { mark(gtx, px, black) })
 		drawn := drawnBounds(img)
 		want := image.Rect(
-			int(icons.ClearDiscOrigin*float64(px)),
-			int(icons.ClearDiscOrigin*float64(px)),
-			int((icons.ClearDiscOrigin+icons.ClearDiscSize)*float64(px)+0.999),
-			int((icons.ClearDiscOrigin+icons.ClearDiscSize)*float64(px)+0.999),
+			int(icons.XmarkCircleDiscOrigin*float64(px)),
+			int(icons.XmarkCircleDiscOrigin*float64(px)),
+			int((icons.XmarkCircleDiscOrigin+icons.XmarkCircleDiscSize)*float64(px)+0.999),
+			int((icons.XmarkCircleDiscOrigin+icons.XmarkCircleDiscSize)*float64(px)+0.999),
 		)
 		if drawn != want {
 			t.Errorf("at %d px the disc covered %v and the allowance it is authored to fill is %v", px, drawn, want)
@@ -543,11 +543,11 @@ func within(got, want, slack float64) bool {
 }
 
 // sidebarPx are the sizes the library draws icons at, which is the range the
-// sidebar mark's pane is read at below.
+// sidebar-left mark's pane is read at below.
 var sidebarPx = []int{16, 20, 24}
 
-// TestSidebarMarkKeepsTheMeasuredPane reads the sidebar mark's own geometry
-// off a render of it and holds it to the contract icons.SidebarPane* states.
+// TestSidebarLeftMarkKeepsTheMeasuredPane reads the sidebar-left mark's own geometry
+// off a render of it and holds it to the contract icons.SidebarLeftPane* states.
 //
 // The reading is taken from the drawing that serves every platform, which is
 // the pane and the seam and nothing else; the macOS drawing is held to the
@@ -561,16 +561,16 @@ var sidebarPx = []int{16, 20, 24}
 // come out exactly: a run's leading edge is its first covered column plus what
 // that column is missing, and its trailing edge is its last plus what that one
 // carries.
-func TestSidebarMarkKeepsTheMeasuredPane(t *testing.T) {
+func TestSidebarLeftMarkKeepsTheMeasuredPane(t *testing.T) {
 	const (
-		paneTrailing = icons.SidebarPaneLeading + icons.SidebarPaneWidth
-		paneBottom   = icons.SidebarPaneTop + icons.SidebarPaneHeight
+		paneTrailing = icons.SidebarLeftPaneLeading + icons.SidebarLeftPaneWidth
+		paneBottom   = icons.SidebarLeftPaneTop + icons.SidebarLeftPaneHeight
 		// The square's own centre, which stands inside the pane on both axes:
 		// below the top corners and above the bottom ones, and in the trailing
 		// column clear of the seam.
 		paneMiddle = 0.5
 	)
-	mark := icons.New("windows").Mark(icons.Sidebar)
+	mark := icons.New("windows").Mark(icons.SidebarLeft)
 	if mark == nil {
 		t.Fatal("no painter for the sidebar")
 	}
@@ -585,9 +585,9 @@ func TestSidebarMarkKeepsTheMeasuredPane(t *testing.T) {
 		if len(rows) != 3 {
 			t.Fatalf("%d px: a row through the pane crossed %d bands, want the two sides and the seam", px, len(rows))
 		}
-		checkBand(t, px, "the leading side", rows[0], icons.SidebarPaneLeading)
-		checkBand(t, px, "the seam", rows[1], icons.SidebarSeamLeading)
-		checkBand(t, px, "the trailing side", rows[2], paneTrailing-icons.SidebarBand)
+		checkBand(t, px, "the leading side", rows[0], icons.SidebarLeftPaneLeading)
+		checkBand(t, px, "the seam", rows[1], icons.SidebarLeftSeamLeading)
+		checkBand(t, px, "the trailing side", rows[2], paneTrailing-icons.SidebarLeftBand)
 
 		// A column through the pane's trailing half crosses the top and the
 		// bottom and neither the seam nor the list lines.
@@ -595,8 +595,8 @@ func TestSidebarMarkKeepsTheMeasuredPane(t *testing.T) {
 		if len(cols) != 2 {
 			t.Fatalf("%d px: a column through the pane crossed %d bands, want the top and the bottom", px, len(cols))
 		}
-		checkBand(t, px, "the top", cols[0], icons.SidebarPaneTop)
-		checkBand(t, px, "the bottom", cols[1], paneBottom-icons.SidebarBand)
+		checkBand(t, px, "the top", cols[0], icons.SidebarLeftPaneTop)
+		checkBand(t, px, "the bottom", cols[1], paneBottom-icons.SidebarLeftBand)
 	}
 }
 
@@ -605,8 +605,8 @@ func TestSidebarMarkKeepsTheMeasuredPane(t *testing.T) {
 // platform puts in a source list; the pane, the band and the seam are one
 // figure on both, so a control swapping platforms swaps no geometry.
 func TestTheMacDrawingIsTheSamePane(t *testing.T) {
-	fallback := icons.New("windows").Mark(icons.Sidebar)
-	mac := icons.New("darwin").Mark(icons.Sidebar)
+	fallback := icons.New("windows").Mark(icons.SidebarLeft)
+	mac := icons.New("darwin").Mark(icons.SidebarLeft)
 	if fallback == nil || mac == nil {
 		t.Fatal("no painter for the sidebar")
 	}
@@ -615,8 +615,8 @@ func TestTheMacDrawingIsTheSamePane(t *testing.T) {
 		b := shoot(t, px, func(gtx layout.Context) { mac(gtx, px, black) })
 		// The leading column is the inner pane's leading edge to the
 		// seam's, and it is the only place the two are allowed to differ.
-		lo := at(px, icons.SidebarPaneLeading+icons.SidebarBand)
-		hi := at(px, icons.SidebarSeamLeading) + 1
+		lo := at(px, icons.SidebarLeftPaneLeading+icons.SidebarLeftBand)
+		hi := at(px, icons.SidebarLeftSeamLeading) + 1
 		for y := range px {
 			for x := range px {
 				if x >= lo && x < hi {
@@ -656,7 +656,7 @@ func checkBand(t *testing.T, px int, what string, r run, lead float64) {
 	w := widen(px)
 	want := struct{ lead, trail, width float64 }{
 		lead:  lead*float64(px) - w/2,
-		trail: (lead+icons.SidebarBand)*float64(px) + w/2,
+		trail: (lead+icons.SidebarLeftBand)*float64(px) + w/2,
 		width: bandPx(px),
 	}
 	if math.Abs(r.width-want.width) > tolerance {

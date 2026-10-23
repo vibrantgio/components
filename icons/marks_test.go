@@ -62,8 +62,8 @@ func TestRegistryKeyFromFileName(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		{file: "sidebar.svg", want: "sidebar"},
-		{file: "sidebar.darwin.svg", want: "sidebar@darwin"},
+		{file: "sidebar-left.svg", want: "sidebar-left"},
+		{file: "sidebar-left.darwin.svg", want: "sidebar-left@darwin"},
 		{file: "chevron-left.svg", want: "chevron-left"},
 		{file: "chevron-left.windows.svg", want: "chevron-left@windows"},
 		{file: "Sidebar.svg", wantErr: true},
@@ -90,7 +90,7 @@ func TestRegistryKeyFromFileName(t *testing.T) {
 // again. A control animating its foreground therefore rebuilds nothing.
 func TestBuiltOpsAreKeyedBySizeAlone(t *testing.T) {
 	s := New("darwin")
-	mark := s.Mark(Sidebar)
+	mark := s.Mark(SidebarLeft)
 	if mark == nil {
 		t.Fatal("no painter for the sidebar")
 	}
@@ -121,7 +121,7 @@ func TestBuiltOpsAreKeyedBySizeAlone(t *testing.T) {
 // for none, and gets no ops and no cache entry rather than a zero-sized one.
 func TestNothingIsBuiltForAnEmptySquare(t *testing.T) {
 	s := New("darwin")
-	mark := s.Mark(Sidebar)
+	mark := s.Mark(SidebarLeft)
 	gtx := layout.Context{Ops: new(op.Ops), Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}}
 	mark(gtx, 0, black)
 	mark(gtx, -8, black)

@@ -168,7 +168,7 @@ func (inv *Inventory) typography() tokens.Typography {
 func New(shaper *text.Shaper) *Inventory { return NewForOS(shaper, runtime.GOOS) }
 
 // NewForOS is New with the platform control marks pinned to goos rather than
-// taken from the host. The marks are per-platform by design — a sidebar mark
+// taken from the host. The marks are per-platform by design — a sidebar-left mark
 // is drawn the way its platform draws it — so a capture meant to come out the
 // same bytes on every machine has to name the platform it is of.
 func NewForOS(shaper *text.Shaper, goos string) *Inventory {
@@ -593,7 +593,7 @@ func (inv *Inventory) emphasisButtonRow(c tokens.PlatformColors) layout.Widget {
 		{title: "Filled", st: button.RenderState{Emphasis: button.Filled}},
 		{title: "Tonal", st: button.RenderState{Emphasis: button.Tonal}},
 		{title: "Ghost", st: button.RenderState{Emphasis: button.Ghost}},
-		{icon: inv.marks.Mark(icons.Sidebar), st: button.RenderState{Emphasis: button.Filled}},
+		{icon: inv.marks.Mark(icons.SidebarLeft), st: button.RenderState{Emphasis: button.Filled}},
 	})
 }
 
@@ -617,7 +617,7 @@ func (inv *Inventory) chromeButtonRow(c tokens.PlatformColors) layout.Widget {
 		{Variant: button.Chrome, Focused: true},
 		{Variant: button.Chrome, Disabled: true},
 	}
-	mark := inv.marks.Mark(icons.Sidebar)
+	mark := inv.marks.Mark(icons.SidebarLeft)
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(states))
 		for i, st := range states {
@@ -1265,7 +1265,7 @@ func (inv *Inventory) textFieldRow(c tokens.PlatformColors) layout.Widget {
 
 // searchFieldRow is the search field in the three states that separate it
 // from the text field above it — empty, where the looking glass is all there
-// is to see, holding a query, where the clear mark has appeared beside it,
+// is to see, holding a query, where the xmark-circle mark has appeared beside it,
 // and focused — and then the two recesses it takes on chrome, which are
 // controls of a different shape: the platform's flat recess with its ends
 // fully rounded, the sidebar's at the field's own height with no edge and the
@@ -1756,7 +1756,7 @@ func (inv *Inventory) iconBlock(c tokens.PlatformColors) layout.Widget {
 		name  string
 		which icons.Name
 	}{
-		{"sidebar", icons.Sidebar},
+		{"sidebar-left", icons.SidebarLeft},
 		{"chevron-right", icons.ChevronRight},
 		{"chevron-left", icons.ChevronLeft},
 	}
@@ -1921,7 +1921,7 @@ const specimenName = "Show the sidebar"
 // The name is emitted as a semantic description because the title is empty by
 // construction, and an icon-only button has no title to fall back on.
 func (inv *Inventory) specimenControl(c tokens.PlatformColors) layout.Widget {
-	w := button.RenderIcon(inv.marks.Mark(icons.Sidebar), c, tokens.Spacing,
+	w := button.RenderIcon(inv.marks.Mark(icons.SidebarLeft), c, tokens.Spacing,
 		tokens.Radius, tokens.Comfortable,
 		button.RenderState{Emphasis: button.Ghost, Hovered: true})
 	return func(gtx layout.Context) layout.Dimensions {

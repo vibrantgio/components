@@ -41,36 +41,37 @@ type Name string
 // a name looks like is free to change and does change between platforms, so
 // the name is the part call sites store.
 const (
-	// Sidebar is the control that shows and hides a window's sidebar. One
-	// mark serves both directions — which way the control is about to go is
-	// the control's to signal, and a mark that morphs cannot be recognised.
-	Sidebar Name = "sidebar"
+	// SidebarLeft is a window with its leading pane marked off by a seam.
+	// One mark serves a control that shows the pane and a control that hides
+	// it. The control signals which way it is about to go. The mark never
+	// morphs, because a mark that morphs cannot be recognised.
+	SidebarLeft Name = "sidebar-left"
 
-	// Search is the looking glass a search field leads with. It names the
-	// control at a glance and is the one mark in this set that operates
-	// nothing: it stands in a structure rather than on a control of its own.
-	Search Name = "search"
+	// MagnifyingGlass is a magnifying glass: a round lens with a handle
+	// that runs to the lower trailing corner. A search field leads with it.
+	// It is the one mark in this set that operates nothing.
+	MagnifyingGlass Name = "magnifying-glass"
 
-	// Clear is the control that empties a field of what was typed into it.
-	// The drawing is the platform's own control rather than a figure of this
-	// set's: a filled disc with a cross knocked out of it, so the fill the
-	// control stands on shows through the cross.
-	Clear Name = "clear"
+	// XmarkCircle is a circle with an x in it. The drawing is a filled disc
+	// with a cross knocked out of it, so the fill the disc stands on shows
+	// through the cross. A field draws it on the control that empties the
+	// field.
+	XmarkCircle Name = "xmark-circle"
 
-	// Plus is the control that adds one more of what the window holds — a
-	// new note, a new chat. One mark serves every such control: what is
-	// added is the control's title to say, not the mark's.
+	// Plus is a plus sign: two equal bars crossed at their centres. A
+	// control that adds one more of what the window holds draws it. The
+	// control's title says what is added.
 	Plus Name = "plus"
 
-	// Minus is the control that takes one away from what the window holds,
-	// the partner of the plus: the pair the platform stands under a list it
-	// lets the reader edit. What is removed is the control's title to say.
+	// Minus is a minus sign: one horizontal bar, the plus sign without its
+	// upright. A control that takes one away from what the window holds
+	// draws it. The control's title says what is removed.
 	Minus Name = "minus"
 
-	// Refresh is the control that reads again what the window is showing,
-	// from wherever it came from. One mark serves every such control: what
-	// is read again is the control's title to say.
-	Refresh Name = "refresh"
+	// ArrowClockwise is an arrow bent clockwise round most of a circle,
+	// with its head at the open end. A control that reads again what the
+	// window shows draws it. The control's title says what is read again.
+	ArrowClockwise Name = "arrow-clockwise"
 
 	// Folder is the folder: the thing an entry stands for when it holds
 	// other entries, and the picture on the control that chooses which
@@ -85,11 +86,12 @@ const (
 	// thing rather than the making of one.
 	FolderPlus Name = "folder-plus"
 
-	// Document is the thing an entry stands for when it is one piece of
-	// content — a note, a file, a page. It names a thing, as Folder does.
+	// Document is a page with its top trailing corner folded down. It
+	// stands for an entry that is one piece of content — a note, a file, a
+	// page. It names a thing, as Folder does.
 	Document Name = "document"
 
-	// Check is the mark that says this is the one: it stands beside the
+	// Check is a check mark. It says this is the one: it stands beside the
 	// option a control is currently holding, such as the current item of an
 	// open menu. It names a state rather than a control, and it says which
 	// one is held rather than which one the pointer is over — that is the
@@ -127,86 +129,88 @@ const (
 	ChevronPair Name = "chevron-pair"
 )
 
-// The search mark's drawing, as fractions of the square it is drawn in. A
-// control placing the looking glass by the platform's own numbers needs two
+// The magnifying-glass mark's drawing, as fractions of the square it is
+// drawn in. A control placing the looking glass by the platform's own numbers needs two
 // things the square does not tell it: where the drawing starts inside the
 // square, and where the lens's centre falls in it.
 //
 // They are stated rather than measured off the parsed file because they are
-// that file's contract. search.svg draws its lens to the set's measured round
+// that file's contract. magnifying-glass.svg draws its lens to the set's measured round
 // and curved allowance of 13 units, which with the handle puts the drawing
 // from unit 3.9 to unit 20.095 on both axes, and carries its lens centred on
 // unit 10.4, which is not the drawing's own centre and cannot be: the lens
 // stands leading and high and the handle runs to the lower trailing corner.
-// TestSearchMarkIsDrawnWhereAFieldExpectsIt holds the drawing to all three.
+// TestMagnifyingGlassMarkIsDrawnWhereAFieldExpectsIt holds the drawing to all three.
 const (
-	// SearchDrawingOrigin is the square's leading and top edge to the
+	// MagnifyingGlassDrawingOrigin is the square's leading and top edge to the
 	// drawing's first pixel.
-	SearchDrawingOrigin = 3.9 / 24.0
-	// SearchDrawingSize is the side of the drawing inside the square.
-	SearchDrawingSize = 16.195 / 24.0
-	// SearchLensCentre is the square's leading and top edge to the centre of
+	MagnifyingGlassDrawingOrigin = 3.9 / 24.0
+	// MagnifyingGlassDrawingSize is the side of the drawing inside the square.
+	MagnifyingGlassDrawingSize = 16.195 / 24.0
+	// MagnifyingGlassLensCentre is the square's leading and top edge to the centre of
 	// the lens, which is the point a field aligns on its centre row. The
 	// band's widening is spent outward on both edges of every band, so the
 	// lens's centre stands where the grid puts it at every size.
-	SearchLensCentre = 10.4 / 24.0
+	MagnifyingGlassLensCentre = 10.4 / 24.0
 )
 
-// SearchDrawingOriginPx is the square's leading and top edge to the drawing's
+// MagnifyingGlassDrawingOriginPx is the square's leading and top edge to the drawing's
 // first pixel, in device pixels, for a mark drawn at sizePx in this window.
 //
-// It is not SearchDrawingOrigin scaled. Below 24 dp the band is drawn at the
+// It is not MagnifyingGlassDrawingOrigin scaled. Below 24 dp the band is drawn at the
 // device width its own size's capture gives, and half of that widening is
 // spent outward on every edge, so the drawing reaches that much further
 // leading and higher than the grid puts it. A control placing the looking
 // glass by the platform's own measured inset places the drawing's first pixel
 // and so has to ask for this.
-func SearchDrawingOriginPx(gtx layout.Context, sizePx int) float32 {
+func MagnifyingGlassDrawingOriginPx(gtx layout.Context, sizePx int) float32 {
 	w := float64(widening(gtx.Metric.PxPerDp, sizePx)) / 1000
-	return float32(SearchDrawingOrigin*float64(sizePx) - w/2)
+	return float32(MagnifyingGlassDrawingOrigin*float64(sizePx) - w/2)
 }
 
-// SearchDrawingSizePx is the side of the drawing inside the square, in device
-// pixels, for a mark drawn at sizePx in this window: SearchDrawingSize scaled
+// MagnifyingGlassDrawingSizePx is the side of the drawing inside the square, in device
+// pixels, for a mark drawn at sizePx in this window: MagnifyingGlassDrawingSize scaled
 // and the band's whole widening, half of it spent past each edge. A control
 // holding the platform's measured clear space past the symbol measures it from
 // the last pixel the symbol covers, which is this.
-func SearchDrawingSizePx(gtx layout.Context, sizePx int) float32 {
+func MagnifyingGlassDrawingSizePx(gtx layout.Context, sizePx int) float32 {
 	w := float64(widening(gtx.Metric.PxPerDp, sizePx)) / 1000
-	return float32(SearchDrawingSize*float64(sizePx) + w)
+	return float32(MagnifyingGlassDrawingSize*float64(sizePx) + w)
 }
 
-// The clear mark's disc, as fractions of the square it is drawn in. A control
-// placing the mark by the platform's own measured clearance needs where the
+// The xmark-circle mark's disc, as fractions of the square it is drawn in.
+// A control placing the mark by the platform's own measured clearance needs where the
 // disc stands inside the square, because the square is bigger than the disc
 // and the measurement is the disc's.
 //
 // They are stated rather than measured off the parsed file because they are
-// that file's contract. clear.svg draws its disc to the set's measured round
+// that file's contract. xmark-circle.svg draws its disc to the set's measured round
 // and curved allowance of 13 units, centred, so it stands from unit 5.5 to
-// unit 18.5 on both axes. TestClearMarkIsDrawnWhereAFieldExpectsIt holds the
+// unit 18.5 on both axes. TestXmarkCircleMarkIsDrawnWhereAFieldExpectsIt holds the
 // drawing to both.
 const (
-	// ClearDiscOrigin is the square's leading and top edge to the disc's
+	// XmarkCircleDiscOrigin is the square's leading and top edge to the disc's
 	// first pixel.
-	ClearDiscOrigin = 5.5 / 24.0
-	// ClearDiscSize is the disc's outer extent inside the square, which is
+	XmarkCircleDiscOrigin = 5.5 / 24.0
+	// XmarkCircleDiscSize is the disc's outer extent inside the square, which is
 	// the set's round and curved allowance.
-	ClearDiscSize = 13.0 / 24.0
+	XmarkCircleDiscSize = 13.0 / 24.0
 )
 
-// ClearDiscOriginPx and ClearDiscSizePx are those two in device pixels for a
-// mark drawn at sizePx in this window. The clear mark draws a solid figure
+// XmarkCircleDiscOriginPx and XmarkCircleDiscSizePx are those two in device pixels for a
+// mark drawn at sizePx in this window. The xmark-circle mark draws a solid figure
 // with another knocked out of it and no band at all, so it takes none of the
 // widening the set spends on one and both are the fraction scaled.
-func ClearDiscOriginPx(sizePx int) float32 { return float32(ClearDiscOrigin * float64(sizePx)) }
+func XmarkCircleDiscOriginPx(sizePx int) float32 {
+	return float32(XmarkCircleDiscOrigin * float64(sizePx))
+}
 
-// ClearDiscSizePx is the disc's outer extent in device pixels. A control
+// XmarkCircleDiscSizePx is the disc's outer extent in device pixels. A control
 // holding the platform's measured clearance past the mark measures it from the
 // last pixel the disc covers, which is this.
-func ClearDiscSizePx(sizePx int) float32 { return float32(ClearDiscSize * float64(sizePx)) }
+func XmarkCircleDiscSizePx(sizePx int) float32 { return float32(XmarkCircleDiscSize * float64(sizePx)) }
 
-// The sidebar mark's pane, as fractions of the square it is drawn in. The
+// The sidebar-left mark's pane, as fractions of the square it is drawn in. The
 // mark is one figure on both platforms the set draws it for — macOS adds the
 // list lines inside the leading column and moves nothing — so the pane, the
 // band and the seam below are the contract for every drawing behind the
@@ -216,35 +220,35 @@ func ClearDiscSizePx(sizePx int) float32 { return float32(ClearDiscSize * float6
 // that file's contract, and because they are what a reading off a rendered
 // mark is checked against: the two mark files carry the capture the numbers
 // come from and where each band's whole device pixel lands.
-// TestSidebarMarkKeepsTheMeasuredPane holds both drawings to all five.
+// TestSidebarLeftMarkKeepsTheMeasuredPane holds both drawings to all five.
 const (
-	// SidebarPaneLeading is the square's leading edge to the pane's, which is
+	// SidebarLeftPaneLeading is the square's leading edge to the pane's, which is
 	// the set's square keyline.
-	SidebarPaneLeading = 2.5 / 24.0
-	// SidebarPaneTop is the square's top edge to the pane's.
-	SidebarPaneTop = 4.5 / 24.0
-	// SidebarPaneWidth and SidebarPaneHeight are the pane's outer extent: a
+	SidebarLeftPaneLeading = 2.5 / 24.0
+	// SidebarLeftPaneTop is the square's top edge to the pane's.
+	SidebarLeftPaneTop = 4.5 / 24.0
+	// SidebarLeftPaneWidth and SidebarLeftPaneHeight are the pane's outer extent: a
 	// landscape rectangle in the proportion a window with a sidebar has, the
 	// width drawn to the keyline and the height to the capture's own 15.12.
-	SidebarPaneWidth  = 19.0 / 24.0
-	SidebarPaneHeight = 15.0 / 24.0
-	// SidebarBand is the weight every edge of the mark is drawn at on the
+	SidebarLeftPaneWidth  = 19.0 / 24.0
+	SidebarLeftPaneHeight = 15.0 / 24.0
+	// SidebarLeftBand is the weight every edge of the mark is drawn at on the
 	// grid, which is the set's band at 24 dp. Below that the band is drawn at
 	// the device width the size's own capture gives and comes out wider than
 	// this in units — the grid places the band's centreline and the device
 	// width sets how far it reaches either side of it.
-	SidebarBand = 1.4 / 24.0
-	// SidebarSeamLeading is the square's leading edge to the seam's, which
+	SidebarLeftBand = 1.4 / 24.0
+	// SidebarLeftSeamLeading is the square's leading edge to the seam's, which
 	// leaves the leading column just under half the width of the trailing
 	// one: the measured 4.99 against 10.21, one to 2.05 over an inner pane
 	// of 16.2.
-	SidebarSeamLeading = 8.75 / 24.0
-	// SidebarListBand is the weight the list lines inside the leading column
-	// are drawn at, the set's second band, and SidebarListPeriod the
+	SidebarLeftSeamLeading = 8.75 / 24.0
+	// SidebarLeftListBand is the weight the list lines inside the leading column
+	// are drawn at, the set's second band, and SidebarLeftListPeriod the
 	// distance between two of their centres. Both are measured off the same
 	// toggle; only the macOS drawing carries them.
-	SidebarListBand   = 0.93 / 24.0
-	SidebarListPeriod = 2.20 / 24.0
+	SidebarLeftListBand   = 0.93 / 24.0
+	SidebarLeftListPeriod = 2.20 / 24.0
 )
 
 // The set's grid, and the band drawn on it. The grid is 24 units square and
@@ -541,8 +545,8 @@ func mustLoadMarks() markSet {
 	return set
 }
 
-// registryKey turns a mark's file name into its registry key: "sidebar.svg"
-// into "sidebar", "sidebar.darwin.svg" into "sidebar@darwin".
+// registryKey turns a mark's file name into its registry key: "sidebar-left.svg"
+// into "sidebar-left", "sidebar-left.darwin.svg" into "sidebar-left@darwin".
 func registryKey(file string) (string, error) {
 	base := strings.TrimSuffix(file, ".svg")
 	name, goos, hasVariant := strings.Cut(base, ".")

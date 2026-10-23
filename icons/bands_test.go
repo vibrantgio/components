@@ -32,7 +32,7 @@ const (
 	// magnifier at 12.33.
 	bandPxFrom20  = 1.40
 	bandPxBelow20 = 1.32
-	// secondBand is the measured weight the sidebar mark's list lines
+	// secondBand is the measured weight the sidebar-left mark's list lines
 	// take, stated by the entries that carry it.
 	secondBand = 0.93
 	// A band's edges land on eighths of a pixel at these sizes and the
@@ -121,7 +121,7 @@ func (b band) reaches(u float64) bool { return u >= b.from && u <= b.to }
 //
 // A KNOCKED-OUT FIGURE CANNOT BE STATED HERE and is not: covered below
 // composites the spans a + b - ab, which can only add coverage, so a hole in
-// a solid figure — the clear mark's cross, the folder-plus badge's plus — has
+// a solid figure — the xmark-circle mark's cross, the folder-plus badge's plus — has
 // no entry the model could hold. Those two are read by their own tests
 // instead: badge_test.go reads the badge's plus as the coverage the disc is
 // missing along a cut through each of its bars, which is this reading with
@@ -146,8 +146,8 @@ var markBands = map[string][]band{
 	},
 	// The pane measured off voicememos-window.png: the seam on the measured
 	// one to 2.05, and the top, the foot and the two sides on the keyline.
-	// sidebar.svg records all five.
-	"sidebar": {
+	// sidebar-left.svg records all five.
+	"sidebar-left": {
 		{"the leading side", down, 2.5, 0, 4.5, 19.5, 12, 0},
 		{"the seam", down, 8.75, 0, 5.9, 18.1, 12, 1},
 		{"the trailing side", down, 20.1, 0, 4.5, 19.5, 12, 0},
@@ -156,8 +156,8 @@ var markBands = map[string][]band{
 	},
 	// The same pane, with the three list lines macOS adds inside the leading
 	// column: the second band, measured at 0.93 on a period of 2.20.
-	// sidebar.darwin.svg records all eight.
-	"sidebar@darwin": {
+	// sidebar-left.darwin.svg records all eight.
+	"sidebar-left@darwin": {
 		{"the leading side", down, 2.5, 0, 4.5, 19.5, 15, 0},
 		{"the seam", down, 8.75, 0, 5.9, 18.1, 15, 1},
 		{"the trailing side", down, 20.1, 0, 4.5, 19.5, 15, 0},
@@ -244,14 +244,14 @@ var markBands = map[string][]band{
 	// grid, so the rule reaches none of them and each file says so, with what
 	// it has instead — the set's one band spent perpendicular, whichever way
 	// the edge runs.
-	"check":         nil,
-	"chevron-down":  nil,
-	"chevron-left":  nil,
-	"chevron-pair":  nil,
-	"chevron-right": nil,
-	"clear":         nil,
-	"refresh":       nil,
-	"search":        nil,
+	"check":            nil,
+	"chevron-down":     nil,
+	"chevron-left":     nil,
+	"chevron-pair":     nil,
+	"chevron-right":    nil,
+	"xmark-circle":     nil,
+	"arrow-clockwise":  nil,
+	"magnifying-glass": nil,
 }
 
 // TestEveryBandLandsWhereItsFileSaysItDoes walks the whole set and reads every
@@ -494,7 +494,7 @@ func TestWhatTheKeylineAndTheSecondBandLand(t *testing.T) {
 		if w >= bandPx(px) {
 			t.Errorf("the second band is %.2f px at %d dp, which is the first band's own %.2f or more", w, px, bandPx(px))
 		}
-		for _, b := range markBands["sidebar@darwin"] {
+		for _, b := range markBands["sidebar-left@darwin"] {
 			if b.width != secondBand {
 				continue
 			}

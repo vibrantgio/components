@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <!-- Refresh: the control that reads again what the window is showing, from
-       wherever it came from. One picture whatever is being read again; what
-       that is belongs to the control's label.
+  <!-- Arrow-clockwise: an arrow bent clockwise round most of a circle, its
+       head at the open end. A control that reads again what the window shows
+       draws it. The control's title says what is read again.
 
        No stored capture holds this control: none of the five toolbar bands in
        reference/macos/controls.md carries one, so the drawing's proportions
        are the set's grid and nothing else, stated here as the plus and the
-       search marks state their measured readings. The capture is on the
+       magnifying-glass marks state their measured readings. The capture is on the
        reference's list. What this mark does take from the measurement is the
        set's two settled numbers: the one band of 1.4 units and the round and
        curved allowance of 13, read off the magnifier's lens in

@@ -28,7 +28,7 @@ import (
 	"github.com/vibrantgio/theme/typeset"
 )
 
-// ClearHitDp is the side of the pointer target the clear mark claims, in dp,
+// ClearHitDp is the side of the pointer target the xmark-circle mark claims, in dp,
 // centred on the mark and free to overhang the field.
 //
 // It is larger than the mark is drawn, because a mark a few dp across is not
@@ -40,7 +40,7 @@ const ClearHitDp = 24
 // markDp and clearMarkDp are the squares the search field draws its two marks
 // in; the lead and gap pairs place the leading symbol and the text after it,
 // one pair per variant; and clearTrailDp is the clear space the platform
-// leaves past the clear mark. Each is measured; the provenance is on the
+// leaves past the xmark-circle mark. Each is measured; the provenance is on the
 // method that spends it.
 //
 // The two squares are different numbers because the platform draws the two
@@ -61,7 +61,7 @@ const (
 // SearchFieldProps configures a SearchField instance.
 //
 // The search field is the text field's structure with two slots added — the
-// looking glass leading, the clear mark trailing — so everything the text
+// looking glass leading, the xmark-circle mark trailing — so everything the text
 // field settles about density, focus, the pointer target and the surface it
 // stands on is settled here too and is not restated.
 type SearchFieldProps struct {
@@ -110,7 +110,7 @@ type SearchFieldProps struct {
 	// Clear, if non-nil, is called once when the field instance is created
 	// with a function that empties the field. It is how a query is taken back
 	// from outside the field — a key the application binds, a pane closing —
-	// where the clear mark takes it back from inside.
+	// where the xmark-circle mark takes it back from inside.
 	//
 	// Emptying the field this way reports the empty query on the next frame,
 	// through OnChange and Message like any other edit, which is what
@@ -140,7 +140,7 @@ type SearchFieldProps struct {
 
 	// Count, if non-nil, is asked on every frame what the query has found,
 	// and what it answers stands INSIDE the field at its trailing end,
-	// leading of the clear mark, in the same foreground the field's own marks
+	// leading of the xmark-circle mark, in the same foreground the field's own marks
 	// read in. An empty answer draws nothing and takes no room.
 	//
 	// It is a function rather than a value because the count changes with the
@@ -157,11 +157,11 @@ type SearchFieldProps struct {
 
 // SearchField returns an rx.Observable[layout.Widget] that emits a new widget
 // whenever the theme or disabled state changes. Interaction state (editor
-// content, focus, the clear mark's own press) lives in the rx.Defer scope and
+// content, focus, the xmark-circle mark's own press) lives in the rx.Defer scope and
 // persists across emissions.
 //
 // The control is the text field looking as the reader types: the looking
-// glass names it, the text is the query, and the clear mark appears while
+// glass names it, the text is the query, and the xmark-circle mark appears while
 // there is something to take back. Pressing the mark empties the editor and
 // posts the empty change once, on the same frame. Escape in a field with text
 // does the same and the keyboard stays in the field; Escape in an empty field
@@ -277,7 +277,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 				}
 				update()
 
-				// Escape does what the clear mark does: it empties the field
+				// Escape does what the xmark-circle mark does: it empties the field
 				// and the keyboard stays in it. The filter is asked for only
 				// while there is text, read after the editor has taken this
 				// frame's edits, because a key event no filter asked for on
@@ -390,7 +390,7 @@ func count(f func() string) string {
 func (a adorn) capsule(s RenderState) bool { return a.search || s.Variant == Chrome }
 
 // adorn is the pair of slots the search field adds to the text field's
-// structure: the looking glass at the leading end and the clear mark at the
+// structure: the looking glass at the leading end and the xmark-circle mark at the
 // trailing one. The zero value is a plain text field — it reserves no width
 // and draws nothing, which is what keeps one drawing serving both controls.
 type adorn struct {
@@ -465,7 +465,7 @@ func (a adorn) shapeCount(gtx layout.Context, shaper *text.Shaper, tok resolvedT
 // same reason.
 func (a adorn) markPx(gtx layout.Context) int { return gtx.Dp(markDp) }
 
-// clearPx is the square the clear mark is drawn in, which is not the looking
+// clearPx is the square the xmark-circle mark is drawn in, which is not the looking
 // glass's.
 //
 // The clear mark is the platform's own control drawing — a filled disc with a
@@ -499,7 +499,7 @@ func (a adorn) clearEndPx(gtx layout.Context, s RenderState) int {
 }
 
 func (a adorn) clearLeadPx(gtx layout.Context, s RenderState) int {
-	disc := float64(icons.ClearDiscSizePx(a.clearPx(gtx)))
+	disc := float64(icons.XmarkCircleDiscSizePx(a.clearPx(gtx)))
 	return a.clearEndPx(gtx, s) + int(math.Ceil(disc))
 }
 
@@ -507,7 +507,7 @@ func (a adorn) clearLeadPx(gtx layout.Context, s RenderState) int {
 // the band's own widening in it: below 24 dp the set draws its band at a
 // device width and the drawing reaches half of that past each edge.
 func (a adorn) drawingPx(gtx layout.Context) float32 {
-	return icons.SearchDrawingSizePx(gtx, a.markPx(gtx))
+	return icons.MagnifyingGlassDrawingSizePx(gtx, a.markPx(gtx))
 }
 
 // symbolX is the field's leading edge to the looking glass's first pixel.
@@ -570,7 +570,7 @@ func (a adorn) promptGapPx(gtx layout.Context, s RenderState) int {
 	return gtx.Dp(toolbarGapDp)
 }
 
-// trailGapPx is the clear space held between the text and the clear mark.
+// trailGapPx is the clear space held between the text and the xmark-circle mark.
 func (a adorn) trailGapPx(gtx layout.Context, tok resolvedTokens) int {
 	return gtx.Dp(unit.Dp(tok.spacing.S2))
 }
@@ -598,7 +598,7 @@ func (a adorn) insets(gtx layout.Context, tok resolvedTokens, s RenderState, pad
 		trail = a.clearLeadPx(gtx, s) + a.trailGapPx(gtx, tok)
 	}
 	if a.count != "" {
-		// The count stands between the clear mark and the text, keeping the
+		// The count stands between the xmark-circle mark and the text, keeping the
 		// mark beside it the clear space the field's leading mark keeps from
 		// the text beside IT, and the text the same space it already kept
 		// from the mark.
@@ -608,7 +608,7 @@ func (a adorn) insets(gtx layout.Context, tok resolvedTokens, s RenderState, pad
 }
 
 // paint draws the marks the field carries into the slots it reserved, and on
-// the live path registers the clear mark's own pointer target.
+// the live path registers the xmark-circle mark's own pointer target.
 //
 // Both are drawn in the platform's secondary label: they say what the control
 // is and what it offers, not what it holds, and a mark drawn in the text
@@ -632,15 +632,15 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 	}
 
 	if a.search {
-		if g := icons.Mark(icons.Search); g != nil {
+		if g := icons.Mark(icons.MagnifyingGlass); g != nil {
 			// The square is placed off the drawing inside it rather than off
 			// its own edges, and at a fraction of a pixel, because both
 			// numbers the platform gives are the symbol's: its first pixel 9
 			// in, and its lens — not its bounding box — on the field's centre
 			// row. Rounding the square to whole pixels instead would split
 			// the lens's band across two columns and draw it grey.
-			x := a.symbolX(gtx, s) - icons.SearchDrawingOriginPx(gtx, slot)
-			y := float32(field.Y)/2 - icons.SearchLensCentre*float32(slot)
+			x := a.symbolX(gtx, s) - icons.MagnifyingGlassDrawingOriginPx(gtx, slot)
+			y := float32(field.Y)/2 - icons.MagnifyingGlassLensCentre*float32(slot)
 			st := op.Affine(f32.Affine2D{}.Offset(f32.Pt(x, y))).Push(gtx.Ops)
 			g(gtx, slot, col)
 			st.Pop()
@@ -665,12 +665,12 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 		// is #232323 on the field's #e8e8e8 fill, which is black at 216 of
 		// 255 over it to the byte. Label carries that same coverage in both
 		// appearances, so the pixel cannot tell the two names apart and the
-		// name follows what the part is: the clear mark is the control the
+		// name follows what the part is: the xmark-circle mark is the control the
 		// user operates (the Search field entry's "[x]"), so it wears
 		// ControlText, while the looking glass and the prompt are signals
 		// naming the field and take the field's own text (ruled 2026-09-18).
 		mark := a.clearPx(gtx)
-		disc := icons.ClearDiscSizePx(mark)
+		disc := icons.XmarkCircleDiscSizePx(mark)
 		clearCol := vgcolor.Flatten(tok.platform.ControlText, fill)
 		// The square is placed off the DISC inside it, and at a fraction of a
 		// pixel, because the number the platform gives is the disc's: its last
@@ -678,8 +678,8 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 		// and its centre on the field's centre row.
 		x := float32(field.X-a.clearEndPx(gtx, s)) - disc
 		y := float32(field.Y)/2 - disc/2
-		if g := icons.Mark(icons.Clear); g != nil {
-			o := icons.ClearDiscOriginPx(mark)
+		if g := icons.Mark(icons.XmarkCircle); g != nil {
+			o := icons.XmarkCircleDiscOriginPx(mark)
 			st := op.Affine(f32.Affine2D{}.Offset(f32.Pt(x-o, y-o))).Push(gtx.Ops)
 			g(gtx, mark, clearCol)
 			st.Pop()
@@ -688,7 +688,7 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 	}
 }
 
-// registerClear puts the clear mark's clickable over the disc, grown to
+// registerClear puts the xmark-circle mark's clickable over the disc, grown to
 // [ClearHitDp] on each axis and centred on it.
 //
 // The field's own reported size is unaffected, and so is the editor's box:
