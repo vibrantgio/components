@@ -57,12 +57,12 @@ const checkboxCornerRadius = unit.Dp(5)
 //
 // The field's box runs x 264–495 and y 243–269. A run across its straight
 // side gives one column at x=264 and one at x=495; a run down it gives one
-// row at y=243 and one at y=269. Each is a single pixel of #f3f3f3 light and
-// #2c3338 dark — [tokens.PlatformColors.FieldEdge] to the byte — with the
-// sheet on one side of it and the field's interior on the other. No stored
-// capture holds an enabled checkbox or an unselected radio, so the box and
-// the disc spend the field's hairline; that capture is on the reference's
-// list.
+// row at y=243 and one at y=269. Each is a single pixel wide, with the sheet
+// on one side of it and the field's interior on the other. The search field
+// on content reads the same 1 px edge with wallpaper tinting off, and its
+// colour is [tokens.PlatformColors.FieldEdge]. No stored capture holds an
+// enabled checkbox or an unselected radio, so the box and the disc use the
+// field's hairline; that capture is on the reference's list.
 const controlEdgeWidth = unit.Dp(1)
 
 // controlTitleGap is the leading gap a checkbox's square — or a radio's
