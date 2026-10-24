@@ -1,4 +1,4 @@
-package tooltip
+package attachment
 
 import (
 	"image"

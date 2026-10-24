@@ -10,6 +10,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 
+	"github.com/vibrantgio/components/attachment"
 	"github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/scrollarea"
 	"github.com/vibrantgio/components/tooltip"
@@ -29,14 +30,14 @@ func scrolledTipWindow(t *testing.T, shown bool) *image.RGBA {
 		tooltip.Render(shaper, tooltip.Props{
 			Text:          "Where this goes",
 			Placement:     tooltip.Bottom,
-			AvailableRoom: tooltip.AvailableRoom,
+			AvailableRoom: attachment.AvailableRoom,
 			Anchor:        func(layout.Context) image.Rectangle { return cell },
 		}, shown, tokens.PlatformLight, tokens.Spacing, tokens.RadiusScale{}, tokens.DefaultTypography.LabelSmall)(gtx)
 		return layout.Dimensions{Size: image.Pt(1000, 40)}
 	}
 	window := func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, color.NRGBA{R: 245, G: 245, B: 245, A: 255}, clip.Rect{Max: frame}.Op())
-		gtx = tooltip.WithAvailableRoom(gtx, image.Rectangle{Max: frame})
+		gtx = attachment.WithAvailableRoom(gtx, image.Rectangle{Max: frame})
 		gtx.Constraints = layout.Constraints{Max: frame}
 		scrollarea.Style{}.Layout(gtx, state, content)
 		return layout.Dimensions{Size: frame}

@@ -17,6 +17,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/attachment"
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/surface"
@@ -180,7 +181,7 @@ type FieldProps struct {
 	// the rectangle it may be placed in, in the coordinates the field is laid
 	// out in, the trigger's top-left corner at the origin: the window's
 	// available room as a layout above moved it, which
-	// [github.com/vibrantgio/components/tooltip.AvailableRoom]
+	// [github.com/vibrantgio/components/attachment.AvailableRoom]
 	// reads off the context, so a caller passes that function itself. The
 	// field derives what it settles from the rectangle: the pixels above the
 	// trigger's top edge and below its bottom edge. Those settle both
@@ -566,7 +567,8 @@ func alignOverTrigger(heights []int, selected, triggerH int) int {
 //
 // A MENU THAT DRAWS WHOLE stands over the trigger, on the held row — see
 // [alignOverTrigger]. The room the caller reports is what may move it: the
-// menu is pushed the least distance that brings it wholly inside the room, so
+// menu is pushed the least distance that brings it wholly inside the room
+// ([attachment.Inward], the recipe every floating surface is placed with), so
 // a field near the top of its container has its menu pushed down and one near
 // the foot has it pushed up. Nothing is moved that already fits.
 //
@@ -621,12 +623,7 @@ func fitMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fiel
 	if height >= uncapped {
 		want := alignOverTrigger(heights, s.Selected, triggerH)
 		if s.AvailableRoom != nil {
-			if want+uncapped > bottom {
-				want = bottom - uncapped
-			}
-			if want < top {
-				want = top
-			}
+			want = attachment.Inward(want, uncapped, top, bottom)
 		}
 		return want, 0
 	}

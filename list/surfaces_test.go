@@ -9,6 +9,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 
+	"github.com/vibrantgio/components/attachment"
 	"github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/list"
 	"github.com/vibrantgio/components/tooltip"
@@ -29,7 +30,7 @@ const (
 
 // rowTipWindow lays a scrolled list out in the window. With collected set, it
 // does so the way a layout that places its children after measuring them
-// does: under a tooltip.Surfaces, whose surfaces it then places in the
+// does: under an attachment.Surfaces, whose surfaces it then places in the
 // window's room. Without it, the window sets its room as a shell does and no
 // caller sets a Surfaces. Row tipRow holds an anchored tooltip asked for
 // below the row, shown or not, given the room the context carries.
@@ -38,11 +39,11 @@ func rowTipWindow(t *testing.T, tipRow int, shown, collected bool) *image.RGBA {
 	return golden.Capture(t, rowTipFrame, func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, color.NRGBA{R: 245, G: 245, B: 245, A: 255}, clip.Rect{Max: rowTipFrame}.Op())
 		window := gtx
-		var s *tooltip.Surfaces
+		var s *attachment.Surfaces
 		if collected {
-			gtx, s = tooltip.WithSurfaces(gtx)
+			gtx, s = attachment.WithSurfaces(gtx)
 		} else {
-			gtx = tooltip.WithAvailableRoom(gtx, image.Rectangle{Max: rowTipFrame})
+			gtx = attachment.WithAvailableRoom(gtx, image.Rectangle{Max: rowTipFrame})
 		}
 		state := list.NewStateAt(rowTipFirst)
 		state.ScrollPixels(rowTipScroll)
@@ -53,14 +54,14 @@ func rowTipWindow(t *testing.T, tipRow int, shown, collected bool) *image.RGBA {
 				tooltip.Render(shaper, tooltip.Props{
 					Text:          "Where this goes",
 					Placement:     tooltip.Bottom,
-					AvailableRoom: tooltip.AvailableRoom,
+					AvailableRoom: attachment.AvailableRoom,
 					Anchor:        func(layout.Context) image.Rectangle { return image.Rectangle{Max: size} },
 				}, shown, tokens.PlatformLight, tokens.Spacing, tokens.RadiusScale{}, tokens.DefaultTypography.LabelSmall)(gtx)
 			}
 			return layout.Dimensions{Size: size}
 		})
 		if collected {
-			tooltip.PlaceSurfaces(window, s, image.Rectangle{Max: rowTipFrame})
+			attachment.PlaceSurfaces(window, s, image.Rectangle{Max: rowTipFrame})
 		}
 		return layout.Dimensions{Size: rowTipFrame}
 	})

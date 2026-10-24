@@ -55,17 +55,18 @@
 // room.
 //
 // A LAYOUT THAT PLACES ITS CHILD AFTER MEASURING IT PLACES THE SURFACE. Where a
-// layout set [Surfaces] on the context, the trigger's offset inside the window
-// is decided only after the tooltip is laid out, so the surface is not drawn
-// then: the tooltip records it in the Surfaces, and the layout draws it with
-// [PlaceSurfacesAt] in the area moved by the offset it placed its child at.
-// Without Surfaces set the surface is drawn as the tooltip is laid out. A
-// layout between that layout and the tooltip that pushes an offset moves
-// the Surfaces and the available room together with [AvailableRoomAt]
-// before it lays its child out; a layout that pushes an offset without
-// moving them places the surface away from its trigger. [WithAvailableRoom]
-// is where a window sets the room, and [PlacingFlex] is the flex that lays
-// its children out and then places their surfaces.
+// layout set [attachment.Surfaces] on the context, the trigger's offset inside
+// the window is decided only after the tooltip is laid out, so the surface is
+// not drawn then: the tooltip records it in the Surfaces, and the layout draws
+// it with [attachment.PlaceSurfacesAt] in the area moved by the offset it
+// placed its child at. Without Surfaces set the surface is drawn as the tooltip
+// is laid out. A layout between that layout and the tooltip that pushes an
+// offset moves the Surfaces and the available room together with
+// [attachment.AvailableRoomAt] before it lays its child out; a layout that
+// pushes an offset without moving them places the surface away from its
+// trigger. [attachment.WithAvailableRoom] is where a window sets the room, and
+// [attachment.PlacingFlex] is the flex that lays its children out and then
+// places their surfaces.
 //
 // Show/hide is instantaneous in this package; entrance/exit transitions
 // are deferred to a later Effects-integration goal. Touch long-press is out of
@@ -113,6 +114,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/attachment"
 	"github.com/vibrantgio/components/elide"
 	"github.com/vibrantgio/components/internal/surface"
 	vgcolor "github.com/vibrantgio/theme/color"
@@ -130,13 +132,13 @@ var DefaultDelay = tokens.Motion.DurXSlow
 // Placement is the side of the trigger the tooltip surface is asked for. A
 // surface with no room left on that side of the available room takes the
 // opposite side when that one holds it whole; see drawSurface.
-type Placement int
+type Placement = attachment.Side
 
 const (
-	Top Placement = iota
-	Bottom
-	Left
-	Right
+	Top    = attachment.Top
+	Bottom = attachment.Bottom
+	Left   = attachment.Left
+	Right  = attachment.Right
 )
 
 // Props configures a Tooltip. Trigger must be non-nil unless Anchor says
@@ -543,8 +545,9 @@ func availableRoom(gtx layout.Context, props Props, frame image.Point) (image.Re
 }
 
 // placeSurface draws the surface at once in the available room the props
-// report, or, where a layout set [Surfaces] on the context, records it there
-// to be drawn in the area that layout passes to [PlaceSurfaces].
+// report, or, where a layout set [attachment.Surfaces] on the context, records
+// it there to be drawn in the area that layout passes to
+// [attachment.PlaceSurfaces].
 func placeSurface(
 	gtx layout.Context,
 	shaper *text.Shaper,
@@ -553,10 +556,9 @@ func placeSurface(
 	triggerRect image.Rectangle,
 	frame image.Point,
 ) {
-	if s := surfacesFrom(gtx); s != nil {
-		s.draws = append(s.draws, func(gtx layout.Context, room image.Rectangle) {
-			drawSurface(gtx, shaper, props, tok, triggerRect, room, true)
-		})
+	if attachment.Record(gtx, func(gtx layout.Context, room image.Rectangle) {
+		drawSurface(gtx, shaper, props, tok, triggerRect, room, true)
+	}) {
 		return
 	}
 	area, bounded := availableRoom(gtx, props, frame)
@@ -621,61 +623,25 @@ func drawSurface(
 		surfH = minH
 	}
 
-	midX := (triggerRect.Min.X + triggerRect.Max.X) / 2
-	midY := (triggerRect.Min.Y + triggerRect.Max.Y) / 2
-	above := triggerRect.Min.Y - gap - surfH
-	below := triggerRect.Max.Y + gap
-	before := triggerRect.Min.X - gap - surfW
-	after := triggerRect.Max.X + gap
-	var pos image.Point
-	switch props.Placement {
-	case Top:
-		pos = image.Pt(midX-surfW/2, above)
-	case Bottom:
-		pos = image.Pt(midX-surfW/2, below)
-	case Left:
-		pos = image.Pt(before, midY-surfH/2)
-	case Right:
-		pos = image.Pt(after, midY-surfH/2)
+	// THE SURFACE TAKES THE SIDE WITH ROOM AND STAYS INSIDE THE ROOM'S SIDES,
+	// by the recipe every floating surface is placed with: a trigger near the
+	// far edge of the available room leaves the side asked for too short to
+	// hold the annotation, and the annotation takes the opposite side when
+	// that one holds it whole, or the side with more room when neither does.
+	// Above or below a trigger near a side of the
+	// room, a surface centred on that trigger is shifted inward until it is
+	// inside, as the platform does with an annotation against a word near a
+	// margin, and it keeps the step from the room's side that it keeps from
+	// its own trigger, since a surface laid flush against the edge reads as a
+	// thing cut off by it. With no room reported there is no side to keep
+	// inside.
+	size := image.Pt(surfW, surfH)
+	side := attachment.TakeSide(triggerRect, size, props.Placement, gap, area)
+	placed := attachment.Beside(triggerRect, size, side, gap)
+	if bounded && side.Vertical() {
+		placed = attachment.ShiftInward(placed, side, area, gap)
 	}
-
-	// THE SURFACE TAKES THE SIDE WITH ROOM. A trigger near the far edge of
-	// the available room leaves the side it was asked for too short to hold
-	// the annotation, and the annotation takes the opposite side — but only
-	// when that one holds it whole. Room on neither side keeps the placement
-	// the caller asked for.
-	switch props.Placement {
-	case Top:
-		if above < area.Min.Y && below+surfH <= area.Max.Y {
-			pos.Y = below
-		}
-	case Bottom:
-		if below+surfH > area.Max.Y && above >= area.Min.Y {
-			pos.Y = above
-		}
-	case Left:
-		if before < area.Min.X && after+surfW <= area.Max.X {
-			pos.X = after
-		}
-	case Right:
-		if after+surfW > area.Max.X && before >= area.Min.X {
-			pos.X = before
-		}
-	}
-
-	// AND IT STAYS INSIDE THE ROOM'S SIDES. Above or below a trigger near a
-	// side of the available room, a surface centred on that trigger runs off
-	// the edge; it is shifted inward until it is inside instead, which keeps
-	// what it says readable and is what the platform does with an annotation
-	// against a word near a margin. It keeps the step from the room's side
-	// that it keeps from its own trigger, since a surface laid flush against
-	// the edge reads as a thing cut off by it. The sides only: the ends of
-	// the room above and below are the flip's business. With no room
-	// reported there is no side to keep inside.
-	if bounded && (props.Placement == Top || props.Placement == Bottom) {
-		pos.X = min(pos.X, area.Max.X-surfW-gap)
-		pos.X = max(pos.X, area.Min.X+gap)
-	}
+	pos := placed.Min
 
 	surfOff := op.Offset(pos).Push(gtx.Ops)
 	rect := clip.RRect{Rect: image.Rectangle{Max: image.Pt(surfW, surfH)}, SE: r, SW: r, NE: r, NW: r}

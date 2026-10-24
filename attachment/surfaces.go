@@ -1,4 +1,4 @@
-package tooltip
+package attachment
 
 import (
 	"image"
@@ -9,27 +9,27 @@ import (
 )
 
 // surfacesKey is the key a [Surfaces] is set under in layout.Context.Values.
-const surfacesKey = "github.com/vibrantgio/components/tooltip.Surfaces"
+const surfacesKey = "github.com/vibrantgio/components/attachment.Surfaces"
 
-// Surfaces holds the surfaces of the tooltips laid out in one child of a
-// layout that places the child only after measuring it: a row that centres
-// what it holds, a centred box, a list row. Such a layout cannot pass the
-// available room into the child, because the child's offset is decided after
-// the child is laid out, and Gio offers no readback of the transform it then
-// pushes. A tooltip laid out under a context with a Surfaces set therefore
-// does not draw its surface: it records a callback that draws the surface for
-// a given available room, and the layout calls the callbacks with
+// Surfaces holds the floating surfaces laid out in one child of a layout that
+// places the child only after measuring it: a row that centres what it holds,
+// a centred box, a list row. Such a layout cannot pass the available room into
+// the child, because the child's offset is decided after the child is laid
+// out, and Gio offers no readback of the transform it then pushes. A floating
+// surface laid out under a context with a Surfaces set therefore is not drawn
+// then: its component records, with [Record], a callback that draws the
+// surface for a given available room, and the layout calls the callbacks with
 // [PlaceSurfaces] once it has placed the child.
 //
 // The type is named for what it holds: the Surface part of each floating
 // surface laid out in the child, waiting to be placed.
 //
-// A callback draws in the coordinates the tooltip was laid out in. The layout
-// therefore calls PlaceSurfaces inside the transform it placed the child at,
-// and a child that moves a tooltip by an offset of its own sets a Surfaces of
-// its own for it: with [AvailableRoomAt] where the offset is known before
-// the tooltip is laid out, and with WithSurfaces and [PlaceSurfacesAt] where
-// it is not.
+// A callback draws in the coordinates the surface's anchor was laid out in.
+// The layout therefore calls PlaceSurfaces inside the transform it placed the
+// child at, and a child that moves a floating surface by an offset of its own
+// sets a Surfaces of its own for it: with [AvailableRoomAt] where the offset
+// is known before the surface is laid out, and with WithSurfaces and
+// [PlaceSurfacesAt] where it is not.
 type Surfaces struct {
 	draws []func(gtx layout.Context, room image.Rectangle)
 }
@@ -57,7 +57,7 @@ func WithSurfaces(gtx layout.Context) (layout.Context, *Surfaces) {
 	return gtx, s
 }
 
-// PlaceSurfaces calls every callback s recorded, in the order the tooltips
+// PlaceSurfaces calls every callback s recorded, in the order the surfaces
 // were laid out, each drawing its surface in room, the available room in the
 // child's coordinates: the layout's own area moved by the offset it placed
 // the child at. The callbacks are called once: s is empty afterwards. A nil s
@@ -70,7 +70,7 @@ func WithSurfaces(gtx layout.Context) (layout.Context, *Surfaces) {
 // placed the child at an offset calls [PlaceSurfacesAt] instead.
 //
 // It is named for what the call does: each surface is placed in room, by the
-// same rules a tooltip given that available room is placed by.
+// same rules a surface given that available room is placed by.
 func PlaceSurfaces(gtx layout.Context, s *Surfaces, room image.Rectangle) {
 	if s == nil {
 		return
@@ -109,9 +109,9 @@ func surfacesAt(gtx layout.Context, off image.Point) layout.Context {
 	return gtx
 }
 
-// HasSurfaces reports whether gtx has a Surfaces set: whether a tooltip laid
-// out under gtx records its surface to be placed by a layout above it rather
-// than drawing it at once. A layout that places its children only after
+// HasSurfaces reports whether gtx has a Surfaces set: whether a floating
+// surface laid out under gtx is recorded to be placed by a layout above it
+// rather than drawn at once. A layout that places its children only after
 // measuring them and cannot read the available room itself asks it, and
 // collects its children's surfaces only where a layout above it places them.
 func HasSurfaces(gtx layout.Context) bool { return surfacesFrom(gtx) != nil }
@@ -120,4 +120,19 @@ func HasSurfaces(gtx layout.Context) bool { return surfacesFrom(gtx) != nil }
 func surfacesFrom(gtx layout.Context) *Surfaces {
 	s, _ := gtx.Values[surfacesKey].(*Surfaces)
 	return s
+}
+
+// Record adds draw to the Surfaces set on gtx and reports whether one was
+// set. A component that floats a surface calls it as it is laid out: where it
+// reports true, the surface is drawn later by the layout that set the
+// Surfaces, with the available room in the coordinates gtx has, and the
+// component draws nothing now; where it reports false, the component draws
+// the surface at once.
+func Record(gtx layout.Context, draw func(gtx layout.Context, room image.Rectangle)) bool {
+	s := surfacesFrom(gtx)
+	if s == nil {
+		return false
+	}
+	s.draws = append(s.draws, draw)
+	return true
 }

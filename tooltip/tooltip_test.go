@@ -14,6 +14,7 @@ import (
 	"gioui.org/text"
 	"gioui.org/unit"
 
+	"github.com/vibrantgio/components/attachment"
 	"github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/tooltip"
 	"github.com/vibrantgio/theme/tokens"
@@ -512,9 +513,9 @@ func TestATooltipNearTheRoomsEdgeTakesTheSideWithRoom(t *testing.T) {
 
 // placedAfterMeasuring lays a tooltip wrapped around a small trigger out the
 // way a row that centres what it holds does: under a context with
-// tooltip.Surfaces set, recorded, measured, and only then placed against the
+// attachment.Surfaces set, recorded, measured, and only then placed against the
 // frame's trailing edge at row y. place says whether the row then calls
-// tooltip.PlaceSurfaces with the frame moved by the offset it placed the
+// attachment.PlaceSurfaces with the frame moved by the offset it placed the
 // tooltip at.
 func placedAfterMeasuring(shaper *text.Shaper, y int, place, shown bool) layout.Widget {
 	w := tooltip.Render(
@@ -532,7 +533,7 @@ func placedAfterMeasuring(shaper *text.Shaper, y int, place, shown bool) layout.
 		tokens.DefaultTypography.LabelSmall,
 	)
 	return func(gtx layout.Context) layout.Dimensions {
-		cgtx, surfaces := tooltip.WithSurfaces(gtx)
+		cgtx, surfaces := attachment.WithSurfaces(gtx)
 		cgtx.Constraints = layout.Constraints{}
 		rec := op.Record(gtx.Ops)
 		dims := w(cgtx)
@@ -541,7 +542,7 @@ func placedAfterMeasuring(shaper *text.Shaper, y int, place, shown bool) layout.
 		off := op.Offset(at).Push(gtx.Ops)
 		call.Add(gtx.Ops)
 		if place {
-			tooltip.PlaceSurfaces(gtx, surfaces, image.Rectangle{Max: gtx.Constraints.Max}.Sub(at))
+			attachment.PlaceSurfaces(gtx, surfaces, image.Rectangle{Max: gtx.Constraints.Max}.Sub(at))
 		}
 		off.Pop()
 		return layout.Dimensions{Size: gtx.Constraints.Max}
@@ -549,9 +550,9 @@ func placedAfterMeasuring(shaper *text.Shaper, y int, place, shown bool) layout.
 }
 
 // TestASurfaceRecordedInSurfacesIsPlacedInTheAreaItIsGiven lays a tooltip
-// out under a context with tooltip.Surfaces set and places it against the
+// out under a context with attachment.Surfaces set and places it against the
 // frame's trailing edge only after measuring it. Until the layout calls
-// tooltip.PlaceSurfaces nothing is drawn; once it does, with the frame moved
+// attachment.PlaceSurfaces nothing is drawn; once it does, with the frame moved
 // by the tooltip's offset, the surface is shifted inward from the trailing
 // edge and drawn whole.
 func TestASurfaceRecordedInSurfacesIsPlacedInTheAreaItIsGiven(t *testing.T) {
@@ -563,7 +564,7 @@ func TestASurfaceRecordedInSurfacesIsPlacedInTheAreaItIsGiven(t *testing.T) {
 	hidden := golden.Capture(t, frameSize, scene(placedAfterMeasuring(shaper, y, true, false), bg))
 	unplaced := golden.Capture(t, frameSize, scene(placedAfterMeasuring(shaper, y, false, true), bg))
 	if n := golden.PixelDiff(unplaced, hidden); n != 0 {
-		t.Errorf("a tooltip under tooltip.Surfaces painted %d pixels before the layout placed its surface, want 0", n)
+		t.Errorf("a tooltip under attachment.Surfaces painted %d pixels before the layout placed its surface, want 0", n)
 	}
 
 	shown := golden.Capture(t, frameSize, scene(placedAfterMeasuring(shaper, y, true, true), bg))

@@ -1,4 +1,4 @@
-package tooltip_test
+package attachment_test
 
 import (
 	"fmt"
@@ -11,8 +11,8 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 
+	"github.com/vibrantgio/components/attachment"
 	"github.com/vibrantgio/components/golden"
-	"github.com/vibrantgio/components/tooltip"
 )
 
 // flexChild is one child of the rows TestFlexOffsetsFollowFlex compares: a
@@ -108,7 +108,7 @@ func TestFlexOffsetsFollowFlex(t *testing.T) {
 			return layout.Dimensions{Size: extent}
 		})
 		for _, r := range rows {
-			want := tooltip.FlexOffsets(r.flex, layout.Exact(cell), r.dims)
+			want := attachment.FlexOffsets(r.flex, layout.Exact(cell), r.dims)
 			for i, ch := range children {
 				got, ok := topLeftOf(img, image.Rectangle{Min: r.at, Max: r.at.Add(cell)}, ch.colour)
 				if !ok {

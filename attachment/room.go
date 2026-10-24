@@ -1,4 +1,4 @@
-package tooltip
+package attachment
 
 import (
 	"image"
@@ -9,12 +9,12 @@ import (
 
 // availableRoomKey is the key the available room is set under in
 // layout.Context.Values.
-const availableRoomKey = "github.com/vibrantgio/components/tooltip.AvailableRoom"
+const availableRoomKey = "github.com/vibrantgio/components/attachment.AvailableRoom"
 
-// unboundedRoom is the extent [AvailableRoom] reports where no window set
-// the available room: wide and tall enough that a one-line annotation is never shortened by
-// it and never kept off a side, so a surface given it is placed as one given
-// no available room is.
+// unboundedRoom is the extent [AvailableRoom] reports where no window set the
+// available room: wide and tall enough that a surface is never shortened by it
+// and never kept off a side, so a surface given it is placed as one given no
+// available room is.
 const unboundedRoom = 1 << 20
 
 // WithAvailableRoom returns gtx with r set as the available room, in gtx's
@@ -55,10 +55,10 @@ func AvailableRoom(gtx layout.Context) image.Rectangle {
 	return image.Rect(-unboundedRoom, -unboundedRoom, unboundedRoom, unboundedRoom)
 }
 
-// HasAvailableRoom reports whether a window set the available room on gtx. A layout that
-// places its children only after measuring them asks it, with [HasSurfaces],
-// to know whether a floating surface in a child has anything to be placed in
-// beyond the child's own box.
+// HasAvailableRoom reports whether a window set the available room on gtx. A
+// layout that places its children only after measuring them asks it, with
+// [HasSurfaces], to know whether a floating surface in a child has anything to
+// be placed in beyond the child's own box.
 func HasAvailableRoom(gtx layout.Context) bool {
 	_, ok := gtx.Values[availableRoomKey].(image.Rectangle)
 	return ok
