@@ -21,24 +21,27 @@ const surfacesKey = "github.com/vibrantgio/components/tooltip.Surfaces"
 // a given available room, and the layout calls the callbacks with
 // [PlaceSurfaces] once it has placed the child.
 //
-// The type is named for what it holds: the Surface part of each tooltip laid
-// out in the child, waiting to be placed.
+// The type is named for what it holds: the Surface part of each floating
+// surface laid out in the child, waiting to be placed.
 //
 // A callback draws in the coordinates the tooltip was laid out in. The layout
 // therefore calls PlaceSurfaces inside the transform it placed the child at,
 // and a child that moves a tooltip by an offset of its own sets a Surfaces of
-// its own for it: with [SurfacesAt] where the offset is known before the
-// tooltip is laid out, and with WithSurfaces and PlaceSurfaces where it is
-// not.
+// its own for it: with [AvailableRoomAt] where the offset is known before
+// the tooltip is laid out, and with WithSurfaces and [PlaceSurfacesAt] where
+// it is not.
 type Surfaces struct {
 	draws []func(gtx layout.Context, room image.Rectangle)
 }
 
-// WithSurfaces returns gtx with a new, empty Surfaces set, and that Surfaces.
-// A layout calls it for each child it places only after measuring it, lays
-// the child out with the returned context, and then calls [PlaceSurfaces].
-// gtx.Values is cloned rather than written, so the caller's context keeps
-// what it had.
+// WithSurfaces returns gtx with a new, empty Surfaces set and the available
+// room removed, and that Surfaces. A layout calls it for each child it places
+// only after measuring it, lays the child out with the returned context, and
+// then calls [PlaceSurfacesAt] with the offset it placed the child at. The
+// room is removed because it cannot be moved by an offset not yet decided: a
+// surface in the child is placed by the Surfaces, in the room moved once the
+// offset is known. gtx.Values is cloned rather than written, so the caller's
+// context keeps what it had.
 //
 // It is named as the context setters of the layouts above it are: it returns
 // the context with a value set.
@@ -49,6 +52,7 @@ func WithSurfaces(gtx layout.Context) (layout.Context, *Surfaces) {
 		values = make(map[string]any, 1)
 	}
 	values[surfacesKey] = s
+	delete(values, availableRoomKey)
 	gtx.Values = values
 	return gtx, s
 }
@@ -63,7 +67,7 @@ func WithSurfaces(gtx layout.Context) (layout.Context, *Surfaces) {
 // of another layout that places it only after measuring it, and room is not
 // the window's: the callbacks are then added to the Surfaces gtx has set,
 // in order, and called with the area that layout passes. A layout that
-// placed the child at an offset sets that Surfaces with [SurfacesAt] first.
+// placed the child at an offset calls [PlaceSurfacesAt] instead.
 //
 // It is named for what the call does: each surface is placed in room, by the
 // same rules a tooltip given that available room is placed by.
@@ -82,19 +86,21 @@ func PlaceSurfaces(gtx layout.Context, s *Surfaces, room image.Rectangle) {
 	}
 }
 
-// SurfacesAt returns gtx with the Surfaces it has set moved into the
+// surfacesAt returns gtx with the Surfaces it has set moved into the
 // coordinates of a child placed at off: a new Surfaces is set, and the
 // callbacks recorded in it are added to the one gtx had as one callback that
-// draws them inside a transform pushed at off, in the area moved by off. A
-// layout calls it with the offset it pushes before it lays the child out, as
-// it moves the available room. Where no Surfaces is set, or off is zero, gtx
-// is returned as it is.
-func SurfacesAt(gtx layout.Context, off image.Point) layout.Context {
+// draws them inside a transform pushed at off, in the area moved by off. It
+// is the Surfaces half of [AvailableRoomAt]. Where no Surfaces is set, or off
+// is zero, gtx is returned as it is.
+func surfacesAt(gtx layout.Context, off image.Point) layout.Context {
 	outer := surfacesFrom(gtx)
 	if outer == nil || off == (image.Point{}) {
 		return gtx
 	}
-	gtx, inner := WithSurfaces(gtx)
+	values := maps.Clone(gtx.Values)
+	inner := new(Surfaces)
+	values[surfacesKey] = inner
+	gtx.Values = values
 	outer.draws = append(outer.draws, func(gtx layout.Context, room image.Rectangle) {
 		st := op.Offset(off).Push(gtx.Ops)
 		PlaceSurfaces(gtx, inner, room.Sub(off))

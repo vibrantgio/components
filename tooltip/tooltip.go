@@ -58,13 +58,14 @@
 // layout set [Surfaces] on the context, the trigger's offset inside the window
 // is decided only after the tooltip is laid out, so the surface is not drawn
 // then: the tooltip records it in the Surfaces, and the layout draws it with
-// [PlaceSurfaces] in the area moved by the offset it placed its child at.
+// [PlaceSurfacesAt] in the area moved by the offset it placed its child at.
 // Without Surfaces set the surface is drawn as the tooltip is laid out. A
 // layout between that layout and the tooltip that pushes an offset moves
-// the Surfaces with [SurfacesAt] before it lays its child out, and moves
-// the available room it passes by the same offset; a layout that pushes an
-// offset without moving the Surfaces places the surface away from its
-// trigger.
+// the Surfaces and the available room together with [AvailableRoomAt]
+// before it lays its child out; a layout that pushes an offset without
+// moving them places the surface away from its trigger. [WithAvailableRoom]
+// is where a window sets the room, and [PlacingFlex] is the flex that lays
+// its children out and then places their surfaces.
 //
 // Show/hide is instantaneous in this package; entrance/exit transitions
 // are deferred to a later Effects-integration goal. Touch long-press is out of

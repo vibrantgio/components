@@ -27,17 +27,23 @@ const (
 	rowTipScroll = 15
 )
 
-// rowTipWindow lays a scrolled list out in the window the way a window's
-// root lays out a layout that places its children after measuring them: under
-// a tooltip.Surfaces, whose surfaces it then places in the window's room.
-// Row tipRow holds an anchored tooltip asked for below the row, shown or
-// not.
-func rowTipWindow(t *testing.T, tipRow int, shown bool) *image.RGBA {
+// rowTipWindow lays a scrolled list out in the window. With collected set, it
+// does so the way a layout that places its children after measuring them
+// does: under a tooltip.Surfaces, whose surfaces it then places in the
+// window's room. Without it, the window sets its room as a shell does and no
+// caller sets a Surfaces. Row tipRow holds an anchored tooltip asked for
+// below the row, shown or not, given the room the context carries.
+func rowTipWindow(t *testing.T, tipRow int, shown, collected bool) *image.RGBA {
 	shaper := tokens.DefaultTypography.DeterministicShaper()
 	return golden.Capture(t, rowTipFrame, func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, color.NRGBA{R: 245, G: 245, B: 245, A: 255}, clip.Rect{Max: rowTipFrame}.Op())
 		window := gtx
-		gtx, s := tooltip.WithSurfaces(gtx)
+		var s *tooltip.Surfaces
+		if collected {
+			gtx, s = tooltip.WithSurfaces(gtx)
+		} else {
+			gtx = tooltip.WithAvailableRoom(gtx, image.Rectangle{Max: rowTipFrame})
+		}
 		state := list.NewStateAt(rowTipFirst)
 		state.ScrollPixels(rowTipScroll)
 		list.Layout(gtx, state, makeItems(20), func(gtx layout.Context, item int) layout.Dimensions {
@@ -45,14 +51,17 @@ func rowTipWindow(t *testing.T, tipRow int, shown bool) *image.RGBA {
 			if item == tipRow {
 				gtx.Constraints = layout.Exact(size)
 				tooltip.Render(shaper, tooltip.Props{
-					Text:      "Where this goes",
-					Placement: tooltip.Bottom,
-					Anchor:    func(layout.Context) image.Rectangle { return image.Rectangle{Max: size} },
+					Text:          "Where this goes",
+					Placement:     tooltip.Bottom,
+					AvailableRoom: tooltip.AvailableRoom,
+					Anchor:        func(layout.Context) image.Rectangle { return image.Rectangle{Max: size} },
 				}, shown, tokens.PlatformLight, tokens.Spacing, tokens.RadiusScale{}, tokens.DefaultTypography.LabelSmall)(gtx)
 			}
 			return layout.Dimensions{Size: size}
 		})
-		tooltip.PlaceSurfaces(window, s, image.Rectangle{Max: rowTipFrame})
+		if collected {
+			tooltip.PlaceSurfaces(window, s, image.Rectangle{Max: rowTipFrame})
+		}
 		return layout.Dimensions{Size: rowTipFrame}
 	})
 }
@@ -79,25 +88,29 @@ func paintedRows(shown, hidden *image.RGBA) (top, bottom int) {
 // TestAScrolledRowsTooltipIsPlacedInTheWindowsRoom holds the list's rows to
 // the attachment: a row's tooltip is placed against the row where the scroll
 // placed it, inside the window's room, below a row with room under it and
-// above the row at the window's bottom edge.
+// above the row at the window's bottom edge. It holds both under a layout
+// that collects the surfaces and under a window that set its room with no
+// Surfaces set by any caller.
 func TestAScrolledRowsTooltipIsPlacedInTheWindowsRoom(t *testing.T) {
-	// Row 7 is at 25..65, with room below it.
-	foot := 2*rowTipH - rowTipScroll
-	top, bottom := paintedRows(rowTipWindow(t, 7, true), rowTipWindow(t, 7, false))
-	if top < 0 {
-		t.Fatal("row 7's tooltip painted nothing")
-	}
-	if top < foot || bottom >= rowTipFrame.Y {
-		t.Errorf("row 7's tooltip spans rows %d..%d; want it below the row's foot at %d and inside the window", top, bottom, foot)
-	}
-	// Row 11 is at 185..225, crossing the window's bottom edge: the tooltip
-	// takes the side with room, above it.
-	head := 5*rowTipH - rowTipScroll
-	top, bottom = paintedRows(rowTipWindow(t, 11, true), rowTipWindow(t, 11, false))
-	if top < 0 {
-		t.Fatal("row 11's tooltip painted nothing")
-	}
-	if bottom >= head {
-		t.Errorf("row 11's tooltip spans rows %d..%d; want it above the row's top at %d, inside the window", top, bottom, head)
+	for _, collected := range []bool{true, false} {
+		// Row 7 is at 25..65, with room below it.
+		foot := 2*rowTipH - rowTipScroll
+		top, bottom := paintedRows(rowTipWindow(t, 7, true, collected), rowTipWindow(t, 7, false, collected))
+		if top < 0 {
+			t.Fatalf("collected %v: row 7's tooltip painted nothing", collected)
+		}
+		if top < foot || bottom >= rowTipFrame.Y {
+			t.Errorf("collected %v: row 7's tooltip spans rows %d..%d; want it below the row's foot at %d and inside the window", collected, top, bottom, foot)
+		}
+		// Row 11 is at 185..225, crossing the window's bottom edge: the
+		// tooltip takes the side with room, above it.
+		head := 5*rowTipH - rowTipScroll
+		top, bottom = paintedRows(rowTipWindow(t, 11, true, collected), rowTipWindow(t, 11, false, collected))
+		if top < 0 {
+			t.Fatalf("collected %v: row 11's tooltip painted nothing", collected)
+		}
+		if bottom >= head {
+			t.Errorf("collected %v: row 11's tooltip spans rows %d..%d; want it above the row's top at %d, inside the window", collected, top, bottom, head)
+		}
 	}
 }

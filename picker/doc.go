@@ -58,10 +58,11 @@
 //
 // A floating surface has to land whole, so the field fits its menu to the room
 // there actually is. [FieldProps.AvailableRoom] is how it learns that room —
-// the pixels above the trigger's top edge and below its bottom edge, inside
-// the container that laid the field out — and it is the container's to answer,
-// because Gio hands a component its constraints and nothing about where its
-// ancestors put it. Given the room, a menu that cannot stand whole where it
+// the window's available room as the layouts above moved it into the field's
+// coordinates, from which the field derives the pixels above the trigger's top
+// edge and below its bottom edge — and it is the window's to answer, because
+// Gio hands a component its constraints and nothing about where its ancestors
+// put it. Given the room, a menu that cannot stand whole where it
 // wants to is pushed the least distance that brings it inside; one taller than
 // the whole room is capped to the room and scrolls inside that cap, and [Drop]
 // says which end of the room the cap takes. [FieldProps.MaxHeight] tightens

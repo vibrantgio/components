@@ -11,6 +11,7 @@ import (
 
 	"github.com/vibrantgio/components/list"
 	"github.com/vibrantgio/components/scrollbar"
+	"github.com/vibrantgio/components/tooltip"
 )
 
 // inf is the width the child is measured at: unbounded in practice, and small
@@ -62,9 +63,18 @@ func (s Style) layout(gtx layout.Context, state *State, w layout.Widget, bar *sc
 
 	// Measure the child at its natural width. Recording it also keeps the
 	// child's draw commands out of the ops list until the clip is in place.
+	//
+	// The scroll offset the child is placed at is settled only after the
+	// child is measured, so where gtx has the available room or a
+	// tooltip.Surfaces set, the child is laid out with a Surfaces of its own
+	// and its floating surfaces are placed at that offset once it is known.
 	cgtx := gtx
 	cgtx.Constraints.Min.X = 0
 	cgtx.Constraints.Max.X = inf
+	var surfaces *tooltip.Surfaces
+	if tooltip.HasSurfaces(gtx) || tooltip.HasAvailableRoom(gtx) {
+		cgtx, surfaces = tooltip.WithSurfaces(cgtx)
+	}
 	macro := op.Record(gtx.Ops)
 	child := w(cgtx)
 	call := macro.Stop()
@@ -84,8 +94,10 @@ func (s Style) layout(gtx layout.Context, state *State, w layout.Widget, bar *sc
 	}
 	area := clip.Rect{Max: size}.Push(gtx.Ops)
 	state.scroll.Add(gtx.Ops)
-	tr := op.Offset(image.Pt(-state.offset, 0)).Push(gtx.Ops)
+	off := image.Pt(-state.offset, 0)
+	tr := op.Offset(off).Push(gtx.Ops)
 	call.Add(gtx.Ops)
+	tooltip.PlaceSurfacesAt(gtx, surfaces, off)
 	tr.Pop()
 	area.Pop()
 

@@ -18,22 +18,22 @@ func recordRoom(gtx layout.Context, name string, got *[]string, rooms *[]image.R
 	})
 }
 
-// TestSurfacesAtMovesTheArea sets a Surfaces, moves it to a child at an
-// offset with SurfacesAt, records a callback in the child, and places the
+// TestAvailableRoomAtMovesTheSurfaces sets a Surfaces, moves it to a child at an
+// offset with AvailableRoomAt, records a callback in the child, and places the
 // outer Surfaces: the callback is called with the area moved by the offset.
-func TestSurfacesAtMovesTheArea(t *testing.T) {
+func TestAvailableRoomAtMovesTheSurfaces(t *testing.T) {
 	gtx := layout.Context{Ops: new(op.Ops)}
 	gtx, outer := WithSurfaces(gtx)
 	var names []string
 	var rooms []image.Rectangle
-	child := SurfacesAt(gtx, image.Pt(30, 7))
+	child := AvailableRoomAt(gtx, image.Pt(30, 7))
 	recordRoom(child, "child", &names, &rooms)
 	PlaceSurfaces(layout.Context{Ops: gtx.Ops}, outer, image.Rect(0, 0, 100, 50))
 	if len(rooms) != 1 || rooms[0] != image.Rect(-30, -7, 70, 43) {
 		t.Fatalf("the callback was called with %v, want one call with (-30,-7)-(70,43)", rooms)
 	}
-	if SurfacesAt(layout.Context{}, image.Pt(1, 1)).Values != nil {
-		t.Error("with no Surfaces set, SurfacesAt set a value")
+	if AvailableRoomAt(layout.Context{}, image.Pt(1, 1)).Values != nil {
+		t.Error("with nothing set, AvailableRoomAt set a value")
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"image"
 
 	"gioui.org/layout"
+	"gioui.org/op"
 
 	"github.com/vibrantgio/components/tooltip"
 )
@@ -19,21 +20,19 @@ type placedRow struct {
 // does, and places the floating surfaces of the tooltips laid out in them.
 //
 // The list decides a row's offset only after it has measured the row, and it
-// moves every row by the scroll, so no row can be given the available room:
-// a row's tooltip that read the room passed into the list would be placed
-// against edges moved by the row's offset and the scroll. The list cannot
-// read that room itself either, since the layouts that set it are above this
-// module. Where gtx has a [tooltip.Surfaces] set, each row is therefore laid
-// out with a Surfaces of its own, and once the list has placed its rows the
-// surfaces of every row in view are added to the Surfaces gtx has set, moved
-// by the row's offset, so the layout that set it places them in the available
-// room. The surfaces of a row scrolled out of view are not placed: its
-// anchor is out of view, so its surfaces are dismissed.
+// moves every row by the scroll, so no row can be given the available room
+// as it is: a row's tooltip that read it would be placed against edges moved
+// by the row's offset and the scroll. Where gtx has the available room or a
+// [tooltip.Surfaces] set, each row is therefore laid out with a Surfaces of
+// its own, and once the list has placed its rows the surfaces of every row in
+// view are placed with [tooltip.PlaceSurfacesAt] at the row's offset, in the
+// room moved by it. The surfaces of a row scrolled out of view are not
+// placed: its anchor is out of view, so its surfaces are dismissed.
 //
-// Where gtx has none, the rows are laid out with gtx as it is, and a tooltip
-// in a row is placed as one laid out anywhere else under gtx is.
+// Where gtx has neither, the rows are laid out with gtx as it is, and a
+// tooltip in a row is placed as one laid out anywhere else under gtx is.
 func (s *State) layoutRows(gtx layout.Context, n int, rowFn layout.ListElement) layout.Dimensions {
-	if !tooltip.HasSurfaces(gtx) {
+	if !tooltip.HasSurfaces(gtx) && !tooltip.HasAvailableRoom(gtx) {
 		return s.l.Layout(gtx, n, rowFn)
 	}
 	rows := map[int]placedRow{}
@@ -53,7 +52,9 @@ func (s *State) layoutRows(gtx layout.Context, n int, rowFn layout.ListElement) 
 			break
 		}
 		off := image.Pt(0, y)
-		tooltip.PlaceSurfaces(tooltip.SurfacesAt(gtx, off), r.surfaces, image.Rectangle{})
+		st := op.Offset(off).Push(gtx.Ops)
+		tooltip.PlaceSurfacesAt(gtx, r.surfaces, off)
+		st.Pop()
 		y += r.size.Y + s.l.Gap
 	}
 	return dims

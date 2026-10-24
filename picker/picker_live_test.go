@@ -146,12 +146,15 @@ func TestFieldOpensItsMenuAndSelectsFromIt(t *testing.T) {
 func TestFieldWithNoRoomBelowIsPushedUpAndStillSelects(t *testing.T) {
 	var picked []int
 	w := materialize(t, picker.Field(rx.Of(liveTheme()), picker.FieldProps{
-		Description:   "choose",
-		Options:       options,
-		Drop:          picker.DropUp,
-		AvailableRoom: func(layout.Context) (int, int) { return 400, 0 },
-		Shaper:        defaultShaper(t),
-		OnSelect:      func(_ layout.Context, i int) { picked = append(picked, i) },
+		Description: "choose",
+		Options:     options,
+		Drop:        picker.DropUp,
+		// 400 above the trigger and nothing below its foot.
+		AvailableRoom: func(gtx layout.Context) image.Rectangle {
+			return image.Rect(0, -400, gtx.Constraints.Max.X, gtx.Dp(unit.Dp(tokens.Comfortable.ControlHeight)))
+		},
+		Shaper:   defaultShaper(t),
+		OnSelect: func(_ layout.Context, i int) { picked = append(picked, i) },
 	}))
 
 	row, trig := rowHeight(tokens.Comfortable), triggerHeight(tokens.Comfortable)

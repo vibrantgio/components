@@ -176,24 +176,27 @@ type FieldProps struct {
 	// See [MenuProps.MaxHeight] for what the cap trades.
 	MaxHeight unit.Dp
 
-	// AvailableRoom, if non-nil, is asked on every frame the menu stands for
-	// the room it has to stand in — the pixels above the trigger's top edge
-	// and below its bottom edge, inside the container that laid the field out
-	// — and it settles both questions a floating surface has: where the menu
-	// lands, and how tall it may be. The menu stands over the trigger, so the
-	// room it has is those two plus the trigger's own height; a menu that
-	// cannot stand there whole is pushed into the room, and one taller than
-	// the whole room is capped to it and scrolls inside that cap.
+	// AvailableRoom, if non-nil, is asked on every frame the menu is open for
+	// the rectangle it may be placed in, in the coordinates the field is laid
+	// out in, the trigger's top-left corner at the origin: the window's
+	// available room as a layout above moved it, which
+	// [github.com/vibrantgio/components/tooltip.AvailableRoom]
+	// reads off the context, so a caller passes that function itself. The
+	// field derives what it settles from the rectangle: the pixels above the
+	// trigger's top edge and below its bottom edge. Those settle both
+	// questions a floating surface has: where the menu is placed, and how tall
+	// it may be. The menu is placed over the trigger, so the room it has is
+	// those two plus the trigger's own height; a menu that does not fit there
+	// whole is pushed into the room, and one taller than the whole room is capped
+	// to it and scrolls inside that cap.
 	//
-	// The container is asked because a component cannot see past its own box:
-	// Gio gives a component its constraints and no readback of the transform or
-	// of the clip its ancestors imposed, so where the trigger stands inside
-	// the dialog, the column or the window around it is knowable only where
-	// that box was laid out. The container measures it; it is not a number
-	// anybody picks.
+	// The room is asked for because a component cannot see past its own box:
+	// Gio gives a component its constraints and no readback of the transform
+	// or of the clip its ancestors imposed, so where the trigger is inside the
+	// window is known only where the window was laid out.
 	//
 	// Nil leaves the menu bounded by the window alone.
-	AvailableRoom func(gtx layout.Context) (above, below int)
+	AvailableRoom func(gtx layout.Context) image.Rectangle
 
 	// Placeholder is what the trigger says while the field holds no value:
 	// the prompt that stands where the chosen option will, drawn in the
@@ -381,7 +384,7 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 						Options:       props.Options,
 						Drop:          props.Drop,
 						MaxHeight:     props.MaxHeight,
-						AvailableRoom: props.AvailableRoom,
+						AvailableRoom: aboveAndBelow(props.AvailableRoom, tok),
 						Placeholder:   props.Placeholder,
 						NoOptions:     props.NoOptions,
 						Surface:       props.Surface,
@@ -638,6 +641,21 @@ func fitMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fiel
 		return bottom - height, height
 	}
 	return 0, height
+}
+
+// aboveAndBelow derives the menu's room above and below the trigger from the
+// rectangle room reports in the field's coordinates: the pixels between the
+// rectangle's top and the trigger's top edge at zero, and between the
+// trigger's foot at its own height and the rectangle's bottom. A nil room
+// derives nothing.
+func aboveAndBelow(room func(gtx layout.Context) image.Rectangle, tok resolvedTokens) func(gtx layout.Context) (above, below int) {
+	if room == nil {
+		return nil
+	}
+	return func(gtx layout.Context) (above, below int) {
+		r := room(gtx)
+		return -r.Min.Y, r.Max.Y - gtx.Dp(unit.Dp(tok.density.ControlHeight))
+	}
 }
 
 // wholeRows is the tallest plane no taller than limit that ends on a row's
