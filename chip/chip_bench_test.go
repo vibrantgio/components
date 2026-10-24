@@ -12,9 +12,8 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// benchFrame drives w for b.N synthetic frames, per DESIGN-v1.md §Performance
-// (in github.com/vibrantgio/design). b.ReportAllocs is enabled so CI can gate
-// on per-frame allocation regressions (>5% threshold).
+// benchFrame drives w for b.N synthetic frames, with b.ReportAllocs enabled
+// so the per-frame allocations are reported.
 func benchFrame(b *testing.B, w layout.Widget) {
 	b.Helper()
 	b.ReportAllocs()
