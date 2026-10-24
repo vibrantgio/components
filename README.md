@@ -13,22 +13,24 @@ states, its pointer target, its Space/Enter activation and its
 screen-reader label. components writes them once. There are two API shapes, and
 which one a package uses follows from what it owns:
 
-- **Themed components** — `button`, `input` — take an
+- **Themed components** — `button`, `input`, `chip`, `picker` and the
+  others with a live entry point — take an
   `rx.Observable[theme.Theme]` plus a props struct and return an
   `rx.Observable[layout.Widget]`. The widget is rebuilt when the theme
   changes, so a window follows the OS between light and dark with no
   application code. Interaction state is allocated inside the component's
   `rx.Defer` scope, which is what keeps press and focus alive across the view
   rebuilds an MVU loop drives. The theme carries the whole look: colour,
-  typography (the theme's shaper — see below), and `Density` — the drawn
-  control is the platform's regular control at 24 dp Comfortable and its small
-  one at 19 dp Compact, and the drawn control is also the pointer target, so
+  typography (the theme's shaper — see below), and `Density` — a control is
+  at least the platform's regular control height, 24 dp, at Comfortable and its
+  small one, 19 dp, at Compact, taller where its type role needs it, and the
+  drawn control is also the pointer target, so
   Compact moves what a pointer lands on with the pixels.
 - **Immediate-mode primitives** — `list`, `paragraph`, `scrollbar`, `layout` —
   take the frame's `layout.Context`, a `State` you allocate once and reuse
   across frames, and a per-frame `Style` resolved from tokens
   (`scrollbar.FromTokens`, `paragraph.FromTokens`). They are what the themed
-  components and patterns' patterns are built out of.
+  components are built out of.
 
 Both shapes have a pure render path — `button.Render`, `input.RenderCheckbox`,
 `paragraph.Render`, … — that takes resolved tokens and an explicit state struct
@@ -43,49 +45,55 @@ components through their theme-driven entry points (`button.Button`,
 
 ## Where it sits
 
-Tier 2 of the stack — `mvu → theme → components → effects → patterns → markdown`.
-components imports [mvu](https://github.com/vibrantgio/mvu),
+The tier above theme in the stack. components imports
+[mvu](https://github.com/vibrantgio/mvu),
 [theme](https://github.com/vibrantgio/theme) — the `theme` and `tokens`
-contract — and the support libraries [ivg](https://github.com/vibrantgio/ivg)
-and [svg](https://github.com/vibrantgio/svg);
-[effects](https://github.com/vibrantgio/effects),
-[patterns](https://github.com/vibrantgio/patterns) and
-[markdown](https://github.com/vibrantgio/markdown) are built on it —
-`effects/springbutton` is `components/button` with a physics-driven press, `patterns`'s
-table is built on `components/list` and its dialog on `components/button`.
-The [organization page](https://github.com/vibrantgio) has the full tier table.
+contract, with `color` and `typeset` — and the support libraries
+[ivg](https://github.com/vibrantgio/ivg) and
+[svg](https://github.com/vibrantgio/svg); its module also requires
+[font](https://github.com/vibrantgio/font). The
+[organization page](https://github.com/vibrantgio) has the full tier table.
 
 ```sh
 go get github.com/vibrantgio/components
 ```
-
-Every module in the organization is on gioui.org v0.10.2,
-github.com/reactivego/rx v0.3.0 and Go 1.25.1.
 
 ## Packages
 
 | Package | |
 | --- | --- |
 | `alert` | The status signal for a situation: a rounded box — a leading status symbol, a title and an arbitrary body slot — standing in the page flow until the situation resolves. It stands on the content's fill inside the platform's separator hairline, its title in the platform's label colour, and the status is carried by the symbol alone, in the platform's system colour for it: systemGreen, systemOrange, systemRed, systemBlue. Info is systemBlue and never the accent. It holds words about the situation, never a control: an action on the situation stands beside it. |
-| `badge` | The inline annotation: the system's own word about a thing, set at the size of its own type and off the control-height scale entirely. It speaks as a word, a count or a symbol — a word or a count filled with the platform's system colour for the status under white, the platform's own count badge; a symbol standing bare in that system colour, or on a disc of it under a white sign. Five values differing in hue alone (`Neutral`, which has no system colour of its own and wears systemGray filled and the secondary label bare, and `Success`/`Warning`/`Error`/`Info` for the four statuses) and no emphasis axis, because a badge is read rather than used. `Props.OnDismiss` grows the close mark, whose invisible target is 24 dp on an 8 dp drawing; what it removes is the title and never the behaviour. |
-| `breadcrumb` | The control for going back up the hierarchy: a chevron-separated row of location segments — each step a link, the last where you are. The current location renders in `Text`, the steps before it in the low-contrast neutral step, and a segment is clickable exactly when its own `OnClick` is set. `Breadcrumb` takes the trail when the stream is built; `Trail` takes it per frame, for a path that changes as the user navigates, and routes each click by the segment's own key rather than by the position it stood in. No overflow behaviour: every segment renders, on one row, and a trail deeper than its constraint is clipped rather than collapsed. |
+| `badge` | The inline annotation: the system's own word about a thing, set at the size of its own type and off the control-height scale entirely. It speaks as a word, a count or a symbol — a word or a count filled with the platform's system colour for the status under white, the platform's own count badge; a symbol standing bare in that system colour, or on a disc of it under a white sign. Five values differing in hue alone (`Neutral`, which has no system colour of its own and is filled with systemGray, or drawn bare in the secondary label colour, and `Success`/`Warning`/`Error`/`Info` for the four statuses) and no emphasis axis, because a badge is read rather than used. `Props.OnDismiss` adds the close mark, drawn 8 dp across with a 24 dp pointer target centred on it. |
+| `breadcrumb` | The control for going back up the hierarchy: a chevron-separated row of location segments — each step a link, the last where you are. Every segment is drawn in the platform's `Label` colour and the chevrons between them in `SecondaryLabel`, and a segment is clickable exactly when its own `OnClick` is set. `Breadcrumb` takes the trail when the stream is built; `Trail` takes it per frame, for a path that changes as the user navigates, and routes each click by the segment's own key rather than by the position it stood in. No overflow behaviour: every segment renders, on one row, and a trail deeper than its constraint is clipped rather than collapsed. |
 | `bench` | `BenchFrame`, the shared per-frame benchmark harness every component's benchmarks run through. |
-| `button` | The button: text or icon-only, in three emphases (filled, tonal, ghost — the filled one able to wear a fill and foreground pinned by its caller), hover/focus/press/disabled, keyboard activation, density-sized, the drawn control its own pointer target; clicks arrive as a callback or as an MVU message. |
+| `button` | The button: text or icon-only, in three emphases (`Filled`, `Tonal`, `Ghost`; `Props.Fill` and `Props.Foreground` let a caller set the filled button's colours), hover/focus/press/disabled, keyboard activation, density-sized, the drawn control its own pointer target; clicks arrive as a callback or as an MVU message. `Props.Icon` is a painter, `func(gtx layout.Context, sizePx int, col color.NRGBA)`; with no `Title` it makes the button a square icon-only control. `RenderBordered`, `BorderedFace` and `BorderedSegments` draw the bordered button the toolbar uses and a row of joined segments; `Render` and `RenderIcon` are the pure paths. |
+| `button/gallery` | A runnable page showing the button in every visual state in both appearances. |
+| `chip` | The chip: the small control content offers, drawn as the platform draws an ordinary small control and defined by its purpose — `Assist`, `Filter` (the one that toggles), `Input` (carries a dismiss mark) and `Suggestion`. `Chip` is the live path, `Render` the pure one, `Resolve` its colours for a purpose and state. |
+| `composite` | Paints an overlay over what the frame has already drawn, composited in encoded sRGB as the platform composites it: `Flatten` paints an overlay over mixed content, and `Frame`, called first in a window's root layout, records the frame it composites against. Where the surface beneath is one known fill, `theme/color.Flatten` is the answer instead. |
 | `cache` | `FrameCache`, an op-recording cache that replays a component's recorded draw commands on frames where its inputs have not changed. |
-| `coordination` | **Deprecated** — use [`mvu/stream`](https://github.com/vibrantgio/mvu)`.Value`. `Subject`, the typed broadcast channel for cross-component signals. The concerns it was built for are answered without it: drag, dialog and tooltip arbitration are frame state, toasts are messages, and the one genuine stream (`theme/preferences`) is a tier below and could never import it. It has no users in the organization and is removed at **v1.0.0**. |
-| `golden` | The organization's headless-Gio golden-image harness: `Capture`, `Render` and `PixelDiff`. Exported so callers outside components drive one capture path instead of inlining their own. |
+| `coordination` | **Deprecated** — use [`mvu/stream`](https://github.com/vibrantgio/mvu)`.Value`. `Subject`, a typed broadcast channel for signals between components, with `BufCapPointer` and `BufCapSignal` buffer depths; a subscription's slot is released on unsubscribe, and `MaxSubscribers` live subscriptions at once is its leak limit. |
+| `elide` | Shortens a line of text to the width it has: `Middle` keeps the start and the end of an address on either side of one `Ellipsis`, measured with the same role and shaper the draw uses. |
+| `gallery` | A nested module, the runnable gallery: every component in every visual state, with live interaction, and the page of everything at once. |
+| `gallery/inventory` | Draws every family of the design system — foundations, components, patterns and a prose sample — as one column of labelled sections, each a pure function of the `PlatformColors` it is handed. |
+| `gallery/palette` | Draws the platform's colour set: every name AppKit answers for, with its value in both appearances, and where a name is a coverage rather than an opaque colour. |
+| `golden` | The headless-Gio golden-image harness: `Capture`, `Render`, `Compare` and `PixelDiff` for a frame; `StaticTheme`, `Window` and `WindowGolden` for whole windows of themed layers; `CoverageRow` and `FitCorner` for measuring edges and corner radii off a capture. |
 | `icon` | A name→icon registry holding icons in either SVG (`vibrantgio/svg`) or IVG (`vibrantgio/ivg`) form. |
+| `icon/gallery` | A runnable page drawing one SVG and one IVG icon side by side. |
+| `icons` | The design system's own icon set: symbols drawn on one grid at one weight, addressed by a `Name` that says what the symbol depicts, and resolved to the host platform's drawing at run time. `Mark` returns the painter a control's icon slot takes, `Names` lists the set, and `Register` fills an `icon.Registry` with it; `New` builds the set for a given platform. |
 | `initial` | `Value[T]`, a typed "not set yet" cell for state that cannot be computed until the first frame has laid out — instead of a magic sentinel. |
-| `input` | Text field, search field, checkbox, radio and dropdown, on the same state and props contract as `button`. The search field is the text field with two slots added to its structure — the looking glass that names it and the clear mark that empties it — both spent out of the field's own width, and clearing reports the empty query the way a keystroke reports any other. |
+| `input` | Text field, search field, checkbox, radio and dropdown, on the same state and props contract as `button`; the dropdown is `picker`'s form trigger under input's name. The search field is the text field with two slots added to its structure — the looking glass that names it and the clear mark that empties it — both spent out of the field's own width, and clearing reports the empty query the way a keystroke reports any other. |
 | `keyed` | `Deferred`, a key→state registry that keeps per-row state attached to its item across list reorders, inserts and deletes. |
 | `layout` | Spacing, inset and spacer helpers, row/column wrappers, a pill clip, and `FocusGroup` for keyboard focus across a fixed set of items. |
-| `list` | Virtual-scrolling list — only the visible rows lay out. `Layout` for the bare list, `LayoutScrollbar` to draw a bar in a reserved gutter or overlaid. |
+| `list` | Virtual-scrolling list — only the visible rows lay out. `Layout` for the bare list, `LayoutScrollbar` to draw a bar in a reserved gutter or overlaid; `LayoutSelectable` and `LayoutSelectableScrollbar` make the list one focus target whose selection the arrow keys, Home and End move, telling each row whether it is the selected one so the caller draws the selection. |
 | `pagination` | The control for moving between numbered pages of content: a row of numbered page cells flanked by prev/next chevrons. Only the current page carries a fill: the platform's accent under the text that reads on it. Every other cell is unfilled — a page the control can take the reader to is drawn in the platform's link colour, any other page number in its label colour — so the row says "this one" with the one filled cell and in nothing else. The cells are drawn natively rather than through `button`, whose Comfortable padding would truncate a page digit inside a density-sized square. `Props.Page` and `PageCount` are plain ints, so a page change rebuilds the stream; every page in `[1, PageCount]` renders, with no ellipsis collapse. |
+| `picker` | The pick-one-from-many control: a trigger showing the chosen item's title and a menu offering the others. `Field` is the form variant, the platform's pop-up button; `Toolbar` the chrome variant; `Menu` the open surface; `RenderField`, `RenderToolbar` and `RenderMenu` the pure paths. |
+| `pointershape` | Declares the shape the platform's pointer takes over a region — the arrow, the I-beam, the hand — bounded to that region: `Over` for a rectangle, `OverSize` for a size at the origin. |
+| `progress` | The progress signal for a task whose end is not known: the platform's indeterminate indicator, a 16 dp wheel of eight grey strokes turning on Gio's frame clock. `Indicator` draws the wheel, `Region` and `Row` place it. It takes no pointer and no focus. |
 | `paragraph` | Content as a run of styled text wrapped into lines: styled spans, spans set on a rounded chip, and hyperlink spans with hover, focus ring and Tab traversal. Built directly on Gio's shaper. |
 | `scrollarea` | A horizontally scrolling viewport for content that must not be reflowed to fit — a preformatted block, an over-wide diagram. The child lays out at its natural width; content past an edge is clipped at the edge, and an optional bar is drawn at the area's own bottom edge. It claims the horizontal axis only, so it nests inside a vertical `list` without fighting it. |
 | `scrollbar` | The standalone scrollbar for any scrollable region — track, draggable thumb, click-the-track scrolling — styled from tokens. Absent while the content fits, and faded out a second after it stops moving, as the desktop platforms' overlay bars are. `list.LayoutScrollbar` draws this one. |
-| `toast` | The status signal for an event: a small surface floating at level 2 that appears when a notification is raised and leaves by itself after a set time. Level 2 is where it is placed, not what it is filled with: a floating surface on this platform is the window's own plane, so that is its fill and the platform's label colour its message. Its status speaks through the leading edge, in the platform's system colour for it, and never through the fill. It draws one toast and no queue; the column that receives notifications, places, stacks and times them is [`patterns/notifications`](https://github.com/vibrantgio/patterns), and the cast shadow that says a toast floats belongs to that placement. |
-| `tooltip` | The signal naming a control or explaining another signal on demand: a small annotation floating at level 3 beside its trigger, appearing by itself after a short delay on hover or focus and leaving when they do. Level 3 is where it is placed, not what it is filled with: it is the window's own surface inside the platform's separator hairline, with its text in the platform's label colour, the same in both appearances, so it reads as an annotation about the thing rather than as a pane. It holds text only, never a control: anything the user must operate is the job for a popover. Arbitration is frame state rather than a bus — `Props.Arbiter` names the set, one per window, and a tooltip is visible exactly while it holds that set's top, so the claim a finished dwell makes *is* the previous tooltip's dismissal. A nil `Arbiter` gets the tooltip one of its own, so sharing one is the explicit act. `DefaultDelay` resolves from the token motion scale's `DurXSlow` stop (500 ms), and the live form re-times from the theme's `Motion` observable. |
+| `toast` | The status signal for an event: a small surface at the floating level that appears when a notification is raised and leaves by itself after a set time. Its fill is the window background, as every floating surface's on this platform is, and its message is in the platform's label colour. Its status shows in the leading edge, in the platform's system colour for it, and never in the fill. It draws one toast and no queue: receiving, placing, stacking and timing notifications, and the shadow a placed toast casts, are its caller's. |
+| `tooltip` | The signal naming a control or explaining another signal on demand: a small annotation at the floating level beside its trigger, appearing by itself after a short delay on hover or focus and leaving when they do. Its fill is the window background inside the platform's separator hairline, with its text in the platform's label colour, the same in both appearances, so it reads as an annotation about the thing rather than as a pane. It holds text only, never a control: anything the user must operate is the job for a popover. Arbitration is frame state rather than a bus — `Props.Arbiter` names the set, one per window, and a tooltip is visible exactly while it holds that set's top, so the claim a finished dwell makes *is* the previous tooltip's dismissal. A nil `Arbiter` gets the tooltip one of its own, so sharing one is the explicit act. `DefaultDelay` resolves from the token motion scale's `DurXSlow` stop (500 ms), and the live form re-times from the theme's `Motion` observable. `WithSurfaces`, `PlaceSurfaces` and `SurfacesAt` collect tooltips drawn inside a frame and place them over it within the available room. |
 
 ## Usage
 
@@ -95,8 +103,7 @@ with the theme's `Typography.Shaper()`, so there is no shaper to build and
 no-gofont lint in this repository fails `go test` on any
 `gioui.org/font/gofont` import, so a component cannot fall back to gofont.
 
-Condensed from `list.go` in the smallest complete Vibrant Gio application —
-one row's checkbox:
+One row's checkbox in a todo list, condensed:
 
 ```go
 // Row is one todo line: a components checkbox toggling completion, the todo text,
@@ -126,13 +133,13 @@ submit := button.Button(th, button.Props{
 ```
 
 `th` is the theme observable the window hands to your layer builder;
-`theme/window` supplies one that tracks the OS appearance live. `Message`
+`theme/system.LiveTheme` supplies one that tracks the OS appearance live. `Message`
 is the MVU path — the component adds `mvu.MessageOp{Message: …}` to the
 frame's ops and the runtime delivers it to `Update`. FRP-style applications
 use `OnClick` instead, and are handed the frame's `layout.Context` so they can
-still emit a message from inside the callback. Components buttons fill the width
-they are given and draw at the theme's `Density.ControlHeight`, which is the
-pointer target too: a control claims the pixels it shows and no more, so two
+still emit a message from inside the callback. Buttons fill the width
+they are given and are at least the theme's `Density.ControlHeight` tall, and the
+drawn control is the pointer target too: a control claims the pixels it shows and no more, so two
 controls side by side never contend for the same press.
 
 The **gallery** shows every component in every visual state, with live
@@ -143,26 +150,16 @@ go run github.com/vibrantgio/components/gallery@latest   # or: cd gallery && go 
 ```
 
 It is a nested module — `github.com/vibrantgio/components/gallery`, whose tags
-carry the directory as a prefix (`gallery/v0.1.2`, not `v0.1.2`) — so that
-components itself does not depend on effects, which the gallery's spring-button page
-needs.
+carry the directory as a prefix — so that components itself does not depend on
+effects, which the gallery's spring-button page needs.
 
 ## For coding assistants
 
 Read the org guide before you write code against this module: the plan
 root's [`AGENTS.md`](https://github.com/vibrantgio/organisation/blob/master/AGENTS.md).
 
-[`AGENTS.md`](./AGENTS.md) in this repository has the build, test and
-golden-image commands.
-
-## Status
-
-Honest about what does not work yet:
-
-- **`icon.Registry` ships empty.** Nothing populates it yet. For Material Symbols
-  icons today, render `golang.org/x/exp/shiny/materialdesign/icons` data
-  through `ivg/raster/gio`; `button.Props.Icon` wants a `clip.Path` painter,
-  not a `layout.Widget`.
+The build, test and golden-image commands are reached from the same
+[`organisation/AGENTS.md`](https://github.com/vibrantgio/organisation/blob/master/AGENTS.md).
 
 ## License
 

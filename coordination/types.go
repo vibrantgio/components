@@ -52,11 +52,6 @@
 // primitive is smaller and faster, has no subscriber ceiling, and its
 // conflating write cannot be blocked by a consumer that stops draining.
 //
-// This package is removed at components v1.0.0, and nothing but that bump
-// closes it: a deprecated package is removed in the final major bump so a
-// consumer meets every removal at one version boundary. Until then it stays
-// unchanged and still tested.
-//
 // It is deliberately not a forwarder to stream.Value. A forwarder would
 // compile everywhere and change delivery policy, subscriber ceiling and
 // buffering under a signature that still type-checks; the rule is to break
