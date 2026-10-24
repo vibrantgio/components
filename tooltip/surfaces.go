@@ -103,6 +103,13 @@ func SurfacesAt(gtx layout.Context, off image.Point) layout.Context {
 	return gtx
 }
 
+// HasSurfaces reports whether gtx has a Surfaces set: whether a tooltip laid
+// out under gtx records its surface to be placed by a layout above it rather
+// than drawing it at once. A layout that places its children only after
+// measuring them and cannot read the available room itself asks it, and
+// collects its children's surfaces only where a layout above it places them.
+func HasSurfaces(gtx layout.Context) bool { return surfacesFrom(gtx) != nil }
+
 // surfacesFrom reads the Surfaces set on gtx, nil where none is.
 func surfacesFrom(gtx layout.Context) *Surfaces {
 	s, _ := gtx.Values[surfacesKey].(*Surfaces)

@@ -199,7 +199,7 @@ func Layout[T any](
 ) layout.Dimensions {
 	state.record(gtx)
 	state.scrollIntoView(len(items))
-	return state.l.Layout(gtx, len(items), func(gtx layout.Context, i int) layout.Dimensions {
+	return state.layoutRows(gtx, len(items), func(gtx layout.Context, i int) layout.Dimensions {
 		return rowFn(gtx, items[i])
 	})
 }
@@ -247,7 +247,7 @@ func LayoutSelectable[T any](
 	area.Pop()
 
 	sel := state.Selected()
-	return state.l.Layout(gtx, n, func(gtx layout.Context, i int) layout.Dimensions {
+	return state.layoutRows(gtx, n, func(gtx layout.Context, i int) layout.Dimensions {
 		return rowFn(gtx, items[i], i == sel)
 	})
 }

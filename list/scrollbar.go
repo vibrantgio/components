@@ -123,7 +123,7 @@ func (state *State) scrolled(
 		gtx.Constraints.Min.X = max(gtx.Constraints.Min.X-barWidth, 0)
 	}
 
-	listDims := state.l.Layout(gtx, n, rowFn)
+	listDims := state.layoutRows(gtx, n, rowFn)
 	gtx.Constraints = originalConstraints
 
 	// Draw the scrollbar. layout.Direction respects the minimum, so pin the
