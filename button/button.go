@@ -32,29 +32,29 @@ import (
 // attention on the surface it sits on. It is a colour property and nothing
 // else: the drawn control keeps the density's size, the pointer target keeps
 // that size with it, and the focus ring keeps its shape, width and place in
-// every variant. Keyboard visibility is not an emphasis property.
+// every emphasis. Keyboard visibility is not an emphasis property.
 //
-// The three variants are the three buttons the platform draws: the default
+// The three emphases are the three buttons the platform draws: the default
 // action it fills with the measured default-button fill, the ordinary button
 // beside it, and the
 // borderless kind that carries no fill at all.
 type Emphasis int
 
 const (
-	// Filled is the most pronounced variant and the zero value: the
+	// Filled is the most pronounced emphasis and the zero value: the
 	// platform's default action, filled with the default push button's own
 	// measured fill and its title in the foreground the platform pairs with
 	// it. One per surface —
 	// the action the screen is about.
 	Filled Emphasis = iota
 
-	// Tonal is the middle variant: the platform's ordinary button — the
+	// Tonal is the middle emphasis: the platform's ordinary button — the
 	// push button's own measured fill under the platform's control text,
-	// and no edge around it. The variant for a secondary action, and the
+	// and no edge around it. The emphasis for a secondary action, and the
 	// one a row of equals wears.
 	Tonal
 
-	// Ghost is the least pronounced variant: the platform's borderless
+	// Ghost is the least pronounced emphasis: the platform's borderless
 	// button — no fill and no edge, the title or symbol in the
 	// platform's control text. For affordances that must be present without
 	// being the subject — a dialog's close X, a toolbar of icons, a "Learn
@@ -665,7 +665,7 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 	return layout.Dimensions{Size: sz}
 }
 
-// buttonColors returns what the button paints for the given variant and
+// buttonColors returns what the button paints for the given emphasis and
 // interaction state: the fill, the foreground of the title or symbol, and the
 // two colours the ring of a focused button takes — the half past its box and
 // the half over it. An unused part comes back at alpha zero, which is no
@@ -686,7 +686,7 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 //	         text
 //	Ghost    no fill, the platform's control text
 //
-// No variant draws an edge, in any state. MEASURED,
+// No emphasis draws an edge, in any state. MEASURED,
 // save-dialog-{light,dark}.png: the "Cancel" push button's boundary steps in
 // one row or column from the sheet to its own fill on every side, with no
 // stroke of a third value anywhere on it. Down x=365 the sheet's #ffffff
@@ -723,7 +723,7 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 // Disabled fades the control toward the surface it stands on: the fill at
 // the platform's measured disabled coverage (control.Faded), the foreground
 // at the platform's disabled control text. The platform draws
-// a disabled default action as an ordinary disabled button, so every variant
+// a disabled default action as an ordinary disabled button, so every emphasis
 // that carries a fill falls back to the push button's fill first and fades
 // from there — which is what parts a disabled button from an enabled Tonal
 // one, the two having been the same pixel before. MEASURED,
@@ -731,7 +731,7 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 // #f2f2f2 and #2e3439 against the enabled pop-up's #ececec and #333a3f
 // seventeen rows above it on the same sheet.
 //
-// Filled is the one variant that takes a pin from the caller. A RenderState
+// Filled is the one emphasis that takes a pin from the caller. A RenderState
 // carrying both halves of a fill pair (RenderState.Fill and Foreground) wears
 // that pair in place of the default button's and keeps everything else: the
 // same
@@ -740,7 +740,7 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 // is no pair.
 //
 // Focus is a persistent state and not a treatment that replaces another: in
-// every variant it keeps the resting fill and adds the ring.
+// every emphasis it keeps the resting fill and adds the ring.
 func buttonColors(p tokens.PlatformColors, s RenderState) (bg, fg, ringOut, ringOver color.NRGBA) {
 	standsOn := surface.Or(s.Surface, p.WindowBackground)
 
@@ -766,7 +766,7 @@ func buttonColors(p tokens.PlatformColors, s RenderState) (bg, fg, ringOut, ring
 		}
 	}
 
-	// The pointer overlays go onto whatever fill the variant carries, and
+	// The pointer overlays go onto whatever fill the emphasis carries, and
 	// straight onto the surface where it carries none — which is how a held
 	// or hovered Ghost button gets a fill at all. A press wins over a hover:
 	// the two are one answer and not two laid on each other. Everything the
