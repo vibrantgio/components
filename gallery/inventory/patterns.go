@@ -489,7 +489,7 @@ func (inv *Inventory) dialog(c tokens.PlatformColors) layout.Widget {
 	// affordances and one of them alone shows only half of that. The
 	// decision answers from its footer and carries no mark at its corner;
 	// its scrim absorbs a stray click without acting on it, because
-	// dismissal is one of the answers. The pane is a place, and every cheap
+	// dismissal is one of the answers. The dismissible dialog is a place, and every cheap
 	// way out of it is offered at once: the mark, the key and the scrim.
 	//
 	// Neither is a dialog you cannot leave from the keyboard — both bind the
@@ -519,15 +519,15 @@ func (inv *Inventory) dialog(c tokens.PlatformColors) layout.Widget {
 		},
 		Shaper: inv.shaper,
 	}
-	// No Decision and no Actions: the pane's changes apply as they are
+	// No Decision and no Actions: the dismissible dialog's changes apply as they are
 	// made, which is what leaves it nothing to ask and nothing to put in a
 	// footer, and what lets it be left at any moment.
 	//
 	// Its body says that and stops. A line telling the reader which corner to
 	// click would be a specimen's copy carrying its own layout: the mark
 	// moves for a mirrored reading direction and the sentence would not, and
-	// the pane has two other ways out that no corner names.
-	pane := dialog.Props{
+	// the dismissible dialog has two other ways out that no corner names.
+	dismissible := dialog.Props{
 		Title: "Theme settings",
 		Body: inv.prose(c,
 			"Every change here applies as you make it.",
@@ -539,7 +539,7 @@ func (inv *Inventory) dialog(c tokens.PlatformColors) layout.Widget {
 		return layout.Flex{}.Layout(gtx,
 			layout.Flexed(1, inv.dialogScrim(c, decision)),
 			layout.Rigid(complayout.HSpacer(dialogGap)),
-			layout.Flexed(1, inv.dialogScrim(c, pane)),
+			layout.Flexed(1, inv.dialogScrim(c, dismissible)),
 		)
 	}
 }
