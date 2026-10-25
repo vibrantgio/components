@@ -109,15 +109,12 @@ func (s State) state() tokens.State {
 // which is the dark appearance's step to the level.
 //
 // The fill does not depend on what the control stands on, which is why this
-// takes no surface: the platform gives its toolbar control a fill of its own,
-// as it gives its push button one.
+// takes no surface: the platform gives its toolbar control a fill of its own.
 //
-// A toolbar button is the one control on this platform that tints under the
-// pointer — a push button, a list row and a sidebar row do not, which is the
-// reading control-hover-{light,dark}.png records — so the overlay is applied
-// here and nowhere else in this library. The light hover lands on the
-// capture to the byte: the overlay over #ffffff is the #f2f2f2 that capture
-// holds.
+// The toolbar control tints under the pointer: the hover overlay and the
+// press overlay lie over its fill, and this function applies both. The light
+// hover value equals the capture's value to the byte: control-hover-light.png
+// holds the #f2f2f2 that the hover overlay makes over #ffffff.
 func Fill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
 	switch state {
 	case tokens.StatePressed:

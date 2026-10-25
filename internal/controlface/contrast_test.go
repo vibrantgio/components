@@ -8,8 +8,7 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// The chrome-variant trigger is the one control in this library that tints
-// under the pointer, and every colour it draws is a platform name. This is
+// Every colour the chrome-variant trigger draws is a platform name. This is
 // the table that says which.
 func TestTheTriggerTakesThePlatformsNames(t *testing.T) {
 	for _, sc := range []struct {

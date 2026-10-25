@@ -185,12 +185,10 @@ func TestToolbarMarkIsSteadyAcrossTheWalk(t *testing.T) {
 }
 
 // TestToolbarFillIsThePlatformsOverlay pins the passthrough by name: the
-// trigger draws the platform's measured toolbar control fill at rest, and a
-// toolbar button is the one control on this platform that tints under the
-// pointer, so the platform's own two overlays go over that fill under the
-// pointer and while it is held — each resolved against it, because the
-// platform composites a coverage in encoded sRGB and Gio's rasterizer would
-// not.
+// trigger draws the platform's measured toolbar control fill at rest, and the
+// platform's own two overlays go over that fill under the pointer and while
+// it is held — each resolved against it, because the platform composites a
+// coverage in encoded sRGB and Gio's rasterizer would not.
 func TestToolbarFillIsThePlatformsOverlay(t *testing.T) {
 	for _, sc := range goldenSchemes {
 		t.Run(sc.name, func(t *testing.T) {

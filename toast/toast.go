@@ -1,5 +1,5 @@
 // Package toast provides the toast: the status signal presenting a
-// notification — a small surface floating at level 2 that appears when the
+// notification — a small floating surface that appears when the
 // notification is raised and leaves by itself after a set time. It draws one
 // toast and nothing else; the column that receives notifications, places,
 // stacks and times them is patterns/notifications.
