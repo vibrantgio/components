@@ -32,8 +32,6 @@ const (
 	// moves one stroke clockwise. DERIVED: two steps in 235 ms and two more
 	// in 224 ms.
 	Step = 115 * time.Millisecond
-	// TextSizeSp is the size the text beside the indicator is set at.
-	TextSizeSp = 13
 )
 
 // Gap is the space between the indicator and the text under it in the
@@ -76,9 +74,8 @@ type Props struct {
 	Text string
 	// Shaper shapes Text. [Region] and [Row] need it when Text is set.
 	Shaper *text.Shaper
-	// Typography is the type set Text is drawn from: the Body Medium role's
-	// typeface and weight at [TextSizeSp]. The zero value is
-	// tokens.DefaultTypography.
+	// Typography is the type set Text is drawn from: the Body Large role.
+	// The zero value is tokens.DefaultTypography.
 	Typography tokens.Typography
 	// Phase is the stroke drawn darkest, counted clockwise from the top,
 	// when the frame has no clock or Still is set. It exists so that a test
@@ -91,17 +88,15 @@ type Props struct {
 }
 
 // TextStyle is the style the text beside the indicator is set in: the Body
-// Medium role's typeface and weight at [TextSizeSp]. MEASURED: the platform
-// sets "Checking for updates…" at 13 pt in the system font's regular weight,
-// and no role of the type set is 13 sp, so the size is carried here. The
-// line box is the text's own, so the group's height centres the glyphs and
-// not a role's leading.
+// Large role. MEASURED: the platform sets "Checking for updates…" at 13 pt
+// in the system font's regular weight. The reference's body row, which Body
+// Large takes, has that size and weight. The line box is the text's own, so
+// the group's height centres the glyphs and not a role's leading.
 func TextStyle(typ tokens.Typography) tokens.TextStyle {
-	if typ.BodyMedium.Size == 0 {
+	if typ.BodyLarge.Size == 0 {
 		typ = tokens.DefaultTypography
 	}
-	s := typ.BodyMedium
-	s.Size = TextSizeSp
+	s := typ.BodyLarge
 	s.LineHeight = 0
 	return s
 }

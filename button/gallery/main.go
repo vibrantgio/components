@@ -22,6 +22,7 @@ import (
 
 	"github.com/vibrantgio/components/button"
 	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 )
 
 func main() {
@@ -119,7 +120,8 @@ func frame(gtx layout.Context, shaper *text.Shaper) layout.Dimensions {
 					mat := m.Stop()
 
 					lbl := widget.Label{MaxLines: 1}
-					return lbl.Layout(gtx, shaper, font.Font{}, unit.Sp(14), r.label, mat)
+					role := tokens.DefaultTypography.LabelLarge
+					return lbl.Layout(gtx, shaper, typeset.Font(role, font.Normal), unit.Sp(role.Size), r.label, mat)
 				}),
 				// Button column
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {

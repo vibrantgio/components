@@ -14,7 +14,7 @@
 //
 // [Indicator] draws the wheel alone. Two helpers place it with the
 // application's own text, a short phrase naming the task and ending with an
-// ellipsis, set at 13 sp in the label colour:
+// ellipsis, set in the Body Large role in the label colour:
 //
 //   - [Region] is the shape for a region whose content is still arriving: the
 //     indicator above the text, centred both ways in the region's frame as one
