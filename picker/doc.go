@@ -62,7 +62,11 @@
 // coordinates, from which the field derives the pixels above the trigger's top
 // edge and below its bottom edge — and it is the window's to answer, because
 // Gio hands a component its constraints and nothing about where its ancestors
-// put it. Given the room, a menu that cannot stand whole where it
+// put it. Where a layout above places the field only after it measures it — a
+// list row, a flex child — a field given an AvailableRoom records the open
+// menu in that layout's [attachment.Surfaces], as the tooltip records its
+// surface, and the layout gives the menu the room once it places the field.
+// Given the room, a menu that cannot stand whole where it
 // wants to is pushed the least distance that brings it inside; one taller than
 // the whole room is capped to the room and scrolls inside that cap, and [Drop]
 // says which end of the room the cap takes. [FieldProps.MaxHeight] tightens

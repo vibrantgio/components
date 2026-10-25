@@ -177,7 +177,8 @@ type FieldProps struct {
 	// See [MenuProps.MaxHeight] for what the cap trades.
 	MaxHeight unit.Dp
 
-	// AvailableRoom, if non-nil, is asked on every frame the menu is open for
+	// AvailableRoom, if non-nil, is asked on every frame the menu is open and
+	// drawn at once for
 	// the rectangle it may be placed in, in the coordinates the field is laid
 	// out in, the trigger's top-left corner at the origin: the window's
 	// available room as a layout above moved it, which
@@ -195,6 +196,12 @@ type FieldProps struct {
 	// Gio gives a component its constraints and no readback of the transform
 	// or of the clip its ancestors imposed, so where the trigger is inside the
 	// window is known only where the window was laid out.
+	//
+	// Where a layout above set [github.com/vibrantgio/components/attachment.Surfaces]
+	// on the context, a field given an AvailableRoom records the open menu
+	// there, as the tooltip records its surface. The layout gives the menu the
+	// available room once it places the field, and the field then does not
+	// call this function.
 	//
 	// Nil leaves the menu bounded by the window alone.
 	AvailableRoom func(gtx layout.Context) image.Rectangle
@@ -373,28 +380,34 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 
 				foc := !dis && gtx.Focused(&trigger)
 
+				// A row the keys moved to is read after the menu is laid
+				// out, because the menu's rows take the keys as they are
+				// laid out. Where a layout above records the menu, that is
+				// later in the frame than this field.
+				settled := func(gtx layout.Context) {
+					if moved := rows.Selected(); open && moved >= 0 && moved != selected {
+						selected = moved
+						dispatch(gtx, props.OnSelect, props.Message, moved)
+					}
+				}
+
 				// The focus band straddles the trigger's own box, and a
 				// Clickable clips what it wraps to that box, so the band is
 				// collected inside and painted here, outside it.
 				dims := focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
 					return layoutFieldLive(gtx, shaper, &trigger, optClicks, rows, &outside, tok, props.Description, FieldState{
-						Open:          open,
-						Focused:       foc,
-						Disabled:      dis,
-						Selected:      selected,
-						Options:       props.Options,
-						Drop:          props.Drop,
-						MaxHeight:     props.MaxHeight,
-						AvailableRoom: aboveAndBelow(props.AvailableRoom, tok),
-						Placeholder:   props.Placeholder,
-						NoOptions:     props.NoOptions,
-						Surface:       props.Surface,
-					})
+						Open:        open,
+						Focused:     foc,
+						Disabled:    dis,
+						Selected:    selected,
+						Options:     props.Options,
+						Drop:        props.Drop,
+						MaxHeight:   props.MaxHeight,
+						Placeholder: props.Placeholder,
+						NoOptions:   props.NoOptions,
+						Surface:     props.Surface,
+					}, props.AvailableRoom, settled)
 				})
-				if moved := rows.Selected(); open && moved >= 0 && moved != selected {
-					selected = moved
-					dispatch(gtx, props.OnSelect, props.Message, moved)
-				}
 				return dims
 			}
 		})
@@ -480,11 +493,14 @@ func RenderField(
 }
 
 // layoutFieldLive lays out the interactive field with Clickable hit areas.
-func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Clickable, optClicks []widget.Clickable, rows *list.State, outside *int, tok resolvedTokens, desc string, s FieldState) layout.Dimensions {
-	// The side and the cap are settled before anything is drawn, because the
-	// menu is laid out against the side it lands on and the cap is the height
-	// that side leaves.
-	offsetY, capPx := fitMenu(gtx, shaper, tok, s)
+//
+// room is [FieldProps.AvailableRoom], and settled is called once the open
+// menu is laid out. Where a layout above set [attachment.Surfaces] on the
+// context, the field records the open menu there, as the tooltip records its
+// surface: the layout places the field only after it measures it, so the
+// field cannot read the available room now. The layout calls the recorded
+// menu with the available room moved into the field's coordinates.
+func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Clickable, optClicks []widget.Clickable, rows *list.State, outside *int, tok resolvedTokens, desc string, s FieldState, room func(gtx layout.Context) image.Rectangle, settled func(gtx layout.Context)) layout.Dimensions {
 	marked := s
 	// The trigger's own pointer state, read off the clickable that covers
 	// exactly the drawn bar. The menu's rows carry theirs separately.
@@ -493,28 +509,19 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 
 	// The trigger's pointer area is the drawn bar: a control's target is the
 	// control. The menu's rows are their own targets — see layoutMenuLive.
-	triggerMacro := op.Record(gtx.Ops)
-	triggerDims := trigger.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-		semantic.Button.Add(gtx.Ops)
-		if desc != "" {
-			semantic.DescriptionOp(desc).Add(gtx.Ops)
-		}
-		return drawTrigger(gtx, shaper, tok, marked)
-	})
-	triggerCall := triggerMacro.Stop()
-
-	if !s.Open || len(s.Options) == 0 {
-		triggerCall.Add(gtx.Ops)
-		return triggerDims
+	layoutTrigger := func(gtx layout.Context) layout.Dimensions {
+		return trigger.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+			semantic.Button.Add(gtx.Ops)
+			if desc != "" {
+				semantic.DescriptionOp(desc).Add(gtx.Ops)
+			}
+			return drawTrigger(gtx, shaper, tok, marked)
+		})
 	}
 
-	menuMacro := op.Record(gtx.Ops)
-	menuDims := layoutMenuLive(gtx, shaper, optClicks, rows, tok, MenuState{
-		Options:  s.Options,
-		Selected: s.Selected,
-		Hovered:  hoveredRow(optClicks),
-	}, capPx)
-	menuCall := menuMacro.Stop()
+	if !s.Open || len(s.Options) == 0 {
+		return layoutTrigger(gtx)
+	}
 
 	// The outside-press absorber, registered before the trigger and the rows
 	// so that both win for presses inside their own bounds. A field cannot
@@ -529,7 +536,45 @@ func layoutFieldLive(gtx layout.Context, shaper *text.Shaper, trigger *widget.Cl
 	event.Op(gtx.Ops, outside)
 	area.Pop()
 
-	return floatMenu(gtx, offsetY, tok, triggerCall, triggerDims, menuCall, menuDims)
+	triggerDims := layoutTrigger(gtx)
+
+	// The side and the cap are settled before the menu is laid out, because
+	// the menu is laid out against the side it lands on and the cap is the
+	// height that side leaves.
+	place := func(gtx layout.Context, s FieldState) {
+		offsetY, capPx := fitMenu(gtx, shaper, tok, s)
+		menuMacro := op.Record(gtx.Ops)
+		menuDims := layoutMenuLive(gtx, shaper, optClicks, rows, tok, MenuState{
+			Options:  s.Options,
+			Selected: s.Selected,
+			Hovered:  hoveredRow(optClicks),
+		}, capPx)
+		floatMenu(gtx, offsetY, tok, menuMacro.Stop(), menuDims)
+		settled(gtx)
+	}
+
+	field := gtx
+	if room != nil && attachment.Record(gtx, func(gtx layout.Context, r image.Rectangle) {
+		// The menu is laid out at the field's own width and with the
+		// field's own event source. The ops are the placing layout's. The
+		// values are the placing layout's too, so no Surfaces is set while
+		// the menu is laid out, and the available room on them is set to r,
+		// in the field's own coordinates.
+		mgtx := field
+		mgtx.Ops, mgtx.Values = gtx.Ops, gtx.Values
+		s.AvailableRoom = aboveAndBelow(r, tok)
+		if s.AvailableRoom != nil {
+			mgtx = attachment.WithAvailableRoom(mgtx, r)
+		}
+		place(mgtx, s)
+	}) {
+		return triggerDims
+	}
+	if room != nil {
+		s.AvailableRoom = aboveAndBelow(room(gtx), tok)
+	}
+	place(gtx, s)
+	return triggerDims
 }
 
 // alignOverTrigger is where the menu's plane starts, measured from the
@@ -641,19 +686,27 @@ func fitMenu(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fiel
 }
 
 // aboveAndBelow derives the menu's room above and below the trigger from the
-// rectangle room reports in the field's coordinates: the pixels between the
+// available room r, in the field's coordinates: the pixels between the
 // rectangle's top and the trigger's top edge at zero, and between the
-// trigger's foot at its own height and the rectangle's bottom. A nil room
-// derives nothing.
-func aboveAndBelow(room func(gtx layout.Context) image.Rectangle, tok resolvedTokens) func(gtx layout.Context) (above, below int) {
-	if room == nil {
+// trigger's foot at its own height and the rectangle's bottom. Where no
+// window set the available room, r is the unbounded rectangle and bounds
+// nothing, so nothing is derived and the menu is bounded by the window alone.
+//
+// The unbounded rectangle is known by its size, not its position: a layout
+// that records surfaces and places them at an offset moves it by that
+// offset, and the moved rectangle still bounds nothing.
+func aboveAndBelow(r image.Rectangle, tok resolvedTokens) func(gtx layout.Context) (above, below int) {
+	if r.Size() == unreported.Size() {
 		return nil
 	}
 	return func(gtx layout.Context) (above, below int) {
-		r := room(gtx)
 		return -r.Min.Y, r.Max.Y - gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	}
 }
+
+// unreported is the rectangle [attachment.AvailableRoom] reports where no
+// window set the available room.
+var unreported = attachment.AvailableRoom(layout.Context{})
 
 // wholeRows is the tallest plane no taller than limit that ends on a row's
 // edge. A cap taken raw stops through the letters of whatever row the room ran
@@ -678,10 +731,10 @@ func wholeRows(heights []int, limit int) int {
 	return limit
 }
 
-// floatMenu draws the recorded trigger where the caller put it, floats the
-// recorded menu against it at the offset fitMenu settled — over the trigger,
-// on the held row, unless the room pushed it — and reports the TRIGGER, which
-// is the whole of what the field measures whether its menu stands or not.
+// floatMenu floats the recorded menu against the trigger at the offset
+// fitMenu settled — over the trigger, on the held row, unless the room pushed
+// it. The caller draws the trigger and reports it: the TRIGGER is the whole
+// of what the field measures whether its menu stands or not.
 //
 // The menu and its plane go through op.Defer, so the open plane paints and
 // hit-tests above every sibling the window lays out after the field's slot,
@@ -695,14 +748,12 @@ func wholeRows(heights []int, limit int) int {
 // pattern is circled by that pattern's own surface and would wear two corners
 // and two shadows. What the field adds around the recorded rows is the corner,
 // the shadow the level is told by, and the edge — see [planeShape].
-func floatMenu(gtx layout.Context, offsetY int, tok resolvedTokens, trigger op.CallOp, triggerDims layout.Dimensions, menu op.CallOp, menuDims layout.Dimensions) layout.Dimensions {
-	trigger.Add(gtx.Ops)
+func floatMenu(gtx layout.Context, offsetY int, tok resolvedTokens, menu op.CallOp, menuDims layout.Dimensions) {
 	floating := op.Record(gtx.Ops)
 	menuOff := op.Offset(image.Pt(0, offsetY)).Push(gtx.Ops)
 	planeShape(gtx, menuDims.Size, tok.platform, menu)
 	menuOff.Pop()
 	op.Defer(gtx.Ops, floating.Stop())
-	return triggerDims
 }
 
 // planeRadius is the corner the open menu's plane is cut to.
@@ -789,7 +840,9 @@ func drawField(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s Fi
 	}, capPx)
 	menuCall := menuMacro.Stop()
 
-	return floatMenu(gtx, offsetY, tok, triggerCall, triggerDims, menuCall, menuDims)
+	triggerCall.Add(gtx.Ops)
+	floatMenu(gtx, offsetY, tok, menuCall, menuDims)
+	return triggerDims
 }
 
 // drawTrigger renders the field trigger bar (the closed face).
