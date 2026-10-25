@@ -156,11 +156,18 @@ effects, which the gallery's spring-button page needs.
 
 ## For coding assistants
 
-Read the org guide before you write code against this module: the plan
-root's [`AGENTS.md`](https://github.com/vibrantgio/organisation/blob/master/AGENTS.md).
+Read this repository's [AGENTS.md](./AGENTS.md) before you write code against this module.
 
-The build, test and golden-image commands are reached from the same
-[`organisation/AGENTS.md`](https://github.com/vibrantgio/organisation/blob/master/AGENTS.md).
+Build and test the root module with `go build ./...` and `go test ./...`.
+
+To regenerate golden images, name the test packages and put the flag after them.
+This module defines the flag `golden.update` in `golden/golden.go`.
+Placed before the packages, `go test` tests the current directory only.
+Name only packages that store golden images, because a test binary rejects a flag it never declared.
+
+```sh
+go test ./button -golden.update
+```
 
 ## License
 
