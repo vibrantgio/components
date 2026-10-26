@@ -196,12 +196,12 @@ func (inv *Inventory) SetCodeStyle(name string) {
 // default for that appearance, as does one it does not recognise.
 func (inv *Inventory) SetCodeStyles(p highlight.StylePair) { inv.codeStyles = p }
 
-// wear puts the chosen style on st's fenced code: the appearance c is a
+// applyStyle applies the chosen style to st's fenced code: the appearance c is a
 // recording of picks the member, and that member's own fill, its syntax colours and its
 // body colour are what a block is drawn with. A name that no longer resolves
 // falls back to the default for its appearance rather than failing the page.
-func (inv *Inventory) wear(st *markdown.Style, c tokens.PlatformColors) {
-	highlight.WearPair(st, highlight.StylePair{
+func (inv *Inventory) applyStyle(st *markdown.Style, c tokens.PlatformColors) {
+	highlight.ApplyPair(st, highlight.StylePair{
 		Light: highlight.StyleOrDefault(inv.codeStyles.Light),
 		Dark:  highlight.StyleOrDefault(inv.codeStyles.Dark),
 	}, c)
@@ -215,7 +215,7 @@ func (inv *Inventory) wear(st *markdown.Style, c tokens.PlatformColors) {
 // The fence's bar and the table's bar follow the window's bar.
 func (inv *Inventory) markdownStyle(c tokens.PlatformColors) markdown.Style {
 	style := markdown.FromTokens(c, inv.typography(), SectionSurface(c))
-	inv.wear(&style, c)
+	inv.applyStyle(&style, c)
 	if inv.windowBar != nil {
 		style.CodeScrollbar = followBar(style.CodeScrollbar, *inv.windowBar)
 		style.TableScrollbar = followBar(style.TableScrollbar, *inv.windowBar)

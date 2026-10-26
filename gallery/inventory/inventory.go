@@ -127,7 +127,7 @@ type Inventory struct {
 
 	// The syntax highlighter styles the code sections are drawn in — one per
 	// appearance. Which member reaches the fence is the appearance's to say;
-	// see Inventory.wear.
+	// see Inventory.applyStyle.
 	codeStyles highlight.StylePair
 
 	// windowBar is the bar of the window that shows the inventory, set by
