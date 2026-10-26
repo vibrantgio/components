@@ -39,7 +39,7 @@ func bodyHeight(body layout.Widget, width int) int {
 // by two, one under its fence and one under its table. The standing frames
 // also draw pixels the fading frames do not, which is the standing thumb.
 func TestTheFenceAndTheWideTableStandAtAlways(t *testing.T) {
-	const width = 240
+	const width = 200
 	c := tokens.PlatformLight
 	windowBar := scrollbar.FromTokens(c, c.ControlBackground)
 	lane := int(windowBar.Width())
