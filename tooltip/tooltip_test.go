@@ -92,7 +92,7 @@ func TestTooltipGolden(t *testing.T) {
 				Placement: tc.placement,
 				Shaper:    shaper,
 			}
-			w := tooltip.Render(shaper, props, true, tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.Caption1)
+			w := tooltip.Render(shaper, props, true, tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SmallSystemFont)
 			golden.Render(t, tc.name, frameSize, scene(w, tc.bg))
 		})
 	}
@@ -107,8 +107,8 @@ func TestTooltipShownAndHiddenDiffer(t *testing.T) {
 	bg := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
 	props := tooltip.Props{Text: "Save", Trigger: trigger, Placement: tooltip.Top, Shaper: shaper}
 
-	shown := tooltip.Render(shaper, props, true, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.Caption1)
-	hidden := tooltip.Render(shaper, props, false, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.Caption1)
+	shown := tooltip.Render(shaper, props, true, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SmallSystemFont)
+	hidden := tooltip.Render(shaper, props, false, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SmallSystemFont)
 
 	imgShown := golden.Capture(t, frameSize, scene(shown, bg))
 	imgHidden := golden.Capture(t, frameSize, scene(hidden, bg))
@@ -196,7 +196,7 @@ func TestAnnotationIsWholeOverALaterSibling(t *testing.T) {
 		Placement: tooltip.Bottom,
 		Shaper:    shaper,
 	}
-	w := tooltip.Render(shaper, props, true, colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.Caption1)
+	w := tooltip.Render(shaper, props, true, colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SmallSystemFont)
 	bg := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
 
 	bare := golden.Capture(t, frameSize, stripScene(w, bg, false))
@@ -257,7 +257,7 @@ func anchored(shaper *text.Shaper, box image.Rectangle, placement tooltip.Placem
 		tokens.PlatformLight,
 		tokens.Spacing,
 		sharpRadius,
-		tokens.DefaultTypography.Caption1,
+		tokens.DefaultTypography.SmallSystemFont,
 	)
 }
 
@@ -332,7 +332,7 @@ func anchoredText(shaper *text.Shaper, box image.Rectangle, txt string, shown bo
 		tokens.PlatformLight,
 		tokens.Spacing,
 		sharpRadius,
-		tokens.DefaultTypography.Caption1,
+		tokens.DefaultTypography.SmallSystemFont,
 	)
 }
 
@@ -439,7 +439,7 @@ func wrapped(shaper *text.Shaper, at image.Point, placement tooltip.Placement, r
 		tokens.PlatformLight,
 		tokens.Spacing,
 		sharpRadius,
-		tokens.DefaultTypography.Caption1,
+		tokens.DefaultTypography.SmallSystemFont,
 	)
 	return func(gtx layout.Context) layout.Dimensions {
 		off := op.Offset(at).Push(gtx.Ops)
@@ -459,7 +459,7 @@ func TestASentenceWiderThanTheTriggerIsDrawnWhole(t *testing.T) {
 	shaper := defaultShaper(t)
 	bg := color.NRGBA{R: 245, G: 245, B: 245, A: 255}
 	at := image.Pt(148, 100)
-	whole := typeset.LineWidth(layout.Context{Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}, Ops: new(op.Ops)}, shaper, sentence, tokens.DefaultTypography.Caption1, font.Normal)
+	whole := typeset.LineWidth(layout.Context{Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}, Ops: new(op.Ops)}, shaper, sentence, tokens.DefaultTypography.SmallSystemFont, font.Normal)
 
 	rooms := map[string]func(layout.Context) image.Rectangle{
 		"window reported": func(layout.Context) image.Rectangle {
@@ -505,7 +505,7 @@ func TestATooltipNearTheRoomsEdgeTakesTheSideWithRoom(t *testing.T) {
 	if bottom >= at.Y {
 		t.Errorf("near the foot of its room the annotation reaches row %d, at or below the trigger's top at %d; it did not take the side with room", bottom, at.Y)
 	}
-	whole := typeset.LineWidth(layout.Context{Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}, Ops: new(op.Ops)}, shaper, sentence, tokens.DefaultTypography.Caption1, font.Normal)
+	whole := typeset.LineWidth(layout.Context{Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}, Ops: new(op.Ops)}, shaper, sentence, tokens.DefaultTypography.SmallSystemFont, font.Normal)
 	if left, right := annotationColumns(shown, hidden); right-left+1 <= whole {
 		t.Errorf("the flipped annotation is %d wide, no wider than the sentence's own %d; it was cut", right-left+1, whole)
 	}
@@ -530,7 +530,7 @@ func placedAfterMeasuring(shaper *text.Shaper, y int, place, shown bool) layout.
 		tokens.PlatformLight,
 		tokens.Spacing,
 		sharpRadius,
-		tokens.DefaultTypography.Caption1,
+		tokens.DefaultTypography.SmallSystemFont,
 	)
 	return func(gtx layout.Context) layout.Dimensions {
 		cgtx, surfaces := attachment.WithSurfaces(gtx)
@@ -559,7 +559,7 @@ func TestASurfaceRecordedInSurfacesIsPlacedInTheAreaItIsGiven(t *testing.T) {
 	shaper := defaultShaper(t)
 	bg := color.NRGBA{R: 245, G: 245, B: 245, A: 255}
 	const y = 100
-	whole := typeset.LineWidth(layout.Context{Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}, Ops: new(op.Ops)}, shaper, sentence, tokens.DefaultTypography.Caption1, font.Normal)
+	whole := typeset.LineWidth(layout.Context{Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}, Ops: new(op.Ops)}, shaper, sentence, tokens.DefaultTypography.SmallSystemFont, font.Normal)
 
 	hidden := golden.Capture(t, frameSize, scene(placedAfterMeasuring(shaper, y, true, false), bg))
 	unplaced := golden.Capture(t, frameSize, scene(placedAfterMeasuring(shaper, y, false, true), bg))

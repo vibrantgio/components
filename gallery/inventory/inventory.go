@@ -1862,7 +1862,7 @@ func (inv *Inventory) tooltip(c tokens.PlatformColors) layout.Widget {
 			Shaper:    inv.shaper,
 		}
 		return tooltip.Render(inv.shaper, props, true, c, tokens.Spacing, tokens.Radius,
-			tokens.DefaultTypography.Caption1)(gtx)
+			tokens.DefaultTypography.SmallSystemFont)(gtx)
 	}
 }
 

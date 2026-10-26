@@ -165,18 +165,17 @@
 // text in a larger role can be set on one line with layout.Baseline. A symbol
 // badge reports none; a sign has no baseline to offer.
 //
-// The type role is the density's, one step less pronounced than the chip's:
+// The type role is SmallSystemFont at every density: the badge ignores
+// density and is sized to its text.
 //
-//	density      role             size   line box   drawn height
-//	-------      ----             ----   --------   ------------
-//	Comfortable  SmallSystemFont  11 sp  13 dp      14
-//	Compact      Caption1         10 sp  13 dp      13
+//	role             size   line box   drawn height
+//	----             ----   --------   ------------
+//	SmallSystemFont  11 sp  13 dp      14
 //
-// [Style] is that choice, stated once so a caller reserving room for a
-// badge asks the same question the badge answers. The two roles share a line
-// box. Roboto's own line at 11 sp is 14 px, one pixel over that box, so the
-// Comfortable badge draws 14 px tall. The badge reports what it draws either
-// way.
+// [Style] states that choice once, so a caller reserving room for a badge
+// asks the same question the badge answers. Roboto's own line at 11 sp is 14
+// px, one pixel over the 13 dp line box, so the badge draws 14 px tall. The
+// badge reports what it draws.
 //
 // The symbol's square is the line box, the rule components/chip states for an
 // inline mark: a mark on a line belongs to that line rather than to a control

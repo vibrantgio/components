@@ -88,18 +88,13 @@ const closeStrokeDp = 1.25
 // A nil Symbol draws no sign; the badge is then its text alone.
 type Symbol func(gtx layout.Context, sizePx int, col color.NRGBA)
 
-// Style returns the type role a badge is set in at density d: SmallSystemFont at
-// Comfortable, Caption1 at Compact — one step less pronounced than the
-// chip's, which is what makes a badge visibly lighter than the controls it
-// stands among.
+// Style returns the type role a badge is set in: SmallSystemFont at every
+// density. The badge ignores density and is sized to its text, so a density
+// switch does not change its type.
 //
-// The density is identified by its control height and the badge takes nothing
-// else from it: a badge is off the control family, and the returned style's
-// line box is the whole of its height.
-func Style(t tokens.Typography, d tokens.Density) tokens.TextStyle {
-	if d.ControlHeight <= tokens.CompactControlHeight {
-		return t.Caption1
-	}
+// The parameter d is accepted so a caller reserving room for a badge asks the
+// same question the badge answers.
+func Style(t tokens.Typography, _ tokens.Density) tokens.TextStyle {
 	return t.SmallSystemFont
 }
 
@@ -425,7 +420,7 @@ func Badge(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 // [BareForeground] — unless s.Disc asks the symbol badge to
 // stand on a disc, which puts it back on [Fill] and [Foreground]. style is the
 // whole text style the badge is set in — pass [Style] of the density in play,
-// which is tokens.DefaultTypography.SmallSystemFont at tokens.Comfortable.
+// which is tokens.DefaultTypography.SmallSystemFont at every density.
 //
 // The badge is sized to its content and clamped to the constraints it is
 // handed, and reports the baseline of its text so a row can set it on the

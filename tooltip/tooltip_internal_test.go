@@ -50,7 +50,7 @@ func intTok() resolvedTokens {
 		platform: tokens.PlatformLight,
 		spacing:  tokens.Spacing,
 		radius:   tokens.RadiusScale{},
-		style:    tokens.DefaultTypography.Caption1,
+		style:    tokens.DefaultTypography.SmallSystemFont,
 	}
 }
 
@@ -708,5 +708,19 @@ func TestATooltipOnATriggerThatIsNoControlIsNoTabStop(t *testing.T) {
 		if !r.Source().Focused(&next) {
 			t.Fatalf("Tab %d did not stop on the control after the tooltip; the tooltip is a Tab stop", i)
 		}
+	}
+}
+
+// TestTheTextIsSetInTheSmallSystemFontRole pins the role the live path sets a
+// tooltip's text in: the platform sets a help tag's text at the small system
+// font size, not at a caption's.
+func TestTheTextIsSetInTheSmallSystemFontRole(t *testing.T) {
+	typ := tokens.DefaultTypography
+	got := textStyle(typ)
+	if got != typ.SmallSystemFont {
+		t.Errorf("tooltip text style = %+v, want SmallSystemFont %+v", got, typ.SmallSystemFont)
+	}
+	if got == typ.Caption1 {
+		t.Error("tooltip text style equals Caption1: the tooltip is set in the Small system font role")
 	}
 }

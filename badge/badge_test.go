@@ -190,10 +190,8 @@ func TestDismissGolden(t *testing.T) {
 	}
 }
 
-// TestCompactGolden records the dense badge beside nothing else, because the
-// only thing that changes at Compact is the type: Caption1 rather than
-// SmallSystemFont, at the same line box, which is what "off the control family"
-// costs a density switch.
+// TestCompactGolden records the badge at Compact beside nothing else. The badge
+// ignores density, so the image shows the type of the Comfortable badge.
 func TestCompactGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	style := badge.Style(tokens.DefaultTypography, tokens.Compact)
@@ -288,20 +286,16 @@ func TestABadgeIsLighterThanAnyControl(t *testing.T) {
 	}
 }
 
-// TestTheDensityPicksTheTypeRole pins the table the package doc states. The
-// two roles share a line box, so what a density switch moves is the type's
-// size and not the badge's height — which is what a component off the control
-// family is.
-func TestTheDensityPicksTheTypeRole(t *testing.T) {
+// TestStyleIsTheSmallSystemFontAtEveryDensity pins the package doc: the badge
+// ignores density, so Style returns the Small system font role at Comfortable
+// and at Compact.
+func TestStyleIsTheSmallSystemFontAtEveryDensity(t *testing.T) {
 	typo := tokens.DefaultTypography
 	if got := badge.Style(typo, tokens.Comfortable); got != typo.SmallSystemFont {
 		t.Errorf("Comfortable badge style = %+v, want SmallSystemFont %+v", got, typo.SmallSystemFont)
 	}
-	if got := badge.Style(typo, tokens.Compact); got != typo.Caption1 {
-		t.Errorf("Compact badge style = %+v, want Caption1 %+v", got, typo.Caption1)
-	}
-	if badge.Style(typo, tokens.Comfortable).Size == badge.Style(typo, tokens.Compact).Size {
-		t.Error("both densities are set at the same type size: density does not reach the badge")
+	if got := badge.Style(typo, tokens.Compact); got != typo.SmallSystemFont {
+		t.Errorf("Compact badge style = %+v, want SmallSystemFont %+v", got, typo.SmallSystemFont)
 	}
 }
 

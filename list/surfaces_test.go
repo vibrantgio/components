@@ -56,7 +56,7 @@ func rowTipWindow(t *testing.T, tipRow int, shown, collected bool) *image.RGBA {
 					Placement:     tooltip.Bottom,
 					AvailableRoom: attachment.AvailableRoom,
 					Anchor:        func(layout.Context) image.Rectangle { return image.Rectangle{Max: size} },
-				}, shown, tokens.PlatformLight, tokens.Spacing, tokens.RadiusScale{}, tokens.DefaultTypography.Caption1)(gtx)
+				}, shown, tokens.PlatformLight, tokens.Spacing, tokens.RadiusScale{}, tokens.DefaultTypography.SmallSystemFont)(gtx)
 			}
 			return layout.Dimensions{Size: size}
 		})
