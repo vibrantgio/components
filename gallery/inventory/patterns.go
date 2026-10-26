@@ -24,6 +24,7 @@ import (
 	"github.com/vibrantgio/components/button"
 	"github.com/vibrantgio/components/icons"
 	complayout "github.com/vibrantgio/components/layout"
+	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/components/toast"
 	"github.com/vibrantgio/patterns/accordion"
 	"github.com/vibrantgio/patterns/card"
@@ -467,9 +468,14 @@ func (inv *Inventory) table(c tokens.PlatformColors) layout.Widget {
 		{"Toast", "Component", "4"},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
+		var bar func(scrollbar.Style) scrollbar.Style
+		if inv.windowBar != nil {
+			window := *inv.windowBar
+			bar = func(own scrollbar.Style) scrollbar.Style { return followBar(own, window) }
+		}
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(400))
 		return table.Render(inv.shaper, columns, rows, table.Sort{Column: 0, Asc: true},
-			c, tokens.Spacing, tokens.DefaultTypography.SystemFont, tokens.Comfortable)(gtx)
+			c, tokens.Spacing, tokens.DefaultTypography.SystemFont, tokens.Comfortable, bar)(gtx)
 	}
 }
 
