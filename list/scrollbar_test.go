@@ -198,3 +198,35 @@ func TestAnchorForOccupiesAStandingBarsLane(t *testing.T) {
 		t.Errorf("a fading bar is anchored %v, want Overlay", got)
 	}
 }
+
+// TestLaneReportsTheLaneTaken asserts that Lane reads the lane the last
+// scrollbar layout took: the bar's width when the bar stands over rows that
+// overflow, and 0 when the rows fit or the bar lies over them.
+func TestLaneReportsTheLaneTaken(t *testing.T) {
+	fading := scrollbar.FromTokens(tokens.PlatformLight, tokens.PlatformLight.ControlBackground)
+	standing := fading.Always()
+	for _, tc := range []struct {
+		name string
+		bar  scrollbar.Style
+		rows int
+		want func(gtx layout.Context) int
+	}{
+		{"standing over rows that overflow", standing, 100, func(gtx layout.Context) int { return gtx.Dp(standing.Width()) }},
+		{"standing over rows that fit", standing, 3, func(layout.Context) int { return 0 }},
+		{"fading over rows that overflow", fading, 100, func(layout.Context) int { return 0 }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			state := NewState()
+			gtx := sbTestContext()
+			var seenWidth int
+			LayoutScrollbar(gtx, state, tc.bar, AnchorFor(tc.bar), sbItems(tc.rows), sbRowFn(&seenWidth))
+			want := tc.want(gtx)
+			if got := state.Lane(); got != want {
+				t.Errorf("Lane() = %d; want %d", got, want)
+			}
+			if seenWidth != sbViewW-want {
+				t.Errorf("rows laid out %d wide; want %d, the width short of the lane", seenWidth, sbViewW-want)
+			}
+		})
+	}
+}

@@ -114,6 +114,20 @@ type State struct {
 	// heightOfRow is the caller's height of row i in pixels under metric
 	// m. See SetHeightOfRow.
 	heightOfRow func(m unit.Metric, i int) int
+
+	// lane is the width in pixels of the lane the most recent scrollbar
+	// layout took beside the rows. See Lane.
+	lane int
+}
+
+// Lane returns the width in pixels of the lane the most recent
+// [LayoutScrollbar] or [LayoutSelectableScrollbar] took at the list's
+// trailing edge, and 0 when it took none. The bar takes a lane only when it
+// stands and the rows overflow. The rows of that layout were laid out across
+// the width short of the lane, so a caller that aligns something above the
+// rows with them reads the lane here and does not compute the fit again.
+func (s *State) Lane() int {
+	return s.lane
 }
 
 // SetHeightOfRow gives the list the height in pixels of row i under metric
