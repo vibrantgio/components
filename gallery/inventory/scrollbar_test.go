@@ -42,7 +42,7 @@ func TestTheFenceAndTheWideTableStandAtAlways(t *testing.T) {
 	const width = 200
 	c := tokens.PlatformLight
 	windowBar := scrollbar.FromTokens(c, c.ControlBackground)
-	lane := int(windowBar.Width())
+	lane := int(windowBar.Always().Width())
 
 	unset := testInventory(t)
 	fading := testInventory(t)

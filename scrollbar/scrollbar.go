@@ -56,11 +56,13 @@ func NewState() *State {
 // in the content. Derive defaults with FromTokens and override fields as
 // needed.
 type Style struct {
-	// ThumbColor fills the thumb. FromTokens flattens the platform's knob
+	// ThumbColor fills the thumb. FromTokens flattens the platform's thumb
 	// onto what the bar rides, so this is opaque; its alpha is what the fade
 	// scales, and nothing but the fade makes the bar translucent.
 	ThumbColor color.NRGBA
-	// TrackColor fills the track gutter. A colour with alpha 0 is not painted.
+	// TrackColor fills the track: a pill across the thumb's minor extent and
+	// the bar's full major extent, inside TrackPadding. A colour with alpha 0
+	// is not painted.
 	TrackColor color.NRGBA
 
 	// ThumbMinorWidth is the thumb's extent along the minor axis.
@@ -113,6 +115,11 @@ type Style struct {
 	// has elapsed. Ignored when FadeDelay is zero; a zero value here with
 	// a non-zero delay makes the bar vanish rather than fade.
 	FadeDuration time.Duration
+
+	// standingTrack is the track's fill once the bar stands. FromTokens
+	// flattens it onto the fill the bar is drawn over, and Always moves it
+	// into TrackColor.
+	standingTrack color.NRGBA
 }
 
 // Always returns a copy of s whose bar never fades: it stands for as long as
@@ -122,10 +129,30 @@ type Style struct {
 // set to Always. The setting itself is read through the platform bridge —
 // this package is below it and cannot ask — so an application reads it once
 // and hands the answer here.
+//
+// The standing bar has the measured geometry of the platform's: an 11 dp
+// track with fully rounded ends in a 17 dp lane, 3 dp inside the lane on
+// every side, and a thumb that fills the track's width. The track is drawn
+// at the coverage FromTokens flattened onto the fill the bar is drawn over.
 func (s Style) Always() Style {
 	s.FadeDelay = 0
+	s.ThumbMinorWidth = standingWidth
+	s.TrackPadding = standingPadding
+	s.ThumbCornerRadius = standingWidth / 2
+	s.TrackColor = s.standingTrack
 	return s
 }
+
+// The standing bar's measured geometry: an 11 px track and thumb, 3 px inside
+// a 17 px lane, read off the platform's list at 1x.
+const (
+	standingWidth   unit.Dp = 11
+	standingPadding unit.Dp = 3
+)
+
+// standingTrackCoverage is the standing track's coverage of the label's black
+// or white, 12 of 255 in both schemes, read off the platform's list at 1x.
+const standingTrackCoverage = 12
 
 // Width returns the total gutter width along the minor axis:
 // the thumb width plus padding on both sides.
@@ -146,7 +173,7 @@ const (
 // set.
 //
 // rides is the opaque fill the bar rides — the content's own, unless the
-// caller put the bar on something else. The platform's knob is its label's
+// caller put the bar on something else. The platform's thumb is its label's
 // black or white at a measured coverage, and the platform composites that in
 // encoded sRGB where Gio's rasterizer would composite it in linear light, so
 // the coverage is flattened onto rides here and the bar paints an opaque
@@ -163,7 +190,9 @@ const (
 // [Style.Always] is the bar the platform's Always setting asks for.
 //
 // The track is transparent by default: the platform's overlay bar shows no
-// gutter until it is being operated.
+// gutter until it is being operated. The standing bar's track is the label's
+// black or white at a measured coverage, flattened onto rides as the thumb
+// is; [Style.Always] draws it.
 //
 // What the bar paints for a search query does not fade with the thumb: the
 // places of the matches stay in the track for as long as the query does, and a
@@ -173,6 +202,9 @@ func FromTokens(p tokens.PlatformColors, rides color.NRGBA) Style {
 	rides = surface.Or(rides, p.ControlBackground)
 	match, currentMatch := p.FindHighlight, p.FindHighlight
 	match.A, currentMatch.A = matchCoverage, currentMatchCoverage
+	// The thumb's own colour is the label's black or white.
+	track := p.ScrollbarThumb
+	track.A = standingTrackCoverage
 	return Style{
 		ThumbColor:        vgcolor.Flatten(p.ScrollbarThumb, rides),
 		TrackColor:        color.NRGBA{}, // transparent: the content shows through
@@ -186,5 +218,6 @@ func FromTokens(p tokens.PlatformColors, rides color.NRGBA) Style {
 		MatchLen:          3,
 		FadeDelay:         time.Second,
 		FadeDuration:      tokens.Motion.DurSlow,
+		standingTrack:     vgcolor.Flatten(track, rides),
 	}
 }

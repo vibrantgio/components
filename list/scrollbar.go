@@ -1,10 +1,14 @@
 package list
 
 import (
+	"image"
+
 	"gioui.org/io/event"
 	"gioui.org/layout"
+	"gioui.org/op"
 	"gioui.org/op/clip"
 
+	"github.com/vibrantgio/components/attachment"
 	"github.com/vibrantgio/components/scrollbar"
 )
 
@@ -12,9 +16,10 @@ import (
 type Anchor int
 
 const (
-	// Occupy reserves a gutter of bar.Width() along the list's trailing
-	// edge, narrowing the rows. Content is never occluded, at the cost of
-	// a slightly smaller content area even when the bar is idle.
+	// Occupy reserves a lane of bar.Width() along the list's trailing
+	// edge, narrowing the rows, while the rows overflow. Content is never
+	// occluded. When the rows fit, the bar draws nothing and the rows take
+	// the full width.
 	Occupy Anchor = iota
 	// Overlay floats the bar over the content's trailing edge. Rows keep
 	// their full width, at the cost of the bar occluding whatever content
@@ -115,26 +120,23 @@ func (state *State) scrolled(
 	rowFn func(gtx layout.Context, i int) layout.Dimensions,
 ) layout.Dimensions {
 	originalConstraints := gtx.Constraints
-	barWidth := gtx.Dp(bar.Width())
-
+	barWidth := 0
+	var listDims layout.Dimensions
 	if anchor == Occupy {
-		// Reserve the gutter so rows lay out narrower.
-		gtx.Constraints.Max.X = max(gtx.Constraints.Max.X-barWidth, 0)
-		gtx.Constraints.Min.X = max(gtx.Constraints.Min.X-barWidth, 0)
+		barWidth = gtx.Dp(bar.Width())
+		listDims, barWidth = state.occupied(gtx, n, rowFn, barWidth)
+	} else {
+		listDims = state.layoutRows(gtx, n, rowFn)
 	}
-
-	listDims := state.layoutRows(gtx, n, rowFn)
 	gtx.Constraints = originalConstraints
 
 	// Draw the scrollbar. layout.Direction respects the minimum, so pin the
-	// minimum to the laid-out list size (re-widened by the gutter for Occupy)
+	// minimum to the laid-out list size (re-widened by the lane for Occupy)
 	// to ensure the bar lands on the trailing edge even when the incoming
 	// minimum constraint was zero.
 	start, end := scrollbar.FromListPosition(state.l.Position, n, listDims.Size.Y)
 	gtx.Constraints.Min = listDims.Size
-	if anchor == Occupy {
-		gtx.Constraints.Min.X += barWidth
-	}
+	gtx.Constraints.Min.X += barWidth
 	layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return bar.Layout(gtx, &state.sb, layout.Vertical, start, end)
 	})
@@ -142,11 +144,37 @@ func (state *State) scrolled(
 	// Apply any scroll caused by interaction with the bar this frame.
 	state.applyScrollDelta(state.sb.ScrollDistance(), n)
 
-	if anchor == Occupy {
-		// Report the gutter as part of the occupied space.
-		listDims.Size.X += barWidth
-	}
+	// Report the lane as part of the occupied space.
+	listDims.Size.X += barWidth
 	return listDims
+}
+
+// occupied lays out the rows short of a lane lane pixels wide, and returns
+// their dimensions and the lane they stop short of. A lane exists only for a
+// bar that is drawn: when the rows short of the lane fit, the bar draws
+// nothing, so the rows are laid out again across the full width and the lane
+// returned is 0. Rows laid out wider are never taller, so rows that fit short
+// of the lane fit across the full width too.
+//
+// The first layout is recorded, with its floating surfaces collected apart,
+// so a layout that is discarded leaves no paint and places no surface.
+func (state *State) occupied(gtx layout.Context, n int, rowFn func(gtx layout.Context, i int) layout.Dimensions, lane int) (layout.Dimensions, int) {
+	full := gtx
+	gtx.Constraints.Max.X = max(gtx.Constraints.Max.X-lane, 0)
+	gtx.Constraints.Min.X = max(gtx.Constraints.Min.X-lane, 0)
+	var surfaces *attachment.Surfaces
+	if attachment.HasSurfaces(gtx) || attachment.HasAvailableRoom(gtx) {
+		gtx, surfaces = attachment.WithSurfaces(gtx)
+	}
+	macro := op.Record(gtx.Ops)
+	dims := state.layoutRows(gtx, n, rowFn)
+	call := macro.Stop()
+	if start, end := scrollbar.FromListPosition(state.l.Position, n, dims.Size.Y); start <= 0 && end >= 1 {
+		return state.layoutRows(full, n, rowFn), 0
+	}
+	call.Add(full.Ops)
+	attachment.PlaceSurfacesAt(full, surfaces, image.Point{})
+	return dims, lane
 }
 
 // applyScrollDelta translates a scrollbar drag distance (a fraction of the

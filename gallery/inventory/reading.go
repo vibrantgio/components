@@ -235,10 +235,14 @@ func (inv *Inventory) markdownStyle(c tokens.PlatformColors) markdown.Style {
 // function of the tokens alone.
 func (inv *Inventory) SetScrollbar(bar scrollbar.Style) { inv.windowBar = &bar }
 
-// followBar returns own with the fading of the window's bar. The colours stay
-// own's: each bar is built from the fill it is drawn on, and the window's bar
-// is built from the window's column.
+// followBar returns own standing when the window's bar stands, and with the
+// window's fading otherwise. The colours stay own's: each bar is built from
+// the fill it is drawn on, and the window's bar is built from the window's
+// column.
 func followBar(own, window scrollbar.Style) scrollbar.Style {
+	if window.FadeDelay == 0 {
+		return own.Always()
+	}
 	own.FadeDelay = window.FadeDelay
 	own.FadeDuration = window.FadeDuration
 	return own

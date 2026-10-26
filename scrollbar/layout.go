@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"math"
 
+	"gioui.org/f32"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -121,13 +122,6 @@ func (s Style) Layout(gtx layout.Context, state *State, axis layout.Axis, viewpo
 			defer pointer.PassOp{}.Push(gtx.Ops).Pop()
 			defer pointerArea.Push(gtx.Ops).Pop()
 			state.AddTrack(gtx.Ops)
-
-			// A track colour with alpha 0 is not painted: the paint
-			// would change no pixel and still add an operation to the
-			// frame.
-			if s.TrackColor.A != 0 {
-				paint.FillShape(gtx.Ops, s.TrackColor, clip.Rect(area).Op())
-			}
 			return layout.Dimensions{Size: gtx.Constraints.Min}
 		},
 		func(gtx layout.Context) layout.Dimensions {
@@ -145,11 +139,21 @@ func (s Style) Layout(gtx layout.Context, state *State, axis layout.Axis, viewpo
 				if viewStart+thumbLen > trackLen {
 					viewStart = trackLen - thumbLen
 				}
+				minor := gtx.Dp(s.ThumbMinorWidth)
 				thumbDims := convert(image.Point{
 					X: thumbLen,
-					Y: gtx.Dp(s.ThumbMinorWidth),
+					Y: minor,
 				})
-				radius := gtx.Dp(s.ThumbCornerRadius)
+				radius := float32(s.ThumbCornerRadius) * gtx.Metric.PxPerDp
+
+				// The track is a pill inside the padding, never a fill
+				// over the lane. A track colour with alpha 0 is not
+				// painted: the paint would change no pixel and still add
+				// an operation to the frame.
+				if s.TrackColor.A != 0 {
+					track := image.Rectangle{Max: convert(image.Pt(trackLen, minor))}
+					paint.FillShape(gtx.Ops, s.TrackColor, roundRect(gtx.Ops, track, float32(minor)/2))
+				}
 
 				// The thumb draws inside its own scope so that its offset
 				// is popped before anything after it is drawn.
@@ -161,13 +165,7 @@ func (s Style) Layout(gtx layout.Context, state *State, axis layout.Axis, viewpo
 					// no pixel of the bar and still shift antialiased
 					// glyph edges elsewhere in the frame.
 					if thumbColor.A != 0 {
-						paint.FillShape(gtx.Ops, thumbColor, clip.RRect{
-							Rect: image.Rectangle{Max: thumbDims},
-							SW:   radius,
-							NW:   radius,
-							NE:   radius,
-							SE:   radius,
-						}.Op(gtx.Ops))
+						paint.FillShape(gtx.Ops, thumbColor, roundRect(gtx.Ops, image.Rectangle{Max: thumbDims}, radius))
 					}
 
 					// Register the thumb's pointer hit area.
@@ -183,6 +181,35 @@ func (s Style) Layout(gtx layout.Context, state *State, axis layout.Axis, viewpo
 			})
 		},
 	)
+}
+
+// roundRect returns the clip of r with every corner rounded at radius pixels.
+// The radius is a fraction of a pixel where the measured one is, as the
+// standing bar's 5.5 at 1x, and it never exceeds half of r's shorter side,
+// so a radius of half the minor extent draws a pill.
+func roundRect(ops *op.Ops, r image.Rectangle, radius float32) clip.Op {
+	w, n := float32(r.Min.X), float32(r.Min.Y)
+	e, s := float32(r.Max.X), float32(r.Max.Y)
+	radius = min(radius, (e-w)/2, (s-n)/2)
+	if radius <= 0 {
+		return clip.Rect(r).Op()
+	}
+	// The cubic that draws a quarter circle: pomax.github.io/bezierinfo/#circles_cubic.
+	const q = 4 * (math.Sqrt2 - 1) / 3
+	c := radius * (1 - q)
+	var p clip.Path
+	p.Begin(ops)
+	p.MoveTo(f32.Pt(w+radius, n))
+	p.LineTo(f32.Pt(e-radius, n))
+	p.CubeTo(f32.Pt(e-c, n), f32.Pt(e, n+c), f32.Pt(e, n+radius))
+	p.LineTo(f32.Pt(e, s-radius))
+	p.CubeTo(f32.Pt(e, s-c), f32.Pt(e-c, s), f32.Pt(e-radius, s))
+	p.LineTo(f32.Pt(w+radius, s))
+	p.CubeTo(f32.Pt(w+c, s), f32.Pt(w, s-c), f32.Pt(w, s-radius))
+	p.LineTo(f32.Pt(w, n+radius))
+	p.CubeTo(f32.Pt(w, n+c), f32.Pt(w+c, n), f32.Pt(w+radius, n))
+	p.Close()
+	return clip.Outline{Path: p.End()}.Op()
 }
 
 // paintMatches paints where each of Style.Matches lies inside the track:
@@ -206,6 +233,11 @@ func (s Style) paintMatches(gtx layout.Context, convert func(image.Point) image.
 		return
 	}
 	length = min(length, trackLen)
+	if s.TrackColor.A != 0 {
+		// A drawn track is a pill: the matches at its ends keep inside it.
+		track := image.Rectangle{Max: convert(image.Pt(trackLen, minor))}
+		defer roundRect(gtx.Ops, track, float32(minor)/2).Push(gtx.Ops).Pop()
+	}
 	paintAt := func(fraction float32, fill color.NRGBA) {
 		start := int(math.Round(float64(clamp1(fraction))*float64(trackLen))) - length/2
 		start = min(max(start, 0), trackLen-length)

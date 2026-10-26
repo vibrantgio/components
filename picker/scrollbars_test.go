@@ -50,7 +50,7 @@ func TestTheMenuSpendsTheScrollBarSetting(t *testing.T) {
 		})
 	}
 
-	barPx := unit.Metric{PxPerDp: 1, PxPerSp: 1}.Dp(scrollbar.FromTokens(tokens.PlatformLight, tokens.PlatformLight.WindowBackground).Width())
+	barPx := unit.Metric{PxPerDp: 1, PxPerSp: 1}.Dp(scrollbar.FromTokens(tokens.PlatformLight, tokens.PlatformLight.WindowBackground).Always().Width())
 	lane := size.X - barPx
 
 	standing := resting(size.X, func(s scrollbar.Style) scrollbar.Style { return s.Always() })

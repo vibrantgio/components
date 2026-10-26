@@ -147,7 +147,7 @@ func TestScrollbarGolden(t *testing.T) {
 
 // TestLayoutScrollbarNonScrollable confirms that when all items fit in the
 // viewport (3 rows in a tall viewport) LayoutScrollbar renders no bar: the
-// Overlay output is pixel-identical to plain Layout and both anchors report
+// output of both anchors is pixel-identical to plain Layout, and both report
 // the same dimensions as plain Layout.
 func TestLayoutScrollbarNonScrollable(t *testing.T) {
 	size := image.Pt(viewW, 300) // 3 rows of 30px in a 300px viewport
@@ -172,13 +172,18 @@ func TestLayoutScrollbarNonScrollable(t *testing.T) {
 		t.Errorf("Overlay output differs from plain Layout by %d pixel(s); want 0 (no bar rendered)", n)
 	}
 
+	// A standing bar over rows that fit draws nothing and takes no lane:
+	// the rows extend to the edge of the column.
 	var occupyDims layout.Dimensions
-	golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
-		occupyDims = list.LayoutScrollbar(gtx, list.NewState(), bar, list.Occupy, makeItems(3), colorRowFn)
+	occupyImg := golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
+		occupyDims = list.LayoutScrollbar(gtx, list.NewState(), bar.Always(), list.Occupy, makeItems(3), colorRowFn)
 		return occupyDims
 	})
 	if occupyDims != plainDims {
 		t.Errorf("Occupy dims = %v; want %v (same as plain Layout)", occupyDims, plainDims)
+	}
+	if n := golden.PixelDiff(plainImg, occupyImg); n != 0 {
+		t.Errorf("Occupy output differs from plain Layout by %d pixel(s); want 0 (no bar, no lane)", n)
 	}
 }
 

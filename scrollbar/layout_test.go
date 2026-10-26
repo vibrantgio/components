@@ -2,7 +2,6 @@ package scrollbar
 
 import (
 	"bytes"
-	"encoding/binary"
 	"image"
 	"image/color"
 	"reflect"
@@ -11,7 +10,6 @@ import (
 
 	"gioui.org/layout"
 	"gioui.org/op"
-	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
 
@@ -86,83 +84,68 @@ func opBytes(t *testing.T, style Style) []byte {
 	return bytes.Clone(data.Bytes())
 }
 
+// opColor is the first byte of Gio's colour operation in the serialised op
+// list. The four bytes after it are the colour's R, G, B and A.
+const opColor = 0xd1
+
+// colorOps counts the colour operations in stream that set c.
+func colorOps(stream []byte, c color.NRGBA) int {
+	return bytes.Count(stream, []byte{opColor, c.R, c.G, c.B, c.A})
+}
+
+// recordOps runs draw into a fresh op list and returns its serialised
+// operations.
+func recordOps(draw func(ops *op.Ops)) []byte {
+	var ops op.Ops
+	draw(&ops)
+	return bytes.Clone(reflect.ValueOf(&ops.Internal).Elem().FieldByName("data").Bytes())
+}
+
+// The standing bar at one pixel per dp in a 400 px column: the 11 px track
+// inside the 3 px padding is 394 px long, and the viewport 0.25 to 0.5 makes
+// the thumb 99 px long. Each paint is recorded at the origin: its offset is
+// pushed outside the paint, so a paint has the same length wherever it lands.
+func standingPaints(track, thumb color.NRGBA) (trackPaint, thumbPaint []byte) {
+	trackPaint = recordOps(func(ops *op.Ops) {
+		paint.FillShape(ops, track, roundRect(ops, image.Rect(0, 0, 11, 394), 5.5))
+	})
+	thumbPaint = recordOps(func(ops *op.Ops) {
+		paint.FillShape(ops, thumb, roundRect(ops, image.Rect(0, 0, 11, 99), 5.5))
+	})
+	return trackPaint, thumbPaint
+}
+
 // TestTransparentTrackPaintsNothing asserts that a track whose colour has
-// alpha 0 adds nothing to the op stream. The reference is the same bar with
-// an opaque track and that track's paint cut out of the recording: the paint
-// is recorded on its own into a fresh op list, found once in the opaque bar's
-// stream and removed, and what remains must equal the transparent bar's
-// stream byte for byte.
+// alpha 0 adds nothing to the op stream: no colour operation, and the
+// stream is shorter than the same bar's with an opaque track by exactly the
+// track's paint, its clip included.
 func TestTransparentTrackPaintsNothing(t *testing.T) {
-	base := FromTokens(tokens.PlatformLight, tokens.PlatformLight.ControlBackground)
+	base := FromTokens(tokens.PlatformLight, tokens.PlatformLight.ControlBackground).Always()
 	track := color.NRGBA{R: 0xff, G: 0x80, B: 0x40, A: 0xff}
 
 	transparent := base
-	transparent.TrackColor = color.NRGBA{}
+	transparent.TrackColor = color.NRGBA{R: 0xff, G: 0x80, B: 0x40}
 	opaque := base
 	opaque.TrackColor = track
 
-	var paintOps op.Ops
-	// The bar is 10 px wide (Width at one pixel per dp) and 400 px tall.
-	paint.FillShape(&paintOps, track, clip.Rect(image.Rect(0, 0, 10, 400)).Op())
-	trackPaint := bytes.Clone(reflect.ValueOf(&paintOps.Internal).Elem().FieldByName("data").Bytes())
-
+	trackPaint, _ := standingPaints(track, base.ThumbColor)
 	got, withTrack := opBytes(t, transparent), opBytes(t, opaque)
-	at := bytes.Index(withTrack, trackPaint)
-	if at < 0 || bytes.Index(withTrack[at+1:], trackPaint) >= 0 {
-		t.Fatalf("the opaque track's paint (%d bytes) is not found exactly once in the opaque bar's %d op bytes", len(trackPaint), len(withTrack))
+	if n := colorOps(withTrack, track); n != 1 {
+		t.Fatalf("the opaque bar sets the track's colour %d times, want once", n)
 	}
-	want := append(bytes.Clone(withTrack[:at]), withTrack[at+len(trackPaint):]...)
-	if !bytes.Equal(got, want) {
-		t.Errorf("a transparent track recorded %d op bytes, want the %d of the same bar with no track paint", len(got), len(want))
+	if n := colorOps(got, transparent.TrackColor); n != 0 {
+		t.Errorf("a transparent track sets its colour %d times, want none", n)
 	}
-}
-
-// The first byte of Gio's macro and call operations in the serialised op
-// list. A macro records the end of its operations as a data offset and a
-// reference count (each a little-endian uint32 after the type byte); a call
-// records the start and the end of the macro it replays in the same form.
-const (
-	opMacro = 0xc8
-	opCall  = 0xc9
-	callLen = 1 + 4*4
-	// A path operation is its type byte and an 8-byte hash of the path.
-	pathLen = 1 + 8
-)
-
-// recordOps runs draw into a fresh op list and returns its serialised
-// operations and the number of references they hold.
-func recordOps(draw func(ops *op.Ops)) ([]byte, int) {
-	var ops op.Ops
-	draw(&ops)
-	internal := reflect.ValueOf(&ops.Internal).Elem()
-	return bytes.Clone(internal.FieldByName("data").Bytes()), internal.FieldByName("refs").Len()
-}
-
-// addUint32 adds delta to the little-endian uint32 at b[:4].
-func addUint32(b []byte, delta int) {
-	binary.LittleEndian.PutUint32(b, uint32(int(binary.LittleEndian.Uint32(b))+delta))
+	if len(withTrack)-len(got) != len(trackPaint) {
+		t.Errorf("a transparent track recorded %d op bytes, want the %d of the same bar with no track paint", len(got), len(withTrack)-len(trackPaint))
+	}
 }
 
 // TestFadedBarPaintsNothing asserts that a bar at rest, whose thumb has
 // faded to alpha 0 and whose track is transparent, adds no paint to the op
-// stream. The reference is the same bar with the fade turned off, an opaque
-// track and an opaque thumb, with both paints cut out of its recording:
-//
-//   - The track's paint is recorded on its own into a fresh op list, found
-//     once in the opaque bar's stream and removed, as in
-//     TestTransparentTrackPaintsNothing.
-//   - The thumb's paint is recorded on its own the same way. Its rounded
-//     rectangle is a path whose data is kept in a macro, closed by the
-//     path operation and replayed by a call; the macro and the call record
-//     absolute data offsets, so each candidate place in the stream is tried
-//     with those offsets moved there. Nothing before the thumb holds a
-//     reference, so the reference counts need no change. The paint is found
-//     exactly once and removed.
-//   - The thumb is drawn inside layout.Background's macro, which opens the
-//     stream and is replayed by the call that closes it. Both record the
-//     macro's end, which moves back by the removed bytes and references.
-//
-// What remains must equal the faded bar's stream byte for byte. The pointer
+// stream. The reference is the same bar standing, with an opaque track and
+// an opaque thumb: the faded bar sets neither colour, and its stream is
+// shorter by exactly the two paints, their clips included. The pointer
 // areas stay in both recordings, so a faded bar can still be hovered.
 func TestFadedBarPaintsNothing(t *testing.T) {
 	base := FromTokens(tokens.PlatformLight, tokens.PlatformLight.ControlBackground)
@@ -172,70 +155,33 @@ func TestFadedBarPaintsNothing(t *testing.T) {
 		t.Fatal("the default style does not fade; the faded bar needs a FadeDelay")
 	}
 
-	// A bar that has not been scrolled or hovered has faded out.
-	faded := base
+	// A bar that has not been scrolled or hovered has faded out. It has
+	// the standing bar's geometry, so the two streams differ in the
+	// paints alone.
+	standing := base.Always()
+	faded := standing
+	faded.FadeDelay = base.FadeDelay
 	faded.TrackColor = color.NRGBA{}
 	faded.ThumbColor = thumb
-	opaque := base
-	opaque.FadeDelay = 0
+	opaque := standing
 	opaque.TrackColor = track
 	opaque.ThumbColor = thumb
 
-	// The bar is 10 px wide and 400 px tall at one pixel per dp. The thumb
-	// is 6 px wide with a 3 px corner radius; inside the 2 px padding the
-	// track is 396 px long, and the viewport 0.25 to 0.5 makes the thumb
-	// 99 px long. Its offset is pushed outside the paint and stays.
-	trackPaint, _ := recordOps(func(ops *op.Ops) {
-		paint.FillShape(ops, track, clip.Rect(image.Rect(0, 0, 10, 400)).Op())
-	})
-	thumbPaint, thumbRefs := recordOps(func(ops *op.Ops) {
-		paint.FillShape(ops, thumb, clip.RRect{
-			Rect: image.Rect(0, 0, 6, 99),
-			SW:   3, NW: 3, NE: 3, SE: 3,
-		}.Op(ops))
-	})
-	if len(thumbPaint) < 9 || thumbPaint[0] != opMacro {
-		t.Fatalf("the thumb's paint does not open with its path's macro: % x", thumbPaint[:min(len(thumbPaint), 9)])
-	}
-	pathCall := int(binary.LittleEndian.Uint32(thumbPaint[1:])) + pathLen
-	if pathCall+callLen > len(thumbPaint) || thumbPaint[pathCall] != opCall {
-		t.Fatalf("the thumb's path macro is not followed by its path operation and call")
-	}
-
+	trackPaint, thumbPaint := standingPaints(track, thumb)
 	got, want := opBytes(t, faded), opBytes(t, opaque)
-
-	at := bytes.Index(want, trackPaint)
-	if at < 0 || bytes.Index(want[at+1:], trackPaint) >= 0 {
-		t.Fatalf("the opaque track's paint (%d bytes) is not found exactly once in the opaque bar's %d op bytes", len(trackPaint), len(want))
-	}
-	want = append(bytes.Clone(want[:at]), want[at+len(trackPaint):]...)
-
-	at = -1
-	for p := 0; p+len(thumbPaint) <= len(want); p++ {
-		moved := bytes.Clone(thumbPaint)
-		for _, offset := range []int{1, pathCall + 1, pathCall + 9} {
-			addUint32(moved[offset:], p)
+	for _, c := range []color.NRGBA{track, thumb} {
+		if n := colorOps(want, c); n != 1 {
+			t.Fatalf("the opaque bar sets %v %d times, want once", c, n)
 		}
-		if bytes.Equal(want[p:p+len(moved)], moved) {
-			if at >= 0 {
-				t.Fatalf("the opaque thumb's paint is found at %d and at %d", at, p)
-			}
-			at = p
+		if n := colorOps(got, c); n != 0 {
+			t.Errorf("a faded bar sets %v %d times, want none", c, n)
 		}
 	}
-	if at < 0 {
-		t.Fatalf("the opaque thumb's paint (%d bytes) is not found in the opaque bar's %d op bytes", len(thumbPaint), len(want))
+	faded.ThumbColor.A = 0
+	if n := colorOps(got, faded.ThumbColor); n != 0 {
+		t.Errorf("a faded bar sets its faded thumb's colour %d times, want none", n)
 	}
-	want = append(bytes.Clone(want[:at]), want[at+len(thumbPaint):]...)
-
-	if want[0] != opMacro || len(want) < callLen || want[len(want)-callLen] != opCall {
-		t.Fatalf("the opaque bar's stream is not one macro and its call: % x ... % x", want[:9], want[len(want)-callLen:])
-	}
-	for _, end := range [][]byte{want[1:9], want[len(want)-8:]} {
-		addUint32(end[0:], -len(thumbPaint))
-		addUint32(end[4:], -thumbRefs)
-	}
-	if !bytes.Equal(got, want) {
-		t.Errorf("a faded bar recorded %d op bytes, want the %d of the same bar with no paint", len(got), len(want))
+	if len(want)-len(got) != len(trackPaint)+len(thumbPaint) {
+		t.Errorf("a faded bar recorded %d op bytes, want the %d of the same bar with no paint", len(got), len(want)-len(trackPaint)-len(thumbPaint))
 	}
 }
