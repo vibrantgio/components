@@ -655,10 +655,14 @@ func TestSearchFieldToolbarRecessIsTheMeasuredControl(t *testing.T) {
 					t.Errorf("the recess's first row = %v, want the fill %v: the platform draws no light rim", got, fill)
 				}
 			}
-			// The ends are fully rounded, so the corner leaves the chrome.
-			if got := at(0, 0); got != p.col.SidebarMaterial {
-				t.Errorf("the recess's top-left corner = %v, want the chrome %v: the ends are fully rounded",
-					got, p.col.SidebarMaterial)
+			// The ends are fully rounded, so the corner leaves the chrome. The
+			// shadow's own rounded corner reaches that pixel, so it reads the
+			// chrome at most the shadow's peak darker, and never the fill.
+			chrome := p.col.SidebarMaterial
+			if got := at(0, 0); got == fill || got.R > chrome.R ||
+				int(chrome.R)-int(got.R) > int(p.col.ToolbarControlShadow.Peak.A) {
+				t.Errorf("the recess's top-left corner = %v, want the chrome %v under at most the shadow's peak: the ends are fully rounded",
+					got, chrome)
 			}
 		})
 	}

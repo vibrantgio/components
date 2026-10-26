@@ -243,8 +243,8 @@ const (
 	SchemeSwitchW = 2 * SchemeSegmentW
 
 	// schemeIconSize is the symbol in a segment. It does not follow the track
-	// down: at chrome scale the same mark is drawn with less, rather than a
-	// smaller mark being drawn the same.
+	// down: at chrome scale the same mark is drawn with less room around it,
+	// rather than a smaller mark being drawn the same.
 	schemeIconSize unit.Dp = 20
 	// schemeThumbInset is how far the current segment's fill sits inside its
 	// half. The track showing all round it is what makes the pair read as one

@@ -89,7 +89,7 @@ type Variant uint8
 
 const (
 	// Form is the button among content: the platform's push button, at the
-	// density's control height, drawn in its [Emphasis].
+	// density's control height, at its [Emphasis].
 	Form Variant = iota
 
 	// Chrome is the button standing in a chrome region — a toolbar, a navbar.

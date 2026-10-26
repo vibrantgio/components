@@ -3,6 +3,7 @@ package control
 import (
 	"image"
 	"image/color"
+	"math"
 
 	"gioui.org/f32"
 	"gioui.org/layout"
@@ -36,11 +37,10 @@ import (
 // the reading, per appearance: the peak with the reach and the offset it was
 // fitted at, which is why this package owns no geometry of its own.
 //
-// The ramp is the one effects/depth draws for a floating surface — a linear
-// falloff from the peak at the shape's edge to nothing at the reach, in eight
-// gradient tiles around one interior fill — and it is drawn here rather than
-// called there because the module graph runs the other way: effects imports
-// components.
+// The ramp is a linear falloff from the peak at the shape's edge to nothing at
+// the reach. effects/depth draws a falloff of the same kind for a floating
+// surface. This package draws its own because the module graph runs the other
+// way: effects imports components.
 
 // ToolbarShadowRiseDp bounds how far ABOVE a bordered toolbar control its
 // shadow is drawn. The fitted rectangle carries its ramp 14 px up, which no
@@ -137,20 +137,18 @@ func DrawToolbarShadow(gtx layout.Context, bounds image.Rectangle, radius int, s
 	inner.A = vgcolor.LinearCoverage(sh.Peak.A)
 	outer := color.NRGBA{R: sh.Peak.R, G: sh.Peak.G, B: sh.Peak.B}
 
-	if radius == 0 {
-		paint.FillShape(gtx.Ops, inner, clip.Rect(shadowBounds).Op())
-	} else {
-		paint.FillShape(gtx.Ops, inner, clip.RRect{
-			Rect: shadowBounds,
-			SE:   radius, SW: radius, NE: radius, NW: radius,
-		}.Op(gtx.Ops))
-	}
-
 	r := extent
 	rho := radius
 	bMin, bMax := shadowBounds.Min, shadowBounds.Max
 
-	// Edge bands, shortened by the corner radius so the corner tiles own the
+	// The interior less its four corner squares, as rectangles on whole
+	// pixels. The corner fans paint the quarter discs, so no curve has to
+	// meet another curve.
+	fillRect(gtx, image.Rect(bMin.X+rho, bMin.Y, bMax.X-rho, bMax.Y), inner)
+	fillRect(gtx, image.Rect(bMin.X, bMin.Y+rho, bMin.X+rho, bMax.Y-rho), inner)
+	fillRect(gtx, image.Rect(bMax.X-rho, bMin.Y+rho, bMax.X, bMax.Y-rho), inner)
+
+	// Edge bands, shortened by the corner radius so the corner fans own the
 	// rounded ends. The inner stop is flush with the rectangle's edge, which
 	// is where the interior fill leaves off; the outer stop is the reach.
 	shadowTile(gtx,
@@ -180,53 +178,63 @@ func DrawToolbarShadow(gtx layout.Context, bounds image.Rectangle, radius int, s
 	shadowCorner(gtx, image.Pt(bMax.X, bMax.Y), +1, +1, rho, r, inner, outer)
 }
 
-// shadowCorner fills one corner of the penumbra. corner is the shadow
-// rectangle's square corner point and sx, sy its outward direction (±1 each).
-// With rho > 0 the tile grows inward to the (rho+r)-sided square anchored at
-// the corner circle's centre, minus the quarter disc the rounded interior
-// already painted, so the ramp has no transparent bite at each rounded corner.
-//
-// The diagonal gradient's inner stop sits rho/2 inside the square corner and
-// its outer stop half the reach outside it, which is what the seam constraint
-// against both adjacent (shortened) edge bands solves to.
-func shadowCorner(gtx layout.Context, corner image.Point, sx, sy, rho, r int, inner, outer color.NRGBA) {
-	h := float32(r) / 2
-	fx, fy := float32(sx), float32(sy)
-	kx, ky := float32(corner.X), float32(corner.Y)
-	s1 := f32.Pt(kx-fx*float32(rho)/2, ky-fy*float32(rho)/2)
-	s2 := f32.Pt(s1.X+fx*h, s1.Y+fy*h)
+// cornerFanError bounds, in pixels, how far a corner fan's distance falls
+// short of the straight-line distance from the corner circle's centre. At the
+// light toolbar shadow's peak and reach, 0.1 px is 0.04 of a 255th.
+const cornerFanError = 0.1
 
-	if rho == 0 {
-		shadowTile(gtx,
-			image.Rectangle{Min: corner, Max: corner.Add(image.Pt(sx*r, sy*r))}.Canon(),
-			s1, inner, s2, outer,
-		)
+// shadowCorner fills one corner of the penumbra and the quarter disc of the
+// interior inside it. corner is the shadow rectangle's square corner point
+// and sx, sy its outward direction (±1 each).
+//
+// The darkening falls with the straight-line distance from the corner
+// circle's centre. So a line of equal darkening is an arc on that centre,
+// which is the shape the stored captures measure at a toolbar control's
+// corners.
+//
+// Gio has no radial gradient, so a fan of wedges draws the arcs. Each wedge is
+// a triangle from the centre, with a linear gradient along its bisector from
+// the peak at rho to nothing at rho+r. A pixel at distance d, an angle φ off
+// the bisector, gets the distance d·cos φ. The fan has enough wedges to keep
+// d·(1−cos φ) under cornerFanError out to rho+r. Inside rho the gradient holds
+// the peak, which paints the quarter disc.
+func shadowCorner(gtx layout.Context, corner image.Point, sx, sy, rho, r int, inner, outer color.NRGBA) {
+	ext := float64(rho + r)
+	n := int(math.Ceil(math.Pi / 4 / math.Acos(1-cornerFanError/ext)))
+	step := math.Pi / 2 / float64(n)
+	// The chord of each triangle lies ext from the centre at its nearest
+	// point, so the fan covers the whole quarter disc of radius ext.
+	far := ext / math.Cos(step/2)
+	fx, fy := float64(sx), float64(sy)
+	cx, cy := float64(corner.X-sx*rho), float64(corner.Y-sy*rho)
+	at := func(a, d float64) f32.Point {
+		return f32.Pt(float32(cx+fx*d*math.Cos(a)), float32(cy+fy*d*math.Sin(a)))
+	}
+	for i := range n {
+		a0, a1 := float64(i)*step, float64(i+1)*step
+		mid := (a0 + a1) / 2
+
+		var p clip.Path
+		p.Begin(gtx.Ops)
+		p.MoveTo(at(0, 0))
+		p.LineTo(at(a0, far))
+		p.LineTo(at(a1, far))
+		p.Close()
+		st := clip.Outline{Path: p.End()}.Op().Push(gtx.Ops)
+		paint.LinearGradientOp{
+			Stop1: at(mid, float64(rho)), Color1: inner,
+			Stop2: at(mid, ext), Color2: outer,
+		}.Add(gtx.Ops)
+		paint.PaintOp{}.Add(gtx.Ops)
+		st.Pop()
+	}
+}
+
+func fillRect(gtx layout.Context, rect image.Rectangle, c color.NRGBA) {
+	if rect.Dx() <= 0 || rect.Dy() <= 0 {
 		return
 	}
-
-	rf := float32(rho)
-	ext := rf + float32(r)
-	c := f32.Pt(kx-fx*rf, ky-fy*rf) // the corner circle's centre
-	k := bezierCircle * rf
-
-	var p clip.Path
-	p.Begin(gtx.Ops)
-	p1 := f32.Pt(c.X+fx*rf, c.Y) // the arc's end on the horizontal axis through the centre
-	p5 := f32.Pt(c.X, c.Y+fy*rf) // the arc's end on the vertical axis through the centre
-	p.MoveTo(p1)
-	p.LineTo(f32.Pt(c.X+fx*ext, c.Y))
-	p.LineTo(f32.Pt(c.X+fx*ext, c.Y+fy*ext))
-	p.LineTo(f32.Pt(c.X, c.Y+fy*ext))
-	p.LineTo(p5)
-	p.CubeTo(
-		f32.Pt(p5.X+fx*k, p5.Y),
-		f32.Pt(p1.X, p1.Y+fy*k),
-		p1,
-	)
-	p.Close()
-	defer clip.Outline{Path: p.End()}.Op().Push(gtx.Ops).Pop()
-	paint.LinearGradientOp{Stop1: s1, Color1: inner, Stop2: s2, Color2: outer}.Add(gtx.Ops)
-	paint.PaintOp{}.Add(gtx.Ops)
+	paint.FillShape(gtx.Ops, c, clip.Rect(rect).Op())
 }
 
 func shadowTile(gtx layout.Context, rect image.Rectangle, stop1 f32.Point, c1 color.NRGBA, stop2 f32.Point, c2 color.NRGBA) {
@@ -299,8 +307,7 @@ func DrawToolbarShadowAround(gtx layout.Context, bounds image.Rectangle, radius 
 // ringPath is outer with the rounded rectangle box cut out of it: the outer
 // contour wound one way and the inner the other, so the inner is a hole under
 // the non-zero winding rule Gio fills outlines by. Corners are the
-// quarter-circle Bézier, the same approximation the penumbra's own corners
-// are drawn with.
+// quarter-circle Bézier.
 func ringPath(ops *op.Ops, outer, box image.Rectangle, radius int) clip.PathSpec {
 	var p clip.Path
 	p.Begin(ops)

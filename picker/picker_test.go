@@ -149,16 +149,28 @@ func TestOpenFieldStandsTheSharedMenuOverItsTrigger(t *testing.T) {
 	planeH := row * len(options)
 	size := image.Pt(200, at+trig+row*len(options))
 
-	open := golden.Capture(t, size, laidOutAt(at, field(t, picker.FieldState{
+	// The two are drawn side by side in one frame, so the renderer draws the
+	// text of both in the same pass. The gap keeps the field's shadow off the
+	// standalone menu.
+	right := size.X + 100
+	openField := laidOutAt(at, field(t, picker.FieldState{
 		Open: true, Options: options, Selected: sel,
-	})))
-	standalone := golden.Capture(t, size, laidOutAt(planeY, menu(t, picker.MenuState{
+	}))
+	standalone := laidOutAt(planeY, menu(t, picker.MenuState{
 		Options: options, Selected: sel,
-	})))
+	}))
+	img := golden.Capture(t, image.Pt(right+size.X, size.Y), func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints = layout.Exact(size)
+		openField(gtx)
+		off := op.Offset(image.Pt(right, 0)).Push(gtx.Ops)
+		standalone(gtx)
+		off.Pop()
+		return layout.Dimensions{Size: image.Pt(right+size.X, size.Y)}
+	})
 
 	for y := planeY + planeInset; y < planeY+planeH-planeInset; y++ {
 		for x := planeInset; x < size.X-planeInset; x++ {
-			if a, b := px(open, x, y), px(standalone, x, y); a != b {
+			if a, b := px(img, x, y), px(img, right+x, y); a != b {
 				t.Fatalf("(%d,%d) inside the open field's plane is %v and the shared menu standing there is %v", x, y, a, b)
 			}
 		}
