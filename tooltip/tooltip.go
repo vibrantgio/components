@@ -40,8 +40,9 @@
 //
 // THE SURFACE IS PLACED IN THE AVAILABLE ROOM, NOT IN THE TRIGGER'S BOX. The
 // surface is placed adjacent to the trigger per Placement, outside the box the
-// trigger was laid out in, and its text is drawn whole on one line unless the
-// available room is too narrow for it. A component cannot see past its own
+// trigger was laid out in. Its text is set on more lines where it is wider
+// than [MaxTextWidth] or than the available room holds, and no part of it is
+// left out. A component cannot see past its own
 // box: Gio passes it constraints and no readback of the transform or of the
 // clip its ancestors set, so where the trigger stands inside the window is
 // known only where the window was laid out. The available room is therefore
@@ -49,9 +50,9 @@
 // reports it, and inside it the surface takes the opposite side when the side
 // asked for has no room left and the opposite side holds it whole, is shifted
 // inward when it would otherwise cross the room's leading or trailing edge,
-// and has a line too long for the room elided in its middle. With no room
-// reported the surface keeps the side asked for and is bounded by the window
-// alone; an anchored tooltip with no room reported takes its frame as the
+// and sets its text on more lines where the room is narrower than the text.
+// With no room reported the surface keeps the side asked for and is bounded
+// by the window alone; an anchored tooltip with no room reported takes its frame as the
 // room.
 //
 // A LAYOUT THAT PLACES ITS CHILD AFTER MEASURING IT PLACES THE SURFACE. Where a
@@ -115,7 +116,6 @@ import (
 
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/attachment"
-	"github.com/vibrantgio/components/elide"
 	"github.com/vibrantgio/components/internal/surface"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/theme"
@@ -128,6 +128,16 @@ import (
 // (DurXSlow, 500 ms); the live path reads the same stop from
 // its Theme.Motion snapshot, so a themed motion scale retimes the delay.
 var DefaultDelay = tokens.Motion.DurXSlow
+
+// MaxTextWidth is the widest a tooltip's text is set. Text wider than this
+// is set on more lines, as the platform's help tag wraps its text.
+//
+// DERIVED, NOT MEASURED: no stored capture holds a help tag with long text.
+// The width is a count of characters, the unit a measure is stated in: 45
+// characters, the low end of Bringhurst's 45 to 75 for a line of text, at 5.5
+// dp per character, the lowercase alphabet's 143 dp in the Small system font
+// role at 11 sp divided by 26. 45 × 5.5 = 247.5, rounded to 248.
+var MaxTextWidth = unit.Dp(248)
 
 // Placement is the side of the trigger the tooltip surface is asked for. A
 // surface with no room left on that side of the available room takes the
@@ -189,13 +199,14 @@ type Props struct {
 	// tooltip is laid out in: the trigger's box, or the anchor, lies inside
 	// it, and the rest of it is the space around the trigger up to the
 	// window's edges. The surface takes the side with room inside it, is kept
-	// inside its sides, and has a line too long for it elided in its middle.
+	// inside its sides, and sets its text on more lines where the room is
+	// narrower than the text.
 	//
 	// The caller is asked because a component cannot see past its own box;
 	// the rectangle is measured where the window was laid out, not picked.
 	//
 	// Nil leaves an unanchored surface on the side asked for, with its text
-	// whole, bounded by the window alone; an anchored one with nil takes the
+	// set up to MaxTextWidth, bounded by the window alone; an anchored one with nil takes the
 	// frame it is laid out in as its room.
 	AvailableRoom func(gtx layout.Context) image.Rectangle
 
@@ -596,24 +607,19 @@ func drawSurface(
 	// Pre-record the text so it can be replayed inside the surface at a known
 	// offset after measuring it.
 	//
-	// THE TEXT FITS THE AVAILABLE ROOM. The surface is three quarters of the
-	// room at the widest, and never wider than the room holds; an address
-	// longer than that is elided in its middle rather than cut at its end,
-	// because the host at one end and the leaf at the other are what a
-	// reader is looking for. See [github.com/vibrantgio/components/elide].
-	// With no room reported the line is drawn whole.
-	textMax := image.Pt(unbounded, unbounded)
-	elideAt := 0 // elide.Middle leaves the text whole at zero
+	// THE TEXT IS SET ON MORE LINES, NEVER SHORTENED. The text is at most
+	// MaxTextWidth wide, and never wider than the room holds less the
+	// surface's padding and its gap on both sides. Text wider than that is
+	// set on as many lines as it takes, and no part of it is left out.
+	textMax := image.Pt(gtx.Dp(MaxTextWidth), unbounded)
 	if bounded {
-		room := max(min(area.Dx()*3/4, area.Dx()-2*padH-2*gap), 0)
-		textMax = image.Pt(room, area.Dy()/4)
-		elideAt = room
+		textMax.X = max(min(textMax.X, area.Dx()-2*padH-2*gap), 0)
 	}
 	textGtx := gtx
 	textGtx.Constraints = layout.Constraints{Max: textMax}
 	fg := vgcolor.Flatten(tok.platform.Label, tok.platform.WindowBackground)
 	mText := op.Record(gtx.Ops)
-	textDims := typeset.Text(textGtx, shaper, elide.Middle(gtx, shaper, props.Text, tok.style, elideAt), tok.style, fg, 1)
+	textDims := typeset.Text(textGtx, shaper, props.Text, tok.style, fg, 0)
 	textCall := mText.Stop()
 
 	surfW := textDims.Size.X + 2*padH

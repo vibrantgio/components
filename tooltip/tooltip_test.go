@@ -379,42 +379,58 @@ func TestTheAnnotationStaysInsideTheFramesSides(t *testing.T) {
 	}
 }
 
-// TestALineTooLongForTheWindowIsElidedInItsMiddle says an address far wider
-// than the frame and reads the surface back: it is inside the frame's sides,
-// and it is not simply the opening of the address — the middle is what went.
-func TestALineTooLongForTheWindowIsElidedInItsMiddle(t *testing.T) {
+// longText is a sentence far wider than MaxTextWidth on one line.
+const longText = "Shows the readings the demo source makes up until you quit, and stops them when a real source is chosen in the settings"
+
+// TestTextWiderThanTheTooltipIsSetOnMoreLines anchors an annotation whose
+// text is far wider than MaxTextWidth in the middle of the frame and reads
+// the surface back: it is no wider than MaxTextWidth and its padding, it is
+// taller than one line, and two texts that differ only at their ends draw
+// different annotations, so no part of the text was left out.
+func TestTextWiderThanTheTooltipIsSetOnMoreLines(t *testing.T) {
 	shaper := defaultShaper(t)
 	bg := color.NRGBA{R: 245, G: 245, B: 245, A: 255}
-	long := "https://example.test/" + strings.Repeat("a-rather-long-segment/", 8) + "page.html"
+	box := image.Rect(frameW/2-6, 20, frameW/2+6, 36)
 
-	box := image.Rect(140, 40, 180, 56)
-	shown := golden.Capture(t, frameSize, scene(anchoredText(shaper, box, long, true), bg))
-	hidden := golden.Capture(t, frameSize, scene(anchoredText(shaper, box, long, false), bg))
+	surface := func(txt string) (shown, hidden *image.RGBA) {
+		return golden.Capture(t, frameSize, scene(anchoredText(shaper, box, txt, true), bg)),
+			golden.Capture(t, frameSize, scene(anchoredText(shaper, box, txt, false), bg))
+	}
+	oneShown, oneHidden := surface("Save")
+	oneTop, oneBottom := annotationRows(oneShown, oneHidden)
+	shown, hidden := surface(longText)
 	left, right := annotationColumns(shown, hidden)
-	if left < 0 {
+	top, bottom := annotationRows(shown, hidden)
+	if left < 0 || oneTop < 0 {
 		t.Fatal("the annotation painted nothing at all")
 	}
-	if left < 0 || right > frameW-1 {
-		t.Errorf("the annotation spans columns %d..%d, outside the frame's 0..%d", left, right, frameW-1)
+
+	// The surface is the text and the padding on both sides, S2 each.
+	if got, limit := right-left+1, int(tooltip.MaxTextWidth)+2*int(tokens.Spacing.S2); got > limit {
+		t.Errorf("the annotation is %d wide, wider than MaxTextWidth and its padding, %d", got, limit)
+	}
+	lineBox := int(tokens.DefaultTypography.SmallSystemFont.LineHeight)
+	if got, one := bottom-top+1, oneBottom-oneTop+1; got < one+lineBox {
+		t.Errorf("the annotation is %d tall against %d for one line; the text was not set on more lines", got, one)
+	}
+	if strings.Contains(longText, "…") {
+		t.Fatal("the test text holds an ellipsis of its own")
 	}
 
-	// The end of the address is kept, so the surface says something the
-	// opening alone does not: two addresses sharing an opening and differing
-	// at their ends do not draw the same annotation.
-	other := "https://example.test/" + strings.Repeat("a-rather-long-segment/", 8) + "other.html"
-	another := golden.Capture(t, frameSize, scene(anchoredText(shaper, box, other, true), bg))
-	same := true
-	for y := 0; y < frameH && same; y++ {
-		for x := 0; x < frameW; x++ {
-			if shown.RGBAAt(x, y) != another.RGBAAt(x, y) {
-				same = false
-				break
-			}
-		}
+	other := strings.TrimSuffix(longText, "settings") + "preferences"
+	another, _ := surface(other)
+	if golden.PixelDiff(shown, another) == 0 {
+		t.Error("two texts that differ only at their ends drew the same annotation; the end was left out")
 	}
-	if same {
-		t.Error("two addresses differing only at their ends drew the same annotation; the end was cut rather than the middle")
-	}
+}
+
+// TestTooltipLongTextGolden stores a tooltip whose text is set on more
+// lines, for a reader to look at.
+func TestTooltipLongTextGolden(t *testing.T) {
+	shaper := defaultShaper(t)
+	bg := color.NRGBA{R: 240, G: 240, B: 240, A: 255}
+	box := image.Rect(frameW/2-6, 20, frameW/2+6, 36)
+	golden.Render(t, "light-long-text-bottom", frameSize, scene(anchoredText(shaper, box, longText, true), bg))
 }
 
 // sentence is one line far wider than the small trigger the placement tests
