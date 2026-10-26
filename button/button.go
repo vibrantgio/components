@@ -51,7 +51,7 @@ const (
 	// Tonal is the middle emphasis: the platform's ordinary button — the
 	// push button's own measured fill under the platform's control text,
 	// and no edge around it. The emphasis for a secondary action, and the
-	// one a row of equals wears.
+	// one a row of equals is drawn in.
 	Tonal
 
 	// Ghost is the least pronounced emphasis: the platform's borderless
@@ -89,14 +89,14 @@ type Variant uint8
 
 const (
 	// Form is the button among content: the platform's push button, at the
-	// density's control height, wearing its [Emphasis].
+	// density's control height, drawn in its [Emphasis].
 	Form Variant = iota
 
 	// Chrome is the button standing in a chrome region — a toolbar, a navbar.
 	// A button whose title is a SYMBOL is drawn there as the platform's
 	// bordered toolbar control: a capsule at
 	// [tokens.Density.ToolbarControlHeight] with the symbol centred in it,
-	// wearing the toolbar control's own fill, its rim where the platform
+	// drawn in the toolbar control's own fill, its rim where the platform
 	// draws one, and the drop shadow it casts on its band — the same box the
 	// picker's chrome trigger is drawn from, through
 	// components/internal/controlface.
@@ -147,7 +147,7 @@ func (v Variant) String() string {
 }
 
 // RenderState holds the explicit visual state a static render draws in: the
-// emphasis the button wears and the interaction state it is in. The zero
+// emphasis the button is drawn in and the interaction state it is in. The zero
 // value is Filled emphasis at rest, so RenderState{} is exactly today's
 // default button.
 //
@@ -377,7 +377,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 			}
 
 			return func(gtx layout.Context) layout.Dimensions {
-				// The band a focused control wears straddles its own box,
+				// The band a focused control has straddles its own box,
 				// and a Clickable clips what it wraps to that box, so the
 				// band is collected inside and painted here, outside it.
 				return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -733,7 +733,7 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 // seventeen rows above it on the same sheet.
 //
 // Filled is the one emphasis that takes a pin from the caller. A RenderState
-// carrying both halves of a fill pair (RenderState.Fill and Foreground) wears
+// carrying both halves of a fill pair (RenderState.Fill and Foreground) is drawn in
 // that pair in place of the default button's and keeps everything else: the
 // same
 // press overlay, the same disabled pair, and the same ring, which carries
@@ -795,7 +795,7 @@ func fillOr(bg, standsOn color.NRGBA) color.NRGBA {
 }
 
 // pinnedFill reports whether the state carries a fill pin the Filled
-// emphasis should wear instead of the platform's default-button pair. Both
+// emphasis should be drawn in instead of the platform's default-button pair. Both
 // halves
 // must be there: a fill is no fill at alpha zero, and a foreground at alpha
 // zero would draw a title nobody can read, so a half-written pin is no pin.

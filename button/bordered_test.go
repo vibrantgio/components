@@ -175,7 +175,7 @@ func TestChromeButtonDrawsTheMeasuredCheckedPatch(t *testing.T) {
 
 // TestChromeIgnoresEmphasis holds the ruling that there is ONE bordered
 // toolbar control: the platform draws it one way, so the emphasis a form
-// button wears reaches nothing here.
+// button is drawn in reaches nothing here.
 func TestChromeIgnoresEmphasis(t *testing.T) {
 	size := image.Pt(120, 90)
 	p := tokens.PlatformLight

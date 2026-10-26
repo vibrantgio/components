@@ -132,11 +132,11 @@ const (
 	focusFrame             = 80
 )
 
-// TestAFocusedListWearsTheRingOnItsOwnBox is the pixel proof of what a list
+// TestAFocusedListHasTheRingOnItsOwnBox is the pixel proof of what a list
 // at the front of a dialog shows: [list.FocusRing] draws the one ring around
 // the LIST's box — not a row's — while the list holds the keyboard, and draws
 // nothing there while it does not.
-func TestAFocusedListWearsTheRingOnItsOwnBox(t *testing.T) {
+func TestAFocusedListHasTheRingOnItsOwnBox(t *testing.T) {
 	standsOn := color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 	p := tokens.PlatformColors{
 		KeyboardFocusIndicator:    color.NRGBA{R: 0x00, G: 0x60, B: 0xff, A: 0xff},
@@ -216,7 +216,7 @@ func TestAFocusedListWearsTheRingOnItsOwnBox(t *testing.T) {
 	}
 	for _, x := range []int{focusListX - ring, focusListX - 1, focusListX + focusListW, focusListX + focusListW + ring - 1} {
 		if at := rest.RGBAAt(x, y); !nearlyEqual(at, standsOn) {
-			t.Errorf("at rest: the column at x=%d carries %v: a list nothing focuses wears no band", x, at)
+			t.Errorf("at rest: the column at x=%d carries %v: a list nothing focuses has no band", x, at)
 		}
 	}
 }

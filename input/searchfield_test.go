@@ -537,7 +537,7 @@ func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
 // TestSearchFieldToolbarRecessGolden records the recess a search field takes
 // in a toolbar band: the density's toolbar control height, the platform's
 // toolbar search fill, its ends fully rounded, and in the dark appearance the
-// highlight rim every bordered control in a dark toolbar wears.
+// highlight rim every bordered control in a dark toolbar has.
 func TestSearchFieldToolbarRecessGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 60)
@@ -578,7 +578,7 @@ func TestSearchFieldToolbarRecessGolden(t *testing.T) {
 // search field at the trailing end of a frontmost Voice Memos toolbar: it
 // spans y 8–43 dark and y 46–81 light — 36 px, the toolbar control height —
 // where the sidebar recess in system-settings-grouped-box-{light,dark}.png
-// spans 28. Its interior is #363636 dark and #e8e8e8 light. Dark it wears a
+// spans 28. Its interior is #363636 dark and #e8e8e8 light. Dark it has a
 // 1 px #4d4d4d rim the whole way round, lighter than both its fill and the
 // #1e1e1e band; light the band steps straight to the fill with no rim on any
 // side.

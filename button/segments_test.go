@@ -204,12 +204,12 @@ func TestAWordedControlDividesTheWidthItIsAskedFor(t *testing.T) {
 	}
 }
 
-// TestTheChosenSegmentWearsTheMeasuredPatch reads the on-state off the
+// TestTheChosenSegmentIsDrawnInTheMeasuredPatch reads the on-state off the
 // drawing. MEASURED, finder-window-untinted-dark.png: the chosen segment of
 // the four-segment view control carries a 32 by 26 patch inside its 37 by 36
 // box, five rows clear above and below, at
 // tokens.PlatformColors.ToolbarCheckedOverlay over the control's own fill.
-func TestTheChosenSegmentWearsTheMeasuredPatch(t *testing.T) {
+func TestTheChosenSegmentIsDrawnInTheMeasuredPatch(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		p    tokens.PlatformColors

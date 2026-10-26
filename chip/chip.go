@@ -174,7 +174,7 @@ type Colors struct {
 	// overlay already laid into it while the chip is held.
 	Fill color.NRGBA
 
-	// Outline is the rim the body wears, and Outlined is whether it is drawn
+	// Outline is the rim the body has, and Outlined is whether it is drawn
 	// at all. A selected chip has no rim: the fill has arrived and the edge is
 	// not needed twice. Ring is the focus ring's colour where it lies past
 	// the chip's box, which is on the surface the chip stands on.
@@ -439,7 +439,7 @@ type resolvedTokens struct {
 //
 // Keyboard activation is gioui.org/widget.Clickable's: the chip is focusable,
 // Space and Enter activate it, and gtx.Focused drives [RenderState.Focused] —
-// so a focused chip wears the ring the package doc describes. Both integration
+// so a focused chip has the ring the package doc describes. Both integration
 // paths are supported and both are read off the one poll of the clickable:
 //   - FRP: set Props.OnClick, Props.OnSelect, Props.OnDismiss.
 //   - MVU: set Props.Message and Props.DismissMessage.
@@ -699,7 +699,7 @@ func draw(
 	// two colours rather than either.
 	//
 	// A focused chip keeps the rim it has at rest — or the rim it does not
-	// have, a selected one having dropped it — and wears the library's one
+	// have, a selected one having dropped it — and has the library's one
 	// ring on its outline. Nothing else moves: the chip measures the same box
 	// focused as at rest, and the title does not shift.
 	radius := min(gtx.Dp(unit.Dp(tok.radius.Lg)), h/2)

@@ -241,7 +241,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 // overlays under the pointer and while held, the one-dp rim of the platform's
 // seam, the drop shadow the control casts on the band it stands on, and the
 // value and the pop-up mark both in the platform's control text. When
-// s.Focused, the control keeps that rim and wears the library's one focus
+// s.Focused, the control keeps that rim and has the library's one focus
 // ring on its outline.
 //
 // The shadow reaches past the control on every side, so what this

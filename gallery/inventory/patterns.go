@@ -171,7 +171,7 @@ func (inv *Inventory) cards(c tokens.PlatformColors) layout.Widget {
 		return LabelAt(gtx, inv.shaper, "Recommended", sectionText(c), 15, font.Font{Weight: font.Bold})
 	}
 	body := inv.prose(c,
-		"A card wears the platform's box",
+		"A card is drawn in the platform's box",
 		"fill on the surface it is in, and",
 		"that step is what singles it out.",
 	)
@@ -260,7 +260,7 @@ func (inv *Inventory) navbarProps(c tokens.PlatformColors) navbar.Props {
 			{Title: "Patterns"},
 		},
 		Actions: []layout.Widget{
-			// The bar wears the chrome material, and a badge with no fill of
+			// The bar is drawn in the chrome material, and a badge with no fill of
 			// its own composites onto whatever it stands on.
 			badge.Render(inv.shaper, "v1", nil, badge.Neutral, c, tokens.Spacing,
 				tokens.Radius, inv.badgeStyle(), badge.RenderState{Surface: c.SidebarMaterial}),
@@ -434,7 +434,7 @@ func (inv *Inventory) pane(c tokens.PlatformColors) layout.Widget {
 			"leading, top and bottom edges, rounded,",
 			"with the platform's rim and shadow.",
 			"",
-			"It wears the chrome material: a pane is",
+			"It is drawn in the chrome material: a pane is",
 			"a shade off the content and told from it",
 			"by its rim and by the plane around it.",
 		)(doc)

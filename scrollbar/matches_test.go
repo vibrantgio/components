@@ -79,7 +79,7 @@ func near(got, want color.NRGBA) bool {
 // once: the row a fraction of the content lands on, and the fill it is
 // painted in. A match at 0.25 paints a quarter of the way down the track, the
 // last one ends level with the track's end rather than running past the bar's
-// own inset, and the one the caller is on wears the stronger fill.
+// own inset, and the one the caller is on is drawn in the stronger fill.
 func TestMatchesPaintWhereTheyLieInTheTrack(t *testing.T) {
 	// The viewport is deliberately the middle fifth, so the thumb covers the
 	// match at 0.5 and the sample proves it is painted over the thumb.

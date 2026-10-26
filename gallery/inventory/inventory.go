@@ -244,7 +244,7 @@ func SectionSurface(c tokens.PlatformColors) color.NRGBA { return c.ControlBackg
 // ChromeSurface is the fill the column's own chrome rows carry — a group's
 // banner, a section's heading, the closing line: the platform's chrome
 // material, which every sidebar, toolbar and status bar on this platform
-// wears. On macOS 26 it is the content's fill exactly in the light
+// is drawn in. On macOS 26 it is the content's fill exactly in the light
 // appearance, so those rows are told apart by their seams there and by the
 // fill in the dark one.
 func ChromeSurface(c tokens.PlatformColors) color.NRGBA { return c.SidebarMaterial }
@@ -678,11 +678,11 @@ func (inv *Inventory) buttonCells(c tokens.PlatformColors, cells []buttonCell) l
 	}
 }
 
-// PinnedFill and PinnedForeground are the pair the pinned specimen wears: a fixed
+// PinnedFill and PinnedForeground are the pair the pinned specimen is drawn in: a fixed
 // red, and the foreground that reads over it. They are ordinary colour values
 // and not tokens, which is the whole of what this row has to say — an action
 // whose colour is chosen by its meaning rather than by the set hands the
-// button its fill, and it wears that colour in both schemes while everything
+// button its fill, and it is drawn in that colour in both schemes while everything
 // around it inverts. They are exported so the assertion that this row holds
 // still can name the very colour it is looking for.
 var (
@@ -728,7 +728,7 @@ var (
 
 // chipSurfaces are the fills the section shows the chip on: the content a
 // page is written on, the platform's grouped box, and the chrome material a
-// sidebar or a toolbar wears. Three rather than one because the chip's rim,
+// sidebar or a toolbar is drawn in. Three rather than one because the chip's rim,
 // its focus ring and its press tint each carry a coverage rather than a
 // colour, so each lands as whatever it is composited onto and a specimen on
 // one fill says nothing about the others.
@@ -837,7 +837,7 @@ func chipAvatar(gtx layout.Context, sizePx int, col color.NRGBA) {
 // same question on every surface, and asking it three times would bury the
 // two rows that are not the same. Both rests are there because the two walk from
 // different places: an unselected chip walks from the surface it stands on, a
-// selected one from the container it wears.
+// selected one from the container it is drawn in.
 func (inv *Inventory) chipBlock(c tokens.PlatformColors) layout.Widget {
 	specimen := func(title string, purpose chip.Purpose, icon chip.Symbol, st chip.RenderState) layout.Widget {
 		return chip.Render(inv.shaper, title, purpose, icon, c,
@@ -971,7 +971,7 @@ var (
 
 // The badge section shows the vocabulary on the same three fills the chip
 // section does — see [chipSurfaces]. Three rather than one because a bare
-// badge wears no fill of its own: its sign, its close mark and that mark's
+// badge is drawn in no fill of its own: its sign, its close mark and that mark's
 // hover and press overlays all carry a coverage and land as whatever they
 // are composited onto, so a specimen on one fill says nothing about the
 // others.
@@ -1031,7 +1031,7 @@ func (inv *Inventory) badgeStyle() tokens.TextStyle {
 // the states the pointer puts it in.
 //
 // Every row stands on the page, and no row is repeated on a second surface.
-// On this platform a badge with a title wears its status's own colour, which
+// On this platform a badge with a title is drawn in its status's own colour, which
 // is one value whatever is beneath it, and a bare sign is that colour read
 // for the surface rather than derived from it — so a second pane of the same
 // five comes out the same byte and promises an adaptation that is not there.
@@ -1077,7 +1077,7 @@ func (inv *Inventory) badgeBlock(c tokens.PlatformColors) layout.Widget {
 	// Exactly three cells stand in the utterance row, because there are
 	// exactly three utterances. A sign set beside a word is a composition of
 	// two of them and would read as a fourth. The disc is not a fourth
-	// utterance either: it is the symbol utterance given the fill a word wears.
+	// utterance either: it is the symbol utterance given the fill a word is drawn in.
 	rows := []struct {
 		caption string
 		cells   []layout.Widget

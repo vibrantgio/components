@@ -393,7 +393,7 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 	gtx.Constraints = layout.Exact(image.Pt(w, gtx.Constraints.Max.Y))
 	c := g.chrome()
 
-	// The gallery's own rail is a sidebar, so it wears the
+	// The gallery's own rail is a sidebar, so it is drawn in the
 	// chrome material — which in the light appearance is the window's own plane
 	// exactly, and is told apart from it by the seam alone.
 	paint.FillShape(gtx.Ops, c.SidebarMaterial, clip.Rect{Max: gtx.Constraints.Max}.Op())
@@ -648,7 +648,7 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 		cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return complayout.InsetXY(24, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return g.label(gtx,
-					"The chip lays the platform's press overlay over its own fill and wears the focus ring on its own outline.",
+					"The chip lays the platform's press overlay over its own fill and has the focus ring on its own outline.",
 					pageMuted, roles.Body)
 			})
 		}))
@@ -808,7 +808,7 @@ func (g *gallery) searchFieldVariantRows() []layout.FlexChild {
 		// The toolbar recess is the second control the platform draws under
 		// the search field's name: the toolbar control's height, its own
 		// measured fill, and in the dark appearance the highlight rim every
-		// bordered control in a dark toolbar band wears.
+		// bordered control in a dark toolbar band has.
 		{"In a toolbar (light)", input.RenderState{Variant: input.Chrome, Region: input.Toolbar, Surface: tokens.PlatformLight.SidebarMaterial}, tokens.PlatformLight},
 		{"In a toolbar (dark)", input.RenderState{Variant: input.Chrome, Region: input.Toolbar, Surface: tokens.PlatformDark.SidebarMaterial}, tokens.PlatformDark},
 	}

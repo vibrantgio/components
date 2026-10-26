@@ -62,7 +62,7 @@
 // mixed. [Resolve] carries the table: a resting chip is the platform's
 // Control behind a Separator rim with its text in ControlText, a selected [Filter]
 // chip is SelectedContentBackground with AlternateSelectedControlText and no
-// rim, and a held chip wears PressOverlay over whichever body it started
+// rim, and a held chip is drawn in PressOverlay over whichever body it started
 // from. The trailing dismiss mark is SecondaryLabel, which is the one part of
 // a chip the platform draws weaker than the text beside it.
 //
@@ -80,7 +80,7 @@
 // The focus ring is components/internal/focus's, the platform's keyboard
 // focus indicator, one colour per appearance on every surface. A focused chip
 // keeps the rim it has at rest — or the rim a selected one has dropped — and
-// wears the ring on its own outline: half the band past the chip's box and
+// has the ring on its own outline: half the band past the chip's box and
 // half over it. The chip measures the same box focused as at rest and the
 // title does not shift; the half past the box is painted outside the clip the
 // chip's own Clickable puts around what it wraps, so reporting a larger box to

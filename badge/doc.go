@@ -20,7 +20,7 @@
 // height and is meant to be. It draws no boundary, takes no pointer state on
 // its body, and never grows to the width it is offered.
 //
-// It does wear a fill, and the fill is the platform's own answer for a badge:
+// It is drawn in a fill, and the fill is the platform's own answer for a badge:
 // the status colour solid with its content knocked out in white, which is how
 // the platform draws the count badge on an icon. What says it is not a
 // control is not the colour but the size and the box — it is a fraction of a
@@ -28,8 +28,8 @@
 // is offered.
 //
 // The one thing that answers a pointer is the close mark, and what it removes
-// is the text. A badge that switched something off would be a control wearing
-// a badge's clothes; the affordance says "stop telling me this" and nothing
+// is the text. A badge that switched something off would be a control drawn as
+// a badge; the affordance says "stop telling me this" and nothing
 // else, and the caller owns what happens next.
 //
 // A control that a user operates is components/button or components/chip. A
@@ -54,7 +54,7 @@
 // reading as a chip, whose mark trails its text.
 //
 // The utterance picks the structure in one place, and it is the only branch in
-// the component: anything with text in it wears the fill, and a sign on
+// the component: anything with text in it is drawn in the fill, and a sign on
 // its own stands bare. See [Fill] for why — and for the obligation that
 // carries, which is that a set of symbol badges must differ in shape, because
 // a sign repeated under two statuses is two hues and nothing else.
@@ -62,9 +62,9 @@
 // # The disc
 //
 // A symbol badge may be asked to stand on its status's fill instead of bare:
-// [RenderState.Disc], or [Props.Disc] on the live path. The disc wears the
+// [RenderState.Disc], or [Props.Disc] on the live path. The disc is drawn in the
 // system colour itself — systemGreen under a white check — and never a tint
-// of it: it is the same [Fill] a word wears and the sign reads in the same
+// of it: it is the same [Fill] a word is drawn in and the sign reads in the same
 // [Foreground] over it, drawn as a circle inscribed in the symbol's own
 // line-box square:
 //
@@ -82,7 +82,7 @@
 // its own; the disc is for where a sign has to hold its own against what is
 // set around it, and it is asked for rather than assumed.
 //
-// Text ignores the disc. The fill a badge with text already wears IS the
+// Text ignores the disc. The fill a badge with text is already drawn in IS the
 // fill the disc would add, so there is still exactly one structure branch,
 // and a badge with text that also asked for a disc would be a badge inside a
 // badge.
@@ -150,7 +150,7 @@
 // the padding, each present only when it has something to draw. S2 rather than
 // S1 because the gap inside the utterance and the gap to its edge must not be
 // the same number, or the sign and the word stop reading as one thing in one
-// box. A symbol badge, wearing no fill, has no padding either: its whole
+// box. A symbol badge, drawn in no fill, has no padding either: its whole
 // box is the line box square.
 //
 // The corner is the radius scale's Base stop, clamped to half the height.
@@ -194,7 +194,7 @@
 // scale of the text in it and the slop overhangs the air around them.
 //
 // What answers the pointer is a region and not the 8 dp x inside it: on a
-// badge that wears a fill, that fill's trailing cap — from the middle of the
+// badge that is drawn in a fill, that fill's trailing cap — from the middle of the
 // gap that separates the mark from the text out to the fill's own edge and
 // corner; on a bare badge, the mark's own square. Under the pointer the
 // region takes the platform's hover overlay and held it takes the press

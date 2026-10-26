@@ -26,7 +26,7 @@
 // control fill at its measured disabled coverage over the surface the control
 // stands on, which is what the push button draws switched off — with the mark
 // it still shows in the tertiary label its title takes; a disabled control's
-// foreground is its disabled control text; and a focused control wears its
+// foreground is its disabled control text; and a focused control has its
 // keyboard focus indicator. None of them measures, walks or derives a colour
 // of its own.
 //
@@ -62,7 +62,7 @@
 // bordered field, the hairline around the surface beneath it that the Save
 // panel measures, with its ends fully rounded. On chrome — a
 // sidebar, a toolbar — it is the platform's flat recess: a fill of its own,
-// its ends fully rounded. A text field that is not a search field wears the
+// its ends fully rounded. A text field that is not a search field has the
 // edge wherever it stands.
 //
 // The chrome variant draws one of two recesses, and which one is the chrome
@@ -71,7 +71,7 @@
 // search fill, and no edge in either appearance. In a toolbar it is the field
 // at the trailing end of Voice Memos' toolbar: the density's toolbar control
 // height, the toolbar search fill, and in the dark appearance the 1 px
-// highlight rim every bordered control in a dark toolbar band wears. The
+// highlight rim every bordered control in a dark toolbar band has. The
 // region is a property the caller states, not a second name for the variant.
 //
 // On a sidebar the leading cluster is that sidebar's own: the looking glass

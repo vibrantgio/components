@@ -78,7 +78,7 @@ type BorderedSegment struct {
 // BorderedSegments draws the platform's segmented bordered control: one box
 // carrying several symbols or words, each in a segment of the control's own
 // width, parted by the hairline the platform draws between them, with the
-// chosen segment wearing the patch the platform fills it with.
+// chosen segment drawn in the patch the platform fills it with.
 //
 // MEASURED at 1x, Finder's back/forward pair: x 326–398 in
 // finder-window-untinted-dark.png, where the control's rim reads at both ends
@@ -176,7 +176,7 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 	size := image.Pt(total, h)
 	box := image.Rectangle{Max: size}
 
-	// One shape for the whole control, at the resting fill and wearing the
+	// One shape for the whole control, at the resting fill and drawn with the
 	// control's own rim: the segments are divisions of one box and not boxes
 	// of their own, which is why the rim runs round the pair and not round
 	// each half, and why only the control's outer corners are rounded.

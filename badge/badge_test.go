@@ -122,7 +122,7 @@ func badgeStyle() tokens.TextStyle {
 
 // TestBadgeGolden records the five side by side in both appearances: the
 // platform's four status colours and its grey, each filled under white.
-// Two images, where there were six — a badge wears the platform's system
+// Two images, where there were six — a badge is drawn in the platform's system
 // colour whatever it stands on, so there is no surface to vary.
 func TestBadgeGolden(t *testing.T) {
 	shaper := defaultShaper(t)
@@ -521,14 +521,14 @@ func badgePixel(t *testing.T, img *image.RGBA, dx, dy int) color.NRGBA {
 	return color.NRGBA{R: c.R, G: c.G, B: c.B, A: c.A}
 }
 
-// TestAWordedBadgeWearsItsFill is the structure in pixels: the fill is there,
+// TestAWordedBadgeIsDrawnInItsFill is the structure in pixels: the fill is there,
 // it is the platform's system colour for the status, it is inset from the
 // text by the padding stop, it stops at the badge's own reported edge, and
 // its corner is cut.
 //
 // Sampled rather than diffed because what is being asserted is which colour
 // landed where, and a pixel count cannot say that.
-func TestAWordedBadgeWearsItsFill(t *testing.T) {
+func TestAWordedBadgeIsDrawnInItsFill(t *testing.T) {
 	shaper := defaultShaper(t)
 	style := badgeStyle()
 	pad := int(tokens.Spacing.S2)
@@ -570,7 +570,7 @@ func TestAWordedBadgeWearsItsFill(t *testing.T) {
 
 // TestASymbolBadgeStandsBare is the exception the ruling carved out: the
 // invariant is that hue is never the badge's only channel, and a sign already
-// carries its meaning in its shape, so a symbol badge wears no fill and no
+// carries its meaning in its shape, so a symbol badge is drawn in no fill and no
 // padding. Its whole box is the page it stands on, plus the sign.
 func TestASymbolBadgeStandsBare(t *testing.T) {
 	shaper := defaultShaper(t)

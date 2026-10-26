@@ -72,7 +72,7 @@ const (
 	// hairline is a resting outline: the rule under a heading band, the frame
 	// round a swatch.
 	hairline unit.Dp = 1
-	// ellipsis is the mark a run of text wears when it was cut short. One
+	// ellipsis is the mark a run of text is drawn with when it was cut short. One
 	// mark, so a reader meets one sign for one fact wherever a line stopped
 	// early.
 	ellipsis = "…"
@@ -171,7 +171,7 @@ func FitHint(gtx layout.Context, ty Type, hint string, room int) string {
 // sentence rather than an interrupted one. Failing that it falls back to a
 // word boundary with a trailing ellipsis, since a mid-sentence cut must say
 // that it stopped. With room for not even the first word, the line is handed
-// to the shaper whole and wears whatever truncation it gives: a dropped line
+// to the shaper whole and is drawn with whatever truncation it gives: a dropped line
 // would leave a cell with a colour and no name at all.
 func FitLine(gtx layout.Context, shaper *text.Shaper, style textdraw.TextStyle, line string, room int) string {
 	if room <= 0 || natural(gtx, shaper, style, line) <= room {
@@ -310,7 +310,7 @@ const typeSection = "foundations-type"
 const sectionTitleSep = " — "
 
 // TypeScaleRows is the inventory's type stack as two rows in the story's own
-// bands: the heading band the story's own sections wear, over the inventory
+// bands: the heading band the story's own sections are drawn in, over the inventory
 // section's own body. The inventory's own title words are kept, split at the
 // em dash its titles are already written with, so nothing is reworded here. A
 // title with no separator lands as the whole label with no caption.

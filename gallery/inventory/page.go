@@ -119,7 +119,7 @@ func pageEnd(shaper *text.Shaper, c tokens.PlatformColors, sections int) layout.
 	return func(gtx layout.Context) layout.Dimensions {
 		h := gtx.Dp(64)
 		sz := image.Pt(gtx.Constraints.Max.X, h)
-		// The closing strip wears the chrome material, under the specimens
+		// The closing strip is drawn in the chrome material, under the specimens
 		// rather than raised over them, and the platform's seam closes the
 		// column off above it.
 		paint.FillShape(gtx.Ops, fill, clip.Rect{Max: sz}.Op())
@@ -134,7 +134,7 @@ func pageEnd(shaper *text.Shaper, c tokens.PlatformColors, sections int) layout.
 	}
 }
 
-// groupBanner separates one module's families from the next. It wears the
+// groupBanner separates one module's families from the next. It is drawn in the
 // platform's box fill — a small step off the plane, darker in the light
 // appearance and lighter in the dark one — with the seam under it, which is
 // how the platform bands a run of groups. It is the one row on the column
@@ -162,7 +162,7 @@ func sectionHeaderRow(shaper *text.Shaper, c tokens.PlatformColors, title string
 	return func(gtx layout.Context) layout.Dimensions {
 		h := gtx.Dp(32)
 		sz := image.Pt(gtx.Constraints.Max.X, h)
-		// A section header bands the inventory, so it wears the
+		// A section header bands the inventory, so it is drawn in the
 		// chrome material; in the light appearance that is the content's own fill,
 		// so the seam is what the row is read by; one above it as well as
 		// below is what closes it off from the family over it.
@@ -229,12 +229,12 @@ const (
 	//
 	// The height is a chrome scale rather than a page one. This control is as
 	// much at home in a window's top strip as on a page, and a strip is
-	// dressed at a scale of its own: the platform's own title bar is a 32 px
+	// drawn at a scale of its own: the platform's own title bar is a 32 px
 	// band whose controls are 14 px across, and its floating toolbar draws a
 	// control row 18 px tall. A track at the height of a control on a page is
 	// taller than the whole of that band, which is what makes it read as an
 	// object dropped into a strip rather than part of one. So the track is cut
-	// to the smallest height that still dresses the symbol — the fill inside it
+	// to the smallest height that still draws the symbol — the fill inside it
 	// clears [schemeIconSize] by a point at each edge — and it leaves room for
 	// a band around itself at the scale the platform gives one.
 	SchemeSegmentW unit.Dp = 44
@@ -243,8 +243,8 @@ const (
 	SchemeSwitchW = 2 * SchemeSegmentW
 
 	// schemeIconSize is the symbol in a segment. It does not follow the track
-	// down: at chrome scale the same mark is dressed in less, rather than a
-	// smaller mark being dressed the same.
+	// down: at chrome scale the same mark is drawn with less, rather than a
+	// smaller mark being drawn the same.
 	schemeIconSize unit.Dp = 20
 	// schemeThumbInset is how far the current segment's fill sits inside its
 	// half. The track showing all round it is what makes the pair read as one
@@ -330,7 +330,7 @@ func schemeTrack(c tokens.PlatformColors) color.NRGBA { return c.PushButtonFill 
 // The current segment is the platform's selection: the emphasized selection
 // fill under the foreground the platform pairs with it. The other is the
 // platform's control text over the track — the same foreground a push
-// button's own title wears, which is not mistakable for the choice in force.
+// button's own title is drawn in, which is not mistakable for the choice in force.
 func schemeSegmentColors(c tokens.PlatformColors, selected bool) (foreground, fill color.NRGBA) {
 	if selected {
 		return c.AlternateSelectedControlText, c.SelectedContentBackground

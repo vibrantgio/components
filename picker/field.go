@@ -289,7 +289,7 @@ type FieldProps struct {
 // field's while it is closed, so a dialog hosting the field keeps its own
 // Escape until the moment there is a menu to spend it on. Opening the menu
 // also gives the trigger the keyboard, which is what a key is bound to and
-// what the ring the trigger then wears is saying. See dismissed.
+// what the ring the trigger then has is saying. See dismissed.
 //
 // Keyboard reach through the open menu is [Menu]'s, and its doc states what
 // each of the two arrangements — per-row tags uncapped, the list's own tag
@@ -359,7 +359,7 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 						// what the platform does and what makes Escape
 						// operable: a key filter is bound to a focus, and
 						// a pointer press moves focus nowhere on its own.
-						// The ring the trigger then wears is the truth —
+						// The ring the trigger then has is the truth —
 						// the control is the one the keys are going to.
 						gtx.Execute(key.FocusCmd{Tag: &trigger})
 						// A menu that opens showing the top of a catalogue
@@ -745,7 +745,7 @@ func wholeRows(heights []int, limit int) int {
 // open field is placed exactly where a closed one is.
 //
 // The plane is the FIELD's to draw and not the menu's: [Menu] handed to a
-// pattern is circled by that pattern's own surface and would wear two corners
+// pattern is circled by that pattern's own surface and would have two corners
 // and two shadows. What the field adds around the recorded rows is the corner,
 // the shadow the level is told by, and the edge — see [planeShape].
 func floatMenu(gtx layout.Context, offsetY int, tok resolvedTokens, menu op.CallOp, menuDims layout.Dimensions) {
@@ -967,7 +967,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	// control's fill as its whole shape and puts no seam around it.
 	//
 	// Focus adds nothing to that: the trigger keeps the fill and the
-	// edgeless shape the platform draws it with, and wears the library's one
+	// edgeless shape the platform draws it with, and has the library's one
 	// ring on that outline while it holds the keyboard.
 	rrectOuter := clip.RRect{Rect: image.Rectangle{Max: triggerSize}, SE: rad, SW: rad, NE: rad, NW: rad}
 	paint.FillShape(gtx.Ops, bg, rrectOuter.Op(gtx.Ops))

@@ -1,9 +1,9 @@
 // Package focus holds the one focus idiom every control in this library
-// wears, so that "what a focused control looks like" is written once.
+// is drawn with, so that "what a focused control looks like" is written once.
 //
 // # The idiom
 //
-// A focused control wears a ring: a [Width] band in the platform's keyboard
+// A focused control has a ring: a [Width] band in the platform's keyboard
 // focus indicator lying on its own outline, [Outside] of it past the control
 // and [Outside] of it over the control's own outermost band. The control
 // keeps its edge and its fill, and measures the same box focused as at rest.

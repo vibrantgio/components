@@ -419,7 +419,7 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	}
 
 	// The focus ring, on the 16 dp box's own outline — the same band in the
-	// same place the button, the chip and the field beside it wear. The box
+	// same place the button, the chip and the field beside it have. The box
 	// keeps its edge and its fill under it, whatever it is doing: a checked
 	// box has no free edge to promote, its edge being the accent fill that
 	// says it is checked, and the ring does not need one.

@@ -666,7 +666,7 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 		// 255 over it to the byte. Label carries that same coverage in both
 		// appearances, so the pixel cannot tell the two names apart and the
 		// name follows what the part is: the xmark-circle mark is the control the
-		// user operates (the Search field entry's "[x]"), so it wears
+		// user operates (the Search field entry's "[x]"), so it is drawn in
 		// ControlText, while the looking glass and the prompt are signals
 		// naming the field and take the field's own text (ruled 2026-09-18).
 		mark := a.clearPx(gtx)

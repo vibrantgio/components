@@ -36,7 +36,7 @@ const (
 	// Neutral is the plain category word, and the zero value: a badge
 	// given no status is Neutral, naming a kind rather than reporting a
 	// status. It is the one value the platform has no status colour for,
-	// so it wears the platform's grey instead.
+	// so it is drawn in the platform's grey instead.
 	Neutral Status = iota
 	// Success, Warning, Error and Info are the four statuses, each in the
 	// platform's system colour for it.
@@ -104,7 +104,7 @@ func Style(t tokens.Typography, _ tokens.Density) tokens.TextStyle {
 //
 // A bare badge is the symbol utterance — see [Fill] for why only that one
 // stands without a fill. A badge with text or a count reads in [Foreground]
-// against the fill it wears instead.
+// against the fill it is drawn in instead.
 //
 // The platform's system colours are read on every fill a window carries,
 // which is what a system colour is for, so nothing here is derived against
@@ -117,9 +117,9 @@ func BareForeground(p tokens.PlatformColors, status Status, standsOn color.NRGBA
 	return status.systemColor(p)
 }
 
-// Fill is the fill a badge with text or a count wears: the platform's system
+// Fill is the fill a badge with text or a count is drawn in: the platform's system
 // colour for the status, at full strength, which is how the platform draws
-// a count badge. A [Neutral] badge wears systemGray, the platform's answer
+// a count badge. A [Neutral] badge is drawn in systemGray, the platform's answer
 // where no status is carried.
 //
 // Filled rather than tinted, because that is what the platform draws: a
@@ -136,7 +136,7 @@ func BareForeground(p tokens.PlatformColors, status Status, standsOn color.NRGBA
 //
 // The SYMBOL utterance stands bare, and it is the one exception: the
 // invariant is that hue is never the badge's only channel, not that every
-// badge wears a fill, and a symbol carries its meaning in its shape. A check
+// badge is drawn in a fill, and a symbol carries its meaning in its shape. A check
 // and a cross differ for a reader who sees neither hue.
 //
 // A symbol badge may still be given this fill as a disc ([RenderState.Disc]),
@@ -177,7 +177,7 @@ func Foreground(p tokens.PlatformColors) color.NRGBA {
 type RenderState struct {
 	// DismissHovered and DismissPressed lay the platform's hover and press
 	// overlay over the close mark's region — over the fill's trailing cap on
-	// a badge that wears a fill, over whatever the badge stands on when it
+	// a badge that is drawn in a fill, over whatever the badge stands on when it
 	// stands bare. They describe the mark alone: a badge's body takes no
 	// pointer state, because there is nothing on it to operate.
 	DismissHovered bool
@@ -187,7 +187,7 @@ type RenderState struct {
 	// a circle the symbol's line box across, the sign centred in it in
 	// [Foreground] rather than [BareForeground] and drawn in the square
 	// inscribed in that circle. It is a request and not a structure of its
-	// own — a badge with text already wears its fill and ignores this,
+	// own — a badge with text is already drawn in its fill and ignores this,
 	// and a badge with neither text nor symbol has nothing to put a disc
 	// behind.
 	//
@@ -195,7 +195,7 @@ type RenderState struct {
 	// drawn today untouched.
 	Disc bool
 
-	// Surface is the opaque fill the badge stands on. A bare badge wears no
+	// Surface is the opaque fill the badge stands on. A bare badge is drawn in no
 	// fill of its own, so its sign, its close mark and the mark's hover and
 	// press overlays all land on this, and the platform's secondary label and
 	// its overlays carry a coverage rather than a colour. The zero value — no
@@ -204,7 +204,7 @@ type RenderState struct {
 }
 
 // overlay is what the close mark's region lays over beneath — the fill on a
-// badge that wears one, the surface it stands on when it stands bare: the
+// badge that is drawn in one, the surface it stands on when it stands bare: the
 // platform's press overlay while the mark is held, its hover overlay under
 // the pointer, and nothing at rest.
 func (s RenderState) overlay(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
@@ -415,7 +415,7 @@ func Badge(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 //
 // symbol may be nil, in which case the badge is its text alone; text may be
 // empty, in which case it is its symbol alone. That choice is also the choice
-// of structure: a badge with text wears its status's [Fill] and reads in
+// of structure: a badge with text is drawn in its status's [Fill] and reads in
 // [Foreground], and a symbol-only badge stands bare and reads in
 // [BareForeground] — unless s.Disc asks the symbol badge to
 // stand on a disc, which puts it back on [Fill] and [Foreground]. style is the
@@ -486,12 +486,12 @@ func draw(
 	dismissible bool,
 	dismiss *widget.Clickable,
 ) layout.Dimensions {
-	// The utterance picks the structure: anything with text in it wears the
+	// The utterance picks the structure: anything with text in it is drawn in the
 	// fill, a sign on its own stands bare unless the caller asked for the
 	// disc. See [Fill].
 	//
 	// Text ignores [RenderState.Disc] rather than being refused it: the
-	// fill the text already wears IS the fill the disc would add, so
+	// fill the text is already drawn in IS the fill the disc would add, so
 	// honouring both would mean a badge inside a badge, and there is exactly
 	// one structure branch here.
 	hasText := txt != ""
@@ -639,7 +639,7 @@ func draw(
 
 	// The close mark's REGION is what answers the pointer, not the 8 dp x
 	// inside it: a field is what makes a 24 dp target findable at all. On a
-	// badge that wears a fill the region is that fill's trailing cap — from
+	// badge that is drawn in a fill the region is that fill's trailing cap — from
 	// the middle of the gap that separates the mark from the text out to
 	// the fill's own edge and corner; on a bare badge it is the mark's own
 	// square. The platform's hover and press overlays carry a coverage, so

@@ -35,8 +35,8 @@ func TestTheTriggerTakesThePlatformsNames(t *testing.T) {
 		}
 		// The rim is the platform's measured value where the platform draws
 		// one, and nothing where it does not: MEASURED, the dark toolbar
-		// control wears a 1 px #404040 highlight over its #262626 fill and
-		// the light one wears no edge at all, its band stepping straight up
+		// control has a 1 px #404040 highlight over its #262626 fill and
+		// the light one has no edge at all, its band stepping straight up
 		// to the control's white.
 		rim := Rim(p)
 		if sc.name == "dark" {

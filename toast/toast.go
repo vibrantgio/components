@@ -222,7 +222,7 @@ func draw(gtx layout.Context, shaper *text.Shaper, props Props, tok resolvedToke
 
 	rect := clip.RRect{Rect: image.Rectangle{Max: image.Pt(w, h)}, SE: r, SW: r, NE: r, NW: r}
 	paint.FillShape(gtx.Ops, fill, rect.Op(gtx.Ops))
-	// The role's edge, clipped to the surface so it wears the same rounded
+	// The role's edge, clipped to the surface so it has the same rounded
 	// corners the fill does rather than squaring off the leading side.
 	clipped := rect.Op(gtx.Ops).Push(gtx.Ops)
 	paint.FillShape(gtx.Ops, edge, clip.Rect{Max: image.Pt(edgeW, h)}.Op())
@@ -253,8 +253,8 @@ func Foreground(p tokens.PlatformColors) color.NRGBA {
 	return vgcolor.Flatten(p.Label, Fill(p))
 }
 
-// Edge is the platform's system colour for the status, worn by the toast's
-// leading edge — the only place on a toast that says which status this is.
+// Edge is the platform's system colour for the status, the one the toast's
+// leading edge is drawn in: the only place on a toast that says which status this is.
 //
 // Info is systemBlue and not the accent, so an informational toast says
 // "info" whatever colour the user has chosen in System Settings; the four

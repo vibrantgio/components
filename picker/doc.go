@@ -15,7 +15,7 @@
 //	[Menu]     the surface both of them stand under: the platform's menu
 //	           rows on the floating level's own fill, the row under the
 //	           pointer — or, with the pointer over none, the row the picker
-//	           is holding — wearing the platform's inset selection pill, and
+//	           is holding — drawn in the platform's inset selection pill, and
 //	           a check beside the held row
 //
 // Each has a live path and a pure one, the contract every component in this
@@ -77,7 +77,7 @@
 // Either way the surface is the same one: a floating, unscrimmed transient
 // plane whose rows take the platform's window background — the fill of every
 // floating surface on this platform — under its title, whose highlighted row
-// wears an inset rounded pill in the platform's selection, and whose held row
+// is drawn in an inset rounded pill in the platform's selection, and whose held row
 // carries a check in the pill's leading column. [Menu]'s optionRowColors names
 // the fills; none of them is read off an open menu, because no stored capture
 // holds one.
@@ -86,7 +86,7 @@
 // the shadow the floating level is told by and draws the edge around the menu
 // it places itself, because there is nobody else to; a [Menu] handed to
 // patterns/popover is circled by that pattern's surface and draws none of its
-// own, which is the only arrangement in which the plane wears one corner, one
+// own, which is the only arrangement in which the plane has one corner, one
 // shadow and one line.
 //
 // # The chrome variant's trigger
@@ -95,7 +95,7 @@
 // geometry components/internal/controlface holds: the platform's own toolbar
 // control fill at rest and that fill under the platform's overlays under the
 // pointer and while held, the rim of its seam, the title and the mark both in
-// its control text, the focus ring it wears on that rim, the density's
+// its control text, the focus ring it has on that rim, the density's
 // height, the pointer target that control is, the pin. [ToolbarFill] is the
 // fill the trigger draws, for a caller that must know. Two things are the
 // toolbar trigger's own.
@@ -113,7 +113,7 @@
 // captures: the toolbar's controls are capsules, and the dialog's pop-up is
 // not. It is the one place the two variants differ in shape.
 //
-// THE MARK is NOT the toolbar trigger's own. Both variants wear the
+// THE MARK is NOT the toolbar trigger's own. Both variants are drawn with the
 // platform's pop-up mark, the stacked chevron pair, at the one size the
 // platform draws it: 8 px by 11 in a 24 px control and the same 8 by 11 in a
 // 36 px one, so the mark is sized by its point size and not by the control.
@@ -121,7 +121,7 @@
 //
 // The single chevron the platform draws beside it belongs to a PULL-DOWN — a
 // menu of actions rather than a choice — and this component has none: a
-// picker is single-choice by contract, so neither trigger wears it. The mark
+// picker is single-choice by contract, so neither trigger is drawn with it. The mark
 // is drawn by the component and not passed in, and a caller cannot flip it:
 // a pair of chevrons pointing opposite ways says the control holds one of
 // several values and cannot say a direction, so the trigger carries no open

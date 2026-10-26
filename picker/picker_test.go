@@ -407,7 +407,7 @@ func TestMenuWithNoOptionsIsNoSurface(t *testing.T) {
 }
 
 // TestMenuSelectedRowIsDrawnApartFromTheRest: the row the picker is holding
-// wears the pill and carries the check, so which row is held changes the
+// is drawn in the pill and carries the check, so which row is held changes the
 // drawing.
 func TestMenuSelectedRowIsDrawnApartFromTheRest(t *testing.T) {
 	size := image.Pt(200, rowHeight(tokens.Comfortable)*len(options))
@@ -457,7 +457,7 @@ func TestMenuMarksTheRowUnderThePointer(t *testing.T) {
 		t.Error("hovering the second row renders identically to hovering the third; hover marks a row, not the menu")
 	}
 	if n := golden.PixelDiff(rest, onSelected); n != 0 {
-		t.Errorf("hovering the held row changed %d pixels; the pill is one drawing and the held row already wears it", n)
+		t.Errorf("hovering the held row changed %d pixels; the pill is one drawing and the held row is already drawn in it", n)
 	}
 }
 
@@ -693,7 +693,7 @@ func TestACappedMenuIsAnchoredByItsDrop(t *testing.T) {
 	}
 
 	// The trigger is one drawing whichever end of the room the cap takes. It
-	// is read off a CLOSED field, because an open one wears the held drawing.
+	// is read off a CLOSED field, because an open one is drawn in the held drawing.
 	up := golden.Capture(t, size, onCover(laidOutAt(triggerY, field(t, picker.FieldState{
 		Options: long, Drop: picker.DropUp,
 	}))))
@@ -813,7 +813,7 @@ func TestFieldStateGolden(t *testing.T) {
 
 // TestOpenFieldGolden records the open menu in both schemes: the plane on the
 // floating level's own fill under the platform's shadow, cornered, the held
-// row wearing the inset pill with its check, and the trigger under it in the
+// row drawn in the inset pill with its check, and the trigger under it in the
 // held drawing. The frame carries room above and below the control, because
 // the menu stands over the trigger rather than beside it, and the picture is
 // only the picture if the shadow has somewhere to fall.

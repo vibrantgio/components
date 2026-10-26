@@ -2,7 +2,7 @@
 // by: the colours — the interior it fills, the edge it draws around it, and
 // the foreground of the prompt it shows where a value is not there yet — the
 // two insets it spends on the text standing inside that box, and the pop-up
-// mark both of the picker's triggers wear. They live here rather than in
+// mark both of the picker's triggers are drawn with. They live here rather than in
 // components/input because components/picker's field trigger is the same box
 // under a different package — one control family, one set of names and
 // numbers, and no second answer to keep in step.
@@ -74,13 +74,13 @@ func Recess(p tokens.PlatformColors) color.NRGBA { return p.SidebarSearchFill }
 // its own.
 func ToolbarRecess(p tokens.PlatformColors) color.NRGBA { return p.ToolbarSearchFill }
 
-// ToolbarSearchRim is the hairline that recess wears round its own edge: the
+// ToolbarSearchRim is the hairline that recess has round its own edge: the
 // platform's measured value for it and not an alpha name flattened, because
 // no name lands the pixel. It answers no colour in the light appearance,
 // where the platform draws no rim at all, and a caller draws nothing there.
 //
 // It is apart from [ToolbarControlRim], which is what a BORDERED toolbar
-// control wears: that one is #404040 over the control's own #262626, where
+// control has: that one is #404040 over the control's own #262626, where
 // this is #4d4d4d over the recess's #363636. The two are different pixels
 // over different fills, so each carries its own name rather than borrowing
 // the other.
@@ -92,18 +92,18 @@ func ToolbarRecess(p tokens.PlatformColors) color.NRGBA { return p.ToolbarSearch
 // steps straight to the fill with no stroke row on any side.
 func ToolbarSearchRim(p tokens.PlatformColors) color.NRGBA { return p.ToolbarSearchRim }
 
-// ToolbarControlRim is the hairline a BORDERED TOOLBAR CONTROL wears round
+// ToolbarControlRim is the hairline a BORDERED TOOLBAR CONTROL has round
 // its own edge: the platform's measured value for it and not an alpha name
 // flattened, because no name lands the pixel. It answers no colour in the
 // light appearance, where the platform draws no rim at all, and a caller
 // draws nothing there.
 //
 // It is apart from [ToolbarSearchRim], which is what the toolbar's search
-// RECESS wears. The two are different pixels over different fills, so each
+// RECESS has. The two are different pixels over different fills, so each
 // carries its own name.
 //
 // MEASURED, finder-window-untinted-dark.png, a frontmost window: a bordered
-// toolbar control wears a 1 px rim reading #404040 over its #262626 fill,
+// toolbar control has a 1 px rim reading #404040 over its #262626 fill,
 // lighter than both the fill and the #1e1e1e band — a highlight that lifts
 // the control's edge. The separator over that fill gives #3b3b3b, five of
 // 255 short of the pixel, and over the band #323232, which is why the value

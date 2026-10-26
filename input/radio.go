@@ -240,7 +240,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 
 	// Three drawings, not one with a colour swapped. Unselected, the symbol is
 	// an edge with the control's own fill inside it — the same pair the box
-	// and the field wear at rest. Selected, the whole circle is the accent
+	// and the field have at rest. Selected, the whole circle is the accent
 	// the platform paints a chosen control in, with the dot in the
 	// foreground that colour is named against. Switched off, it is one fill
 	// and no edge, as the box beside it is. Nested fills throughout:

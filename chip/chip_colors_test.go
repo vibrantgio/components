@@ -33,7 +33,7 @@ var chipPurposes = []struct {
 // against the platform's own field names, which is the only claim there is to
 // make now that nothing is measured: a resting chip is the platform's small
 // control, a selected filter is its emphasized selection, and a held chip
-// wears the press coverage over whichever body it started from.
+// is drawn in the press coverage over whichever body it started from.
 //
 // Every name that carries a coverage comes back resolved against the fill it
 // lands on — the rim and the ring against the surface the chip stands on, the

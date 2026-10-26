@@ -221,15 +221,15 @@ func TestTheSymbolIsCentredInTheDisc(t *testing.T) {
 	}
 }
 
-// TestTheDiscWearsItsStatusFillAndForeground samples what actually landed:
+// TestTheDiscIsDrawnInItsStatusFillAndForeground samples what actually landed:
 // the status's own [badge.Fill] behind the sign and [badge.Foreground] on it.
-// The disc wears the system colour itself and never a tint of it, which is
+// The disc is drawn in the system colour itself and never a tint of it, which is
 // what this samples.
 //
 // Sampled rather than diffed because what is asserted is which colour landed
 // where, and a pixel count cannot say that. Neutral is in the set and is not
-// a special case: it wears the platform's grey.
-func TestTheDiscWearsItsStatusFillAndForeground(t *testing.T) {
+// a special case: it is drawn in the platform's grey.
+func TestTheDiscIsDrawnInItsStatusFillAndForeground(t *testing.T) {
 	shaper := defaultShaper(t)
 	style := badgeStyle()
 	for _, sc := range goldenSchemes {
@@ -253,7 +253,7 @@ func TestTheDiscWearsItsStatusFillAndForeground(t *testing.T) {
 				}
 				// The corner is outside an inscribed circle, so what is
 				// there is the surface: a square fill here would be the
-				// container a badge with text wears, drawn on the wrong
+				// container a badge with text is drawn in, drawn on the wrong
 				// utterance.
 				if got := badgePixel(t, img, 0, 0); !sameColour(got, page) {
 					t.Errorf("the disc badge's top-left pixel is %v, want the page %v — the disc is not a circle", got, page)
@@ -316,7 +316,7 @@ func TestTheBareSignStaysTheDefault(t *testing.T) {
 }
 
 // TestTextIgnoresTheDisc pins the documented answer to the case that is not
-// a form: a badge with text already wears the container the disc would add,
+// a form: a badge with text is already drawn in the container the disc would add,
 // so asking for both changes nothing rather than nesting one inside the other.
 func TestTextIgnoresTheDisc(t *testing.T) {
 	shaper := defaultShaper(t)

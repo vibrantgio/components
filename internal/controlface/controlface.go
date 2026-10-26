@@ -1,7 +1,7 @@
 // Package controlface holds the geometry the platform's bordered control is
 // drawn from, in both of the variants it stands in: the fill it carries and
 // tints under the pointer, the hairline around it where the platform draws
-// one, the focus ring it wears over that hairline, the shape each variant
+// one, the focus ring it has over that hairline, the shape each variant
 // takes, the drop shadow the chrome variant casts on its band, and the pop-up
 // mark that says the control holds one of several values.
 //
@@ -53,7 +53,7 @@ const edgeDp = unit.Dp(1)
 // beside it in that capture (x 792-799, y 24-28) is the group control's, a
 // PULL-DOWN — a menu of actions rather than a choice — and this component has
 // no pull-down: a picker is single-choice by contract, so both of its
-// triggers wear the pop-up's pair.
+// triggers are drawn in the pop-up's pair.
 //
 // The clearance between the mark's last column and the control's trailing
 // edge is the pop-up's own [control.PopupMarkTrailDp], and the title's origin is

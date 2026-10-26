@@ -15,11 +15,11 @@ import (
 )
 
 // fillColor is the field the tests below paint behind a run of glyphs: a
-// colour no face and no page in these captures carries, so a pixel wearing it
+// colour no face and no page in these captures carries, so a pixel drawn in it
 // was painted by the fill and by nothing else.
 var fillColor = color.NRGBA{R: 0x00, G: 0x80, B: 0xff, A: 0xff}
 
-// countFill returns how many pixels of img wear the fill colour, and the box
+// countFill returns how many pixels of img are drawn in the fill colour, and the box
 // around them.
 func countFill(img *image.RGBA) (int, image.Rectangle) {
 	n := 0
@@ -76,7 +76,7 @@ func TestSpanFillPaintsBehindItsOwnRun(t *testing.T) {
 	}
 	n, box := countFill(img)
 	if n == 0 {
-		t.Fatal("no pixel wears the fill; the field was not painted")
+		t.Fatal("no pixel is drawn in the fill; the field was not painted")
 	}
 	if box != rects[0] {
 		t.Errorf("the painted field covers %v, but the layout reported %v", box, rects[0])
@@ -86,7 +86,7 @@ func TestSpanFillPaintsBehindItsOwnRun(t *testing.T) {
 	}
 	plain, _ := captureFill(t, []paragraph.SpanStyle{{Content: content}}, 300)
 	if unmarked, _ := countFill(plain); unmarked != 0 {
-		t.Fatalf("the control capture already wears the fill colour in %d pixels; the test cannot tell the field from the text", unmarked)
+		t.Fatalf("the control capture is already drawn in the fill colour in %d pixels; the test cannot tell the field from the text", unmarked)
 	}
 }
 

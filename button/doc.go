@@ -48,7 +48,7 @@
 //
 // A button also carries a [Variant] — where it stands, never how it behaves
 // and never how pronounced it is. [Form] is the default: the button among
-// content, at the density's control height, wearing its emphasis. [Chrome] is
+// content, at the density's control height, drawn in its emphasis. [Chrome] is
 // the button in a chrome region, and there a button whose title is a SYMBOL is
 // the platform's bordered toolbar control: a capsule at the toolbar control's
 // measured height with the symbol centred in it, its own fill, its rim where
@@ -101,7 +101,7 @@
 //
 // The filled variant alone will take a fill from its caller. Set both halves
 // of Props.Fill and Props.Foreground — RenderState.Fill and Foreground on the pure
-// path — and the button wears that fill under that foreground in place of the
+// path — and the button is drawn in that fill under that foreground in place of the
 // platform's accent pair, keeping every treatment the variant has: the press
 // overlay, the platform's disabled pair, and the focus ring, which carries a
 // coverage of its own and composites over whatever fill came back. It is for

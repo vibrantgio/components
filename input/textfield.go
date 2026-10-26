@@ -63,7 +63,7 @@ type RenderState struct {
 	Selection [2]int
 
 	// Variant is where the field stands. It is read by the search field
-	// alone: a text field that is not a search field wears the platform's
+	// alone: a text field that is not a search field has the platform's
 	// edge wherever it stands, which is what the Save panel's field
 	// measures. The zero value is [Form].
 	Variant Variant
@@ -441,8 +441,8 @@ func fieldMinH(gtx layout.Context, tok resolvedTokens, s RenderState, ad adorn) 
 	return gtx.Dp(unit.Dp(tok.density.TextFieldHeight))
 }
 
-// hairlineDp is the edge a form field wears at rest, and so the distance from
-// that field's outer edge to its inner one. A field standing on chrome wears
+// hairlineDp is the edge a form field has at rest, and so the distance from
+// that field's outer edge to its inner one. A field standing on chrome has
 // no edge, so there the two are the same edge.
 const hairlineDp unit.Dp = 1
 
@@ -463,9 +463,9 @@ const hairlineDp unit.Dp = 1
 // 14.7 against a 28 px height, the excess being the platform's continuous
 // curve. MEASURED, voicememos-window.png: the toolbar recess is the same
 // capsule at the toolbar control's height, and in the DARK appearance it
-// wears a 1 px rim the whole way round — x 643 and x 967 carry it as well as
+// has a 1 px rim the whole way round — x 643 and x 967 carry it as well as
 // y 8 and y 43 — lighter than both its fill and the band, which is the
-// highlight every bordered control in a dark toolbar band wears. The pixel is
+// highlight every bordered control in a dark toolbar band has. The pixel is
 // #4d4d4d, which no alpha name lands: the separator over that fill gives
 // #4a4a4a, three of 255 short, so the recess carries its own measured value
 // (control.ToolbarSearchRim). Light, the band steps straight to the fill and
@@ -473,7 +473,7 @@ const hairlineDp unit.Dp = 1
 //
 // Focus replaces nothing: the field keeps the edge it draws at rest — its
 // hairline, the toolbar recess's rim, or in the light appearance the recess's
-// nothing at all — and wears the library's one ring on that outline.
+// nothing at all — and has the library's one ring on that outline.
 //
 // The box is two nested fills rather than a stroke, which keeps the corner's
 // antialiasing out of the golden images.
@@ -1002,7 +1002,7 @@ func staticSelection(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens
 
 // textFieldColors returns the (fill, foreground, edge, placeholder) colours
 // for the given state, each named by the platform: the fill a text field is
-// drawn with, the colour of the value in it, the hairline it wears at rest and
+// drawn with, the colour of the value in it, the hairline it has at rest and
 // the foreground of the prompt standing in for a value that is not there yet
 // (control.Placeholder — the same name components/picker's field trigger
 // draws its prompt in, named once so the two cannot drift).

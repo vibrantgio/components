@@ -106,7 +106,7 @@ func TestTextFieldGolden(t *testing.T) {
 func TestTextFieldLeadingInsetIsMeasured(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 40)
-	// The field wears its hairline at rest, so its inner edge is one column
+	// The field has its hairline at rest, so its inner edge is one column
 	// in from its outer one; the platform's first covered pixel stands seven
 	// columns in from that edge.
 	const innerEdge, bearing, platform = 1, 1, 7
@@ -789,12 +789,12 @@ func plateau(img *image.RGBA, r image.Rectangle, over stdcolor.NRGBA) (stdcolor.
 }
 
 // TestTheSelectedRunsPlateauIsThePairItsFocusNames reads the two colours a
-// field's value wears when part of it is selected — the selected run over the
+// field's value is drawn in when part of it is selected — the selected run over the
 // selection's fill, and the run beside it on the same rows, over the field's
 // own fill — in both appearances and in both focus states.
 //
-// Focused, a selected run wears the platform's selected text colour over its
-// selected text background whatever colour the field's other text wears.
+// Focused, a selected run is drawn in the platform's selected text colour over its
+// selected text background whatever colour the field's other text is drawn in.
 // MEASURED, save-dialog-{light,dark}.png at 1x: the focused "Save As:" field's
 // selected "Untitled" plateaus at #000000 light and #ffffff dark, opaque —
 // sixteen pixels exactly light and forty-eight exactly dark — standing on the
@@ -805,7 +805,7 @@ func plateau(img *image.RGBA, r image.Rectangle, over stdcolor.NRGBA) (stdcolor.
 // drops it to unemphasizedSelectedTextBackgroundColor, #dcdcdc light and
 // #464646 dark (nscolors.tsv). The catalogue publishes no
 // unemphasizedSelectedTextColor, so the run there is the platform's label
-// flattened onto that fill — the same name the field's other text wears.
+// flattened onto that fill — the same name the field's other text is drawn in.
 //
 // The unselected run is the label over the field's fill in both states, which
 // is what the same field's value reads unselected
@@ -948,7 +948,7 @@ func TestTheLiveFieldKeepsItsSelectionWhenFocusLeaves(t *testing.T) {
 	}
 }
 
-// TestTheLiveFieldsSelectedRunWearsTheSelectedText reads the same two colours
+// TestTheLiveFieldsSelectedRunIsDrawnInTheSelectedText reads the same two colours
 // off the live field, whose run, caret and selection gioui.org/widget's editor
 // paints from one paint material: the field draws the selected run again over
 // them in the platform's selected text colour, and the caret keeps the colour
@@ -956,7 +956,7 @@ func TestTheLiveFieldKeepsItsSelectionWhenFocusLeaves(t *testing.T) {
 //
 // It is read in the light appearance alone, which is the one a live field
 // laid out against theme.Default() draws in; the static path above reads both.
-func TestTheLiveFieldsSelectedRunWearsTheSelectedText(t *testing.T) {
+func TestTheLiveFieldsSelectedRunIsDrawnInTheSelectedText(t *testing.T) {
 	var tag event.Tag
 	w := liveTextField(t, input.TextFieldProps{
 		Placeholder: "Email address",
@@ -1009,7 +1009,7 @@ func TestTheLiveFieldsSelectedRunWearsTheSelectedText(t *testing.T) {
 		t.Errorf("the live field's unselected run plateaus at %v, want the platform's label over the field's fill %v", unselected, want)
 	}
 	// The caret stands at the selected run's leading end and keeps the colour
-	// the field's other text wears. It is painted over the selection's own
+	// the field's other text is drawn in. It is painted over the selection's own
 	// leading column — which is why the fill's box begins one column in — so
 	// it is read across that column and the two the caret is drawn at.
 	// Nothing else there can read it: the run's anti-aliased pixels carry the

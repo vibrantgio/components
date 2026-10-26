@@ -9,7 +9,7 @@
 // that area's ancestors and takes the first shape it meets
 // (pointerQueue.hit). A region that adds the op with no clip of its own
 // therefore writes its shape onto the area around it, and every region inside
-// that area wears it — a list beside a text field shows the I-beam.
+// that area has it — a list beside a text field shows the I-beam.
 //
 // Declaring pointer.CursorDefault over the region beneath does not fix that:
 // CursorDefault is the zero value of an area's cursor field, indistinguishable

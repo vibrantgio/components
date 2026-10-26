@@ -36,13 +36,13 @@ type MenuState struct {
 	Options []string
 
 	// Selected is the index of the one row the picker is holding: the row the
-	// check stands beside, and the row that wears the pill while no row is
+	// check stands beside, and the row that is drawn in the pill while no row is
 	// under the pointer. An index outside Options selects nothing, which is
 	// what a picker with no value yet looks like.
 	Selected int
 
 	// Hovered is the row the pointer is over, counted from ONE, so that the
-	// zero value is no row. A hovered row wears the pill and Selected keeps
+	// zero value is no row. A hovered row is drawn in the pill and Selected keeps
 	// the check — see [highlightedRow].
 	//
 	// Selected counts from zero because a picker always holds a value and
@@ -456,7 +456,7 @@ func optionRowColors(p tokens.PlatformColors, highlighted bool) (fill, foregroun
 	return p.WindowBackground, vgcolor.Flatten(p.Label, p.WindowBackground)
 }
 
-// highlightedRow reports which row wears the pill: the row under the pointer
+// highlightedRow reports which row is drawn in the pill: the row under the pointer
 // where there is one, and the row the picker is holding where there is not.
 //
 // The POINTER WINS. The pill says where the choice would land if the press
@@ -492,7 +492,7 @@ func rowColumns(gtx layout.Context) (markLead, markBox, titleLead int) {
 // is holding, and the title.
 //
 // current says the row is the one the picker holds and is what the check
-// answers to; highlighted says the row wears the pill. They are two questions
+// answers to; highlighted says the row is drawn in the pill. They are two questions
 // — see [highlightedRow] — and a row may answer either, both or neither.
 func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, current, highlighted bool, title string) layout.Dimensions {
 	// An option row draws max(the density's control height, its line box),
