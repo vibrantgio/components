@@ -132,12 +132,10 @@ var DefaultDelay = tokens.Motion.DurXSlow
 // MaxTextWidth is the widest a tooltip's text is set. Text wider than this
 // is set on more lines, as the platform's help tag wraps its text.
 //
-// DERIVED, NOT MEASURED: no stored capture holds a help tag with long text.
-// The width is a count of characters, the unit a measure is stated in: 45
-// characters, the low end of Bringhurst's 45 to 75 for a line of text, at 5.5
-// dp per character, the lowercase alphabet's 143 dp in the Small system font
-// role at 11 sp divided by 26. 45 × 5.5 = 247.5, rounded to 248.
-var MaxTextWidth = unit.Dp(248)
+// MEASURED: the widest text box of the platform's help tags with long text,
+// finder-help-tag-view-{light,dark}.png in the macOS reference. The View tag
+// is 264 px wide less 6 px of padding on each side, which is 252.
+var MaxTextWidth = unit.Dp(252)
 
 // Placement is the side of the trigger the tooltip surface is asked for. A
 // surface with no room left on that side of the available room takes the

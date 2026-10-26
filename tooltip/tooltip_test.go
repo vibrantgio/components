@@ -405,6 +405,11 @@ func TestTextWiderThanTheTooltipIsSetOnMoreLines(t *testing.T) {
 		t.Fatal("the annotation painted nothing at all")
 	}
 
+	// The platform's help tag sets its text up to 252 dp, measured off
+	// finder-help-tag-view-{light,dark}.png in the macOS reference.
+	if tooltip.MaxTextWidth != 252 {
+		t.Errorf("MaxTextWidth is %v, not the help tag's measured 252", tooltip.MaxTextWidth)
+	}
 	// The surface is the text and the padding on both sides, S2 each.
 	if got, limit := right-left+1, int(tooltip.MaxTextWidth)+2*int(tokens.Spacing.S2); got > limit {
 		t.Errorf("the annotation is %d wide, wider than MaxTextWidth and its padding, %d", got, limit)
