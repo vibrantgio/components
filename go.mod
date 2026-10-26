@@ -8,6 +8,7 @@ require (
 	github.com/vibrantgio/font v0.4.4
 	github.com/vibrantgio/ivg/raster/gio v0.2.0
 	github.com/vibrantgio/mvu v1.1.1
+	github.com/vibrantgio/mvu/desktop v1.1.4
 	github.com/vibrantgio/svg v0.1.2
 	github.com/vibrantgio/svg/driver/gio v0.1.2
 	github.com/vibrantgio/theme v1.5.0

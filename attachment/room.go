@@ -2,14 +2,11 @@ package attachment
 
 import (
 	"image"
-	"maps"
 
 	"gioui.org/layout"
-)
 
-// availableRoomKey is the key the available room is set under in
-// layout.Context.Values.
-const availableRoomKey = "github.com/vibrantgio/components/attachment.AvailableRoom"
+	"github.com/vibrantgio/mvu/desktop"
+)
 
 // unboundedRoom is the extent [AvailableRoom] reports where no window set the
 // available room: wide and tall enough that a surface is never shortened by it
@@ -22,6 +19,10 @@ const unboundedRoom = 1 << 20
 // placed in. A window sets it to its content area before it lays out what it
 // holds.
 //
+// The available room is a value of the context that
+// [github.com/vibrantgio/mvu/desktop] defines, so the inset that package
+// pushes moves it too. The functions here read and write that one value.
+//
 // The available room and the [Surfaces] are one mechanism: the room is set at
 // the window, and every layout between the window and a floating surface
 // moves both by the offset it places its child at, with [AvailableRoomAt]
@@ -33,13 +34,7 @@ const unboundedRoom = 1 << 20
 // are known. gtx.Values is cloned rather than written, so the caller's
 // context keeps the room it had.
 func WithAvailableRoom(gtx layout.Context, r image.Rectangle) layout.Context {
-	values := maps.Clone(gtx.Values)
-	if values == nil {
-		values = make(map[string]any, 1)
-	}
-	values[availableRoomKey] = r
-	gtx.Values = values
-	return gtx
+	return desktop.WithAvailableRoom(gtx, r)
 }
 
 // AvailableRoom reads the available room in gtx's own coordinates. Its
@@ -49,7 +44,7 @@ func WithAvailableRoom(gtx layout.Context, r image.Rectangle) layout.Context {
 // Where no window set the room it reports an unbounded rectangle, which places
 // a surface as no available room at all does.
 func AvailableRoom(gtx layout.Context) image.Rectangle {
-	if r, ok := gtx.Values[availableRoomKey].(image.Rectangle); ok {
+	if r, ok := desktop.AvailableRoom(gtx); ok {
 		return r
 	}
 	return image.Rect(-unboundedRoom, -unboundedRoom, unboundedRoom, unboundedRoom)
@@ -60,7 +55,7 @@ func AvailableRoom(gtx layout.Context) image.Rectangle {
 // [HasSurfaces], to know whether a floating surface in a child has anything to
 // be placed in beyond the child's own box.
 func HasAvailableRoom(gtx layout.Context) bool {
-	_, ok := gtx.Values[availableRoomKey].(image.Rectangle)
+	_, ok := desktop.AvailableRoom(gtx)
 	return ok
 }
 
@@ -74,11 +69,7 @@ func AvailableRoomAt(gtx layout.Context, off image.Point) layout.Context {
 	if off == (image.Point{}) {
 		return gtx
 	}
-	gtx = surfacesAt(gtx, off)
-	if r, ok := gtx.Values[availableRoomKey].(image.Rectangle); ok {
-		gtx = WithAvailableRoom(gtx, r.Sub(off))
-	}
-	return gtx
+	return desktop.AvailableRoomAt(surfacesAt(gtx, off), off)
 }
 
 // PlaceSurfacesAt places the surfaces s recorded in a child of gtx's layout

@@ -6,6 +6,8 @@ import (
 
 	"gioui.org/layout"
 	"gioui.org/op"
+
+	"github.com/vibrantgio/mvu/desktop"
 )
 
 // surfacesKey is the key a [Surfaces] is set under in layout.Context.Values.
@@ -52,9 +54,8 @@ func WithSurfaces(gtx layout.Context) (layout.Context, *Surfaces) {
 		values = make(map[string]any, 1)
 	}
 	values[surfacesKey] = s
-	delete(values, availableRoomKey)
 	gtx.Values = values
-	return gtx, s
+	return desktop.WithoutAvailableRoom(gtx), s
 }
 
 // PlaceSurfaces calls every callback s recorded, in the order the surfaces
