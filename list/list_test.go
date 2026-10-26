@@ -80,11 +80,10 @@ func TestListGolden(t *testing.T) {
 	}
 }
 
-// TestListDensityRowGolden records or diffs a list whose rows are the
-// standard density-derived height, list.RowHeight (row = ControlHeight;
-// 36 px Comfortable, 28 px Compact at 1:1 scale). The 150 px viewport shows
-// the divergence directly: just over four comfortable rows against just over
-// five compact ones.
+// TestListDensityRowGolden records or diffs a stacked list whose rows hold
+// text only. Such rows take the table row, the density's RowHeight: 20 px
+// Comfortable and 19 px Compact at 1:1 scale. The 150 px viewport shows
+// seven and a half comfortable rows against just under eight compact ones.
 func TestListDensityRowGolden(t *testing.T) {
 	size := image.Pt(viewW, viewH)
 	cases := []struct {
@@ -100,7 +99,7 @@ func TestListDensityRowGolden(t *testing.T) {
 			state := list.NewState()
 			items := makeItems(8)
 			rowFn := func(gtx layout.Context, item int) layout.Dimensions {
-				rowSize := image.Pt(gtx.Constraints.Max.X, gtx.Dp(list.RowHeight(d)))
+				rowSize := image.Pt(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(d.RowHeight)))
 				paint.FillShape(gtx.Ops, rowColor(item), clip.Rect{Max: rowSize}.Op())
 				return layout.Dimensions{Size: rowSize}
 			}

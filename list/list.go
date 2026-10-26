@@ -65,19 +65,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/vibrantgio/components/scrollbar"
-	"github.com/vibrantgio/theme/tokens"
 )
-
-// RowHeight returns the standard list row height for a density: exactly
-// ControlHeight — 24 dp at tokens.Comfortable, 19 dp at tokens.Compact; the
-// same rule sizes dropdown option rows. Rows are drawn by the caller's
-// rowFn, so this is the height rowFn should give a standard single-line row;
-// the list itself imposes no height. Adjacent full-width rows are their own
-// pointer targets, so a row-builder wiring interaction should keep the row's
-// hit area at the row bounds rather than extending it over its neighbours.
-func RowHeight(d tokens.Density) unit.Dp {
-	return unit.Dp(d.ControlHeight)
-}
 
 // State holds the scroll position across frames.
 // Allocate once per list instance and reuse on every frame.
