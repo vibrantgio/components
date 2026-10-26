@@ -37,15 +37,18 @@
 // label colour, with its cap band centred on the symbol's row. A control with
 // no title draws the symbol alone.
 //
-// A text field takes the density's field height rather than its control
-// height: the platform draws a field shorter than the button standing beside
-// it, and that is the one place in the library where the two heights part.
+// A field takes its own measured height from the density rather than the
+// control height: the platform draws a field taller than the button standing
+// beside it. The height is measured per control and per variant: a text
+// field, a search field on the content and a search field in a sidebar each
+// have a height of their own, and a field in a toolbar takes the toolbar
+// control's height.
 //
 // The search field is the text field with two slots added to its structure:
 // the looking glass that names it, drawn leading, and the xmark-circle mark that
 // empties it, drawn trailing while there is a query to take back. Both are
 // spent out of the field's own width, so a search field and a text field of
-// the same width are the same size and the text does not reflow when the
+// the same width are the same width and the text does not reflow when the
 // mark appears. Both are drawn in the platform's secondary label. Clearing
 // reports the empty query through the same OnChange and Message a keystroke
 // does, which is what lets a consumer's highlight die with the query that

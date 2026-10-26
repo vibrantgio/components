@@ -113,7 +113,7 @@ func TestSearchFieldReservesBothSlots(t *testing.T) {
 	if empty != typed {
 		t.Errorf("an empty search field measured %v and one holding a query measured %v; the slots are reserved, so the two are one size", empty, typed)
 	}
-	if empty != plain {
+	if empty.X != plain.X {
 		t.Errorf("a search field measured %v and a text field %v; the marks are spent out of the field's own width, not added to it", empty, plain)
 	}
 }
@@ -360,8 +360,8 @@ func TestSearchFieldChromeVariantIsTheMeasuredRecess(t *testing.T) {
 func TestPromptCapBandIsOnTheFieldsCentreRow(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 40)
-	// The field draws at the top of the capture: Comfortable draws it at its
-	// 27 px floor, and 36 where the recess stands in a toolbar band.
+	// The field draws at the top of the capture at its Comfortable measured
+	// height: 26 on the content, 28 in a sidebar and 36 in a toolbar band.
 	for _, tc := range []struct {
 		name    string
 		colors  tokens.PlatformColors
@@ -369,10 +369,10 @@ func TestPromptCapBandIsOnTheFieldsCentreRow(t *testing.T) {
 		region  input.Region
 		fieldH  int
 	}{
-		{"form-light", tokens.PlatformLight, input.Form, input.Sidebar, 27},
-		{"form-dark", tokens.PlatformDark, input.Form, input.Sidebar, 27},
-		{"chrome-light", tokens.PlatformLight, input.Chrome, input.Sidebar, 27},
-		{"chrome-dark", tokens.PlatformDark, input.Chrome, input.Sidebar, 27},
+		{"form-light", tokens.PlatformLight, input.Form, input.Sidebar, 26},
+		{"form-dark", tokens.PlatformDark, input.Form, input.Sidebar, 26},
+		{"chrome-light", tokens.PlatformLight, input.Chrome, input.Sidebar, 28},
+		{"chrome-dark", tokens.PlatformDark, input.Chrome, input.Sidebar, 28},
 		{"toolbar-light", tokens.PlatformLight, input.Chrome, input.Toolbar, 36},
 		{"toolbar-dark", tokens.PlatformDark, input.Chrome, input.Toolbar, 36},
 	} {

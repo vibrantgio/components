@@ -223,7 +223,7 @@ type resolvedTokens struct {
 	capBand  float32          // the prompt's cap height in dp, read off the face that role names
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
-	density  tokens.Density // control height, field height and inner padding
+	density  tokens.Density // control height, field heights and inner padding
 	shaper   *text.Shaper   // the theme's shaper; nil in the Render* paths
 }
 
@@ -416,21 +416,29 @@ func fieldFill(p tokens.PlatformColors, s RenderState) color.NRGBA {
 	return control.FieldFill(p, s.Surface)
 }
 
-// fieldMinH is the height floor the field is drawn to: the density's field
-// height everywhere, and its TOOLBAR control height for the recess standing
-// in a toolbar band.
+// fieldMinH is the height floor the field is drawn to. A field's height is
+// measured per control and per variant, and the density carries each one:
+//
+//	field                          floor                               Comfortable
+//	in a toolbar band              Density.ToolbarControlHeight        36
+//	the recess in a sidebar        Density.SidebarSearchFieldHeight    28
+//	a search field on the content  Density.SearchFieldHeight           26
+//	a text field                   Density.TextFieldHeight             27
 //
 // MEASURED, voicememos-window.png and voicememos-sidebar-light.png: the
 // toolbar search field spans y 8–43 dark and y 46–81 light, 36 px in both,
-// against the 28 px the sidebar recess measures in
-// system-settings-grouped-box-{light,dark}.png. The 36 is
-// tokens.Density.ToolbarControlHeight, the number every bordered control in
-// the five stored toolbar bands reads at.
-func fieldMinH(gtx layout.Context, tok resolvedTokens, s RenderState) int {
-	if s.onToolbar() {
+// the number every bordered control in the five stored toolbar bands reads
+// at. The other three rows are the readings density.go cites.
+func fieldMinH(gtx layout.Context, tok resolvedTokens, s RenderState, ad adorn) int {
+	switch {
+	case s.onToolbar():
 		return gtx.Dp(unit.Dp(tok.density.ToolbarControlHeight))
+	case s.Variant == Chrome:
+		return gtx.Dp(unit.Dp(tok.density.SidebarSearchFieldHeight))
+	case ad.search:
+		return gtx.Dp(unit.Dp(tok.density.SearchFieldHeight))
 	}
-	return gtx.Dp(unit.Dp(tok.density.FieldHeight))
+	return gtx.Dp(unit.Dp(tok.density.TextFieldHeight))
 }
 
 // hairlineDp is the edge a form field wears at rest, and so the distance from
@@ -602,17 +610,18 @@ func capBandOffset(gtx layout.Context, tok resolvedTokens, rowH int, dims layout
 
 // drawTextFieldLive renders a live text field containing a widget.Editor.
 func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.Editor, hitTag *int, placeholder, desc string, tok resolvedTokens, s RenderState, showPlaceholder bool, ad adorn) layout.Dimensions {
-	// Sizing rule: the height floor is fieldMinH — Density.FieldHeight and
-	// not Density.ControlHeight, because the platform draws a field shorter
-	// than the button beside it, and Density.ToolbarControlHeight for the
-	// recess standing in a toolbar band — and the drawn height is
+	// Sizing rule: the height floor is fieldMinH — the field's own measured
+	// height and not Density.ControlHeight, because the platform draws a
+	// field taller than the button beside it, and
+	// Density.ToolbarControlHeight for the recess standing in a toolbar
+	// band — and the drawn height is
 	// max(that floor, line box), the line centred: the vertical padding is
 	// what the height leaves around the line.
 	// padH is the field's trailing inset — see [trailPad]. It does not
 	// follow density, and neither does the leading inset adorn.insets
 	// carries.
 	padH := trailPad(gtx, s)
-	minH := fieldMinH(gtx, tok, s)
+	minH := fieldMinH(gtx, tok, s, ad)
 	// Shape with the SystemFont role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
 
@@ -724,7 +733,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	ad.paint(gtx, tok, s, fieldSize, padH)
 
 	// The field's pointer target is the field: the platform's measured field
-	// height, which Density.FieldHeight carries. Register a pass-through
+	// height, which fieldMinH reads off the density. Register a pass-through
 	// input area over the drawn field whose press events the TextField
 	// component turns into a FocusCmd for the editor. The pass op keeps the
 	// editor's own area receiving the presses that land on the text line.
@@ -850,7 +859,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	// the recess stands in a toolbar band — and padH is the same trailing
 	// inset [trailPad] gives the live path.
 	padH := trailPad(gtx, s)
-	minH := fieldMinH(gtx, tok, s)
+	minH := fieldMinH(gtx, tok, s, ad)
 	// Shape with the SystemFont role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
 

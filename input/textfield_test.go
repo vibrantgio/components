@@ -155,10 +155,10 @@ func TestTextFieldLeadingInsetIsMeasured(t *testing.T) {
 // ---- Accessibility tests ----
 
 // TestTextFieldHeightIsItsLineBoxOverTheFloor checks the drawn field is
-// max(FieldHeight, SystemFont's line box).
+// max(TextFieldHeight, SystemFont's line box).
 //
-// The floor is [tokens.Density.FieldHeight] and not
-// [tokens.Density.ControlHeight]: the platform draws a field shorter than the
+// The floor is [tokens.Density.TextFieldHeight] and not
+// [tokens.Density.ControlHeight]: the platform draws a field taller than the
 // button standing beside it, so the density carries the two separately and a
 // field that took the button's floor would be the wrong height wherever the
 // type role left the floor binding.
@@ -183,12 +183,12 @@ func TestTextFieldHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 
 	body := tokens.DefaultTypography.SystemFont
 	want := int(body.LineHeight)
-	if floor := int(tokens.Comfortable.FieldHeight); want < floor {
+	if floor := int(tokens.Comfortable.TextFieldHeight); want < floor {
 		want = floor
 	}
 	if dims.Size.Y != want {
-		t.Errorf("text field height = %d px, want %d px (SystemFont line box %v, floored at FieldHeight %v)",
-			dims.Size.Y, want, body.LineHeight, tokens.Comfortable.FieldHeight)
+		t.Errorf("text field height = %d px, want %d px (SystemFont line box %v, floored at TextFieldHeight %v)",
+			dims.Size.Y, want, body.LineHeight, tokens.Comfortable.TextFieldHeight)
 	}
 }
 
@@ -208,7 +208,7 @@ func TestTextFieldTargetIsTheField(t *testing.T) {
 
 	dims := driveTextFieldFrame(w, ops, r, size)
 	fieldH := int(tokens.DefaultTypography.SystemFont.LineHeight)
-	if floor := int(tokens.Comfortable.FieldHeight); fieldH < floor {
+	if floor := int(tokens.Comfortable.TextFieldHeight); fieldH < floor {
 		fieldH = floor
 	}
 	if dims.Size.Y != fieldH {
