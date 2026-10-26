@@ -7,6 +7,7 @@ import (
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
+	"gioui.org/unit"
 
 	"github.com/vibrantgio/components/attachment"
 	"github.com/vibrantgio/components/scrollbar"
@@ -134,7 +135,7 @@ func (state *State) scrolled(
 	// minimum to the laid-out list size (re-widened by the lane for Occupy)
 	// to ensure the bar lands on the trailing edge even when the incoming
 	// minimum constraint was zero.
-	start, end := scrollbar.FromListPosition(state.l.Position, n, listDims.Size.Y)
+	start, end := state.span(gtx.Metric, listDims.Size.Y)
 	gtx.Constraints.Min = listDims.Size
 	gtx.Constraints.Min.X += barWidth
 	layout.E.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -169,12 +170,25 @@ func (state *State) occupied(gtx layout.Context, n int, rowFn func(gtx layout.Co
 	macro := op.Record(gtx.Ops)
 	dims := state.layoutRows(gtx, n, rowFn)
 	call := macro.Stop()
-	if start, end := scrollbar.FromListPosition(state.l.Position, n, dims.Size.Y); start <= 0 && end >= 1 {
+	if start, end := state.span(gtx.Metric, dims.Size.Y); start <= 0 && end >= 1 {
 		return state.layoutRows(full, n, rowFn), 0
 	}
 	call.Add(full.Ops)
 	attachment.PlaceSurfacesAt(full, surfaces, image.Point{})
 	return dims, lane
+}
+
+// span returns the part of the content a list visible pixels high shows,
+// as fractions of the content's length, from the position the last layout
+// resolved. The rows' heights come from the function [State.SetHeightOfRow]
+// set, or else from the heights the list recorded. The bar and the lane's
+// fit check both read it, so the two always agree.
+func (state *State) span(m unit.Metric, visible int) (start, end float32) {
+	var heightOf func(i int) int
+	if f := state.heightOfRow; f != nil {
+		heightOf = func(i int) int { return f(m, i) }
+	}
+	return state.heights.span(state.l.Position, state.l.Gap, visible, heightOf)
 }
 
 // applyScrollDelta translates a scrollbar drag distance (a fraction of the

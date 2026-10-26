@@ -31,7 +31,10 @@ type placedRow struct {
 //
 // Where gtx has neither, the rows are laid out with gtx as it is, and a
 // tooltip in a row is placed as one laid out anywhere else under gtx is.
+//
+// Either way the height of every row laid out is recorded in s.heights.
 func (s *State) layoutRows(gtx layout.Context, n int, rowFn layout.ListElement) layout.Dimensions {
+	rowFn = s.heights.recorded(n, rowFn)
 	if !attachment.HasSurfaces(gtx) && !attachment.HasAvailableRoom(gtx) {
 		return s.l.Layout(gtx, n, rowFn)
 	}

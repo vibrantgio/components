@@ -107,6 +107,26 @@ type State struct {
 	// in, recorded so a caller can move the list by a viewport without
 	// having to hold a layout.Context of its own. See move.go.
 	viewport int
+
+	// heights records the height of each row laid out, which the bar
+	// reads its thumb's length and offset from when heightOfRow is nil.
+	heights rowHeights
+	// heightOfRow is the caller's height of row i in pixels under metric
+	// m. See SetHeightOfRow.
+	heightOfRow func(m unit.Metric, i int) int
+}
+
+// SetHeightOfRow gives the list the height in pixels of row i under metric
+// m, for every row, laid out or not. The bar then reads the content's length
+// and the scrolled distance exactly before a row is drawn, as the platform's
+// table asks its delegate for each row's height. The list still lays out only
+// the rows in view.
+//
+// heightOf must return the height rowFn draws row i at. Without it, or after
+// SetHeightOfRow(nil), the bar counts each row laid out at its recorded
+// height and each row not yet laid out at the mean of those.
+func (s *State) SetHeightOfRow(heightOf func(m unit.Metric, i int) int) {
+	s.heightOfRow = heightOf
 }
 
 // focusTag is a non-zero-size type so its address is a unique event tag for
