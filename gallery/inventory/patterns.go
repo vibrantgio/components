@@ -268,21 +268,10 @@ func (inv *Inventory) navbarProps(c tokens.PlatformColors) navbar.Props {
 	}
 }
 
-// navbarSpecimenHeightDp is the height the gallery pins the navbar specimen
-// to: the Comfortable control height plus 2 dp above and below. No
-// measurement stands behind it.
-const navbarSpecimenHeightDp = 28
-
+// navbar draws the bar at its own height, the toolbar band's depth.
 func (inv *Inventory) navbar(c tokens.PlatformColors) layout.Widget {
-	props := inv.navbarProps(c)
-	return func(gtx layout.Context) layout.Dimensions {
-		// The bar fills the height it is given, so it is pinned to its own
-		// height rather than to the section's slot.
-		gtx.Constraints.Max.Y = gtx.Dp(unit.Dp(navbarSpecimenHeightDp))
-		gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
-		return navbar.Render(inv.shaper, props, c, tokens.Spacing,
-			tokens.DefaultTypography.SystemFont, tokens.Comfortable)(gtx)
-	}
+	return navbar.Render(inv.shaper, inv.navbarProps(c), c, tokens.Spacing,
+		tokens.DefaultTypography.SystemFont, tokens.Comfortable)
 }
 
 // sidebarProps is the rail the specimen shows: two runs, the second headed,
