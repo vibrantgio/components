@@ -403,7 +403,7 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 	cs := make([]layout.FlexChild, 0, 1+len(pageNames))
 	cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return complayout.Inset(16).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return g.label(gtx, "Components Gallery", vgcolor.Flatten(c.Label, c.SidebarMaterial), bold(roles.Title3))
+			return g.label(gtx, "Components Gallery", vgcolor.Flatten(c.Label, c.SidebarMaterial), roles.Headline)
 		})
 	}))
 	for i, name := range pageNames {
@@ -626,7 +626,7 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Min.X = gtx.Dp(unit.Dp(180))
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(180))
-							return g.label(gtx, lv.caption, pageMuted, roles.SmallSystemFont)
+							return g.label(gtx, lv.caption, pageMuted, roles.SystemFont)
 						}),
 						layout.Rigid(g.surfacePane(lv.fill, func(gtx layout.Context) layout.Dimensions {
 							return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
