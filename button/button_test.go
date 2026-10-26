@@ -642,7 +642,7 @@ func TestButtonCompactGolden(t *testing.T) {
 // TestButtonVisualHeightIsControlHeight checks the drawn button is exactly
 // the density's control height, which is also its pointer target.
 //
-// At Comfortable the System font role's line box plus 2×PaddingY is under
+// At Comfortable the System font role's line box is under
 // ComfortableControlHeight, so the button draws at that floor.
 // TestCompactButtonDrawsAtTheControlHeightFloor pins the same rule at
 // Compact.
@@ -662,17 +662,16 @@ func TestButtonVisualHeightIsControlHeight(t *testing.T) {
 		button.RenderState{},
 	)(gtx)
 
-	want := int(tokens.Comfortable.ControlHeight) // 36 dp at 1:1 scale
+	want := int(tokens.Comfortable.ControlHeight) // 24 dp at 1:1 scale
 	if dims.Size.Y != want {
 		t.Errorf("button height = %d px, want %d px (ControlHeight at 1:1 scale)", dims.Size.Y, want)
 	}
 }
 
 // TestCompactButtonDrawsAtTheControlHeightFloor pins the rule that a button's
-// height is max(ControlHeight, line box + 2×PaddingY). ControlHeight is a
-// floor and not a height. The System font role's 16 dp line box plus
-// Compact's 0 dp padding is under the 19 dp floor, so a Compact button is
-// the floor's height.
+// height is max(ControlHeight, line box). ControlHeight is a floor and not a
+// height. The System font role's 16 dp line box is under the 19 dp floor, so
+// a Compact button is the floor's height.
 //
 // The title is deliberately empty. A control's height must not depend on which
 // letters it happens to contain, and this is the assertion that says so.
@@ -694,14 +693,14 @@ func TestCompactButtonDrawsAtTheControlHeightFloor(t *testing.T) {
 		button.RenderState{},
 	)(gtx)
 
-	box := int(style.LineHeight + 2*d.PaddingY)
+	box := int(style.LineHeight)
 	floor := int(d.ControlHeight)
 	if box > floor {
-		t.Fatalf("line box %d px + padding is over the %d px floor; this test pins the floor case", box, floor)
+		t.Fatalf("line box %d px is over the %d px floor; this test pins the floor case", box, floor)
 	}
 	if dims.Size.Y != floor {
-		t.Errorf("compact button height = %d px, want the %d px floor (System font line box %v + 2×PaddingY %v is under it)",
-			dims.Size.Y, floor, style.LineHeight, d.PaddingY)
+		t.Errorf("compact button height = %d px, want the %d px floor (System font line box %v is under it)",
+			dims.Size.Y, floor, style.LineHeight)
 	}
 }
 

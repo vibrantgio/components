@@ -6,17 +6,15 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// Size returns the default icon symbol size for a density: the control's inner
-// content box, ControlHeight − 2·PaddingY — 20 dp at tokens.Comfortable
-// (24 − 2·2), 19 dp at tokens.Compact (19 − 2·0).
-//
-// shadcn/ui draws 16 px icons ([&_svg]:size-4) inside its h-9 py-2 buttons,
-// whose content box is 36 − 2·8 = 20 px. Sizing the symbol to the content box keeps the icon in
-// lockstep with the control across densities, and it is exactly the symbol
-// size components/button gives an icon-only button (side ControlHeight,
-// inset PaddingY).
+// Size returns the size of a symbol in a control for a density:
+// [tokens.Density.SymbolSize], 20 dp at tokens.Comfortable and 19 dp at
+// tokens.Compact. It is a value of its own, and no padding derives it. A
+// former padding derivation gave these values. A symbol's size in a control
+// waits for a measurement, which replaces them. It is exactly the symbol size
+// components/button gives an icon-only button, centred in a ControlHeight
+// square.
 func Size(d tokens.Density) unit.Dp {
-	return unit.Dp(d.ControlHeight - 2*d.PaddingY)
+	return unit.Dp(d.SymbolSize)
 }
 
 // DefaultSize is the icon size at the default density, Size(tokens.Comfortable):

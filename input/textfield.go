@@ -606,12 +606,12 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	// not Density.ControlHeight, because the platform draws a field shorter
 	// than the button beside it, and Density.ToolbarControlHeight for the
 	// recess standing in a toolbar band — and the drawn height is
-	// max(that floor, line box + 2×PaddingY).
+	// max(that floor, line box), the line centred: the vertical padding is
+	// what the height leaves around the line.
 	// padH is the field's trailing inset — see [trailPad]. It does not
 	// follow density, and neither does the leading inset adorn.insets
 	// carries.
 	padH := trailPad(gtx, s)
-	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := fieldMinH(gtx, tok, s)
 	// Shape with the SystemFont role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
@@ -651,7 +651,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	contentDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, placeholder, phMat)
 	phCall := mPh.Stop()
 
-	fieldH := contentDims.Size.Y + 2*padV
+	fieldH := contentDims.Size.Y
 	if fieldH < minH {
 		fieldH = minH
 	}
@@ -850,7 +850,6 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	// the recess stands in a toolbar band — and padH is the same trailing
 	// inset [trailPad] gives the live path.
 	padH := trailPad(gtx, s)
-	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := fieldMinH(gtx, tok, s)
 	// Shape with the SystemFont role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
@@ -893,7 +892,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	labelDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, labelText, labelMat)
 	labelCall := mLabel.Stop()
 
-	fieldH := labelDims.Size.Y + 2*padV
+	fieldH := labelDims.Size.Y
 	if fieldH < minH {
 		fieldH = minH
 	}

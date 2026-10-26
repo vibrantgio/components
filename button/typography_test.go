@@ -60,9 +60,9 @@ var typographyCases = []struct {
 	// Line height only: 32 dp instead of 16, at the same 13 dp size. The
 	// glyphs are identical to the baseline's — same face, same weight, same
 	// scale — and everything that moves moves because the line box grew: the
-	// title box is 32 px rather than 16, so the button is 32 + 2×PaddingY
-	// tall rather than the density's floor, and the text sits lower by the
-	// extra leading above it.
+	// title box is 32 px rather than 16, so the button is 32 tall rather
+	// than the density's floor, and the text sits lower by the extra leading
+	// above it.
 	{"type-line-height-loose", withLineHeight(tokens.DefaultTypography.SystemFont, 32)},
 }
 
@@ -118,7 +118,7 @@ func TestTypographyGolden(t *testing.T) {
 // gioui.org/text spends the line height only on the gap to a next line that
 // a MaxLines:1 title never has, so a naive title box does not move with
 // LineHeight at all. The title box must instead be sized as the role's line
-// box, so the button's height is the line height plus its padding — and
+// box, so the button's height is max(ControlHeight, the line height) — and
 // every number below is derived from the tokens rather than from the
 // letters in the title.
 //
@@ -143,12 +143,12 @@ func TestLineHeightSizesTheTitleBox(t *testing.T) {
 			button.RenderState{},
 		)(gtx)
 
-		want := int(lh + 2*d.PaddingY)
+		want := int(lh)
 		if f := int(d.ControlHeight); want < f {
 			want = f
 		}
 		if dims.Size.Y != want {
-			t.Errorf("line height %v: button %d px tall, want %d (line box + 2×PaddingY, floored at ControlHeight)",
+			t.Errorf("line height %v: button %d px tall, want %d (line box, floored at ControlHeight)",
 				lh, dims.Size.Y, want)
 		}
 		heights = append(heights, dims.Size.Y)

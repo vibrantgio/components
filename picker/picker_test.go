@@ -30,10 +30,10 @@ func defaultShaper(t *testing.T) *text.Shaper {
 // renderings pixel for pixel.
 var sharpRadius = tokens.RadiusScale{}
 
-// rowHeight is the height an option row draws at: one SystemFont line box plus
-// the density's vertical padding, floored at the density's control height.
+// rowHeight is the height an option row draws at: one SystemFont line box,
+// floored at the density's control height.
 func rowHeight(d tokens.Density) int {
-	h := int(tokens.DefaultTypography.SystemFont.LineHeight + 2*d.PaddingY)
+	h := int(tokens.DefaultTypography.SystemFont.LineHeight)
 	if floor := int(d.ControlHeight); h < floor {
 		h = floor
 	}

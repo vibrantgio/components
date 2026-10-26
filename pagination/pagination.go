@@ -172,10 +172,9 @@ type resolvedTokens struct {
 }
 
 // Cell metrics: every pagination control is a Density.ControlHeight square
-// (36 dp Comfortable, 28 dp Compact); the digit centres in the square like
-// an icon-button symbol. The chevron symbol takes the icon rule, icon.Size(d)
-// = ControlHeight − 2·PaddingY (20/16 dp), matching components icon
-// buttons. Cells are adjacent controls separated by S2 gaps, so their hit
+// (24 dp Comfortable, 19 dp Compact); the digit centres in the square like
+// an icon-button symbol. The chevron symbol takes icon.Size(d), the density's
+// symbol size (20/19 dp), matching components icon buttons. Cells are adjacent controls separated by S2 gaps, so their hit
 // area stays the cell bounds.
 
 func drawPagination(

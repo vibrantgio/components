@@ -14,11 +14,8 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// TestSizeFollowsDensity pins the content-box rule: the default symbol size is
-// ControlHeight − 2·PaddingY — 20 dp Comfortable, 19 dp Compact — so the icon
-// scales in lockstep with the control it sits in. The two are close because
-// Compact has no vertical padding to spend: its control height is already
-// under the label line box it has to hold.
+// TestSizeFollowsDensity pins the size of a symbol in a control: 20 dp at
+// Comfortable and 19 dp at Compact, the density's own value.
 func TestSizeFollowsDensity(t *testing.T) {
 	if got := icon.Size(tokens.Comfortable); got != 20 {
 		t.Errorf("Size(Comfortable) = %v dp, want 20", got)

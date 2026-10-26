@@ -155,7 +155,7 @@ func TestTextFieldLeadingInsetIsMeasured(t *testing.T) {
 // ---- Accessibility tests ----
 
 // TestTextFieldHeightIsItsLineBoxOverTheFloor checks the drawn field is
-// max(FieldHeight, SystemFont's line box + 2×PaddingY).
+// max(FieldHeight, SystemFont's line box).
 //
 // The floor is [tokens.Density.FieldHeight] and not
 // [tokens.Density.ControlHeight]: the platform draws a field shorter than the
@@ -182,13 +182,13 @@ func TestTextFieldHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 	)(gtx)
 
 	body := tokens.DefaultTypography.SystemFont
-	want := int(body.LineHeight + 2*tokens.Comfortable.PaddingY)
+	want := int(body.LineHeight)
 	if floor := int(tokens.Comfortable.FieldHeight); want < floor {
 		want = floor
 	}
 	if dims.Size.Y != want {
-		t.Errorf("text field height = %d px, want %d px (SystemFont line box %v + 2\u00d7PaddingY %v, floored at FieldHeight %v)",
-			dims.Size.Y, want, body.LineHeight, tokens.Comfortable.PaddingY, tokens.Comfortable.FieldHeight)
+		t.Errorf("text field height = %d px, want %d px (SystemFont line box %v, floored at FieldHeight %v)",
+			dims.Size.Y, want, body.LineHeight, tokens.Comfortable.FieldHeight)
 	}
 }
 
@@ -207,7 +207,7 @@ func TestTextFieldTargetIsTheField(t *testing.T) {
 	size := image.Pt(300, 120)
 
 	dims := driveTextFieldFrame(w, ops, r, size)
-	fieldH := int(tokens.DefaultTypography.SystemFont.LineHeight + 2*tokens.Comfortable.PaddingY)
+	fieldH := int(tokens.DefaultTypography.SystemFont.LineHeight)
 	if floor := int(tokens.Comfortable.FieldHeight); fieldH < floor {
 		fieldH = floor
 	}

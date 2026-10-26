@@ -292,7 +292,7 @@ func menuTokens(th rx.Observable[theme.Theme], spend func(scrollbar.Style) scrol
 // so anything added to one would be taken off its neighbour, and the full row
 // width is what makes a row easy to land on. What they measure, at 1:1, is
 // 24 dp Comfortable and 19 dp Compact — the ControlHeight floor, which wins
-// over the System font role's line plus 2×PaddingY in both densities.
+// over the System font role's line in both densities.
 func layoutMenuLive(gtx layout.Context, shaper *text.Shaper, optClicks []widget.Clickable, rows *list.State, tok resolvedTokens, s MenuState, capPx int) layout.Dimensions {
 	return stackRows(gtx, rows, len(s.Options), capPx, tok, func(gtx layout.Context, i int) layout.Dimensions {
 		return optClicks[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -495,12 +495,11 @@ func rowColumns(gtx layout.Context) (markLead, markBox, titleLead int) {
 // answers to; highlighted says the row wears the pill. They are two questions
 // — see [highlightedRow] — and a row may answer either, both or neither.
 func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, current, highlighted bool, title string) layout.Dimensions {
-	// An option row draws max(the density's control height, its line box plus
-	// twice the density's vertical padding), the sizing rule every stacked row
-	// in the system takes.
+	// An option row draws max(the density's control height, its line box),
+	// the line centred: the vertical padding is what the height leaves
+	// around the line.
 	markLead, markBox, lead := rowColumns(gtx)
 	trail := gtx.Dp(selectionInsetDp) + gtx.Dp(control.TextTrailDp)
-	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	fieldW := gtx.Constraints.Max.X
 
@@ -519,7 +518,7 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	titleDims := typeset.Text(innerGtx, shaper, title, tok.body, textCol, 1)
 	titleCall := mTitle.Stop()
 
-	rowH := titleDims.Size.Y + 2*padV
+	rowH := titleDims.Size.Y
 	if rowH < minH {
 		rowH = minH
 	}

@@ -482,10 +482,12 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 // achieve that — it changes nothing on a single line — so the layout goes
 // through theme/typeset, which is where that discrepancy is documented.
 //
-// The drawn height is therefore max(d.ControlHeight, LineHeight + 2×d.PaddingY).
-// With the System font role the first term wins at both densities: its 16 dp
-// line box plus the padding is under the 24 dp and 19 dp control heights.
-// [tokens.Density.ControlHeight] is a floor, not a height.
+// The drawn height is therefore max(d.ControlHeight, LineHeight), with the
+// title box centred in it: the vertical padding is what the height leaves
+// around the line, and no padding adds to the line. With the System font role
+// the first term wins at both densities: its 16 dp line box is under the
+// 24 dp and 19 dp control heights. [tokens.Density.ControlHeight] is a floor,
+// not a height.
 func Render(
 	shaper *text.Shaper,
 	title string,
@@ -506,8 +508,8 @@ func Render(
 
 // RenderIcon produces a layout.Widget for a compact icon-only button in an
 // explicit visual state, without event processing or rx machinery. The symbol
-// is drawn by icon into a square d.ControlHeight on a side, inset by
-// d.PaddingY, in the emphasis s carries — a ghost icon button is the less
+// is drawn by icon at d.SymbolSize, centred in a square d.ControlHeight on a
+// side, in the emphasis s carries — a ghost icon button is the less
 // pronounced symbol patterns/dialog's close affordance wants, over the same
 // square as a filled one, which is the pointer target in both.
 // Pass tokens.Comfortable for the default desktop look. Intended
@@ -544,11 +546,11 @@ const titleRoom = 1 << 20
 func drawButton(gtx layout.Context, shaper *text.Shaper, title string, tok resolvedTokens, s RenderState) layout.Dimensions {
 	// Sizing rule: button height = Density.ControlHeight (24 dp
 	// Comfortable, 19 dp Compact — the platform's regular and small push
-	// button), inner padding = Density.PaddingX/PaddingY. The drawn box is
-	// also the pointer target: the live path's clickable covers it and
-	// nothing more.
+	// button), horizontal padding = Density.PaddingX, and the vertical
+	// padding is what the height leaves around the title's line. The drawn
+	// box is also the pointer target: the live path's clickable covers it
+	// and nothing more.
 	padH := gtx.Dp(unit.Dp(tok.density.PaddingX))
-	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	// MEASURED, save-dialog-{light,dark}.png, the push button's own corner:
 	// a circular fit to the per-row coverage of "Cancel"'s corners, its
@@ -585,7 +587,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, title string, tok resol
 	if btnW < titleDims.Size.X+2*padH {
 		btnW = titleDims.Size.X + 2*padH
 	}
-	btnH := titleDims.Size.Y + 2*padV
+	btnH := titleDims.Size.Y
 	if btnH < minH {
 		btnH = minH
 	}
@@ -622,18 +624,16 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, title string, tok resol
 
 // drawIconButton renders a compact, square icon-only button: a square the
 // density's control height on a side, filled with the button background, the
-// focus ring when focused, and the symbol (drawn by icon) centred inside the
-// padding. Shares buttonColors with the text button so the emphasis and the
-// press, focus and disabled treatments match. All visual state comes from s;
+// focus ring when focused, and the symbol (drawn by icon) at the density's
+// symbol size, centred in the square. Shares buttonColors with the text
+// button so the emphasis and the press, focus and disabled treatments match. All visual state comes from s;
 // no event queries are performed here.
 func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int, col color.NRGBA), tok resolvedTokens, s RenderState) layout.Dimensions {
-	// Sizing rule: side = Density.ControlHeight, symbol inset =
-	// Density.PaddingY, so the symbol gets ControlHeight − 2·PaddingY — the
-	// same content-box rule icon.Size documents. That square is the pointer
-	// target in every emphasis: emphasis reaches the colours and stops
-	// there, so the symbol grows less pronounced and the square does not
-	// shrink.
-	pad := gtx.Dp(unit.Dp(tok.density.PaddingY))
+	// Sizing rule: side = Density.ControlHeight, symbol = Density.SymbolSize,
+	// the size icon.Size gives, and the inset is (side − symbol)/2. That
+	// square is the pointer target in every emphasis: emphasis reaches the
+	// colours and stops there, so the symbol grows less pronounced and the
+	// square does not shrink.
 	side := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	rad := gtx.Dp(unit.Dp(tok.radius.Md)) // the measured push-button corner; see drawButton
 	sz := image.Pt(side, side)
@@ -648,12 +648,13 @@ func drawIconButton(gtx layout.Context, icon func(gtx layout.Context, sizePx int
 		focus.Ring(gtx, image.Rectangle{Max: sz}, rad, ringOut, ringOver)
 	}
 
-	// Symbol, centred within the padded square.
+	// Symbol, centred in the square.
 	if icon != nil {
-		symbol := side - 2*pad
-		if symbol < 1 {
-			symbol, pad = side, 0
+		symbol := gtx.Dp(unit.Dp(tok.density.SymbolSize))
+		if symbol < 1 || symbol > side {
+			symbol = side
 		}
+		pad := (side - symbol) / 2
 		off := op.Offset(image.Pt(pad, pad)).Push(gtx.Ops)
 		icon(gtx, symbol, fg)
 		off.Pop()

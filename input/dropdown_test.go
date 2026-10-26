@@ -27,11 +27,9 @@ func TestDropdownGolden(t *testing.T) {
 	// rasterise the same everywhere and the trigger's selected title and the
 	// option rows are visible rather than implied.
 	opts := []string{"Alpha", "Beta", "Gamma"}
-	// Trigger and option rows are each one SystemFont line box plus the
-	// density's vertical padding, floored at ControlHeight. That is 40 dp
-	// Comfortable, not the 36 dp floor: sizing this window off ControlHeight
-	// alone clips 4 px off the last option row.
-	row := int(tokens.DefaultTypography.SystemFont.LineHeight + 2*tokens.Comfortable.PaddingY)
+	// Trigger and option rows are each one SystemFont line box, floored at
+	// ControlHeight.
+	row := int(tokens.DefaultTypography.SystemFont.LineHeight)
 	if floor := int(tokens.Comfortable.ControlHeight); row < floor {
 		row = floor
 	}

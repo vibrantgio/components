@@ -268,12 +268,17 @@ func (inv *Inventory) navbarProps(c tokens.PlatformColors) navbar.Props {
 	}
 }
 
+// navbarSpecimenHeightDp is the height the gallery pins the navbar specimen
+// to: the Comfortable control height plus 2 dp above and below. No
+// measurement stands behind it.
+const navbarSpecimenHeightDp = 28
+
 func (inv *Inventory) navbar(c tokens.PlatformColors) layout.Widget {
 	props := inv.navbarProps(c)
 	return func(gtx layout.Context) layout.Dimensions {
-		// The bar fills the height it is given, so it is pinned to the
-		// density's own bar height rather than to the section's slot.
-		gtx.Constraints.Max.Y = gtx.Dp(unit.Dp(tokens.Comfortable.ControlHeight + 2*tokens.Comfortable.PaddingY))
+		// The bar fills the height it is given, so it is pinned to its own
+		// height rather than to the section's slot.
+		gtx.Constraints.Max.Y = gtx.Dp(unit.Dp(navbarSpecimenHeightDp))
 		gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
 		return navbar.Render(inv.shaper, props, c, tokens.Spacing,
 			tokens.DefaultTypography.SystemFont, tokens.Comfortable)(gtx)
