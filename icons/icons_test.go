@@ -187,11 +187,11 @@ func TestEveryMarkComesOutAtTheStrengthItsBandGives(t *testing.T) {
 	const solid = 0x14
 
 	// A control's mark is not a symbol filling the mark box: the chevron pair
-	// and the down-pointing chevron are drawn at their MEASURED eight by
-	// eleven and eight by five, which the library spends at 24 dp and nowhere else, and
-	// eight units of a 24-unit grid cannot hold a whole device pixel at 16 or
-	// 20. Their files say so; they are read at the size they are drawn at.
-	oneSize := map[icons.Name]bool{icons.ChevronDown: true, icons.ChevronPair: true}
+	// is drawn at its MEASURED eight by eleven, which the library draws at
+	// 24 dp and nowhere else, and eight units of a 24-unit grid cannot hold a
+	// whole device pixel at 16 or 20. Its file says so; it is read at the
+	// size it is drawn at.
+	oneSize := map[icons.Name]bool{icons.ChevronPair: true}
 
 	// What each mark reaches where the band lands no whole device pixel.
 	//
@@ -210,12 +210,14 @@ func TestEveryMarkComesOutAtTheStrengthItsBandGives(t *testing.T) {
 	// check's arms run x-y = -8 and x+y = 26, whole at 24 dp and neither at
 	// the other two. The right- and left-pointing chevrons' arms are steeper
 	// than 45 degrees and stand on no such line at all; what carries them at 24 dp is the mitre at
-	// the apex, which is solid. The xmark-circle mark carries no band at all — a
+	// the apex, which is solid. The down-pointing chevron is the right-pointing
+	// one turned a quarter, and its render reads 0x38 at 20 dp, as the
+	// right-pointing one's does. The xmark-circle mark carries no band at all — a
 	// solid disc with a cross knocked out of it — so it arrives at the colour
 	// at every size, and its entry went with the bare cross it replaced.
 	reaches := map[icons.Name]map[int]int{
 		icons.Check:           {16: 0x80, 20: 0x5d},
-		icons.ChevronDown:     {24: 0x2c},
+		icons.ChevronDown:     {20: 0x38},
 		icons.ChevronLeft:     {16: 0x5f, 20: 0x55},
 		icons.ChevronPair:     {24: 0x2c},
 		icons.ChevronRight:    {16: 0x5f, 20: 0x58},

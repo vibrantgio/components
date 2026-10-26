@@ -8,8 +8,7 @@
 
        The set draws ONE chevron, at the one extent a stored capture holds a
        chevron at: chevron-left.svg is this figure mirrored, and
-       chevron-down.svg is the stacked pair's lower half at its own measured
-       extent.
+       chevron-down.svg is this figure turned a quarter clockwise.
 
        MEASURED at 1x, finder-window-light.png, the back/forward pair at the
        leading end of that window's content column (the control x 326-398, the

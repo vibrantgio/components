@@ -111,9 +111,10 @@ const (
 	// came from with it, and the two drawn side by side read as one control.
 	ChevronLeft Name = "chevron-left"
 
-	// ChevronDown is one chevron pointing down, the stacked pair's lower
-	// half. A pull-down draws it to say its menu of actions goes down from
-	// here, which is the one thing the pair cannot say.
+	// ChevronDown is one chevron pointing down, ChevronRight's figure turned
+	// a quarter clockwise, with the same stroke and extent. An open
+	// disclosure draws it, and a pull-down draws it to say its menu of
+	// actions opens below the control, which the pair cannot say.
 	ChevronDown Name = "chevron-down"
 
 	// SquareAndArrowUp is a box open at the top with an arrow rising out of

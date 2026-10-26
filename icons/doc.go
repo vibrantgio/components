@@ -143,8 +143,7 @@
 // band, the marks a sidebar row is drawn with. A mark drawn INSIDE a control
 // is that control's own measurement instead, and the set draws each at what
 // its own capture reads: the pull-down's symbol at 18, the pop-up's chevron
-// pair at 8 by 11, its single chevron at 8 by 5, the history chevron at 8 by
-// 14. The density heights work the same way — the platform draws a control in
+// pair at 8 by 11, the history chevron at 8 by 14. The density heights work the same way — the platform draws a control in
 // a toolbar band taller than one in a dialog, and neither reading corrects the
 // other — and a mark is no different. What a form is drawn to is the place it
 // stands in, and the keyline is one of those places rather than the answer for

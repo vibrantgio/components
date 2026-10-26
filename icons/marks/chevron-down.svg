@@ -1,35 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <!-- Chevron down: one chevron pointing down, the stacked pair's lower
-       half. The mark is the picture, and what a control does with it is that
-       control's title's to say: a pull-down — the control that opens a menu
-       of ACTIONS — draws it to say the menu goes down from here, which is
-       the one thing the stacked pair cannot say.
+  <!-- Chevron down: one chevron pointing down. The mark is the picture,
+       and what a control does with it is that control's title's to say: a
+       disclosure draws it when its row or section is open, and a pull-down
+       draws it to say its menu of actions opens below the control.
 
-       MEASURED at 1x, finder-window-light.png, the group pull-down beside
-       Finder's view pop-up: the mark spans x 792-799 and y 24-28 — eight
-       columns and five rows, pixel for pixel the lower half of the chevron
-       pair the pop-up beside it draws. mail-window.png's folder pull-down
-       reads 9 by 5 (x 740-748, y 23-28) in a control 29 px tall against this
-       one's 8 by 5 in a control 36 px tall, so the mark does not scale with
-       the control it stands in.
+       The figure is chevron-right.svg's figure turned a quarter clockwise
+       about the box's centre, every point (x, y) drawn at (24 - y, x). The
+       platform draws its chevron.down the same way: the right-pointing
+       figure turned, with the same stroke and the same extent. So the
+       measured reading, the band and the outline's arithmetic are those of
+       chevron-right.svg, and this file records only what the turn changes.
 
-       Grid: this mark is a CONTROL'S MARK and not a symbol filling the mark
-       box, so it takes neither the square keyline nor the round form's 13
-       units. It is drawn at its measured extent on the grid — 8 units across
-       and 5 down — which at 24 dp is the platform's own eight by five pixels.
-       It stands at x 8 to 16 and y 9 to 14: centred across, and a half unit
-       high of centre down, because five is odd against a 24-unit box and the
-       half unit is not drawable. Its geometry is the chevron pair's lower
-       chevron unchanged, so the two marks are one figure drawn once and
-       twice.
+       Grid: the drawing is chevron-right's 8 by 14 turned, 14 units across
+       by 8 down. It is at x 5 to 19 and y 8 to 16, centred on both axes.
+       The band's centre line runs from 5.7,8.7 to 12,15.3 to 18.3,8.7.
+       Round caps of 0.7 at both ends and a round turn extend the drawn
+       figure to the 14 by 8 box.
 
-       The band, the profile and the outline's arithmetic are the pair's:
-       see chevron-pair.svg, which carries the readings both are drawn from.
-
-       Where the band-landing rule reaches. It does not: every edge of this
-       drawing runs on a diagonal, so none of them has a leading edge on a
-       whole unit to land a whole device pixel inside. The mark is drawn at
-       24 dp wherever the library draws it, where one unit is one device pixel
-       and the measured extent comes out exact. -->
-  <path fill="#000000" d="M8 9 L12 14 L16 9 L14.2071 9 L12 11.7589 L9.7929 9 Z"/>
+       Where the band-landing rule reaches. It does not: both arms run on a
+       diagonal, so no edge has a leading edge on a whole unit to land a
+       whole device pixel inside. The centre of the box falls on a pixel
+       corner at 16, 20 and 24 dp, so the turn maps the pixel grid onto
+       itself: at each size this mark's drawn extent is chevron-right's
+       with width and height swapped. -->
+  <path fill="#000000" d="M18.8063 9.1833 L12 16.3138 L5.1937 9.1833 C4.9267 8.9037 4.937 8.4606 5.2167 8.1937 C5.4963 7.9267 5.9394 7.937 6.2063 8.2167 L12 14.2862 L17.7937 8.2167 C18.0606 7.937 18.5037 7.9267 18.7833 8.1937 C19.063 8.4606 19.0733 8.9037 18.8063 9.1833 Z"/>
 </svg>
