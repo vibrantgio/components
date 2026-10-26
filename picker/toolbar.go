@@ -152,10 +152,9 @@ type ToolbarProps struct {
 // Interaction state — hover, press, focus — lives in the rx.Defer scope and
 // survives every theme emission for the life of the subscription.
 func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[layout.Widget] {
-	// The typography emission carries both the LabelLarge style the trigger is
-	// set in — the style a control that names a value is set in, not the
-	// BodyLarge the form triggers take — and the theme's cached shaper (the
-	// theme owns the typeface).
+	// The typography emission carries both the SystemFont style the trigger is
+	// set in — the role that sets text on a regular control — and the theme's
+	// cached shaper (the theme owns the typeface).
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
 			rx.CombineLatest5(t.Platform, t.Typography, t.Spacing, t.Radius, t.Density),
@@ -163,7 +162,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 				typ := n.Second
 				return resolvedTokens{
 					platform: n.First,
-					title:    typ.LabelLarge,
+					title:    typ.SystemFont,
 					spacing:  n.Third,
 					radius:   n.Fourth,
 					density:  n.Fifth,
@@ -259,7 +258,7 @@ func Toolbar(th rx.Observable[theme.Theme], props ToolbarProps) rx.Observable[la
 // reserves for a disclosure triangle.
 //
 // titleStyle is the whole text style the value is set in; pass
-// tokens.DefaultTypography.LabelLarge with tokens.Comfortable for the default
+// tokens.DefaultTypography.SystemFont with tokens.Comfortable for the default
 // desktop control. The height comes off d.ToolbarControlHeight, not
 // d.ControlHeight: the platform draws a control in a toolbar band taller than
 // one in a dialog. The trigger is sized to its content, clamped to the

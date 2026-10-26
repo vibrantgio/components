@@ -413,7 +413,7 @@ type Props struct {
 // closure draws from: the whole theme flattened to the values one frame needs.
 type resolvedTokens struct {
 	platform tokens.PlatformColors
-	title    tokens.TextStyle // the LabelLarge role
+	title    tokens.TextStyle // the SystemFont role
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
 	density  tokens.Density
@@ -449,7 +449,7 @@ type resolvedTokens struct {
 // subscription.
 func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widget] {
 	// Flatten the nested theme observables into one concrete snapshot. The
-	// typography emission carries both the LabelLarge role the chip is set in
+	// typography emission carries both the SystemFont role the chip is set in
 	// and the theme's cached shaper (ADR-003: the theme owns the typeface).
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
@@ -458,7 +458,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 				typ := n.Second
 				return resolvedTokens{
 					platform: n.First,
-					title:    typ.LabelLarge,
+					title:    typ.SystemFont,
 					spacing:  n.Third,
 					radius:   n.Fourth,
 					density:  n.Fifth,
@@ -573,7 +573,7 @@ func Chip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widge
 // icon may be nil, in which case the chip leads with its title; a selected
 // [Filter] chip leads with the checkmark whether or not one was given.
 // titleStyle is the whole text style the title is set in; pass
-// tokens.DefaultTypography.LabelLarge, which is the role a chip is set in at
+// tokens.DefaultTypography.SystemFont, which is the role a chip is set in at
 // either density.
 //
 // The chip is sized to its content, clamped to the constraints it is handed,

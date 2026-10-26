@@ -38,7 +38,7 @@ func scrollTestOptions() []string {
 func scrollTestTokens() resolvedTokens {
 	return resolvedTokens{
 		platform: tokens.PlatformLight,
-		body:     tokens.DefaultTypography.BodyLarge,
+		body:     tokens.DefaultTypography.SystemFont,
 		spacing:  tokens.Spacing,
 		density:  tokens.Comfortable,
 		bar:      menuBar(tokens.PlatformLight, nil),
@@ -46,13 +46,13 @@ func scrollTestTokens() resolvedTokens {
 }
 
 // scrollTestRowHeight is what one option row measures at comfortable density
-// under scrollTestTokens: one BodyLarge line box plus the density's vertical
+// under scrollTestTokens: one SystemFont line box plus the density's vertical
 // padding, floored at the density's control height. picker_test.go carries
 // the same derivation (rowHeight) for its own, external, test package; this
 // file is internal (package picker, for drawOptionRow) and cannot use it.
 func scrollTestRowHeight() int {
 	d := tokens.Comfortable
-	h := int(tokens.DefaultTypography.BodyLarge.LineHeight + 2*d.PaddingY)
+	h := int(tokens.DefaultTypography.SystemFont.LineHeight + 2*d.PaddingY)
 	if floor := int(d.ControlHeight); h < floor {
 		h = floor
 	}
@@ -187,9 +187,14 @@ func TestCappedOverflowingMenuDrawsTheBarOnlyInTheGutter(t *testing.T) {
 	barPx := unit.Metric{PxPerDp: 1, PxPerSp: 1}.Dp(scrollbar.FromTokens(tok.platform, tok.platform.WindowBackground).Width())
 	gutter := size.X - barPx
 	bounds := withBar.Bounds()
+	// The rasterizer draws one glyph up to two levels apart between two
+	// captures of the same row. A bar drawn over a row moves a pixel by far
+	// more than that.
+	off := func(a, b uint8) bool { return int(a) > int(b)+2 || int(b) > int(a)+2 }
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < gutter; x++ {
-			if withBar.RGBAAt(x, y) != suppressed.RGBAAt(x, y) {
+			c, d := withBar.RGBAAt(x, y), suppressed.RGBAAt(x, y)
+			if off(c.R, d.R) || off(c.G, d.G) || off(c.B, d.B) || off(c.A, d.A) {
 				t.Fatalf("pixel (%d,%d) differs outside the %d px trailing gutter; the bar reached into a row's own pixels", x, y, barPx)
 			}
 		}

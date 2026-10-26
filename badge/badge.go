@@ -68,15 +68,15 @@ func (status Status) systemColor(p tokens.PlatformColors) color.NRGBA {
 //
 // It is larger than the mark is drawn, because a mark a few dp across is not
 // something a pointer can be asked to land on, and small enough not to reach
-// into whatever is set beside a 16 dp badge.
+// into whatever is set beside a badge.
 const CloseHitDp = 24
 
 // closeStrokeDp is the width of each of the close mark's two strokes, in dp.
 // It is scaled rather than rounded to whole pixels: an axis-aligned line lands
 // on whole pixels and reads at exactly its weight, while an x is two diagonals
-// and is anti-aliased at any width. Measured on the label-small specimen at
-// 1x, 1.25 dp lands the Medium face's stems between a whole pixel's over- and
-// under-weight.
+// and is anti-aliased at any width. Measured on an 11 sp medium-weight
+// specimen at 1x, 1.25 dp lands the Medium face's stems between a whole
+// pixel's over- and under-weight.
 const closeStrokeDp = 1.25
 
 // Symbol is the painter a badge draws its sign with: it fills a sizePx×sizePx
@@ -88,8 +88,8 @@ const closeStrokeDp = 1.25
 // A nil Symbol draws no sign; the badge is then its text alone.
 type Symbol func(gtx layout.Context, sizePx int, col color.NRGBA)
 
-// Style returns the type role a badge is set in at density d: LabelMedium at
-// Comfortable, LabelSmall at Compact — one step less pronounced than the
+// Style returns the type role a badge is set in at density d: SmallSystemFont at
+// Comfortable, Caption1 at Compact — one step less pronounced than the
 // chip's, which is what makes a badge visibly lighter than the controls it
 // stands among.
 //
@@ -98,9 +98,9 @@ type Symbol func(gtx layout.Context, sizePx int, col color.NRGBA)
 // line box is the whole of its height.
 func Style(t tokens.Typography, d tokens.Density) tokens.TextStyle {
 	if d.ControlHeight <= tokens.CompactControlHeight {
-		return t.LabelSmall
+		return t.Caption1
 	}
-	return t.LabelMedium
+	return t.SmallSystemFont
 }
 
 // BareForeground is the colour a BARE symbol badge draws its sign in: the
@@ -425,7 +425,7 @@ func Badge(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 // [BareForeground] — unless s.Disc asks the symbol badge to
 // stand on a disc, which puts it back on [Fill] and [Foreground]. style is the
 // whole text style the badge is set in — pass [Style] of the density in play,
-// which is tokens.DefaultTypography.LabelMedium at tokens.Comfortable.
+// which is tokens.DefaultTypography.SmallSystemFont at tokens.Comfortable.
 //
 // The badge is sized to its content and clamped to the constraints it is
 // handed, and reports the baseline of its text so a row can set it on the

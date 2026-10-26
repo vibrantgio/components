@@ -230,7 +230,7 @@ type resolvedTokens struct {
 	platform tokens.PlatformColors
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
-	style    tokens.TextStyle // the LabelSmall role: typeface, weight, size, line height
+	style    tokens.TextStyle // the Caption1 role: typeface, weight, size, line height
 	shaper   *text.Shaper     // the theme's shaper; nil in the Render path
 	// delay is the show-after-entry delay, the motion scale's DurXSlow
 	// stop. Props.Delay overrides it per instance.
@@ -242,7 +242,7 @@ type resolvedTokens struct {
 // gesture, dwell stamp) persists across emissions in the rx.Defer scope.
 func Tooltip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widget] {
 	// Flatten the nested theme observables into a concrete snapshot. The
-	// typography emission supplies both the LabelSmall text style and the
+	// typography emission supplies both the Caption1 text style and the
 	// theme's cached shaper; the motion emission supplies the show delay.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
@@ -253,7 +253,7 @@ func Tooltip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wi
 					platform: n.First,
 					spacing:  n.Second,
 					radius:   n.Third,
-					style:    typ.LabelSmall,
+					style:    typ.Caption1,
 					shaper:   typ.Shaper(),
 					delay:    n.Fifth.DurXSlow,
 				}
@@ -310,9 +310,9 @@ func Tooltip(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wi
 // the trigger plus the floating surface, shown=false to render only the
 // trigger.
 //
-// style is the LabelSmall role's whole text style — typeface, weight,
+// style is the Caption1 role's whole text style — typeface, weight,
 // size and line height all reach the shaper, exactly as they do on the
-// live path. Pass tokens.DefaultTypography.LabelSmall for the default
+// live path. Pass tokens.DefaultTypography.Caption1 for the default
 // desktop look. There is no density parameter: a tooltip surface wraps
 // its text and sizes no control.
 func Render(

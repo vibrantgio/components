@@ -31,7 +31,7 @@ func pad() (layout.Context, *op.Ops) {
 func TestTextThatFitsIsLeftAlone(t *testing.T) {
 	gtx, _ := pad()
 	sh := tokens.DefaultTypography.DeterministicShaper()
-	style := tokens.DefaultTypography.LabelMedium
+	style := tokens.DefaultTypography.SmallSystemFont
 	full := typeset.LineWidth(gtx, sh, address, style, font.Normal)
 	if got := elide.Middle(gtx, sh, address, style, full); got != address {
 		t.Errorf("at its own width the address came back as %q", got)
@@ -47,7 +47,7 @@ func TestTextThatFitsIsLeftAlone(t *testing.T) {
 func TestTheMiddleGoesAndTheEndsStay(t *testing.T) {
 	gtx, _ := pad()
 	sh := tokens.DefaultTypography.DeterministicShaper()
-	style := tokens.DefaultTypography.LabelMedium
+	style := tokens.DefaultTypography.SmallSystemFont
 	width := typeset.LineWidth(gtx, sh, address, style, font.Normal) / 2
 
 	got := elide.Middle(gtx, sh, address, style, width)
@@ -78,7 +78,7 @@ func TestTheMiddleGoesAndTheEndsStay(t *testing.T) {
 func TestLessRoomKeepsLess(t *testing.T) {
 	gtx, _ := pad()
 	sh := tokens.DefaultTypography.DeterministicShaper()
-	style := tokens.DefaultTypography.LabelMedium
+	style := tokens.DefaultTypography.SmallSystemFont
 	full := typeset.LineWidth(gtx, sh, address, style, font.Normal)
 
 	prev := len([]rune(address))
@@ -106,7 +106,7 @@ func TestLessRoomKeepsLess(t *testing.T) {
 func TestNoRoomIsTheWholeLine(t *testing.T) {
 	gtx, _ := pad()
 	sh := tokens.DefaultTypography.DeterministicShaper()
-	style := tokens.DefaultTypography.LabelMedium
+	style := tokens.DefaultTypography.SmallSystemFont
 	if got := elide.Middle(gtx, sh, address, style, 0); got != address {
 		t.Errorf("with no room the address came back as %q", got)
 	}

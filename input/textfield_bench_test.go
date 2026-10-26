@@ -27,7 +27,7 @@ func BenchmarkTextFieldRender(b *testing.B) {
 	shaper := tokens.DefaultTypography.DeterministicShaper()
 	w := input.Render(
 		shaper, "Placeholder",
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		input.RenderState{},
 	)
 	bench.BenchFrame(b, w)

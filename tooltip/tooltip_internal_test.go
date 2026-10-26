@@ -50,7 +50,7 @@ func intTok() resolvedTokens {
 		platform: tokens.PlatformLight,
 		spacing:  tokens.Spacing,
 		radius:   tokens.RadiusScale{},
-		style:    tokens.DefaultTypography.LabelSmall,
+		style:    tokens.DefaultTypography.Caption1,
 	}
 }
 

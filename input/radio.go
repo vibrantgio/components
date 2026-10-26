@@ -124,8 +124,8 @@ func Radio(th rx.Observable[theme.Theme], props RadioProps) rx.Observable[layout
 				typ := n.Second
 				return resolvedTokens{
 					platform: n.First,
-					body:     typ.BodyLarge,
-					capBand:  typ.FaceMetrics(typ.BodyLarge).CapHeight,
+					body:     typ.SystemFont,
+					capBand:  typ.FaceMetrics(typ.SystemFont).CapHeight,
 					spacing:  n.Third,
 					density:  n.Fourth,
 					shaper:   typ.Shaper(),

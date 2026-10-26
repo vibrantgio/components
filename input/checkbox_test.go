@@ -43,7 +43,7 @@ func TestCheckboxGolden(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			w := input.RenderCheckbox(nil, tc.platform, tokens.Spacing, tokens.DefaultTypography.BodyLarge, tc.state)
+			w := input.RenderCheckbox(nil, tc.platform, tokens.Spacing, tokens.DefaultTypography.SystemFont, tc.state)
 			golden.Render(t, tc.name, size, w)
 		})
 	}
@@ -68,7 +68,7 @@ func TestCheckboxFootprintIsItsMeasuredRow(t *testing.T) {
 		nil,
 		tokens.PlatformLight,
 		tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge,
+		tokens.DefaultTypography.SystemFont,
 		input.CheckboxRenderState{},
 	)(gtx)
 
@@ -147,13 +147,13 @@ func TestCheckboxCheckedIsVisuallyDistinct(t *testing.T) {
 	imgUnchecked := golden.Capture(t, size, input.RenderCheckbox(
 		nil,
 		tokens.PlatformLight, tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge,
+		tokens.DefaultTypography.SystemFont,
 		input.CheckboxRenderState{},
 	))
 	imgChecked := golden.Capture(t, size, input.RenderCheckbox(
 		nil,
 		tokens.PlatformLight, tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge,
+		tokens.DefaultTypography.SystemFont,
 		input.CheckboxRenderState{Checked: true},
 	))
 
@@ -187,7 +187,7 @@ func TestCheckboxChecksAreDrawn(t *testing.T) {
 		p := scheme.platform
 		mark, fill := p.AlternateSelectedControlText, p.ControlAccent
 		count := func(s input.CheckboxRenderState) int {
-			img := golden.Capture(t, size, input.RenderCheckbox(nil, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge, s))
+			img := golden.Capture(t, size, input.RenderCheckbox(nil, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, s))
 			if img == nil {
 				return -1
 			}
@@ -225,13 +225,13 @@ func TestCheckboxFocusRingIsVisuallyDistinct(t *testing.T) {
 	imgNormal := golden.Capture(t, size, input.RenderCheckbox(
 		nil,
 		tokens.PlatformLight, tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge,
+		tokens.DefaultTypography.SystemFont,
 		input.CheckboxRenderState{},
 	))
 	imgFocused := golden.Capture(t, size, input.RenderCheckbox(
 		nil,
 		tokens.PlatformLight, tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge,
+		tokens.DefaultTypography.SystemFont,
 		input.CheckboxRenderState{Focused: true},
 	))
 
@@ -298,33 +298,33 @@ func TestFocusIsVisibleOnEveryControlInEveryState(t *testing.T) {
 			ring  stdcolor.NRGBA
 		}{
 			{"checkbox unchecked", size,
-				input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{}),
-				input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Focused: true}), onPlane},
+				input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{}),
+				input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Focused: true}), onPlane},
 			{"checkbox checked", size,
-				input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Checked: true}),
-				input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Checked: true, Focused: true}), onPlane},
+				input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Checked: true}),
+				input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Checked: true, Focused: true}), onPlane},
 			{"radio unselected", size,
-				input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{}),
-				input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Focused: true}), onPlane},
+				input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.RadioRenderState{}),
+				input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.RadioRenderState{Focused: true}), onPlane},
 			{"radio selected", size,
-				input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Selected: true}),
-				input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Selected: true, Focused: true}), onPlane},
+				input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.RadioRenderState{Selected: true}),
+				input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.RadioRenderState{Selected: true, Focused: true}), onPlane},
 			{"text field", image.Pt(300, 60),
 				input.Render(shaper, "you@example.com", p, tokens.Spacing, tokens.Radius,
-					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{}),
+					tokens.DefaultTypography.SystemFont, tokens.Comfortable, input.RenderState{}),
 				input.Render(shaper, "you@example.com", p, tokens.Spacing, tokens.Radius,
-					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{Focused: true}), onPlane},
+					tokens.DefaultTypography.SystemFont, tokens.Comfortable, input.RenderState{Focused: true}), onPlane},
 			{"search field", image.Pt(300, 60),
 				input.RenderSearch(shaper, "Search", p, tokens.Spacing, tokens.Radius,
-					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{}),
+					tokens.DefaultTypography.SystemFont, tokens.Comfortable, input.RenderState{}),
 				input.RenderSearch(shaper, "Search", p, tokens.Spacing, tokens.Radius,
-					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{Focused: true}), onPlane},
+					tokens.DefaultTypography.SystemFont, tokens.Comfortable, input.RenderState{Focused: true}), onPlane},
 			{"dropdown trigger", image.Pt(200, 44),
 				input.RenderDropdown(shaper, p, tokens.Spacing, tokens.Radius,
-					tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+					tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 					input.DropdownRenderState{Options: []string{"One", "Two"}}),
 				input.RenderDropdown(shaper, p, tokens.Spacing, tokens.Radius,
-					tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+					tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 					input.DropdownRenderState{Focused: true, Options: []string{"One", "Two"}}), onTrigger},
 		} {
 			if n := count(control.size, control.idle, control.ring); n != 0 {
@@ -447,7 +447,7 @@ func TestTheSwitchedOffBoxIsOneFillAndNoEdge(t *testing.T) {
 			img := golden.Capture(t, image.Pt(size, size), input.RenderCheckbox(
 				nil,
 				sc.platform, tokens.Spacing,
-				tokens.DefaultTypography.BodyLarge,
+				tokens.DefaultTypography.SystemFont,
 				input.CheckboxRenderState{Disabled: true, Surface: sc.sheet},
 			))
 			if img == nil {
@@ -476,7 +476,7 @@ func TestTheSwitchedOffBoxIsOneFillAndNoEdge(t *testing.T) {
 			on := golden.Capture(t, image.Pt(size, size), input.RenderCheckbox(
 				nil,
 				sc.platform, tokens.Spacing,
-				tokens.DefaultTypography.BodyLarge,
+				tokens.DefaultTypography.SystemFont,
 				input.CheckboxRenderState{Surface: sc.sheet},
 			))
 			if on == nil {
@@ -512,11 +512,11 @@ func TestTheSwitchedOffBoxKeepsItsMark(t *testing.T) {
 			set   layout.Widget
 		}{
 			{"box",
-				input.RenderCheckbox(nil, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Disabled: true, Surface: sc.sheet}),
-				input.RenderCheckbox(nil, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Disabled: true, Checked: true, Surface: sc.sheet})},
+				input.RenderCheckbox(nil, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Disabled: true, Surface: sc.sheet}),
+				input.RenderCheckbox(nil, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Disabled: true, Checked: true, Surface: sc.sheet})},
 			{"radio",
-				input.RenderRadio(nil, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Disabled: true, Surface: sc.sheet}),
-				input.RenderRadio(nil, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Disabled: true, Selected: true, Surface: sc.sheet})},
+				input.RenderRadio(nil, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.RadioRenderState{Disabled: true, Surface: sc.sheet}),
+				input.RenderRadio(nil, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.RadioRenderState{Disabled: true, Selected: true, Surface: sc.sheet})},
 		} {
 			unset := golden.Capture(t, image.Pt(size, size), cs.unset)
 			set := golden.Capture(t, image.Pt(size, size), cs.set)

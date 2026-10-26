@@ -84,7 +84,7 @@ type Props struct {
 // number (1-indexed).
 func Pagination(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widget] {
 	// Flatten the nested theme observables into a concrete snapshot. The
-	// typography emission supplies both the LabelLarge text style and the
+	// typography emission supplies both the SystemFont text style and the
 	// theme's cached shaper: the theme owns the typeface.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
@@ -95,7 +95,7 @@ func Pagination(th rx.Observable[theme.Theme], props Props) rx.Observable[layout
 					platform: n.First,
 					spacing:  n.Second,
 					radius:   n.Third,
-					title:    typ.LabelLarge,
+					title:    typ.SystemFont,
 					density:  n.Fifth,
 					shaper:   typ.Shaper(),
 				}
@@ -141,11 +141,11 @@ func Pagination(th rx.Observable[theme.Theme], props Props) rx.Observable[layout
 // production code should use Pagination, which reads both of the
 // parameters below off the theme.
 //
-// title is the LabelLarge role's whole text style — typeface, weight,
+// title is the SystemFont role's whole text style — typeface, weight,
 // size and line height all reach the shaper — and d is the density the
 // row draws at (every cell is a Density.ControlHeight square, and the
 // chevron symbol scales with it). Pass
-// tokens.DefaultTypography.LabelLarge and tokens.Comfortable for the
+// tokens.DefaultTypography.SystemFont and tokens.Comfortable for the
 // default desktop look.
 func Render(
 	shaper *text.Shaper,
@@ -166,7 +166,7 @@ type resolvedTokens struct {
 	platform tokens.PlatformColors
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
-	title    tokens.TextStyle // the LabelLarge role: typeface, weight, size, line height
+	title    tokens.TextStyle // the SystemFont role: typeface, weight, size, line height
 	density  tokens.Density   // cell square and chevron symbol source
 	shaper   *text.Shaper     // the theme's shaper; nil in the Render path
 }
@@ -259,7 +259,7 @@ func pageCellWidget(shaper *text.Shaper, n int, current, navigable bool, click *
 
 // drawPageCell paints one page-number cell: a side×side rounded square
 // (radius.Md, components/button's corner) filled with bg where there is one,
-// the digit shaped in the LabelLarge role and centred. The digit is never
+// the digit shaped in the SystemFont role and centred. The digit is never
 // truncated — the square is the control, the digit its symbol, mirroring the
 // icon-button rule rather than the text-button padding rule.
 func drawPageCell(gtx layout.Context, shaper *text.Shaper, title string, bg, fg color.NRGBA, tok resolvedTokens, side int) layout.Dimensions {

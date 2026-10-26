@@ -317,7 +317,7 @@ type Props struct {
 // layout.Widget closure.
 type resolvedTokens struct {
 	platform tokens.PlatformColors
-	title    tokens.TextStyle // the LabelLarge role: typeface, weight, size, line height
+	title    tokens.TextStyle // the SystemFont role: typeface, weight, size, line height
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
 	density  tokens.Density // control height and inner padding
@@ -339,7 +339,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 	}
 
 	// Flatten the nested theme observables into a concrete snapshot. The
-	// typography emission supplies both the LabelLarge text style and the
+	// typography emission supplies both the SystemFont text style and the
 	// theme's cached shaper — the theme owns the typeface.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
@@ -348,7 +348,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 				typ := n.Second
 				return resolvedTokens{
 					platform: n.First,
-					title:    typ.LabelLarge,
+					title:    typ.SystemFont,
 					spacing:  n.Third,
 					radius:   n.Fourth,
 					density:  n.Fifth,
@@ -467,9 +467,9 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 // testing and static demonstrations; production code should use Button, which
 // reads both of the parameters below off the theme.
 //
-// titleStyle is the LabelLarge role's whole text style and d is the density
+// titleStyle is the SystemFont role's whole text style and d is the density
 // the button draws at (control height and inner padding). Pass
-// tokens.PlatformLight, tokens.DefaultTypography.LabelLarge and
+// tokens.PlatformLight, tokens.DefaultTypography.SystemFont and
 // tokens.Comfortable for the default desktop look. s carries the emphasis alongside the interaction state; its
 // zero value is the filled button, so a call written before emphasis existed
 // draws what it always drew.
@@ -482,9 +482,9 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 // achieve that — it changes nothing on a single line — so the layout goes
 // through theme/typeset, which is where that discrepancy is documented.
 //
-// The drawn height is therefore max(d.ControlHeight, LineHeight + 2×d.PaddingY),
-// and the second term wins for Compact at any of the title roles: LabelLarge's
-// 20 dp line box against a 19 dp control height.
+// The drawn height is therefore max(d.ControlHeight, LineHeight + 2×d.PaddingY).
+// With the System font role the first term wins at both densities: its 16 dp
+// line box plus the padding is under the 24 dp and 19 dp control heights.
 // [tokens.Density.ControlHeight] is a floor, not a height.
 func Render(
 	shaper *text.Shaper,

@@ -167,15 +167,16 @@
 //
 // The type role is the density's, one step less pronounced than the chip's:
 //
-//	density      role          size   line box   drawn height
-//	-------      ----          ----   --------   ------------
-//	Comfortable  LabelMedium   12 sp  16 dp      16
-//	Compact      LabelSmall    11 sp  16 dp      16
+//	density      role             size   line box   drawn height
+//	-------      ----             ----   --------   ------------
+//	Comfortable  SmallSystemFont  11 sp  13 dp      14
+//	Compact      Caption1         10 sp  13 dp      13
 //
 // [Style] is that choice, stated once so a caller reserving room for a
 // badge asks the same question the badge answers. The two roles share a line
-// box, so density moves the type's size and not the badge's height; that is a
-// property of the type scale, and the badge reports what it draws either way.
+// box. Roboto's own line at 11 sp is 14 px, one pixel over that box, so the
+// Comfortable badge draws 14 px tall. The badge reports what it draws either
+// way.
 //
 // The symbol's square is the line box, the rule components/chip states for an
 // inline mark: a mark on a line belongs to that line rather than to a control

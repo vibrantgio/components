@@ -78,7 +78,7 @@ type Props struct {
 	// It is stated rather than derived because the separator is drawn and
 	// not typeset: nothing in the title's text style says how large a mark
 	// beside it should be, and a trail set in a smaller style than the
-	// desktop TitleSmall — or one whose separator should read as a hairline
+	// desktop SystemFont — or one whose separator should read as a hairline
 	// between titles rather than a mark of its own — wants a smaller square
 	// than the default. The chevron is drawn into the square and covers 8 of
 	// its 24 units across and 14 down, so this is the square the mark stands
@@ -146,9 +146,9 @@ func Breadcrumb(th rx.Observable[theme.Theme], props Props) rx.Observable[layout
 // production code should use Breadcrumb, which reads the shaper and the
 // same text style off the theme.
 //
-// title is the TitleSmall role's whole text style — typeface, weight,
+// title is the SystemFont role's whole text style — typeface, weight,
 // size and line height all reach the shaper, exactly as they do on the
-// live path. Pass tokens.DefaultTypography.TitleSmall for the default
+// live path. Pass tokens.DefaultTypography.SystemFont for the default
 // desktop look. There is no density parameter: a breadcrumb trail is a
 // text row, not a control.
 //
@@ -170,13 +170,13 @@ func Render(
 type resolvedTokens struct {
 	platform tokens.PlatformColors
 	spacing  tokens.SpacingScale
-	title    tokens.TextStyle // the TitleSmall role: typeface, weight, size, line height
+	title    tokens.TextStyle // the SystemFont role: typeface, weight, size, line height
 	shaper   *text.Shaper     // the theme's shaper; nil in the Render path
 }
 
 // resolveTokens flattens the nested theme observables into a stream of
 // concrete snapshots, one per token change. The typography emission supplies
-// both the TitleSmall text style and the theme's cached shaper, since the
+// both the SystemFont text style and the theme's cached shaper, since the
 // theme owns the typeface. Both live paths read the same snapshot.
 func resolveTokens(th rx.Observable[theme.Theme]) rx.Observable[resolvedTokens] {
 	return rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
@@ -187,7 +187,7 @@ func resolveTokens(th rx.Observable[theme.Theme]) rx.Observable[resolvedTokens] 
 				return resolvedTokens{
 					platform: n.First,
 					spacing:  n.Second,
-					title:    typ.TitleSmall,
+					title:    typ.SystemFont,
 					shaper:   typ.Shaper(),
 				}
 			},

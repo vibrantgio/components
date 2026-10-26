@@ -38,8 +38,8 @@ and draws one frame with no event handling. That is what the golden-image
 tests drive. These signatures take the same token types the live
 paths do — a `tokens.TextStyle` for the role they draw text in and a
 `tokens.Density` for the control height and padding — so a static caller gets
-the full metrics, not sizes only. Pass `tokens.DefaultTypography.LabelLarge`
-(or `.BodyLarge`) and `tokens.Comfortable` for the default desktop look. Drive
+the full metrics, not sizes only. Pass `tokens.DefaultTypography.SystemFont`
+(or `.Body` for reading text) and `tokens.Comfortable` for the default desktop look. Drive
 components through their theme-driven entry points (`button.Button`,
 `input.TextField`, …) unless you are rendering a static frame.
 

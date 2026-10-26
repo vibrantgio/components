@@ -35,7 +35,7 @@ func BenchmarkChipRender(b *testing.B) {
 	benchFrame(b, chip.Render(
 		tokens.DefaultTypography.DeterministicShaper(), "Claude · Opus 5", chip.Assist, chevron,
 		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
-		tokens.DefaultTypography.LabelLarge, tokens.Comfortable, chip.RenderState{}))
+		tokens.DefaultTypography.SystemFont, tokens.Comfortable, chip.RenderState{}))
 }
 
 // BenchmarkChipRenderSelected is the other rest: the container derived against
@@ -44,7 +44,7 @@ func BenchmarkChipRenderSelected(b *testing.B) {
 	benchFrame(b, chip.Render(
 		tokens.DefaultTypography.DeterministicShaper(), "Claude · Opus 5", chip.Filter, nil,
 		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
-		tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		chip.RenderState{Selected: true}))
 }
 
@@ -54,6 +54,6 @@ func BenchmarkChipRenderFocused(b *testing.B) {
 	benchFrame(b, chip.Render(
 		tokens.DefaultTypography.DeterministicShaper(), "Claude · Opus 5", chip.Assist, chevron,
 		tokens.PlatformLight, tokens.Spacing, tokens.Radius,
-		tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		chip.RenderState{Focused: true}))
 }

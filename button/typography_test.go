@@ -22,7 +22,7 @@ import (
 const specimen = "Il1 Wm gj 018"
 
 // typographyCases are the typography goldens: a baseline in the shipped
-// LabelLarge role, then one variant per property the role promises, each
+// SystemFont role, then one variant per property the role promises, each
 // differing from the baseline in exactly that one field.
 //
 // button.Render is the subject because it is the canonical consumer of a
@@ -40,33 +40,30 @@ var typographyCases = []struct {
 	name  string
 	style tokens.TextStyle
 }{
-	// LabelLarge as shipped: Roboto, weight 500, 14 dp.
-	{"type-label-large", tokens.DefaultTypography.LabelLarge},
+	// SystemFont as shipped: Roboto, weight 400, 13 dp on a 16 dp line.
+	{"type-system-font", tokens.DefaultTypography.SystemFont},
 	// Typeface only: the same metrics on Roboto Mono — the monospace case,
 	// Code's face — and the one image where every advance is uniform.
 	//
 	// This is also the case that exposes a hazard in measuring a role's
 	// natural line by shaping the empty string: an empty string has no run
 	// in the face it names, so the probe falls back to the shaper's default
-	// face. On a role declaring a 20 dp line height set in Roboto Mono, that
-	// returns Roboto's 17 px instead of Roboto Mono's 19, a 2 px deficit that
-	// renders the button 38 px tall against the baseline's 36. Measuring the
-	// text actually being laid out puts the title box back on 20 and the
-	// button back on the density's 36.
-	{"type-typeface-mono", withTypeface(tokens.DefaultTypography.LabelLarge, tokens.DefaultTypography.Code.Typeface)},
-	// Weight only: 400 instead of 500. Thinner stems.
-	{"type-weight-regular", withWeight(tokens.DefaultTypography.LabelLarge, tokens.WeightRegular)},
-	// Size only: 11 dp instead of 14 — LabelSmall's size on LabelLarge's face
-	// and weight, so nothing but the scale differs.
-	{"type-size-small", withSize(tokens.DefaultTypography.LabelLarge, 11)},
-	// Line height only: 32 dp instead of 20, at the same 14 dp size. The
+	// face and reads that face's line, not Roboto Mono's. Measuring the text
+	// actually being laid out puts the title box back on the role's line
+	// height.
+	{"type-typeface-mono", withTypeface(tokens.DefaultTypography.SystemFont, tokens.DefaultTypography.Code.Typeface)},
+	// Weight only: 700 instead of 400. Thicker stems.
+	{"type-weight-bold", withWeight(tokens.DefaultTypography.SystemFont, tokens.WeightBold)},
+	// Size only: 11 dp instead of 13 — SmallSystemFont's size on SystemFont's
+	// face and weight, so nothing but the scale differs.
+	{"type-size-small", withSize(tokens.DefaultTypography.SystemFont, 11)},
+	// Line height only: 32 dp instead of 16, at the same 13 dp size. The
 	// glyphs are identical to the baseline's — same face, same weight, same
 	// scale — and everything that moves moves because the line box grew: the
-	// title box is 32 px rather than 20, so the button is 32 + 2×8 = 48 px
-	// tall rather than the 36 the density floors it to, and the text sits
-	// lower by the extra leading above it. That is the whole of what a design
-	// system means by line height, and this image is where it is now visible.
-	{"type-line-height-loose", withLineHeight(tokens.DefaultTypography.LabelLarge, 32)},
+	// title box is 32 px rather than 16, so the button is 32 + 2×PaddingY
+	// tall rather than the density's floor, and the text sits lower by the
+	// extra leading above it.
+	{"type-line-height-loose", withLineHeight(tokens.DefaultTypography.SystemFont, 32)},
 }
 
 func withTypeface(s tokens.TextStyle, face string) tokens.TextStyle {
@@ -139,7 +136,7 @@ func TestLineHeightSizesTheTitleBox(t *testing.T) {
 			Constraints: layout.Exact(image.Pt(300, 200)),
 			Ops:         &ops,
 		}
-		style := withLineHeight(tokens.DefaultTypography.LabelLarge, lh)
+		style := withLineHeight(tokens.DefaultTypography.SystemFont, lh)
 		dims := button.Render(
 			shaper, specimen,
 			tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, d,
@@ -170,7 +167,7 @@ func TestLineHeightSizesTheTitleBox(t *testing.T) {
 // into the shaping call, its variant would render identically to the baseline
 // and this test — not a stale golden — says which one.
 func TestTypographyPropertiesAreDetectable(t *testing.T) {
-	base := golden.Capture(t, typographySize, typographyWidget(t, tokens.DefaultTypography.LabelLarge))
+	base := golden.Capture(t, typographySize, typographyWidget(t, tokens.DefaultTypography.SystemFont))
 	if base == nil {
 		return // headless unavailable; Capture called t.Skip
 	}

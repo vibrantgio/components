@@ -179,7 +179,7 @@ func TestABodySegmentedControlRoundsItsOuterCornersOnly(t *testing.T) {
 				gtx.Metric = unit.Metric{PxPerDp: 1, PxPerSp: 1}
 				gtx.Constraints.Min = image.Point{}
 				d := button.BorderedSegments(gtx, defaultShaper(t), tc.p, tokens.Radius,
-					tokens.DefaultTypography.LabelLarge, tokens.Comfortable, segs)
+					tokens.DefaultTypography.SystemFont, tokens.Comfortable, segs)
 				box = d.Size
 				return d
 			})

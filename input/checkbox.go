@@ -188,8 +188,8 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 				typ := n.Second
 				return resolvedTokens{
 					platform: n.First,
-					body:     typ.BodyLarge,
-					capBand:  typ.FaceMetrics(typ.BodyLarge).CapHeight,
+					body:     typ.SystemFont,
+					capBand:  typ.FaceMetrics(typ.SystemFont).CapHeight,
 					spacing:  n.Third,
 					density:  n.Fourth,
 					shaper:   typ.Shaper(),
@@ -263,7 +263,7 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 //
 // shaper and body draw CheckboxRenderState.Title — the whole text style, so
 // typeface, weight, size and line height all reach the shaper. Pass
-// tokens.DefaultTypography.BodyLarge and a shaper for the default desktop
+// tokens.DefaultTypography.SystemFont and a shaper for the default desktop
 // look; a state with no title reaches neither, and a nil shaper is then
 // harmless.
 //

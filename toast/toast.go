@@ -100,7 +100,7 @@ type resolvedTokens struct {
 	platform tokens.PlatformColors
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
-	style    tokens.TextStyle // the LabelMedium role: typeface, weight, size, line height
+	style    tokens.TextStyle // the SmallSystemFont role: typeface, weight, size, line height
 	shaper   *text.Shaper     // the theme's shaper; nil in the Render path
 }
 
@@ -108,7 +108,7 @@ type resolvedTokens struct {
 // whenever any consumed theme token changes.
 func Toast(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widget] {
 	// Flatten the nested theme observables into a concrete snapshot. The
-	// typography emission supplies both the LabelMedium text style and the
+	// typography emission supplies both the SmallSystemFont text style and the
 	// theme's cached shaper: the theme owns the typeface.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
@@ -119,7 +119,7 @@ func Toast(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 					platform: n.First,
 					spacing:  n.Second,
 					radius:   n.Third,
-					style:    typ.LabelMedium,
+					style:    typ.SmallSystemFont,
 					shaper:   typ.Shaper(),
 				}
 			},
@@ -144,9 +144,9 @@ func Toast(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 // Production code that has a theme observable should use Toast, which takes
 // the shaper and the text style off it.
 //
-// style is the LabelMedium role's whole text style — typeface, weight, size
+// style is the SmallSystemFont role's whole text style — typeface, weight, size
 // and line height all reach the shaper, exactly as they do on the live path.
-// Pass tokens.DefaultTypography.LabelMedium for the default desktop look.
+// Pass tokens.DefaultTypography.SmallSystemFont for the default desktop look.
 // There is no density parameter: a toast's height is a legibility floor
 // around its message, not a control height.
 func Render(

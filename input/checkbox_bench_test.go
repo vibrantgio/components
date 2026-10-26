@@ -19,7 +19,7 @@ func BenchmarkCheckboxRender(b *testing.B) {
 	w := input.RenderCheckbox(
 		nil,
 		tokens.PlatformLight, tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge,
+		tokens.DefaultTypography.SystemFont,
 		input.CheckboxRenderState{},
 	)
 
@@ -43,7 +43,7 @@ func BenchmarkCheckboxRenderChecked(b *testing.B) {
 	w := input.RenderCheckbox(
 		nil,
 		tokens.PlatformLight, tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge,
+		tokens.DefaultTypography.SystemFont,
 		input.CheckboxRenderState{Checked: true},
 	)
 

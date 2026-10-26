@@ -32,7 +32,7 @@ func scrolledTipWindow(t *testing.T, shown bool) *image.RGBA {
 			Placement:     tooltip.Bottom,
 			AvailableRoom: attachment.AvailableRoom,
 			Anchor:        func(layout.Context) image.Rectangle { return cell },
-		}, shown, tokens.PlatformLight, tokens.Spacing, tokens.RadiusScale{}, tokens.DefaultTypography.LabelSmall)(gtx)
+		}, shown, tokens.PlatformLight, tokens.Spacing, tokens.RadiusScale{}, tokens.DefaultTypography.Caption1)(gtx)
 		return layout.Dimensions{Size: image.Pt(1000, 40)}
 	}
 	window := func(gtx layout.Context) layout.Dimensions {

@@ -74,7 +74,7 @@ type Props struct {
 	Text string
 	// Shaper shapes Text. [Region] and [Row] need it when Text is set.
 	Shaper *text.Shaper
-	// Typography is the type set Text is drawn from: the Body Large role.
+	// Typography is the type set Text is drawn from: the System font role.
 	// The zero value is tokens.DefaultTypography.
 	Typography tokens.Typography
 	// Phase is the stroke drawn darkest, counted clockwise from the top,
@@ -93,10 +93,10 @@ type Props struct {
 // Large takes, has that size and weight. The line box is the text's own, so
 // the group's height centres the glyphs and not a role's leading.
 func TextStyle(typ tokens.Typography) tokens.TextStyle {
-	if typ.BodyLarge.Size == 0 {
+	if typ.SystemFont.Size == 0 {
 		typ = tokens.DefaultTypography
 	}
-	s := typ.BodyLarge
+	s := typ.SystemFont
 	s.LineHeight = 0
 	return s
 }

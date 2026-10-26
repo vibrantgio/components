@@ -68,7 +68,7 @@ func TestPaginationGolden(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			props := pagination.Props{Page: tc.page, PageCount: tc.pageCount, Shaper: shaper}
-			w := pagination.Render(shaper, props, tc.platform, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+			w := pagination.Render(shaper, props, tc.platform, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Comfortable)
 			golden.Render(t, tc.name, frameSize, scene(w, tc.bg))
 		})
 	}
@@ -84,7 +84,7 @@ func TestPaginationCurrentPagePositionDiffers(t *testing.T) {
 
 	render := func(page int) *image.RGBA {
 		props := pagination.Props{Page: page, PageCount: 5, Shaper: shaper}
-		w := pagination.Render(shaper, props, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+		w := pagination.Render(shaper, props, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Comfortable)
 		return golden.Capture(t, frameSize, scene(w, bg))
 	}
 
@@ -103,8 +103,8 @@ func TestPaginationLightDarkDiffer(t *testing.T) {
 	sharpRadius := tokens.RadiusScale{}
 
 	props := pagination.Props{Page: 3, PageCount: 5, Shaper: shaper}
-	light := pagination.Render(shaper, props, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
-	dark := pagination.Render(shaper, props, tokens.PlatformDark, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+	light := pagination.Render(shaper, props, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Comfortable)
+	dark := pagination.Render(shaper, props, tokens.PlatformDark, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Comfortable)
 
 	imgLight := golden.Capture(t, frameSize, scene(light, bg))
 	imgDark := golden.Capture(t, frameSize, scene(dark, bg))
@@ -152,7 +152,7 @@ func TestTheCurrentPageIsTheAccentAndTheRestAreLabels(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			props := pagination.Props{Page: page, PageCount: pageCount, Shaper: shaper, Surface: tc.bg}
-			w := pagination.Render(shaper, props, tc.p, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+			w := pagination.Render(shaper, props, tc.p, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Comfortable)
 			img := golden.Capture(t, frameSize, scene(w, tc.bg))
 
 			current := cellAt(page)

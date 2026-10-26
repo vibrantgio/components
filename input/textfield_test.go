@@ -76,7 +76,7 @@ func TestTextFieldGolden(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			w := input.Render(
 				shaper, "Email address",
-				tc.platform, tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				tc.platform, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				tc.state,
 			)
 			golden.Render(t, tc.name, size, w)
@@ -121,7 +121,7 @@ func TestTextFieldLeadingInsetIsMeasured(t *testing.T) {
 			p := tokens.PlatformLight
 			w := input.Render(
 				shaper, "Email address",
-				p, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				p, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				tc.state,
 			)
 			img := golden.Capture(t, size, onChrome(p.WindowBackground, w))
@@ -155,7 +155,7 @@ func TestTextFieldLeadingInsetIsMeasured(t *testing.T) {
 // ---- Accessibility tests ----
 
 // TestTextFieldHeightIsItsLineBoxOverTheFloor checks the drawn field is
-// max(FieldHeight, BodyLarge's line box + 2×PaddingY).
+// max(FieldHeight, SystemFont's line box + 2×PaddingY).
 //
 // The floor is [tokens.Density.FieldHeight] and not
 // [tokens.Density.ControlHeight]: the platform draws a field shorter than the
@@ -177,17 +177,17 @@ func TestTextFieldHeightIsItsLineBoxOverTheFloor(t *testing.T) {
 
 	dims := input.Render(
 		shaper, "Email",
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		input.RenderState{},
 	)(gtx)
 
-	body := tokens.DefaultTypography.BodyLarge
+	body := tokens.DefaultTypography.SystemFont
 	want := int(body.LineHeight + 2*tokens.Comfortable.PaddingY)
 	if floor := int(tokens.Comfortable.FieldHeight); want < floor {
 		want = floor
 	}
 	if dims.Size.Y != want {
-		t.Errorf("text field height = %d px, want %d px (BodyLarge line box %v + 2\u00d7PaddingY %v, floored at FieldHeight %v)",
+		t.Errorf("text field height = %d px, want %d px (SystemFont line box %v + 2\u00d7PaddingY %v, floored at FieldHeight %v)",
 			dims.Size.Y, want, body.LineHeight, tokens.Comfortable.PaddingY, tokens.Comfortable.FieldHeight)
 	}
 }
@@ -207,7 +207,7 @@ func TestTextFieldTargetIsTheField(t *testing.T) {
 	size := image.Pt(300, 120)
 
 	dims := driveTextFieldFrame(w, ops, r, size)
-	fieldH := int(tokens.DefaultTypography.BodyLarge.LineHeight + 2*tokens.Comfortable.PaddingY)
+	fieldH := int(tokens.DefaultTypography.SystemFont.LineHeight + 2*tokens.Comfortable.PaddingY)
 	if floor := int(tokens.Comfortable.FieldHeight); fieldH < floor {
 		fieldH = floor
 	}
@@ -328,12 +328,12 @@ func TestTextFieldDisabledIsVisuallyDistinct(t *testing.T) {
 
 	imgEnabled := golden.Capture(t, size, input.Render(
 		shaper, "Placeholder",
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		input.RenderState{},
 	))
 	imgDisabled := golden.Capture(t, size, input.Render(
 		shaper, "Placeholder",
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		input.RenderState{Disabled: true},
 	))
 
@@ -353,12 +353,12 @@ func TestTextFieldFocusRingIsVisuallyDistinct(t *testing.T) {
 
 	imgNormal := golden.Capture(t, size, input.Render(
 		shaper, "Placeholder",
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		input.RenderState{},
 	))
 	imgFocused := golden.Capture(t, size, input.Render(
 		shaper, "Placeholder",
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		input.RenderState{Focused: true},
 	))
 
@@ -693,7 +693,7 @@ func TestTheValuesPlateauIsTheLabel(t *testing.T) {
 				input.Render(
 					shaper, "Email address",
 					tc.platform, tokens.Spacing, tokens.RadiusScale{},
-					tokens.DefaultTypography.BodyLarge, tokens.Comfortable, state,
+					tokens.DefaultTypography.SystemFont, tokens.Comfortable, state,
 				)))
 			if img == nil {
 				return
@@ -768,6 +768,14 @@ func selectionFillBox(img *image.RGBA, size image.Point, fill stdcolor.NRGBA) (i
 // over: the run's fully covered pixel, since anti-aliasing only moves a
 // glyph's pixels toward what it stands on and never past the colour it was
 // drawn with.
+// plateauIs reports whether a run's plateau is want to within one level per
+// channel. The unselected run's stems at 13 sp straddle a pixel edge, so its
+// darkest pixel stops one level short of full coverage.
+func plateauIs(got stdcolor.RGBA, want stdcolor.NRGBA) bool {
+	near := func(a, b uint8) bool { return int(a)-int(b) <= 1 && int(b)-int(a) <= 1 }
+	return near(got.R, want.R) && near(got.G, want.G) && near(got.B, want.B)
+}
+
 func plateau(img *image.RGBA, r image.Rectangle, over stdcolor.NRGBA) (stdcolor.RGBA, int) {
 	best, bestD := stdcolor.RGBA{}, -1
 	for y := r.Min.Y; y < r.Max.Y; y++ {
@@ -825,7 +833,7 @@ func TestTheSelectedRunsPlateauIsThePairItsFocusNames(t *testing.T) {
 				img := golden.Capture(t, size, onSheet(fill, input.Render(
 					shaper, "Email address",
 					tc.platform, tokens.Spacing, tokens.RadiusScale{},
-					tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+					tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 					input.RenderState{Focused: fs.focused, Text: selectedRunValue, Selection: [2]int{0, 8}},
 				)))
 				if img == nil {
@@ -849,7 +857,7 @@ func TestTheSelectedRunsPlateauIsThePairItsFocusNames(t *testing.T) {
 				if d <= 0 {
 					t.Fatal("no unselected run stands beside the selected one")
 				}
-				if want := vgcolor.Flatten(tc.platform.Label, fill); unselected.R != want.R || unselected.G != want.G || unselected.B != want.B {
+				if want := vgcolor.Flatten(tc.platform.Label, fill); !plateauIs(unselected, want) {
 					t.Errorf("the unselected run's plateau is %v, want the platform's label over the field's fill %v", unselected, want)
 				}
 			})
@@ -935,7 +943,7 @@ func TestTheLiveFieldKeepsItsSelectionWhenFocusLeaves(t *testing.T) {
 	if d <= 0 {
 		t.Fatal("no unselected run stands beside the selected one")
 	}
-	if want := vgcolor.Flatten(p.Label, fill); unselected.R != want.R || unselected.G != want.G || unselected.B != want.B {
+	if want := vgcolor.Flatten(p.Label, fill); !plateauIs(unselected, want) {
 		t.Errorf("the unselected run's plateau is %v, want the platform's label over the field's fill %v", unselected, want)
 	}
 }
@@ -997,7 +1005,7 @@ func TestTheLiveFieldsSelectedRunWearsTheSelectedText(t *testing.T) {
 	if d <= 0 {
 		t.Fatal("no unselected run stands beside the selected one")
 	}
-	if want := vgcolor.Flatten(p.Label, fill); unselected.R != want.R || unselected.G != want.G || unselected.B != want.B {
+	if want := vgcolor.Flatten(p.Label, fill); !plateauIs(unselected, want) {
 		t.Errorf("the live field's unselected run plateaus at %v, want the platform's label over the field's fill %v", unselected, want)
 	}
 	// The caret stands at the selected run's leading end and keeps the colour

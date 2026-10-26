@@ -75,7 +75,7 @@ func scene(w layout.Widget, bg color.NRGBA) layout.Widget {
 // TestToastGolden records or diffs one stored scene per status in each
 // appearance. The status's leading edge is the load-bearing visual signal —
 // the fill is the window's own plane at every status — and the message
-// carries the LabelMedium role. The scenes composite over the platform's
+// carries the SmallSystemFont role. The scenes composite over the platform's
 // chrome material, which is what a toast is placed over in an application
 // window, so a toast that stopped separating from a real pane fails the diff
 // instead of hiding behind an arbitrary grey.
@@ -105,7 +105,7 @@ func TestToastGolden(t *testing.T) {
 			name := st.name + "-" + sc.name
 			t.Run(name, func(t *testing.T) {
 				w := toast.Render(shaper, toast.Props{Status: st.status, Text: statusText(st.status), Shaper: shaper},
-					sc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelMedium)
+					sc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SmallSystemFont)
 				golden.Render(t, name, frameSize, scene(w, sc.colors.SidebarMaterial))
 			})
 		}
@@ -122,7 +122,7 @@ func TestAlphaFadesTheWholeToast(t *testing.T) {
 	bg := color.NRGBA{R: 128, G: 128, B: 128, A: 255}
 	render := func(alpha float64) *image.RGBA {
 		w := toast.Render(shaper, toast.Props{Status: toast.Warning, Text: statusText(toast.Warning), Alpha: alpha, Shaper: shaper},
-			tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelMedium)
+			tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SmallSystemFont)
 		return golden.Capture(t, frameSize, scene(w, bg))
 	}
 	opaque, defaulted, half := render(1), render(0), render(0.5)
@@ -144,7 +144,7 @@ func TestToastHugsItsMessage(t *testing.T) {
 	golden.Capture(t, frameSize, func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints = layout.Constraints{Max: frameSize}
 		dims = toast.Render(shaper, toast.Props{Status: toast.Info, Text: statusText(toast.Info), Shaper: shaper},
-			tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelMedium)(gtx)
+			tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SmallSystemFont)(gtx)
 		return dims
 	})
 	if dims.Size.X != toast.WidthDp {

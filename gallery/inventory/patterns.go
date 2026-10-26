@@ -161,7 +161,7 @@ func (inv *Inventory) notifications(c tokens.PlatformColors) layout.Widget {
 		return notifications.Render(inv.shaper, notifications.Props{
 			Position: notifications.TopLeft,
 			Shaper:   inv.shaper,
-		}, items, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelMedium)(gtx)
+		}, items, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SmallSystemFont)(gtx)
 	}
 }
 
@@ -210,7 +210,7 @@ func (inv *Inventory) groups(c tokens.PlatformColors) layout.Widget {
 		return group.Render(inv.shaper, group.Props{
 			Title:   "Density",
 			Content: []layout.Widget{first, second},
-		}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge)(gtx)
+		}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont)(gtx)
 	}
 }
 
@@ -227,7 +227,7 @@ func (inv *Inventory) accordion(c tokens.PlatformColors) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(460))
 		return accordion.Render(inv.shaper, props, open, c, tokens.Spacing,
-			tokens.DefaultTypography.LabelLarge)(gtx)
+			tokens.DefaultTypography.SystemFont)(gtx)
 	}
 }
 
@@ -246,7 +246,7 @@ func (inv *Inventory) tabs(c tokens.PlatformColors) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(460))
 		return tabs.Render(inv.shaper, props, 1, c, tokens.Spacing,
-			tokens.DefaultTypography.LabelLarge, tokens.Comfortable)(gtx)
+			tokens.DefaultTypography.SystemFont, tokens.Comfortable)(gtx)
 	}
 }
 
@@ -276,7 +276,7 @@ func (inv *Inventory) navbar(c tokens.PlatformColors) layout.Widget {
 		gtx.Constraints.Max.Y = gtx.Dp(unit.Dp(tokens.Comfortable.ControlHeight + 2*tokens.Comfortable.PaddingY))
 		gtx.Constraints.Min.Y = gtx.Constraints.Max.Y
 		return navbar.Render(inv.shaper, props, c, tokens.Spacing,
-			tokens.DefaultTypography.LabelLarge, tokens.Comfortable)(gtx)
+			tokens.DefaultTypography.SystemFont, tokens.Comfortable)(gtx)
 	}
 }
 
@@ -314,7 +314,7 @@ func (inv *Inventory) sidebar(c tokens.PlatformColors) layout.Widget {
 			p := props
 			p.Focused = focused
 			return patsidebar.Render(inv.shaper, p, collapsed, c, tokens.Spacing,
-				tokens.DefaultTypography.LabelLarge, patsidebar.SectionStyle(tokens.DefaultTypography), tokens.Comfortable)
+				tokens.DefaultTypography.SystemFont, patsidebar.SectionStyle(tokens.DefaultTypography), tokens.Comfortable)
 		}
 		return layout.Flex{}.Layout(gtx,
 			layout.Rigid(one(false, true)),
@@ -459,7 +459,7 @@ type tableRow struct {
 
 func (inv *Inventory) table(c tokens.PlatformColors) layout.Widget {
 	cell := func(s string) layout.Widget {
-		return table.RenderTextCell(inv.shaper, c, tokens.DefaultTypography.BodyMedium, s)
+		return table.RenderTextCell(inv.shaper, c, tokens.DefaultTypography.SystemFont, s)
 	}
 	columns := []table.Column[tableRow]{
 		{Header: "Family", Width: 160, Sortable: true, Cell: func(r tableRow) layout.Widget { return cell(r.family) }},
@@ -475,7 +475,7 @@ func (inv *Inventory) table(c tokens.PlatformColors) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(400))
 		return table.Render(inv.shaper, columns, rows, table.Sort{Column: 0, Asc: true},
-			c, tokens.Spacing, tokens.DefaultTypography.LabelLarge, tokens.Comfortable)(gtx)
+			c, tokens.Spacing, tokens.DefaultTypography.SystemFont, tokens.Comfortable)(gtx)
 	}
 }
 
@@ -512,10 +512,10 @@ func (inv *Inventory) dialog(c tokens.PlatformColors) layout.Widget {
 		// stand equal here.
 		Actions: []layout.Widget{
 			button.Render(inv.shaper, "Cancel", c, tokens.Spacing, tokens.Radius,
-				tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+				tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				button.RenderState{Emphasis: button.Tonal}),
 			button.Render(inv.shaper, "Discard", c, tokens.Spacing, tokens.Radius,
-				tokens.DefaultTypography.LabelLarge, tokens.Comfortable, button.RenderState{}),
+				tokens.DefaultTypography.SystemFont, tokens.Comfortable, button.RenderState{}),
 		},
 		Shaper: inv.shaper,
 	}
@@ -554,7 +554,7 @@ func (inv *Inventory) dialogScrim(c tokens.PlatformColors, props dialog.Props) l
 	return func(gtx layout.Context) layout.Dimensions {
 		gtx.Constraints.Min = gtx.Constraints.Max
 		return dialog.Render(inv.shaper, props, true, c, tokens.Spacing, tokens.Radius,
-			tokens.DefaultTypography.TitleMedium, tokens.Comfortable)(gtx)
+			tokens.DefaultTypography.Title2, tokens.Comfortable)(gtx)
 	}
 }
 
@@ -778,7 +778,7 @@ func (inv *Inventory) stackedPageShell(c tokens.PlatformColors) layout.Widget {
 		inv.stackedSection(c, inv.feature(c)),
 	}
 	page := shell.RenderStackedPage(inv.shaper, props, sections, c, tokens.Spacing,
-		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+		tokens.DefaultTypography.SystemFont, tokens.Comfortable)
 	return func(gtx layout.Context) layout.Dimensions {
 		size := image.Pt(min(gtx.Constraints.Max.X, gtx.Dp(stackedSpecimenW)), gtx.Dp(stackedSpecimenH))
 		gtx.Constraints = layout.Exact(size)

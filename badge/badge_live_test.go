@@ -91,9 +91,9 @@ func TestTheBadgeReportsItsTextAndTheMarkHitsTheFloor(t *testing.T) {
 	drive := driver(w, r, image.Pt(300, 120))
 
 	dims := drive() // register the input area
-	lineBox := int(badge.Style(tokens.DefaultTypography, tokens.Comfortable).LineHeight)
+	lineBox := drawnLine(t, defaultShaper(t), badge.Style(tokens.DefaultTypography, tokens.Comfortable), "Filtered by owner")
 	if dims.Size.Y != lineBox {
-		t.Fatalf("badge measured %d px tall, want the %d px line box", dims.Size.Y, lineBox)
+		t.Fatalf("badge measured %d px tall, want the %d px line the role draws", dims.Size.Y, lineBox)
 	}
 	if dims.Size.X >= 300 {
 		t.Fatalf("badge measured %d px wide at a 300 px constraint: a badge is sized to its content", dims.Size.X)

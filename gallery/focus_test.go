@@ -114,20 +114,20 @@ func focusSheet(t *testing.T, c tokens.PlatformColors) layout.Widget {
 func focusPane(c tokens.PlatformColors, name string, fill stdcolor.NRGBA, shaper *text.Shaper) layout.Widget {
 	specimens := []layout.Widget{
 		fixedWidth(focusButtonW, button.Render(shaper, "Button", c, tokens.Spacing, tokens.Radius,
-			tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+			tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 			button.RenderState{Focused: true, Surface: fill})),
 		fixedWidth(focusFieldW, input.Render(shaper, "Field", c, tokens.Spacing, tokens.Radius,
-			tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+			tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 			input.RenderState{Focused: true, Surface: fill})),
-		input.RenderCheckbox(shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
+		input.RenderCheckbox(shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont,
 			input.CheckboxRenderState{Focused: true, Surface: fill}),
 		bounded(120, chip.Render(shaper, "Chip", chip.Assist, nil, c, tokens.Spacing, tokens.Radius,
-			tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+			tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 			chip.RenderState{Focused: true, Surface: fill})),
 		// The trigger states no surface: it carries a fill of its own, so
 		// its ring composites onto that rather than onto the pane.
 		fixedWidth(focusTriggerW, picker.RenderField(shaper, c, tokens.Spacing, tokens.Radius,
-			tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+			tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 			picker.FieldState{Focused: true, Options: []string{"Apple", "Banana"}})),
 	}
 	body := func(gtx layout.Context) layout.Dimensions {

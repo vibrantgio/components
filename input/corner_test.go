@@ -54,7 +54,7 @@ func TestTheBoxDrawsTheMeasuredCornerAndEdge(t *testing.T) {
 			img := golden.Capture(t, image.Pt(size, size), input.RenderCheckbox(
 				nil,
 				sc.platform, tokens.Spacing,
-				tokens.DefaultTypography.BodyLarge,
+				tokens.DefaultTypography.SystemFont,
 				input.CheckboxRenderState{Surface: sc.sheet},
 			))
 			if img == nil {
@@ -129,7 +129,7 @@ func TestTheDiscIsTheMeasuredCircle(t *testing.T) {
 			img := golden.Capture(t, image.Pt(size, size), input.RenderRadio(
 				nil,
 				sc.platform, tokens.Spacing,
-				tokens.DefaultTypography.BodyLarge,
+				tokens.DefaultTypography.SystemFont,
 				input.RadioRenderState{Surface: sc.sheet},
 			))
 			if img == nil {
@@ -245,7 +245,7 @@ func TestTheDotIsTheMeasuredFiveSixteenths(t *testing.T) {
 			img := golden.Capture(t, image.Pt(size, size), input.RenderRadio(
 				nil,
 				sc.platform, tokens.Spacing,
-				tokens.DefaultTypography.BodyLarge,
+				tokens.DefaultTypography.SystemFont,
 				input.RadioRenderState{Selected: true, Surface: sc.sheet},
 			))
 			if img == nil {

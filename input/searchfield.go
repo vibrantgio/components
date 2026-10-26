@@ -190,8 +190,8 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 				typ := n.Second
 				return resolvedTokens{
 					platform: n.First,
-					body:     typ.BodyLarge,
-					capBand:  typ.FaceMetrics(typ.BodyLarge).CapHeight,
+					body:     typ.SystemFont,
+					capBand:  typ.FaceMetrics(typ.SystemFont).CapHeight,
 					spacing:  n.Third,
 					radius:   n.Fourth,
 					density:  n.Fifth,

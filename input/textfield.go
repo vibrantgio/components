@@ -219,7 +219,7 @@ type TextFieldProps struct {
 // layout.Widget closure.
 type resolvedTokens struct {
 	platform tokens.PlatformColors
-	body     tokens.TextStyle // the BodyLarge role: typeface, weight, size, line height
+	body     tokens.TextStyle // the SystemFont role: typeface, weight, size, line height
 	capBand  float32          // the prompt's cap height in dp, read off the face that role names
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
@@ -228,7 +228,7 @@ type resolvedTokens struct {
 }
 
 // bodyLabel derives the Gio font, a single-line label and the text size from
-// the BodyLarge role carried in tok. Zero fields fall back to the shaper's
+// the SystemFont role carried in tok. Zero fields fall back to the shaper's
 // defaults. Lay the returned label out with typeset.Layout rather than
 // widget.Label.Layout: the role's line height is the height of the line box,
 // which Gio does not give a single line on its own.
@@ -258,7 +258,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 	}
 
 	// Flatten the nested theme observables into a concrete snapshot. The
-	// typography emission supplies both the BodyLarge text style and the
+	// typography emission supplies both the SystemFont text style and the
 	// theme's cached shaper — the theme owns the typeface.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
@@ -267,8 +267,8 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 				typ := n.Second
 				return resolvedTokens{
 					platform: n.First,
-					body:     typ.BodyLarge,
-					capBand:  typ.FaceMetrics(typ.BodyLarge).CapHeight,
+					body:     typ.SystemFont,
+					capBand:  typ.FaceMetrics(typ.SystemFont).CapHeight,
 					spacing:  n.Third,
 					radius:   n.Fourth,
 					density:  n.Fifth,
@@ -377,11 +377,11 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 // testing and static demonstrations; production code should use TextField,
 // which reads both of the parameters below off the theme.
 //
-// body is the BodyLarge role's whole text style — typeface, weight, size and
+// body is the SystemFont role's whole text style — typeface, weight, size and
 // line height all reach the shaper — and d is the density the field draws at
 // (control height and vertical padding; the two insets are the measured
 // [control.TextLeadDp] and [control.TextTrailDp], neither following density).
-// Pass tokens.DefaultTypography.BodyLarge and tokens.Comfortable for the
+// Pass tokens.DefaultTypography.SystemFont and tokens.Comfortable for the
 // default desktop look.
 func Render(
 	shaper *text.Shaper,
@@ -613,7 +613,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	padH := trailPad(gtx, s)
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := fieldMinH(gtx, tok, s)
-	// Shape with the BodyLarge role's typeface, weight, size and line height.
+	// Shape with the SystemFont role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
 
 	fillColor, textColor, edgeColor, phColor, shadowColor := textFieldColors(tok.platform, s)
@@ -686,7 +686,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 		Min: image.Pt(innerW, 0),
 		Max: image.Pt(innerW, contentDims.Size.Y),
 	}
-	// The editor shapes with the same BodyLarge role as the placeholder label
+	// The editor shapes with the same SystemFont role as the placeholder label
 	// so measured content height and caret metrics line up.
 	if tok.body.LineHeight != 0 {
 		editor.LineHeight = unit.Sp(tok.body.LineHeight)
@@ -852,7 +852,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	padH := trailPad(gtx, s)
 	padV := gtx.Dp(unit.Dp(tok.density.PaddingY))
 	minH := fieldMinH(gtx, tok, s)
-	// Shape with the BodyLarge role's typeface, weight, size and line height.
+	// Shape with the SystemFont role's typeface, weight, size and line height.
 	f, wl, textSize := bodyLabel(tok)
 
 	fillColor, textColor, edgeColor, phColor, shadowColor := textFieldColors(tok.platform, s)

@@ -120,7 +120,7 @@ func frame(gtx layout.Context, shaper *text.Shaper) layout.Dimensions {
 					mat := m.Stop()
 
 					lbl := widget.Label{MaxLines: 1}
-					role := tokens.DefaultTypography.LabelLarge
+					role := tokens.DefaultTypography.SystemFont
 					return lbl.Layout(gtx, shaper, typeset.Font(role, font.Normal), unit.Sp(role.Size), r.label, mat)
 				}),
 				// Button column
@@ -130,7 +130,7 @@ func frame(gtx layout.Context, shaper *text.Shaper) layout.Dimensions {
 					gtx.Constraints.Max.X = bw
 					return button.Render(
 						shaper, "Click me",
-						colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+						colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 						r.state,
 					)(gtx)
 				}),

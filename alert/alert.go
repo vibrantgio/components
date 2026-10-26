@@ -98,7 +98,7 @@ type Props struct {
 // whenever any consumed theme token changes.
 func Alert(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widget] {
 	// Flatten the nested theme observables into a concrete snapshot. The
-	// typography emission supplies both the TitleMedium text style and the
+	// typography emission supplies both the Headline text style and the
 	// theme's cached shaper: the theme owns the typeface.
 	resolved := rx.SwitchMap(th, func(t theme.Theme) rx.Observable[resolvedTokens] {
 		return rx.Map(
@@ -109,7 +109,7 @@ func Alert(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 					platform: n.First,
 					spacing:  n.Second,
 					radius:   n.Third,
-					title:    typ.TitleMedium,
+					title:    typ.Headline,
 					shaper:   typ.Shaper(),
 				}
 			},
@@ -135,9 +135,9 @@ func Alert(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Widg
 // code should use Alert, which reads the shaper and the same text style
 // off the theme.
 //
-// title is the TitleMedium role's whole text style — typeface, weight,
+// title is the Headline role's whole text style — typeface, weight,
 // size and line height all reach the shaper, exactly as they do on the
-// live path. Pass tokens.DefaultTypography.TitleMedium for the default
+// live path. Pass tokens.DefaultTypography.Headline for the default
 // desktop look. There is no density parameter: an alert is a surface
 // sized by its content, not a control.
 func Render(
@@ -157,7 +157,7 @@ type resolvedTokens struct {
 	platform tokens.PlatformColors
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
-	title    tokens.TextStyle // the TitleMedium role: typeface, weight, size, line height
+	title    tokens.TextStyle // the Headline role: typeface, weight, size, line height
 	shaper   *text.Shaper     // the theme's shaper; nil in the Render path
 }
 

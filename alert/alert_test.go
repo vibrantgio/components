@@ -38,7 +38,7 @@ func defaultShaper(t *testing.T) *text.Shaper {
 }
 
 // statusTitle is the Title each status carries. Alert draws its title in
-// the TitleMedium role and omits the title row entirely when Title is empty.
+// the Headline role and omits the title row entirely when Title is empty.
 // Latin text in Roboto rasterises identically on every machine via
 // DeterministicShaper; keep this ASCII only so no symbol reaches a stored
 // image.
@@ -109,7 +109,7 @@ func TestAlertGolden(t *testing.T) {
 				Body:   body,
 				Shaper: shaper,
 			}
-			w := alert.Render(shaper, props, tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)
+			w := alert.Render(shaper, props, tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.Headline)
 			golden.Render(t, tc.name, frameSize, scene(w, tc.bg))
 		})
 	}
@@ -126,7 +126,7 @@ func TestAlertStatusesDiffer(t *testing.T) {
 
 	render := func(status alert.Status) *image.RGBA {
 		props := alert.Props{Status: status, Title: statusTitle(status), Body: body, Shaper: shaper}
-		w := alert.Render(shaper, props, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)
+		w := alert.Render(shaper, props, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.Headline)
 		return golden.Capture(t, frameSize, scene(w, bg))
 	}
 
@@ -162,8 +162,8 @@ func TestAlertLightDarkDiffer(t *testing.T) {
 	for _, status := range []alert.Status{alert.Info, alert.Success, alert.Warning, alert.Error} {
 		propsL := alert.Props{Status: status, Title: statusTitle(status), Body: body, Shaper: shaper}
 		propsD := alert.Props{Status: status, Title: statusTitle(status), Body: body, Shaper: shaper}
-		light := alert.Render(shaper, propsL, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)
-		dark := alert.Render(shaper, propsD, tokens.PlatformDark, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)
+		light := alert.Render(shaper, propsL, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.Headline)
+		dark := alert.Render(shaper, propsD, tokens.PlatformDark, tokens.Spacing, sharpRadius, tokens.DefaultTypography.Headline)
 
 		imgLight := golden.Capture(t, frameSize, scene(light, bg))
 		imgDark := golden.Capture(t, frameSize, scene(dark, bg))
@@ -195,7 +195,7 @@ func TestAlertTakesItsContentsDepth(t *testing.T) {
 			Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
 			Ops:         &ops,
 		}
-		return alert.Render(shaper, p, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.TitleMedium)(gtx)
+		return alert.Render(shaper, p, tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.Headline)(gtx)
 	}
 
 	free := layout.Constraints{Max: image.Pt(frameW, 1000)}

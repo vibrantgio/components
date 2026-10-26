@@ -61,7 +61,7 @@ func TestSearchFieldGolden(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			w := input.RenderSearch(
 				shaper, "Search",
-				tc.platform, tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				tc.platform, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				tc.state,
 			)
 			golden.Render(t, tc.name, size, w)
@@ -75,7 +75,7 @@ func TestSearchFieldGolden(t *testing.T) {
 	t.Run("searchfield-light-compact", func(t *testing.T) {
 		w := input.RenderSearch(
 			shaper, "Search",
-			tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Compact,
+			tokens.PlatformLight, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Compact,
 			input.RenderState{Text: "meeting notes"},
 		)
 		golden.Render(t, "searchfield-light-compact", size, w)
@@ -104,11 +104,11 @@ func TestSearchFieldReservesBothSlots(t *testing.T) {
 	}
 
 	empty := measure(input.RenderSearch(shaper, "Search", tokens.PlatformLight, tokens.Spacing,
-		tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{}))
+		tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, input.RenderState{}))
 	typed := measure(input.RenderSearch(shaper, "Search", tokens.PlatformLight, tokens.Spacing,
-		tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{Text: "q"}))
+		tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, input.RenderState{Text: "q"}))
 	plain := measure(input.Render(shaper, "Search", tokens.PlatformLight, tokens.Spacing,
-		tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{}))
+		tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, input.RenderState{}))
 
 	if empty != typed {
 		t.Errorf("an empty search field measured %v and one holding a query measured %v; the slots are reserved, so the two are one size", empty, typed)
@@ -298,7 +298,7 @@ func TestSearchFieldChromeVariantGolden(t *testing.T) {
 			st.Surface = tc.platform.SidebarMaterial
 			w := input.RenderSearch(
 				shaper, "Search",
-				tc.platform, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				tc.platform, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				st,
 			)
 			golden.Render(t, tc.name, size, onChrome(tc.platform.SidebarMaterial, w))
@@ -321,7 +321,7 @@ func TestSearchFieldChromeVariantIsTheMeasuredRecess(t *testing.T) {
 		t.Run(p.name, func(t *testing.T) {
 			w := input.RenderSearch(
 				shaper, "Search",
-				p.col, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				p.col, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				input.RenderState{Variant: input.Chrome, Surface: p.col.SidebarMaterial},
 			)
 			img := golden.Capture(t, size, onChrome(p.col.SidebarMaterial, w))
@@ -329,7 +329,7 @@ func TestSearchFieldChromeVariantIsTheMeasuredRecess(t *testing.T) {
 				r, g, b, a := img.At(x, y).RGBA()
 				return color.NRGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
 			}
-			// The field is drawn at the top of the capture, 28 px tall at
+			// The field is drawn at the top of the capture, 27 px tall at
 			// this density; x=200 is clear of the prompt and both marks.
 			if got, want := at(200, 14), p.col.SidebarSearchFill; got != want {
 				t.Errorf("the recess's fill = %v, want the measured %v", got, want)
@@ -360,8 +360,8 @@ func TestSearchFieldChromeVariantIsTheMeasuredRecess(t *testing.T) {
 func TestPromptCapBandIsOnTheFieldsCentreRow(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 40)
-	// The field draws at the top of the capture: Comfortable draws it 28 px
-	// tall, and 36 where the recess stands in a toolbar band.
+	// The field draws at the top of the capture: Comfortable draws it at its
+	// 27 px floor, and 36 where the recess stands in a toolbar band.
 	for _, tc := range []struct {
 		name    string
 		colors  tokens.PlatformColors
@@ -369,10 +369,10 @@ func TestPromptCapBandIsOnTheFieldsCentreRow(t *testing.T) {
 		region  input.Region
 		fieldH  int
 	}{
-		{"form-light", tokens.PlatformLight, input.Form, input.Sidebar, 28},
-		{"form-dark", tokens.PlatformDark, input.Form, input.Sidebar, 28},
-		{"chrome-light", tokens.PlatformLight, input.Chrome, input.Sidebar, 28},
-		{"chrome-dark", tokens.PlatformDark, input.Chrome, input.Sidebar, 28},
+		{"form-light", tokens.PlatformLight, input.Form, input.Sidebar, 27},
+		{"form-dark", tokens.PlatformDark, input.Form, input.Sidebar, 27},
+		{"chrome-light", tokens.PlatformLight, input.Chrome, input.Sidebar, 27},
+		{"chrome-dark", tokens.PlatformDark, input.Chrome, input.Sidebar, 27},
 		{"toolbar-light", tokens.PlatformLight, input.Chrome, input.Toolbar, 36},
 		{"toolbar-dark", tokens.PlatformDark, input.Chrome, input.Toolbar, 36},
 	} {
@@ -386,7 +386,7 @@ func TestPromptCapBandIsOnTheFieldsCentreRow(t *testing.T) {
 			}
 			w := input.RenderSearch(
 				shaper, "Search",
-				tc.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				tc.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				st,
 			)
 			img := golden.Capture(t, size, onChrome(stands, w))
@@ -413,9 +413,12 @@ func TestPromptCapBandIsOnTheFieldsCentreRow(t *testing.T) {
 			// Both centres in half pixels: the band's is top+bottom+1 and the
 			// field's is fieldH, so the platform's half-pixel-low relation is
 			// a difference of exactly one.
-			if got := (top + bottom + 1) - fieldH; got != 1 {
-				t.Errorf("the prompt's band is rows %d–%d in a %d px field, which is %v half pixels off the centre row; the platform's is one low",
-					top, bottom, fieldH, got)
+			// A band and a field of the same parity centre exactly; otherwise
+			// the rounding falls a half pixel low.
+			want := (bottom - top + 1 + fieldH) % 2
+			if got := (top + bottom + 1) - fieldH; got != want {
+				t.Errorf("the prompt's band is rows %d–%d in a %d px field, which is %v half pixels off the centre row, want %d: centred, the rounding falling half a pixel low",
+					top, bottom, fieldH, got, want)
 			}
 		})
 	}
@@ -454,8 +457,8 @@ func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
 		inset     int
 		gap       int
 	}{
-		{"form", input.Form, input.Sidebar, 28, 1, 7, 4},
-		{"chrome-sidebar", input.Chrome, input.Sidebar, 28, 0, 9, 5},
+		{"form", input.Form, input.Sidebar, 27, 1, 7, 4},
+		{"chrome-sidebar", input.Chrome, input.Sidebar, 27, 0, 9, 5},
 		// The toolbar recess spends the rim's column before the inset, the
 		// way the form field spends its hairline, so its inner edge is one
 		// in even in the light appearance where no rim is drawn. It is drawn
@@ -473,7 +476,7 @@ func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
 			}
 			w := input.RenderSearch(
 				shaper, "Search",
-				p, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				p, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				st,
 			)
 			img := golden.Capture(t, size, onChrome(stands, w))
@@ -483,9 +486,15 @@ func TestLeadingInsetIsMeasuredPerVariant(t *testing.T) {
 			// of the field's own corners.
 			mid := tc.fieldH / 2
 			fill := img.RGBAAt(200, mid)
+			// A column is covered when one of its pixels differs from the fill
+			// by more than two levels on a channel. The ring's antialiasing
+			// leaves a one-level fringe in the column before its first pixel at
+			// some vertical positions, and no reader sees a one-level fringe.
+			off := func(a, b uint8) bool { return int(a) > int(b)+2 || int(b) > int(a)+2 }
 			covered := func(x int) bool {
 				for y := mid - 8; y <= mid+8; y++ {
-					if img.RGBAAt(x, y) != fill {
+					c := img.RGBAAt(x, y)
+					if off(c.R, fill.R) || off(c.G, fill.G) || off(c.B, fill.B) {
 						return true
 					}
 				}
@@ -553,7 +562,7 @@ func TestSearchFieldToolbarRecessGolden(t *testing.T) {
 			st.Surface = tc.platform.SidebarMaterial
 			w := input.RenderSearch(
 				shaper, "Search",
-				tc.platform, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				tc.platform, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				st,
 			)
 			golden.Render(t, tc.name, size, onChrome(tc.platform.SidebarMaterial, w))
@@ -584,7 +593,7 @@ func TestSearchFieldToolbarRecessIsTheMeasuredControl(t *testing.T) {
 		t.Run(p.name, func(t *testing.T) {
 			w := input.RenderSearch(
 				shaper, "Search",
-				p.col, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				p.col, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				input.RenderState{Variant: input.Chrome, Region: input.Toolbar, Surface: p.col.SidebarMaterial},
 			)
 			img := golden.Capture(t, size, onChrome(p.col.SidebarMaterial, w))
@@ -674,7 +683,7 @@ func TestTheCountStandsInsideTheFieldAtItsTrailingEnd(t *testing.T) {
 	p := tokens.PlatformLight
 	field := func(count string) *image.RGBA {
 		w := input.RenderSearch(shaper, "Search", p, tokens.Spacing, tokens.Radius,
-			tokens.DefaultTypography.BodyLarge, tokens.Comfortable, input.RenderState{
+			tokens.DefaultTypography.SystemFont, tokens.Comfortable, input.RenderState{
 				Text: "margin", Count: count,
 				Variant: input.Chrome, Region: input.Toolbar, Surface: p.SidebarMaterial,
 			})
@@ -858,7 +867,7 @@ func TestSearchFieldEscapeOnAnEmptyFieldIsNotTaken(t *testing.T) {
 func TestSearchFieldOnContentIsTheMeasuredCapsule(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 40)
-	const fieldH = 28
+	const fieldH = 27
 	for _, p := range []struct {
 		name string
 		col  tokens.PlatformColors
@@ -867,12 +876,12 @@ func TestSearchFieldOnContentIsTheMeasuredCapsule(t *testing.T) {
 			stands := p.col.WindowBackground
 			search := golden.Capture(t, size, onChrome(stands, input.RenderSearch(
 				shaper, "Search",
-				p.col, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				p.col, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				input.RenderState{Variant: input.Form},
 			)))
 			plain := golden.Capture(t, size, onChrome(stands, input.Render(
 				shaper, "Name",
-				p.col, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				p.col, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				input.RenderState{Variant: input.Form},
 			)))
 			at := func(img *image.RGBA, x, y int) color.NRGBA {
@@ -885,12 +894,12 @@ func TestSearchFieldOnContentIsTheMeasuredCapsule(t *testing.T) {
 			if got, want := at(search, 200, fieldH/2), stands; got != want {
 				t.Errorf("the field's interior at x=200 = %v, want the surface it stands on %v", got, want)
 			}
-			// x=8 is past a 6 px corner and well inside a 14 px one.
-			if got := at(search, 8, 0); got != stands {
-				t.Errorf("the search field's top row at x=8 = %v, want the surface %v: its ends are fully rounded", got, stands)
+			// x=7 is past a 6 px corner and well inside a 13.5 px one.
+			if got := at(search, 7, 0); got != stands {
+				t.Errorf("the search field's top row at x=7 = %v, want the surface %v: its ends are fully rounded", got, stands)
 			}
-			if got := at(plain, 8, 0); got != p.col.FieldEdge {
-				t.Errorf("the text field's top row at x=8 = %v, want its hairline %v: a plain field keeps the radius scale's corner", got, p.col.FieldEdge)
+			if got := at(plain, 7, 0); got != p.col.FieldEdge {
+				t.Errorf("the text field's top row at x=7 = %v, want its hairline %v: a plain field keeps the radius scale's corner", got, p.col.FieldEdge)
 			}
 			// The leading end's middle row is the edge itself.
 			if got := at(search, 0, fieldH/2); got != p.col.FieldEdge {

@@ -429,21 +429,20 @@ func (inv *Inventory) typeScale(c tokens.PlatformColors) layout.Widget {
 		name  string
 		style tokens.TextStyle
 	}{
-		{"DisplayLarge", typo.DisplayLarge},
-		{"DisplayMedium", typo.DisplayMedium},
-		{"DisplaySmall", typo.DisplaySmall},
-		{"HeadlineLarge", typo.HeadlineLarge},
-		{"HeadlineMedium", typo.HeadlineMedium},
-		{"HeadlineSmall", typo.HeadlineSmall},
-		{"TitleLarge", typo.TitleLarge},
-		{"TitleMedium", typo.TitleMedium},
-		{"TitleSmall", typo.TitleSmall},
-		{"BodyLarge", typo.BodyLarge},
-		{"BodyMedium", typo.BodyMedium},
-		{"BodySmall", typo.BodySmall},
-		{"LabelLarge", typo.LabelLarge},
-		{"LabelMedium", typo.LabelMedium},
-		{"LabelSmall", typo.LabelSmall},
+		{"LargeTitle", typo.LargeTitle},
+		{"Title1", typo.Title1},
+		{"Title2", typo.Title2},
+		{"Title3", typo.Title3},
+		{"Headline", typo.Headline},
+		{"Subheadline", typo.Subheadline},
+		{"Body", typo.Body},
+		{"Callout", typo.Callout},
+		{"Footnote", typo.Footnote},
+		{"Caption1", typo.Caption1},
+		{"Caption2", typo.Caption2},
+		{"SystemFont", typo.SystemFont},
+		{"SmallSystemFont", typo.SmallSystemFont},
+		{"EmptyStateLine", typo.EmptyStateLine},
 		{"Code", typo.Code},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
@@ -671,7 +670,7 @@ func (inv *Inventory) buttonCells(c tokens.PlatformColors, cells []buttonCell) l
 				gtx.Constraints.Max.X = gtx.Dp(ButtonCellW)
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(button.Render(inv.shaper, s.title, c, tokens.Spacing, tokens.Radius,
-						tokens.DefaultTypography.LabelLarge, tokens.Comfortable, s.st)),
+						tokens.DefaultTypography.SystemFont, tokens.Comfortable, s.st)),
 				)
 			}))
 		}
@@ -787,7 +786,7 @@ var chipPurposes = []struct {
 // unrounded.
 func chipPlus(gtx layout.Context, sizePx int, col color.NRGBA) {
 	w := float32(sizePx)
-	stroke := chip.MarkStrokeDp(tokens.DefaultTypography.LabelLarge) * gtx.Metric.PxPerDp
+	stroke := chip.MarkStrokeDp(tokens.DefaultTypography.SystemFont) * gtx.Metric.PxPerDp
 	if stroke < 1 {
 		stroke = 1
 	}
@@ -842,7 +841,7 @@ func chipAvatar(gtx layout.Context, sizePx int, col color.NRGBA) {
 func (inv *Inventory) chipBlock(c tokens.PlatformColors) layout.Widget {
 	specimen := func(title string, purpose chip.Purpose, icon chip.Symbol, st chip.RenderState) layout.Widget {
 		return chip.Render(inv.shaper, title, purpose, icon, c,
-			tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge,
+			tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont,
 			tokens.Comfortable, st)
 	}
 	// The state rows give each chip the state it is in as its title, so the row
@@ -1178,7 +1177,7 @@ func (inv *Inventory) alerts(c tokens.PlatformColors) layout.Widget {
 					Status: st.status,
 					Title:  st.title,
 					Shaper: inv.shaper,
-				}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.TitleMedium)(gtx)
+				}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.Headline)(gtx)
 			}))
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
@@ -1221,7 +1220,7 @@ func (inv *Inventory) toasts(c tokens.PlatformColors) layout.Widget {
 					Status: st.status,
 					Text:   st.text,
 					Shaper: inv.shaper,
-				}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelMedium)(gtx)
+				}, c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SmallSystemFont)(gtx)
 			}))
 		}
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
@@ -1265,7 +1264,7 @@ func (inv *Inventory) textFieldRow(c tokens.PlatformColors) layout.Widget {
 					}),
 					layout.Rigid(complayout.VSpacer(6)),
 					layout.Rigid(input.Render(inv.shaper, "Placeholder…", c, tokens.Spacing, tokens.Radius,
-						tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s.st)),
+						tokens.DefaultTypography.SystemFont, tokens.Comfortable, s.st)),
 				)
 			}))
 		}
@@ -1309,7 +1308,7 @@ func (inv *Inventory) searchFieldRow(c tokens.PlatformColors) layout.Widget {
 					layout.Rigid(complayout.VSpacer(6)),
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 						w := input.RenderSearch(inv.shaper, "Search", c, tokens.Spacing, tokens.Radius,
-							tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s.st)
+							tokens.DefaultTypography.SystemFont, tokens.Comfortable, s.st)
 						if s.st.Variant != input.Chrome {
 							return w(gtx)
 						}
@@ -1332,14 +1331,14 @@ func (inv *Inventory) toggleRow(c tokens.PlatformColors) layout.Widget {
 		label string
 		w     layout.Widget
 	}{
-		{"Unchecked", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{})},
-		{"Checked", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Checked: true})},
-		{"Focused", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Focused: true})},
-		{"Disabled", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Disabled: true})},
-		{"Unselected", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{})},
-		{"Selected", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Selected: true})},
-		{"Focused", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Focused: true})},
-		{"Disabled", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Disabled: true})},
+		{"Unchecked", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{})},
+		{"Checked", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Checked: true})},
+		{"Focused", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Focused: true})},
+		{"Disabled", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Disabled: true})},
+		{"Unselected", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.RadioRenderState{})},
+		{"Selected", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.RadioRenderState{Selected: true})},
+		{"Focused", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.RadioRenderState{Focused: true})},
+		{"Disabled", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.RadioRenderState{Disabled: true})},
 	}
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(cells))
@@ -1388,10 +1387,10 @@ const (
 // a reader has to be able to check.
 func (inv *Inventory) titledToggleRow(c tokens.PlatformColors) layout.Widget {
 	box := func(s input.CheckboxRenderState) layout.Widget {
-		return input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, s)
+		return input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, s)
 	}
 	disc := func(s input.RadioRenderState) layout.Widget {
-		return input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.BodyLarge, s)
+		return input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, s)
 	}
 	// The first two titles are the save panel's own, so the row can be held
 	// against the capture the measurements come from.
@@ -1494,7 +1493,7 @@ func (inv *Inventory) pickerRow(c tokens.PlatformColors) layout.Widget {
 	}
 	fieldCell := func(label string, st picker.FieldState) layout.FlexChild {
 		body := picker.RenderField(inv.shaper, c, tokens.Spacing, tokens.Radius,
-			tokens.DefaultTypography.BodyLarge, tokens.Comfortable, st)
+			tokens.DefaultTypography.SystemFont, tokens.Comfortable, st)
 		if st.Open {
 			body = inv.padByMenu(c, st, body)
 		}
@@ -1511,7 +1510,7 @@ func (inv *Inventory) pickerRow(c tokens.PlatformColors) layout.Widget {
 	// page's plane would be showing a step nobody drew.
 	toolbarCell := func(label string, st picker.ToolbarState) layout.FlexChild {
 		trigger := picker.RenderToolbar(inv.shaper, opts[0], c,
-			tokens.Spacing, tokens.DefaultTypography.LabelLarge,
+			tokens.Spacing, tokens.DefaultTypography.SystemFont,
 			tokens.Comfortable, st)
 		return layout.Rigid(cell(label, func(gtx layout.Context) layout.Dimensions {
 			macro := op.Record(gtx.Ops)
@@ -1564,7 +1563,7 @@ func (inv *Inventory) padByMenu(c tokens.PlatformColors, st picker.FieldState, b
 	return func(gtx layout.Context) layout.Dimensions {
 		measure := op.Record(gtx.Ops)
 		menu := picker.RenderMenu(inv.shaper, c, tokens.Spacing,
-			tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+			tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 			picker.MenuState{Options: st.Options, Selected: st.Selected})(gtx)
 		trigger := body(gtx)
 		measure.Stop()
@@ -1711,7 +1710,7 @@ func (inv *Inventory) scrollAreaBlock(c tokens.PlatformColors) layout.Widget {
 }
 
 func (inv *Inventory) paragraphBlock(c tokens.PlatformColors) layout.Widget {
-	style := paragraph.FromTokens(c, tokens.DefaultTypography.BodyLarge, SectionSurface(c))
+	style := paragraph.FromTokens(c, tokens.DefaultTypography.Body, SectionSurface(c))
 	spans := []paragraph.SpanStyle{
 		{Content: "A paragraph lays out "},
 		{Content: "bold", Weight: font.Bold},
@@ -1863,7 +1862,7 @@ func (inv *Inventory) tooltip(c tokens.PlatformColors) layout.Widget {
 			Shaper:    inv.shaper,
 		}
 		return tooltip.Render(inv.shaper, props, true, c, tokens.Spacing, tokens.Radius,
-			tokens.DefaultTypography.LabelSmall)(gtx)
+			tokens.DefaultTypography.Caption1)(gtx)
 	}
 }
 
@@ -1924,13 +1923,13 @@ func (inv *Inventory) breadcrumb(c tokens.PlatformColors) layout.Widget {
 		},
 		Shaper: inv.shaper,
 	}
-	return breadcrumb.Render(inv.shaper, props, c, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+	return breadcrumb.Render(inv.shaper, props, c, tokens.Spacing, tokens.DefaultTypography.SystemFont)
 }
 
 func (inv *Inventory) pagination(c tokens.PlatformColors) layout.Widget {
 	props := pagination.Props{Page: 4, PageCount: 9, Shaper: inv.shaper}
 	return pagination.Render(inv.shaper, props, c, tokens.Spacing, tokens.Radius,
-		tokens.DefaultTypography.LabelLarge, tokens.Comfortable)
+		tokens.DefaultTypography.SystemFont, tokens.Comfortable)
 }
 
 // ── Shared drawing helpers ────────────────────────────────────────────────────

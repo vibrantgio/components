@@ -33,7 +33,7 @@ func TestRadioGolden(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			w := input.RenderRadio(nil, tc.platform, tokens.Spacing, tokens.DefaultTypography.BodyLarge, tc.state)
+			w := input.RenderRadio(nil, tc.platform, tokens.Spacing, tokens.DefaultTypography.SystemFont, tc.state)
 			golden.Render(t, tc.name, size, w)
 		})
 	}
@@ -59,7 +59,7 @@ func TestRadioFootprintIsItsMeasuredRow(t *testing.T) {
 		nil,
 		tokens.PlatformLight,
 		tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge,
+		tokens.DefaultTypography.SystemFont,
 		input.RadioRenderState{},
 	)(gtx)
 
@@ -87,13 +87,13 @@ func TestRadioSelectedIsVisuallyDistinct(t *testing.T) {
 	imgUnselected := golden.Capture(t, size, input.RenderRadio(
 		nil,
 		tokens.PlatformLight, tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge,
+		tokens.DefaultTypography.SystemFont,
 		input.RadioRenderState{},
 	))
 	imgSelected := golden.Capture(t, size, input.RenderRadio(
 		nil,
 		tokens.PlatformLight, tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge,
+		tokens.DefaultTypography.SystemFont,
 		input.RadioRenderState{Selected: true},
 	))
 
@@ -113,13 +113,13 @@ func TestRadioFocusRingIsVisuallyDistinct(t *testing.T) {
 	imgNormal := golden.Capture(t, size, input.RenderRadio(
 		nil,
 		tokens.PlatformLight, tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge,
+		tokens.DefaultTypography.SystemFont,
 		input.RadioRenderState{},
 	))
 	imgFocused := golden.Capture(t, size, input.RenderRadio(
 		nil,
 		tokens.PlatformLight, tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge,
+		tokens.DefaultTypography.SystemFont,
 		input.RadioRenderState{Focused: true},
 	))
 
@@ -159,7 +159,7 @@ func TestTheSwitchedOffRadioIsOneFillAndNoEdge(t *testing.T) {
 			img := golden.Capture(t, image.Pt(size, size), input.RenderRadio(
 				nil,
 				sc.platform, tokens.Spacing,
-				tokens.DefaultTypography.BodyLarge,
+				tokens.DefaultTypography.SystemFont,
 				input.RadioRenderState{Disabled: true, Surface: sc.sheet},
 			))
 			if img == nil {
@@ -176,7 +176,7 @@ func TestTheSwitchedOffRadioIsOneFillAndNoEdge(t *testing.T) {
 			on := golden.Capture(t, image.Pt(size, size), input.RenderRadio(
 				nil,
 				sc.platform, tokens.Spacing,
-				tokens.DefaultTypography.BodyLarge,
+				tokens.DefaultTypography.SystemFont,
 				input.RadioRenderState{Surface: sc.sheet},
 			))
 			if on == nil {

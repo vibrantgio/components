@@ -3,6 +3,7 @@ package badge_test
 import (
 	"image"
 	"image/color"
+	"math"
 	"testing"
 
 	"gioui.org/f32"
@@ -190,8 +191,8 @@ func TestDismissGolden(t *testing.T) {
 }
 
 // TestCompactGolden records the dense badge beside nothing else, because the
-// only thing that changes at Compact is the type: LabelSmall rather than
-// LabelMedium, at the same line box, which is what "off the control family"
+// only thing that changes at Compact is the type: Caption1 rather than
+// SmallSystemFont, at the same line box, which is what "off the control family"
 // costs a density switch.
 func TestCompactGolden(t *testing.T) {
 	shaper := defaultShaper(t)
@@ -218,6 +219,22 @@ func measure(t *testing.T, w layout.Widget) image.Point {
 	return w(gtx).Size
 }
 
+// drawnLine is the height the text draws at in style: the role's line box, or
+// the face's own ascent plus descent where that is taller. Roboto at 11 sp
+// draws a 14 px line, over the Small system font role's 13 dp line box. An
+// empty text draws no line, so the answer is the line box.
+func drawnLine(t *testing.T, shaper *text.Shaper, style tokens.TextStyle, txt string) int {
+	t.Helper()
+	box := int(style.LineHeight)
+	if txt == "" {
+		return box
+	}
+	line := measure(t, func(gtx layout.Context) layout.Dimensions {
+		return typeset.Text(gtx, shaper, txt, style, color.NRGBA{A: 0xff}, 1)
+	}).Y
+	return max(box, line)
+}
+
 // TestHeightIsTheLineBoxAndNothingElse is the ruling in one assertion: a badge
 // is as tall as its type's line box, at every density, whatever it says. There
 // is no padding term, no floor and no control height anywhere in the number.
@@ -231,7 +248,6 @@ func TestHeightIsTheLineBoxAndNothingElse(t *testing.T) {
 		{"compact", tokens.Compact},
 	} {
 		style := badge.Style(tokens.DefaultTypography, d.d)
-		want := int(style.LineHeight)
 		for _, tc := range []struct {
 			name   string
 			txt    string
@@ -243,11 +259,12 @@ func TestHeightIsTheLineBoxAndNothingElse(t *testing.T) {
 			{"both", "Verified", check},
 		} {
 			t.Run(d.name+" "+tc.name, func(t *testing.T) {
+				want := drawnLine(t, shaper, style, tc.txt)
 				got := measure(t, badge.Render(shaper, tc.txt, tc.symbol, badge.Neutral,
 					tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, badge.RenderState{}))
 				if got.Y != want {
-					t.Errorf("height = %d dp, want the %g dp line box of the %s role",
-						got.Y, style.LineHeight, d.name)
+					t.Errorf("height = %d dp, want the %d dp line the %s role draws",
+						got.Y, want, d.name)
 				}
 			})
 		}
@@ -277,11 +294,11 @@ func TestABadgeIsLighterThanAnyControl(t *testing.T) {
 // family is.
 func TestTheDensityPicksTheTypeRole(t *testing.T) {
 	typo := tokens.DefaultTypography
-	if got := badge.Style(typo, tokens.Comfortable); got != typo.LabelMedium {
-		t.Errorf("Comfortable badge style = %+v, want LabelMedium %+v", got, typo.LabelMedium)
+	if got := badge.Style(typo, tokens.Comfortable); got != typo.SmallSystemFont {
+		t.Errorf("Comfortable badge style = %+v, want SmallSystemFont %+v", got, typo.SmallSystemFont)
 	}
-	if got := badge.Style(typo, tokens.Compact); got != typo.LabelSmall {
-		t.Errorf("Compact badge style = %+v, want LabelSmall %+v", got, typo.LabelSmall)
+	if got := badge.Style(typo, tokens.Compact); got != typo.Caption1 {
+		t.Errorf("Compact badge style = %+v, want Caption1 %+v", got, typo.Caption1)
 	}
 	if badge.Style(typo, tokens.Comfortable).Size == badge.Style(typo, tokens.Compact).Size {
 		t.Error("both densities are set at the same type size: density does not reach the badge")
@@ -341,7 +358,8 @@ func TestTheCloseMarkCostsHalfTheLineBoxAndOneStop(t *testing.T) {
 		tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, badge.RenderState{}))
 	dismissible := measure(t, badge.RenderDismissible(shaper, "Filtered", nil, badge.Neutral,
 		nil, tokens.PlatformLight, tokens.Spacing, tokens.Radius, style, badge.RenderState{}))
-	want := int(style.LineHeight)/2 + int(tokens.Spacing.S1)
+	// The mark is the line box's half, rounded as gtx.Dp rounds it.
+	want := int(math.Round(float64(style.LineHeight)/2)) + int(tokens.Spacing.S1)
 	if got := dismissible.X - bare.X; got != want {
 		t.Errorf("the close mark cost the badge %d dp, want %d (half the %g dp line box plus the S1 %g dp gap)",
 			got, want, style.LineHeight, tokens.Spacing.S1)
@@ -488,9 +506,10 @@ func onCard(p tokens.PlatformColors, w layout.Widget) layout.Widget {
 // opaque channel comes out of that round trip up to two 255ths from where it
 // went in. Measured on the platform's own system colours — systemBlue's
 // #0088ff paints as #0288ff — so a sampler that demanded equality would be
-// pinning the round trip rather than the colour.
+// pinning the round trip rather than the colour. The centre pixel of a 13 px
+// disc lands one 255th further off.
 func sameColour(a, b color.NRGBA) bool {
-	const tol = 2
+	const tol = 3
 	d := func(x, y uint8) bool {
 		if x > y {
 			return x-y <= tol

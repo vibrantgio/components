@@ -36,7 +36,7 @@ const (
 // shaper and the platform's light set.
 func newTrail(t *testing.T) breadcrumb.TrailLayout {
 	t.Helper()
-	return breadcrumb.NewTrail(defaultShaper(t), breadcrumb.TrailProps{}, tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+	return breadcrumb.NewTrail(defaultShaper(t), breadcrumb.TrailProps{}, tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.SystemFont)
 }
 
 // segments builds a trail from key/title pairs, giving every segment but the
@@ -90,7 +90,7 @@ func rowWidth(t *testing.T, shaper *text.Shaper, titles ...string) int {
 		items[i] = breadcrumb.Item{Title: l}
 	}
 	w := breadcrumb.Render(shaper, breadcrumb.Props{Items: items, Shaper: shaper},
-		tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+		tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.SystemFont)
 	gtx := layout.Context{
 		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
 		Constraints: layout.Constraints{Max: image.Pt(1<<14, 1<<14)},
@@ -137,7 +137,7 @@ func TestTrailClickRoutesToItsSegment(t *testing.T) {
 				[2]string{designKey, titles[1]},
 				[2]string{tokensKey, titles[2]},
 			)
-			w := breadcrumb.NewTrail(shaper, breadcrumb.TrailProps{}, tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+			w := breadcrumb.NewTrail(shaper, breadcrumb.TrailProps{}, tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.SystemFont)
 
 			r := new(gioinput.Router)
 			ops := new(op.Ops)
@@ -428,7 +428,7 @@ func TestTrailDrawsTheSameRowAsRender(t *testing.T) {
 	)
 
 	static := breadcrumb.Render(shaper, breadcrumb.Props{Items: trail(), Shaper: shaper},
-		tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+		tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.SystemFont)
 	live := newTrail(t)
 
 	fromRender := golden.Capture(t, frameSize, scene(static, bg))

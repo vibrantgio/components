@@ -76,7 +76,7 @@ const toolbarTitle = "OpenAI · gpt-5.5"
 func toolbar(t *testing.T, p tokens.PlatformColors, s picker.ToolbarState) layout.Widget {
 	t.Helper()
 	return picker.RenderToolbar(defaultShaper(t), toolbarTitle, p,
-		tokens.Spacing, tokens.DefaultTypography.LabelLarge,
+		tokens.Spacing, tokens.DefaultTypography.SystemFont,
 		tokens.Comfortable, s)
 }
 
@@ -139,8 +139,8 @@ func TestToolbarDrawsAtTheDensityTable(t *testing.T) {
 		ts   tokens.TextStyle
 		want int
 	}{
-		{"comfortable", tokens.Comfortable, tokens.DefaultTypography.LabelLarge, 36},
-		{"compact", tokens.Compact, tokens.DefaultTypography.LabelMedium, 36},
+		{"comfortable", tokens.Comfortable, tokens.DefaultTypography.SystemFont, 36},
+		{"compact", tokens.Compact, tokens.DefaultTypography.SmallSystemFont, 36},
 	} {
 		t.Run(d.name, func(t *testing.T) {
 			trigger := measure(t, box, picker.RenderToolbar(shaper, "Model", tokens.PlatformLight,

@@ -320,7 +320,7 @@ func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
 
 	// Paragraph: live link state; OnLinkClick carries gtx.
 	g.paraState = paragraph.NewState()
-	g.paraStyle = paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, pagePlane)
+	g.paraStyle = paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, pagePlane)
 	g.paraStyle.OnLinkClick = func(_ layout.Context, url string) {
 		g.paraLastURL = url
 		g.paraClicks++
@@ -403,7 +403,7 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 	cs := make([]layout.FlexChild, 0, 1+len(pageNames))
 	cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 		return complayout.Inset(16).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return g.label(gtx, "Components Gallery", vgcolor.Flatten(c.Label, c.SidebarMaterial), bold(roles.TitleSmall))
+			return g.label(gtx, "Components Gallery", vgcolor.Flatten(c.Label, c.SidebarMaterial), bold(roles.Title3))
 		})
 	}))
 	for i, name := range pageNames {
@@ -428,7 +428,7 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 					paint.FillShape(gtx.Ops, c.SelectedContentBackground, clip.Rect{Max: sz}.Op())
 				}
 				return complayout.InsetXY(16, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-					return g.label(gtx, name, fg, roles.BodyMedium)
+					return g.label(gtx, name, fg, roles.SystemFont)
 				})
 			})
 		}))
@@ -491,7 +491,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(complayout.HSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, fmt.Sprintf("Clicks: %d", g.btnClicks),
-								pageText, roles.BodyMedium)
+								pageText, roles.Callout)
 						}),
 					)
 				})
@@ -505,7 +505,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									gtx.Constraints.Min.X = gtx.Dp(unit.Dp(80))
 									gtx.Constraints.Max.X = gtx.Dp(unit.Dp(80))
-									return g.label(gtx, "Static", pageMuted, roles.LabelLarge)
+									return g.label(gtx, "Static", pageMuted, roles.SystemFont)
 								}),
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									gtx.Constraints.Max.X = gtx.Dp(unit.Dp(200))
@@ -518,7 +518,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 								layout.Rigid(complayout.HSpacer(16)),
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									return g.label(gtx, fmt.Sprintf("Clicks: %d", g.btnCompareClicks),
-										pageText, roles.BodyMedium)
+										pageText, roles.Callout)
 								}),
 							)
 						}),
@@ -528,7 +528,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									gtx.Constraints.Min.X = gtx.Dp(unit.Dp(80))
 									gtx.Constraints.Max.X = gtx.Dp(unit.Dp(80))
-									return g.label(gtx, "Spring", pageMuted, roles.LabelLarge)
+									return g.label(gtx, "Spring", pageMuted, roles.SystemFont)
 								}),
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									gtx.Constraints.Max.X = gtx.Dp(unit.Dp(200))
@@ -541,7 +541,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 								layout.Rigid(complayout.HSpacer(16)),
 								layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 									return g.label(gtx, fmt.Sprintf("Clicks: %d", g.springBtnClicks),
-										pageText, roles.BodyMedium)
+										pageText, roles.Callout)
 								}),
 							)
 						}),
@@ -549,7 +549,7 @@ func (g *gallery) pageButton(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"effects.SpringButton(theme, button.Props{...}, springbutton.Options{}) — DESIGN §Phase 3 — Composition mechanism.",
-								pageMuted, roles.BodyLarge)
+								pageMuted, roles.Body)
 						}),
 					)
 				})
@@ -580,7 +580,7 @@ func (g *gallery) buttonVariantRows() []layout.FlexChild {
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
-		w := button.Render(g.shaper, "Button", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, r.state)
+		w := button.Render(g.shaper, "Button", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.variantRow(gtx, r.label, r.rowBg, r.colors.Text, w)
 		})
@@ -626,7 +626,7 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Min.X = gtx.Dp(unit.Dp(180))
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(180))
-							return g.label(gtx, lv.caption, pageMuted, roles.LabelMedium)
+							return g.label(gtx, lv.caption, pageMuted, roles.SmallSystemFont)
 						}),
 						layout.Rigid(g.surfacePane(lv.fill, func(gtx layout.Context) layout.Dimensions {
 							return complayout.Inset(12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
@@ -639,7 +639,7 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(complayout.HSpacer(24)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, fmt.Sprintf("Clicks: %d", g.chipClicks[i]),
-								c.Text, roles.BodyMedium)
+								c.Text, roles.Callout)
 						}),
 					)
 				})
@@ -649,7 +649,7 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 			return complayout.InsetXY(24, 12).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 				return g.label(gtx,
 					"The chip lays the platform's press overlay over its own fill and wears the focus ring on its own outline.",
-					pageMuted, roles.BodyLarge)
+					pageMuted, roles.Body)
 			})
 		}))
 		return layout.Flex{Axis: layout.Vertical}.Layout(gtx, cs...)
@@ -780,7 +780,7 @@ func (g *gallery) textFieldVariantRows() []layout.FlexChild {
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
-		w := input.Render(g.shaper, "Placeholder…", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, r.state)
+		w := input.Render(g.shaper, "Placeholder…", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
 		})
@@ -815,7 +815,7 @@ func (g *gallery) searchFieldVariantRows() []layout.FlexChild {
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
-		w := input.RenderSearch(g.shaper, "Search", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, r.state)
+		w := input.RenderSearch(g.shaper, "Search", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, r.state)
 		plane := r.colors.WindowBackground
 		if r.state.Variant == input.Chrome {
 			plane = r.colors.SidebarMaterial
@@ -844,7 +844,7 @@ func (g *gallery) checkboxVariantRows() []layout.FlexChild {
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
-		w := input.RenderCheckbox(g.shaper, r.colors, tokens.Spacing, tokens.DefaultTypography.BodyLarge, r.state)
+		w := input.RenderCheckbox(g.shaper, r.colors, tokens.Spacing, tokens.DefaultTypography.SystemFont, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
 		})
@@ -869,7 +869,7 @@ func (g *gallery) radioVariantRows() []layout.FlexChild {
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
-		w := input.RenderRadio(g.shaper, r.colors, tokens.Spacing, tokens.DefaultTypography.BodyLarge, r.state)
+		w := input.RenderRadio(g.shaper, r.colors, tokens.Spacing, tokens.DefaultTypography.SystemFont, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
 		})
@@ -895,7 +895,7 @@ func (g *gallery) dropdownVariantRows() []layout.FlexChild {
 	cs := make([]layout.FlexChild, len(rows))
 	for i, r := range rows {
 		r := r
-		w := input.RenderDropdown(g.shaper, r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, r.state)
+		w := input.RenderDropdown(g.shaper, r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
 		})
@@ -914,7 +914,7 @@ func (g *gallery) pageList(gtx layout.Context) layout.Dimensions {
 				return complayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return g.label(gtx,
 						"list.LayoutScrollbar(..., Occupy, ...) reserves a gutter; Overlay floats the bar over the rows. Wheel, thumb-drag, and track-click all scroll.",
-						pageMuted, roles.BodyLarge)
+						pageMuted, roles.Body)
 				})
 			}),
 			g.sectionHeader("Scrollbar — standalone bar beside tall fake content (drag the thumb, click the track, hover)"),
@@ -923,7 +923,7 @@ func (g *gallery) pageList(gtx layout.Context) layout.Dimensions {
 				return complayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return g.label(gtx,
 						"scrollbar.FromTokens(...).Layout with fractions from scrollbar.FromListPosition; drags feed back via ScrollDistance.",
-						pageMuted, roles.BodyLarge)
+						pageMuted, roles.Body)
 				})
 			}),
 		}
@@ -943,14 +943,14 @@ func (g *gallery) listScrollbarDemo(gtx layout.Context) layout.Dimensions {
 		bar := scrollbar.FromTokens(tokens.PlatformLight, pagePlane)
 		row := func(gtx layout.Context, item string) layout.Dimensions {
 			return complayout.InsetXY(0, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-				return g.label(gtx, item, pageText, roles.BodyMedium)
+				return g.label(gtx, item, pageText, roles.SystemFont)
 			})
 		}
 		column := func(title string, st *list.State, anchor list.Anchor) layout.Widget {
 			return func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return g.label(gtx, title, pageMuted, bold(roles.HeadlineSmall))
+						return g.label(gtx, title, pageMuted, roles.Headline)
 					}),
 					layout.Rigid(complayout.VSpacer(8)),
 					layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
@@ -987,7 +987,7 @@ func (g *gallery) scrollbarDemo(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min = gtx.Constraints.Max
 				return g.sbList.Layout(gtx, len(g.sbItems), func(gtx layout.Context, i int) layout.Dimensions {
 					return complayout.InsetXY(0, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-						return g.label(gtx, g.sbItems[i], pageText, roles.BodyMedium)
+						return g.label(gtx, g.sbItems[i], pageText, roles.SystemFont)
 					})
 				})
 			}),
@@ -1030,7 +1030,7 @@ func paragraphSpans() []paragraph.SpanStyle {
 
 func (g *gallery) pageParagraph(gtx layout.Context) layout.Dimensions {
 	return g.scrollPage(gtx, g.scrollSt[pageParagraph], func(gtx layout.Context) layout.Dimensions {
-		staticStyle := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, pagePlane)
+		staticStyle := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, pagePlane)
 		linkStates := []struct {
 			label string
 			state paragraph.RenderState
@@ -1058,7 +1058,7 @@ func (g *gallery) pageParagraph(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Min.X = gtx.Dp(unit.Dp(160))
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(160))
-							return g.label(gtx, ls.label, pageMuted, roles.LabelLarge)
+							return g.label(gtx, ls.label, pageMuted, roles.SystemFont)
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							gtx.Constraints.Max.X = gtx.Dp(unit.Dp(400))
@@ -1088,13 +1088,13 @@ func (g *gallery) pageParagraph(gtx layout.Context) layout.Dimensions {
 							if g.paraLastURL != "" {
 								status = fmt.Sprintf("Activated %d×, last: %s", g.paraClicks, g.paraLastURL)
 							}
-							return g.label(gtx, status, pageText, roles.BodyMedium)
+							return g.label(gtx, status, pageText, roles.Callout)
 						}),
 						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"paragraph.Layout(gtx, state, shaper, style, spans) — OnLinkClick(gtx, url) carries gtx per GX.8.",
-								pageMuted, roles.BodyLarge)
+								pageMuted, roles.Body)
 						}),
 					)
 				})
@@ -1121,7 +1121,7 @@ func (g *gallery) pageIcon(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(complayout.HSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "icon.FromIVG(data) + ivg/raster/gio", pageText, roles.BodyLarge)
+							return g.label(gtx, "icon.FromIVG(data) + ivg/raster/gio", pageText, roles.Body)
 						}),
 					)
 				})
@@ -1133,11 +1133,11 @@ func (g *gallery) pageIcon(gtx layout.Context) layout.Dimensions {
 					status := fmt.Sprintf(`Registry has "info": %v  (kind=IVG, from icon.FromIVG)`, registered)
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, status, pageText, roles.BodyMedium)
+							return g.label(gtx, status, pageText, roles.Callout)
 						}),
 						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "SVG icons: icon.FromSVG(parsed *svg.Icon) for the KindSVG path.", pageMuted, roles.BodyLarge)
+							return g.label(gtx, "SVG icons: icon.FromSVG(parsed *svg.Icon) for the KindSVG path.", pageMuted, roles.Body)
 						}),
 					)
 				})
@@ -1235,7 +1235,7 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 						}),
 						layout.Rigid(complayout.VSpacer(12)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-							return g.label(gtx, "Toggle Reduce Motion in System Settings > Accessibility > Display.", pageMuted, roles.BodyLarge)
+							return g.label(gtx, "Toggle Reduce Motion in System Settings > Accessibility > Display.", pageMuted, roles.Body)
 						}),
 					)
 				})
@@ -1247,7 +1247,7 @@ func (g *gallery) pageA11y(gtx layout.Context) layout.Dimensions {
 					if prefs.ReduceMotion {
 						status = "reduced motion: skip animations"
 					}
-					return g.label(gtx, status, pageText, roles.BodyMedium)
+					return g.label(gtx, status, pageText, roles.Callout)
 				})
 			}),
 		}
@@ -1263,10 +1263,10 @@ func (g *gallery) prefRow(gtx layout.Context, name string, value bool) layout.Di
 	return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			gtx.Constraints.Min.X = gtx.Dp(unit.Dp(200))
-			return g.label(gtx, name, pageText, roles.BodyMedium)
+			return g.label(gtx, name, pageText, roles.Callout)
 		}),
 		layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-			return g.label(gtx, indicator, col, bold(roles.BodyMedium))
+			return g.label(gtx, indicator, col, bold(roles.Callout))
 		}),
 	)
 }
@@ -1285,24 +1285,24 @@ func (g *gallery) pageInitial(gtx layout.Context) layout.Dimensions {
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								fmt.Sprintf("Gallery opened at: %s", firstFrame.Format("15:04:05.000")),
-								pageText, roles.BodyMedium)
+								pageText, roles.Callout)
 						}),
 						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"initial.Value[T].GetOrSet(fn) calls fn once on the first invocation",
-								pageMuted, roles.BodyLarge)
+								pageMuted, roles.Body)
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"and returns the cached result on every subsequent frame.",
-								pageMuted, roles.BodyLarge)
+								pageMuted, roles.Body)
 						}),
 						layout.Rigid(complayout.VSpacer(8)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"Use inside rx.Defer closures to replace ad-hoc -1 sentinels.",
-								pageMuted, roles.BodyLarge)
+								pageMuted, roles.Body)
 						}),
 					)
 				})
@@ -1335,24 +1335,24 @@ func (g *gallery) pageStream(gtx layout.Context) layout.Dimensions {
 					return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.streamSend.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-								return button.Render(g.shaper, "Send ping", tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, button.RenderState{})(gtx)
+								return button.Render(g.shaper, "Send ping", tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, button.RenderState{})(gtx)
 							})
 						}),
 						layout.Rigid(complayout.VSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx, "Consumer received: "+received,
-								pageText, roles.BodyMedium)
+								pageText, roles.Callout)
 						}),
 						layout.Rigid(complayout.VSpacer(16)),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"observer.Next(msg) sends via mvu/stream.Value[string](\"\") — ADR-008's",
-								pageMuted, roles.BodyLarge)
+								pageMuted, roles.Body)
 						}),
 						layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 							return g.label(gtx,
 								"Consumer goroutine calls w.Invalidate() to schedule the next frame.",
-								pageMuted, roles.BodyLarge)
+								pageMuted, roles.Body)
 						}),
 					)
 				})
@@ -1377,7 +1377,7 @@ func (g *gallery) sectionHeader(title string) layout.FlexChild {
 		h := gtx.Dp(unit.Dp(36))
 		paint.FillShape(gtx.Ops, bg, clip.Rect{Max: image.Pt(gtx.Constraints.Max.X, h)}.Op())
 		return complayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-			return g.label(gtx, title, pageText, bold(roles.HeadlineSmall))
+			return g.label(gtx, title, pageText, roles.Headline)
 		})
 	})
 }
@@ -1389,7 +1389,7 @@ func (g *gallery) variantRow(gtx layout.Context, lbl string, bg, fg color.NRGBA,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = gtx.Dp(unit.Dp(200))
 				gtx.Constraints.Max.X = gtx.Dp(unit.Dp(200))
-				return g.label(gtx, lbl, fg, roles.LabelLarge)
+				return g.label(gtx, lbl, fg, roles.SystemFont)
 			}),
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 				gtx.Constraints.Min.X = gtx.Dp(unit.Dp(200))

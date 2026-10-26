@@ -383,7 +383,7 @@ func TestInputChipDismissesFromItsOwnTarget(t *testing.T) {
 	// The mark's centre: half an icon in from where the trailing padding
 	// starts, which is where the structure puts it.
 	markX := dims.Size.X - int(tokens.Comfortable.PaddingX) -
-		int(math.Round(float64(chip.MarkDp(tokens.DefaultTypography.LabelLarge))))/2
+		int(math.Round(float64(chip.MarkDp(tokens.DefaultTypography.SystemFont))))/2
 	press(r, markX, dims.Size.Y/2)
 	drive()
 	if dismissed != 1 {

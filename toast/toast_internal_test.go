@@ -22,7 +22,7 @@ func intTok() resolvedTokens {
 		platform: tokens.PlatformLight,
 		spacing:  tokens.Spacing,
 		radius:   tokens.RadiusScale{},
-		style:    tokens.DefaultTypography.LabelMedium,
+		style:    tokens.DefaultTypography.SmallSystemFont,
 	}
 }
 

@@ -73,7 +73,7 @@ func TestBreadcrumbGolden(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			props := breadcrumb.Props{Items: tc.items, Shaper: shaper}
-			w := breadcrumb.Render(shaper, props, tc.platform, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+			w := breadcrumb.Render(shaper, props, tc.platform, tokens.Spacing, tokens.DefaultTypography.SystemFont)
 			golden.Render(t, tc.name, frameSize, scene(w, tc.bg))
 		})
 	}
@@ -88,7 +88,7 @@ func TestBreadcrumbThreeVsSingle(t *testing.T) {
 
 	render := func(items []breadcrumb.Item) *image.RGBA {
 		props := breadcrumb.Props{Items: items, Shaper: shaper}
-		w := breadcrumb.Render(shaper, props, tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+		w := breadcrumb.Render(shaper, props, tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.SystemFont)
 		return golden.Capture(t, frameSize, scene(w, bg))
 	}
 
@@ -109,8 +109,8 @@ func TestBreadcrumbLightDarkDiffer(t *testing.T) {
 	items := trail()
 	propsL := breadcrumb.Props{Items: items, Shaper: shaper}
 	propsD := breadcrumb.Props{Items: items, Shaper: shaper}
-	light := breadcrumb.Render(shaper, propsL, tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
-	dark := breadcrumb.Render(shaper, propsD, tokens.PlatformDark, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+	light := breadcrumb.Render(shaper, propsL, tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.SystemFont)
+	dark := breadcrumb.Render(shaper, propsD, tokens.PlatformDark, tokens.Spacing, tokens.DefaultTypography.SystemFont)
 
 	imgLight := golden.Capture(t, frameSize, scene(light, bg))
 	imgDark := golden.Capture(t, frameSize, scene(dark, bg))
@@ -144,13 +144,13 @@ func TestChevronSizeIsTheCallersOrTheDefault(t *testing.T) {
 
 	static := func(size unit.Dp) int {
 		w := breadcrumb.Render(shaper, breadcrumb.Props{Items: items, Chevron: size},
-			tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+			tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.SystemFont)
 		gtx := layout.Context{Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}, Constraints: loose, Ops: new(op.Ops)}
 		return w(gtx).Size.X
 	}
 	perFrame := func(size unit.Dp) int {
 		w := breadcrumb.NewTrail(shaper, breadcrumb.TrailProps{Chevron: size},
-			tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.TitleSmall)
+			tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.SystemFont)
 		gtx := layout.Context{Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}, Constraints: loose, Ops: new(op.Ops)}
 		return w(gtx, segs).Size.X
 	}

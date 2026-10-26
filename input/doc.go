@@ -84,7 +84,7 @@
 // The text field is uncontrolled. Props.Seed pre-fills a newly created
 // instance so an existing value can be edited rather than retyped, but a later
 // Seed does not touch a live instance — rebuild the field, keyed on an epoch,
-// to reseed it. TextField draws text in the theme's BodyLarge role, shaped
+// to reseed it. TextField draws text in the theme's SystemFont role, shaped
 // with the theme's shaper (Typography.Shaper()); Props.Shaper is an explicit
 // per-instance override for the rare case where one control must shape with a
 // different shaper than the theme provides. Checkbox and Radio draw no text

@@ -80,7 +80,7 @@ func TestParagraphGolden(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			style := paragraph.FromTokens(tc.p, tokens.DefaultTypography.BodyLarge, tc.p.WindowBackground)
+			style := paragraph.FromTokens(tc.p, tokens.DefaultTypography.Body, tc.p.WindowBackground)
 			spans := pageSpans(tc.p)
 			golden.Render(t, tc.name, size, func(gtx layout.Context) layout.Dimensions {
 				paint.FillShape(gtx.Ops, tc.p.TextBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
@@ -95,7 +95,7 @@ func TestParagraphGolden(t *testing.T) {
 func TestLinkStateGolden(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 100)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 	cases := []struct {
 		name  string
 		state paragraph.RenderState
@@ -116,7 +116,7 @@ func TestLinkStateGolden(t *testing.T) {
 func TestHoveredLinkIsVisuallyDistinct(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 100)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 
 	idle := golden.Capture(t, size, paragraph.Render(shaper, style, mixedSpans(), paragraph.Idle()))
 	hovered := golden.Capture(t, size, paragraph.Render(shaper, style, mixedSpans(),
@@ -134,7 +134,7 @@ func TestHoveredLinkIsVisuallyDistinct(t *testing.T) {
 func TestFocusedLinkIsVisuallyDistinct(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 100)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 
 	idle := golden.Capture(t, size, paragraph.Render(shaper, style, mixedSpans(), paragraph.Idle()))
 	focused := golden.Capture(t, size, paragraph.Render(shaper, style, mixedSpans(),
@@ -153,7 +153,7 @@ func TestFocusedLinkIsVisuallyDistinct(t *testing.T) {
 func TestStrikethroughIsVisuallyDistinct(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 100)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 
 	plain := golden.Capture(t, size, paragraph.Render(shaper, style,
 		[]paragraph.SpanStyle{{Content: "deleted text"}}, paragraph.Idle()))
@@ -173,7 +173,7 @@ func TestChipIsVisuallyDistinct(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 100)
 	p := tokens.PlatformLight
-	style := paragraph.FromTokens(p, tokens.DefaultTypography.BodyLarge, p.WindowBackground)
+	style := paragraph.FromTokens(p, tokens.DefaultTypography.Body, p.WindowBackground)
 	chip := paragraph.Chip{Color: p.Control, Border: p.Separator, Padding: 4, Radius: 4}
 
 	plain := golden.Capture(t, size, paragraph.Render(shaper, style,
@@ -205,7 +205,7 @@ func measure(shaper *text.Shaper, style paragraph.Style, spans []paragraph.SpanS
 // both must respect their max width.
 func TestParagraphWraps(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 
 	wide := measure(shaper, style, mixedSpans(), 600)
 	narrow := measure(shaper, style, mixedSpans(), 150)
@@ -243,7 +243,7 @@ func testChip() paragraph.Chip {
 // a list marker, a gutter rule — moving.
 func TestChipReservesItsPaddingAndNotTheLine(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 
 	// Mid-line, with a word on either side to clear: the case the reservation
 	// exists for, and the one both flush edges leave alone.
@@ -273,7 +273,7 @@ func TestChipReservesItsPaddingAndNotTheLine(t *testing.T) {
 // set without the chip, and the difference is exactly the padding still spent.
 func TestChipSpendsNoPaddingAtAFlushEdge(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 
 	for _, tc := range []struct {
 		name  string
@@ -331,7 +331,7 @@ func TestChipSpendsNoPaddingAtAFlushEdge(t *testing.T) {
 func TestLineInitialChipStartsFlushWithTheMargin(t *testing.T) {
 	shaper := defaultShaper(t)
 	size := image.Pt(300, 60)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 
 	// On the theme's own surface: the capture is transparent where nothing is
 	// painted, and a threshold on darkness cannot read glyphs against that.
@@ -413,6 +413,15 @@ func glyphBands(img *image.RGBA) [][2]int {
 	return out
 }
 
+// leadedStyle is the paragraph style the line box tests probe: Body with a
+// 24 dp line box. Body's own 16 dp line box is under the 17 px line Roboto
+// draws at 13 sp, so Body alone carries no leading for these tests to read.
+func leadedStyle() paragraph.Style {
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
+	style.LineHeight = 24
+	return style
+}
+
 // TestWrappedLinesOccupyTheStylesLineHeight is the contract in one
 // measurement, taken off the pixels: the glyphs of one line to the glyphs of the
 // next is the style's line height, and a run of n lines is n boxes tall. Both
@@ -420,7 +429,7 @@ func glyphBands(img *image.RGBA) [][2]int {
 // measured wrong would put every following block in the wrong place.
 func TestWrappedLinesOccupyTheStylesLineHeight(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := leadedStyle()
 	box := int(style.LineHeight)
 
 	spans := []paragraph.SpanStyle{{Content: lineBoxProse}}
@@ -457,7 +466,7 @@ func TestWrappedLinesOccupyTheStylesLineHeight(t *testing.T) {
 // top is the rest — so the measurement needs no knowledge of the face.
 func TestTheLeadingSplitsAboveAndBelowTheGlyphs(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := leadedStyle()
 	metrics := style
 	metrics.LineHeight = 0
 
@@ -482,12 +491,12 @@ func TestTheLeadingSplitsAboveAndBelowTheGlyphs(t *testing.T) {
 // beside that line moves.
 func TestAMixedSizeSpanKeepsTheLineBox(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := leadedStyle()
 
 	plain := measure(shaper, style, []paragraph.SpanStyle{{Content: "quoted word here"}}, 600)
 	mixed := measure(shaper, style, []paragraph.SpanStyle{
 		{Content: "quoted "},
-		{Content: "word", Size: unit.Sp(tokens.DefaultTypography.Code.Size), Typeface: "Roboto Mono"},
+		{Content: "word", Size: unit.Sp(tokens.DefaultTypography.Callout.Size), Typeface: "Roboto Mono"},
 		{Content: " here"},
 	}, 600)
 	if mixed.Size.Y != plain.Size.Y {
@@ -505,7 +514,7 @@ func TestAMixedSizeSpanKeepsTheLineBox(t *testing.T) {
 // the lines into an overlap.
 func TestAZeroLineHeightKeepsTheShapedMetrics(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := leadedStyle()
 	metrics := style
 	metrics.LineHeight = 0
 
@@ -527,7 +536,7 @@ func TestAZeroLineHeightKeepsTheShapedMetrics(t *testing.T) {
 // line.
 func TestHardNewlineBreaksLine(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 
 	oneLine := measure(shaper, style, []paragraph.SpanStyle{{Content: "alpha beta"}}, 600)
 	twoLines := measure(shaper, style, []paragraph.SpanStyle{{Content: "alpha\nbeta"}}, 600)
@@ -570,7 +579,7 @@ func TestLinkClickFiresOnLinkClick(t *testing.T) {
 
 	var gotURL string
 	var gotOps bool
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 	style.OnLinkClick = func(gtx layout.Context, u string) {
 		gotURL = u
 		gotOps = gtx.Ops != nil
@@ -586,7 +595,7 @@ func TestLinkClickFiresOnLinkClick(t *testing.T) {
 	size := image.Pt(400, 100)
 
 	// Frame 1 registers the link area; the click then lands inside the
-	// link's first segment (origin at 0,0; ~16 px tall at 16 sp).
+	// link's first segment (origin at 0,0; one 17 px line at 13 sp).
 	driveFrame(w, ops, r, size)
 	hit := f32.Pt(6, 8)
 	r.Queue(
@@ -611,7 +620,7 @@ func TestLinkFocusTraversalAndKeyboardActivation(t *testing.T) {
 	shaper := defaultShaper(t)
 
 	var clicks []string
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 	style.OnLinkClick = func(_ layout.Context, u string) { clicks = append(clicks, u) }
 
 	spans := []paragraph.SpanStyle{
@@ -692,7 +701,7 @@ func TestFromTokensDefaults(t *testing.T) {
 		{"light", tokens.PlatformLight},
 		{"dark", tokens.PlatformDark},
 	} {
-		st := paragraph.FromTokens(s.p, tokens.DefaultTypography.BodyLarge, s.p.WindowBackground)
+		st := paragraph.FromTokens(s.p, tokens.DefaultTypography.Body, s.p.WindowBackground)
 		if st.Color != s.p.Text {
 			t.Errorf("%s: Color = %v, want Text %v", s.name, st.Color, s.p.Text)
 		}
@@ -702,12 +711,12 @@ func TestFromTokensDefaults(t *testing.T) {
 		if want := focus.RingColor(s.p, s.p.WindowBackground); st.FocusColor != want {
 			t.Errorf("%s: FocusColor = %v, want the ring %v", s.name, st.FocusColor, want)
 		}
-		if st.Size != unit.Sp(tokens.DefaultTypography.BodyLarge.Size) {
-			t.Errorf("%s: Size = %v, want BodyLarge %v", s.name, st.Size, tokens.DefaultTypography.BodyLarge.Size)
+		if st.Size != unit.Sp(tokens.DefaultTypography.Body.Size) {
+			t.Errorf("%s: Size = %v, want Body %v", s.name, st.Size, tokens.DefaultTypography.Body.Size)
 		}
-		if st.LineHeight != unit.Sp(tokens.DefaultTypography.BodyLarge.LineHeight) {
-			t.Errorf("%s: LineHeight = %v, want BodyLarge %v",
-				s.name, st.LineHeight, tokens.DefaultTypography.BodyLarge.LineHeight)
+		if st.LineHeight != unit.Sp(tokens.DefaultTypography.Body.LineHeight) {
+			t.Errorf("%s: LineHeight = %v, want Body %v",
+				s.name, st.LineHeight, tokens.DefaultTypography.Body.LineHeight)
 		}
 	}
 }
@@ -767,7 +776,7 @@ const emojiInline = "Hi 😀!"
 
 func captureEmojiInline(t *testing.T, shaper *text.Shaper, p tokens.PlatformColors) *image.RGBA {
 	t.Helper()
-	style := paragraph.FromTokens(p, tokens.DefaultTypography.BodyLarge, p.WindowBackground)
+	style := paragraph.FromTokens(p, tokens.DefaultTypography.Body, p.WindowBackground)
 	size := image.Pt(200, 48)
 	return golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, p.TextBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
@@ -781,7 +790,7 @@ func captureEmojiInline(t *testing.T, shaper *text.Shaper, p tokens.PlatformColo
 func TestEmojiInlinePaintsThePNG(t *testing.T) {
 	with := emojiShaper(t)
 	without := defaultShaper(t)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 
 	painted := captureEmojiInline(t, with, tokens.PlatformLight)
 	tofu := captureEmojiInline(t, without, tokens.PlatformLight)
@@ -809,7 +818,7 @@ func TestEmojiInlineGolden(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			style := paragraph.FromTokens(tc.p, tokens.DefaultTypography.BodyLarge, tc.p.WindowBackground)
+			style := paragraph.FromTokens(tc.p, tokens.DefaultTypography.Body, tc.p.WindowBackground)
 			golden.Render(t, tc.name, size, func(gtx layout.Context) layout.Dimensions {
 				paint.FillShape(gtx.Ops, tc.p.TextBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
 				return paragraph.Render(shaper, style, []paragraph.SpanStyle{{Content: emojiInline}}, paragraph.Idle())(gtx)
@@ -877,7 +886,7 @@ func hasChromaticUnlike(img *image.RGBA, x0, x1 int, body color.NRGBA) bool {
 // marks, so its shape is that text's and the prose beside it keeps its own.
 func TestTheHandStandsOverTheLinkAndNoFurther(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 	spans := []paragraph.SpanStyle{
 		{Content: "Read "},
 		{Content: "the principles", URL: "vault://Design/Principles"},

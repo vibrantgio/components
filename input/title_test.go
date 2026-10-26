@@ -39,31 +39,31 @@ func TestTitledControlGolden(t *testing.T) {
 		w        func(tokens.PlatformColors) layout.Widget
 	}{
 		{"checkbox-light-with-title", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
-			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
+			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont,
 				input.CheckboxRenderState{Title: "Show startup screen"})
 		}},
 		{"checkbox-dark-with-title", tokens.PlatformDark, func(p tokens.PlatformColors) layout.Widget {
-			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
+			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont,
 				input.CheckboxRenderState{Title: "Show startup screen"})
 		}},
 		{"checkbox-light-with-title-checked", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
-			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
+			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont,
 				input.CheckboxRenderState{Checked: true, Title: "Show startup screen"})
 		}},
 		{"checkbox-light-with-title-disabled", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
-			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
+			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont,
 				input.CheckboxRenderState{Disabled: true, Title: "Show startup screen"})
 		}},
 		{"checkbox-dark-with-title-disabled", tokens.PlatformDark, func(p tokens.PlatformColors) layout.Widget {
-			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
+			return input.RenderCheckbox(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont,
 				input.CheckboxRenderState{Disabled: true, Title: "Show startup screen"})
 		}},
 		{"radio-light-with-title-selected", tokens.PlatformLight, func(p tokens.PlatformColors) layout.Widget {
-			return input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
+			return input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont,
 				input.RadioRenderState{Selected: true, Title: "Based on the pointer"})
 		}},
 		{"radio-dark-with-title-disabled", tokens.PlatformDark, func(p tokens.PlatformColors) layout.Widget {
-			return input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
+			return input.RenderRadio(shaper, p, tokens.Spacing, tokens.DefaultTypography.SystemFont,
 				input.RadioRenderState{Disabled: true, Title: "Based on the pointer"})
 		}},
 	}
@@ -133,9 +133,9 @@ func TestTitleStandsAtTheMeasuredGap(t *testing.T) {
 		w    layout.Widget
 	}{
 		{"checkbox", input.RenderCheckbox(shaper, tokens.PlatformLight, tokens.Spacing,
-			tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Title: capturedTitle})},
+			tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Title: capturedTitle})},
 		{"radio", input.RenderRadio(shaper, tokens.PlatformLight, tokens.Spacing,
-			tokens.DefaultTypography.BodyLarge, input.RadioRenderState{Title: capturedTitle})},
+			tokens.DefaultTypography.SystemFont, input.RadioRenderState{Title: capturedTitle})},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			img := golden.Capture(t, titledSize, tc.w)
@@ -180,7 +180,7 @@ func TestTitleCapBandIsCentredOnTheSymbolsRow(t *testing.T) {
 	// up to the cap height, so a descender or an x-height letter would cover
 	// rows beyond it.
 	w := input.RenderCheckbox(shaper, tokens.PlatformLight, tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge, input.CheckboxRenderState{Title: "HI"})
+		tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Title: "HI"})
 	img := golden.Capture(t, titledSize, w)
 	if img == nil {
 		return
@@ -269,7 +269,7 @@ func TestSwitchedOffTitleFadesWithItsSymbol(t *testing.T) {
 	for _, sc := range switchedOffReadings {
 		t.Run(sc.name, func(t *testing.T) {
 			img := golden.Capture(t, titledSize, onSheet(sc.sheet, input.RenderCheckbox(
-				shaper, sc.platform, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
+				shaper, sc.platform, tokens.Spacing, tokens.DefaultTypography.SystemFont,
 				input.CheckboxRenderState{Disabled: true, Title: "Show startup screen", Surface: sc.sheet},
 			)))
 			if img == nil {
@@ -332,7 +332,7 @@ func TestLiveAndStaticDrawTheSameTitle(t *testing.T) {
 	})))
 	static := golden.Capture(t, titledSize, input.RenderCheckbox(
 		tokens.DefaultTypography.Shaper(),
-		tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.BodyLarge,
+		tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.SystemFont,
 		input.CheckboxRenderState{Title: title},
 	))
 	if live == nil || static == nil {

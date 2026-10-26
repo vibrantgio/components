@@ -30,10 +30,10 @@ func defaultShaper(t *testing.T) *text.Shaper {
 // renderings pixel for pixel.
 var sharpRadius = tokens.RadiusScale{}
 
-// rowHeight is the height an option row draws at: one BodyLarge line box plus
+// rowHeight is the height an option row draws at: one SystemFont line box plus
 // the density's vertical padding, floored at the density's control height.
 func rowHeight(d tokens.Density) int {
-	h := int(tokens.DefaultTypography.BodyLarge.LineHeight + 2*d.PaddingY)
+	h := int(tokens.DefaultTypography.SystemFont.LineHeight + 2*d.PaddingY)
 	if floor := int(d.ControlHeight); h < floor {
 		h = floor
 	}
@@ -61,14 +61,14 @@ func measure(t *testing.T, size image.Point, w layout.Widget) layout.Dimensions 
 func field(t *testing.T, s picker.FieldState) layout.Widget {
 	t.Helper()
 	return picker.RenderField(defaultShaper(t), tokens.PlatformLight, tokens.Spacing,
-		sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s)
+		sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, s)
 }
 
 // menu is RenderMenu in the same colours at the same density.
 func menu(t *testing.T, s picker.MenuState) layout.Widget {
 	t.Helper()
 	return picker.RenderMenu(defaultShaper(t), tokens.PlatformLight, tokens.Spacing,
-		tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s)
+		tokens.DefaultTypography.SystemFont, tokens.Comfortable, s)
 }
 
 var options = []string{"Alpha", "Beta", "Gamma"}
@@ -121,7 +121,7 @@ func TestFieldTriggerDrawsThePopUpsHeight(t *testing.T) {
 	}{{"comfortable", tokens.Comfortable}, {"compact", tokens.Compact}} {
 		t.Run(d.name, func(t *testing.T) {
 			w := picker.RenderField(defaultShaper(t), tokens.PlatformLight, tokens.Spacing,
-				tokens.Radius, tokens.DefaultTypography.BodyLarge, d.d,
+				tokens.Radius, tokens.DefaultTypography.SystemFont, d.d,
 				picker.FieldState{Options: options})
 			dims := measure(t, image.Pt(200, 200), w)
 			if want := triggerHeight(d.d); dims.Size.Y != want {
@@ -428,7 +428,7 @@ func TestMenuSelectedRowIsDrawnApartFromTheRest(t *testing.T) {
 // control height.
 func TestToolbarIsSizedToItsTitle(t *testing.T) {
 	w := picker.RenderToolbar(defaultShaper(t), "Anthropic · Opus 5", tokens.PlatformLight,
-		tokens.Spacing, tokens.DefaultTypography.LabelLarge,
+		tokens.Spacing, tokens.DefaultTypography.SystemFont,
 		tokens.Comfortable, picker.ToolbarState{})
 	dims := measure(t, image.Pt(400, 200), w)
 	if dims.Size.X >= 400 {
@@ -513,9 +513,25 @@ func TestTheCheckStandsBesideTheHeldRowAndNowhereElse(t *testing.T) {
 	if mark(held0, none, 2) || mark(held1, none, 2) {
 		t.Error("the row under the pointer carries a mark; the pill says where the press would land and the check says what is held")
 	}
-	// Everything past the mark's own box is one drawing in all three.
+	// Everything past the mark's own box is one drawing in all three. A
+	// title the check moved shifts whole glyph stems, which moves a pixel by
+	// far more than the five levels white text on the pill lands apart on
+	// between two frames.
+	moved := func(a, b *image.RGBA, r int) bool {
+		for x := markLead + markBox; x < size.X; x++ {
+			for y := r * row; y < (r+1)*row; y++ {
+				u, v := px(a, x, y), px(b, x, y)
+				for _, d := range []int{int(u.R) - int(v.R), int(u.G) - int(v.G), int(u.B) - int(v.B)} {
+					if d > 5 || d < -5 {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
 	for r := range options {
-		if differs(held0, none, r, markLead+markBox, size.X) || differs(held1, none, r, markLead+markBox, size.X) {
+		if moved(held0, none, r) || moved(held1, none, r) {
 			t.Errorf("row %d draws differently past the mark's box; the check moved the title beside it", r)
 		}
 	}
@@ -645,11 +661,13 @@ func TestACappedMenuIsAnchoredByItsDrop(t *testing.T) {
 		start, end int  // the plane's own extent in the capture
 		headClear  bool // whether the pixel before the plane is clear of the trigger
 	}{
-		// The room runs from the trigger's top to six rows past its foot;
-		// six whole rows is what fits in it. Dropping down, the plane's head
-		// stands on the trigger's own last row, which this reads the same as
-		// the plane, so only its foot is read there.
-		{"up", picker.DropUp, triggerY, triggerY + row*6, true},
+		// The room runs from the trigger's top to six rows past its foot.
+		// Dropping up, the plane takes the whole rows that fit in the
+		// trigger's height and the six rows together: seven where the
+		// trigger is a row tall. Dropping down, six whole rows fit, the
+		// plane's head stands on the trigger's own last row, which this
+		// reads the same as the plane, so only its foot is read there.
+		{"up", picker.DropUp, triggerY, triggerY + row*((trig+below)/row), true},
 		{"down", picker.DropDown, triggerY + trig + below - row*6, triggerY + trig + below, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -786,7 +804,7 @@ func TestFieldStateGolden(t *testing.T) {
 			name := "field-" + sc.name + "-" + st.name
 			t.Run(name, func(t *testing.T) {
 				w := picker.RenderField(defaultShaper(t), sc.p, tokens.Spacing,
-					sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, st.s)
+					sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, st.s)
 				golden.Render(t, name, goldenSize, onSurface(sc.p.WindowBackground, w))
 			})
 		}
@@ -807,7 +825,7 @@ func TestOpenFieldGolden(t *testing.T) {
 		name := "field-" + sc.name + "-open"
 		t.Run(name, func(t *testing.T) {
 			w := picker.RenderField(defaultShaper(t), sc.p, tokens.Spacing,
-				sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+				sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				picker.FieldState{Open: true, Options: opts, Selected: 1})
 			golden.Render(t, name, size, onSurface(sc.p.WindowBackground,
 				laidOutAt(row*2, inset(20, w))))
@@ -835,7 +853,7 @@ func TestTheFormTriggersStatesAreApart(t *testing.T) {
 	frame := func(s picker.FieldState) *image.RGBA {
 		return golden.Capture(t, goldenSize, onSurface(tokens.PlatformLight.WindowBackground,
 			picker.RenderField(defaultShaper(t), tokens.PlatformLight, tokens.Spacing,
-				sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s)))
+				sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, s)))
 	}
 	rest := frame(picker.FieldState{Options: opts, Selected: 1})
 	if rest == nil {
@@ -862,7 +880,7 @@ func TestTheTriggersPressWinsOverItsHover(t *testing.T) {
 	frame := func(s picker.FieldState) *image.RGBA {
 		return golden.Capture(t, goldenSize, onSurface(tokens.PlatformLight.WindowBackground,
 			picker.RenderField(defaultShaper(t), tokens.PlatformLight, tokens.Spacing,
-				sharpRadius, tokens.DefaultTypography.BodyLarge, tokens.Comfortable, s)))
+				sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, s)))
 	}
 	held := frame(picker.FieldState{Options: opts, Selected: 1, Pressed: true})
 	if held == nil {
@@ -874,15 +892,13 @@ func TestTheTriggersPressWinsOverItsHover(t *testing.T) {
 	}
 }
 
-// TestCompactTriggerKeepsItsTitleInside holds the Compact box. BodyLarge's
-// line box is 24 dp at every density and the platform's small control is
-// 19 px (controls.md's small control rows: the small push button's published
-// 19 pt, which is what CompactControlHeight carries — no stored capture holds
-// a small pop-up, and one is on the reference's capture list). The role's SIZE
-// does not move: its cap band measures 12 px and stands inside 19 with room
-// either side. What is cut is the leading the line box carries around that
-// band, and the trigger clips what it draws to its own shape, so nothing it
-// paints falls outside the box it reports.
+// TestCompactTriggerKeepsItsTitleInside holds the Compact box. The platform's
+// small control is 19 px (controls.md's small control rows: the small push
+// button's published 19 pt, which is what CompactControlHeight carries — no
+// stored capture holds a small pop-up, and one is on the reference's capture
+// list). The System font role's line stands inside 19 px, and the trigger
+// clips what it draws to its own shape, so nothing it paints falls outside
+// the box it reports.
 func TestCompactTriggerKeepsItsTitleInside(t *testing.T) {
 	const pad = 10
 	surface := color.NRGBA{R: 0xff, G: 0x00, B: 0x00, A: 0xff}
@@ -893,7 +909,7 @@ func TestCompactTriggerKeepsItsTitleInside(t *testing.T) {
 	}{{"comfortable", tokens.Comfortable}, {"compact", tokens.Compact}} {
 		t.Run(d.name, func(t *testing.T) {
 			trigger := picker.RenderField(defaultShaper(t), p, tokens.Spacing,
-				sharpRadius, tokens.DefaultTypography.BodyLarge, d.d,
+				sharpRadius, tokens.DefaultTypography.SystemFont, d.d,
 				picker.FieldState{Options: options, Selected: 1})
 			h := triggerHeight(d.d)
 			img := golden.Capture(t, image.Pt(160+2*pad, h+2*pad), func(gtx layout.Context) layout.Dimensions {
@@ -959,10 +975,10 @@ func TestBothTriggersDrawOneMark(t *testing.T) {
 	}
 
 	fieldW := picker.RenderField(defaultShaper(t), p, tokens.Spacing, sharpRadius,
-		tokens.DefaultTypography.BodyLarge, tokens.Comfortable,
+		tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		picker.FieldState{Options: options, Selected: 1})
 	toolbarW := picker.RenderToolbar(defaultShaper(t), options[1], p,
-		tokens.Spacing, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.Spacing, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		picker.ToolbarState{})
 
 	fb := marks(crop(fieldW, p.PushButtonFill))
@@ -990,7 +1006,7 @@ func TestDisabledTriggerFadesTowardItsStatedSurface(t *testing.T) {
 	size := image.Pt(160, triggerHeight(tokens.Comfortable))
 	render := func(s picker.FieldState) *image.RGBA {
 		return golden.Capture(t, size, picker.RenderField(defaultShaper(t), p,
-			tokens.Spacing, sharpRadius, tokens.DefaultTypography.BodyLarge,
+			tokens.Spacing, sharpRadius, tokens.DefaultTypography.SystemFont,
 			tokens.Comfortable, s))
 	}
 	unstated := render(picker.FieldState{Options: options, Selected: 1, Disabled: true})

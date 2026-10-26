@@ -241,9 +241,9 @@ func capPixels(gtx layout.Context, h unit.Dp) int {
 // golden-image testing and static demonstrations; production code should use
 // [Menu], which reads both of the parameters below off the theme.
 //
-// body is the BodyLarge role's whole text style — typeface, weight, size and
+// body is the SystemFont role's whole text style — typeface, weight, size and
 // line height all reach the shaper — and d is the density the rows draw at.
-// Pass tokens.DefaultTypography.BodyLarge and tokens.Comfortable for the
+// Pass tokens.DefaultTypography.SystemFont and tokens.Comfortable for the
 // default desktop look.
 //
 // There is no radius parameter because a row has no corner: the surface is a
@@ -264,7 +264,7 @@ func RenderMenu(
 }
 
 // menuTokens flattens the theme into the snapshot a menu frame needs: the
-// platform's colours, the BodyLarge style its rows are set in, the spacing
+// platform's colours, the SystemFont style its rows are set in, the spacing
 // scale, the density, and the theme's cached shaper (the theme owns the
 // typeface).
 func menuTokens(th rx.Observable[theme.Theme], spend func(scrollbar.Style) scrollbar.Style) rx.Observable[resolvedTokens] {
@@ -275,7 +275,7 @@ func menuTokens(th rx.Observable[theme.Theme], spend func(scrollbar.Style) scrol
 				typ := n.Second
 				return resolvedTokens{
 					platform: n.First,
-					body:     typ.BodyLarge,
+					body:     typ.SystemFont,
 					spacing:  n.Third,
 					density:  n.Fourth,
 					shaper:   typ.Shaper(),
@@ -291,8 +291,8 @@ func menuTokens(th rx.Observable[theme.Theme], spend func(scrollbar.Style) scrol
 // A row's pointer target is the row: they stack directly against each other,
 // so anything added to one would be taken off its neighbour, and the full row
 // width is what makes a row easy to land on. What they measure, at 1:1, is
-// 28 dp Comfortable and 24 dp Compact — BodyLarge's 24 dp line box plus
-// 2×PaddingY, which wins over the ControlHeight floor in both densities.
+// 24 dp Comfortable and 19 dp Compact — the ControlHeight floor, which wins
+// over the System font role's line plus 2×PaddingY in both densities.
 func layoutMenuLive(gtx layout.Context, shaper *text.Shaper, optClicks []widget.Clickable, rows *list.State, tok resolvedTokens, s MenuState, capPx int) layout.Dimensions {
 	return stackRows(gtx, rows, len(s.Options), capPx, tok, func(gtx layout.Context, i int) layout.Dimensions {
 		return optClicks[i].Layout(gtx, func(gtx layout.Context) layout.Dimensions {

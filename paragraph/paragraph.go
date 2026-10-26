@@ -62,7 +62,7 @@ type SpanStyle struct {
 	// Style is the slant. The zero value is font.Regular.
 	Style font.Style
 	// Size is the text size. Zero falls back to the paragraph default
-	// ([Style].Size, BodyLarge when derived via FromTokens).
+	// ([Style].Size, Body when derived via FromTokens).
 	Size unit.Sp
 	// Color is the text colour. The zero value falls back to the paragraph
 	// default: [Style].Color, or [Style].LinkColor when URL is set.
@@ -229,10 +229,10 @@ type Style struct {
 }
 
 // FromTokens derives the default paragraph style from the platform's colour
-// set and the BodyLarge text style: body text in Text, links in Link, the
+// set and the Body text style: body text in Text, links in Link, the
 // focus ring in the one colour every control in this library rings a focused
 // element with, and the role's own size and line height. Pass
-// tokens.DefaultTypography.BodyLarge for the default desktop look.
+// tokens.DefaultTypography.Body for the default desktop look.
 //
 // standsOn is the opaque fill the paragraph is drawn on. The focus ring
 // carries a coverage rather than a colour, so what it lands as depends on

@@ -26,7 +26,7 @@ func segmentPair(t *testing.T, p tokens.PlatformColors, segs []button.BorderedSe
 		// The band hands the control room, not a width: a segmented control
 		// asked for a width divides it, and this pair is read at its own.
 		gtx.Constraints.Min = image.Point{}
-		d := button.BorderedSegments(gtx, defaultShaper(t), p, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, segs)
+		d := button.BorderedSegments(gtx, defaultShaper(t), p, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, segs)
 		got = d.Size
 		return d
 	}))
@@ -143,7 +143,7 @@ func segmentRow(t *testing.T, p tokens.PlatformColors, segs []button.BorderedSeg
 	img := golden.Capture(t, size, onChrome(p, func(gtx layout.Context) layout.Dimensions {
 		gtx.Metric = unit.Metric{PxPerDp: 1, PxPerSp: 1}
 		gtx.Constraints.Min = image.Pt(width, 0)
-		d := button.BorderedSegments(gtx, defaultShaper(t), p, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable, segs)
+		d := button.BorderedSegments(gtx, defaultShaper(t), p, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, segs)
 		got = d.Size
 		return d
 	}))
@@ -175,12 +175,21 @@ func TestAWordedControlDividesTheWidthItIsAskedFor(t *testing.T) {
 		t.Errorf("the control measures %d tall, want the toolbar control's own %d", box.Y, h)
 	}
 	// The three seams stand at the quarter columns, one pixel each, and the
-	// four segments they part are equal to the pixel.
+	// four segments they part are equal to the pixel. A seam column holds the
+	// rule's colour on every row of a run across the middle row; a glyph's
+	// edge pixel can hold that colour on one row only.
 	rule := p.ToolbarControlSeam
+	isRule := func(x, y int) bool {
+		c := img.RGBAAt(x, y)
+		return c.R == rule.R && c.G == rule.G && c.B == rule.B
+	}
 	var seams []int
 	for x := 1; x < width-1; x++ {
-		c := img.RGBAAt(x, h/2)
-		if c.R == rule.R && c.G == rule.G && c.B == rule.B {
+		run := true
+		for y := h/2 - 4; y <= h/2+4; y++ {
+			run = run && isRule(x, y)
+		}
+		if run {
 			seams = append(seams, x)
 		}
 	}

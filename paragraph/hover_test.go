@@ -66,7 +66,7 @@ func linkRuns(shaper *text.Shaper, style paragraph.Style, spans []paragraph.Span
 func TestLinkHoverReportsEveryChangeAndNothingElse(t *testing.T) {
 	shaper := defaultShaper(t)
 	spans := hoverSpans()
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 	size := image.Pt(400, 100)
 
 	runs := linkRuns(shaper, style, spans, size)
@@ -133,7 +133,7 @@ func TestLinkHoverReportsEveryChangeAndNothingElse(t *testing.T) {
 // callback set, which is every caller written before there was one.
 func TestLinkHoverIsNilSafe(t *testing.T) {
 	shaper := defaultShaper(t)
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 	state := paragraph.NewState()
 	spans := hoverSpans()
 	w := func(gtx layout.Context) layout.Dimensions {
@@ -169,7 +169,7 @@ func equalStrings(a, b []string) bool {
 func TestHoveredLinkBoxIsTheLinkUnderThePointer(t *testing.T) {
 	shaper := defaultShaper(t)
 	spans := hoverSpans()
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 	size := image.Pt(400, 100)
 
 	runs := linkRuns(shaper, style, spans, size)
@@ -238,7 +238,7 @@ func TestHoveredLinkBoxIsTheRunUnderThePointer(t *testing.T) {
 	spans := []paragraph.SpanStyle{
 		{Content: "one two three four five six seven", URL: "https://a.example/long"},
 	}
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 	// Narrow enough that the one link has to be carried onto a second line.
 	size := image.Pt(120, 120)
 
@@ -288,7 +288,7 @@ func TestFocusedLinkBoxSpansEveryLineOfAWrappedLink(t *testing.T) {
 	spans := []paragraph.SpanStyle{
 		{Content: "one two three four five six seven", URL: "https://a.example/long"},
 	}
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 	size := image.Pt(120, 120)
 
 	state := paragraph.NewState()
@@ -316,8 +316,8 @@ func TestFocusedLinkBoxSpansEveryLineOfAWrappedLink(t *testing.T) {
 	if !boxed {
 		t.Fatal("the link holds the keyboard and reports no box")
 	}
-	if box.Dy() >= height {
-		t.Fatalf("the focused link's box is %d tall against a paragraph %d tall; it is taller than the link", box.Dy(), height)
+	if box.Dy() > height {
+		t.Fatalf("the focused link's box is %d tall against a paragraph %d tall; it is taller than the paragraph", box.Dy(), height)
 	}
 	if box.Dy() <= height/3 {
 		t.Errorf("the focused link's box is %d tall in a paragraph %d tall, so it holds one line and not every line of the link", box.Dy(), height)
@@ -330,7 +330,7 @@ func TestFocusedLinkBoxSpansEveryLineOfAWrappedLink(t *testing.T) {
 func TestTheKeyboardReportsTheLinkItReaches(t *testing.T) {
 	shaper := defaultShaper(t)
 	spans := hoverSpans()
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 	size := image.Pt(400, 100)
 
 	var got []string
@@ -392,7 +392,7 @@ func TestTheKeyboardReportsTheLinkItReaches(t *testing.T) {
 func TestThePointerWinsOverTheKeyboard(t *testing.T) {
 	shaper := defaultShaper(t)
 	spans := hoverSpans()
-	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.BodyLarge, tokens.PlatformLight.WindowBackground)
+	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 	size := image.Pt(400, 100)
 
 	runs := linkRuns(shaper, style, spans, size)

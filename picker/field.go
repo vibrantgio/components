@@ -307,7 +307,7 @@ func Field(th rx.Observable[theme.Theme], props FieldProps) rx.Observable[layout
 				typ := n.Second
 				return resolvedTokens{
 					platform: n.First,
-					body:     typ.BodyLarge,
+					body:     typ.SystemFont,
 					spacing:  n.Third,
 					radius:   n.Fourth,
 					density:  n.Fifth,
@@ -471,9 +471,9 @@ func dismissed(gtx layout.Context, outside *int, keys ...event.Tag) bool {
 // Intended for golden-image testing and static demonstrations; production code
 // should use [Field], which reads both of the parameters below off the theme.
 //
-// body is the BodyLarge role's whole text style — typeface, weight, size and
+// body is the SystemFont role's whole text style — typeface, weight, size and
 // line height all reach the shaper — and d is the density the trigger and the
-// option rows draw at. Pass tokens.DefaultTypography.BodyLarge and
+// option rows draw at. Pass tokens.DefaultTypography.SystemFont and
 // tokens.Comfortable for the default desktop look.
 func RenderField(
 	shaper *text.Shaper,
@@ -937,12 +937,10 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	}
 	// The pop-up's height is the control height and nothing else, so the line
 	// box the title is set in is capped to it: MEASURED, controls.md's small
-	// control rows give the platform 19 px for a Compact control, where
-	// BodyLarge's line box is 24 dp at every density. The role's SIZE does not
-	// move — its cap band measures 12 px and stands inside 19 with room to
-	// spare — so what is cut is the leading the line box carries around that
-	// band, and the trigger clips what it draws to its own shape so a Compact
-	// control cannot paint a row of text outside itself.
+	// control rows give the platform 19 px for a Compact control. A role whose
+	// line box is taller than that keeps its SIZE and loses the leading around
+	// its cap band, and the trigger clips what it draws to its own shape so a
+	// Compact control cannot paint a row of text outside itself.
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
 	innerGtx := gtx
 	innerGtx.Constraints = layout.Constraints{

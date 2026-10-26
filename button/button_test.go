@@ -84,7 +84,7 @@ func TestButtonGolden(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			w := button.Render(
 				shaper, "Save Changes",
-				tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+				tc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				tc.state,
 			)
 			golden.Render(t, tc.name, size, w)
@@ -154,7 +154,7 @@ func TestButtonEmphasisGolden(t *testing.T) {
 				t.Run(name, func(t *testing.T) {
 					w := button.Render(
 						shaper, "Save Changes",
-						colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, den.d,
+						colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SystemFont, den.d,
 						state,
 					)
 					golden.Render(t, name, size, onWindowSurface(colors, w))
@@ -208,7 +208,7 @@ func TestEmphasesAreVisuallyDistinct(t *testing.T) {
 	shot := func(e button.Emphasis) *image.RGBA {
 		return golden.Capture(t, size, onWindowSurface(colors, button.Render(
 			shaper, "Click me",
-			colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+			colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 			button.RenderState{Emphasis: e},
 		)))
 	}
@@ -244,12 +244,12 @@ func TestGhostRestsTransparent(t *testing.T) {
 	}))
 	ghost := golden.Capture(t, size, onWindowSurface(colors, button.Render(
 		shaper, "Click me",
-		colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		button.RenderState{Emphasis: button.Ghost},
 	)))
 	filled := golden.Capture(t, size, onWindowSurface(colors, button.Render(
 		shaper, "Click me",
-		colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		button.RenderState{},
 	)))
 	if bare == nil || ghost == nil || filled == nil {
@@ -306,7 +306,7 @@ func TestPinnedFillGolden(t *testing.T) {
 			t.Run(name, func(t *testing.T) {
 				w := button.Render(
 					shaper, "Delete",
-					sc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+					sc.colors, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 					state,
 				)
 				golden.Render(t, name, size, onWindowSurface(sc.colors, w))
@@ -328,7 +328,7 @@ func TestUnpinnedFillDrawsTheStockButton(t *testing.T) {
 	shot := func(s button.RenderState) *image.RGBA {
 		return golden.Capture(t, size, onWindowSurface(colors, button.Render(
 			shaper, "Delete",
-			colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+			colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 			s,
 		)))
 	}
@@ -642,10 +642,10 @@ func TestButtonCompactGolden(t *testing.T) {
 // TestButtonVisualHeightIsControlHeight checks the drawn button is exactly
 // the density's control height, which is also its pointer target.
 //
-// Comfortable is the density where the floor and the content box agree:
-// LabelLarge's 20 dp line box plus 2×PaddingY is exactly
-// ComfortableControlHeight. The two readings are pulled apart at
-// Compact by TestCompactButtonClearsTheControlHeightFloor.
+// At Comfortable the System font role's line box plus 2×PaddingY is under
+// ComfortableControlHeight, so the button draws at that floor.
+// TestCompactButtonDrawsAtTheControlHeightFloor pins the same rule at
+// Compact.
 func TestButtonVisualHeightIsControlHeight(t *testing.T) {
 	shaper := defaultShaper(t)
 
@@ -658,7 +658,7 @@ func TestButtonVisualHeightIsControlHeight(t *testing.T) {
 
 	dims := button.Render(
 		shaper, "OK",
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		button.RenderState{},
 	)(gtx)
 
@@ -668,20 +668,15 @@ func TestButtonVisualHeightIsControlHeight(t *testing.T) {
 	}
 }
 
-// TestCompactButtonClearsTheControlHeightFloor pins the rule that a Compact
-// button draws taller than CompactControlHeight, because ControlHeight is a
-// floor and not a height.
-//
-// The measurement that raised it found 29 px against a floor of 28 — the
-// drawn glyph box of 17 px plus 2×6 dp — and reproduced it with an empty title,
-// so it was never text's doing. With the line box honoured the number is 32:
-// LabelLarge's 20 dp line height plus the same 12 dp of padding. Both are over
-// the floor; only the second is derivable from the tokens, which is why it is
-// the one worth pinning.
+// TestCompactButtonDrawsAtTheControlHeightFloor pins the rule that a button's
+// height is max(ControlHeight, line box + 2×PaddingY). ControlHeight is a
+// floor and not a height. The System font role's 16 dp line box plus
+// Compact's 0 dp padding is under the 19 dp floor, so a Compact button is
+// the floor's height.
 //
 // The title is deliberately empty. A control's height must not depend on which
 // letters it happens to contain, and this is the assertion that says so.
-func TestCompactButtonClearsTheControlHeightFloor(t *testing.T) {
+func TestCompactButtonDrawsAtTheControlHeightFloor(t *testing.T) {
 	shaper := defaultShaper(t)
 
 	var ops op.Ops
@@ -691,7 +686,7 @@ func TestCompactButtonClearsTheControlHeightFloor(t *testing.T) {
 		Ops:         &ops,
 	}
 
-	style := tokens.DefaultTypography.LabelLarge
+	style := tokens.DefaultTypography.SystemFont
 	d := tokens.Compact
 	dims := button.Render(
 		shaper, "",
@@ -699,14 +694,14 @@ func TestCompactButtonClearsTheControlHeightFloor(t *testing.T) {
 		button.RenderState{},
 	)(gtx)
 
-	want := int(style.LineHeight + 2*d.PaddingY) // 20 + 12 = 32
-	if dims.Size.Y != want {
-		t.Errorf("compact button height = %d px, want %d px (LabelLarge line box %v + 2×PaddingY %v)",
-			dims.Size.Y, want, style.LineHeight, d.PaddingY)
+	box := int(style.LineHeight + 2*d.PaddingY)
+	floor := int(d.ControlHeight)
+	if box > floor {
+		t.Fatalf("line box %d px + padding is over the %d px floor; this test pins the floor case", box, floor)
 	}
-	if floor := int(d.ControlHeight); dims.Size.Y <= floor {
-		t.Errorf("compact button height = %d px, expected to clear the %d px floor; if it no longer does, density.go's table is stale",
-			dims.Size.Y, floor)
+	if dims.Size.Y != floor {
+		t.Errorf("compact button height = %d px, want the %d px floor (System font line box %v + 2×PaddingY %v is under it)",
+			dims.Size.Y, floor, style.LineHeight, d.PaddingY)
 	}
 }
 
@@ -773,12 +768,12 @@ func TestButtonDisabledIsVisuallyDistinct(t *testing.T) {
 
 	imgEnabled := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		button.RenderState{},
 	))
 	imgDisabled := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		button.RenderState{Disabled: true},
 	))
 
@@ -798,12 +793,12 @@ func TestButtonFocusRingIsVisuallyDistinct(t *testing.T) {
 
 	imgNormal := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		button.RenderState{},
 	))
 	imgFocused := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		button.RenderState{Focused: true},
 	))
 
@@ -823,12 +818,12 @@ func TestButtonPressedIsVisuallyDistinct(t *testing.T) {
 
 	imgNormal := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		button.RenderState{},
 	))
 	imgPressed := golden.Capture(t, size, button.Render(
 		shaper, "Click me",
-		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+		tokens.PlatformLight, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 		button.RenderState{Pressed: true},
 	))
 
@@ -1024,7 +1019,7 @@ func TestTonalPaintsExactlyTheBoxItReports(t *testing.T) {
 			gtx.Constraints.Max = gtx.Constraints.Max.Sub(image.Pt(2*margin, 2*margin))
 			dims := button.Render(
 				shaper, "Click me",
-				colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.LabelLarge, tokens.Comfortable,
+				colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable,
 				button.RenderState{Emphasis: e},
 			)(gtx)
 			h = dims.Size.Y

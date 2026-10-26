@@ -17,6 +17,7 @@ import (
 	"github.com/vibrantgio/components/chip"
 	"github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 )
 
 // chevron is the deterministic mark the chip goldens lead with: a downward
@@ -35,7 +36,7 @@ func chevron(gtx layout.Context, sizePx int, col color.NRGBA) {
 	w := float32(sizePx)
 	// Unrounded, like the marks the chip draws itself: a whole-pixel width on
 	// an axis-aligned arm reads heavier than the same width on a diagonal.
-	stroke := chip.MarkStrokeDp(tokens.DefaultTypography.LabelLarge) * gtx.Metric.PxPerDp
+	stroke := chip.MarkStrokeDp(tokens.DefaultTypography.SystemFont) * gtx.Metric.PxPerDp
 	if stroke < 1 {
 		stroke = 1
 	}
@@ -122,7 +123,7 @@ func render(shaper *text.Shaper, title string, i chip.Purpose, icon chip.Symbol,
 	p tokens.PlatformColors, s chip.RenderState,
 ) layout.Widget {
 	return chip.Render(shaper, title, i, icon, p, tokens.Spacing, tokens.Radius,
-		tokens.DefaultTypography.LabelLarge, tokens.Comfortable, s)
+		tokens.DefaultTypography.SystemFont, tokens.Comfortable, s)
 }
 
 // purposeRow is the structure in one image: every purpose, and for the filter
@@ -205,11 +206,11 @@ func TestChipCompactGolden(t *testing.T) {
 	p := tokens.PlatformLight
 	w := row(
 		chip.Render(shaper, "Assist", chip.Assist, chevron, p, tokens.Spacing, tokens.Radius,
-			tokens.DefaultTypography.LabelLarge, tokens.Compact, chip.RenderState{}),
+			tokens.DefaultTypography.SystemFont, tokens.Compact, chip.RenderState{}),
 		chip.Render(shaper, "Filter", chip.Filter, nil, p, tokens.Spacing, tokens.Radius,
-			tokens.DefaultTypography.LabelLarge, tokens.Compact, chip.RenderState{Selected: true}),
+			tokens.DefaultTypography.SystemFont, tokens.Compact, chip.RenderState{Selected: true}),
 		chip.Render(shaper, "Input", chip.Input, block, p, tokens.Spacing, tokens.Radius,
-			tokens.DefaultTypography.LabelLarge, tokens.Compact, chip.RenderState{}),
+			tokens.DefaultTypography.SystemFont, tokens.Compact, chip.RenderState{}),
 	)
 	golden.Render(t, "chip-light-compact", goldenSize, onPage(p, w))
 }
@@ -231,9 +232,11 @@ func measure(t *testing.T, w layout.Widget) image.Point {
 // a reader is most likely to re-invent. A chip is off the control family's
 // padding rule: its height is tokens.Density.ChipHeight — the density's
 // control height less the system's chip drop, 20 dp Comfortable and 15 dp
-// Compact — under the title's own line box, which the chip takes wherever that
-// box is taller. At Compact both roles' boxes are taller, so a Compact chip
-// measures its title.
+// Compact — under the line the title draws, which the chip takes wherever
+// that line is taller. The title's line is the role's line box, or the
+// face's own ascent plus descent where that is taller: Roboto draws a 17 px
+// line at 13 sp and a 14 px line at 11 sp. At Compact both roles' lines are
+// taller, so a Compact chip measures its title.
 func TestChipHeightIsTheDensityChipHeightOrTheTitlesBox(t *testing.T) {
 	shaper := defaultShaper(t)
 	for _, d := range []struct {
@@ -246,12 +249,14 @@ func TestChipHeightIsTheDensityChipHeightOrTheTitlesBox(t *testing.T) {
 		for _, style := range []struct {
 			name string
 			ts   tokens.TextStyle
-			want int
 		}{
-			{"label-large", tokens.DefaultTypography.LabelLarge, 20},
-			{"label-medium", tokens.DefaultTypography.LabelMedium, 16},
+			{"system-font", tokens.DefaultTypography.SystemFont},
+			{"small-system-font", tokens.DefaultTypography.SmallSystemFont},
 		} {
-			want := max(int(d.d.ChipHeight()), style.want)
+			line := max(int(style.ts.LineHeight), measure(t, func(gtx layout.Context) layout.Dimensions {
+				return typeset.Text(gtx, shaper, "Model", style.ts, color.NRGBA{A: 0xff}, 1)
+			}).Y)
+			want := max(int(d.d.ChipHeight()), line)
 			for _, in := range []struct {
 				name string
 				i    chip.Purpose
@@ -268,8 +273,8 @@ func TestChipHeightIsTheDensityChipHeightOrTheTitlesBox(t *testing.T) {
 					got := measure(t, chip.Render(shaper, "Model", in.i, in.icon,
 						tokens.PlatformLight, tokens.Spacing, tokens.Radius, style.ts, d.d, in.s))
 					if got.Y != want {
-						t.Errorf("height = %d dp, want %d — the density's chip height %g (%g − %g) under the role's %d dp line box",
-							got.Y, want, d.d.ChipHeight(), d.d.ControlHeight, tokens.ChipDrop, style.want)
+						t.Errorf("height = %d dp, want %d — the density's chip height %g (%g − %g) under the title's %d dp line",
+							got.Y, want, d.d.ChipHeight(), d.d.ControlHeight, tokens.ChipDrop, line)
 					}
 				})
 			}
@@ -297,7 +302,7 @@ func TestChipIsSizedToItsContent(t *testing.T) {
 
 // markPx is the square a mark is drawn in at one pixel per dp: the title's cap
 // band, which is what the chip reserves for every mark but the avatar.
-func markPx() int { return int(math.Round(float64(chip.MarkDp(tokens.DefaultTypography.LabelLarge)))) }
+func markPx() int { return int(math.Round(float64(chip.MarkDp(tokens.DefaultTypography.SystemFont)))) }
 
 // TestEachMarkCostsItsOwnSlot pins the structure in widths, which is the one
 // place a slot can be silently dropped or silently doubled: a leading icon
