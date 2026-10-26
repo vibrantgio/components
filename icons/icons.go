@@ -100,8 +100,7 @@ const (
 
 	// ChevronRight is one chevron pointing trailing, the set's one
 	// right-pointing chevron. What a control does with the picture is that
-	// control's title's to say: a sidebar's disclosure draws it as the row
-	// stands closed and turns it a quarter turn when the row opens, a
+	// control's title's to say: a closed disclosure draws it, a
 	// breadcrumb stands it between two segments as the separator, and the
 	// forward half of a history pair points on with it.
 	ChevronRight Name = "chevron-right"
