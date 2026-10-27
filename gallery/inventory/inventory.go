@@ -735,7 +735,7 @@ var (
 //
 // On macOS 26 the content and the chrome material are one white in the light
 // appearance, so two of the three panes read as one there; in the dark
-// appearance the three are #1e1e1e, #2a3034 and #232a2e. That is the
+// appearance the three are #1e1e1e, #252525 and #1c1c1c. That is the
 // platform's own answer and not a fault of the specimen.
 func chipSurfaces(c tokens.PlatformColors) []struct {
 	name string
