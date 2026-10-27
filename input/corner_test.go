@@ -30,24 +30,17 @@ var (
 	fitCorner    = golden.FitCorner
 )
 
-// TestTheBoxDrawsTheMeasuredCornerAndEdge reads the checkbox's corner and its
-// edge off a capture of the component, in both appearances.
+// TestTheBoxDrawsTheMeasuredCorner reads the checkbox's corner off a capture
+// of the component, in both appearances.
 //
-// The corner: the per-row coverage of the symbol's leading edge, fitted by a
-// circle with the box's own extremes pinned — CG4.8's fit to the sidebar
-// recess's ends — must answer the 5 dp checkboxCornerRadius measures off the
-// save panel's switched-off boxes, where the same fit reads 5.04 light (rms
-// 0.038 px) and 5.34 dark (rms 0.070 px).
-//
-// The edge: a run across the box's middle row, and one down its middle column,
-// must cross exactly one pixel of the platform's field hairline before the
-// box's own interior — the width and colour the save panel's "Tags:" field
-// measures, which is what a control with no capture of its own spends.
-func TestTheBoxDrawsTheMeasuredCornerAndEdge(t *testing.T) {
+// The per-row coverage of the symbol's leading edge, fitted by a circle with
+// the box's own extremes pinned, must answer the 5 dp checkboxCornerRadius
+// measures off the save panel's switched-off boxes, where the same fit reads
+// 5.04 light (rms 0.038 px) and 5.34 dark (rms 0.070 px).
+func TestTheBoxDrawsTheMeasuredCorner(t *testing.T) {
 	const size = 44
 	row := int(tokens.Comfortable.CheckboxRowHeight)
 	lo := (row - symbolSide) / 2
-	mid := lo + symbolSide/2
 
 	for _, sc := range switchedOffReadings {
 		t.Run(sc.name, func(t *testing.T) {
@@ -74,33 +67,6 @@ func TestTheBoxDrawsTheMeasuredCornerAndEdge(t *testing.T) {
 			if math.Abs(r-want) > 0.3 || rms > 0.1 {
 				t.Errorf("the box's corner fits r = %.2f (rms %.3f px over %d rows), want the measured %.0f", r, rms, len(profile), want)
 			}
-
-			edge, fill := control.Border(sc.platform), control.Fill(sc.platform)
-			for _, run := range []struct {
-				what string
-				at   func(i int) (x, y int)
-			}{
-				{"across its middle row, from the leading side", func(i int) (int, int) { return lo + i, mid }},
-				{"across its middle row, from the trailing side", func(i int) (int, int) { return lo + symbolSide - 1 - i, mid }},
-				{"down its middle column, from the top", func(i int) (int, int) { return mid, lo + i }},
-				{"down its middle column, from the bottom", func(i int) (int, int) { return mid, lo + symbolSide - 1 - i }},
-			} {
-				n := 0
-				for i := 0; i < symbolSide; i++ {
-					x, y := run.at(i)
-					if !nearlyEqual(img.RGBAAt(x, y), edge) {
-						break
-					}
-					n++
-				}
-				if n != 1 {
-					t.Errorf("a run %s crosses %d pixels of the field hairline %v, want the measured 1", run.what, n, edge)
-				}
-				x, y := run.at(1)
-				if !nearlyEqual(img.RGBAAt(x, y), fill) {
-					t.Errorf("a run %s reads %v one pixel in, want the box's own fill %v", run.what, img.RGBAAt(x, y), fill)
-				}
-			}
 		})
 	}
 }
@@ -115,9 +81,9 @@ func TestTheBoxDrawsTheMeasuredCornerAndEdge(t *testing.T) {
 // (rms 0.084 px) light and 8.12 (rms 0.073 px) dark off System Settings'
 // selected radio.
 //
-// The edge is the box's, read the same way: one pixel of the field hairline
-// before the disc's own interior, on the row and the column through its
-// centre, where a circle is flat enough to read a width off.
+// The edge is one pixel of the field hairline before the disc's own
+// interior, on the row and the column through its centre, where a circle is
+// flat enough to read a width off.
 func TestTheDiscIsTheMeasuredCircle(t *testing.T) {
 	const size = 44
 	row := int(tokens.Comfortable.CheckboxRowHeight)

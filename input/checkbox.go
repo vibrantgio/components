@@ -61,8 +61,8 @@ const checkboxCornerRadius = unit.Dp(5)
 // on one side of it and the field's interior on the other. The search field
 // on content reads the same 1 px edge with wallpaper tinting off, and its
 // colour is [tokens.PlatformColors.FieldEdge]. No stored capture holds an
-// enabled checkbox or an unselected radio, so the box and the disc use the
-// field's hairline; that capture is on the reference's list.
+// unselected radio, so the disc uses the field's hairline; that capture is
+// on the reference's list.
 const controlEdgeWidth = unit.Dp(1)
 
 // controlTitleGap is the leading gap a checkbox's square — or a radio's
@@ -132,9 +132,9 @@ type CheckboxRenderState struct {
 
 	// Surface is the opaque fill the control stands on. Its focus ring rides
 	// in the slack around the symbol, so the platform's keyboard focus
-	// indicator — a coverage rather than a colour — lands on this, and so
-	// does the symbol's own edge, which is drawn as a shape the fill is inset
-	// inside. The zero value — no colour — is the window's own plane.
+	// indicator — a coverage rather than a colour — lands on this. The
+	// unchecked box's fill is a step apart from this colour. The zero value —
+	// no colour — is the window's own plane.
 	Surface color.NRGBA
 }
 
@@ -353,8 +353,8 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	rrectOuter := clip.RRect{Rect: boxRect, SE: boxRad, SW: boxRad, NE: boxRad, NW: boxRad}
 
 	// Every name the box draws that carries a coverage is flattened onto
-	// what lies under it: the surface for the edge and the ring, which are
-	// shapes the fill is inset inside, and the fill for the check.
+	// what lies under it: the surface for the unchecked fill and the ring,
+	// and the fill for the check.
 	standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
 
 	switch {
@@ -398,24 +398,14 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		drawCheck(gtx, boxRect, boxSz, tok.platform.AlternateSelectedControlText)
 
 	default:
-		// Edge as nested fills: outer rect in the edge colour, inner rect in
-		// the box's own fill. Avoids clip.Stroke anti-aliasing variance in
-		// tests. The edge is one pixel of the platform's field hairline —
-		// controlEdgeWidth's reading — because no stored capture holds an
-		// enabled checkbox and the field beside it on the same sheet is what
-		// the platform draws an edge on.
-		borderPx := gtx.Dp(controlEdgeWidth)
-		innerRad := boxRad - borderPx
-		if innerRad < 0 {
-			innerRad = 0
-		}
-		innerRect := image.Rectangle{
-			Min: image.Pt(offX+borderPx, offY+borderPx),
-			Max: image.Pt(offX+boxSz-borderPx, offY+boxSz-borderPx),
-		}
-		rrectInner := clip.RRect{Rect: innerRect, SE: innerRad, SW: innerRad, NE: innerRad, NW: innerRad}
-		paint.FillShape(gtx.Ops, control.Border(tok.platform), rrectOuter.Op(gtx.Ops))
-		paint.FillShape(gtx.Ops, control.Fill(tok.platform), rrectInner.Op(gtx.Ops))
+		// An unchecked box is one fill and no edge: a filled square a step
+		// apart from the fill it stands on, darker in light and lighter in
+		// dark. The step is the platform's separator flattened onto that
+		// fill, so the box stays seen on any surface. MEASURED, the find
+		// bar's Replace box: #e6e6e6 on #ffffff light, #343434 on #1e1e1e
+		// dark, #393e42 on the tinted #23292e, each the separator to the
+		// byte. Its rim is a one-pixel antialiased ramp to the surface.
+		paint.FillShape(gtx.Ops, uncheckedFill(tok.platform, standsOn), rrectOuter.Op(gtx.Ops))
 	}
 
 	// The focus ring, on the 16 dp box's own outline — the same band in the
@@ -460,6 +450,12 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	}
 
 	return layout.Dimensions{Size: image.Pt(w, ctlSz)}
+}
+
+// uncheckedFill is the fill of an enabled unchecked box on the surface
+// standsOn: the platform's separator flattened onto that surface.
+func uncheckedFill(p tokens.PlatformColors, standsOn color.NRGBA) color.NRGBA {
+	return vgcolor.Flatten(p.Separator, standsOn)
 }
 
 // drawCheck strokes the check into the box at boxRect, boxSz px on a side, in

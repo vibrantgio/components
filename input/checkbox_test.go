@@ -421,8 +421,7 @@ func off(a, b stdcolor.NRGBA) int {
 // reference's #f2f2f2 and #2e3439. And the edge: the platform's switched-off
 // box draws no edge column at all — its rim is a one-pixel antialiased ramp
 // from the fill to the sheet — so every row and column of the box carries the
-// interior's own colour, where the enabled box's first row carries the field
-// edge instead.
+// interior's own colour.
 //
 // Every row and column is read at the box's own middle, where the measured
 // corner cannot reach and the drawing is flat fill or flat edge.
@@ -471,19 +470,79 @@ func TestTheSwitchedOffBoxIsOneFillAndNoEdge(t *testing.T) {
 				}
 			}
 
-			// The enabled box is what an edge row looks like, and it still
-			// draws one.
-			on := golden.Capture(t, image.Pt(size, size), input.RenderCheckbox(
+		})
+	}
+}
+
+// uncheckedReadings is the stored reference's enabled unchecked box, one row
+// per reading. MEASURED, the find bar's Replace box in
+// textedit-find-empty-light.png, textedit-find-untinted-dark.png and
+// textedit-find-empty-dark.png: a 14 px square whose flat interior reads
+// #e6e6e6 on the bar's #ffffff, #343434 on the untinted #1e1e1e and #393e42
+// on the tinted #23292e, with no edge column.
+var uncheckedReadings = []struct {
+	name     string
+	platform tokens.PlatformColors
+	surface  stdcolor.NRGBA
+	box      stdcolor.NRGBA
+}{
+	{"light", tokens.PlatformLight, stdcolor.NRGBA{0xff, 0xff, 0xff, 0xff}, stdcolor.NRGBA{0xe6, 0xe6, 0xe6, 0xff}},
+	{"dark", tokens.PlatformDark, stdcolor.NRGBA{0x1e, 0x1e, 0x1e, 0xff}, stdcolor.NRGBA{0x34, 0x34, 0x34, 0xff}},
+	{"dark tinted", tokens.PlatformDark, stdcolor.NRGBA{0x23, 0x29, 0x2e, 0xff}, stdcolor.NRGBA{0x39, 0x3e, 0x42, 0xff}},
+}
+
+// TestTheUncheckedBoxIsAStepApartWithNoEdge reads the enabled unchecked
+// checkbox off a capture of the component and against the stored reference.
+//
+// The step: the platform's separator flattened onto the surface lands on each
+// measured box to the byte, and the box fills with that. The edge: the
+// platform's box draws no edge column, so every row and column of the box,
+// read at the box's middle, carries the interior's own colour. Light, the box
+// is darker than its surface; dark, it is lighter.
+func TestTheUncheckedBoxIsAStepApartWithNoEdge(t *testing.T) {
+	const size = 44
+	const box = 16
+	row := int(tokens.Comfortable.CheckboxRowHeight)
+	lo := (row - box) / 2
+	hi := lo + box - 1
+	mid := lo + box/2
+
+	for _, sc := range uncheckedReadings {
+		t.Run(sc.name, func(t *testing.T) {
+			want := vgcolor.Flatten(sc.platform.Separator, sc.surface)
+			if want != sc.box {
+				t.Errorf("the separator over %v lands on %v, want the capture's %v", sc.surface, want, sc.box)
+			}
+			lighter := int(want.R)+int(want.G)+int(want.B) > int(sc.surface.R)+int(sc.surface.G)+int(sc.surface.B)
+			if dark := sc.platform.WindowBackground.R < 0x80; lighter != dark {
+				t.Errorf("the box %v against its surface %v: lighter is %v, want %v", want, sc.surface, lighter, dark)
+			}
+
+			img := golden.Capture(t, image.Pt(size, size), input.RenderCheckbox(
 				nil,
 				sc.platform, tokens.Spacing,
 				tokens.DefaultTypography.SystemFont,
-				input.CheckboxRenderState{Surface: sc.sheet},
+				input.CheckboxRenderState{Surface: sc.surface},
 			))
-			if on == nil {
+			if img == nil {
 				return
 			}
-			if on.RGBAAt(mid, lo) == on.RGBAAt(mid, mid) {
-				t.Errorf("an enabled box's first row reads its interior's %v; the enabled box keeps its edge", on.RGBAAt(mid, mid))
+			centre := img.RGBAAt(mid, mid)
+			if !nearlyEqual(centre, want) {
+				t.Errorf("an unchecked box fills %v, want the separator over its surface %v", centre, want)
+			}
+			for _, at := range []struct {
+				what string
+				x, y int
+			}{
+				{"first row", mid, lo},
+				{"last row", mid, hi},
+				{"first column", lo, mid},
+				{"last column", hi, mid},
+			} {
+				if got := img.RGBAAt(at.x, at.y); got != centre {
+					t.Errorf("an unchecked box's %s reads %v against its interior's %v; the platform draws no edge on one", at.what, got, centre)
+				}
 			}
 		})
 	}
