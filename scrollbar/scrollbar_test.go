@@ -80,15 +80,15 @@ func TestFromTokens(t *testing.T) {
 				t.Errorf("TrackColor = %v, want transparent zero value", s.TrackColor)
 			}
 
-			wantMatch := tc.p.FindHighlight
+			wantMatch := tc.p.HighlightFill
 			wantMatch.A = matchCoverage
 			if want := vgcolor.Flatten(wantMatch, rides); s.MatchFill != want {
-				t.Errorf("MatchFill = %v, want FindHighlight at %#x over the content, %v", s.MatchFill, matchCoverage, want)
+				t.Errorf("MatchFill = %v, want HighlightFill at %#x over the content, %v", s.MatchFill, matchCoverage, want)
 			}
-			wantCurrent := tc.p.FindHighlight
+			wantCurrent := tc.p.HighlightFill
 			wantCurrent.A = currentMatchCoverage
 			if want := vgcolor.Flatten(wantCurrent, rides); s.CurrentMatchFill != want {
-				t.Errorf("CurrentMatchFill = %v, want FindHighlight at %#x over the content, %v", s.CurrentMatchFill, currentMatchCoverage, want)
+				t.Errorf("CurrentMatchFill = %v, want HighlightFill at %#x over the content, %v", s.CurrentMatchFill, currentMatchCoverage, want)
 			}
 			if matchCoverage >= currentMatchCoverage {
 				t.Errorf("the current match at %#x is not laid on more strongly than the rest at %#x",

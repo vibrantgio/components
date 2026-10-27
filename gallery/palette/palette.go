@@ -1,6 +1,6 @@
-// Package palette draws the platform's colour set: every name AppKit answers
-// for, in the order the set carries them, with the value each name has in
-// both appearances.
+// Package palette draws the platform's colour set: every name in the set, in
+// the order the set carries them, with the value each name has in both
+// appearances.
 //
 // There is no derivation to show. The set is a recording — read off the
 // platform under the aqua and darkAqua appearances, with the fills the
@@ -103,15 +103,15 @@ const (
 // The section's label and caption.
 const (
 	SetLabel = "The platform's colour set"
-	SetHint  = "every name the platform answers for · in the order the set carries them · a coverage is written after the value it is a coverage of"
+	SetHint  = "in the order the set carries them · a coverage is written after the value it is a coverage of"
 	// HintSep joins one caption clause to the next and is the seam [FitHint]
 	// truncates at.
 	HintSep = " · "
 	// LightHead and DarkHead name the two appearance columns.
 	LightHead = "Light"
 	DarkHead  = "Dark"
-	// NameHead names the column the platform names stand in.
-	NameHead = "Platform name"
+	// NameHead names the column the names stand in.
+	NameHead = "Name"
 )
 
 // Rows is the story as rows of a page's column: the set under its own

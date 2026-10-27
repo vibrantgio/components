@@ -59,7 +59,7 @@ func mixedSpans() []paragraph.SpanStyle {
 // together.
 func pageSpans(p tokens.PlatformColors) []paragraph.SpanStyle {
 	spans := mixedSpans()
-	spans[1].Fills = []paragraph.Fill{{Start: 0, End: len(spans[1].Content), Color: p.FindHighlight}}
+	spans[1].Fills = []paragraph.Fill{{Start: 0, End: len(spans[1].Content), Color: p.HighlightFill}}
 	spans[5].Color = p.ControlText
 	spans[5].Chip = paragraph.Chip{Color: p.Control, Border: p.Separator, Padding: 3, Radius: 4}
 	return spans

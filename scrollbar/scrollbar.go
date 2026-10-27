@@ -91,7 +91,7 @@ type Style struct {
 
 	// MatchFill paints one match of the caller's query in the track.
 	//
-	// FromTokens takes the platform's find highlight at a coverage, so what
+	// FromTokens takes the theme's highlight fill at a coverage, so what
 	// the bar paints and what the content itself is highlighted with are the
 	// same fill, and flattens it onto what the bar rides.
 	MatchFill color.NRGBA
@@ -160,7 +160,7 @@ func (s Style) Width() unit.Dp {
 	return s.ThumbMinorWidth + 2*s.TrackPadding
 }
 
-// The coverages the platform's find highlight is laid on at: one match among
+// The coverages the theme's highlight fill is laid on at: one match among
 // many, and the one the caller is on. The two are one fill at two strengths
 // rather than two colours, so a reader tells the current match from the rest
 // without learning a second mark.
@@ -200,7 +200,7 @@ const (
 // flattened onto rides, for the same reason the thumb is.
 func FromTokens(p tokens.PlatformColors, rides color.NRGBA) Style {
 	rides = surface.Or(rides, p.ControlBackground)
-	match, currentMatch := p.FindHighlight, p.FindHighlight
+	match, currentMatch := p.HighlightFill, p.HighlightFill
 	match.A, currentMatch.A = matchCoverage, currentMatchCoverage
 	// The thumb's own colour is the label's black or white.
 	track := p.ScrollbarThumb
