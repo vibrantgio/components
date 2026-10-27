@@ -172,7 +172,7 @@ type resolvedTokens struct {
 }
 
 // Cell metrics: every pagination control is a Density.ControlHeight square
-// (24 dp Comfortable, 19 dp Compact); the digit centres in the square like
+// (24 dp Comfortable, 20 dp Compact); the digit centres in the square like
 // an icon-button symbol. The chevron symbol takes icon.Size(d), the density's
 // symbol size (20/19 dp), matching components icon buttons. Cells are adjacent controls separated by S2 gaps, so their hit
 // area stays the cell bounds.

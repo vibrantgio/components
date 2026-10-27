@@ -111,7 +111,7 @@ func TestFieldTriggerShowsTheTitle(t *testing.T) {
 // pop-up runs y 336–359, 24 px, the same number the push button beside it
 // draws — a pop-up takes the control height and is not sized by the line box
 // it carries, which is what the 27 px text field above it in that capture is.
-// So the trigger draws 24 comfortable and 19 compact, the chrome variant's
+// So the trigger draws 24 comfortable and 20 compact, the chrome variant's
 // number in both cases, and the two variants agree. That drawn bar is the
 // pointer target, which picker_live_test.go measures.
 func TestFieldTriggerDrawsThePopUpsHeight(t *testing.T) {
@@ -905,10 +905,10 @@ func TestTheTriggersPressWinsOverItsHover(t *testing.T) {
 }
 
 // TestCompactTriggerKeepsItsTitleInside holds the Compact box. The platform's
-// small control is 19 px (controls.md's small control rows: the small push
-// button's published 19 pt, which is what CompactControlHeight carries — no
-// stored capture holds a small pop-up, and one is on the reference's capture
-// list). The System font role's line stands inside 19 px, and the trigger
+// small control is 20 px (controls.md's small control rows: the small pop-ups
+// in finder-view-options-{light,dark}.png and
+// finder-search-criteria-{light,dark}.png, which CompactControlHeight
+// holds). The System font role's line stands inside 20 px, and the trigger
 // clips what it draws to its own shape, so nothing it paints falls outside
 // the box it reports.
 func TestCompactTriggerKeepsItsTitleInside(t *testing.T) {

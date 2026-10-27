@@ -592,7 +592,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, title string, tok resol
 		return drawFindBarButton(gtx, shaper, title, tok, s)
 	}
 	// Sizing rule: button height = Density.ControlHeight (24 dp
-	// Comfortable, 19 dp Compact — the platform's regular and small push
+	// Comfortable, 20 dp Compact — the platform's regular and small push
 	// button), horizontal padding = Density.PaddingX, and the vertical
 	// padding is what the height leaves around the title's line. The drawn
 	// box is also the pointer target: the live path's clickable covers it

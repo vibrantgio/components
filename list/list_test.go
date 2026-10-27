@@ -82,8 +82,9 @@ func TestListGolden(t *testing.T) {
 
 // TestListDensityRowGolden records or diffs a stacked list whose rows hold
 // text only. Such rows take the table row, the density's RowHeight: 20 px
-// Comfortable and 19 px Compact at 1:1 scale. The 150 px viewport shows
-// seven and a half comfortable rows against just under eight compact ones.
+// at both densities at 1:1 scale: the platform's Small sidebar icon size
+// does not change a list's rows. The 150 px viewport shows seven and a half
+// rows at each.
 func TestListDensityRowGolden(t *testing.T) {
 	size := image.Pt(viewW, viewH)
 	cases := []struct {

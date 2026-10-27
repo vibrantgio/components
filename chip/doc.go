@@ -89,7 +89,7 @@
 // # Geometry
 //
 // The height is [tokens.Density.ChipHeight] — the density's control height
-// less the system's chip drop, 20 dp Comfortable and 15 dp Compact — under the
+// less the system's chip drop, 20 dp Comfortable and 16 dp Compact — under the
 // title's own line box, which the chip takes wherever that box is taller. It
 // is not a floor over the padding rule, which is the rule for controls in the
 // control family the chip has just left: a chip is smaller than a button by

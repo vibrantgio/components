@@ -128,7 +128,7 @@
 // MVU loop drives; pass Props.Clickable when an enclosing container such as a
 // dialog must own the focus tag instead. A button fills the width it is given
 // and is at least the density's control height tall — the platform's regular
-// and small push button, 24 dp and 19 dp — so a fixed-size button is laid out
+// and small push button, 24 dp and 20 dp — so a fixed-size button is laid out
 // inside a constrained box. That box is a budget and not a cap: a title that
 // does not fit it widens its own button by the title's measure rather than
 // being elided into it, the way the platform sizes a push button to its

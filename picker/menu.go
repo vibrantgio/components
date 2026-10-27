@@ -291,7 +291,7 @@ func menuTokens(th rx.Observable[theme.Theme], spend func(scrollbar.Style) scrol
 // A row's pointer target is the row: they stack directly against each other,
 // so anything added to one would be taken off its neighbour, and the full row
 // width is what makes a row easy to land on. What they measure, at 1:1, is
-// 24 dp Comfortable and 19 dp Compact — the ControlHeight floor, which wins
+// 24 dp Comfortable and 20 dp Compact — the ControlHeight floor, which wins
 // over the System font role's line in both densities.
 func layoutMenuLive(gtx layout.Context, shaper *text.Shaper, optClicks []widget.Clickable, rows *list.State, tok resolvedTokens, s MenuState, capPx int) layout.Dimensions {
 	return stackRows(gtx, rows, len(s.Options), capPx, tok, func(gtx layout.Context, i int) layout.Dimensions {

@@ -23,7 +23,7 @@ which one a package uses follows from what it owns:
   rebuilds an MVU loop drives. The theme carries the whole look: colour,
   typography (the theme's shaper — see below), and `Density` — a control is
   at least the platform's regular control height, 24 dp, at Comfortable and its
-  small one, 19 dp, at Compact, taller where its type role needs it, and the
+  small one, 20 dp, at Compact, taller where its type role needs it, and the
   drawn control is also the pointer target, so
   Compact moves what a pointer lands on with the pixels.
 - **Immediate-mode primitives** — `list`, `paragraph`, `scrollbar`, `layout` —

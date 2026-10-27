@@ -937,7 +937,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	}
 	// The pop-up's height is the control height and nothing else, so the line
 	// box the title is set in is capped to it: MEASURED, controls.md's small
-	// control rows give the platform 19 px for a Compact control. A role whose
+	// control rows give the platform 20 px for a Compact control. A role whose
 	// line box is taller than that keeps its SIZE and loses the leading around
 	// its cap band, and the trigger clips what it draws to its own shape so a
 	// Compact control cannot paint a row of text outside itself.
