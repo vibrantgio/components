@@ -91,14 +91,13 @@ type Style struct {
 
 	// MatchFill paints one match of the caller's query in the track.
 	//
-	// FromTokens takes the theme's highlight fill at a coverage, so what
-	// the bar paints and what the content itself is highlighted with are the
-	// same fill, and flattens it onto what the bar rides.
+	// FromTokens sets the theme's highlight fill, which is opaque, so the
+	// bar marks a match in the fill the content itself marks it with.
 	MatchFill color.NRGBA
-	// CurrentMatchFill paints the match named by Current, so the reader can
-	// tell it from the others while stepping through them.
+	// CurrentMatchFill paints the match named by Current.
 	//
-	// FromTokens takes the same highlight at a higher coverage.
+	// FromTokens sets the same highlight fill as MatchFill. A caller sets
+	// another colour here to show the current match apart from the rest.
 	CurrentMatchFill color.NRGBA
 	// MatchLen is the extent along the major axis of what one match is
 	// painted as; it spans the track's minor extent, the thumb's own width.
@@ -160,15 +159,6 @@ func (s Style) Width() unit.Dp {
 	return s.ThumbMinorWidth + 2*s.TrackPadding
 }
 
-// The coverages the theme's highlight fill is laid on at: one match among
-// many, and the one the caller is on. The two are one fill at two strengths
-// rather than two colours, so a reader tells the current match from the rest
-// without learning a second mark.
-const (
-	matchCoverage        = 0x66
-	currentMatchCoverage = 0xb2
-)
-
 // FromTokens derives the default scrollbar look from the platform's colour
 // set.
 //
@@ -196,12 +186,9 @@ const (
 //
 // What the bar paints for a search query does not fade with the thumb: the
 // places of the matches stay in the track for as long as the query does, and a
-// reader who has just searched is looking for exactly them. Both fills are
-// flattened onto rides, for the same reason the thumb is.
+// reader who has just searched is looking for exactly them.
 func FromTokens(p tokens.PlatformColors, rides color.NRGBA) Style {
 	rides = surface.Or(rides, p.ControlBackground)
-	match, currentMatch := p.HighlightFill, p.HighlightFill
-	match.A, currentMatch.A = matchCoverage, currentMatchCoverage
 	// The thumb's own colour is the label's black or white.
 	track := p.ScrollbarThumb
 	track.A = standingTrackCoverage
@@ -213,8 +200,8 @@ func FromTokens(p tokens.PlatformColors, rides color.NRGBA) Style {
 		ThumbCornerRadius: 3,
 		ThumbMinLen:       16,
 		Current:           -1,
-		MatchFill:         vgcolor.Flatten(match, rides),
-		CurrentMatchFill:  vgcolor.Flatten(currentMatch, rides),
+		MatchFill:         p.HighlightFill,
+		CurrentMatchFill:  p.HighlightFill,
 		MatchLen:          3,
 		FadeDelay:         time.Second,
 		FadeDuration:      tokens.Motion.DurSlow,

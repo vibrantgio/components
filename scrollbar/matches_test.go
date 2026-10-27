@@ -53,10 +53,11 @@ func at(img *image.RGBA, x, y int) color.NRGBA {
 }
 
 // Every fill the bar paints is opaque: FromTokens flattens the platform's
-// knob and both match fills onto what the bar rides, in encoded sRGB, which
-// is where the platform composites. So a pixel gate reads the fill the bar
-// was handed, whichever of the two it is drawn over, and a match painted
-// over the thumb is the match and not a blend with it.
+// thumb onto what the bar rides, in encoded sRGB, which is where the platform
+// composites, and both match fills are the opaque highlight fill. So a pixel
+// gate reads the fill the bar was handed, whichever of the two it is drawn
+// over, and a match painted over the thumb is the match and not a blend with
+// it.
 func onSurface(fill color.NRGBA, _ tokens.PlatformColors) color.NRGBA { return fill }
 
 func onThumb(fill color.NRGBA, _ tokens.PlatformColors) color.NRGBA { return fill }
@@ -79,7 +80,9 @@ func near(got, want color.NRGBA) bool {
 // once: the row a fraction of the content lands on, and the fill it is
 // painted in. A match at 0.25 paints a quarter of the way down the track, the
 // last one ends level with the track's end rather than running past the bar's
-// own inset, and the one the caller is on is drawn in the stronger fill.
+// own inset, and the one the caller is on is drawn in the current match's
+// fill. By default that fill is the match fill; a caller's own colour lands
+// on the current match alone.
 func TestMatchesPaintWhereTheyLieInTheTrack(t *testing.T) {
 	// The viewport is deliberately the middle fifth, so the thumb covers the
 	// match at 0.5 and the sample proves it is painted over the thumb.
@@ -94,67 +97,81 @@ func TestMatchesPaintWhereTheyLieInTheTrack(t *testing.T) {
 		{1, 395, trackTop + trackLen - 1},
 	}
 	const current = 2 // the match at 0.5
+	own := color.NRGBA{R: 0x30, G: 0x90, B: 0xe0, A: 0xff}
 
 	for _, scheme := range []struct {
 		name string
 		p    tokens.PlatformColors
 	}{{"light", tokens.PlatformLight}, {"dark", tokens.PlatformDark}} {
-		t.Run(scheme.name, func(t *testing.T) {
-			style := FromTokens(scheme.p, scheme.p.ControlBackground)
-			style.Current = current
-			for _, r := range rows {
-				style.Matches = append(style.Matches, r.fraction)
-			}
-			img := barPixels(t, scheme.p, style, NewState(), time.Time{}, viewStart, viewEnd)
+		for _, fill := range []struct {
+			name    string
+			current color.NRGBA // zero keeps FromTokens's fill
+		}{{"default", color.NRGBA{}}, {"own", own}} {
+			t.Run(scheme.name+"/"+fill.name, func(t *testing.T) {
+				style := FromTokens(scheme.p, scheme.p.ControlBackground)
+				if fill.current != (color.NRGBA{}) {
+					style.CurrentMatchFill = fill.current
+				} else if style.MatchFill != scheme.p.HighlightFill || style.CurrentMatchFill != scheme.p.HighlightFill {
+					t.Fatalf("the track's fills are %v and %v, want both the highlight fill %v",
+						style.MatchFill, style.CurrentMatchFill, scheme.p.HighlightFill)
+				}
+				style.Current = current
+				for _, r := range rows {
+					style.Matches = append(style.Matches, r.fraction)
+				}
+				img := barPixels(t, scheme.p, style, NewState(), time.Time{}, viewStart, viewEnd)
 
-			// The match at 0.5 lies under the thumb, so its composite has
-			// the thumb in it; the other three land straight on the plane.
-			marked := onSurface(style.MatchFill, scheme.p)
-			markedOnThumb := onThumb(style.MatchFill, scheme.p)
-			currentOnThumb := onThumb(style.CurrentMatchFill, scheme.p)
-			for i, r := range rows {
-				want := marked
-				if i == current {
-					want = currentOnThumb
-				}
-				for y := r.first; y <= r.end; y++ {
-					if got := at(img, sampleX, y); !near(got, want) {
-						t.Errorf("match %d at %v: row %d is %v, want %v", i, r.fraction, y, got, want)
+				// The match at 0.5 lies under the thumb, so its composite has
+				// the thumb in it; the other three land straight on the plane.
+				marked := onSurface(style.MatchFill, scheme.p)
+				markedOnThumb := onThumb(style.MatchFill, scheme.p)
+				currentOnThumb := onThumb(style.CurrentMatchFill, scheme.p)
+				for i, r := range rows {
+					want := marked
+					if i == current {
+						want = currentOnThumb
+					}
+					for y := r.first; y <= r.end; y++ {
+						if got := at(img, sampleX, y); !near(got, want) {
+							t.Errorf("match %d at %v: row %d is %v, want %v", i, r.fraction, y, got, want)
+						}
+					}
+					for _, y := range []int{r.first - 1, r.end + 1} {
+						got := at(img, sampleX, y)
+						if near(got, marked) || near(got, markedOnThumb) || near(got, currentOnThumb) {
+							t.Errorf("match %d at %v: row %d outside it carries a match fill %v", i, r.fraction, y, got)
+						}
 					}
 				}
-				for _, y := range []int{r.first - 1, r.end + 1} {
-					got := at(img, sampleX, y)
-					if near(got, marked) || near(got, markedOnThumb) || near(got, currentOnThumb) {
-						t.Errorf("match %d at %v: row %d outside it carries a match fill %v", i, r.fraction, y, got)
-					}
-				}
-			}
-			if near(markedOnThumb, currentOnThumb) {
-				t.Errorf("the current match lands as %v, the same as the rest", currentOnThumb)
-			}
 
-			// Nothing reaches past the track's own minor extent — x=2 to
-			// x=8, the thumb's width inside the padding — so a match never
-			// paints into the content the bar stands beside.
-			for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
-				for x := img.Bounds().Min.X; x < img.Bounds().Max.X; x++ {
-					if x >= trackTop && x < trackTop+6 {
-						continue
-					}
-					got := at(img, x, y)
-					if near(got, marked) || near(got, markedOnThumb) || near(got, currentOnThumb) {
-						t.Fatalf("pixel (%d,%d) is %v, outside the track's minor extent", x, y, got)
+				// Nothing reaches past the track's own minor extent — x=2 to
+				// x=8, the thumb's width inside the padding — so a match never
+				// paints into the content the bar stands beside. The caller's
+				// own current fill lands on the current match's rows alone.
+				for y := img.Bounds().Min.Y; y < img.Bounds().Max.Y; y++ {
+					for x := img.Bounds().Min.X; x < img.Bounds().Max.X; x++ {
+						got := at(img, x, y)
+						if fill.current != (color.NRGBA{}) && near(got, own) &&
+							(x < trackTop || x >= trackTop+6 || y < rows[current].first || y > rows[current].end) {
+							t.Fatalf("pixel (%d,%d) is the current match's own fill %v, outside the current match", x, y, got)
+						}
+						if x >= trackTop && x < trackTop+6 {
+							continue
+						}
+						if near(got, marked) || near(got, markedOnThumb) || near(got, currentOnThumb) {
+							t.Fatalf("pixel (%d,%d) is %v, outside the track's minor extent", x, y, got)
+						}
 					}
 				}
-			}
-		})
+			})
+		}
 	}
 }
 
 // TestTheThumbNeverHidesAMatch is the invariant the drawing order exists for:
-// a match the thumb happens to sit on is painted over it, not under it. Both
-// fills carry a coverage, so the two orders land on different composites and
-// the pixel says which one was drawn.
+// a match the thumb happens to sit on is painted over it, not under it. The
+// match fill and the thumb differ, so the two orders land on different pixels
+// and the pixel says which one was drawn.
 func TestTheThumbNeverHidesAMatch(t *testing.T) {
 	for _, scheme := range []struct {
 		name string

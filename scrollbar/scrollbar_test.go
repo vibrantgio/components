@@ -67,9 +67,9 @@ func TestFromTokens(t *testing.T) {
 			s := FromTokens(tc.p, tc.p.ControlBackground)
 
 			rides := tc.p.ControlBackground
-			// Each of the three is the platform's name at its coverage,
-			// resolved against what the bar rides: the platform composites
-			// in encoded sRGB, so the bar paints opaque.
+			// The thumb is the platform's name at its coverage, resolved
+			// against what the bar rides: the platform composites in
+			// encoded sRGB, so the bar paints opaque.
 			if want := vgcolor.Flatten(tc.p.ScrollbarThumb, rides); s.ThumbColor != want {
 				t.Errorf("ThumbColor = %v, want ScrollbarThumb over the content, %v", s.ThumbColor, want)
 			}
@@ -80,22 +80,11 @@ func TestFromTokens(t *testing.T) {
 				t.Errorf("TrackColor = %v, want transparent zero value", s.TrackColor)
 			}
 
-			wantMatch := tc.p.HighlightFill
-			wantMatch.A = matchCoverage
-			if want := vgcolor.Flatten(wantMatch, rides); s.MatchFill != want {
-				t.Errorf("MatchFill = %v, want HighlightFill at %#x over the content, %v", s.MatchFill, matchCoverage, want)
+			if s.MatchFill != tc.p.HighlightFill {
+				t.Errorf("MatchFill = %v, want the theme's highlight fill %v", s.MatchFill, tc.p.HighlightFill)
 			}
-			wantCurrent := tc.p.HighlightFill
-			wantCurrent.A = currentMatchCoverage
-			if want := vgcolor.Flatten(wantCurrent, rides); s.CurrentMatchFill != want {
-				t.Errorf("CurrentMatchFill = %v, want HighlightFill at %#x over the content, %v", s.CurrentMatchFill, currentMatchCoverage, want)
-			}
-			if matchCoverage >= currentMatchCoverage {
-				t.Errorf("the current match at %#x is not laid on more strongly than the rest at %#x",
-					currentMatchCoverage, matchCoverage)
-			}
-			if s.MatchFill == s.CurrentMatchFill {
-				t.Errorf("both match fills land on %v; the reader cannot tell the current one", s.MatchFill)
+			if s.CurrentMatchFill != tc.p.HighlightFill {
+				t.Errorf("CurrentMatchFill = %v, want the theme's highlight fill %v", s.CurrentMatchFill, tc.p.HighlightFill)
 			}
 
 			metrics := []struct {
