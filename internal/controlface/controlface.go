@@ -1,7 +1,7 @@
 // Package controlface holds the geometry the platform's bordered control is
 // drawn from, in both of the variants it stands in: the fill it carries and
-// tints under the pointer, the hairline around it where the platform draws
-// one, the focus ring it has over that hairline, the shape each variant
+// the overlays the platform lays on it, the hairline around it where the
+// platform draws one, the focus ring it has over that hairline, the shape each variant
 // takes, the drop shadow the chrome variant casts on its band, and the pop-up
 // mark that says the control holds one of several values.
 //
@@ -125,21 +125,24 @@ func Fill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
 	return p.ToolbarControlFill
 }
 
-// FormFill is the fill of a bordered control standing in a sheet's or a
-// pane's BODY: the platform's measured push-button fill, under the same hover
-// and press overlays every other fill in this library takes.
+// FormFill is the push button's fill in a sheet's or a pane's BODY: the
+// platform's measured push-button fill, with the press overlay over it while
+// it is held and no overlay under the pointer.
 //
 // MEASURED, save-dialog-{light,dark}.png: the sheet's "Cancel" and its two
 // pop-ups are all filled #ececec light and #333a3f dark, which is
 // [tokens.PlatformColors.PushButtonFill]. It is a step off the sheet in both
 // appearances, which is what lets a body control stand without the band's
 // drop shadow under it and without a rim the platform draws around neither.
+//
+// MEASURED, save-panel-cancel-{rest,hover}-{light,dark}.png: "Cancel" under
+// the pointer and at rest differ in 0 pixels in both appearances, so the
+// platform lays no hover overlay on the push button. Held, the same button
+// reads #d5d5d5 light and #474d52 dark, which is the press overlay over this
+// fill (save-panel-cancel-pressed-{light,dark}.png).
 func FormFill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
-	switch state {
-	case tokens.StatePressed:
+	if state == tokens.StatePressed {
 		return vgcolor.Flatten(p.PressOverlay, p.PushButtonFill)
-	case tokens.StateHover:
-		return vgcolor.Flatten(p.HoverOverlay, p.PushButtonFill)
 	}
 	return p.PushButtonFill
 }

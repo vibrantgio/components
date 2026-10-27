@@ -44,16 +44,16 @@ func TestEmphasisTakesThePlatformsNames(t *testing.T) {
 		p := sc.p
 		plane := p.WindowBackground
 		// The fill each variant carries, and the press overlay laid onto it.
+		// Under the pointer the push button keeps its resting fill; only the
+		// ghost button lays the hover overlay.
 		var (
 			// The default push button's measured fill, which is what the
 			// Filled emphasis paints — not the accent the platform
 			// publishes under it.
 			deflt     = p.DefaultButtonFill
 			defltHit  = on(p.PressOverlay, deflt)
-			defltOver = on(p.HoverOverlay, deflt)
 			push      = p.PushButtonFill
 			pushHit   = on(p.PressOverlay, push)
-			pushOver  = on(p.HoverOverlay, push)
 			ghostHit  = on(p.PressOverlay, plane)
 			ghostOver = on(p.HoverOverlay, plane)
 			pinHit    = on(p.PressOverlay, pinFill)
@@ -70,13 +70,13 @@ func TestEmphasisTakesThePlatformsNames(t *testing.T) {
 			ring  color.NRGBA
 		}{
 			{"filled rest", RenderState{}, deflt, on(p.AlternateSelectedControlText, deflt), on(p.KeyboardFocusIndicator, deflt)},
-			{"filled hovered", RenderState{Hovered: true}, defltOver, on(p.AlternateSelectedControlText, defltOver), on(p.KeyboardFocusIndicator, defltOver)},
+			{"filled hovered", RenderState{Hovered: true}, deflt, on(p.AlternateSelectedControlText, deflt), on(p.KeyboardFocusIndicator, deflt)},
 			{"filled focused", RenderState{Focused: true}, deflt, on(p.AlternateSelectedControlText, deflt), on(p.KeyboardFocusIndicator, deflt)},
 			{"filled pressed", RenderState{Pressed: true}, defltHit, on(p.AlternateSelectedControlText, defltHit), on(p.KeyboardFocusIndicator, defltHit)},
 			{"filled disabled", RenderState{Disabled: true}, pushOff, on(p.DisabledControlText, pushOff), on(p.KeyboardFocusIndicator, pushOff)},
 
 			{"tonal rest", RenderState{Emphasis: Tonal}, push, on(p.ControlText, push), on(p.KeyboardFocusIndicator, push)},
-			{"tonal hovered", RenderState{Emphasis: Tonal, Hovered: true}, pushOver, on(p.ControlText, pushOver), on(p.KeyboardFocusIndicator, pushOver)},
+			{"tonal hovered", RenderState{Emphasis: Tonal, Hovered: true}, push, on(p.ControlText, push), on(p.KeyboardFocusIndicator, push)},
 			{"tonal pressed", RenderState{Emphasis: Tonal, Pressed: true}, pushHit, on(p.ControlText, pushHit), on(p.KeyboardFocusIndicator, pushHit)},
 			{"tonal disabled", RenderState{Emphasis: Tonal, Disabled: true}, pushOff, on(p.DisabledControlText, pushOff), on(p.KeyboardFocusIndicator, pushOff)},
 
@@ -123,22 +123,46 @@ func TestNothingTheButtonPaintsCarriesACoverage(t *testing.T) {
 	}
 }
 
-// Every variant tints under the pointer, and by the platform's own overlay.
-// A ghost, which carries no fill at rest, gains one: that is the very case
-// control-hover-{light,dark}.png measures, a Finder toolbar pop-up reading
-// #f2f2f2 on the white band light and #384146 on the #242d32 band dark.
-func TestEveryVariantTintsUnderThePointer(t *testing.T) {
-	for _, p := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
-		for _, e := range []Emphasis{Filled, Tonal, Ghost} {
-			restBG, _, _, _ := buttonColors(p, RenderState{Emphasis: e})
-			bg, _, _, _ := buttonColors(p, RenderState{Emphasis: e, Hovered: true})
-			if bg == restBG {
-				t.Errorf("%v hovered is still the resting fill %v", e, bg)
+// The push button lays no hover overlay. MEASURED,
+// save-panel-cancel-{rest,hover}-{light,dark}.png: "Cancel" at rest and under
+// the pointer differ in 0 pixels, and its fill reads #ececec light and #333a3f
+// dark in both captures. Held, it reads #d5d5d5 and #474d52
+// (save-panel-cancel-pressed-{light,dark}.png). The filled and tonal buttons
+// are the push button; the ghost button lays the hover overlay over the
+// surface it stands on.
+func TestPushButtonLaysNoHoverOverlay(t *testing.T) {
+	for _, sc := range []struct {
+		name          string
+		p             tokens.PlatformColors
+		tonal, tonalP color.NRGBA
+	}{
+		{"light", tokens.PlatformLight, color.NRGBA{R: 0xec, G: 0xec, B: 0xec, A: 0xff}, color.NRGBA{R: 0xd5, G: 0xd5, B: 0xd5, A: 0xff}},
+		{"dark", tokens.PlatformDark, color.NRGBA{R: 0x33, G: 0x3a, B: 0x3f, A: 0xff}, color.NRGBA{R: 0x47, G: 0x4d, B: 0x52, A: 0xff}},
+	} {
+		p := sc.p
+		for _, e := range []Emphasis{Filled, Tonal} {
+			restBG, restFG, _, _ := buttonColors(p, RenderState{Emphasis: e})
+			bg, fg, _, _ := buttonColors(p, RenderState{Emphasis: e, Hovered: true})
+			if bg != restBG || fg != restFG {
+				t.Errorf("%s: %v under the pointer = %v on %v, want the resting %v on %v", sc.name, e, fg, bg, restFG, restBG)
 			}
-			want := vgcolor.Flatten(p.HoverOverlay, fillOr(restBG, p.WindowBackground))
-			if bg != want {
-				t.Errorf("%v hovered fill = %v, want the platform's hover overlay over the resting fill, %v", e, bg, want)
-			}
+		}
+		if bg, _, _, _ := buttonColors(p, RenderState{Emphasis: Tonal, Hovered: true}); bg != sc.tonal {
+			t.Errorf("%s: tonal under the pointer = %v, want the measured %v", sc.name, bg, sc.tonal)
+		}
+		if bg, _, _, _ := buttonColors(p, RenderState{Emphasis: Tonal, Hovered: true, Pressed: true}); bg != sc.tonalP {
+			t.Errorf("%s: tonal held = %v, want the measured %v", sc.name, bg, sc.tonalP)
+		}
+		ghost, _, _, _ := buttonColors(p, RenderState{Emphasis: Ghost, Hovered: true})
+		if want := vgcolor.Flatten(p.HoverOverlay, p.WindowBackground); ghost != want {
+			t.Errorf("%s: ghost under the pointer = %v, want the hover overlay over the surface, %v", sc.name, ghost, want)
+		}
+		// The symbol push button and the form segmented control.
+		if got := variantFill(p, Form, tokens.StateHover); got != sc.tonal {
+			t.Errorf("%s: form symbol button under the pointer = %v, want the measured %v", sc.name, got, sc.tonal)
+		}
+		if got, want := segmentFill(p, Form, tokens.StateHover), vgcolor.Flatten(p.HoverOverlay, p.PushButtonFill); got != want {
+			t.Errorf("%s: form segment under the pointer = %v, want the hover overlay over the fill, %v", sc.name, got, want)
 		}
 	}
 }

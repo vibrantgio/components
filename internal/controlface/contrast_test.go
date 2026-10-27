@@ -135,3 +135,28 @@ func TestBothOverlaysResolveAgainstTheFill(t *testing.T) {
 		}
 	}
 }
+
+// The push button's fill under the pointer is its resting fill, and held it
+// is the press overlay over that fill. MEASURED,
+// save-panel-cancel-{rest,hover,pressed}-{light,dark}.png: #ececec and
+// #d5d5d5 light, #333a3f and #474d52 dark.
+func TestFormFillLaysNoHoverOverlay(t *testing.T) {
+	for _, sc := range []struct {
+		name        string
+		p           tokens.PlatformColors
+		rest, press color.NRGBA
+	}{
+		{"light", tokens.PlatformLight, color.NRGBA{R: 0xec, G: 0xec, B: 0xec, A: 0xff}, color.NRGBA{R: 0xd5, G: 0xd5, B: 0xd5, A: 0xff}},
+		{"dark", tokens.PlatformDark, color.NRGBA{R: 0x33, G: 0x3a, B: 0x3f, A: 0xff}, color.NRGBA{R: 0x47, G: 0x4d, B: 0x52, A: 0xff}},
+	} {
+		if got := FormFill(sc.p, tokens.StateNormal); got != sc.rest {
+			t.Errorf("%s: FormFill at rest = %v, want the measured %v", sc.name, got, sc.rest)
+		}
+		if got := FormFill(sc.p, tokens.StateHover); got != sc.rest {
+			t.Errorf("%s: FormFill under the pointer = %v, want the measured %v", sc.name, got, sc.rest)
+		}
+		if got := FormFill(sc.p, tokens.StatePressed); got != sc.press {
+			t.Errorf("%s: FormFill held = %v, want the measured %v", sc.name, got, sc.press)
+		}
+	}
+}

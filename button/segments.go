@@ -174,7 +174,7 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 		fills[i] = rest
 		if !s.State.Disabled {
 			if st := controlState(s.State); st == tokens.StateHover || st == tokens.StatePressed {
-				fills[i] = variantFill(p, variant, st)
+				fills[i] = segmentFill(p, variant, st)
 			}
 		}
 		if s.Title == "" {
@@ -305,4 +305,15 @@ func shapeSegmentTitle(gtx layout.Context, shaper *text.Shaper, style tokens.Tex
 	m := op.Record(gtx.Ops)
 	dims := typeset.Text(lg, shaper, title, style, fg, 1)
 	return m.Stop(), dims.Size
+}
+
+// segmentFill is a segment's fill in an interaction state. The form variant's
+// segmented control lays the hover overlay over the push button's fill: the
+// reference measures no hover on the push button only, and holds no segmented
+// control under the pointer.
+func segmentFill(p tokens.PlatformColors, v Variant, st tokens.State) color.NRGBA {
+	if v == Form && st == tokens.StateHover {
+		return vgcolor.Flatten(p.HoverOverlay, p.PushButtonFill)
+	}
+	return variantFill(p, v, st)
 }

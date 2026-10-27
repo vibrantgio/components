@@ -180,7 +180,8 @@ func borderedColors(p tokens.PlatformColors, s RenderState) (fill, fg color.NRGB
 
 // variantFill is the fill a bordered control carries where it stands: the
 // toolbar control's own in a chrome region, the push button's in a form, and
-// the find bar button's in the find bar.
+// the find bar button's in the find bar. The push button lays no hover
+// overlay; [controlface.FormFill] holds the measurement.
 func variantFill(p tokens.PlatformColors, v Variant, st tokens.State) color.NRGBA {
 	switch v {
 	case Chrome:
@@ -192,8 +193,8 @@ func variantFill(p tokens.PlatformColors, v Variant, st tokens.State) color.NRGB
 }
 
 // findBarFill is the find bar button's fill in an interaction state: the
-// push button's fill at rest, and the platform's hover and press coverages over it
-// as the push button takes them.
+// push button's fill at rest, and the platform's hover and press coverages
+// over it.
 func findBarFill(p tokens.PlatformColors, st tokens.State) color.NRGBA {
 	switch st {
 	case tokens.StatePressed:

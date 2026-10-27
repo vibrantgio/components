@@ -814,16 +814,20 @@ func buttonColors(p tokens.PlatformColors, s RenderState) (bg, fg, ringOut, ring
 		}
 	}
 
-	// The pointer overlays go onto whatever fill the emphasis carries, and
+	// The press overlay goes onto whatever fill the emphasis carries, and
 	// straight onto the surface where it carries none — which is how a held
-	// or hovered Ghost button gets a fill at all. A press wins over a hover:
-	// the two are one answer and not two laid on each other. Everything the
-	// button draws over that result is then flattened onto it.
+	// Ghost button gets a fill at all. Under the pointer the push button
+	// (Filled and Tonal) lays no overlay: MEASURED,
+	// save-panel-cancel-{rest,hover}-{light,dark}.png differ in 0 pixels.
+	// The Ghost button, the platform's borderless kind, lays the hover
+	// overlay over the surface. A press wins over a hover: the two are one
+	// answer and not two laid on each other. Everything the button draws
+	// over that result is then flattened onto it.
 	if !s.Disabled {
 		switch {
 		case s.Pressed:
 			bg = vgcolor.Flatten(p.PressOverlay, fillOr(bg, standsOn))
-		case s.Hovered:
+		case s.Hovered && s.Emphasis == Ghost:
 			bg = vgcolor.Flatten(p.HoverOverlay, fillOr(bg, standsOn))
 		}
 	}

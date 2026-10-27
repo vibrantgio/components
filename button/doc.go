@@ -28,11 +28,13 @@
 // added to it. The least pronounced variant is not the smallest one and is no
 // harder to see with a keyboard. The zero value is Filled.
 //
-// Under the pointer every variant takes the platform's hover overlay over
-// whatever fill it carries, and held down its press overlay over that same
-// fill; a press wins, the two not being states that stack. The overlays are
-// the platform's own, each read off the state captures in the organization's
-// macOS reference. Disabled fades the control toward the surface it stands
+// Held down, every variant takes the platform's press overlay over whatever
+// fill it carries. Under the pointer the filled and tonal buttons, the
+// platform's push button, keep their resting fill: the platform lays no hover
+// overlay on a push button. The ghost button takes the platform's hover
+// overlay over the surface it stands on. A press wins, the two not being
+// states that stack. The overlays are the platform's own, each read off the
+// state captures in the organization's macOS reference. Disabled fades the control toward the surface it stands
 // on: the fill at the platform's measured disabled coverage, the foreground
 // at its disabled control text. A fill falls back to
 // the push button's fill first and fades from there, because the platform
