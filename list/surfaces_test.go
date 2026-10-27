@@ -68,13 +68,16 @@ func rowTipWindow(t *testing.T, tipRow int, shown, collected bool) *image.RGBA {
 }
 
 // paintedRows returns the first and last pixel rows where shown differs from
-// hidden, -1 where none does.
+// hidden with the tooltip's fill, -1 where none does. The tooltip's edge and
+// shadow are outside its surface and do not count.
 func paintedRows(shown, hidden *image.RGBA) (top, bottom int) {
 	top, bottom = -1, -1
 	b := shown.Bounds()
+	w := tokens.PlatformLight.WindowBackground
+	fill := color.RGBA{R: w.R, G: w.G, B: w.B, A: 255}
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
-			if shown.RGBAAt(x, y) != hidden.RGBAAt(x, y) {
+			if shown.RGBAAt(x, y) != hidden.RGBAAt(x, y) && shown.RGBAAt(x, y) == fill {
 				if top < 0 {
 					top = y
 				}

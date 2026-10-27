@@ -14,15 +14,15 @@
 // configuration — copy it into your own app and modify as needed.
 //
 // Colour: the platform's own names. A tooltip on this platform is the
-// window's own plane — windowBackgroundColor — inside a separatorColor
-// hairline, with its text in labelColor, and it is the same in both
-// appearances. It carries no colour role of its own.
+// window's own plane — windowBackgroundColor — with its text in labelColor,
+// and it is the same in both appearances. It carries no colour role of its
+// own.
 //
-// No stored capture in the organization's macOS reference holds a tooltip,
-// so the fill, the edge and the text here are the Language's mapping of
-// what a floating annotation is on this platform rather than three numbers
-// read off a capture; the hairline is what a still tooltip is told from its
-// surroundings by, since the cast shadow belongs to whatever places it.
+// Its edge, its rim and its shadow are the help tag's, measured off
+// finder-help-tag-group-window-{light,dark}.png in the organization's macOS
+// reference: tokens.PlatformColors.HelpTagEdge and HelpTagShadow. The edge
+// is one pixel outside the bounds, the rim is on the bounds' first pixels
+// inwards, and the shadow is cast from the bounds moved down.
 //
 // THE FLOATING SURFACE PAINTS LAST. The trigger is drawn where the caller
 // put it; the annotation goes through op.Defer. patterns/popover's package
@@ -221,11 +221,11 @@ type Props struct {
 	// which is what makes sharing it correct. See theme/tokens.Typography.Shaper.
 	Shaper *text.Shaper
 
-	// Surface is the opaque fill the bubble's own hairline lands on: the
-	// hairline is painted as a shape the bubble's fill is inset inside, and
-	// the platform's separator carries a coverage rather than a colour. The
-	// zero value — no colour — is the window's own plane, which is what a
-	// floating surface stands over on this platform.
+	// Surface is the opaque fill the tooltip stands on. The edge and the
+	// shadow are black at a coverage, and the platform composites them on
+	// this fill in encoded sRGB. The zero value — no colour — is the
+	// window's own plane, which is what a floating surface stands over on
+	// this platform.
 	Surface color.NRGBA
 
 	// Arbiter is the set of tooltips this one arbitrates within: showing it
@@ -578,10 +578,10 @@ func placeSurface(
 	drawSurface(gtx, shaper, props, tok, triggerRect, area, bounded)
 }
 
-// drawSurface paints the rounded tooltip bubble with the text inside,
-// positioned adjacent to triggerRect per props.Placement inside area, the
-// available room; bounded says whether area is a bound at all. The bubble is filled with the window's own plane inside a
-// separator hairline.
+// drawSurface paints the tooltip with the text inside, positioned adjacent
+// to triggerRect per props.Placement inside area, the available room;
+// bounded says whether area is a bound at all. The surface has the window's
+// own plane as its fill, and the help tag's edge, rim and shadow.
 //
 // Everything it draws is recorded and handed to op.Defer, so the annotation
 // paints above every sibling the window lays out after the trigger's slot
@@ -652,24 +652,35 @@ func drawSurface(
 	pos := placed.Min
 
 	surfOff := op.Offset(pos).Push(gtx.Ops)
-	rect := clip.RRect{Rect: image.Rectangle{Max: image.Pt(surfW, surfH)}, SE: r, SW: r, NE: r, NW: r}
-	// The hairline is the whole of a still tooltip's edge: the fill is the
-	// window's own plane and the shadow belongs to whatever places it. Two
-	// fills rather than a stroke, because a stroke is centred on its path
-	// and spends half its coverage outside the shape; the inset fill lands
-	// the separator on whole pixels at the coverage the platform recorded.
+	// The edge and the shadow are outside the bounds and go first. The rim
+	// is on the bounds' first pixels inwards, white over the fill, so each
+	// rim pixel is flattened onto the fill and painted opaque.
+	drawEdgeAndShadow(gtx, size, r, tok.platform, surface.Or(props.Surface, tok.platform.WindowBackground))
+	fill := tok.platform.WindowBackground
 	edgePx := max(gtx.Dp(1), 1)
-	innerR := max(r-edgePx, 0)
-	inner := clip.RRect{
-		Rect: image.Rectangle{Min: image.Pt(edgePx, edgePx), Max: image.Pt(surfW-edgePx, surfH-edgePx)},
-		SE:   innerR, SW: innerR, NE: innerR, NW: innerR,
+	inset := 0
+	for _, rim := range tok.platform.HelpTagEdge.Rim {
+		if rim.A == 0 {
+			break
+		}
+		paint.FillShape(gtx.Ops, vgcolor.Flatten(rim, fill), roundedInset(size, r, inset).Op(gtx.Ops))
+		inset += edgePx
 	}
-	paint.FillShape(gtx.Ops, vgcolor.Flatten(tok.platform.Separator, surface.Or(props.Surface, tok.platform.WindowBackground)), rect.Op(gtx.Ops))
-	paint.FillShape(gtx.Ops, tok.platform.WindowBackground, inner.Op(gtx.Ops))
+	paint.FillShape(gtx.Ops, fill, roundedInset(size, r, inset).Op(gtx.Ops))
 	textOff := op.Offset(image.Pt(padH, padV)).Push(gtx.Ops)
 	textCall.Add(gtx.Ops)
 	textOff.Pop()
 	surfOff.Pop()
 
 	op.Defer(gtx.Ops, floating.Stop())
+}
+
+// roundedInset is the surface's bounds, size wide and tall, moved in by
+// inset on every side, with its corner radius r reduced by the same inset.
+func roundedInset(size image.Point, r, inset int) clip.RRect {
+	ri := max(r-inset, 0)
+	return clip.RRect{
+		Rect: image.Rectangle{Max: size}.Inset(inset),
+		SE:   ri, SW: ri, NE: ri, NW: ri,
+	}
 }

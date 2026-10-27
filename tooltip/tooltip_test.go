@@ -1,8 +1,10 @@
 package tooltip_test
 
 import (
+	"fmt"
 	"image"
 	"image/color"
+	"math"
 	"strings"
 	"testing"
 
@@ -17,6 +19,7 @@ import (
 	"github.com/vibrantgio/components/attachment"
 	"github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/tooltip"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 	"github.com/vibrantgio/theme/typeset"
 )
@@ -65,7 +68,8 @@ func scene(w layout.Widget, bg color.NRGBA) layout.Widget {
 // TestTooltipGolden records or diffs the two Measurable goldens —
 // light-shown-top and dark-shown-bottom. The trigger is a small solid
 // rectangle and the surface contains short text in the platform's label
-// colour on the window's own plane, inside a separator hairline. Text is part
+// colour on the window's own plane, with the help tag's edge, rim and
+// shadow. Text is part
 // of the component's contract, so every case rasterises real glyphs and must
 // pass Props.Shaper to keep the rendered face pinned and deterministic.
 func TestTooltipGolden(t *testing.T) {
@@ -221,15 +225,23 @@ func TestAnnotationIsWholeOverALaterSibling(t *testing.T) {
 	}
 }
 
-// annotationRows returns the rows of img the annotation painted on, found by
-// comparing it against the same scene with the annotation hidden: every row
-// holding a pixel the two images differ at.
+// surfacePixel reports whether the pixel at (x, y) is the annotation's own
+// light fill: it differs from the scene with the annotation hidden, and it
+// is the fill. The edge and the shadow around the surface are not its
+// pixels, so the window can cut the shadow and leave the surface whole.
+func surfacePixel(shown, hidden *image.RGBA, x, y int) bool {
+	return shown.RGBAAt(x, y) != hidden.RGBAAt(x, y) && at(shown, x, y) == tokens.PlatformLight.WindowBackground
+}
+
+// annotationRows returns the rows of img the annotation's surface painted
+// on, found by comparing it against the same scene with the annotation
+// hidden: every row holding a pixel of the surface's fill.
 func annotationRows(shown, hidden *image.RGBA) (top, bottom int) {
 	b := shown.Bounds()
 	top, bottom = -1, -1
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
-			if shown.RGBAAt(x, y) == hidden.RGBAAt(x, y) {
+			if !surfacePixel(shown, hidden, x, y) {
 				continue
 			}
 			if top < 0 {
@@ -298,13 +310,13 @@ func TestAnchoredAnnotationStandsOnTheSideWithRoom(t *testing.T) {
 }
 
 // annotationColumns reads back the leading and trailing column the
-// annotation covers, by the same difference the rows are read by.
+// annotation's surface covers, by the same test the rows are read by.
 func annotationColumns(shown, hidden *image.RGBA) (int, int) {
 	left, right := -1, -1
 	b := shown.Bounds()
 	for x := b.Min.X; x < b.Max.X; x++ {
 		for y := b.Min.Y; y < b.Max.Y; y++ {
-			if shown.RGBAAt(x, y) == hidden.RGBAAt(x, y) {
+			if !surfacePixel(shown, hidden, x, y) {
 				continue
 			}
 			if left < 0 {
@@ -602,4 +614,144 @@ func TestASurfaceRecordedInSurfacesIsPlacedInTheAreaItIsGiven(t *testing.T) {
 	if top, _ := annotationRows(shown, hidden); top < y+16 {
 		t.Errorf("the annotation starts at row %d, above the trigger's foot at %d; it was asked for below", top, y+16)
 	}
+}
+
+// TestTheEdgeRimAndShadowAreTheHelpTags draws a tooltip of several lines in
+// both schemes and reads its edge, rim and shadow back. Each pixel is the
+// MEASURED coverage of the help tag in theme/tokens, composited in encoded
+// sRGB on the surface the tooltip stands on, within 1/255. The tooltip is
+// tall, so its sides at mid-height are the curve itself.
+func TestTheEdgeRimAndShadowAreTheHelpTags(t *testing.T) {
+	shaper := defaultShaper(t)
+	box := image.Rect(frameW/2-6, 20, frameW/2+6, 36)
+	cases := []struct {
+		name     string
+		colors   tokens.PlatformColors
+		stands   color.NRGBA
+		fitBelow float64 // the reference's fit of the shadow one pixel inside its rectangle
+	}{
+		{"light", tokens.PlatformLight, color.NRGBA{R: 240, G: 240, B: 240, A: 255}, 32.9},
+		{"dark", tokens.PlatformDark, color.NRGBA{R: 100, G: 100, B: 100, A: 255}, 41.0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			p := tc.colors
+			w := tooltip.Render(shaper, tooltip.Props{
+				Text:      longText,
+				Placement: tooltip.Bottom,
+				Anchor:    func(layout.Context) image.Rectangle { return box },
+				Shaper:    shaper,
+				Surface:   tc.stands,
+			}, true, p, tokens.Spacing, sharpRadius, tokens.DefaultTypography.SmallSystemFont)
+			img := golden.Capture(t, frameSize, scene(w, tc.stands))
+
+			fill := p.WindowBackground
+			b, ok := fillBounds(img, fill)
+			if !ok {
+				t.Fatalf("no pixel of the fill %v was drawn", fill)
+			}
+			rims := 0
+			for _, rim := range p.HelpTagEdge.Rim {
+				if rim.A == 0 {
+					break
+				}
+				rims++
+			}
+			// A rim that lands as the fill itself is inside the fill's
+			// bounds already.
+			grow := 0
+			for i := range rims {
+				if vgcolor.Flatten(p.HelpTagEdge.Rim[i], fill) != fill {
+					grow = rims - i
+					break
+				}
+			}
+			b = b.Inset(-grow)
+
+			a := p.HelpTagShadow.Alpha
+			alpha := func(d int) float64 {
+				if d < 0 || d >= len(a) {
+					return 0
+				}
+				return float64(a[d].A)
+			}
+			corner := func(dx, dy float64) float64 { return dx * dy / (2 * alpha(0)) }
+			// One pixel inside the shadow's rectangle, under the bottom
+			// edge: 2·Alpha[0] − Alpha[1], within 1 of the reference's fit.
+			below := 2*alpha(0) - alpha(1)
+			if math.Abs(below-tc.fitBelow) > 1 {
+				t.Errorf("the shadow under the bottom edge is %.1f, the reference's fit %.1f", below, tc.fitBelow)
+			}
+			off := int(p.HelpTagShadow.Offset)
+			side := float64(p.HelpTagEdge.Side.A)
+			cornerEdge := float64(p.HelpTagEdge.Corner.A)
+			midX, midY := (b.Min.X+b.Max.X)/2, (b.Min.Y+b.Max.Y)/2
+			x0, y0, x1, y1 := b.Min.X, b.Min.Y, b.Max.X, b.Max.Y
+
+			type probe struct {
+				what         string
+				x, y         int
+				shadow, edge float64
+			}
+			probes := []probe{
+				{"top edge", midX, y0 - 1, alpha(off + 1), side},
+				{"bottom edge", midX, y1, below, side},
+				{"leading edge", x0 - 1, midY, alpha(1), side},
+				{"trailing edge", x1, midY, alpha(1), side},
+				{"top leading edge corner", x0 - 1, y0 - 1, corner(alpha(1), alpha(off+1)), cornerEdge},
+				{"top trailing edge corner", x1, y0 - 1, corner(alpha(1), alpha(off+1)), cornerEdge},
+				{"bottom leading edge corner", x0 - 1, y1, corner(alpha(1), below), cornerEdge},
+				{"bottom trailing edge corner", x1, y1, corner(alpha(1), below), cornerEdge},
+			}
+			for d := range len(a) + 1 {
+				probes = append(probes,
+					probe{fmt.Sprintf("shadow %d below", d), midX, y1 - 1 + off + d, alpha(d), 0},
+					probe{fmt.Sprintf("shadow %d out on the leading side", d), x0 - d, midY, alpha(d), 0},
+					probe{fmt.Sprintf("shadow %d out on the trailing side", d), x1 - 1 + d, midY, alpha(d), 0},
+				)
+				if d >= off+2 {
+					probes = append(probes, probe{fmt.Sprintf("shadow %d above", d), midX, y0 + off - d, alpha(d), 0})
+				}
+				if d >= 2 {
+					probes = append(probes,
+						probe{fmt.Sprintf("shadow corner %d,%d top leading", d, d), x0 - d, y0 + off - d, corner(alpha(d), alpha(d)), 0},
+						probe{fmt.Sprintf("shadow corner %d,%d bottom trailing", d, d), x1 - 1 + d, y1 - 1 + off + d, corner(alpha(d), alpha(d)), 0},
+					)
+				}
+			}
+			for _, pr := range probes {
+				if pr.edge == 0 && (pr.x >= x0-1 && pr.x <= x1 && pr.y >= y0-1 && pr.y <= y1) {
+					continue // inside the edge's ring or the bounds
+				}
+				keep := (1 - pr.shadow/255) * (1 - pr.edge/255)
+				want := float64(tc.stands.G) * keep
+				got := at(img, pr.x, pr.y)
+				for _, ch := range []uint8{got.R, got.G, got.B} {
+					if math.Abs(float64(ch)-want) > 1 {
+						t.Errorf("%s at (%d,%d) is %v, want %.1f: black at %.1f/255 of shadow and %.0f/255 of edge on %v",
+							pr.what, pr.x, pr.y, got, want, pr.shadow, pr.edge, tc.stands)
+						break
+					}
+				}
+			}
+
+			for i := range rims {
+				want := vgcolor.Flatten(p.HelpTagEdge.Rim[i], fill)
+				for _, pt := range []image.Point{{midX, y0 + i}, {x0 + i, midY}, {x1 - 1 - i, midY}, {midX, y1 - 1 - i}} {
+					if got := at(img, pt.X, pt.Y); !near(got, want) {
+						t.Errorf("rim pixel %d at %v is %v, want %v", i, pt, got, want)
+					}
+				}
+			}
+			if got := at(img, x0+rims, midY); !near(got, fill) {
+				t.Errorf("the first pixel inside the rim at (%d,%d) is %v, want the fill %v", x0+rims, midY, got, fill)
+			}
+		})
+	}
+}
+
+// near reports whether a and b differ by at most 1 in each channel.
+func near(a, b color.NRGBA) bool {
+	d := func(x, y uint8) bool { return x-y <= 1 || y-x <= 1 }
+	return d(a.R, b.R) && d(a.G, b.G) && d(a.B, b.B)
 }
