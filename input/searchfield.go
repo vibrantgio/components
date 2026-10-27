@@ -58,6 +58,12 @@ const (
 	formGapDp     unit.Dp = 4
 	findBarLeadDp unit.Dp = 9
 	findBarGapDp  unit.Dp = 5
+	// findBarClearTrailDp and findBarCountGapDp place the find bar field's
+	// clear mark: its clear space to the field's edge and from the count's
+	// box. The count's box holds one clear column after a digit's last
+	// pixel, so a box gap of 3 gives the 4 clear columns the platform draws.
+	findBarClearTrailDp unit.Dp = 6
+	findBarCountGapDp   unit.Dp = 3
 )
 
 // SearchFieldProps configures a SearchField instance.
@@ -478,6 +484,9 @@ func (a adorn) shapeCount(gtx layout.Context, shaper *text.Shaper, tok resolvedT
 	}
 	fill := fieldFill(tok.platform, s)
 	col := vgcolor.Flatten(tok.platform.SecondaryLabel, fill)
+	if s.Variant == FindBar {
+		col = control.Placeholder(tok.platform, fill)
+	}
 	if s.Disabled {
 		col = vgcolor.Flatten(tok.platform.DisabledControlText, fill)
 	}
@@ -538,9 +547,16 @@ func (a adorn) clearPx(gtx layout.Context) int { return gtx.Dp(clearMarkDp) }
 // A field with an edge spends that edge's width before the clearance, the way
 // adorn.symbolX spends it at the leading end; the sidebar recess has no edge to
 // spend.
+//
+// MEASURED, textedit-find-match-{light,dark}.png: the find bar field's disc
+// ends at x=406 and its edge column is at x=413, so the find bar's mark ends
+// 6 clear columns inside the edge.
 func (a adorn) clearEndPx(gtx layout.Context, s RenderState) int {
-	if s.Variant == Chrome && s.Region == Sidebar {
+	switch {
+	case s.Variant == Chrome && s.Region == Sidebar:
 		return gtx.Dp(clearTrailDp)
+	case s.Variant == FindBar:
+		return gtx.Dp(hairlineDp) + gtx.Dp(findBarClearTrailDp)
 	}
 	return gtx.Dp(hairlineDp) + gtx.Dp(clearTrailDp)
 }
@@ -621,6 +637,17 @@ func (a adorn) promptGapPx(gtx layout.Context, s RenderState) int {
 	return gtx.Dp(toolbarGapDp)
 }
 
+// countGapPx is the clear space between the count's box and the clear mark's
+// first pixel. The other variants keep their leading gap there. MEASURED,
+// textedit-find-match-light.png: the count "8" ends at x=391 and the disc
+// starts at x=396, 4 clear columns between them.
+func (a adorn) countGapPx(gtx layout.Context, s RenderState) int {
+	if s.Variant == FindBar {
+		return gtx.Dp(findBarCountGapDp)
+	}
+	return a.promptGapPx(gtx, s)
+}
+
 // trailGapPx is the clear space held between the text and the xmark-circle mark.
 func (a adorn) trailGapPx(gtx layout.Context, tok resolvedTokens) int {
 	return gtx.Dp(unit.Dp(tok.spacing.S2))
@@ -653,7 +680,7 @@ func (a adorn) insets(gtx layout.Context, tok resolvedTokens, s RenderState, pad
 		// mark beside it the clear space the field's leading mark keeps from
 		// the text beside IT, and the text the same space it already kept
 		// from the mark.
-		trail += a.countDims.Size.X + a.promptGapPx(gtx, s)
+		trail += a.countDims.Size.X + a.countGapPx(gtx, s)
 	}
 	return lead, trail
 }
@@ -700,7 +727,7 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 	if a.count != "" {
 		x := field.X - padH - a.promptGapPx(gtx, s) - a.countDims.Size.X
 		if a.clear {
-			x = field.X - a.clearLeadPx(gtx, s) - a.promptGapPx(gtx, s) - a.countDims.Size.X
+			x = field.X - a.clearLeadPx(gtx, s) - a.countGapPx(gtx, s) - a.countDims.Size.X
 		}
 		st := op.Offset(image.Pt(x, promptOffset(gtx, tok, field.Y, a.countDims))).Push(gtx.Ops)
 		a.countCall.Add(gtx.Ops)
@@ -723,6 +750,12 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 		mark := a.clearPx(gtx)
 		disc := icons.XmarkCircleDiscSizePx(mark)
 		clearCol := vgcolor.Flatten(tok.platform.ControlText, fill)
+		if s.Variant == FindBar {
+			// MEASURED, textedit-find-match-{light,dark}.png: the find bar
+			// field's disc plateau is #7f7f7f light and #9a9a9a dark, the
+			// platform's placeholder text over the field's fill.
+			clearCol = control.Placeholder(tok.platform, fill)
+		}
 		// The square is placed off the DISC inside it, and at a fraction of a
 		// pixel, because the number the platform gives is the disc's: its last
 		// pixel the measured clearance inside the field's own trailing edge,
