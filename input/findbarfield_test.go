@@ -17,7 +17,8 @@ import (
 // MEASURED, textedit-find-match-{light,dark}.png on the field's middle row:
 // the count "8" ends at x=391, the disc runs x 396–406 and the field's edge
 // column is at x=413. So 4 clear columns stand between the count and the disc,
-// and 6 between the disc and the edge. The count and the disc are the
+// and 6 between the disc and the edge. The disc covers 11 columns and 12 rows,
+// y 43–54: it is 11 px round, and its centre falls on a row boundary. The count and the disc are the
 // platform's placeholder text over the field's fill: #808080 on #ffffff
 // light and #9a9a9a on #1e1e1e dark, to one level.
 func TestFindBarFieldCountAndClearMarkAreTheMeasuredOnes(t *testing.T) {
@@ -81,6 +82,21 @@ func TestFindBarFieldCountAndClearMarkAreTheMeasuredOnes(t *testing.T) {
 			countStart := x + 1
 			if clearToEdge != 6 {
 				t.Errorf("the clear mark ends %d clear columns from the field's edge, want the measured 6", clearToEdge)
+			}
+			if w := discEnd - discStart + 1; w != 11 {
+				t.Errorf("the clear mark's disc covers %d columns, want the measured 11", w)
+			}
+			rows := 0
+			for y := 0; y < size.Y; y++ {
+				for x := discStart; x <= discEnd; x++ {
+					if diff(px(x, y), p.fill) >= 20 {
+						rows++
+						break
+					}
+				}
+			}
+			if rows != 12 {
+				t.Errorf("the clear mark's disc covers %d rows, want the measured 12", rows)
 			}
 			if gap != 4 {
 				t.Errorf("the count ends %d clear columns before the clear mark, want the measured 4", gap)

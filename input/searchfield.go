@@ -64,6 +64,8 @@ const (
 	// pixel, so a box gap of 3 gives the 4 clear columns the platform draws.
 	findBarClearTrailDp unit.Dp = 6
 	findBarCountGapDp   unit.Dp = 3
+	// findBarDiscDp is the find bar field's clear mark disc, across.
+	findBarDiscDp unit.Dp = 11
 )
 
 // SearchFieldProps configures a SearchField instance.
@@ -562,8 +564,23 @@ func (a adorn) clearEndPx(gtx layout.Context, s RenderState) int {
 }
 
 func (a adorn) clearLeadPx(gtx layout.Context, s RenderState) int {
-	disc := float64(icons.XmarkCircleDiscSizePx(a.clearPx(gtx)))
+	disc := float64(a.discPx(gtx, s))
 	return a.clearEndPx(gtx, s) + int(math.Ceil(disc))
+}
+
+// discPx is the clear mark's disc across, in device pixels. Each variant's
+// disc has the size its platform field measures.
+//
+// MEASURED, textedit-find-match-{light,dark}.png: the find bar field's disc
+// covers x 396–406 and y 43–54. The edge coverage puts its extent at 10.8 px
+// across and 10.95 px down, so the disc is 11 px round; its centre falls on a
+// row boundary, so it covers 12 rows. The other variants keep the 13 px disc
+// that [adorn.clearPx] lands.
+func (a adorn) discPx(gtx layout.Context, s RenderState) float32 {
+	if s.Variant == FindBar {
+		return float32(gtx.Dp(findBarDiscDp))
+	}
+	return icons.XmarkCircleDiscSizePx(a.clearPx(gtx))
 }
 
 // drawingPx is how much of that square the looking glass actually covers,
@@ -748,7 +765,11 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 		// ControlText, while the looking glass and the prompt are signals
 		// naming the field and take the field's own text (ruled 2026-09-18).
 		mark := a.clearPx(gtx)
-		disc := icons.XmarkCircleDiscSizePx(mark)
+		disc := a.discPx(gtx, s)
+		// The set draws the disc at a fixed fraction of the square. A disc
+		// of another size scales the whole mark, so the cross keeps its
+		// proportion to the disc.
+		k := disc / icons.XmarkCircleDiscSizePx(mark)
 		clearCol := vgcolor.Flatten(tok.platform.ControlText, fill)
 		if s.Variant == FindBar {
 			// MEASURED, textedit-find-match-{light,dark}.png: the find bar
@@ -763,8 +784,8 @@ func (a adorn) paint(gtx layout.Context, tok resolvedTokens, s RenderState, fiel
 		x := float32(field.X-a.clearEndPx(gtx, s)) - disc
 		y := float32(field.Y)/2 - disc/2
 		if g := icons.Mark(icons.XmarkCircle); g != nil {
-			o := icons.XmarkCircleDiscOriginPx(mark)
-			st := op.Affine(f32.Affine2D{}.Offset(f32.Pt(x-o, y-o))).Push(gtx.Ops)
+			o := icons.XmarkCircleDiscOriginPx(mark) * k
+			st := op.Affine(f32.Affine2D{}.Scale(f32.Pt(0, 0), f32.Pt(k, k)).Offset(f32.Pt(x-o, y-o))).Push(gtx.Ops)
 			g(gtx, mark, clearCol)
 			st.Pop()
 		}
