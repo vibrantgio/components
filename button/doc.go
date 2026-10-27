@@ -97,7 +97,7 @@
 // band, and it is what tells a control from a band the platform fills with
 // the same #ffffff.
 //
-// The find bar variant is 20 high, FindBarButtonFill under the platform's
+// The find bar variant is 20 high, PushButtonFill under the platform's
 // control text, no rim, no shadow and a 5 px corner, measured from TextEdit's
 // find bar. Its segments are 16 wide with a 10 px mark box, and its seam is
 // the separator over the fill with 4 clear rows at each end.

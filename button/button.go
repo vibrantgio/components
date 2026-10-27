@@ -120,7 +120,7 @@ const (
 
 	// FindBar is the button standing in the find bar under the title bar:
 	// the platform's find bar button, short and flat, with no edge, no
-	// shadow and a small corner, in [tokens.PlatformColors.FindBarButtonFill]
+	// shadow and a small corner, in [tokens.PlatformColors.PushButtonFill]
 	// under the platform's control text. It reaches the text path and the
 	// symbol path alike, and [Emphasis] reaches nothing here.
 	//

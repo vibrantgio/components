@@ -192,16 +192,16 @@ func variantFill(p tokens.PlatformColors, v Variant, st tokens.State) color.NRGB
 }
 
 // findBarFill is the find bar button's fill in an interaction state: the
-// measured fill at rest, and the platform's hover and press coverages over it
+// push button's fill at rest, and the platform's hover and press coverages over it
 // as the push button takes them.
 func findBarFill(p tokens.PlatformColors, st tokens.State) color.NRGBA {
 	switch st {
 	case tokens.StatePressed:
-		return vgcolor.Flatten(p.PressOverlay, p.FindBarButtonFill)
+		return vgcolor.Flatten(p.PressOverlay, p.PushButtonFill)
 	case tokens.StateHover:
-		return vgcolor.Flatten(p.HoverOverlay, p.FindBarButtonFill)
+		return vgcolor.Flatten(p.HoverOverlay, p.PushButtonFill)
 	}
-	return p.FindBarButtonFill
+	return p.PushButtonFill
 }
 
 // variantRestingFill is that fill at rest — what a switched-off control fades

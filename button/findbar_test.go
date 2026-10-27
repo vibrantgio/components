@@ -22,7 +22,8 @@ import (
 )
 
 // findBarSchemes holds the reference rows of "What the platform's find bar
-// measures": the bar's fill and the find bar button's fill, per scheme.
+// measures": the bar's fill and the find bar button's fill, per scheme. The
+// dark rows are the readings with wallpaper tinting on.
 var findBarSchemes = []struct {
 	name      string
 	colors    tokens.PlatformColors
@@ -42,20 +43,27 @@ func onBar(bar color.NRGBA, w layout.Widget) layout.Widget {
 	}
 }
 
+// withinOne reports whether every channel of a and b differs by at most 1.
+func withinOne(a, b color.NRGBA) bool {
+	d := func(x, y uint8) bool { return x-y <= 1 || y-x <= 1 }
+	return d(a.R, b.R) && d(a.G, b.G) && d(a.B, b.B)
+}
+
 func pixel(img *image.RGBA, x, y int) color.NRGBA {
 	r, g, b, a := img.At(x, y).RGBA()
 	return color.NRGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
 }
 
 // TestFindBarButtonIsTheMeasuredButton reads Done off the drawn pixels in
-// both schemes: 20 px tall, the measured fill from its first row to its last
-// with no edge row, nothing cast on the bar around it, and a corner of about
-// 5 px.
+// both schemes: 20 px tall, the push button's fill from its first row to its
+// last with no edge row, nothing cast on the bar around it, and a corner of
+// about 5 px.
 //
 // MEASURED, textedit-find-empty-{light,dark}.png: Done is 48 by 20, fill
-// #ececec light and #33393e dark, no edge. The top row's coverage at the
-// leading end leaves 3.1 px missing, against 3.05 for a 5 px circle and 3.85
-// for 6 px.
+// #ececec light and #33393e dark, no edge. The push button's fill is the
+// light reading to the byte and 1 off the tinted dark reading in green and
+// blue. The top row's coverage at the leading end leaves 3.1 px missing,
+// against 3.05 for a 5 px circle and 3.85 for 6 px.
 func TestFindBarButtonIsTheMeasuredButton(t *testing.T) {
 	shaper := defaultShaper(t)
 	for _, sc := range findBarSchemes {
@@ -70,10 +78,14 @@ func TestFindBarButtonIsTheMeasuredButton(t *testing.T) {
 			if dims.Size.Y != 20 {
 				t.Errorf("height = %d, want the measured 20", dims.Size.Y)
 			}
+			fill := sc.colors.PushButtonFill
+			if !withinOne(fill, sc.fill) {
+				t.Errorf("the push button's fill %v differs by more than 1 in a channel from the find bar button's reading %v", fill, sc.fill)
+			}
 			x := 10 + 6 // past the corner, short of the title
 			for y := 10; y < 10+dims.Size.Y; y++ {
-				if got := pixel(img, x, y); got != sc.fill {
-					t.Errorf("row %d at x=%d = %v, want the measured fill %v: no edge row", y-10, x-10, got, sc.fill)
+				if got := pixel(img, x, y); got != fill {
+					t.Errorf("row %d at x=%d = %v, want the push button's fill %v: no edge row", y-10, x-10, got, fill)
 				}
 			}
 			for _, y := range []int{9, 10 + dims.Size.Y} {
@@ -84,7 +96,7 @@ func TestFindBarButtonIsTheMeasuredButton(t *testing.T) {
 			missing := 0.0
 			for dx := 0; dx < dims.Size.X/2; dx++ {
 				g := float64(pixel(img, 10+dx, 10).G)
-				missing += (g - float64(sc.fill.G)) / (float64(sc.bar.G) - float64(sc.fill.G))
+				missing += (g - float64(fill.G)) / (float64(sc.bar.G) - float64(fill.G))
 			}
 			if missing < 2.6 || missing > 3.5 {
 				t.Errorf("the top row misses %.2f px of fill at the leading corner, want about 3.05, a 5 px corner", missing)
@@ -151,8 +163,8 @@ func TestFindBarStepsActOnPressAndKeepNoChoice(t *testing.T) {
 			{State: button.RenderState{Variant: button.FindBar}},
 		})
 	}))
-	if a, b := pixel(img, 10+8, 10+3), pixel(img, 10+25, 10+3); a != b || a != p.FindBarButtonFill {
-		t.Errorf("a segment stated checked reads %v and the other %v; the find bar control keeps no choice, both read %v", a, b, p.FindBarButtonFill)
+	if a, b := pixel(img, 10+8, 10+3), pixel(img, 10+25, 10+3); a != b || a != p.PushButtonFill {
+		t.Errorf("a segment stated checked reads %v and the other %v; the find bar control keeps no choice, both read %v", a, b, p.PushButtonFill)
 	}
 
 	query = false
