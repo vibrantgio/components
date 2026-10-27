@@ -10,6 +10,7 @@ import (
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/paint"
 	"gioui.org/unit"
 
 	"github.com/reactivego/rx"
@@ -479,26 +480,38 @@ func TestTheSwitchedOffBoxIsOneFillAndNoEdge(t *testing.T) {
 // textedit-find-empty-light.png, textedit-find-untinted-dark.png and
 // textedit-find-empty-dark.png: a 14 px square whose flat interior reads
 // #e6e6e6 on the bar's #ffffff, #343434 on the untinted #1e1e1e and #393e42
-// on the tinted #23292e, with no edge column.
+// on the tinted #23292e, with no edge column. MEASURED, the Keyboard
+// Shortcuts sheet's list in keyboard-shortcuts-sheet-{light,dark}.png: a 16 px
+// box reading #d8d8d8 on the row's #efefef light and #4a4d50 on #363a3d dark.
+// MEASURED, keyboard-shortcuts-row-selected-{light,dark}.png: the same box on
+// the selected row in the accent fill, #4086e5 on #1068de light and #3e7dd8
+// on #0e5dce dark.
 var uncheckedReadings = []struct {
-	name     string
-	platform tokens.PlatformColors
-	surface  stdcolor.NRGBA
-	box      stdcolor.NRGBA
+	name      string
+	platform  tokens.PlatformColors
+	surface   stdcolor.NRGBA
+	box       stdcolor.NRGBA
+	accentSel bool
 }{
-	{"light", tokens.PlatformLight, stdcolor.NRGBA{0xff, 0xff, 0xff, 0xff}, stdcolor.NRGBA{0xe6, 0xe6, 0xe6, 0xff}},
-	{"dark", tokens.PlatformDark, stdcolor.NRGBA{0x1e, 0x1e, 0x1e, 0xff}, stdcolor.NRGBA{0x34, 0x34, 0x34, 0xff}},
-	{"dark tinted", tokens.PlatformDark, stdcolor.NRGBA{0x23, 0x29, 0x2e, 0xff}, stdcolor.NRGBA{0x39, 0x3e, 0x42, 0xff}},
+	{"light", tokens.PlatformLight, stdcolor.NRGBA{0xff, 0xff, 0xff, 0xff}, stdcolor.NRGBA{0xe6, 0xe6, 0xe6, 0xff}, false},
+	{"dark", tokens.PlatformDark, stdcolor.NRGBA{0x1e, 0x1e, 0x1e, 0xff}, stdcolor.NRGBA{0x34, 0x34, 0x34, 0xff}, false},
+	{"dark tinted", tokens.PlatformDark, stdcolor.NRGBA{0x23, 0x29, 0x2e, 0xff}, stdcolor.NRGBA{0x39, 0x3e, 0x42, 0xff}, false},
+	{"light list row", tokens.PlatformLight, stdcolor.NRGBA{0xef, 0xef, 0xef, 0xff}, stdcolor.NRGBA{0xd8, 0xd8, 0xd8, 0xff}, false},
+	{"dark list row", tokens.PlatformDark, stdcolor.NRGBA{0x36, 0x3a, 0x3d, 0xff}, stdcolor.NRGBA{0x4a, 0x4d, 0x50, 0xff}, false},
+	{"light accent selection", tokens.PlatformLight, stdcolor.NRGBA{0x10, 0x68, 0xde, 0xff}, stdcolor.NRGBA{0x40, 0x86, 0xe5, 0xff}, true},
+	{"dark accent selection", tokens.PlatformDark, stdcolor.NRGBA{0x0e, 0x5d, 0xce, 0xff}, stdcolor.NRGBA{0x3e, 0x7d, 0xd8, 0xff}, true},
 }
 
 // TestTheUncheckedBoxIsAStepApartWithNoEdge reads the enabled unchecked
 // checkbox off a capture of the component and against the stored reference.
 //
 // The step: the platform's separator flattened onto the surface lands on each
-// measured box to the byte, and the box fills with that. The edge: the
+// measured box to the byte, and the box fills with that. On a selected row in
+// the accent fill, white at 51/255 replaces the separator. The edge: the
 // platform's box draws no edge column, so every row and column of the box,
-// read at the box's middle, carries the interior's own colour. Light, the box
-// is darker than its surface; dark, it is lighter.
+// read at the box's middle, carries the interior's own colour, and the pixel
+// just outside each side is the surface unblended. Light, the box is darker
+// than its surface; dark, and on the accent selection, it is lighter.
 func TestTheUncheckedBoxIsAStepApartWithNoEdge(t *testing.T) {
 	const size = 44
 	const box = 16
@@ -509,27 +522,48 @@ func TestTheUncheckedBoxIsAStepApartWithNoEdge(t *testing.T) {
 
 	for _, sc := range uncheckedReadings {
 		t.Run(sc.name, func(t *testing.T) {
-			want := vgcolor.Flatten(sc.platform.Separator, sc.surface)
+			step := sc.platform.Separator
+			if sc.accentSel {
+				step = stdcolor.NRGBA{0xff, 0xff, 0xff, 51}
+			}
+			want := vgcolor.Flatten(step, sc.surface)
 			if want != sc.box {
-				t.Errorf("the separator over %v lands on %v, want the capture's %v", sc.surface, want, sc.box)
+				t.Errorf("%v over %v lands on %v, want the capture's %v", step, sc.surface, want, sc.box)
 			}
 			lighter := int(want.R)+int(want.G)+int(want.B) > int(sc.surface.R)+int(sc.surface.G)+int(sc.surface.B)
-			if dark := sc.platform.WindowBackground.R < 0x80; lighter != dark {
-				t.Errorf("the box %v against its surface %v: lighter is %v, want %v", want, sc.surface, lighter, dark)
+			if wantLighter := sc.accentSel || sc.platform.WindowBackground.R < 0x80; lighter != wantLighter {
+				t.Errorf("the box %v against its surface %v: lighter is %v, want %v", want, sc.surface, lighter, wantLighter)
 			}
 
-			img := golden.Capture(t, image.Pt(size, size), input.RenderCheckbox(
+			box := input.RenderCheckbox(
 				nil,
 				sc.platform, tokens.Spacing,
 				tokens.DefaultTypography.SystemFont,
-				input.CheckboxRenderState{Surface: sc.surface},
-			))
+				input.CheckboxRenderState{Surface: sc.surface, AccentSelection: sc.accentSel},
+			)
+			img := golden.Capture(t, image.Pt(size, size), func(gtx layout.Context) layout.Dimensions {
+				paint.Fill(gtx.Ops, sc.surface)
+				return box(gtx)
+			})
 			if img == nil {
 				return
 			}
 			centre := img.RGBAAt(mid, mid)
-			if !nearlyEqual(centre, want) {
-				t.Errorf("an unchecked box fills %v, want the separator over its surface %v", centre, want)
+			if !nearlyEqual(centre, sc.box) {
+				t.Errorf("an unchecked box fills %v, want the capture's %v", centre, sc.box)
+			}
+			for _, at := range []struct {
+				what string
+				x, y int
+			}{
+				{"above", mid, lo - 1},
+				{"below", mid, hi + 1},
+				{"before", lo - 1, mid},
+				{"after", hi + 1, mid},
+			} {
+				if got := img.RGBAAt(at.x, at.y); !nearlyEqual(got, sc.surface) {
+					t.Errorf("the pixel %s the box reads %v, want the surface %v unblended", at.what, got, sc.surface)
+				}
 			}
 			for _, at := range []struct {
 				what string

@@ -60,9 +60,10 @@ const checkboxCornerRadius = unit.Dp(5)
 // row at y=243 and one at y=269. Each is a single pixel wide, with the sheet
 // on one side of it and the field's interior on the other. The search field
 // on content reads the same 1 px edge with wallpaper tinting off, and its
-// colour is [tokens.PlatformColors.FieldEdge]. No stored capture holds an
-// unselected radio, so the disc uses the field's hairline; that capture is
-// on the reference's list.
+// colour is [tokens.PlatformColors.FieldEdge]. The checkbox draws no edge:
+// the enabled box is MEASURED with none, under "What the enabled checkbox and
+// the unselected radio measure". The radio's disc draws this hairline. The
+// same section measures the unselected radio as a filled disc with no edge.
 const controlEdgeWidth = unit.Dp(1)
 
 // controlTitleGap is the leading gap a checkbox's square — or a radio's
@@ -136,6 +137,11 @@ type CheckboxRenderState struct {
 	// unchecked box's fill is a step apart from this colour. The zero value —
 	// no colour — is the window's own plane.
 	Surface color.NRGBA
+
+	// AccentSelection is true where Surface is a selected row in the
+	// accent fill with white text. On it the unchecked box is that white at
+	// accentSelectionCoverage over that fill, and the title is that white.
+	AccentSelection bool
 }
 
 // CheckboxProps configures a Checkbox instance.
@@ -162,6 +168,16 @@ type CheckboxProps struct {
 	// Message, if non-nil, causes the checkbox to emit mvu.MessageOp{Message}
 	// on every toggle. This is the MVU integration path.
 	Message any
+
+	// Surface answers the opaque fill the checkbox stands on. The checkbox
+	// calls it on every frame, so a row that becomes selected moves the
+	// box's fill with it. Leave it nil where the checkbox stands on the
+	// window's own plane.
+	Surface func(tokens.PlatformColors) color.NRGBA
+
+	// AccentSelection answers, on every frame, whether Surface is a
+	// selected row in the accent fill with white text. Nil answers false.
+	AccentSelection func() bool
 }
 
 // Checkbox returns an rx.Observable[layout.Widget] that emits a new widget
@@ -244,10 +260,12 @@ func Checkbox(th rx.Observable[theme.Theme], props CheckboxProps) rx.Observable[
 							semantic.DescriptionOp(desc).Add(gtx.Ops)
 						}
 						return drawCheckbox(gtx, tok, CheckboxRenderState{
-							Checked:  b.Value,
-							Focused:  foc,
-							Disabled: dis,
-							Title:    props.Title,
+							Checked:         b.Value,
+							Focused:         foc,
+							Disabled:        dis,
+							Title:           props.Title,
+							Surface:         standsOn(props.Surface, tok.platform),
+							AccentSelection: props.AccentSelection != nil && props.AccentSelection(),
 						})
 					})
 				})
@@ -404,8 +422,10 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		// fill, so the box stays seen on any surface. MEASURED, the find
 		// bar's Replace box: #e6e6e6 on #ffffff light, #343434 on #1e1e1e
 		// dark, #393e42 on the tinted #23292e, each the separator to the
-		// byte. Its rim is a one-pixel antialiased ramp to the surface.
-		paint.FillShape(gtx.Ops, uncheckedFill(tok.platform, standsOn), rrectOuter.Op(gtx.Ops))
+		// byte. MEASURED, the Keyboard Shortcuts sheet's list: #d8d8d8 on the
+		// row's #efefef light, #4a4d50 on #363a3d dark, the separator again.
+		// The box's sides lie on whole pixels with no edge column.
+		paint.FillShape(gtx.Ops, uncheckedFill(tok.platform, standsOn, s.AccentSelection), rrectOuter.Op(gtx.Ops))
 	}
 
 	// The focus ring, on the 16 dp box's own outline — the same band in the
@@ -439,8 +459,11 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	// over it, where both switched-off checkbox titles read #bdbdbd and
 	// #595f62.
 	titleFg := vgcolor.Flatten(tok.platform.Label, standsOn)
-	if s.Disabled {
+	switch {
+	case s.Disabled:
 		titleFg = vgcolor.Flatten(tok.platform.TertiaryLabel, standsOn)
+	case s.AccentSelection:
+		titleFg = tok.platform.AlternateSelectedControlText
 	}
 	w := ctlSz
 	if beside := titleBeside(gtx, tok, boxRect.Max.X, ctlSz, s.Title, titleFg); beside > 0 {
@@ -452,9 +475,27 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 	return layout.Dimensions{Size: image.Pt(w, ctlSz)}
 }
 
+// accentSelectionCoverage is the coverage of the unchecked box on a selected
+// row in the accent fill: the selection's white text colour,
+// AlternateSelectedControlText, at 51/255 over that fill, in both schemes.
+//
+// MEASURED, keyboard-shortcuts-row-selected-{light,dark}.png: the box reads
+// #4086e5 on the selection's #1068de light and #3e7dd8 on #0e5dce dark, with
+// no edge. Solved per channel, white's coverage is 0.201, 0.199 and 0.212
+// light, 0.199, 0.198 and 0.204 dark. On an unselected row the same box
+// is the separator.
+const accentSelectionCoverage = 51
+
 // uncheckedFill is the fill of an enabled unchecked box on the surface
-// standsOn: the platform's separator flattened onto that surface.
-func uncheckedFill(p tokens.PlatformColors, standsOn color.NRGBA) color.NRGBA {
+// standsOn: the platform's separator flattened onto that surface, or the
+// selection's text colour at accentSelectionCoverage flattened onto it where
+// the surface is a selected row in the accent fill.
+func uncheckedFill(p tokens.PlatformColors, standsOn color.NRGBA, accentSelection bool) color.NRGBA {
+	if accentSelection {
+		white := p.AlternateSelectedControlText
+		white.A = accentSelectionCoverage
+		return vgcolor.Flatten(white, standsOn)
+	}
 	return vgcolor.Flatten(p.Separator, standsOn)
 }
 
