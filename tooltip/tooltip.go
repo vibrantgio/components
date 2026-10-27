@@ -655,7 +655,13 @@ func drawSurface(
 	// The edge and the shadow are outside the bounds and go first. The rim
 	// is on the bounds' first pixels inwards, white over the fill, so each
 	// rim pixel is flattened onto the fill and painted opaque.
+	//
+	// The tooltip is drawn inside the window, so the window cuts its edge
+	// and its shadow: nothing of them is painted past the available room.
+	// With no room reported, area is wide enough that it cuts nothing.
+	edgeSt := clip.Rect(area.Sub(pos)).Push(gtx.Ops)
 	drawEdgeAndShadow(gtx, size, r, tok.platform, surface.Or(props.Surface, tok.platform.WindowBackground))
+	edgeSt.Pop()
 	fill := tok.platform.WindowBackground
 	edgePx := max(gtx.Dp(1), 1)
 	inset := 0
