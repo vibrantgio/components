@@ -312,15 +312,21 @@ func PlatformColorRows() []PlatformRow {
 }
 
 // platformFieldColor is the colour one field of the set carries. Most fields
-// are a colour; a measured shadow is a coverage with the reach and the offset
-// it was fitted at, and what this page shows of one is its coverage, the page
-// being a page of colours.
+// are a colour; a measured shadow is a coverage with the geometry it was read
+// at, and a measured edge is a coverage with its corner pixel and its rim.
+// What this page shows of a shadow is its coverage at the edge of the
+// rectangle it is cast from, and of an edge the coverage along its sides, the
+// page being a page of colours.
 func platformFieldColor(v reflect.Value) color.NRGBA {
 	switch f := v.Interface().(type) {
 	case color.NRGBA:
 		return f
 	case tokens.DropShadow:
 		return f.Peak
+	case tokens.ShadowCurve:
+		return f.Alpha[0]
+	case tokens.Edge:
+		return f.Side
 	}
 	return color.NRGBA{}
 }
