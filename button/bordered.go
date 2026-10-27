@@ -107,12 +107,19 @@ func drawBorderedSymbol(gtx layout.Context, icon func(gtx layout.Context, sizePx
 	p := tok.platform
 	h := min(gtx.Dp(unit.Dp(s.Variant.Height(tok.density))), gtx.Constraints.Max.Y)
 	mark, markTop := gtx.Dp(control.ChromeMarkDp), 0
-	if s.Variant == Chrome {
+	switch s.Variant {
+	case Chrome:
 		markTop = (h - mark) / 2
-	} else {
+	case FindBar:
+		mark = gtx.Dp(findBarMarkDp)
+		markTop = (h - mark) / 2
+	default:
 		mark, markTop = control.FormMarkBox(gtx, h)
 	}
 	w := mark + 2*gtx.Dp(control.ChromeMarkSideDp)
+	if s.Variant == FindBar {
+		w = gtx.Dp(findBarSegmentDp)
+	}
 	w = min(w, gtx.Constraints.Max.X)
 	size := image.Pt(w, h)
 	box := image.Rectangle{Max: size}
@@ -122,14 +129,14 @@ func drawBorderedSymbol(gtx layout.Context, icon func(gtx layout.Context, sizePx
 		Hovered:  s.Hovered && !s.Disabled,
 		Pressed:  s.Pressed && !s.Disabled,
 		Focused:  s.Focused && !s.Disabled,
-		Checked:  s.Checked,
+		Checked:  s.Checked && s.Variant != FindBar,
 		StandsOn: surface.Or(s.Surface, p.SidebarMaterial),
 	}
 	var outer clip.RRect
 	if s.Variant == Chrome {
 		outer = controlface.Capsule(gtx, box, p, fill, faceState)
 	} else {
-		outer = controlface.PushButton(gtx, box, gtx.Dp(unit.Dp(tok.radius.Md)), p, fill, faceState)
+		outer = controlface.PushButton(gtx, box, s.Variant.corner(gtx, tok.radius), p, fill, faceState)
 	}
 
 	// The symbol centred in the box, clipped to the control's own shape so a
@@ -172,12 +179,29 @@ func borderedColors(p tokens.PlatformColors, s RenderState) (fill, fg color.NRGB
 }
 
 // variantFill is the fill a bordered control carries where it stands: the
-// toolbar control's own in a chrome region, the push button's in a form.
+// toolbar control's own in a chrome region, the push button's in a form, and
+// the find bar button's in the find bar.
 func variantFill(p tokens.PlatformColors, v Variant, st tokens.State) color.NRGBA {
-	if v == Chrome {
+	switch v {
+	case Chrome:
 		return controlface.Fill(p, st)
+	case FindBar:
+		return findBarFill(p, st)
 	}
 	return controlface.FormFill(p, st)
+}
+
+// findBarFill is the find bar button's fill in an interaction state: the
+// measured fill at rest, and the platform's hover and press coverages over it
+// as the push button takes them.
+func findBarFill(p tokens.PlatformColors, st tokens.State) color.NRGBA {
+	switch st {
+	case tokens.StatePressed:
+		return vgcolor.Flatten(p.PressOverlay, p.FindBarButtonFill)
+	case tokens.StateHover:
+		return vgcolor.Flatten(p.HoverOverlay, p.FindBarButtonFill)
+	}
+	return p.FindBarButtonFill
 }
 
 // variantRestingFill is that fill at rest — what a switched-off control fades

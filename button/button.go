@@ -117,6 +117,28 @@ const (
 	// gives both #ffffff. A bordered control of the form variant stands on a
 	// surface of its own, at the form's control height, and casts none.
 	Chrome
+
+	// FindBar is the button standing in the find bar under the title bar:
+	// the platform's find bar button, short and flat, with no edge, no
+	// shadow and a small corner, in [tokens.PlatformColors.FindBarButtonFill]
+	// under the platform's control text. It reaches the text path and the
+	// symbol path alike, and [Emphasis] reaches nothing here.
+	//
+	// MEASURED, textedit-find-empty-{light,dark}.png: Done is 48 by 20 at
+	// y 38-57 with its title 11 px clear of the fill at each side, and its
+	// top row's coverage steps fit a corner of about 5 px. Its title runs
+	// x 473-498 with a cap band of 8 rows, which is the 11 pt small system
+	// font and not the 13 pt one: the title is set in SmallSystemFont.
+	FindBar
+)
+
+// findBarHeightDp, findBarCornerDp and findBarTitleSideDp are the find bar
+// button's height, its corner and the fill each side of its title. The
+// provenance is on [FindBar].
+const (
+	findBarHeightDp    unit.Dp = 20
+	findBarCornerDp    unit.Dp = 5
+	findBarTitleSideDp unit.Dp = 11
 )
 
 // Height is the control height this variant draws a bordered control at.
@@ -128,10 +150,24 @@ const (
 // caller names the variant and the height follows it, rather than naming a
 // height of its own.
 func (v Variant) Height(d tokens.Density) float32 {
-	if v == Chrome {
+	switch v {
+	case Chrome:
 		return d.ToolbarControlHeight
+	case FindBar:
+		return float32(findBarHeightDp)
 	}
 	return d.ControlHeight
+}
+
+// corner is the radius this variant rounds a bordered control's outer
+// corners to: the push button's [tokens.RadiusScale.Md] in a form, the find
+// bar button's measured 5 px in the find bar. The chrome capsule takes half
+// its height and does not ask.
+func (v Variant) corner(gtx layout.Context, rad tokens.RadiusScale) int {
+	if v == FindBar {
+		return gtx.Dp(findBarCornerDp)
+	}
+	return gtx.Dp(unit.Dp(rad.Md))
 }
 
 // String returns the name of the variant in the vocabulary the design system
@@ -142,6 +178,8 @@ func (v Variant) String() string {
 		return "form"
 	case Chrome:
 		return "chrome"
+	case FindBar:
+		return "find bar"
 	}
 	return fmt.Sprintf("Variant(%d)", int(v))
 }
@@ -162,8 +200,9 @@ type RenderState struct {
 	Emphasis Emphasis
 
 	// Variant is where the button stands: [Form] (the zero value) among
-	// content, [Chrome] in a chrome region. On the text and icon paths it is
-	// read on the symbol path alone — see [Chrome]. On the bordered paths —
+	// content, [Chrome] in a chrome region, [FindBar] in the find bar. On
+	// the text and icon paths [Chrome] is read on the symbol path alone and
+	// [FindBar] on both. On the bordered paths —
 	// [RenderBordered], [BorderedFace], [BorderedShadow] and
 	// [BorderedSegments] — it settles the control's height, its face, its
 	// shape, the room its mark stands in and whether it casts the band's
@@ -238,7 +277,8 @@ type Props struct {
 	// content, [Chrome] in a chrome region, copied straight into RenderState
 	// on every frame. A chrome button whose title is a symbol is drawn as the
 	// platform's bordered toolbar control; one carrying text draws the form
-	// variant. See [Chrome].
+	// variant. See [Chrome]. A find bar button is the platform's find bar
+	// button with a title or a symbol. See [FindBar].
 	Variant Variant
 
 	// Fill and Foreground pin the Filled emphasis' fill and its foreground to a
@@ -318,6 +358,7 @@ type Props struct {
 type resolvedTokens struct {
 	platform tokens.PlatformColors
 	title    tokens.TextStyle // the SystemFont role: typeface, weight, size, line height
+	small    tokens.TextStyle // the SmallSystemFont role, the find bar button's title
 	spacing  tokens.SpacingScale
 	radius   tokens.RadiusScale
 	density  tokens.Density // control height and inner padding
@@ -349,6 +390,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 				return resolvedTokens{
 					platform: n.First,
 					title:    typ.SystemFont,
+					small:    typ.SmallSystemFont,
 					spacing:  n.Third,
 					radius:   n.Fourth,
 					density:  n.Fifth,
@@ -430,6 +472,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 					// button, which carries an emphasis where the bordered
 					// control carries none.
 					chromeSymbol := iconOnly && state.Variant == Chrome
+					findBarSymbol := iconOnly && state.Variant == FindBar
 
 					// The clickable covers the drawn button exactly: a
 					// control's pointer target is the control, so density
@@ -440,7 +483,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 							semantic.LabelOp(props.Title).Add(gtx.Ops)
 							semantic.DescriptionOp(desc).Add(gtx.Ops)
 							semantic.EnabledOp(!dis).Add(gtx.Ops)
-							if chromeSymbol {
+							if chromeSymbol || findBarSymbol {
 								return drawBorderedSymbol(gtx, props.Icon, tok, state)
 							}
 							if iconOnly {
@@ -467,7 +510,8 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 // testing and static demonstrations; production code should use Button, which
 // reads both of the parameters below off the theme.
 //
-// titleStyle is the SystemFont role's whole text style and d is the density
+// titleStyle is the SystemFont role's whole text style, and the
+// SmallSystemFont role's for the [FindBar] variant; d is the density
 // the button draws at (control height and inner padding). Pass
 // tokens.PlatformLight, tokens.DefaultTypography.SystemFont and
 // tokens.Comfortable for the default desktop look. s carries the emphasis alongside the interaction state; its
@@ -544,6 +588,9 @@ const titleRoom = 1 << 20
 // drawButton renders the button visual into gtx. All visual state comes from s;
 // no event queries are performed here.
 func drawButton(gtx layout.Context, shaper *text.Shaper, title string, tok resolvedTokens, s RenderState) layout.Dimensions {
+	if s.Variant == FindBar {
+		return drawFindBarButton(gtx, shaper, title, tok, s)
+	}
 	// Sizing rule: button height = Density.ControlHeight (24 dp
 	// Comfortable, 19 dp Compact — the platform's regular and small push
 	// button), horizontal padding = Density.PaddingX, and the vertical
@@ -801,4 +848,42 @@ func fillOr(bg, standsOn color.NRGBA) color.NRGBA {
 // zero would draw a title nobody can read, so a half-written pin is no pin.
 func pinnedFill(s RenderState) bool {
 	return s.Fill.A != 0 && s.Foreground.A != 0
+}
+
+// drawFindBarButton renders the find bar button with a text title: the
+// bordered face at [FindBar]'s height and corner, as wide as its title and
+// the measured fill each side of it. It does not take the width the caller
+// leaves it, because the platform sizes Done to its title. All visual state
+// comes from s; no event queries are performed here.
+func drawFindBarButton(gtx layout.Context, shaper *text.Shaper, title string, tok resolvedTokens, s RenderState) layout.Dimensions {
+	p := tok.platform
+	fill, fg := borderedColors(p, s)
+
+	titleGtx := gtx
+	titleGtx.Constraints.Min = image.Pt(0, 0)
+	titleGtx.Constraints.Max.X = titleRoom
+	mTitle := op.Record(gtx.Ops)
+	style := tok.title
+	if tok.small.Size > 0 {
+		style = tok.small
+	}
+	titleDims := typeset.Text(titleGtx, shaper, title, style, fg, 1)
+	titleCall := mTitle.Stop()
+
+	h := gtx.Dp(findBarHeightDp)
+	w := max(titleDims.Size.X+2*gtx.Dp(findBarTitleSideDp), gtx.Constraints.Min.X)
+	size := image.Pt(w, h)
+	controlface.PushButton(gtx, image.Rectangle{Max: size}, FindBar.corner(gtx, tok.radius), p, fill, controlface.State{
+		Focused:  s.Focused && !s.Disabled,
+		StandsOn: surface.Or(s.Surface, p.SidebarMaterial),
+	})
+
+	off := op.Offset(image.Pt((w-titleDims.Size.X)/2, (h-titleDims.Size.Y)/2)).Push(gtx.Ops)
+	titleCall.Add(gtx.Ops)
+	off.Pop()
+
+	if !s.Disabled {
+		pointershape.OverSize(gtx.Ops, size, pointer.CursorPointer)
+	}
+	return layout.Dimensions{Size: size}
 }

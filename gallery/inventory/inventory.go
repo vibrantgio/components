@@ -520,6 +520,8 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 		// to the controls alone runs it into the heading below.
 		{Name: "components-searchfield", Title: "Search field — at rest, holding a query with its clear mark, and the recess it takes on chrome", Height: 84,
 			Body: inv.searchFieldRow(c)},
+		{Name: "components-findbar", Title: "Find bar — the search field, the previous and next control and Done in their find bar variants, holding a query and empty", Height: 70,
+			Body: inv.findBarRow(c)},
 		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled, then the same controls carrying their own titles", Height: 96,
 			Body: inv.toggleRow(c)},
 		{Name: "components-picker", Title: "Picker — the form trigger at rest, under the pointer, held, focused and switched off, then open with its menu standing over it, beside the chrome toolbar at rest and under the pointer", Height: 200,
@@ -1323,6 +1325,74 @@ func (inv *Inventory) searchFieldRow(c tokens.PlatformColors) layout.Widget {
 			}))
 		}
 		return layout.Flex{}.Layout(gtx, cs...)
+	}
+}
+
+// findBarRow is the find bar's three controls in their find bar variants,
+// leading to trailing as the platform places them: the field taking the width
+// the others leave, the previous and next control, and Done. The first bar
+// holds a query with the keyboard in the field and its count; the second is
+// empty, its prompt showing and both segments disabled. Each bar is 31 px of
+// the window's own fill. The margins and gaps are the platform's:
+//
+// MEASURED, textedit-find-empty-light.png at y=47: 7 clear columns lead the
+// field, 7 stand before the previous and next control, 8 before Done, and 9
+// trail it.
+func (inv *Inventory) findBarRow(c tokens.PlatformColors) layout.Widget {
+	const barH, lead, gapField, gapDone, trail = 31, 7, 7, 8, 9
+	bar := func(field input.RenderState, query bool) layout.Widget {
+		field.Variant = input.FindBar
+		field.Surface = c.WindowBackground
+		return func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min = image.Point{}
+			size := image.Pt(gtx.Constraints.Max.X, gtx.Dp(barH))
+			paint.FillShape(gtx.Ops, c.WindowBackground, clip.Rect{Max: size}.Op())
+			centre := func(w layout.Widget) layout.FlexChild {
+				return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					m := op.Record(gtx.Ops)
+					dims := w(gtx)
+					call := m.Stop()
+					defer op.Offset(image.Pt(0, (size.Y-dims.Size.Y+1)/2)).Push(gtx.Ops).Pop()
+					call.Add(gtx.Ops)
+					return layout.Dimensions{Size: image.Pt(dims.Size.X, size.Y)}
+				})
+			}
+			steps := func(gtx layout.Context) layout.Dimensions {
+				seg := button.RenderState{Variant: button.FindBar, Surface: c.WindowBackground, Disabled: !query}
+				return button.BorderedSegments(gtx, nil, c, tokens.Radius, tokens.TextStyle{}, tokens.Comfortable, []button.BorderedSegment{
+					{Icon: inv.marks.Mark(icons.ChevronLeft), State: seg},
+					{Icon: inv.marks.Mark(icons.ChevronRight), State: seg},
+				})
+			}
+			done := button.Render(inv.shaper, "Done", c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SmallSystemFont, tokens.Comfortable,
+				button.RenderState{Variant: button.FindBar, Surface: c.WindowBackground})
+			search := input.RenderSearch(inv.shaper, "Find", c, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, field)
+			layout.Flex{}.Layout(gtx,
+				layout.Rigid(complayout.HSpacer(lead)),
+				layout.Flexed(1, func(gtx layout.Context) layout.Dimensions {
+					m := op.Record(gtx.Ops)
+					dims := search(gtx)
+					call := m.Stop()
+					defer op.Offset(image.Pt(0, (size.Y-dims.Size.Y+1)/2)).Push(gtx.Ops).Pop()
+					call.Add(gtx.Ops)
+					return layout.Dimensions{Size: image.Pt(dims.Size.X, size.Y)}
+				}),
+				layout.Rigid(complayout.HSpacer(gapField)),
+				centre(steps),
+				layout.Rigid(complayout.HSpacer(gapDone)),
+				centre(done),
+				layout.Rigid(complayout.HSpacer(trail)),
+			)
+			return layout.Dimensions{Size: size}
+		}
+	}
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(586))
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(bar(input.RenderState{Text: "Gio", Count: "8", Focused: true}, true)),
+			layout.Rigid(complayout.VSpacer(8)),
+			layout.Rigid(bar(input.RenderState{}, false)),
+		)
 	}
 }
 

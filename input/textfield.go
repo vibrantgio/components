@@ -84,9 +84,9 @@ type RenderState struct {
 // Variant is where a search field stands, and it is the whole of what one
 // search field differs from another by.
 //
-// The platform draws two different controls under one name: a bordered field
-// on a form, and a flat recess on chrome. Which one is drawn is the region
-// the field is in, not a choice about prominence.
+// The platform draws three different controls under one name: a bordered
+// field on a form, a flat recess on chrome, and the find bar's field. Which
+// one is drawn is the region the field is in, not a choice about prominence.
 type Variant uint8
 
 const (
@@ -102,7 +102,23 @@ const (
 	// at the top of System Settings' sidebar and off the one at the trailing
 	// end of Voice Memos' toolbar. Which of the two is drawn is [Region].
 	Chrome
+	// FindBar is the find bar's field, in the strip a find within the
+	// content opens under the title bar: the form's hairline, its ends fully
+	// rounded, its interior the platform's text background whatever the bar
+	// under it is filled with. Escape is not taken by it, and Enter and
+	// Shift+Enter are reported to the caller (see [SearchFieldProps.OnNext]).
+	//
+	// MEASURED, textedit-find-unfocused-{light,dark}.png: the field is 22 px
+	// tall (y 37-58) with a 1 px edge, #f3f3f3 light; its interior is the
+	// bar's #ffffff light and #1e1e1e dark on a #23292e bar. The looking
+	// glass starts 9 clear columns after the edge column, and the text starts
+	// 5 clear columns after the symbol.
+	FindBar
 )
+
+// findBarFieldDp is the find bar field's height. The provenance is on
+// [FindBar].
+const findBarFieldDp unit.Dp = 22
 
 // Region is the chrome region a search field stands in. The platform draws
 // one recess on a sidebar and another in a toolbar — a different height, a
@@ -412,6 +428,8 @@ func fieldFill(p tokens.PlatformColors, s RenderState) color.NRGBA {
 		return control.ToolbarRecess(p)
 	case s.Variant == Chrome:
 		return control.Recess(p)
+	case s.Variant == FindBar:
+		return p.TextBackground
 	}
 	return control.FieldFill(p, s.Surface)
 }
@@ -435,6 +453,8 @@ func fieldMinH(gtx layout.Context, tok resolvedTokens, s RenderState, ad adorn) 
 		return gtx.Dp(unit.Dp(tok.density.ToolbarControlHeight))
 	case s.Variant == Chrome:
 		return gtx.Dp(unit.Dp(tok.density.SidebarSearchFieldHeight))
+	case s.Variant == FindBar:
+		return gtx.Dp(findBarFieldDp)
 	case ad.search:
 		return gtx.Dp(unit.Dp(tok.density.SearchFieldHeight))
 	}

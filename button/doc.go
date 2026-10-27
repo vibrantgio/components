@@ -60,12 +60,18 @@
 // text draws the form variant, because no stored toolbar band holds a control
 // with a word in it to measure one from.
 //
+// [FindBar] is the button in the find bar under the title bar: the platform's
+// find bar button, short, flat, with no edge and a small corner, on the text
+// path and the symbol path alike. The emphasis reaches nothing there either.
+// The segmented control in that variant is the momentary previous and next
+// control, [FindBarSteps]: each segment acts when pressed and keeps no choice.
+//
 // # What each variant draws
 //
 // The platform draws its bordered control — the symbol button
 // ([RenderBordered], [BorderedFace]) and the segmented control
-// ([BorderedSegments]) — in both variants, and the variant settles every one
-// of these at once:
+// ([BorderedSegments]) — in the form and chrome variants, and the variant
+// settles every one of these at once:
 //
 //	              form                        chrome
 //	height        d.ControlHeight, 24         d.ToolbarControlHeight, 36
@@ -90,6 +96,11 @@
 // with the chrome variant and not with borderedness: it was measured on a
 // band, and it is what tells a control from a band the platform fills with
 // the same #ffffff.
+//
+// The find bar variant is 20 high, FindBarButtonFill under the platform's
+// control text, no rim, no shadow and a 5 px corner, measured from TextEdit's
+// find bar. Its segments are 16 wide with a 10 px mark box, and its seam is
+// the separator over the fill with 4 clear rows at each end.
 //
 // [RenderBordered] is the whole control on the pure path, and [BorderedShadow]
 // around [BorderedFace] is the pair a caller that owns the control's own

@@ -56,6 +56,8 @@ const (
 	toolbarGapDp  unit.Dp = 8
 	formLeadDp    unit.Dp = 7
 	formGapDp     unit.Dp = 4
+	findBarLeadDp unit.Dp = 9
+	findBarGapDp  unit.Dp = 5
 )
 
 // SearchFieldProps configures a SearchField instance.
@@ -71,7 +73,8 @@ type SearchFieldProps struct {
 	// Variant is where this field stands: [Form] on the content's plane,
 	// where the platform draws the field as a capsule with a hairline edge
 	// around the surface beneath it, [Chrome] on a sidebar or a toolbar,
-	// where it draws a flat recess. The zero value is Form.
+	// where it draws a flat recess, [FindBar] in the find bar, where it
+	// draws the find bar's field. The zero value is Form.
 	//
 	// State Surface with it: the recess is opaque, but the focus ring and
 	// the marks around it still composite onto the chrome material the
@@ -150,6 +153,16 @@ type SearchFieldProps struct {
 	// nothing else.
 	Count func() string
 
+	// OnNext and OnPrevious are called when Enter and Shift+Enter are
+	// pressed in the field, and NextMessage and PreviousMessage are emitted
+	// as mvu.MessageOp at the same time. They are read in the [FindBar]
+	// variant alone, where Enter steps to the next match and Shift+Enter to
+	// the previous one. What stepping means is the caller's.
+	OnNext          func(gtx layout.Context)
+	OnPrevious      func(gtx layout.Context)
+	NextMessage     any
+	PreviousMessage any
+
 	// Shaper is an explicit per-instance override of the text shaper. Leave
 	// it nil in normal use. See [TextFieldProps.Shaper].
 	Shaper *text.Shaper
@@ -170,6 +183,11 @@ type SearchFieldProps struct {
 // Gio gives a key event to the first request in the frame that matches it, so
 // a handler around the field that takes Escape when the field is empty asks
 // for the key after the field has laid out.
+//
+// In the [FindBar] variant the field does not take Escape at all, so the
+// handler that closes the find gets it with text typed or none. Enter and
+// Shift+Enter go to [SearchFieldProps.OnNext] and
+// [SearchFieldProps.OnPrevious], and the editor does not see them.
 //
 // What is found and how the matches are marked is the consumer's — this
 // field holds a query and nothing else.
@@ -264,6 +282,35 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 					}
 				}
 
+				// The find bar field reads Return and Enter before the editor
+				// is updated: the editor asks for both keys too, and Gio gives
+				// a key event to the first request in the frame that matches
+				// it.
+				if props.Variant == FindBar && !dis {
+					for _, name := range []key.Name{key.NameReturn, key.NameEnter} {
+						for {
+							ev, ok := gtx.Event(key.Filter{Focus: editor, Name: name, Optional: key.ModShift})
+							if !ok {
+								break
+							}
+							ke, isKey := ev.(key.Event)
+							if !isKey || ke.State != key.Press {
+								continue
+							}
+							fn, msg := props.OnNext, props.NextMessage
+							if ke.Modifiers.Contain(key.ModShift) {
+								fn, msg = props.OnPrevious, props.PreviousMessage
+							}
+							if fn != nil {
+								fn(gtx)
+							}
+							if msg != nil {
+								mvu.MessageOp{Message: msg}.Add(gtx.Ops)
+							}
+						}
+					}
+				}
+
 				update := func() {
 					for {
 						ev, ok := editor.Update(gtx)
@@ -285,7 +332,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 				// field the key is not taken and is delivered to the handlers
 				// around the field. The editor is updated again after it is
 				// emptied, so it posts the empty change once, on this frame.
-				if !dis && editor.Len() > 0 {
+				if !dis && editor.Len() > 0 && props.Variant != FindBar {
 					escaped := false
 					for {
 						ev, ok := gtx.Event(key.Filter{Focus: editor, Name: key.NameEscape})
@@ -544,6 +591,8 @@ func (a adorn) symbolX(gtx layout.Context, s RenderState) float32 {
 		return float32(gtx.Dp(sidebarLeadDp))
 	case s.Variant == Form:
 		return float32(gtx.Dp(hairlineDp) + gtx.Dp(formLeadDp))
+	case s.Variant == FindBar:
+		return float32(gtx.Dp(hairlineDp) + gtx.Dp(findBarLeadDp))
 	}
 	return float32(gtx.Dp(hairlineDp) + gtx.Dp(toolbarLeadDp))
 }
@@ -566,6 +615,8 @@ func (a adorn) promptGapPx(gtx layout.Context, s RenderState) int {
 		return gtx.Dp(sidebarGapDp)
 	case s.Variant == Form:
 		return gtx.Dp(formGapDp)
+	case s.Variant == FindBar:
+		return gtx.Dp(findBarGapDp)
 	}
 	return gtx.Dp(toolbarGapDp)
 }

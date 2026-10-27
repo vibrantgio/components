@@ -29,6 +29,23 @@ import (
 // control's #ffffff and #3a3a3a over the dark one's #262626.
 const SegmentSeamClearDp unit.Dp = 8
 
+// findBarSegmentDp, findBarMarkDp and findBarSeamClearDp are the find bar
+// control's segment width, the square its chevron is drawn in, and the rows
+// its seam leaves clear at each end.
+//
+// MEASURED, textedit-find-empty-{light,dark}.png and
+// textedit-find-match-{light,dark}.png: the previous and next control spans
+// x 421-453 at y 38-57, two segments of 16 with the seam at x=437. Each
+// chevron is 6 by 10 with 5 clear columns at each side inside its segment.
+// The 12 dp square is chosen to land that 6 by 10 extent with the set's
+// chevron, which does not fill its square. The seam runs y 42-53, four rows clear of each end, in #d5d5d5 light and
+// #474c51 dark: the separator flattened over the fill to the byte.
+const (
+	findBarSegmentDp   unit.Dp = 16
+	findBarMarkDp      unit.Dp = 12
+	findBarSeamClearDp unit.Dp = 4
+)
+
 // segmentSeamDp is the width of that hairline: one column in both stored
 // Finder captures, which is the width every seam in this library is drawn at.
 const segmentSeamDp unit.Dp = 1
@@ -129,9 +146,13 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 	variant := segs[0].State.Variant
 	h := min(gtx.Dp(unit.Dp(variant.Height(d))), gtx.Constraints.Max.Y)
 	mark, markTop := gtx.Dp(control.ChromeMarkDp), 0
-	if variant == Chrome {
+	switch variant {
+	case Chrome:
 		markTop = (h - mark) / 2
-	} else {
+	case FindBar:
+		mark = gtx.Dp(findBarMarkDp)
+		markTop = (h - mark) / 2
+	default:
 		mark, markTop = control.FormMarkBox(gtx, h)
 	}
 	side := gtx.Dp(control.ChromeMarkSideDp)
@@ -145,6 +166,9 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 	titles := make([]op.CallOp, len(segs))
 	titleSize := make([]image.Point, len(segs))
 	segW := mark + 2*side
+	if variant == FindBar {
+		segW = gtx.Dp(findBarSegmentDp)
+	}
 	rest := variantRestingFill(p, variant)
 	for i, s := range segs {
 		fills[i] = rest
@@ -194,7 +218,7 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 	if variant == Chrome {
 		outer = controlface.Capsule(gtx, box, p, rest, faceState)
 	} else {
-		outer = controlface.PushButton(gtx, box, gtx.Dp(unit.Dp(rad.Md)), p, rest, faceState)
+		outer = controlface.PushButton(gtx, box, variant.corner(gtx, rad), p, rest, faceState)
 	}
 
 	// The segments divide what the control ended up at, so a control asked
@@ -204,6 +228,11 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 	edgeAt := func(i int) int { return i*inner/len(segs) + i*rule }
 
 	clear := min(gtx.Dp(SegmentSeamClearDp), h/2)
+	seam := p.ToolbarControlSeam
+	if variant == FindBar {
+		clear = gtx.Dp(findBarSeamClearDp)
+		seam = vgcolor.Flatten(p.Separator, rest)
+	}
 	for i, s := range segs {
 		x, xEnd := edgeAt(i), edgeAt(i)+inner*(i+1)/len(segs)-inner*i/len(segs)
 		seg := image.Rect(x, 0, xEnd, h)
@@ -215,7 +244,7 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 			paint.FillShape(gtx.Ops, fill, clip.Rect(seg).Op())
 			area.Pop()
 		}
-		if s.State.Checked {
+		if s.State.Checked && variant != FindBar {
 			// The chosen segment's own patch, inset inside the SEGMENT and
 			// cornered at half its height — the 32 by 26 measured inside
 			// Finder's 37 by 36 view segment. Clipped to the capsule for the
@@ -231,7 +260,7 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 			// twelve of 255 short. See
 			// tokens.PlatformColors.ToolbarControlSeam.
 			line := image.Rect(x-rule, clear, x, h-clear)
-			paint.FillShape(gtx.Ops, p.ToolbarControlSeam, clip.Rect(line).Op())
+			paint.FillShape(gtx.Ops, seam, clip.Rect(line).Op())
 		}
 		switch {
 		case s.Title != "":
