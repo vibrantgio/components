@@ -8,7 +8,6 @@ import (
 
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/input"
-	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -79,16 +78,12 @@ func TestTheBoxDrawsTheMeasuredCorner(t *testing.T) {
 // against a centre and a radius. It must answer the 8 dp half of the measured
 // 16 dp diameter, on the symbol's own centre, where the same fit reads r = 8.17
 // (rms 0.084 px) light and 8.12 (rms 0.073 px) dark off System Settings'
-// selected radio.
-//
-// The edge is one pixel of the field hairline before the disc's own
-// interior, on the row and the column through its centre, where a circle is
-// flat enough to read a width off.
+// selected radio, and r = 7.99 (rms 0.035 px light, 0.033 px dark) off its
+// unselected discs.
 func TestTheDiscIsTheMeasuredCircle(t *testing.T) {
 	const size = 44
 	row := int(tokens.Comfortable.CheckboxRowHeight)
 	lo := (row - symbolSide) / 2
-	mid := lo + symbolSide/2
 
 	for _, sc := range switchedOffReadings {
 		t.Run(sc.name, func(t *testing.T) {
@@ -122,27 +117,6 @@ func TestTheDiscIsTheMeasuredCircle(t *testing.T) {
 			}
 			if math.Abs(cx-wantC) > 0.15 || math.Abs(cy-wantC) > 0.15 {
 				t.Errorf("the disc centres on (%.2f, %.2f), want the symbol's own (%.1f, %.1f)", cx, cy, wantC, wantC)
-			}
-
-			edge := control.Border(sc.platform)
-			for _, run := range []struct {
-				what string
-				at   func(i int) (x, y int)
-			}{
-				{"across its middle row, from the leading side", func(i int) (int, int) { return lo + i, mid }},
-				{"down its middle column, from the top", func(i int) (int, int) { return mid, lo + i }},
-			} {
-				n := 0
-				for i := 0; i < symbolSide; i++ {
-					x, y := run.at(i)
-					if !nearlyEqual(img.RGBAAt(x, y), edge) {
-						break
-					}
-					n++
-				}
-				if n != 1 {
-					t.Errorf("a run %s crosses %d pixels of the field hairline %v, want the measured 1", run.what, n, edge)
-				}
 			}
 		})
 	}

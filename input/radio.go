@@ -239,16 +239,16 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	}
 
 	// Three drawings, not one with a colour swapped. Unselected, the symbol is
-	// an edge with the control's own fill inside it — the same pair the box
-	// and the field have at rest. Selected, the whole circle is the accent
-	// the platform paints a chosen control in, with the dot in the
+	// one fill and no edge, a step apart from the surface it stands on, as
+	// the unchecked box beside it is. Selected, the whole circle is the
+	// accent the platform paints a chosen control in, with the dot in the
 	// foreground that colour is named against. Switched off, it is one fill
-	// and no edge, as the box beside it is. Nested fills throughout:
-	// clip.Stroke's anti-aliasing varies between GPU context initialisations
-	// and these are golden-tested.
+	// and no edge, as the switched-off box is. Fills only: clip.Stroke's
+	// anti-aliasing varies between GPU context initialisations and these are
+	// golden-tested.
 	// Every name the symbol draws that carries a coverage is flattened onto
-	// what lies under it: the surface for the edge and the ring, which are
-	// shapes the fill is inset inside, and the fill for the dot.
+	// what lies under it: the surface for the disc and the ring, and the
+	// disc's fill for the dot.
 	standsOn := surface.Or(s.Surface, tok.platform.WindowBackground)
 
 	// The dot is drawn on the disc's own centre, which its odd measured
@@ -297,30 +297,26 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		fillDot(tok.platform.AlternateSelectedControlText)
 
 	default:
-		// The edge is one pixel of the platform's field hairline, the width
-		// and colour controlEdgeWidth reads off the save panel's "Tags:"
-		// field. System Settings' radio is accent-filled and draws no edge of
-		// its own, and its capture holds no unselected sibling to read one
-		// off, so the disc spends the same hairline the box beside it does;
-		// the capture that would close it is on the reference's list.
-		borderPx := gtx.Dp(controlEdgeWidth)
-		innerRect := image.Rectangle{
-			Min: image.Pt(outerRect.Min.X+borderPx, outerRect.Min.Y+borderPx),
-			Max: image.Pt(outerRect.Max.X-borderPx, outerRect.Max.Y-borderPx),
-		}
-		paint.FillShape(gtx.Ops, control.Border(tok.platform), clip.Ellipse(outerRect).Op(gtx.Ops))
-		paint.FillShape(gtx.Ops, control.Fill(tok.platform), clip.Ellipse(innerRect).Op(gtx.Ops))
+		// An unselected radio is one filled disc with no ring and no edge,
+		// the unchecked box's fill on a circle: the platform's separator
+		// flattened onto the surface the disc stands on. MEASURED,
+		// system-settings-radios-{light,dark}.png: r 8, #dfdfdf on the
+		// grouped box's #f7f7f7 light, #3f4346 on #2a2f32 dark, and one fill
+		// from edge to edge. MEASURED, finder-view-options-{light,dark}.png:
+		// #e6e6e6 on #ffffff light, #393d3e on #232829 dark. Each value is
+		// the separator to the byte.
+		paint.FillShape(gtx.Ops, uncheckedFill(tok.platform, standsOn, false), clip.Ellipse(outerRect).Op(gtx.Ops))
 	}
 
 	// The focus ring, drawn exactly as the checkbox draws it: the library's
 	// one band on the 16 dp symbol's own outline, riding in the slack the
 	// density's footprint holds around it.
 	//
-	// The disc keeps its own edge under the ring whatever it is doing. A
-	// selected radio's edge is already the accent — it is what says the
-	// radio is chosen — and recolouring it on focus would leave a focused
-	// chosen radio looking like an unfocused one; the ring does not recolour
-	// anything, it composites over it.
+	// The ring's inner half resolves against the colour the checkbox's ring
+	// resolves against: the accent on a selected radio, the platform's field
+	// edge where it is not. The ring composites over the disc and recolours
+	// nothing, so a focused chosen radio keeps the accent that says it is
+	// chosen.
 	if s.Focused && !s.Disabled {
 		discEdge := control.Border(tok.platform)
 		if s.Selected {

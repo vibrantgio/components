@@ -51,21 +51,6 @@ const checkboxBoxSize = unit.Dp(16)
 // what a circular corner draws.
 const checkboxCornerRadius = unit.Dp(5)
 
-// controlEdgeWidth is the width a control draws its own edge at: 1 dp,
-// MEASURED off the save panel's "Tags:" text field, the sheet's one
-// unfocused enabled control that draws an edge at all.
-//
-// The field's box runs x 264–495 and y 243–269. A run across its straight
-// side gives one column at x=264 and one at x=495; a run down it gives one
-// row at y=243 and one at y=269. Each is a single pixel wide, with the sheet
-// on one side of it and the field's interior on the other. The search field
-// on content reads the same 1 px edge with wallpaper tinting off, and its
-// colour is [tokens.PlatformColors.FieldEdge]. The checkbox draws no edge:
-// the enabled box is MEASURED with none, under "What the enabled checkbox and
-// the unselected radio measure". The radio's disc draws this hairline. The
-// same section measures the unselected radio as a filled disc with no edge.
-const controlEdgeWidth = unit.Dp(1)
-
 // controlTitleGap is the leading gap a checkbox's square — or a radio's
 // circle — spends on the title beside it.
 //

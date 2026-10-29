@@ -2,16 +2,19 @@ package input_test
 
 import (
 	"image"
+	stdcolor "image/color"
 	"testing"
 
 	"gioui.org/layout"
 	"gioui.org/op"
+	"gioui.org/op/paint"
 	"gioui.org/unit"
 
 	"github.com/reactivego/rx"
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/input"
 	"github.com/vibrantgio/components/internal/control"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -182,12 +185,106 @@ func TestTheSwitchedOffRadioIsOneFillAndNoEdge(t *testing.T) {
 			if on == nil {
 				return
 			}
-			edge, fill := control.Border(sc.platform), control.Fill(sc.platform)
-			if got := unpremultiplied(on.RGBAAt(rim, c)); !nearlyEqual(got, edge) {
-				t.Errorf("an enabled radio's rim reads %v, want the field hairline %v the enabled radio draws its edge in", got, edge)
+			enabled := vgcolor.Flatten(sc.platform.Separator, sc.sheet)
+			if enabled == want {
+				t.Errorf("the enabled and the switched-off radio both fill %v on %v; the platform draws them apart", want, sc.sheet)
 			}
-			if got := on.RGBAAt(rim+1, c); !nearlyEqual(got, fill) {
-				t.Errorf("an enabled radio reads %v one pixel in from its rim, want its own fill %v: the measured edge is one pixel wide", got, fill)
+			if got := unpremultiplied(on.RGBAAt(rim, c)); !nearlyEqual(got, enabled) {
+				t.Errorf("an enabled radio's rim reads %v against its interior's %v; the platform draws no edge on one", got, enabled)
+			}
+		})
+	}
+}
+
+// unselectedReadings are the enabled unselected radio's MEASURED discs, each
+// a surface and the disc's fill on it. MEASURED,
+// finder-view-options-{light,dark}.png: #e6e6e6 on #ffffff light, #393d3e on
+// #232829 dark. MEASURED, system-settings-radios-{light,dark}.png: #dfdfdf on
+// the grouped box's #f7f7f7 light, #3f4346 on #2a2f32 dark.
+var unselectedReadings = []struct {
+	name     string
+	platform tokens.PlatformColors
+	surface  stdcolor.NRGBA
+	disc     stdcolor.NRGBA
+}{
+	{"light", tokens.PlatformLight, stdcolor.NRGBA{0xff, 0xff, 0xff, 0xff}, stdcolor.NRGBA{0xe6, 0xe6, 0xe6, 0xff}},
+	{"dark", tokens.PlatformDark, stdcolor.NRGBA{0x23, 0x28, 0x29, 0xff}, stdcolor.NRGBA{0x39, 0x3d, 0x3e, 0xff}},
+	{"light grouped box", tokens.PlatformLight, stdcolor.NRGBA{0xf7, 0xf7, 0xf7, 0xff}, stdcolor.NRGBA{0xdf, 0xdf, 0xdf, 0xff}},
+	{"dark grouped box", tokens.PlatformDark, stdcolor.NRGBA{0x2a, 0x2f, 0x32, 0xff}, stdcolor.NRGBA{0x3f, 0x43, 0x46, 0xff}},
+}
+
+// TestTheUnselectedDiscIsAStepApartWithNoEdge reads the enabled unselected
+// radio off a capture of the component and against the stored reference.
+//
+// The fill: the platform's separator flattened onto the surface lands on each
+// measured disc to the byte, and the disc fills with that. The edge: the
+// platform's disc has no ring and no edge, so every pixel of the capture lies
+// between the surface and the disc's fill on each channel. A ring or a
+// hairline in any other colour puts a pixel outside that range.
+func TestTheUnselectedDiscIsAStepApartWithNoEdge(t *testing.T) {
+	const size = 44
+	row := int(tokens.Comfortable.CheckboxRowHeight)
+	c := row / 2
+
+	for _, sc := range unselectedReadings {
+		t.Run(sc.name, func(t *testing.T) {
+			want := vgcolor.Flatten(sc.platform.Separator, sc.surface)
+			if want != sc.disc {
+				t.Errorf("the separator over %v lands on %v, want the capture's %v", sc.surface, want, sc.disc)
+			}
+
+			disc := input.RenderRadio(
+				nil,
+				sc.platform, tokens.Spacing,
+				tokens.DefaultTypography.SystemFont,
+				input.RadioRenderState{Surface: sc.surface},
+			)
+			img := golden.Capture(t, image.Pt(size, size), func(gtx layout.Context) layout.Dimensions {
+				paint.Fill(gtx.Ops, sc.surface)
+				return disc(gtx)
+			})
+			if img == nil {
+				return
+			}
+			centre := img.RGBAAt(c, c)
+			if !nearlyEqual(centre, sc.disc) {
+				t.Errorf("an unselected radio fills %v, want the capture's %v", centre, sc.disc)
+			}
+			// MEASURED: down the disc's middle column the platform draws one
+			// fill from edge to edge. The first and last pixel of the run
+			// carry the rim's coverage, so the run read here is the 14 pixels
+			// inside them.
+			rim := c - 8
+			for i := 1; i < 15; i++ {
+				if got := img.RGBAAt(c, rim+i); got != centre {
+					t.Errorf("down its middle column, the disc reads %v at row %d against its centre's %v; the platform draws one fill", got, rim+i, centre)
+				}
+				if got := img.RGBAAt(rim+i, c); got != centre {
+					t.Errorf("across its middle row, the disc reads %v at column %d against its centre's %v; the platform draws one fill", got, rim+i, centre)
+				}
+			}
+
+			between := func(v, a, b uint8) bool {
+				lo, hi := int(a), int(b)
+				if lo > hi {
+					lo, hi = hi, lo
+				}
+				return int(v) >= lo-1 && int(v) <= hi+1
+			}
+			edges := 0
+			for y := 0; y < size; y++ {
+				for x := 0; x < size; x++ {
+					px := img.RGBAAt(x, y)
+					if !between(px.R, sc.surface.R, sc.disc.R) || !between(px.G, sc.surface.G, sc.disc.G) || !between(px.B, sc.surface.B, sc.disc.B) {
+						if edges == 0 {
+							t.Errorf("the pixel at (%d, %d) reads %v, outside the range from the surface %v to the disc %v: an edge", x, y, px, sc.surface, sc.disc)
+						}
+						edges++
+					}
+				}
+			}
+			if edges > 0 {
+				t.Errorf("%d pixels lie outside the range from the surface to the disc; the platform draws no ring and no edge on an unselected radio", edges)
 			}
 		})
 	}
