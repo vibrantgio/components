@@ -23,14 +23,15 @@ import (
 
 // findBarSchemes holds the reference rows of "What the platform's find bar
 // measures": the bar's fill and the find bar button's fill, per scheme. The
-// dark rows are the readings with wallpaper tinting on.
+// dark row is the reading with wallpaper tinting off,
+// textedit-find-untinted-dark.png.
 var findBarSchemes = []struct {
 	name      string
 	colors    tokens.PlatformColors
 	bar, fill color.NRGBA
 }{
 	{"light", tokens.PlatformLight, color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}, color.NRGBA{R: 0xec, G: 0xec, B: 0xec, A: 0xff}},
-	{"dark", tokens.PlatformDark, color.NRGBA{R: 0x23, G: 0x29, B: 0x2e, A: 0xff}, color.NRGBA{R: 0x33, G: 0x39, B: 0x3e, A: 0xff}},
+	{"dark", tokens.PlatformDark, color.NRGBA{R: 0x1e, G: 0x1e, B: 0x1e, A: 0xff}, color.NRGBA{R: 0x2f, G: 0x2f, B: 0x2f, A: 0xff}},
 }
 
 // onBar stands w on the bar's fill, 10 px in from the frame's edges.
@@ -43,12 +44,6 @@ func onBar(bar color.NRGBA, w layout.Widget) layout.Widget {
 	}
 }
 
-// withinOne reports whether every channel of a and b differs by at most 1.
-func withinOne(a, b color.NRGBA) bool {
-	d := func(x, y uint8) bool { return x-y <= 1 || y-x <= 1 }
-	return d(a.R, b.R) && d(a.G, b.G) && d(a.B, b.B)
-}
-
 func pixel(img *image.RGBA, x, y int) color.NRGBA {
 	r, g, b, a := img.At(x, y).RGBA()
 	return color.NRGBA{R: uint8(r >> 8), G: uint8(g >> 8), B: uint8(b >> 8), A: uint8(a >> 8)}
@@ -59,10 +54,9 @@ func pixel(img *image.RGBA, x, y int) color.NRGBA {
 // last with no edge row, nothing cast on the bar around it, and a corner of
 // about 5 px.
 //
-// MEASURED, textedit-find-empty-{light,dark}.png: Done is 48 by 20, fill
-// #ececec light and #33393e dark, no edge. The push button's fill is the
-// light reading to the byte and 1 off the tinted dark reading in green and
-// blue. The top row's coverage at the leading end leaves 3.1 px missing,
+// MEASURED, textedit-find-empty-light.png and textedit-find-untinted-dark.png:
+// Done is 48 by 20, fill #ececec light and #2f2f2f dark, no edge. The push
+// button's fill is both readings to the byte. The top row's coverage at the leading end leaves 3.1 px missing,
 // against 3.05 for a 5 px circle and 3.85 for 6 px.
 func TestFindBarButtonIsTheMeasuredButton(t *testing.T) {
 	shaper := defaultShaper(t)
@@ -79,8 +73,8 @@ func TestFindBarButtonIsTheMeasuredButton(t *testing.T) {
 				t.Errorf("height = %d, want the measured 20", dims.Size.Y)
 			}
 			fill := sc.colors.PushButtonFill
-			if !withinOne(fill, sc.fill) {
-				t.Errorf("the push button's fill %v differs by more than 1 in a channel from the find bar button's reading %v", fill, sc.fill)
+			if fill != sc.fill {
+				t.Errorf("the push button's fill %v differs from the find bar button's reading %v", fill, sc.fill)
 			}
 			x := 10 + 6 // past the corner, short of the title
 			for y := 10; y < 10+dims.Size.Y; y++ {

@@ -15,7 +15,6 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/mvu"
@@ -272,14 +271,11 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 
 	switch {
 	case s.Disabled:
-		// The switched-off drawing the checkbox measures, for the reason
-		// given in drawCheckbox: the platform's control fill at
-		// tokens.DisabledCoverage over the surface the symbol stands on, and
-		// no edge. The Save panel holds no switched-off radio, so this is
-		// the checkbox's reading carried across — the two controls stand
-		// beside each other in one form and the platform draws them as one
-		// family.
-		fill := control.Faded(tok.platform.PushButtonFill, standsOn)
+		// The switched-off box's measured fill, and no edge. No capture
+		// holds a switched-off radio button, so this is the checkbox's
+		// reading carried across: the two controls stand beside each other
+		// in one form and the platform draws them as one family.
+		fill := tok.platform.DisabledControlFill
 		paint.FillShape(gtx.Ops, fill, clip.Ellipse(outerRect).Op(gtx.Ops))
 		if s.Selected {
 			// No stored capture holds a switched-off SELECTED radio, so the
@@ -311,22 +307,24 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		paint.FillShape(gtx.Ops, uncheckedFill(tok.platform, standsOn, false), clip.Ellipse(outerRect).Op(gtx.Ops))
 	}
 
-	// The focus ring, drawn exactly as the checkbox draws it: the library's
-	// one band on the 16 dp symbol's own outline, riding in the slack the
-	// density's footprint holds around it.
+	// The focus ring: the library's one band across the 16 dp symbol's own
+	// outline, in the slack the density's footprint holds around it. No
+	// capture holds a focused radio button, so it takes the field's
+	// placement, 2 dp over the disc and 2 dp past it: that placement is
+	// unmeasured for the radio button.
 	//
-	// The ring's inner half resolves against the colour the checkbox's ring
-	// resolves against: the accent on a selected radio, the platform's field
-	// edge where it is not. The ring composites over the disc and recolours
-	// nothing, so a focused chosen radio keeps the accent that says it is
-	// chosen.
+	// The band's part over the disc lands on the disc's own fill, as the
+	// checkbox's does: the accent on a selected radio, the unselected disc's
+	// fill where it is not. The disc has no edge, so no field edge is under
+	// the band. The ring composites over the disc and recolours nothing, so
+	// a focused chosen radio keeps the accent that says it is chosen.
 	if s.Focused && !s.Disabled {
-		discEdge := control.Border(tok.platform)
+		discFill := uncheckedFill(tok.platform, standsOn, false)
 		if s.Selected {
-			discEdge = tok.platform.AccentFill
+			discFill = tok.platform.AccentFill
 		}
 		focus.RingEllipse(gtx, outerRect,
-			focus.RingColor(tok.platform, standsOn), focus.RingColor(tok.platform, discEdge))
+			focus.RingColor(tok.platform, standsOn), focus.RingColor(tok.platform, discFill))
 	}
 
 	// The title is part of the control, as it is on the platform, drawn

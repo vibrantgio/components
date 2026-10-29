@@ -125,11 +125,13 @@ func TestNothingTheButtonPaintsCarriesACoverage(t *testing.T) {
 
 // The push button lays no hover overlay. MEASURED,
 // save-panel-cancel-{rest,hover}-{light,dark}.png: "Cancel" at rest and under
-// the pointer differ in 0 pixels, and its fill reads #ececec light and #333a3f
-// dark in both captures. Held, it reads #d5d5d5 and #474d52
-// (save-panel-cancel-pressed-{light,dark}.png). The filled and tonal buttons
-// are the push button; the ghost button lays the hover overlay over the
-// surface it stands on.
+// the pointer differ in 0 pixels. MEASURED, save-panel-untinted-{light,dark}.png:
+// its fill reads #ececec light and #2f2f2f dark. Held, it reads #d5d5d5 light
+// (save-panel-cancel-pressed-light.png) and #434343 dark
+// (save-panel-cancel-pressed-untinted-dark.png).
+//
+// The filled and tonal buttons are the push button; the ghost button lays
+// the hover overlay over the surface it stands on.
 func TestPushButtonLaysNoHoverOverlay(t *testing.T) {
 	for _, sc := range []struct {
 		name          string
@@ -137,7 +139,7 @@ func TestPushButtonLaysNoHoverOverlay(t *testing.T) {
 		tonal, tonalP color.NRGBA
 	}{
 		{"light", tokens.PlatformLight, color.NRGBA{R: 0xec, G: 0xec, B: 0xec, A: 0xff}, color.NRGBA{R: 0xd5, G: 0xd5, B: 0xd5, A: 0xff}},
-		{"dark", tokens.PlatformDark, color.NRGBA{R: 0x33, G: 0x3a, B: 0x3f, A: 0xff}, color.NRGBA{R: 0x47, G: 0x4d, B: 0x52, A: 0xff}},
+		{"dark", tokens.PlatformDark, color.NRGBA{R: 0x2f, G: 0x2f, B: 0x2f, A: 0xff}, color.NRGBA{R: 0x43, G: 0x43, B: 0x43, A: 0xff}},
 	} {
 		p := sc.p
 		for _, e := range []Emphasis{Filled, Tonal} {

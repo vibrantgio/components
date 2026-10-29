@@ -129,8 +129,8 @@ func Fill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
 // platform's measured push-button fill, with the press overlay over it while
 // it is held and no overlay under the pointer.
 //
-// MEASURED, save-dialog-{light,dark}.png: the sheet's "Cancel" and its two
-// pop-ups are all filled #ececec light and #333a3f dark, which is
+// MEASURED, save-panel-untinted-{light,dark}.png: the sheet's "Cancel" is
+// filled #ececec light and #2f2f2f dark, which is
 // [tokens.PlatformColors.PushButtonFill]. It is a step off the sheet in both
 // appearances, which is what lets a body control stand without the band's
 // drop shadow under it and without a rim the platform draws around neither.
@@ -138,8 +138,9 @@ func Fill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
 // MEASURED, save-panel-cancel-{rest,hover}-{light,dark}.png: "Cancel" under
 // the pointer and at rest differ in 0 pixels in both appearances, so the
 // platform lays no hover overlay on the push button. Held, the same button
-// reads #d5d5d5 light and #474d52 dark, which is the press overlay over this
-// fill (save-panel-cancel-pressed-{light,dark}.png).
+// reads #d5d5d5 light and #434343 dark, which is the press overlay over this
+// fill (save-panel-cancel-pressed-light.png and
+// save-panel-cancel-pressed-untinted-dark.png).
 func FormFill(p tokens.PlatformColors, state tokens.State) color.NRGBA {
 	if state == tokens.StatePressed {
 		return vgcolor.Flatten(p.PressOverlay, p.PushButtonFill)

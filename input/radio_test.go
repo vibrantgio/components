@@ -13,7 +13,6 @@ import (
 	"github.com/reactivego/rx"
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/input"
-	"github.com/vibrantgio/components/internal/control"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -157,7 +156,7 @@ func TestTheSwitchedOffRadioIsOneFillAndNoEdge(t *testing.T) {
 
 	for _, sc := range switchedOffReadings {
 		t.Run(sc.name, func(t *testing.T) {
-			want := control.Faded(sc.platform.PushButtonFill, sc.sheet)
+			want := sc.box
 
 			img := golden.Capture(t, image.Pt(size, size), input.RenderRadio(
 				nil,
@@ -170,7 +169,7 @@ func TestTheSwitchedOffRadioIsOneFillAndNoEdge(t *testing.T) {
 			}
 			centre := img.RGBAAt(c, c)
 			if !nearlyEqual(centre, want) {
-				t.Errorf("a switched-off radio fills %v, want the platform's control fill at the disabled coverage %v", centre, want)
+				t.Errorf("a switched-off radio fills %v, want the measured switched-off box %v", centre, want)
 			}
 			if got := unpremultiplied(img.RGBAAt(rim, c)); !nearlyEqual(got, want) {
 				t.Errorf("a switched-off radio's rim reads %v against its interior's %v; the platform draws no edge on one", got, centre)

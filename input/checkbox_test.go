@@ -376,54 +376,29 @@ func nearerTo(got stdcolor.RGBA, mark, fill stdcolor.NRGBA) bool {
 }
 
 // switchedOffReadings is the stored reference's switched-off control, one row
-// per appearance. MEASURED, save-dialog-light.png and save-dialog-dark.png:
-// the two "Options:" checkboxes are the only switched-off controls on the
-// sheet and their 16 px boxes read #f2f2f2 and #2e3439, on sheets of #ffffff
-// and #232a2f; the enabled "File Format:" pop-up seventeen rows above them
-// reads the push button's own #ececec and #333a3f on the same sheet. The
-// slack is what the platform's disabled coverage lands over on that enabled
-// fill: nothing in light, one 255th on green and blue in dark, which is the
-// tolerance the same reference carries for the hover overlay's dark reading.
+// per appearance. MEASURED, save-panel-untinted-light.png and
+// save-panel-untinted-dark.png: the two "Options:" checkboxes are the only
+// switched-off controls on the sheet and their 16 px boxes read #f2f2f2 and
+// #292929, on sheets of #ffffff and #1e1e1e, with no edge.
 var switchedOffReadings = []struct {
 	name     string
 	platform tokens.PlatformColors
 	sheet    stdcolor.NRGBA
 	box      stdcolor.NRGBA
-	slack    int
 }{
-	{"light", tokens.PlatformLight, stdcolor.NRGBA{0xff, 0xff, 0xff, 0xff}, stdcolor.NRGBA{0xf2, 0xf2, 0xf2, 0xff}, 0},
-	{"dark", tokens.PlatformDark, stdcolor.NRGBA{0x23, 0x2a, 0x2f, 0xff}, stdcolor.NRGBA{0x2e, 0x34, 0x39, 0xff}, 1},
-}
-
-// off reports how far apart two colours are on their widest channel.
-func off(a, b stdcolor.NRGBA) int {
-	d := func(x, y uint8) int {
-		if x > y {
-			return int(x) - int(y)
-		}
-		return int(y) - int(x)
-	}
-	n := d(a.R, b.R)
-	if v := d(a.G, b.G); v > n {
-		n = v
-	}
-	if v := d(a.B, b.B); v > n {
-		n = v
-	}
-	return n
+	{"light", tokens.PlatformLight, stdcolor.NRGBA{0xff, 0xff, 0xff, 0xff}, stdcolor.NRGBA{0xf2, 0xf2, 0xf2, 0xff}},
+	{"dark", tokens.PlatformDark, stdcolor.NRGBA{0x1e, 0x1e, 0x1e, 0xff}, stdcolor.NRGBA{0x29, 0x29, 0x29, 0xff}},
 }
 
 // TestTheSwitchedOffBoxIsOneFillAndNoEdge reads the switched-off checkbox off
 // a capture of the component, in both appearances, and against the stored
 // reference's pixels.
 //
-// Two things are read. The fill: the platform's control fill at the measured
-// disabled coverage over the surface the box stands on, which is what the
-// push button does when it is switched off and what puts the box on the
-// reference's #f2f2f2 and #2e3439. And the edge: the platform's switched-off
-// box draws no edge column at all — its rim is a one-pixel antialiased ramp
-// from the fill to the sheet — so every row and column of the box carries the
-// interior's own colour.
+// Two things are read. The fill: the platform's switched-off box, the
+// reference's #f2f2f2 and #292929, on the sheet and on the grouped box alike,
+// never a fill faded over the surface. And the edge: the platform's
+// switched-off box draws no edge column at all, so every row and column of
+// the box carries the interior's own colour.
 //
 // Every row and column is read at the box's own middle, where the measured
 // corner cannot reach and the drawing is flat fill or flat edge.
@@ -440,9 +415,9 @@ func TestTheSwitchedOffBoxIsOneFillAndNoEdge(t *testing.T) {
 
 	for _, sc := range switchedOffReadings {
 		t.Run(sc.name, func(t *testing.T) {
-			want := control.Faded(sc.platform.PushButtonFill, sc.sheet)
-			if n := off(want, sc.box); n > sc.slack {
-				t.Errorf("the platform's control fill at the disabled coverage lands on %v, want the capture's %v within %d", want, sc.box, sc.slack)
+			want := sc.box
+			if got := sc.platform.DisabledControlFill; got != want {
+				t.Errorf("DisabledControlFill = %v, want the capture's %v", got, want)
 			}
 
 			img := golden.Capture(t, image.Pt(size, size), input.RenderCheckbox(
@@ -454,8 +429,21 @@ func TestTheSwitchedOffBoxIsOneFillAndNoEdge(t *testing.T) {
 			if img == nil {
 				return
 			}
-			if got := img.RGBAAt(mid, mid); !nearlyEqual(got, want) {
-				t.Errorf("a switched-off box fills %v, want the platform's control fill at the disabled coverage %v", got, want)
+			if got := img.RGBAAt(mid, mid); got != stdcolor.RGBA(want) {
+				t.Errorf("a switched-off box fills %v, want the measured switched-off box %v", got, want)
+			}
+			onCard := golden.Capture(t, image.Pt(size, size), input.RenderCheckbox(
+				nil,
+				sc.platform, tokens.Spacing,
+				tokens.DefaultTypography.SystemFont,
+				input.CheckboxRenderState{Disabled: true, Surface: sc.platform.CardFill},
+			))
+			if onCard == nil {
+				return
+			}
+			if got := onCard.RGBAAt(mid, mid); got != stdcolor.RGBA(want) {
+				t.Errorf("a switched-off box on the grouped box %v fills %v, want the measured switched-off box %v, not a fill faded over the surface",
+					sc.platform.CardFill, got, want)
 			}
 			centre := img.RGBAAt(mid, mid)
 			for _, at := range []struct {
@@ -739,5 +727,97 @@ func TestTheCheckMarkIsThePlatformsMeasuredShape(t *testing.T) {
 			t.Logf("%s: extent x %d–%d, y %d–%d; long arm %.2f°; weight %.3f px; coverage %.1f px² (the platform's 29.5 light, 29.4 dark)",
 				sc.name, minX, maxX, minY, maxY, gotAngle, gotWeight, area)
 		})
+	}
+}
+
+// TestTheFocusedCheckboxRingIsTheMeasuredRing reads the focused checkbox's
+// ring off a capture of the component, in both schemes, across the middle
+// row of the box. MEASURED, checkbox-focused-{light,dark}.png: the ring is
+// 4 px wide, 3 px past the box and 1 px over it, in the keyboard focus
+// indicator at its own coverage over the sheet past the box and over the
+// box's own fill on it. No field edge is under the band.
+func TestTheFocusedCheckboxRingIsTheMeasuredRing(t *testing.T) {
+	const size, pad = 44, 8
+	const box = 16
+	row := int(tokens.Comfortable.CheckboxRowHeight)
+	lo := pad + (row-box)/2
+	hi := lo + box - 1
+	mid := lo + box/2
+
+	for _, sc := range switchedOffReadings {
+		for _, checked := range []bool{false, true} {
+			p := sc.platform
+			boxFill := vgcolor.Flatten(p.Separator, sc.sheet)
+			if checked {
+				boxFill = p.AccentFill
+			}
+			past := focus.RingColor(p, sc.sheet)
+			over := focus.RingColor(p, boxFill)
+			name := sc.name
+			if checked {
+				name += "/checked"
+			}
+			t.Run(name, func(t *testing.T) {
+				img := golden.Capture(t, image.Pt(size, size), func(gtx layout.Context) layout.Dimensions {
+					defer op.Offset(image.Pt(pad, pad)).Push(gtx.Ops).Pop()
+					return input.RenderCheckbox(
+						nil,
+						p, tokens.Spacing,
+						tokens.DefaultTypography.SystemFont,
+						input.CheckboxRenderState{Focused: true, Checked: checked, Surface: sc.sheet},
+					)(gtx)
+				})
+				if img == nil {
+					return
+				}
+				for _, at := range []struct {
+					what string
+					x, y int
+					want stdcolor.NRGBA
+				}{
+					{"three columns past the leading side", lo - 3, mid, past},
+					{"one column past the leading side", lo - 1, mid, past},
+					{"the box's first column", lo, mid, over},
+					{"the box's last column", hi, mid, over},
+					{"one column past the trailing side", hi + 1, mid, past},
+					{"three columns past the trailing side", hi + 3, mid, past},
+					{"three rows past the top", mid, lo - 3, past},
+					{"the box's first row", mid, lo, over},
+					{"the box's last row", mid, hi, over},
+					{"three rows past the bottom", mid, hi + 3, past},
+				} {
+					if got := img.RGBAAt(at.x, at.y); !nearlyEqual(got, at.want) {
+						t.Errorf("%s reads %v, want the ring %v", at.what, got, at.want)
+					}
+				}
+				for _, at := range []struct {
+					what string
+					x, y int
+				}{
+					{"four columns past the leading side", lo - 4, mid},
+					{"four columns past the trailing side", hi + 4, mid},
+					{"four rows past the top", mid, lo - 4},
+					{"four rows past the bottom", mid, hi + 4},
+				} {
+					if got := img.RGBAAt(at.x, at.y); nearlyEqual(got, past) {
+						t.Errorf("%s reads the ring %v; the ring is 3 px past the box", at.what, got)
+					}
+				}
+				if checked {
+					return
+				}
+				for _, at := range []struct {
+					what string
+					x, y int
+				}{
+					{"the box's second column", lo + 1, mid},
+					{"the box's second row", mid, lo + 1},
+				} {
+					if got := img.RGBAAt(at.x, at.y); !nearlyEqual(got, boxFill) {
+						t.Errorf("%s reads %v, want the box's fill %v; the ring is 1 px over the box", at.what, got, boxFill)
+					}
+				}
+			})
+		}
 	}
 }

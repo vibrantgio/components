@@ -15,7 +15,6 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
-	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/components/internal/surface"
 	"github.com/vibrantgio/mvu"
@@ -50,6 +49,15 @@ const checkboxBoxSize = unit.Dp(16)
 // the light pair's thirteen, so its coverage is read on a coarser step. 5 is
 // what a circular corner draws.
 const checkboxCornerRadius = unit.Dp(5)
+
+// checkboxRingOver is how much of the focus ring lies over the checkbox's
+// box: 1 dp, with the other 3 dp of the band past the box.
+//
+// MEASURED, checkbox-focused-{light,dark}.png: the box runs x 264-279 and
+// the ring covers x 261-264 and x 279-282 across y=380, and y 369-372 and
+// y 387-390 down x=271, in both schemes. x=264 is the box's first column, so
+// one column of the band is over the box's fill and three are past it.
+const checkboxRingOver = unit.Dp(1)
 
 // controlTitleGap is the leading gap a checkbox's square — or a radio's
 // circle — spends on the title beside it.
@@ -352,18 +360,12 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 
 	switch {
 	case s.Disabled:
-		// A switched-off box is one fill and no edge at all. MEASURED,
-		// save-dialog-light.png and save-dialog-dark.png: the two
-		// switched-off "Options:" checkboxes read #f2f2f2 light and #2e3439
-		// dark, and seventeen rows above them on the same sheet the enabled
-		// "File Format:" pop-up reads the push button's own #ececec and
-		// #333a3f. That is the platform's control fill at
-		// tokens.DisabledCoverage over the sheet — exactly in light, one
-		// 255th over on dark green and blue — which is what the push button
-		// does when it is switched off. The box draws no edge column in
-		// either appearance: its rim is a one-pixel antialiased ramp from
-		// this fill to the sheet.
-		fill := control.Faded(tok.platform.PushButtonFill, standsOn)
+		// A switched-off box is one fill and no edge at all: the
+		// platform's switched-off box, measured. MEASURED,
+		// save-panel-untinted-{light,dark}.png: the two switched-off
+		// "Options:" checkboxes read #f2f2f2 light and #292929 dark on the
+		// sheet, with no edge column in either scheme.
+		fill := tok.platform.DisabledControlFill
 		paint.FillShape(gtx.Ops, fill, rrectOuter.Op(gtx.Ops))
 		if s.Checked {
 			// No stored capture holds a switched-off CHECKED box, so the
@@ -405,27 +407,29 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		paint.FillShape(gtx.Ops, uncheckedFill(tok.platform, standsOn, s.AccentSelection), rrectOuter.Op(gtx.Ops))
 	}
 
-	// The focus ring, on the 16 dp box's own outline — the same band in the
-	// same place the button, the chip and the field beside it have. The box
-	// keeps its edge and its fill under it, whatever it is doing: a checked
-	// box has no free edge to promote, its edge being the accent fill that
-	// says it is checked, and the ring does not need one.
+	// The focus ring, across the 16 dp box's own outline: the same band
+	// the button, the chip and the field have, at the checkbox's measured
+	// placement, checkboxRingOver over the box and the rest past it. The box
+	// keeps its fill under it, whatever it is doing.
 	//
-	// It rides in the slack the density's footprint holds around the symbol,
+	// It is in the slack the density's footprint holds around the symbol,
 	// so nothing about the control moves when it takes the keyboard. At the
 	// comfortable footprint's 22 dp that slack is 3 dp on each side and the
-	// ring spends 2 of it; tighter, the band reaches past the footprint,
-	// which is why focus.Ring defers it rather than drawing it in place.
+	// ring uses all 3; tighter, the band reaches past the footprint, which
+	// is why focus.RingOver defers it rather than drawing it in place.
 	if s.Focused && !s.Disabled {
-		// What the ring's inner half lands on: the box's own outermost
-		// band, which is the accent that says a box is checked and the
-		// platform's field edge where it is not.
-		boxEdge := control.Border(tok.platform)
+		// What the band's part over the box lands on: the box's own fill,
+		// the accent where it is checked. The box has no edge, so no field
+		// edge is under the band. MEASURED, checkbox-focused-{light,dark}.png:
+		// the band's column over the box reads the indicator over the box's
+		// #e6e6e6 light and #343434 dark, at the coverage it has over the
+		// sheet.
+		boxFill := uncheckedFill(tok.platform, standsOn, s.AccentSelection)
 		if s.Checked {
-			boxEdge = tok.platform.AccentFill
+			boxFill = tok.platform.AccentFill
 		}
-		focus.Ring(gtx, boxRect, boxRad,
-			focus.RingColor(tok.platform, standsOn), focus.RingColor(tok.platform, boxEdge))
+		focus.RingOver(gtx, checkboxRingOver, boxRect, boxRad,
+			focus.RingColor(tok.platform, standsOn), focus.RingColor(tok.platform, boxFill))
 	}
 
 	// The title is part of the control, as it is on the platform: it stands

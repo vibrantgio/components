@@ -4,11 +4,16 @@
 // # The idiom
 //
 // A focused control has a ring: a [Width] band in the platform's keyboard
-// focus indicator lying on its own outline, [Outside] of it past the control
-// and [Outside] of it over the control's own outermost band. The control
-// keeps its edge and its fill, and measures the same box focused as at rest.
-// A keyboard user learns one width, one colour and one place, and learns it
-// once.
+// focus indicator lying across its own outline, part of it past the control
+// and part over the control's own outermost band. The control keeps its edge
+// and its fill, and measures the same box focused as at rest. A keyboard user
+// learns one width and one colour, and learns them once.
+//
+// How much of the band lies over the control follows the control's kind, as
+// the platform draws it. A field's ring is [FieldOver] over the box and
+// [Outside] past it. A checkbox's ring is 1 dp over and 3 dp past it, which
+// components/input measures. A kind with no capture of its own focused takes
+// the field's placement, and its caller says that it is unmeasured.
 //
 // MEASURED, save-dialog-light.png and save-dialog-dark.png, the focused
 // "Save As:" field, whose box runs x 264-495 and whose ring is the only one
@@ -76,13 +81,18 @@ import (
 // MEASURED, save-dialog-{light,dark}.png: see the package doc.
 const Width = unit.Dp(4)
 
-// Outside is how much of [Width] lies past the control's own box: 2 dp, half
-// the band. The other half lies over the control's outermost 2 dp.
+// Outside is how much of [Width] lies past a field's own box: 2 dp, half
+// the band. The other half, [FieldOver], lies over the field's outermost
+// 2 dp.
 const Outside = Width / 2
 
-// OutsidePx is how far past a control's own box the ring reaches, in device
-// pixels at gtx's metric: half of [Width], rounded out so the band's own
-// antialiased edge falls inside it.
+// FieldOver is how much of [Width] lies over a field's own box: 2 dp.
+// MEASURED, save-dialog-{light,dark}.png: see the package doc.
+const FieldOver = Width - Outside
+
+// OutsidePx is how far past a control's own box the field's placement of the
+// ring reaches, in device pixels at gtx's metric: half of [Width], rounded
+// out so the band's own antialiased edge falls inside it.
 //
 // A caller drawing anything that must not appear under the band needs the
 // footprint rather than the box — the toolbar control's deferred drop shadow
@@ -115,6 +125,7 @@ func RingColor(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
 
 // Ring paints the focus ring on box's outline with corner radius radius:
 // [Width] wide, [Outside] of it past box and the rest over box's own edge.
+// It is [RingOver] at [FieldOver].
 //
 // outside is the colour the half past the box takes and over the colour the
 // half on the box takes; they are [RingColor] flattened onto the surface the
@@ -137,7 +148,18 @@ func RingColor(p tokens.PlatformColors, beneath color.NRGBA) color.NRGBA {
 // band is painted where it is drawn, which is right for a control nothing
 // clips and is what a caller composing these renderers itself gets.
 func Ring(gtx layout.Context, box image.Rectangle, radius int, outside, over color.NRGBA, fills ...Fill) {
-	ring(gtx, clip.RRect{Rect: box, SE: radius, SW: radius, NE: radius, NW: radius}, box, outside, over, fills)
+	RingOver(gtx, FieldOver, box, radius, outside, over, fills...)
+}
+
+// RingOver is [Ring] with overBox of the band over box and the rest of
+// [Width] past it: the placement of the control's own kind. The band's
+// centre line is box's outline grown by half of [Width] less overBox, its
+// corner radius grown by the same amount.
+func RingOver(gtx layout.Context, overBox unit.Dp, box image.Rectangle, radius int, outside, over color.NRGBA, fills ...Fill) {
+	ring(gtx, overBox, func(grow int) outline {
+		r := radius + grow
+		return clip.RRect{Rect: box.Inset(-grow), SE: r, SW: r, NE: r, NW: r}
+	}, box, outside, over, fills)
 }
 
 // Fill is one of the fills the ring's over half lies on where a control's own
@@ -161,7 +183,7 @@ type Fill struct {
 // RingEllipse is [Ring] around an elliptical control — the radio's disc,
 // which has no corner radius to take.
 func RingEllipse(gtx layout.Context, box image.Rectangle, outside, over color.NRGBA) {
-	ring(gtx, clip.Ellipse(box), box, outside, over, nil)
+	ring(gtx, FieldOver, func(grow int) outline { return clip.Ellipse(box.Inset(-grow)) }, box, outside, over, nil)
 }
 
 // outline is the shape a control's box is drawn as: a rounded rectangle for
@@ -171,18 +193,19 @@ type outline interface {
 	Path(*op.Ops) clip.PathSpec
 }
 
-// ring paints the band on shape's outline, in two passes: the whole band in
-// outside, then the half of it lying on the control in over, clipped to the
-// control's own shape — and once more per fill, clipped to that fill's box as
-// well, so the over half lands on each fill the colour it lands as there.
+// ring paints the band on the outline shapeAt answers, grown so overBox of
+// the band lies over the control, in two passes: the whole band in outside,
+// then the part of it lying on the control in over, clipped to the control's
+// own shape, shapeAt(0) — and once more per fill, clipped to that fill's box
+// as well, so the over part lands on each fill the colour it lands as there.
 //
 // Two passes rather than two strokes. A stroke is centred on the path it
-// follows, so the only way to lay a band of half the width exactly on the
-// inner half of the outline is to stroke that outline at the full width
-// again under a clip of the shape — the same idiom the picker's trigger and
-// the bordered toolbar control draw their edge with, and the one thing that
-// keeps both sides of the inner half following the corner.
-func ring(gtx layout.Context, shape outline, box image.Rectangle, outside, over color.NRGBA, fills []Fill) {
+// follows, so the only way to lay a part of the band exactly on the control
+// is to stroke the grown outline at the full width again under a clip of the
+// shape — the same idiom the picker's trigger and the bordered toolbar
+// control draw their edge with, and the one thing that keeps both sides of
+// that part following the corner.
+func ring(gtx layout.Context, overBox unit.Dp, shapeAt func(grow int) outline, box image.Rectangle, outside, over color.NRGBA, fills []Fill) {
 	if box.Empty() || (outside.A == 0 && over.A == 0 && len(fills) == 0) {
 		return
 	}
@@ -190,13 +213,18 @@ func ring(gtx layout.Context, shape outline, box image.Rectangle, outside, over 
 	if w < 1 {
 		w = 1
 	}
+	grow := w/2 - gtx.Dp(overBox)
+	if grow < 0 {
+		grow = 0
+	}
+	shape, path := shapeAt(0), shapeAt(grow)
 	macro := op.Record(gtx.Ops)
 	if outside.A != 0 {
-		paint.FillShape(gtx.Ops, outside, clip.Stroke{Path: shape.Path(gtx.Ops), Width: float32(w)}.Op())
+		paint.FillShape(gtx.Ops, outside, clip.Stroke{Path: path.Path(gtx.Ops), Width: float32(w)}.Op())
 	}
 	if over.A != 0 && over != outside {
 		inner := shape.Op(gtx.Ops).Push(gtx.Ops)
-		paint.FillShape(gtx.Ops, over, clip.Stroke{Path: shape.Path(gtx.Ops), Width: float32(w)}.Op())
+		paint.FillShape(gtx.Ops, over, clip.Stroke{Path: path.Path(gtx.Ops), Width: float32(w)}.Op())
 		inner.Pop()
 	}
 	for _, f := range fills {
@@ -208,7 +236,7 @@ func ring(gtx layout.Context, shape outline, box image.Rectangle, outside, over 
 		// was drawn are gone.
 		area := clip.Rect(f.Box).Push(gtx.Ops)
 		inner := shape.Op(gtx.Ops).Push(gtx.Ops)
-		paint.FillShape(gtx.Ops, f.Band, clip.Stroke{Path: shape.Path(gtx.Ops), Width: float32(w)}.Op())
+		paint.FillShape(gtx.Ops, f.Band, clip.Stroke{Path: path.Path(gtx.Ops), Width: float32(w)}.Op())
 		inner.Pop()
 		area.Pop()
 	}
