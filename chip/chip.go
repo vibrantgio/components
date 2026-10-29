@@ -615,7 +615,7 @@ func draw(
 	selected := s.Selected && i.Selectable()
 	col := Resolve(tok.platform, i, s)
 
-	padH := gtx.Dp(unit.Dp(tok.density.PaddingX))
+	padH := gtx.Dp(unit.Dp(tok.density.ChipPaddingX))
 	gap := gtx.Dp(unit.Dp(tok.spacing.S2))
 
 	// The marks are capped at the body's INNER height — the chip's own height

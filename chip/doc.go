@@ -97,9 +97,10 @@
 // taller than the chip height in both title roles, so a Compact chip measures
 // its title; a box shorter than the text in it is not a chip either.
 //
-// Horizontal padding is d.PaddingX at each end. The silhouette is the radius
-// scale's Lg stop, 8 dp, clamped to half the height — a rounded rectangle, not
-// a capsule. The edge is one dp at every density, the width every other
+// Horizontal padding is d.ChipPaddingX at each end: the chip's own inset,
+// not the control's, because the platform draws no chip. The silhouette is
+// the radius scale's Lg stop, 8 dp, clamped to half the height — a rounded
+// rectangle, not a capsule. The edge is one dp at every density, the width every other
 // edge in this library draws, and it is painted as nested fills rather
 // than as a stroke on the shape's path: a stroke is centred on the path, so
 // half of it would fall outside the box the chip reports and every pixel of it

@@ -354,7 +354,7 @@ func TestOnlyAFilterReportsSelection(t *testing.T) {
 			r := new(gioinput.Router)
 			drive := driver(w, r, image.Pt(300, 120))
 			dims := drive()
-			press(r, int(tokens.Comfortable.PaddingX), dims.Size.Y/2)
+			press(r, int(tokens.Comfortable.ChipPaddingX), dims.Size.Y/2)
 			drive()
 			if moved != 0 {
 				t.Errorf("OnSelect fired %d times on a %s chip: only a filter chip is selectable", moved, in.name)
@@ -382,7 +382,7 @@ func TestInputChipDismissesFromItsOwnTarget(t *testing.T) {
 
 	// The mark's centre: half an icon in from where the trailing padding
 	// starts, which is where the structure puts it.
-	markX := dims.Size.X - int(tokens.Comfortable.PaddingX) -
+	markX := dims.Size.X - int(tokens.Comfortable.ChipPaddingX) -
 		int(math.Round(float64(chip.MarkDp(tokens.DefaultTypography.SystemFont))))/2
 	press(r, markX, dims.Size.Y/2)
 	drive()
@@ -394,7 +394,7 @@ func TestInputChipDismissesFromItsOwnTarget(t *testing.T) {
 	}
 
 	// The title's own surface still activates the chip.
-	press(r, int(tokens.Comfortable.PaddingX), dims.Size.Y/2)
+	press(r, int(tokens.Comfortable.ChipPaddingX), dims.Size.Y/2)
 	drive()
 	if clicked != 1 {
 		t.Errorf("a click on the title activated the chip %d times, want 1", clicked)

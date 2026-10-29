@@ -323,7 +323,7 @@ func TestEachMarkCostsItsOwnSlot(t *testing.T) {
 	drawn := measure(t, render(shaper, "Model", chip.Input, block, tokens.PlatformLight, chip.RenderState{}))
 	avatar := min(chip.AvatarDp, int(tokens.Comfortable.ChipHeight())-2)
 	avatarInset := (drawn.Y - avatar) / 2
-	textInset := int(tokens.Comfortable.PaddingX)
+	textInset := int(tokens.Comfortable.ChipPaddingX)
 	width := func(i chip.Purpose, icon chip.Symbol, s chip.RenderState) int {
 		return measure(t, render(shaper, "Model", i, icon, tokens.PlatformLight, s)).X
 	}
