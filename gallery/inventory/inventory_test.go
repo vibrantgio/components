@@ -403,3 +403,70 @@ func TestTabItemsAreNilForAnUnknownGroup(t *testing.T) {
 		t.Errorf("an unknown group name returned %d rows, want nil", len(rows))
 	}
 }
+
+// TestTheToggleSectionNamesEachControlAndState reads the checkbox and radio
+// button section's text: its title, the two row names and every state
+// caption. No example's title is a state caption.
+func TestTheToggleSectionNamesEachControlAndState(t *testing.T) {
+	inv := testInventory(t)
+	s := sectionNamed(t, inv, tokens.PlatformLight, "components-checkbox")
+	if s.Title != "Checkbox and radio button" {
+		t.Errorf("section title %q, want %q", s.Title, "Checkbox and radio button")
+	}
+	want := [2]toggleSymbolRow{
+		{name: "Checkbox", captions: [4]string{"Unchecked", "Checked", "Focused", "Disabled"}},
+		{name: "Radio button", captions: [4]string{"Unselected", "Selected", "Focused", "Disabled"}},
+	}
+	if toggleSymbolRows != want {
+		t.Errorf("symbol rows %v, want %v", toggleSymbolRows, want)
+	}
+	if toggleExamplesCaption != "Examples, with titles from the platform's windows:" {
+		t.Errorf("examples caption %q", toggleExamplesCaption)
+	}
+	states := map[string]bool{}
+	for _, row := range toggleSymbolRows {
+		for _, c := range row.captions {
+			states[c] = true
+		}
+	}
+	for _, ex := range toggleExamples {
+		var row toggleSymbolRow
+		if ex.radio {
+			row = toggleSymbolRows[1]
+		} else {
+			row = toggleSymbolRows[0]
+		}
+		wantCaption := row.captions[0]
+		switch {
+		case ex.disabled:
+			wantCaption = row.captions[3]
+		case ex.on:
+			wantCaption = row.captions[1]
+		}
+		if ex.caption != wantCaption {
+			t.Errorf("example %q is captioned %q, want %q", ex.title, ex.caption, wantCaption)
+		}
+		if states[ex.title] {
+			t.Errorf("example title %q is a state name", ex.title)
+		}
+	}
+}
+
+// TestTheToggleSectionFitsTheColumn lays the section out with no width limit
+// and finds it no wider than the body of a section at the sample width.
+func TestTheToggleSectionFitsTheColumn(t *testing.T) {
+	inv := testInventory(t)
+	for _, c := range []tokens.PlatformColors{tokens.PlatformLight, tokens.PlatformDark} {
+		s := sectionNamed(t, inv, c, "components-checkbox")
+		var ops op.Ops
+		gtx := layout.Context{
+			Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
+			Constraints: layout.Constraints{Max: image.Pt(1<<20, 1<<20)},
+			Ops:         &ops,
+		}
+		w := s.Body(gtx).Size.X
+		if limit := sampleWidth - 2*int(SectionPadX); w > limit {
+			t.Errorf("section is %d wide, want at most %d", w, limit)
+		}
+	}
+}

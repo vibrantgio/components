@@ -528,7 +528,7 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 			Body: inv.searchFieldRow(c)},
 		{Name: "components-findbar", Title: "Find bar — the search field, the previous and next control and Done in their find bar variants, holding a query and empty", Height: 70,
 			Body: inv.findBarRow(c)},
-		{Name: "components-checkbox", Title: "Checkbox and radio — unset, set, focused, disabled, then the same controls carrying their own titles", Height: 96,
+		{Name: "components-checkbox", Title: toggleSectionTitle, Height: 174,
 			Body: inv.toggleRow(c)},
 		{Name: "components-picker", Title: "Picker — the form trigger at rest, under the pointer, held, focused and switched off, then open with its menu standing over it, beside the chrome toolbar at rest and under the pointer", Height: 200,
 			Body: inv.pickerRow(c)},
@@ -1402,84 +1402,182 @@ func (inv *Inventory) findBarRow(c tokens.PlatformColors) layout.Widget {
 	}
 }
 
-func (inv *Inventory) toggleRow(c tokens.PlatformColors) layout.Widget {
-	cells := []struct {
-		label string
-		w     layout.Widget
-	}{
-		{"Unchecked", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{})},
-		{"Checked", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Checked: true})},
-		{"Focused", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Focused: true})},
-		{"Disabled", input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Disabled: true})},
-		{"Unselected", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.RadioRenderState{})},
-		{"Selected", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.RadioRenderState{Selected: true})},
-		{"Focused", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.RadioRenderState{Focused: true})},
-		{"Disabled", input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.RadioRenderState{Disabled: true})},
-	}
-	return func(gtx layout.Context) layout.Dimensions {
-		cs := make([]layout.FlexChild, 0, 2*len(cells))
-		for i, cell := range cells {
-			if i > 0 {
-				cs = append(cs, layout.Rigid(complayout.HSpacer(16)))
-			}
-			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				gtx.Constraints.Min.X = gtx.Dp(72)
-				gtx.Constraints.Max.X = gtx.Dp(72)
-				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-					layout.Rigid(cell.w),
-					layout.Rigid(complayout.VSpacer(6)),
-					layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-						return LabelAt(gtx, inv.shaper, cell.label, sectionMuted(c), 11, font.Font{})
-					}),
-				)
-			}))
-		}
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return layout.Flex{}.Layout(gtx, cs...)
-			}),
-			layout.Rigid(complayout.VSpacer(toggleRowGap)),
-			layout.Rigid(inv.titledToggleRow(c)),
-		)
-	}
+// toggleSectionTitle is the checkbox and radio button section's heading.
+const toggleSectionTitle = "Checkbox and radio button"
+
+// toggleSymbolRow is one row of bare symbols: the control's name at the
+// leading side, then one symbol per state with a caption naming that state.
+// The captions are in the order rest, on, focused, disabled.
+type toggleSymbolRow struct {
+	name     string
+	captions [4]string
 }
 
-// The titled row's measurements.
+// toggleSymbolRows holds the checkbox row first and the radio button row
+// second.
+var toggleSymbolRows = [2]toggleSymbolRow{
+	{name: "Checkbox", captions: [4]string{"Unchecked", "Checked", "Focused", "Disabled"}},
+	{name: "Radio button", captions: [4]string{"Unselected", "Selected", "Focused", "Disabled"}},
+}
+
+// toggleExamplesCaption is the caption above the titled controls.
+const toggleExamplesCaption = "Examples, with titles from the platform's windows:"
+
+// toggleExample is one titled control and the caption under it that names
+// its state.
+type toggleExample struct {
+	radio    bool
+	on       bool
+	disabled bool
+	title    string
+	caption  string
+}
+
+// toggleExamples holds the titled controls. Every title is the platform's
+// own text, read off a stored capture in organisation/reference/macos:
+//   - "Show startup screen" and "Stay open after run handler" are the Save
+//     panel's checkboxes (save-dialog-{light,dark}.png).
+//   - "Browse in icon view" is the switched-off checkbox in Finder's View
+//     Options (finder-view-options-{light,dark}.png).
+//   - "When scrolling" and "Always" are System Settings' radio buttons
+//     (system-settings-radios-{light,dark}.png).
+//   - "Picture" is a radio button in Finder's View Options
+//     (finder-view-options-{light,dark}.png). That capture shows it enabled,
+//     because no stored capture holds a switched-off radio button.
+var toggleExamples = []toggleExample{
+	{title: "Show startup screen", caption: "Unchecked"},
+	{on: true, title: "Stay open after run handler", caption: "Checked"},
+	{disabled: true, title: "Browse in icon view", caption: "Disabled"},
+	{radio: true, title: "When scrolling", caption: "Unselected"},
+	{radio: true, on: true, title: "Always", caption: "Selected"},
+	{radio: true, disabled: true, title: "Picture", caption: "Disabled"},
+}
+
+// The section's measurements.
 const (
-	// toggleRowGap is the air between the row of bare symbols and the row of
-	// titled controls under it.
-	toggleRowGap = 14
-	// toggleCellGap is the air between two controls of one family, and
-	// toggleFamilyGap the wider break between the checkboxes and the radios,
-	// so the row is read by family rather than by state.
+	// toggleNameW is the width of the column that holds the row names. Both
+	// rows use it, so the symbols of the two rows stand in the same columns.
+	toggleNameW unit.Dp = 96
+	// toggleSymbolW is the width of one symbol cell, and toggleSymbolGap the
+	// space between two symbol cells.
+	toggleSymbolW   unit.Dp = 72
+	toggleSymbolGap         = 16
+	// toggleCaptionGap is the space between a control and its caption.
+	toggleCaptionGap = 6
+	// toggleRowGap is the space between the two rows of symbols.
+	toggleRowGap = 10
+	// toggleExamplesGap is the space above the caption that introduces the
+	// examples, and toggleExamplesCaptionGap the space under it.
+	toggleExamplesGap        = 16
+	toggleExamplesCaptionGap = 8
+	// toggleCellGap is the space between two examples of one control, and
+	// toggleFamilyGap the wider space between the checkboxes and the radio
+	// buttons, so that the row divides into the two controls.
 	toggleCellGap   = 24
 	toggleFamilyGap = 44
 )
 
-// titledToggleRow draws the controls as the platform draws them in a form:
-// the box or the disc with its own title, which is part of the control. Every
-// state the title itself moves in stands here — set, unset and switched off,
-// for both families — because the title fades with the symbol and that is what
-// a reader has to be able to check.
-func (inv *Inventory) titledToggleRow(c tokens.PlatformColors) layout.Widget {
-	box := func(s input.CheckboxRenderState) layout.Widget {
-		return input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, s)
+func (inv *Inventory) toggleBox(c tokens.PlatformColors, s input.CheckboxRenderState) layout.Widget {
+	return input.RenderCheckbox(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, s)
+}
+
+func (inv *Inventory) toggleDisc(c tokens.PlatformColors, s input.RadioRenderState) layout.Widget {
+	return input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, s)
+}
+
+// toggleCaption draws one caption in the gallery's caption style.
+func (inv *Inventory) toggleCaption(c tokens.PlatformColors, s string) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		gtx.Constraints.Min.X = 0
+		return LabelAt(gtx, inv.shaper, s, sectionMuted(c), 11, font.Font{})
 	}
-	disc := func(s input.RadioRenderState) layout.Widget {
-		return input.RenderRadio(inv.shaper, c, tokens.Spacing, tokens.DefaultTypography.SystemFont, s)
+}
+
+// toggleCaptioned draws a control with its caption under it. The alignment
+// sets where the control and the caption stand across the cell's width.
+func (inv *Inventory) toggleCaptioned(c tokens.PlatformColors, w layout.Widget, caption string, align layout.Alignment) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical, Alignment: align}.Layout(gtx,
+			layout.Rigid(w),
+			layout.Rigid(complayout.VSpacer(toggleCaptionGap)),
+			layout.Rigid(inv.toggleCaption(c, caption)),
+		)
 	}
-	// The first two titles are the save panel's own, so the row can be held
-	// against the capture the measurements come from.
-	cells := []layout.Widget{
-		box(input.CheckboxRenderState{Title: "Show startup screen"}),
-		box(input.CheckboxRenderState{Checked: true, Title: "Stay open"}),
-		box(input.CheckboxRenderState{Disabled: true, Title: "Switched off"}),
-		disc(input.RadioRenderState{Selected: true, Title: "Chosen"}),
-		disc(input.RadioRenderState{Title: "Not chosen"}),
-		disc(input.RadioRenderState{Disabled: true, Title: "Switched off"}),
+}
+
+// toggleSymbols draws the four bare symbols of one row, in the order of the
+// row's captions.
+func (inv *Inventory) toggleSymbols(c tokens.PlatformColors, radio bool) [4]layout.Widget {
+	if radio {
+		return [4]layout.Widget{
+			inv.toggleDisc(c, input.RadioRenderState{}),
+			inv.toggleDisc(c, input.RadioRenderState{Selected: true}),
+			inv.toggleDisc(c, input.RadioRenderState{Focused: true}),
+			inv.toggleDisc(c, input.RadioRenderState{Disabled: true}),
+		}
 	}
-	// The break falls where the family changes, which is after the third cell.
-	const firstDisc = 3
+	return [4]layout.Widget{
+		inv.toggleBox(c, input.CheckboxRenderState{}),
+		inv.toggleBox(c, input.CheckboxRenderState{Checked: true}),
+		inv.toggleBox(c, input.CheckboxRenderState{Focused: true}),
+		inv.toggleBox(c, input.CheckboxRenderState{Disabled: true}),
+	}
+}
+
+// toggleSymbolRowWidget draws one row of symbols. The row name is a title in
+// the label colour. Its line is centred on the symbols, not on the captions.
+// Each symbol and its caption are centred in their cell.
+func (inv *Inventory) toggleSymbolRowWidget(c tokens.PlatformColors, row toggleSymbolRow, radio bool) layout.Widget {
+	symbols := inv.toggleSymbols(c, radio)
+	return func(gtx layout.Context) layout.Dimensions {
+		cs := make([]layout.FlexChild, 0, 2*len(symbols))
+		// The first symbol is measured once to centre the name on it.
+		m := op.Record(gtx.Ops)
+		symH := symbols[0](gtx).Size.Y
+		m.Stop()
+		cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			gtx.Constraints.Min.X = gtx.Dp(toggleNameW)
+			gtx.Constraints.Max.X = gtx.Dp(toggleNameW)
+			nm := op.Record(gtx.Ops)
+			d := LabelAt(gtx, inv.shaper, row.name, sectionText(c), 13, font.Font{})
+			call := nm.Stop()
+			dy := (symH - d.Size.Y) / 2
+			off := op.Offset(image.Pt(0, dy)).Push(gtx.Ops)
+			call.Add(gtx.Ops)
+			off.Pop()
+			return layout.Dimensions{Size: image.Pt(gtx.Dp(toggleNameW), max(symH, d.Size.Y+dy))}
+		}))
+		for i, w := range symbols {
+			if i > 0 {
+				cs = append(cs, layout.Rigid(complayout.HSpacer(toggleSymbolGap)))
+			}
+			cell := inv.toggleCaptioned(c, w, row.captions[i], layout.Middle)
+			cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Min.X = gtx.Dp(toggleSymbolW)
+				gtx.Constraints.Max.X = gtx.Dp(toggleSymbolW)
+				return cell(gtx)
+			}))
+		}
+		return layout.Flex{}.Layout(gtx, cs...)
+	}
+}
+
+// toggleExamplesRow draws the titled controls as the platform draws them in
+// a form: the box or the disc with its own title, which is part of the
+// control. A caption under each control names its state.
+func (inv *Inventory) toggleExamplesRow(c tokens.PlatformColors) layout.Widget {
+	cells := make([]layout.Widget, len(toggleExamples))
+	firstDisc := len(toggleExamples)
+	for i, ex := range toggleExamples {
+		var w layout.Widget
+		if ex.radio {
+			firstDisc = min(firstDisc, i)
+			w = inv.toggleDisc(c, input.RadioRenderState{Selected: ex.on, Disabled: ex.disabled, Title: ex.title})
+		} else {
+			w = inv.toggleBox(c, input.CheckboxRenderState{Checked: ex.on, Disabled: ex.disabled, Title: ex.title})
+		}
+		cells[i] = inv.toggleCaptioned(c, w, ex.caption, layout.Start)
+	}
 	return func(gtx layout.Context) layout.Dimensions {
 		cs := make([]layout.FlexChild, 0, 2*len(cells))
 		for i, w := range cells {
@@ -1493,6 +1591,25 @@ func (inv *Inventory) titledToggleRow(c tokens.PlatformColors) layout.Widget {
 			cs = append(cs, layout.Rigid(w))
 		}
 		return layout.Flex{}.Layout(gtx, cs...)
+	}
+}
+
+// toggleRow draws the checkbox and radio button section: two rows of bare
+// symbols, one per control, then a row of titled examples.
+func (inv *Inventory) toggleRow(c tokens.PlatformColors) layout.Widget {
+	checkboxes := inv.toggleSymbolRowWidget(c, toggleSymbolRows[0], false)
+	radios := inv.toggleSymbolRowWidget(c, toggleSymbolRows[1], true)
+	examples := inv.toggleExamplesRow(c)
+	return func(gtx layout.Context) layout.Dimensions {
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(checkboxes),
+			layout.Rigid(complayout.VSpacer(toggleRowGap)),
+			layout.Rigid(radios),
+			layout.Rigid(complayout.VSpacer(toggleExamplesGap)),
+			layout.Rigid(inv.toggleCaption(c, toggleExamplesCaption)),
+			layout.Rigid(complayout.VSpacer(toggleExamplesCaptionGap)),
+			layout.Rigid(examples),
+		)
 	}
 }
 
