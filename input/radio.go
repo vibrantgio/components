@@ -293,7 +293,10 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 		}
 
 	case s.Selected:
-		paint.FillShape(gtx.Ops, tok.platform.ControlAccent, clip.Ellipse(outerRect).Op(gtx.Ops))
+		// The checked box's fill on a circle. MEASURED,
+		// system-settings-radios-{light,dark}.png: #157bf5 light and #1b81fb
+		// dark over the whole disc, with no edge.
+		paint.FillShape(gtx.Ops, tok.platform.AccentFill, clip.Ellipse(outerRect).Op(gtx.Ops))
 		fillDot(tok.platform.AlternateSelectedControlText)
 
 	default:
@@ -320,7 +323,7 @@ func drawRadio(gtx layout.Context, tok resolvedTokens, s RadioRenderState) layou
 	if s.Focused && !s.Disabled {
 		discEdge := control.Border(tok.platform)
 		if s.Selected {
-			discEdge = tok.platform.ControlAccent
+			discEdge = tok.platform.AccentFill
 		}
 		focus.RingEllipse(gtx, outerRect,
 			focus.RingColor(tok.platform, standsOn), focus.RingColor(tok.platform, discEdge))

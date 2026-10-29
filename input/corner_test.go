@@ -192,7 +192,7 @@ func TestTheDotIsTheMeasuredFiveSixteenths(t *testing.T) {
 				return
 			}
 
-			base, dot := sc.platform.ControlAccent, sc.platform.AlternateSelectedControlText
+			base, dot := sc.platform.AccentFill, sc.platform.AlternateSelectedControlText
 			if got := img.RGBAAt(lo+symbolSide/2, lo+symbolSide/2); !nearlyEqual(got, dot) {
 				t.Errorf("the dot's own centre reads %v, want the platform's %v the accent is named against", got, dot)
 			}

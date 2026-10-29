@@ -386,8 +386,10 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		// of them carries completion in hue alone — which is the one channel
 		// a reader may not have. So the box draws a check, in the foreground
 		// the platform names for text on a fill its accent paints, in the
-		// platform's measured shape.
-		paint.FillShape(gtx.Ops, tok.platform.ControlAccent, rrectOuter.Op(gtx.Ops))
+		// platform's measured shape. The fill is the accent the platform
+		// draws, not controlAccentColor: MEASURED, the Keyboard Shortcuts
+		// sheet's checked box reads #157bf5 light and #1b81fb dark.
+		paint.FillShape(gtx.Ops, tok.platform.AccentFill, rrectOuter.Op(gtx.Ops))
 		drawCheck(gtx, boxRect, boxSz, tok.platform.AlternateSelectedControlText)
 
 	default:
@@ -420,7 +422,7 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		// platform's field edge where it is not.
 		boxEdge := control.Border(tok.platform)
 		if s.Checked {
-			boxEdge = tok.platform.ControlAccent
+			boxEdge = tok.platform.AccentFill
 		}
 		focus.Ring(gtx, boxRect, boxRad,
 			focus.RingColor(tok.platform, standsOn), focus.RingColor(tok.platform, boxEdge))

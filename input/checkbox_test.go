@@ -187,7 +187,7 @@ func TestCheckboxChecksAreDrawn(t *testing.T) {
 		{"dark", tokens.PlatformDark},
 	} {
 		p := scheme.platform
-		mark, fill := p.AlternateSelectedControlText, p.ControlAccent
+		mark, fill := p.AlternateSelectedControlText, p.AccentFill
 		count := func(s input.CheckboxRenderState) int {
 			img := golden.Capture(t, size, input.RenderCheckbox(nil, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, s))
 			if img == nil {
@@ -628,7 +628,7 @@ func TestTheSwitchedOffBoxKeepsItsMark(t *testing.T) {
 					if nearerTo(got, mark, fill) {
 						marked++
 					}
-					if nearlyEqual(got, p.ControlAccent) {
+					if nearlyEqual(got, p.AccentFill) {
 						accented++
 					}
 				}
@@ -637,7 +637,7 @@ func TestTheSwitchedOffBoxKeepsItsMark(t *testing.T) {
 				t.Errorf("%s %s: a switched-off control with a value set carries no pixel of its mark %v over the fill %v", sc.name, cs.what, mark, fill)
 			}
 			if accented != 0 {
-				t.Errorf("%s %s: a switched-off control carries %d pixels of the accent %v; the platform draws none on one", sc.name, cs.what, accented, p.ControlAccent)
+				t.Errorf("%s %s: a switched-off control carries %d pixels of the accent %v; the platform draws none on one", sc.name, cs.what, accented, p.AccentFill)
 			}
 		}
 	}
@@ -687,7 +687,7 @@ func TestTheCheckMarkIsThePlatformsMeasuredShape(t *testing.T) {
 				return
 			}
 			lin := func(v uint8) float64 { return vgcolor.LinearFromSRGB(float64(v) / 255) }
-			fill, mark := lin(p.ControlAccent.R), lin(p.AlternateSelectedControlText.R)
+			fill, mark := lin(p.AccentFill.R), lin(p.AlternateSelectedControlText.R)
 			var cov [box][box]float64
 			minX, minY, maxX, maxY := box, box, -1, -1
 			for y := range box {
