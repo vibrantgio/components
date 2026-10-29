@@ -3,6 +3,7 @@ package input_test
 import (
 	"image"
 	stdcolor "image/color"
+	"math"
 	"testing"
 
 	"gioui.org/f32"
@@ -639,5 +640,104 @@ func TestTheSwitchedOffBoxKeepsItsMark(t *testing.T) {
 				t.Errorf("%s %s: a switched-off control carries %d pixels of the accent %v; the platform draws none on one", sc.name, cs.what, accented, p.ControlAccent)
 			}
 		}
+	}
+}
+
+// TestTheCheckMarkIsThePlatformsMeasuredShape reads the checked box's mark by
+// the method the reference reads the platform's, in both schemes: its extent
+// and inset, its stroke weight and its long arm's angle.
+//
+// The reading is a coverage per pixel from the accent to the mark's white.
+// Gio blends in linear light, so the test converts each pixel and both end
+// colours from sRGB to linear first and reads the coverage there on the red
+// channel, the channel with the widest range. The platform blends the
+// encoded values, so the reference reads its coverage on those. Both
+// readings are the shape's geometric coverage.
+//
+// Rows 5 to 7 of the box cross the long arm alone. Their coverage centroids
+// give the arm's run across per row down, and so its angle. A row cuts the
+// arm over the weight ÷ sin(angle), so the mean coverage of rows 5 and 6
+// times sin(angle) is the stroke weight.
+func TestTheCheckMarkIsThePlatformsMeasuredShape(t *testing.T) {
+	const (
+		size       = 44
+		box        = 16
+		inset      = 3  // MEASURED: the mark starts 3 px in from each side
+		extent     = 10 // MEASURED: the mark is 10 × 10 px
+		weight     = 2.06
+		angle      = 56.6
+		weightTol  = 0.08
+		angleTol   = 1.0
+		visible    = 0.02 // the reference's threshold for a covered pixel
+		longArmCol = 7    // rows 5 to 7 cross the long arm alone from here
+	)
+	lo := (int(tokens.Comfortable.CheckboxRowHeight) - box) / 2
+
+	for _, sc := range []struct {
+		name     string
+		platform tokens.PlatformColors
+	}{
+		{"light", tokens.PlatformLight},
+		{"dark", tokens.PlatformDark},
+	} {
+		t.Run(sc.name, func(t *testing.T) {
+			p := sc.platform
+			img := golden.Capture(t, image.Pt(size, size), input.RenderCheckbox(nil, p, tokens.Spacing, tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Checked: true}))
+			if img == nil {
+				return
+			}
+			lin := func(v uint8) float64 { return vgcolor.LinearFromSRGB(float64(v) / 255) }
+			fill, mark := lin(p.ControlAccent.R), lin(p.AlternateSelectedControlText.R)
+			var cov [box][box]float64
+			minX, minY, maxX, maxY := box, box, -1, -1
+			for y := range box {
+				for x := range box {
+					c := (lin(img.RGBAAt(lo+x, lo+y).R) - fill) / (mark - fill)
+					cov[y][x] = max(0, min(1, c))
+					if cov[y][x] > visible {
+						minX, minY = min(minX, x), min(minY, y)
+						maxX, maxY = max(maxX, x), max(maxY, y)
+					}
+				}
+			}
+			if minX != inset || minY != inset || maxX != box-1-inset || maxY != box-1-inset {
+				t.Errorf("the mark covers x %d–%d, y %d–%d of the box, want %d–%d both ways: %d × %d px, %d px in from each side",
+					minX, maxX, minY, maxY, inset, box-1-inset, extent, extent, inset)
+			}
+
+			centroid := func(y int) float64 {
+				var sum, moment float64
+				for x := longArmCol; x < box; x++ {
+					sum += cov[y][x]
+					moment += cov[y][x] * (float64(x) + 0.5)
+				}
+				return moment / sum
+			}
+			run := (centroid(5) - centroid(7)) / 2
+			gotAngle := math.Atan2(1, run) * 180 / math.Pi
+			if math.Abs(gotAngle-angle) > angleTol {
+				t.Errorf("the long arm runs at %.2f°, want the measured %.1f°", gotAngle, angle)
+			}
+			rowSum := func(y int) float64 {
+				s := 0.0
+				for x := longArmCol; x < box; x++ {
+					s += cov[y][x]
+				}
+				return s
+			}
+			cut := (rowSum(5) + rowSum(6)) / 2
+			gotWeight := cut * math.Sin(gotAngle*math.Pi/180)
+			if math.Abs(gotWeight-weight) > weightTol {
+				t.Errorf("the mark's stroke is %.3f px wide, want the measured %.2f", gotWeight, weight)
+			}
+			var area float64
+			for y := range box {
+				for x := range box {
+					area += cov[y][x]
+				}
+			}
+			t.Logf("%s: extent x %d–%d, y %d–%d; long arm %.2f°; weight %.3f px; coverage %.1f px² (the platform's 29.5 light, 29.4 dark)",
+				sc.name, minX, maxX, minY, maxY, gotAngle, gotWeight, area)
+		})
 	}
 }

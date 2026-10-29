@@ -69,37 +69,27 @@ const checkboxCornerRadius = unit.Dp(5)
 // would on the platform.
 const controlTitleGap = unit.Dp(6)
 
-// The check mark is drawn on components/icons' grid rather than on one of
-// its own, so that the library has a single answer to "what does a stroke
-// weigh". checkGrid is that grid — 24 units, whatever size the drawing is
-// realized at — and checkBandUnits is the set's one measured band: 1.4
-// units, spent perpendicular whichever way an edge runs. The set draws no
-// second weight for a 45-degree edge, and this figure is nothing but two
-// 45-degree arms.
+// The check mark is the platform's white mark, MEASURED off
+// keyboard-shortcuts-sheet-{light,dark}.png's checked "Mission Control" box:
+// 10 × 10 px, 3 px in from each side of the 16 px box, a stroke 2.06 px wide
+// with its long arm at 56.6° from the horizontal.
+//
+// checkLine is the mark's centre line in the box's own units, 16 to a side:
+// in from the left, down to the turn, then up and out to the right. It is the
+// least-squares fit of a round-capped, round-joined stroke 2.06 wide to the
+// mean of both captures' coverage over the box. The squared coverage error
+// summed over the mark's 100 pixels is 0.04. The long arm runs at 56.6°, the short arm at
+// 48.5°. Gio's clip.Stroke caps and joins round, so the stroke is the centre
+// line plus checkStroke.
 const (
-	checkGrid      = 24.0
-	checkBandUnits = 1.4
+	checkGrid   = 16.0
+	checkStroke = 2.06
 )
 
-// checkLine is the check's centre line on that grid: in from the left, down
-// to the turn, then up and out to the right. It is the set's own check mark
-// point for point. Both arms run at exactly 45 degrees, the short one on
-// x-y = -8 and the long one on x+y = 26 — whole units, which is where a
-// 45-degree band of 1.4 covers a device pixel whole. Stroked, the figure
-// spans 16.4 by 12.19 units, inside the 20-unit allowance a diagonal form is
-// given — a diagonal drawing fills a square keyline less than a square one
-// does, which is why that allowance is the wider of the two.
-//
-// The set's own files draw their caps and turns as an explicit closed
-// contour because their SVG backend cannot ask for a line cap or a join.
-// Here nothing is going through that backend, and Gio's clip.Stroke caps and
-// joins round on its own, so the same figure is the centre line plus a
-// width. It is the identical drawing, arrived at with three points instead
-// of fourteen.
 var checkLine = [3]f32.Point{
-	{X: 4.5, Y: 12.5},
-	{X: 9, Y: 17},
-	{X: 19.5, Y: 6.5},
+	{X: 4.07, Y: 8.80},
+	{X: 6.93, Y: 12.03},
+	{X: 11.73, Y: 4.75},
 }
 
 // CheckboxRenderState holds explicit visual state for static rendering.
@@ -395,8 +385,8 @@ func drawCheckbox(gtx layout.Context, tok resolvedTokens, s CheckboxRenderState)
 		// means. Without the mark the checked state is a swatch, and a list
 		// of them carries completion in hue alone — which is the one channel
 		// a reader may not have. So the box draws a check, in the foreground
-		// the platform names for text on a fill its accent paints, at the
-		// icon set's weight.
+		// the platform names for text on a fill its accent paints, in the
+		// platform's measured shape.
 		paint.FillShape(gtx.Ops, tok.platform.ControlAccent, rrectOuter.Op(gtx.Ops))
 		drawCheck(gtx, boxRect, boxSz, tok.platform.AlternateSelectedControlText)
 
@@ -503,6 +493,6 @@ func drawCheck(gtx layout.Context, boxRect image.Rectangle, boxSz int, foregroun
 	}
 	paint.FillShape(gtx.Ops, foreground, clip.Stroke{
 		Path:  check.End(),
-		Width: checkBandUnits * scale,
+		Width: checkStroke * scale,
 	}.Op())
 }
