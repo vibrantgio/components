@@ -39,12 +39,14 @@ const (
 	stemW     = 120
 )
 
-// TestEachSchemeDrawsAtItsOwnStem: the golden test window of the light
-// scheme and that of the dark scheme each draw "Vibrant Gio" in the System
-// font at their own scheme's stem. The stem is the mean of four readings at
-// the offsets 0, ¼, ½ and ¾ px. It is within 0.06 px of the platform's row,
-// or of the nearer row where the platform gives two.
-func TestEachSchemeDrawsAtItsOwnStem(t *testing.T) {
+// TestTheStemFollowsTheTextAgainstItsFill: the golden test window of each
+// scheme draws "Vibrant Gio" in the System font, in the label colour on
+// controlBackground. The text is told that fill. Text darker than the fill
+// in light and lighter than it in dark each meet their own row. The stem is
+// the mean of four readings at the offsets 0, ¼, ½ and ¾ px. It is within
+// 0.06 px of the platform's row, or of the nearer row where the platform
+// gives two.
+func TestTheStemFollowsTheTextAgainstItsFill(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		set  tokens.PlatformColors
@@ -53,9 +55,6 @@ func TestEachSchemeDrawsAtItsOwnStem(t *testing.T) {
 			typ, err := golden.StaticTheme(tc.set).Typography.First()
 			if err != nil {
 				t.Fatalf("typography: %v", err)
-			}
-			if want := tokens.SchemeStemWeight(tc.set.Dark()); typ.StemWeight() != want {
-				t.Fatalf("the window draws at stem weight %v, want %v", typ.StemWeight(), want)
 			}
 			sh := typ.DeterministicShaper()
 			role := typ.SystemFont
@@ -66,6 +65,7 @@ func TestEachSchemeDrawsAtItsOwnStem(t *testing.T) {
 				var dims layout.Dimensions
 				line := golden.Capture(t, image.Pt(stemW, stemLineH), func(gtx layout.Context) layout.Dimensions {
 					paint.FillShape(gtx.Ops, fill, clip.Rect{Max: image.Pt(stemW, stemLineH)}.Op())
+					gtx = typeset.WithFill(gtx, fill)
 					tr := op.Affine(f32.Affine2D{}.Offset(f32.Pt(stemLeft+off, 0))).Push(gtx.Ops)
 					defer tr.Pop()
 					dims = typeset.Text(gtx, sh, stemWord, role, foreground, 1)

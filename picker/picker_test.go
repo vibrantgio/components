@@ -168,9 +168,17 @@ func TestOpenFieldStandsTheSharedMenuOverItsTrigger(t *testing.T) {
 		return layout.Dimensions{Size: image.Pt(right+size.X, size.Y)}
 	})
 
+	// The text in the two places is up to one level apart per channel.
+	// MEASURED: 34 pixels of one row's title differ by one level in Roboto
+	// Regular at the darker text's stem weight, and none in the face as
+	// shipped. A misplaced row differs by far more than one level.
+	near := func(a, b color.NRGBA) bool {
+		d := func(p, q uint8) bool { return p-q <= 1 || q-p <= 1 }
+		return d(a.R, b.R) && d(a.G, b.G) && d(a.B, b.B)
+	}
 	for y := planeY + planeInset; y < planeY+planeH-planeInset; y++ {
 		for x := planeInset; x < size.X-planeInset; x++ {
-			if a, b := px(img, x, y), px(img, right+x, y); a != b {
+			if a, b := px(img, x, y), px(img, right+x, y); !near(a, b) {
 				t.Fatalf("(%d,%d) inside the open field's plane is %v and the shared menu standing there is %v", x, y, a, b)
 			}
 		}
@@ -746,9 +754,12 @@ func TestACappedMenuIsAnchoredByItsDrop(t *testing.T) {
 // The faces are pinned by DeterministicShaper, so both columns are the same on
 // every machine.
 func TestTheTriggerStandsOnThePopUpsColumnAndItsRowsOnTheFields(t *testing.T) {
-	// The face bears one column on this word, as input's own reading of the
-	// same inset does.
-	const bearing = 1
+	// The title is darker text on the field, drawn at the darker text's stem
+	// weight. MEASURED in this render: that face's first stem covers 7 % of
+	// the column under the origin, so the face bears no whole column on this
+	// word. The face as shipped bears one, as input's own reading of the same
+	// inset does.
+	const bearing = 0
 	// The pill's inset and the mark's box, which the row's title follows.
 	const selectionInset, markBox = 10, 16
 	for _, tc := range []struct {

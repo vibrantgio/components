@@ -38,18 +38,13 @@ func WithRadius(r tokens.RadiusScale) ThemeOption {
 // StaticTheme freezes one colour scheme into a theme whose every field emits
 // once — the shape theme/window feeds an application's layers, minus the live
 // platform poll. Every field but the colours is the package default; the
-// options override one each. The typography draws at the stem weight of the
-// scheme of c, also when an option sets the typography.
+// options override one each.
 func StaticTheme(c tokens.PlatformColors, opts ...ThemeOption) theme.Theme {
 	th := theme.Default()
 	th.Platform = rx.Of(c)
 	for _, opt := range opts {
 		opt(&th)
 	}
-	stem := tokens.SchemeStemWeight(c.Dark())
-	th.Typography = rx.Map(th.Typography, func(typ tokens.Typography) tokens.Typography {
-		return typ.WithStemWeight(stem)
-	})
 	return th
 }
 
