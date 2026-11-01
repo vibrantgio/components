@@ -103,6 +103,15 @@ func plateau(img *image.RGBA, fill uint8) uint8 {
 // n in "Vibrant", four rows over the line's own baseline. The stem is the
 // coverage summed over the run of covered columns.
 func readStem13(img *image.RGBA, sh *text.Shaper, role tokens.TextStyle, base int, left float64, fill, foreground uint8) float64 {
+	fv, tv := float64(fill), float64(foreground)
+	return readStem13With(img, sh, role, base, left, func(x, y int) float64 {
+		c := img.RGBAAt(x, y)
+		return ((fv-float64(c.R))/(fv-tv) + (fv-float64(c.G))/(fv-tv) + (fv-float64(c.B))/(fv-tv)) / 3
+	})
+}
+
+// readStem13With is readStem13 with the coverage of a pixel given by cov.
+func readStem13With(img *image.RGBA, sh *text.Shaper, role tokens.TextStyle, base int, left float64, cov func(x, y int) float64) float64 {
 	sh.LayoutString(text.Parameters{
 		Font:     typeset.Font(role, font.Normal),
 		PxPerEm:  fx.Int26_6(role.Size * 64),
@@ -118,11 +127,6 @@ func readStem13(img *image.RGBA, sh *text.Shaper, role tokens.TextStyle, base in
 			nx = float64(g.X)/64 + left
 			nadv = float64(g.Advance) / 64
 		}
-	}
-	fv, tv := float64(fill), float64(foreground)
-	cov := func(x, y int) float64 {
-		c := img.RGBAAt(x, y)
-		return ((fv-float64(c.R))/(fv-tv) + (fv-float64(c.G))/(fv-tv) + (fv-float64(c.B))/(fv-tv)) / 3
 	}
 	row := base - 4
 	xa, xb := int(math.Floor(nx+0.56)), int(math.Floor(nx+nadv/2))
