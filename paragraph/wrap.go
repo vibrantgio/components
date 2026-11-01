@@ -177,7 +177,7 @@ func resolve(gtx layout.Context, style Style, spans []SpanStyle, rs RenderState)
 		out = append(out, resolvedSpan{
 			index:   i,
 			fills:   resolveFills(s),
-			font:    typeset.StemFontOn(textGtx, s.Font(), col),
+			font:    typeset.StemFontOn(textGtx, s.Font(), float32(size), col),
 			size:    gtx.Sp(size),
 			color:   col,
 			content: s.Content,

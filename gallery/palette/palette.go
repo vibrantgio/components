@@ -225,7 +225,7 @@ func longestHead(gtx layout.Context, shaper *text.Shaper, style textdraw.TextSty
 // fillText is [textdraw.FillText] at the stem weight of fg against the fill
 // gtx carries.
 func fillText(gtx layout.Context, sh *text.Shaper, style textdraw.TextStyle, box image.Rectangle, ax, ay float32, fg stdcolor.NRGBA, s string) {
-	style.Font = typeset.StemFontOn(gtx, style.Font, fg)
+	style.Font = typeset.StemFontOn(gtx, style.Font, float32(style.Size), fg)
 	textdraw.FillText(gtx, sh, style, box, ax, ay, fg, s)
 }
 

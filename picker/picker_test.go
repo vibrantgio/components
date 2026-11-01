@@ -168,12 +168,12 @@ func TestOpenFieldStandsTheSharedMenuOverItsTrigger(t *testing.T) {
 		return layout.Dimensions{Size: image.Pt(right+size.X, size.Y)}
 	})
 
-	// The text in the two places is up to one level apart per channel.
-	// MEASURED: 34 pixels of one row's title differ by one level in Roboto
-	// Regular at the darker text's stem weight, and none in the face as
-	// shipped. A misplaced row differs by far more than one level.
+	// The text in the two places is up to two levels apart per channel.
+	// MEASURED: of the 9360 pixels compared, 2 differ by one level and 1 by
+	// two levels, all in the rows' titles in widened Roboto Regular. A
+	// misplaced row differs by far more than two levels.
 	near := func(a, b color.NRGBA) bool {
-		d := func(p, q uint8) bool { return p-q <= 1 || q-p <= 1 }
+		d := func(p, q uint8) bool { return p-q <= 2 || q-p <= 2 }
 		return d(a.R, b.R) && d(a.G, b.G) && d(a.B, b.B)
 	}
 	for y := planeY + planeInset; y < planeY+planeH-planeInset; y++ {

@@ -29,6 +29,9 @@ var platformStem13 = map[bool][2]float64{
 	true:  {1.51, 1.57},
 }
 
+// gtxNone is a context with no fill, which [typeset.WithFill] gives one.
+var gtxNone layout.Context
+
 // stemOffsets are the four horizontal offsets the word is set at, in px.
 var stemOffsets = []float32{0, 0.25, 0.5, 0.75}
 
@@ -72,7 +75,8 @@ func TestTheStemFollowsTheTextAgainstItsFill(t *testing.T) {
 					return dims
 				})
 				base := dims.Size.Y - dims.Baseline
-				stems = append(stems, readStem13(line, sh, role, base, float64(stemLeft+off), fill.R, plateau(line, fill.R)))
+				f := typeset.FontOn(typeset.WithFill(gtxNone, fill), role, font.Normal, foreground)
+				stems = append(stems, readStem13(line, sh, f, role, base, float64(stemLeft+off), fill.R, plateau(line, fill.R)))
 			}
 			mean := (stems[0] + stems[1] + stems[2] + stems[3]) / 4
 			want := platformStem13[tc.set.Dark()]
@@ -101,19 +105,20 @@ func plateau(img *image.RGBA, fill uint8) uint8 {
 
 // readStem13 reads one 13 pt line the reference's way: the left stem of the
 // n in "Vibrant", four rows over the line's own baseline. The stem is the
-// coverage summed over the run of covered columns.
-func readStem13(img *image.RGBA, sh *text.Shaper, role tokens.TextStyle, base int, left float64, fill, foreground uint8) float64 {
+// coverage summed over the run of covered columns. f is the font the line
+// is drawn in, so the reader finds the glyphs the line draws.
+func readStem13(img *image.RGBA, sh *text.Shaper, f font.Font, role tokens.TextStyle, base int, left float64, fill, foreground uint8) float64 {
 	fv, tv := float64(fill), float64(foreground)
-	return readStem13With(img, sh, role, base, left, func(x, y int) float64 {
+	return readStem13With(img, sh, f, role, base, left, func(x, y int) float64 {
 		c := img.RGBAAt(x, y)
 		return ((fv-float64(c.R))/(fv-tv) + (fv-float64(c.G))/(fv-tv) + (fv-float64(c.B))/(fv-tv)) / 3
 	})
 }
 
 // readStem13With is readStem13 with the coverage of a pixel given by cov.
-func readStem13With(img *image.RGBA, sh *text.Shaper, role tokens.TextStyle, base int, left float64, cov func(x, y int) float64) float64 {
+func readStem13With(img *image.RGBA, sh *text.Shaper, f font.Font, role tokens.TextStyle, base int, left float64, cov func(x, y int) float64) float64 {
 	sh.LayoutString(text.Parameters{
-		Font:     typeset.Font(role, font.Normal),
+		Font:     f,
 		PxPerEm:  fx.Int26_6(role.Size * 64),
 		MaxLines: 1, MaxWidth: 10000,
 	}, stemWord)

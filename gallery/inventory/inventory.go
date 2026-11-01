@@ -2153,7 +2153,7 @@ func LabelAt(gtx layout.Context, shaper *text.Shaper, s string, col color.NRGBA,
 	paint.ColorOp{Color: col}.Add(gtx.Ops)
 	mat := m.Stop()
 	lbl := widget.Label{MaxLines: 1}
-	return lbl.Layout(gtx, shaper, typeset.StemFontOn(gtx, f, col), size, s, mat)
+	return lbl.Layout(gtx, shaper, typeset.StemFontOn(gtx, f, float32(size), col), size, s, mat)
 }
 
 // specimenName is the accessible name the trigger and the anchor both carry,
