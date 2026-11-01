@@ -21,12 +21,12 @@ require (
 	github.com/vibrantgio/components v1.7.1-0.20261101222657-a5cc8c531b8b
 	github.com/vibrantgio/effects v0.5.0
 	github.com/vibrantgio/ivg/raster/gio v0.2.1
-	github.com/vibrantgio/markdown v0.9.1-0.20261101132631-33df299c188d
+	github.com/vibrantgio/markdown v0.9.1-0.20261101224705-4c14fb34ef4a
 	github.com/vibrantgio/mvu v1.1.5
 	github.com/vibrantgio/mvu/desktop v1.1.5
-	github.com/vibrantgio/patterns v1.5.1-0.20261101205422-677e2cf535b8
+	github.com/vibrantgio/patterns v1.5.1-0.20261101224811-85ab9dc48351
 	github.com/vibrantgio/textdraw v0.1.0
-	github.com/vibrantgio/theme v1.6.1-0.20261101222502-abb32a8d88e7
+	github.com/vibrantgio/theme v1.6.1-0.20261101224235-79942a278c64
 	golang.org/x/exp/shiny v0.0.0-20260727155853-b88d891fe743
 )
 
