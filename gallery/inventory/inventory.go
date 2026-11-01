@@ -538,12 +538,6 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 			Body: inv.breadcrumb(c)},
 		{Name: "components-pagination", Title: "Pagination — page four of nine", Height: 36,
 			Body: inv.pagination(c)},
-		{Name: "components-list", Title: "List — a virtual list with its scrollbar in the gutter", Height: 180,
-			Body: inv.listBlock(c)},
-		{Name: "components-scrollbar", Title: "Scrollbar — a standalone bar beside its content", Height: 180,
-			Body: inv.scrollbarBlock(c)},
-		{Name: "components-scrollbar-search", Title: "Scrollbar — while a search is on, where the matches lie in the content, the current one stronger", Height: 180,
-			Body: inv.scrollbarSearchBlock(c)},
 		{Name: "components-scrollarea", Title: "Scroll area — content past an edge is clipped at the edge, and the bar says there is more", Height: 73,
 			Body: inv.scrollAreaBlock(c)},
 		{Name: "components-paragraph", Title: "Paragraph — weight, style, face, colour, size and links in one run of text", Height: 151,
@@ -552,6 +546,12 @@ func (inv *Inventory) Components(c tokens.PlatformColors) []Section {
 			Body: inv.iconBlock(c)},
 		{Name: "components-layout", Title: "Layout — rows, columns, spacers and insets", Height: 106,
 			Body: inv.layoutBlock(c)},
+		{Name: "components-list", Title: "List — a virtual list with its scrollbar in the gutter", Height: 180,
+			Body: inv.listBlock(c)},
+		{Name: "components-scrollbar", Title: "Scrollbar — a standalone bar beside its content", Height: 180,
+			Body: inv.scrollbarBlock(c)},
+		{Name: "components-scrollbar-search", Title: "Scrollbar — while a search is on, where the matches lie in the content, the current one stronger", Height: 180,
+			Body: inv.scrollbarSearchBlock(c)},
 	}
 }
 

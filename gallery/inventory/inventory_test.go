@@ -263,6 +263,26 @@ func TestTheCodeSpecimenIsLast(t *testing.T) {
 	}
 }
 
+// TestTheScrollingSectionsAreLast reads the list, the scroll bar and the
+// scroll bar with search as the last three sections of the Components group,
+// in that order. The three sections scroll their own content under the
+// wheel. They are last, so a reader who scrolls the column reaches every
+// other component before them.
+func TestTheScrollingSectionsAreLast(t *testing.T) {
+	inv := testInventory(t)
+	sections := inv.Components(tokens.PlatformLight)
+	want := []string{"components-list", "components-scrollbar", "components-scrollbar-search"}
+	if len(sections) < len(want) {
+		t.Fatalf("the Components group has %d sections, want at least %d", len(sections), len(want))
+	}
+	tail := sections[len(sections)-len(want):]
+	for i, s := range tail {
+		if s.Name != want[i] {
+			t.Errorf("section %d from the end is %q, want %q", len(want)-i, s.Name, want[i])
+		}
+	}
+}
+
 // TestTheSchemeControlIsAControl measures the light/dark control on both sides
 // of the scheme: the target each half offers a pointer, and how far each symbol
 // stands off the surface it is drawn on.
