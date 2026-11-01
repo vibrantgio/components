@@ -11,7 +11,7 @@ require (
 	github.com/vibrantgio/mvu/desktop v1.1.5
 	github.com/vibrantgio/svg v0.1.3
 	github.com/vibrantgio/svg/driver/gio v0.1.3
-	github.com/vibrantgio/theme v1.6.1-0.20261101213332-0d53e0834c00
+	github.com/vibrantgio/theme v1.6.1-0.20261101222502-abb32a8d88e7
 	golang.org/x/image v0.44.0
 )
 
