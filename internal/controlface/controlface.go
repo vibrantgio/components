@@ -374,11 +374,11 @@ func Capsule(gtx layout.Context, box image.Rectangle, p tokens.PlatformColors, f
 }
 
 // EdgedCapsule paints [Capsule]'s box with an edge the caller names in
-// place of the toolbar control's rim. The find button is drawn through it:
-// its edge is a value of its own in both schemes. An alpha-zero edge draws
-// no edge at all.
-func EdgedCapsule(gtx layout.Context, box image.Rectangle, p tokens.PlatformColors, fill, edge color.NRGBA, s State) clip.RRect {
-	return face(gtx, box, box.Dy()/2, edge, p, fill, s)
+// place of the toolbar control's rim, at the width the caller names. The
+// find button is drawn through it: its edge is a value of its own in both
+// schemes. An alpha-zero edge draws no edge at all.
+func EdgedCapsule(gtx layout.Context, box image.Rectangle, p tokens.PlatformColors, fill, edge color.NRGBA, width unit.Dp, s State) clip.RRect {
+	return edgedFace(gtx, box, box.Dy()/2, edge, width, p, fill, s)
 }
 
 // PushButton paints the FORM variant's box into box at the radius it is
@@ -406,7 +406,12 @@ func PushButton(gtx layout.Context, box image.Rectangle, radius int, p tokens.Pl
 // The control keeps its own rim whatever the keyboard is doing: focus is the
 // ring laid on the outline and not a second answer to what the edge is.
 func face(gtx layout.Context, box image.Rectangle, radius int, rim color.NRGBA, p tokens.PlatformColors, fill color.NRGBA, s State) clip.RRect {
-	band := max(gtx.Dp(edgeDp), 1)
+	return edgedFace(gtx, box, radius, rim, edgeDp, p, fill, s)
+}
+
+// edgedFace is [face] with the rim at the width the caller names.
+func edgedFace(gtx layout.Context, box image.Rectangle, radius int, rim color.NRGBA, width unit.Dp, p tokens.PlatformColors, fill color.NRGBA, s State) clip.RRect {
+	band := max(gtx.Dp(width), 1)
 	if rim.A == 0 {
 		band = 0
 	}

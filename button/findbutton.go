@@ -39,8 +39,10 @@ const FindButtonTitle = "Search"
 // toolbar field's own magnifier, which the search field draws in an 18 pt
 // square. Its first covered row is 6 below the button's top, so the
 // middle of what it covers is the button's centre row. The title's baseline
-// is 17 below the button's top.
+// is 17 below the button's top. The rim is two columns and two rows of
+// #ffffff between the shadow and the fill, so it is 2 wide.
 const (
+	findButtonRimDp      unit.Dp = 2
 	findButtonHeightDp   unit.Dp = 24
 	findButtonSideDp     unit.Dp = 13
 	findButtonGapDp      unit.Dp = 4
@@ -200,7 +202,7 @@ func drawFindButton(gtx layout.Context, shaper *text.Shaper, title string, tok r
 	h := gtx.Dp(findButtonHeightDp)
 	size := image.Pt(titleX+titleDims.Size.X+side, h)
 
-	controlface.EdgedCapsule(gtx, image.Rectangle{Max: size}, p, fill, p.FindButtonRim, controlface.State{
+	controlface.EdgedCapsule(gtx, image.Rectangle{Max: size}, p, fill, p.FindButtonRim, findButtonRimDp, controlface.State{
 		Focused:  s.Focused,
 		StandsOn: surface.Or(s.Surface, p.WindowBackground),
 	})

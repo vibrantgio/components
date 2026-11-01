@@ -84,9 +84,8 @@ func TestTheFindButtonIsTheMeasuredButton(t *testing.T) {
 	if got, want := pixel(img, box.Min.X+20, box.Min.Y+3), (color.NRGBA{R: 0xfd, G: 0xfd, B: 0xfd, A: 0xff}); got != want {
 		t.Errorf("the fill = %v, want the measured %v", got, want)
 	}
-	if got, want := pixel(img, box.Min.X+40, box.Min.Y), (color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}); got != want {
-		t.Errorf("the rim's top row = %v, want the measured %v", got, want)
-	}
+	rim := color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+	checkRim(t, img, box, rim, c.FindButtonFill)
 	if c.FindButtonForeground != c.Text {
 		t.Errorf("the foreground = %v, want the platform's text colour %v, the measured #000000", c.FindButtonForeground, c.Text)
 	}
@@ -146,8 +145,36 @@ func TestTheFindButtonTakesTheToolbarControlsDarkFace(t *testing.T) {
 	if got := pixel(img, box.Min.X+20, box.Min.Y+3); got != c.FindButtonFill {
 		t.Errorf("the fill = %v, want %v", got, c.FindButtonFill)
 	}
-	if got := pixel(img, box.Min.X+40, box.Min.Y); got != c.FindButtonRim {
-		t.Errorf("the rim's top row = %v, want %v", got, c.FindButtonRim)
+	checkRim(t, img, box, c.FindButtonRim, c.FindButtonFill)
+}
+
+// checkRim reads the rim at the find button's top, bottom and middle row:
+// two rows and two columns of rim, then the fill.
+//
+// MEASURED, voicememos-collection-search-light.png, a 1x capture: two
+// columns at x 1013-1014 and x 1095-1096 and two rows at y 1253-1254 and
+// y 1275-1276 read #ffffff between the shadow and the #fdfdfd fill.
+func checkRim(t *testing.T, img *image.RGBA, box image.Rectangle, rim, fill color.NRGBA) {
+	t.Helper()
+	x, y := box.Min.X+40, box.Min.Y+box.Dy()/2
+	for _, tc := range []struct {
+		name string
+		at   [3]image.Point
+	}{
+		{"top", [3]image.Point{{x, box.Min.Y}, {x, box.Min.Y + 1}, {x, box.Min.Y + 2}}},
+		{"bottom", [3]image.Point{{x, box.Max.Y - 1}, {x, box.Max.Y - 2}, {x, box.Max.Y - 3}}},
+		{"leading", [3]image.Point{{box.Min.X, y}, {box.Min.X + 1, y}, {box.Min.X + 2, y}}},
+		{"trailing", [3]image.Point{{box.Max.X - 1, y}, {box.Max.X - 2, y}, {box.Max.X - 3, y}}},
+	} {
+		for i, p := range tc.at {
+			want := rim
+			if i == 2 {
+				want = fill
+			}
+			if got := pixel(img, p.X, p.Y); got != want {
+				t.Errorf("the %s side, %d px in: %v, want %v", tc.name, i+1, got, want)
+			}
+		}
 	}
 }
 
