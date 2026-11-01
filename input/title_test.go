@@ -330,8 +330,9 @@ func TestLiveAndStaticDrawTheSameTitle(t *testing.T) {
 	live := golden.Capture(t, titledSize, materialize(t, input.Checkbox(rx.Of(theme.Default()), input.CheckboxProps{
 		Title: title,
 	})))
+	light := tokens.DefaultTypography.WithStemWeight(tokens.StemWeightLight)
 	static := golden.Capture(t, titledSize, input.RenderCheckbox(
-		tokens.DefaultTypography.Shaper(),
+		light.Shaper(),
 		tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.SystemFont,
 		input.CheckboxRenderState{Title: title},
 	))

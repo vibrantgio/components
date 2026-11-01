@@ -112,17 +112,12 @@ func (p Props) phase(gtx layout.Context) int {
 	return int(n % Strokes)
 }
 
-// dark answers whether the colours are a dark scheme's: the label is light.
-func dark(c tokens.PlatformColors) bool {
-	return int(c.Label.R)+int(c.Label.G)+int(c.Label.B) > 3*127
-}
-
 // StrokeColor is the colour of the stroke k steps behind the darkest, for k
 // from 0 (the darkest) to Strokes-1 (the lightest), flattened over fill.
 func StrokeColor(c tokens.PlatformColors, fill color.NRGBA, k int) color.NRGBA {
 	head := c.Label
 	head.A = headAlphaLight
-	if dark(c) {
+	if c.Dark() {
 		head.A = headAlphaDark
 	}
 	tail := c.QuaternaryLabel
