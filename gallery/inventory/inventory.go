@@ -122,9 +122,8 @@ type Inventory struct {
 	// per frame afterwards.
 	ivg map[color.NRGBA]layout.Widget
 
-	// The reading sample's prose and its fence; see readingBlocks.
-	doc  *markdown.Document
-	code *markdown.Document
+	// The reading sample, one document.
+	doc *markdown.Document
 
 	// The syntax highlighter styles the fence is drawn in — one per
 	// appearance. Which member reaches the fence is the appearance's to say;
@@ -189,10 +188,8 @@ func NewForOS(shaper *text.Shaper, goos string) *Inventory {
 		areaSt:    scrollarea.NewState(),
 		marks:     icons.New(goos),
 		reg:       icon.New(),
+		doc:       markdown.NewDocument(markdown.Parse([]byte(readingSample))),
 	}
-	prose, fence := readingBlocks()
-	inv.doc = markdown.NewDocument(prose)
-	inv.code = markdown.NewDocument(fence)
 	inv.rows = make([]string, 40)
 	inv.bars = make([]string, 40)
 	for i := range inv.rows {

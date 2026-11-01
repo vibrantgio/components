@@ -16,7 +16,11 @@ import (
 
 // bodyHeight lays body out once on a resting frame at width px, one pixel to
 // the dp, and returns the height it took.
-func bodyHeight(body layout.Widget, width int) int {
+func bodyHeight(body layout.Widget, width int) int { return bodySize(body, width).Y }
+
+// bodySize lays body out once on a resting frame at width px, one pixel to
+// the dp, and returns the size it took.
+func bodySize(body layout.Widget, width int) image.Point {
 	var ops op.Ops
 	gtx := layout.Context{
 		Ops:         &ops,
@@ -24,7 +28,7 @@ func bodyHeight(body layout.Widget, width int) int {
 		Constraints: layout.Constraints{Max: image.Pt(width, 1<<14)},
 		Now:         time.Unix(1700000000, 0),
 	}
-	return body(gtx).Size.Y
+	return body(gtx).Size
 }
 
 // TestTheFenceAndTheWideTableStandAtAlways lays the reading sample out at a

@@ -13,6 +13,7 @@ package inventory
 
 import (
 	"gioui.org/layout"
+	"gioui.org/unit"
 
 	"github.com/vibrantgio/components/scrollbar"
 	"github.com/vibrantgio/markdown"
@@ -24,8 +25,7 @@ import (
 // links and inline code chips, a bullet list, an ordered list, a task list
 // with both states, a table, a blockquote, a rule, and a fenced code block.
 //
-// The fence is the last block, and the block above it is not a heading:
-// [readingBlocks] depends on both.
+// The fence is the last block.
 //
 // The fence holds one excerpt with every kind of run a style colours
 // differently. Line comments and a doc comment; the keywords a body is built
@@ -112,19 +112,6 @@ const readingSample = "" +
 	"}\n" +
 	"```\n"
 
-// readingBlocks parses [readingSample] and returns its prose blocks and its
-// fence, the last block, apart.
-//
-// The two parts are laid out as two documents because one document has one
-// width: the prose is capped at a reading measure and the fence is not. The
-// space between them is the block gap, which is the space one document puts
-// between a block that is not a heading and the block under it.
-func readingBlocks() (prose, fence []markdown.Block) {
-	blocks := markdown.Parse([]byte(readingSample))
-	n := len(blocks) - 1
-	return blocks[:n:n], blocks[n:]
-}
-
 // Reading returns the prose section: one document laid out by the real
 // markdown renderer rather than mocked up out of labels.
 //
@@ -184,7 +171,7 @@ func (inv *Inventory) applyStyle(st *markdown.Style, c tokens.PlatformColors) {
 	}, c)
 }
 
-// markdownStyle is the style both parts of the reading sample draw with. The chosen
+// markdownStyle is the style the reading sample draws with. The chosen
 // highlighter style is used whole: the fence takes the fill its author drew
 // their colours on, and those colours as they were drawn. Everything around
 // it — the page, the prose, the chip an inline span sits on — stays the
@@ -225,25 +212,19 @@ func followBar(own, window scrollbar.Style) scrollbar.Style {
 	return own
 }
 
+// readingMeasure is the width the reading sample is laid out at. Every block,
+// the fence included, stays inside it. A fence wider than the measure scrolls
+// sideways in its own scroll area.
+const readingMeasure unit.Dp = 560
+
 func (inv *Inventory) readingBody(c tokens.PlatformColors) layout.Widget {
 	style := inv.markdownStyle(c)
 	return func(gtx layout.Context) layout.Dimensions {
 		// LayoutColumn rather than Layout: the document is embedded in a
 		// column that scrolls already, and its own viewport would fight the
-		// outer one.
-		//
-		// The prose is capped at a reading measure because a long line of it
-		// is hard to read. The fence has no cap: a code line wrapped or
-		// scrolled out of sight is a line the style cannot be judged on.
-		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(560))
-				return inv.doc.LayoutColumn(gtx, inv.shaper, style)
-			}),
-			layout.Rigid(layout.Spacer{Height: style.BlockGap}.Layout),
-			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-				return inv.code.LayoutColumn(gtx, inv.shaper, style)
-			}),
-		)
+		// outer one. LayoutColumn spends no Style.Measure, so the width is
+		// set here.
+		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(readingMeasure))
+		return inv.doc.LayoutColumn(gtx, inv.shaper, style)
 	}
 }

@@ -204,9 +204,10 @@ const (
 )
 
 // TestTheMarkdownGroupIsOneDocument reads the Markdown group as one section
-// whose last block is a Go fence that holds the berth package. The section's
-// slot is the height the body takes, so nothing is cut off and no blank space
-// is left under the fence.
+// that draws one document. The document's last block is a Go fence that holds
+// the berth package. The body, and with it the fence, is no wider than the
+// reading measure. The section's slot is the height the one document
+// measures, so nothing is cut off and no blank space is left under the fence.
 func TestTheMarkdownGroupIsOneDocument(t *testing.T) {
 	inv := testInventory(t)
 	c := tokens.PlatformLight
@@ -215,22 +216,47 @@ func TestTheMarkdownGroupIsOneDocument(t *testing.T) {
 	if len(sections) != 1 {
 		t.Fatalf("the Markdown group has %d sections, want 1", len(sections))
 	}
-	prose, fence := readingBlocks()
-	if len(prose) == 0 || len(fence) != 1 {
-		t.Fatalf("the reading sample splits into %d prose blocks and %d fence blocks, want some and 1", len(prose), len(fence))
+	blocks := inv.doc.Blocks()
+	if len(blocks) < 2 {
+		t.Fatalf("the reading sample has %d blocks, want prose and a fence", len(blocks))
 	}
-	cb, ok := fence[0].(*markdown.CodeBlock)
+	cb, ok := blocks[len(blocks)-1].(*markdown.CodeBlock)
 	if !ok {
-		t.Fatalf("the reading sample's last block is %T, want a fenced code block", fence[0])
+		t.Fatalf("the reading sample's last block is %T, want a fenced code block", blocks[len(blocks)-1])
 	}
 	if cb.Language != "go" || !strings.Contains(cb.Code, "package berth") {
 		t.Errorf("the fence is %q and does not hold the berth package", cb.Language)
 	}
-	if _, ok := prose[len(prose)-1].(*markdown.Heading); ok {
-		t.Error("a heading is directly above the fence; the block gap between the two documents is then wrong")
+
+	measure := int(readingMeasure)
+	for _, width := range []int{700, sampleWidth - 2*int(SectionPadX), 1200} {
+		got := bodySize(sections[0].Body, width)
+		if got.X > measure {
+			t.Errorf("at %d px the reading body is %d px wide, wider than the %d px measure", width, got.X, measure)
+		}
+		if want := int(sections[0].Height); got.Y != want {
+			t.Errorf("at %d px the reading body is %d px tall, its slot %d px", width, got.Y, want)
+		}
 	}
-	if got, want := bodyHeight(sections[0].Body, sampleWidth-2*int(SectionPadX)), int(sections[0].Height); got != want {
-		t.Errorf("the reading body is %d dp tall, its slot %d dp", got, want)
+
+	// The fence's fill is the chosen style's own. Every pixel of it lies
+	// inside the measure at a width where the fence's code does not fit.
+	fill := inv.markdownStyle(c).CodeBackground
+	img := golden.Capture(t, image.Pt(1200, int(sections[0].Height)), resting(sections[0].Body))
+	right := -1
+	b := img.Bounds()
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			if p := img.RGBAAt(x, y); p.R == fill.R && p.G == fill.G && p.B == fill.B && x > right {
+				right = x
+			}
+		}
+	}
+	if right < 0 {
+		t.Fatal("no pixel carries the fence's fill")
+	}
+	if right >= measure {
+		t.Errorf("the fence's fill reaches x = %d, past the %d px measure", right, measure)
 	}
 }
 
