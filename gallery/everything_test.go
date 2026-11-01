@@ -98,7 +98,7 @@ func TestGroupGoldens(t *testing.T) {
 			name := fmt.Sprintf("%s-%s", groupSlug(grp.Name), sc.name)
 			t.Run(name, func(t *testing.T) {
 				w := inventory.Column(inv.GroupItems(sc.colors, grp))
-				total := measure(w, pageWidth, 1<<20)
+				total := measure(sc.colors, w, pageWidth, 1<<20)
 				// A group taller than one capture is stored in tiles
 				// rather than cropped: a family that fell off the
 				// bottom would be a family no image covers.
@@ -139,7 +139,7 @@ func TestEverythingRenders(t *testing.T) {
 		if sections < 30 {
 			t.Errorf("%s: %d sections, want the whole published surface", sc.name, sections)
 		}
-		size := measure(inventory.Column(items), pageWidth, 1<<20)
+		size := measure(sc.colors, inventory.Column(items), pageWidth, 1<<20)
 		if size.Y < 4000 {
 			t.Errorf("%s: page measured %d tall, want the whole inventory", sc.name, size.Y)
 		}
@@ -222,7 +222,7 @@ func TestEverythingDump(t *testing.T) {
 			"Every published family in one column, in the current theme.")}
 		items = append(items, g.inv.Items(sc.colors)...)
 		w := inventory.Column(items)
-		total := measure(w, pageWidth, 1<<20)
+		total := measure(sc.colors, w, pageWidth, 1<<20)
 		for y, n := 0, 0; y < total.Y; y, n = y+tileHeight, n+1 {
 			h := min(tileHeight, total.Y-y)
 			shifted := shiftUp(w, y)
@@ -261,16 +261,17 @@ func shiftUp(w layout.Widget, dy int) layout.Widget {
 	}
 }
 
-// measure lays w out off-screen at width and reports the size to capture it
-// at, capped at maxHeight.
-func measure(w layout.Widget, width, maxHeight int) image.Point {
+// measure lays w out off-screen at width on the window background of c and
+// reports the size to capture it at, capped at maxHeight. The text is told the
+// fill the capture paints, so it measures at the stem weight it draws at.
+func measure(c tokens.PlatformColors, w layout.Widget, width, maxHeight int) image.Point {
 	var ops op.Ops
 	gtx := layout.Context{
 		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
 		Constraints: layout.Constraints{Max: image.Pt(width, 1<<20)},
 		Ops:         &ops,
 	}
-	h := w(gtx).Size.Y
+	h := golden.OnWindow(c, w)(gtx).Size.Y
 	return image.Pt(width, min(max(h, 1), maxHeight))
 }
 

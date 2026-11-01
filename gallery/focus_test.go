@@ -89,7 +89,7 @@ func focusSurfaces(c tokens.PlatformColors) []surface {
 func TestFocusedSpecimensGolden(t *testing.T) {
 	for _, sc := range schemes() {
 		sheet := focusSheet(t, sc.colors)
-		size := measure(sheet, focusSheetW, 1<<20)
+		size := measure(sc.colors, sheet, focusSheetW, 1<<20)
 		golden.Render(t, "focus-"+sc.name, size, onBackground(sc.colors, sheet))
 	}
 }

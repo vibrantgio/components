@@ -49,7 +49,7 @@ var iconPixels = []unit.Dp{16, 20, 24}
 func TestIconSheetGolden(t *testing.T) {
 	for _, sc := range schemes() {
 		sheet := iconSheet(t, sc.colors)
-		size := measure(sheet, iconSheetW, 1<<20)
+		size := measure(sc.colors, sheet, iconSheetW, 1<<20)
 		golden.Render(t, "icons-"+sc.name, size, onBackground(sc.colors, sheet))
 	}
 }

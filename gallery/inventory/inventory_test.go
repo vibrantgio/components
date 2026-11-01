@@ -230,7 +230,7 @@ func TestTheMarkdownGroupIsOneDocument(t *testing.T) {
 
 	measure := int(readingMeasure)
 	for _, width := range []int{700, sampleWidth - 2*int(SectionPadX), 1200} {
-		got := bodySize(sections[0].Body, width)
+		got := bodySize(c, sections[0].Body, width)
 		if got.X > measure {
 			t.Errorf("at %d px the reading body is %d px wide, wider than the %d px measure", width, got.X, measure)
 		}
@@ -242,7 +242,7 @@ func TestTheMarkdownGroupIsOneDocument(t *testing.T) {
 	// The fence's fill is the chosen style's own. Every pixel of it lies
 	// inside the measure at a width where the fence's code does not fit.
 	fill := inv.markdownStyle(c).CodeBackground
-	img := golden.Capture(t, image.Pt(1200, int(sections[0].Height)), resting(sections[0].Body))
+	img := golden.Capture(t, image.Pt(1200, int(sections[0].Height)), resting(c, sections[0].Body))
 	right := -1
 	b := img.Bounds()
 	for y := b.Min.Y; y < b.Max.Y; y++ {
@@ -542,7 +542,7 @@ func TestTheToggleSectionFitsTheColumn(t *testing.T) {
 			Constraints: layout.Constraints{Max: image.Pt(1<<20, 1<<20)},
 			Ops:         &ops,
 		}
-		w := s.Body(gtx).Size.X
+		w := golden.On(SectionSurface(c), s.Body)(gtx).Size.X
 		if limit := sampleWidth - 2*int(SectionPadX); w > limit {
 			t.Errorf("section is %d wide, want at most %d", w, limit)
 		}

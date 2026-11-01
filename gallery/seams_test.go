@@ -84,7 +84,7 @@ func TestSectionSeams(t *testing.T) {
 				// A slot shorter than the body's own height is a body laid
 				// out squeezed, which the seams alone would not show: the
 				// family shrinks to fit and the margins stay honest.
-				if nat := naturalHeight(s); nat < 1<<19 && nat > m.slot {
+				if nat := naturalHeight(sc.colors, s); nat < 1<<19 && nat > m.slot {
 					t.Errorf("%s %s: slot %d is short of the %d the body measures",
 						sc.name, m.name, m.slot, nat)
 				}
@@ -106,7 +106,7 @@ func measureSeam(t *testing.T, inv *inventory.Inventory, c tokens.PlatformColors
 		return layout.Dimensions{Size: image.Pt(gtx.Constraints.Max.X, seamProbe)}
 	})
 	w := inventory.Column(items)
-	total := measure(w, pageWidth, 1<<20)
+	total := measure(c, w, pageWidth, 1<<20)
 	img := golden.Capture(t, total, onBackground(c, w))
 
 	// The rows the column laid out above the body: the probe group's banner,
@@ -158,13 +158,14 @@ func absDiff(a, b uint8) int {
 // naturalHeight is what a section's body measures when nothing bounds it: the
 // height its slot has to be for the body to be laid out unsqueezed. A body
 // that expands into whatever it is handed returns the bound itself, which is
-// how such a body is told apart from one that has a height of its own.
-func naturalHeight(s inventory.Section) int {
+// how such a body is told apart from one that has a height of its own. The
+// body is told the section surface of c, the fill it stands on.
+func naturalHeight(c tokens.PlatformColors, s inventory.Section) int {
 	var ops op.Ops
 	gtx := layout.Context{
 		Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
 		Constraints: layout.Constraints{Max: image.Pt(pageWidth-2*int(inventory.SectionPadX), 1<<20)},
 		Ops:         &ops,
 	}
-	return s.Body(gtx).Size.Y
+	return golden.On(inventory.SectionSurface(c), s.Body)(gtx).Size.Y
 }
