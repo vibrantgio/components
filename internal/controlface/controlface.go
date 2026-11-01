@@ -373,6 +373,14 @@ func Capsule(gtx layout.Context, box image.Rectangle, p tokens.PlatformColors, f
 	return face(gtx, box, box.Dy()/2, Rim(p), p, fill, s)
 }
 
+// EdgedCapsule paints [Capsule]'s box with an edge the caller names in
+// place of the toolbar control's rim. The find button is drawn through it:
+// its edge is a value of its own in both schemes. An alpha-zero edge draws
+// no edge at all.
+func EdgedCapsule(gtx layout.Context, box image.Rectangle, p tokens.PlatformColors, fill, edge color.NRGBA, s State) clip.RRect {
+	return face(gtx, box, box.Dy()/2, edge, p, fill, s)
+}
+
 // PushButton paints the FORM variant's box into box at the radius it is
 // handed: the push button's rounded rectangle, at its fill, with no rim and
 // the focus ring on its outline while it holds the keyboard. It reports the

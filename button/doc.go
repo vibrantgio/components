@@ -68,6 +68,11 @@
 // The segmented control in that variant is the momentary previous and next
 // control, [FindBarSteps]: each segment acts when pressed and keeps no choice.
 //
+// [FindButton] is the button that opens the find bar with the query a search
+// field on chrome holds. It is a bordered capsule with the looking glass and
+// the title Search, and it stands over the content with the toolbar
+// control's drop shadow. [RenderFindButton] draws it in a fixed state.
+//
 // # What each variant draws
 //
 // The platform draws its bordered control — the symbol button
