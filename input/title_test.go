@@ -69,7 +69,7 @@ func TestTitledControlGolden(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			golden.Render(t, tc.name, titledSize, tc.w(tc.platform))
+			golden.Render(t, tc.name, titledSize, golden.OnWindow(tc.platform, tc.w(tc.platform)))
 		})
 	}
 }
@@ -138,7 +138,7 @@ func TestTitleStandsAtTheMeasuredGap(t *testing.T) {
 			tokens.DefaultTypography.SystemFont, input.RadioRenderState{Title: capturedTitle})},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			img := golden.Capture(t, titledSize, tc.w)
+			img := golden.Capture(t, titledSize, golden.OnWindow(tokens.PlatformLight, tc.w))
 			if img == nil {
 				return
 			}
@@ -181,7 +181,7 @@ func TestTitleCapBandIsCentredOnTheSymbolsRow(t *testing.T) {
 	// rows beyond it.
 	w := input.RenderCheckbox(shaper, tokens.PlatformLight, tokens.Spacing,
 		tokens.DefaultTypography.SystemFont, input.CheckboxRenderState{Title: "HI"})
-	img := golden.Capture(t, titledSize, w)
+	img := golden.Capture(t, titledSize, golden.OnWindow(tokens.PlatformLight, w))
 	if img == nil {
 		return
 	}
@@ -305,11 +305,12 @@ func TestSwitchedOffTitleFadesWithItsSymbol(t *testing.T) {
 
 // onSheet paints the sheet the control was told it stands on behind it, so
 // that the glyphs' anti-aliased coverage composites against a real surface
-// instead of a clear plane and a reading can be taken off them.
+// instead of a clear plane and a reading can be taken off them. The control
+// is told that it stands on the sheet.
 func onSheet(sheet stdcolor.NRGBA, w layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, sheet, clip.Rect{Max: gtx.Constraints.Max}.Op())
-		return w(gtx)
+		return golden.On(sheet, w)(gtx)
 	}
 }
 
@@ -327,15 +328,15 @@ func dist(got stdcolor.RGBA, c stdcolor.NRGBA) int {
 // its own — so any difference left is the drawing's.
 func TestLiveAndStaticDrawTheSameTitle(t *testing.T) {
 	title := "Show startup screen"
-	live := golden.Capture(t, titledSize, materialize(t, input.Checkbox(rx.Of(theme.Default()), input.CheckboxProps{
+	live := golden.Capture(t, titledSize, golden.OnWindow(tokens.PlatformLight, materialize(t, input.Checkbox(rx.Of(theme.Default()), input.CheckboxProps{
 		Title: title,
-	})))
+	}))))
 	typ := tokens.DefaultTypography
-	static := golden.Capture(t, titledSize, input.RenderCheckbox(
+	static := golden.Capture(t, titledSize, golden.OnWindow(tokens.PlatformLight, input.RenderCheckbox(
 		typ.Shaper(),
 		tokens.PlatformLight, tokens.Spacing, tokens.DefaultTypography.SystemFont,
 		input.CheckboxRenderState{Title: title},
-	))
+	)))
 	if live == nil || static == nil {
 		return
 	}

@@ -942,7 +942,7 @@ func drawTrigger(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, s 
 	// its cap band, and the trigger clips what it draws to its own shape so a
 	// Compact control cannot paint a row of text outside itself.
 	minH := gtx.Dp(unit.Dp(tok.density.ControlHeight))
-	innerGtx := gtx
+	innerGtx := typeset.WithFill(gtx, bg)
 	innerGtx.Constraints = layout.Constraints{
 		Min: image.Pt(0, 0),
 		Max: image.Pt(innerW, minH),

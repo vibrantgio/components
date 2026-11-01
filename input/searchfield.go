@@ -492,7 +492,7 @@ func (a adorn) shapeCount(gtx layout.Context, shaper *text.Shaper, tok resolvedT
 	if s.Disabled {
 		col = vgcolor.Flatten(tok.platform.DisabledControlText, fill)
 	}
-	inner := gtx
+	inner := typeset.WithFill(gtx, fill)
 	inner.Constraints = layout.Constraints{Max: image.Pt(gtx.Constraints.Max.X, gtx.Constraints.Max.Y)}
 	m := op.Record(gtx.Ops)
 	a.countDims = typeset.Text(inner, shaper, a.count, tok.body, col, 1)

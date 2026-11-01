@@ -292,7 +292,7 @@ func Draw(
 	// The line box is capped to the control's height, as the form trigger's
 	// is: a pop-up is not sized by the text it carries, and a Compact control
 	// is shorter than the line box its role declares.
-	titleGtx := gtx
+	titleGtx := typeset.WithFill(gtx, fill)
 	titleGtx.Constraints.Min = image.Point{}
 	titleGtx.Constraints.Max.Y = minH
 	if maxTitleW := gtx.Constraints.Max.X - lead - gap - mark - trail; maxTitleW > 0 {

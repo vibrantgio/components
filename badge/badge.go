@@ -542,7 +542,7 @@ func draw(
 	labelDims := layout.Dimensions{}
 	var labelCall op.CallOp
 	if txt != "" {
-		labelGtx := gtx
+		labelGtx := typeset.WithFill(gtx, fill)
 		labelGtx.Constraints.Min = image.Point{}
 		if maxLabelW := gtx.Constraints.Max.X - 2*pad - sign - signGap - markGap - mark; maxLabelW > 0 {
 			labelGtx.Constraints.Max.X = maxLabelW

@@ -508,7 +508,7 @@ func drawOptionRow(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens, 
 	if innerW < 1 {
 		innerW = 1
 	}
-	innerGtx := gtx
+	innerGtx := typeset.WithFill(gtx, bg)
 	innerGtx.Constraints = layout.Constraints{
 		Min: image.Pt(0, 0),
 		Max: image.Pt(innerW, gtx.Constraints.Max.Y),

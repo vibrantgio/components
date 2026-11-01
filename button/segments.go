@@ -184,7 +184,13 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 		if s.State.Disabled {
 			fg = vgcolor.Flatten(p.DisabledControlText, fills[i])
 		}
-		titles[i], titleSize[i] = shapeSegmentTitle(gtx, shaper, titleStyle, s.Title, fg)
+		// The title stands on the segment's fill, or on the chosen
+		// segment's patch, which CheckedPatch draws over that fill.
+		titleFill := fills[i]
+		if s.State.Checked && variant != FindBar {
+			titleFill = vgcolor.Flatten(p.ToolbarCheckedOverlay, fills[i])
+		}
+		titles[i], titleSize[i] = shapeSegmentTitle(typeset.WithFill(gtx, titleFill), shaper, titleStyle, s.Title, fg)
 		if w := titleSize[i].X + 2*side; w > segW {
 			segW = w
 		}
@@ -296,7 +302,7 @@ func BorderedSegments(gtx layout.Context, shaper *text.Shaper, p tokens.Platform
 
 // shapeSegmentTitle measures a segment's word at its own width rather than
 // at the width a caller left it, and returns the recorded drawing with
-// the size it measured to.
+// the size it measured to. gtx carries the fill the title stands on.
 func shapeSegmentTitle(gtx layout.Context, shaper *text.Shaper, style tokens.TextStyle, title string, fg color.NRGBA) (op.CallOp, image.Point) {
 	lg := gtx
 	lg.Constraints.Min = image.Point{}

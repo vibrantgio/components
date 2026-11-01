@@ -279,6 +279,7 @@ func drawBreadcrumb(
 		}
 		children = append(children, layout.Rigid(segmentWidget(shaper, item, clickFor(clicks, i), fg, style)))
 	}
+	gtx = typeset.WithFill(gtx, standsOn)
 	return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Middle}.Layout(gtx, children...)
 }
 

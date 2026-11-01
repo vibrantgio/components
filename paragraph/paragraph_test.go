@@ -24,6 +24,7 @@ import (
 	"github.com/vibrantgio/components/paragraph"
 	"github.com/vibrantgio/font/notocoloremoji"
 	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 )
 
 // defaultShaper returns the shaper every golden here draws with: the default
@@ -84,6 +85,7 @@ func TestParagraphGolden(t *testing.T) {
 			spans := pageSpans(tc.p)
 			golden.Render(t, tc.name, size, func(gtx layout.Context) layout.Dimensions {
 				paint.FillShape(gtx.Ops, tc.p.TextBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
+				gtx = typeset.WithFill(gtx, tc.p.TextBackground)
 				return paragraph.Render(shaper, style, spans, paragraph.Idle())(gtx)
 			})
 		})
@@ -106,7 +108,7 @@ func TestLinkStateGolden(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			w := paragraph.Render(shaper, style, mixedSpans(), tc.state)
-			golden.Render(t, tc.name, size, w)
+			golden.Render(t, tc.name, size, golden.OnWindow(tokens.PlatformLight, w))
 		})
 	}
 }
@@ -118,8 +120,8 @@ func TestHoveredLinkIsVisuallyDistinct(t *testing.T) {
 	size := image.Pt(300, 100)
 	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 
-	idle := golden.Capture(t, size, paragraph.Render(shaper, style, mixedSpans(), paragraph.Idle()))
-	hovered := golden.Capture(t, size, paragraph.Render(shaper, style, mixedSpans(),
+	idle := captureOnWindow(t, size, paragraph.Render(shaper, style, mixedSpans(), paragraph.Idle()))
+	hovered := captureOnWindow(t, size, paragraph.Render(shaper, style, mixedSpans(),
 		paragraph.RenderState{HoveredLink: 0, FocusedLink: paragraph.NoLink}))
 	if idle == nil || hovered == nil {
 		return // headless unavailable; Capture called t.Skip
@@ -136,8 +138,8 @@ func TestFocusedLinkIsVisuallyDistinct(t *testing.T) {
 	size := image.Pt(300, 100)
 	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 
-	idle := golden.Capture(t, size, paragraph.Render(shaper, style, mixedSpans(), paragraph.Idle()))
-	focused := golden.Capture(t, size, paragraph.Render(shaper, style, mixedSpans(),
+	idle := captureOnWindow(t, size, paragraph.Render(shaper, style, mixedSpans(), paragraph.Idle()))
+	focused := captureOnWindow(t, size, paragraph.Render(shaper, style, mixedSpans(),
 		paragraph.RenderState{HoveredLink: paragraph.NoLink, FocusedLink: 0}))
 	if idle == nil || focused == nil {
 		return
@@ -155,9 +157,9 @@ func TestStrikethroughIsVisuallyDistinct(t *testing.T) {
 	size := image.Pt(300, 100)
 	style := paragraph.FromTokens(tokens.PlatformLight, tokens.DefaultTypography.Body, tokens.PlatformLight.WindowBackground)
 
-	plain := golden.Capture(t, size, paragraph.Render(shaper, style,
+	plain := captureOnWindow(t, size, paragraph.Render(shaper, style,
 		[]paragraph.SpanStyle{{Content: "deleted text"}}, paragraph.Idle()))
-	struck := golden.Capture(t, size, paragraph.Render(shaper, style,
+	struck := captureOnWindow(t, size, paragraph.Render(shaper, style,
 		[]paragraph.SpanStyle{{Content: "deleted text", Strikethrough: true}}, paragraph.Idle()))
 	if plain == nil || struck == nil {
 		return // headless unavailable; Capture called t.Skip
@@ -176,9 +178,9 @@ func TestChipIsVisuallyDistinct(t *testing.T) {
 	style := paragraph.FromTokens(p, tokens.DefaultTypography.Body, p.WindowBackground)
 	chip := paragraph.Chip{Color: p.Control, Border: p.Separator, Padding: 4, Radius: 4}
 
-	plain := golden.Capture(t, size, paragraph.Render(shaper, style,
+	plain := captureOnWindow(t, size, paragraph.Render(shaper, style,
 		[]paragraph.SpanStyle{{Content: "quoted"}}, paragraph.Idle()))
-	chipped := golden.Capture(t, size, paragraph.Render(shaper, style,
+	chipped := captureOnWindow(t, size, paragraph.Render(shaper, style,
 		[]paragraph.SpanStyle{{Content: "quoted", Chip: chip}}, paragraph.Idle()))
 	if plain == nil || chipped == nil {
 		return // headless unavailable; Capture called t.Skip
@@ -186,6 +188,13 @@ func TestChipIsVisuallyDistinct(t *testing.T) {
 	if n := golden.PixelDiff(plain, chipped); n == 0 {
 		t.Error("chipped and plain spans render identically; expected the chip's fill to differ")
 	}
+}
+
+// captureOnWindow captures w on the light window background, as the text
+// of a paragraph that stands on the window is told.
+func captureOnWindow(t *testing.T, size image.Point, w layout.Widget) *image.RGBA {
+	t.Helper()
+	return golden.Capture(t, size, golden.OnWindow(tokens.PlatformLight, w))
 }
 
 // ---- Layout tests ----
@@ -339,6 +348,7 @@ func TestLineInitialChipStartsFlushWithTheMargin(t *testing.T) {
 		return func(gtx layout.Context) layout.Dimensions {
 			paint.FillShape(gtx.Ops, tokens.PlatformLight.TextBackground,
 				clip.Rect{Max: gtx.Constraints.Max}.Op())
+			gtx = typeset.WithFill(gtx, tokens.PlatformLight.TextBackground)
 			return paragraph.Render(shaper, style, spans, paragraph.Idle())(gtx)
 		}
 	}
@@ -436,6 +446,7 @@ func TestWrappedLinesOccupyTheStylesLineHeight(t *testing.T) {
 	img := golden.Capture(t, image.Pt(120, 200), func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, tokens.PlatformLight.TextBackground,
 			clip.Rect{Max: gtx.Constraints.Max}.Op())
+		gtx = typeset.WithFill(gtx, tokens.PlatformLight.TextBackground)
 		return paragraph.Render(shaper, style, spans, paragraph.Idle())(gtx)
 	})
 	bands := glyphBands(img)
@@ -780,6 +791,7 @@ func captureEmojiInline(t *testing.T, shaper *text.Shaper, p tokens.PlatformColo
 	size := image.Pt(200, 48)
 	return golden.Capture(t, size, func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, p.TextBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		gtx = typeset.WithFill(gtx, p.TextBackground)
 		return paragraph.Render(shaper, style, []paragraph.SpanStyle{{Content: emojiInline}}, paragraph.Idle())(gtx)
 	})
 }
@@ -821,6 +833,7 @@ func TestEmojiInlineGolden(t *testing.T) {
 			style := paragraph.FromTokens(tc.p, tokens.DefaultTypography.Body, tc.p.WindowBackground)
 			golden.Render(t, tc.name, size, func(gtx layout.Context) layout.Dimensions {
 				paint.FillShape(gtx.Ops, tc.p.TextBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
+				gtx = typeset.WithFill(gtx, tc.p.TextBackground)
 				return paragraph.Render(shaper, style, []paragraph.SpanStyle{{Content: emojiInline}}, paragraph.Idle())(gtx)
 			})
 		})

@@ -41,6 +41,7 @@ import (
 
 	"github.com/vibrantgio/components/pointershape"
 	vgcolor "github.com/vibrantgio/theme/color"
+	"github.com/vibrantgio/theme/typeset"
 )
 
 // resolvedSpan is a SpanStyle with the paragraph Style's defaults applied and
@@ -160,8 +161,12 @@ func resolve(gtx layout.Context, style Style, spans []SpanStyle, rs RenderState)
 		if size == 0 {
 			size = style.Size
 		}
+		// The span's text stands on its chip where it has one, and on the
+		// fill gtx carries where it has none.
+		textGtx := gtx
 		chip := resolvedChip{}
 		if s.Chip.Color.A > 0 {
+			textGtx = typeset.WithFill(gtx, s.Chip.Color)
 			chip = resolvedChip{
 				color:  s.Chip.Color,
 				border: s.Chip.Border,
@@ -172,7 +177,7 @@ func resolve(gtx layout.Context, style Style, spans []SpanStyle, rs RenderState)
 		out = append(out, resolvedSpan{
 			index:   i,
 			fills:   resolveFills(s),
-			font:    s.Font(),
+			font:    typeset.StemFontOn(textGtx, s.Font(), col),
 			size:    gtx.Sp(size),
 			color:   col,
 			content: s.Content,

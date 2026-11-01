@@ -260,6 +260,15 @@ func bodyLabel(tok resolvedTokens) (font.Font, widget.Label, unit.Sp) {
 	return typeset.Font(style, font.Normal), typeset.Label(style, 1), unit.Sp(style.Size)
 }
 
+// fontOn returns f as the font that draws text in fg on fill, at the stem
+// weight of the text against that fill. The field draws its prompt, its value
+// and its selected run each on its own fill, so each picks its own. Every
+// font fontOn returns shapes to the advances and heights of f, so a
+// measurement in f holds for the text drawn in it.
+func fontOn(gtx layout.Context, f font.Font, fg, fill color.NRGBA) font.Font {
+	return typeset.StemFontOn(typeset.WithFill(gtx, fill), f, fg)
+}
+
 // TextField returns an rx.Observable[layout.Widget] that emits a new widget
 // whenever the theme or disabled state changes. Interaction state (editor content,
 // focus) lives in the rx.Defer scope and persists across emissions.
@@ -677,7 +686,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	phMat := mPhColor.Stop()
 
 	mPh := op.Record(gtx.Ops)
-	contentDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, placeholder, phMat)
+	contentDims := typeset.Layout(innerGtx, shaper, wl, fontOn(gtx, f, phColor, fillColor), textSize, placeholder, phMat)
 	phCall := mPh.Stop()
 
 	fieldH := contentDims.Size.Y
@@ -732,7 +741,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	// was, and inside the line box the field was sized from.
 	textShift := editorTextShift(innerGtx, shaper, wl, f, textSize, placeholder, phMat, contentDims.Size.Y)
 	st := op.Offset(image.Pt(textX, offY+textShift)).Push(gtx.Ops)
-	editor.Layout(editorGtx, shaper, f, textSize, textMat, selMat)
+	editor.Layout(editorGtx, shaper, fontOn(gtx, f, textColor, fillColor), textSize, textMat, selMat)
 	// gioui.org/widget's editor paints the selection's fill only while it
 	// holds focus, so the field paints that fill itself once focus has left;
 	// while focused the editor has already laid it down and the field adds
@@ -741,7 +750,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	if !s.Focused {
 		under = selFill
 	}
-	paintSelectedRun(editorGtx, editor, shaper, f, textSize, under, selRun)
+	paintSelectedRun(editorGtx, editor, shaper, fontOn(gtx, f, selRun, selFill), textSize, under, selRun)
 	st.Pop()
 
 	if !s.Disabled {
@@ -918,7 +927,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	labelMat := mLabelColor.Stop()
 
 	mLabel := op.Record(gtx.Ops)
-	labelDims := typeset.Layout(innerGtx, shaper, wl, f, textSize, labelText, labelMat)
+	labelDims := typeset.Layout(innerGtx, shaper, wl, fontOn(gtx, f, labelColor, fillColor), textSize, labelText, labelMat)
 	labelCall := mLabel.Stop()
 
 	fieldH := labelDims.Size.Y
@@ -946,7 +955,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 		selMat := mSelColor.Stop()
 
 		mSelRun := op.Record(gtx.Ops)
-		typeset.Layout(innerGtx, shaper, wl, f, textSize, labelText, selMat)
+		typeset.Layout(innerGtx, shaper, wl, fontOn(gtx, f, selRun, selFill), textSize, labelText, selMat)
 		selRun := mSelRun.Stop()
 
 		area := clip.Rect(sel).Push(gtx.Ops)

@@ -127,17 +127,11 @@ func TestTextFieldLeadingInsetIsMeasured(t *testing.T) {
 			img := golden.Capture(t, size, onChrome(p.WindowBackground, w))
 			// x=200 is clear of the text; rows 6 to 22 hold it and stay clear
 			// of the field's corners.
+			// A column counts as covered from golden.ColumnCoverageFloor, as
+			// the platform's first column is read.
 			fill := img.RGBAAt(200, 14)
-			first := -1
-			for x := 3; x < 200 && first < 0; x++ {
-				for y := 6; y <= 22; y++ {
-					if img.RGBAAt(x, y) != fill {
-						first = x
-						break
-					}
-				}
-			}
-			if first < 0 {
+			first, ok := golden.FirstTextColumn(img, fill, 3, 200, 6, 22)
+			if !ok {
 				t.Fatal("no text found inside the field; this measures nothing")
 			}
 			if got, want := first-innerEdge, int(control.TextLeadDp)+bearing; got != want {

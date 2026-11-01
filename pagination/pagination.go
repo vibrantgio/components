@@ -242,7 +242,7 @@ func pageCellWidget(shaper *text.Shaper, n int, current, navigable bool, click *
 		cgtx := gtx
 		cgtx.Constraints = layout.Exact(image.Pt(side, side))
 		draw := func(gtx layout.Context) layout.Dimensions {
-			return drawPageCell(gtx, shaper, title, bg, fg, tok, side)
+			return drawPageCell(gtx, shaper, title, bg, fg, standsOn, tok, side)
 		}
 		if click == nil {
 			return draw(cgtx)
@@ -261,14 +261,16 @@ func pageCellWidget(shaper *text.Shaper, n int, current, navigable bool, click *
 // the digit shaped in the SystemFont role and centred. The digit is never
 // truncated — the square is the control, the digit its symbol, mirroring the
 // icon-button rule rather than the text-button padding rule.
-func drawPageCell(gtx layout.Context, shaper *text.Shaper, title string, bg, fg color.NRGBA, tok resolvedTokens, side int) layout.Dimensions {
+func drawPageCell(gtx layout.Context, shaper *text.Shaper, title string, bg, fg, standsOn color.NRGBA, tok resolvedTokens, side int) layout.Dimensions {
 	if bg.A != 0 {
 		rad := gtx.Dp(unit.Dp(tok.radius.Md))
 		rrect := clip.RRect{Rect: image.Rectangle{Max: image.Pt(side, side)}, SE: rad, SW: rad, NE: rad, NW: rad}
 		paint.FillShape(gtx.Ops, bg, rrect.Op(gtx.Ops))
 	}
 
-	titleGtx := gtx
+	// The digit stands on the cell's fill, or on the surface where the cell
+	// has none.
+	titleGtx := typeset.WithFill(gtx, surface.Or(bg, standsOn))
 	titleGtx.Constraints.Min = image.Point{}
 	titleGtx.Constraints.Max = image.Pt(side, side)
 

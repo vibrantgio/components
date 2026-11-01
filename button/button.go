@@ -616,7 +616,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, title string, tok resol
 	// title that does not fit widens its own button by its own measure (see
 	// the width rule below). Capping the title here would have it elided into
 	// a box the platform would have widened instead.
-	titleGtx := gtx
+	titleGtx := typeset.WithFill(gtx, fillOr(bg, surface.Or(s.Surface, tok.platform.WindowBackground)))
 	titleGtx.Constraints.Min = image.Pt(0, 0)
 	titleGtx.Constraints.Max.X = titleRoom
 
@@ -863,7 +863,7 @@ func drawFindBarButton(gtx layout.Context, shaper *text.Shaper, title string, to
 	p := tok.platform
 	fill, fg := borderedColors(p, s)
 
-	titleGtx := gtx
+	titleGtx := typeset.WithFill(gtx, fill)
 	titleGtx.Constraints.Min = image.Pt(0, 0)
 	titleGtx.Constraints.Max.X = titleRoom
 	mTitle := op.Record(gtx.Ops)

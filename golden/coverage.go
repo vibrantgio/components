@@ -2,6 +2,7 @@ package golden
 
 import (
 	"image"
+	"image/color"
 	"math"
 )
 
@@ -99,4 +100,70 @@ func FitCorner(profile map[int]float64, x0, y0 float64) (r, rms float64) {
 		}
 	}
 	return r, rms
+}
+
+// ColumnCoverageFloor is the coverage from which a column counts as covered
+// by text on an opaque capture. MEASURED, save-dialog-light.png, the
+// "File Format:" pop-up: its fill begins at x=264, and the title's first
+// covered column, x=276, reads #cccccc on the fill #ececec at row 350, 16 %
+// of the way to the text's #242424. The column before it reads the fill.
+// MEASURED in the library's picker trigger: Roboto at the darker text's stem
+// weight draws a 7 % fringe in the column before the title's first 10 %
+// column, so the floor reads the same column as the platform's.
+const ColumnCoverageFloor = 0.10
+
+// FirstTextColumn answers the first column in [x0, x1) whose text coverage
+// reaches [ColumnCoverageFloor] on any row in [y0, y1], on an opaque capture
+// where the text stands on fill. The coverage of a pixel is per channel
+// (fill − pixel) / (fill − text colour), the mean over the channels in which
+// the two differ. The text colour is the pixel in the box farthest from
+// fill. It answers false when no column reaches the floor.
+func FirstTextColumn(img *image.RGBA, fill color.RGBA, x0, x1, y0, y1 int) (int, bool) {
+	dist := func(c color.RGBA) int {
+		return abs(int(c.R)-int(fill.R)) + abs(int(c.G)-int(fill.G)) + abs(int(c.B)-int(fill.B))
+	}
+	text, far := fill, 0
+	for y := y0; y <= y1; y++ {
+		for x := x0; x < x1; x++ {
+			if c := img.RGBAAt(x, y); dist(c) > far {
+				text, far = c, dist(c)
+			}
+		}
+	}
+	if far == 0 {
+		return 0, false
+	}
+	for x := x0; x < x1; x++ {
+		for y := y0; y <= y1; y++ {
+			if textCoverage(img.RGBAAt(x, y), fill, text) >= ColumnCoverageFloor {
+				return x, true
+			}
+		}
+	}
+	return 0, false
+}
+
+// textCoverage is the coverage of c between fill and text, as
+// [FirstTextColumn] reads it.
+func textCoverage(c, fill, text color.RGBA) float64 {
+	var sum float64
+	n := 0
+	for _, ch := range [][3]uint8{{c.R, fill.R, text.R}, {c.G, fill.G, text.G}, {c.B, fill.B, text.B}} {
+		if ch[1] == ch[2] {
+			continue
+		}
+		sum += (float64(ch[1]) - float64(ch[0])) / (float64(ch[1]) - float64(ch[2]))
+		n++
+	}
+	if n == 0 {
+		return 0
+	}
+	return sum / float64(n)
+}
+
+func abs(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
 }

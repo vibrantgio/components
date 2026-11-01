@@ -654,7 +654,7 @@ func draw(
 	titleDims := layout.Dimensions{}
 	var titleCall op.CallOp
 	if title != "" {
-		titleGtx := gtx
+		titleGtx := typeset.WithFill(gtx, col.Fill)
 		titleGtx.Constraints.Min = image.Point{}
 		if w := gtx.Constraints.Max.X - 2*padH - lead - leadGap - trailGap - trail; w > 0 {
 			titleGtx.Constraints.Max.X = w

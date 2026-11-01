@@ -3,6 +3,7 @@ package golden
 import (
 	"fmt"
 	"image"
+	"image/color"
 	"testing"
 	"time"
 
@@ -12,6 +13,8 @@ import (
 
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
+	"github.com/vibrantgio/theme/window"
 )
 
 // ThemeOption overrides one field of the emission [StaticTheme] freezes.
@@ -129,7 +132,8 @@ func Stack(layers ...layout.Widget) layout.Widget {
 }
 
 // Layers resolves a layer stack — the one an application builds for its
-// window to render — into the single layout.Widget [Stack] composes.
+// window to render — into the single layout.Widget [Stack] composes. It tells
+// the layers no fill. [ThemeLayers] tells them the theme's window background.
 func Layers(t *testing.T, layers ...rx.Observable[layout.Widget]) layout.Widget {
 	t.Helper()
 	resolved := make([]layout.Widget, len(layers))
@@ -158,4 +162,34 @@ func Window(t *testing.T, size image.Point, layers ...rx.Observable[layout.Widge
 func WindowGolden(t *testing.T, name string, size image.Point, layers ...rx.Observable[layout.Widget]) {
 	t.Helper()
 	Compare(t, name, Window(t, size, layers...))
+}
+
+// On returns w laid out on fill: the text w draws is told that it stands on
+// fill, [typeset.WithFill]. On paints nothing, so a capture keeps the clear
+// plane that [CoverageRow] reads. A render whose text stands on the window
+// passes the window background of the scheme it draws, [OnWindow].
+func On(fill color.NRGBA, w layout.Widget) layout.Widget {
+	return func(gtx layout.Context) layout.Dimensions {
+		return w(typeset.WithFill(gtx, fill))
+	}
+}
+
+// OnWindow is [On] with the window background of p.
+func OnWindow(p tokens.PlatformColors, w layout.Widget) layout.Widget {
+	return On(p.WindowBackground, w)
+}
+
+// ThemeLayers resolves the layer stack that build makes from th, as
+// theme/window renders it: each layer lays out on the window background of
+// th, [window.OnWindowBackground]. Pass a theme from [StaticTheme].
+func ThemeLayers(t *testing.T, th theme.Theme, build func(rx.Observable[theme.Theme]) []rx.Observable[layout.Widget]) layout.Widget {
+	t.Helper()
+	obs := rx.Of(th)
+	return Layers(t, window.OnWindowBackground(obs, build(obs)...)...)
+}
+
+// ThemeWindow is [ThemeLayers] captured at size, as [Window] captures.
+func ThemeWindow(t *testing.T, size image.Point, th theme.Theme, build func(rx.Observable[theme.Theme]) []rx.Observable[layout.Widget]) *image.RGBA {
+	t.Helper()
+	return Capture(t, size, ThemeLayers(t, th, build))
 }

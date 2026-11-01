@@ -613,7 +613,7 @@ func drawSurface(
 	if bounded {
 		textMax.X = max(min(textMax.X, area.Dx()-2*padH-2*gap), 0)
 	}
-	textGtx := gtx
+	textGtx := typeset.WithFill(gtx, tok.platform.WindowBackground)
 	textGtx.Constraints = layout.Constraints{Max: textMax}
 	fg := vgcolor.Flatten(tok.platform.Label, tok.platform.WindowBackground)
 	mText := op.Record(gtx.Ops)

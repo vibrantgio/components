@@ -12,6 +12,7 @@ import (
 	golden "github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/paragraph"
 	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 )
 
 // fillColor is the field the tests below paint behind a run of glyphs: a
@@ -55,6 +56,7 @@ func captureFill(t *testing.T, spans []paragraph.SpanStyle, width int) (*image.R
 	style.OnFill = func(span, fill int, r image.Rectangle) { got = append(got, r) }
 	img := golden.Capture(t, image.Pt(width, 90), func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, p.TextBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		gtx = typeset.WithFill(gtx, p.TextBackground)
 		return paragraph.Render(shaper, style, spans, paragraph.Idle())(gtx)
 	})
 	return img, got
@@ -100,6 +102,7 @@ func TestSpanFillLeavesTheShapingAlone(t *testing.T) {
 	measure := func(spans []paragraph.SpanStyle) layout.Dimensions {
 		var dims layout.Dimensions
 		golden.Capture(t, image.Pt(160, 200), func(gtx layout.Context) layout.Dimensions {
+			gtx = typeset.WithFill(gtx, tokens.PlatformLight.WindowBackground)
 			dims = paragraph.Render(shaper, style, spans, paragraph.Idle())(gtx)
 			return dims
 		})

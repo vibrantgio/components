@@ -204,7 +204,7 @@ func draw(gtx layout.Context, shaper *text.Shaper, props Props, tok resolvedToke
 	// leading edge takes its width off the text's, so the trailing margin
 	// stays one padH and the text stands one padH clear of the edge.
 	mText := op.Record(gtx.Ops)
-	textGtx := gtx
+	textGtx := typeset.WithFill(gtx, Fill(tok.platform))
 	textGtx.Constraints = layout.Constraints{
 		Max: image.Pt(w-edgeW-2*padH, gtx.Constraints.Max.Y),
 	}

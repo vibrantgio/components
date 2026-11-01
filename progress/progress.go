@@ -155,9 +155,10 @@ func Indicator(gtx layout.Context, p Props) layout.Dimensions {
 }
 
 // drawText draws the phrase in the label colour over the fill across the
-// width gtx gives, aligned as align says, and reports its size.
+// width gtx gives, aligned as align says, and reports its size. The phrase
+// is told that it stands on the fill.
 func drawText(gtx layout.Context, p Props, align text.Alignment) layout.Dimensions {
-	return typeset.TextAligned(gtx, p.Shaper, p.Text, TextStyle(p.Typography),
+	return typeset.TextAligned(typeset.WithFill(gtx, p.Fill), p.Shaper, p.Text, TextStyle(p.Typography),
 		vgcolor.Flatten(p.Platform.Label, p.Fill), 0, font.Normal, align)
 }
 

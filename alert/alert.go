@@ -177,7 +177,7 @@ func drawAlert(gtx layout.Context, shaper *text.Shaper, props Props, colors toke
 	// be laid under the depth the words actually took. Recording it keeps
 	// the paint order the reader sees: fill first, words over it.
 	rec := op.Record(gtx.Ops)
-	inner := layout.UniformInset(unit.Dp(sp.S4)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+	inner := layout.UniformInset(unit.Dp(sp.S4)).Layout(typeset.WithFill(gtx, bg), func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Axis: layout.Horizontal, Alignment: layout.Start}.Layout(gtx,
 			layout.Rigid(iconWidget(iconDp, mark)),
 			layout.Rigid(complayout.HSpacer(sp.S3)),

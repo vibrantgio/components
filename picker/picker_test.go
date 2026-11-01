@@ -754,12 +754,10 @@ func TestACappedMenuIsAnchoredByItsDrop(t *testing.T) {
 // The faces are pinned by DeterministicShaper, so both columns are the same on
 // every machine.
 func TestTheTriggerStandsOnThePopUpsColumnAndItsRowsOnTheFields(t *testing.T) {
-	// The title is darker text on the field, drawn at the darker text's stem
-	// weight. MEASURED in this render: that face's first stem covers 7 % of
-	// the column under the origin, so the face bears no whole column on this
-	// word. The face as shipped bears one, as input's own reading of the same
-	// inset does.
-	const bearing = 0
+	// The face bears one column on this word, as input's own reading of the
+	// same inset does. A column counts as covered from
+	// golden.ColumnCoverageFloor, as the platform's first column is read.
+	const bearing = 1
 	// The pill's inset and the mark's box, which the row's title follows.
 	const selectionInset, markBox = 10, 16
 	for _, tc := range []struct {
@@ -780,16 +778,8 @@ func TestTheTriggerStandsOnThePopUpsColumnAndItsRowsOnTheFields(t *testing.T) {
 			// the trigger rounds, holds the text; x=150 is clear of it and
 			// of the trigger's mark.
 			fill := img.RGBAAt(150, size.Y/2)
-			first := -1
-			for x := tc.innerEdge + 1; x < 150 && first < 0; x++ {
-				for y := 4; y <= size.Y-5; y++ {
-					if img.RGBAAt(x, y) != fill {
-						first = x
-						break
-					}
-				}
-			}
-			if first < 0 {
+			first, ok := golden.FirstTextColumn(img, fill, tc.innerEdge+1, 150, 4, size.Y-5)
+			if !ok {
 				t.Fatal("no text found inside the control; this measures nothing")
 			}
 			if got := first - tc.innerEdge; got != tc.want {
