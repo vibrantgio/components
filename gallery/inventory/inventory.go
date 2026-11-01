@@ -125,6 +125,9 @@ type Inventory struct {
 
 	// The reading sample, one document.
 	doc *markdown.Document
+	// searchDocs are the search specimen's two documents, without and
+	// with the band.
+	searchDocs [2]*markdown.Document
 
 	// The syntax highlighter styles the fence is drawn in — one per
 	// appearance. Which member reaches the fence is the appearance's to say;

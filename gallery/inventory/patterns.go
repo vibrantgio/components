@@ -93,6 +93,10 @@ func (inv *Inventory) Patterns(c tokens.PlatformColors) []Section {
 			Body: inv.twoColumnShell(c)},
 		{Name: "patterns-shell-three-column", Title: "Shell, three-column — the pane, the list column on its splitter, the content column taking the rest, one toolbar with a share each", Height: threeColSpecimenH,
 			Body: inv.threeColumnShell(c)},
+		{Name: "patterns-collection-search-band", Title: "Search over a collection — the toolbar field filters the list column, and the find button in the content's band opens the find bar with the query", Height: collectionSearchH,
+			Body: inv.collectionSearch(c, true)},
+		{Name: "patterns-collection-search", Title: "Search over a collection, no band — the find button over the content, above the column's foot", Height: collectionSearchH,
+			Body: inv.collectionSearch(c, false)},
 		{Name: "patterns-shell-stacked-page", Title: "Shell, stacked page — the navbar pinned across the top and the page's sections in the scroll under it", Height: stackedSpecimenH,
 			Body: inv.stackedPageShell(c)},
 	}
