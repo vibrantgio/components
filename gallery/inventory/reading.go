@@ -6,12 +6,9 @@
 // — and none of that shows on a page of components. The sample below is chosen
 // to put every one of those on screen at once.
 //
-// Code gets a sample of its own, for the same reason and one more: a syntax
-// highlighter style is a dozen decisions — keyword against string against
-// number against comment — and a fence with two statements in it shows one of
-// them. The specimen below shows all of them at once, so the question "does
-// this style work" has an answer that can be read off one screen rather than
-// assembled from several.
+// Its fenced block is the syntax specimen. A syntax highlighter style is a
+// dozen decisions — keyword against string against number against comment —
+// and the excerpt in the fence shows all of them on one screen.
 package inventory
 
 import (
@@ -25,8 +22,25 @@ import (
 
 // readingSample exercises, in order: the heading steps, a paragraph carrying
 // links and inline code chips, a bullet list, an ordered list, a task list
-// with both states, a table, a blockquote, a rule, and a fenced code block
-// whose longest line overflows so the horizontal scroll shows.
+// with both states, a table, a blockquote, a rule, and a fenced code block.
+//
+// The fence is the last block, and the block above it is not a heading:
+// [readingBlocks] depends on both.
+//
+// The fence holds one excerpt with every kind of run a style colours
+// differently. Line comments and a doc comment; the keywords a body is built
+// from and the declaring ones above them; a package-level constant beside a
+// struct's fields; strings both plain and with verbs in them; integers, a
+// float and a duration; the built-in types, a named one, and a pointer to it;
+// and calls through three different packages.
+//
+// It is a real excerpt rather than a list of token types. A highlighter style
+// has to survive code as it is shaped: a run of keywords at the head of a
+// line, a string between two calls.
+//
+// The comments are short and few. A comment is the widest run on its line,
+// and long comments put the comment colour over most of the block. The
+// keywords and strings the choice of style turns on then get the margins.
 const readingSample = "" +
 	"# Reading sample\n" +
 	"\n" +
@@ -65,35 +79,6 @@ const readingSample = "" +
 	"---\n" +
 	"\n" +
 	"```go\n" +
-	"// The fenced block's longest line overflows on purpose, so the code area's horizontal scroll and its bar both show.\n" +
-	"doc := markdown.NewDocument(markdown.Parse(source))\n" +
-	"doc.LayoutColumn(gtx, shaper, markdown.FromTokens(colors, typography))\n" +
-	"```\n"
-
-// codeSample is the syntax specimen: one excerpt carrying every kind of run a
-// style colours differently, so the whole set of decisions is legible at a
-// glance rather than a fence at a time.
-//
-// Line comments and a doc comment; the keywords a body is built from and the
-// declaring ones above them; a package-level constant beside a struct's
-// fields; strings both plain and with verbs in them; integers, a float and a
-// duration; the built-in types, a named one, and a pointer to it; and calls
-// through three different packages, so a function name is on screen next to
-// the type it returns.
-//
-// It is a real excerpt rather than a list of token types on purpose. What a
-// highlighter style has to survive is code as it is actually shaped — a run
-// of keywords at the head of a line, a string wedged between two calls — and
-// a specimen arranged for the style's convenience would flatter it.
-//
-// The comments are kept short and few, which is the one way this excerpt is
-// unlike the code it stands for. A comment is the widest run on any line it is
-// on, and a specimen written with the doc comments real code deserves puts the
-// comment colour over most of the plate — leaving the reader judging a style
-// by the one colour it spends least effort on, with the keywords and strings
-// the choice actually turns on crowded into the margins.
-const codeSample = "" +
-	"```go\n" +
 	"// Package berth assigns vessels to the quay they fit on.\n" +
 	"package berth\n" +
 	"\n" +
@@ -127,54 +112,46 @@ const codeSample = "" +
 	"}\n" +
 	"```\n"
 
-// Reading returns the prose sections: documents laid out by the real markdown
-// renderer rather than mocked up out of labels.
+// readingBlocks parses [readingSample] and returns its prose blocks and its
+// fence, the last block, apart.
 //
-// The code specimen comes last, and last on the whole column with it. This
-// surface is for judging a theme, and a plate of syntax at the top of it takes
-// the attention the colours, the components and the compositions are there to
-// get — a page that opens on code is a page about code. Put at the end it is
-// still the whole specimen, reached by whoever went looking for it; and a
-// caller with a reason to put it in front of somebody has [ItemIndex] to scroll
-// there, which costs one call and no reordering.
+// The two parts are laid out as two documents because one document has one
+// width: the prose is capped at a reading measure and the fence is not. The
+// space between them is the block gap, which is the space one document puts
+// between a block that is not a heading and the block under it.
+func readingBlocks() (prose, fence []markdown.Block) {
+	blocks := markdown.Parse([]byte(readingSample))
+	n := len(blocks) - 1
+	return blocks[:n:n], blocks[n:]
+}
+
+// Reading returns the prose section: one document laid out by the real
+// markdown renderer rather than mocked up out of labels.
+//
+// It is the last section on the column, and its fence is the last block in
+// it. A plate of syntax at the top of the column takes the attention the
+// colours, the components and the compositions are there to get. A caller
+// that has to show the code first scrolls there with [Inventory.ItemIndex]
+// and [CodeSectionName].
 func (inv *Inventory) Reading(c tokens.PlatformColors) []Section {
 	return []Section{{
-		Name:   "markdown-reading",
-		Title:  "Markdown — headings, links, chips, lists, tasks, a table, a quote and a code fence",
-		Height: 966,
+		Name:   readingSectionName,
+		Title:  "Markdown — headings, links, chips, lists, tasks, a table, a quote and a code fence in the chosen syntax highlighter style",
+		Height: 1235,
 		Body:   inv.readingBody(c),
-	}, {
-		Name:   codeSectionName,
-		Title:  "Markdown — a fenced code block in the chosen syntax highlighter style",
-		Height: 613,
-		Body:   inv.codeBody(c),
 	}}
 }
 
-// codeSectionName identifies the syntax specimen's section. It is a constant
-// because it is also the answer to "which row is the code on" — see
+// readingSectionName identifies the reading sample's section. It is a
+// constant because it is also the answer to "which row is the code on": see
 // [Inventory.ItemIndex].
-const codeSectionName = "markdown-code"
+const readingSectionName = "markdown-reading"
 
 // CodeSectionName is the name of the section the syntax specimen is drawn in,
-// for a caller that wants to put it in front of somebody rather than wait for
-// them to scroll to it.
-func CodeSectionName() string { return codeSectionName }
+// for a caller that scrolls the specimen into view.
+func CodeSectionName() string { return readingSectionName }
 
-func (inv *Inventory) codeBody(c tokens.PlatformColors) layout.Widget {
-	style := inv.markdownStyle(c)
-	// No measure cap, unlike the prose sample. Prose is capped because a long
-	// line of it is hard to read; code is not prose — a line wrapped or
-	// scrolled out of sight is a line the style cannot be judged on — and a
-	// capped plate leaves its own section's heading running past it on one
-	// side, which reads as a pane that failed to fill rather than as a
-	// measure somebody chose.
-	return func(gtx layout.Context) layout.Dimensions {
-		return inv.code.LayoutColumn(gtx, inv.shaper, style)
-	}
-}
-
-// SetCodeStyle names one syntax highlighter style the code in these sections
+// SetCodeStyle names one syntax highlighter style the reading sample's fence
 // is drawn in, under both appearances — one of the highlighting package's own
 // style names. The empty string, which is the value an [Inventory] starts
 // with, means that package's own default; so does a name it does not
@@ -207,7 +184,7 @@ func (inv *Inventory) applyStyle(st *markdown.Style, c tokens.PlatformColors) {
 	}, c)
 }
 
-// markdownStyle is the style both markdown sections draw with. The chosen
+// markdownStyle is the style both parts of the reading sample draw with. The chosen
 // highlighter style is used whole: the fence takes the fill its author drew
 // their colours on, and those colours as they were drawn. Everything around
 // it — the page, the prose, the chip an inline span sits on — stays the
@@ -251,10 +228,22 @@ func followBar(own, window scrollbar.Style) scrollbar.Style {
 func (inv *Inventory) readingBody(c tokens.PlatformColors) layout.Widget {
 	style := inv.markdownStyle(c)
 	return func(gtx layout.Context) layout.Dimensions {
-		gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(560))
 		// LayoutColumn rather than Layout: the document is embedded in a
 		// column that scrolls already, and its own viewport would fight the
 		// outer one.
-		return inv.doc.LayoutColumn(gtx, inv.shaper, style)
+		//
+		// The prose is capped at a reading measure because a long line of it
+		// is hard to read. The fence has no cap: a code line wrapped or
+		// scrolled out of sight is a line the style cannot be judged on.
+		return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				gtx.Constraints.Max.X = min(gtx.Constraints.Max.X, gtx.Dp(560))
+				return inv.doc.LayoutColumn(gtx, inv.shaper, style)
+			}),
+			layout.Rigid(layout.Spacer{Height: style.BlockGap}.Layout),
+			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+				return inv.code.LayoutColumn(gtx, inv.shaper, style)
+			}),
+		)
 	}
 }

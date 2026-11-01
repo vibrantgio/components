@@ -122,10 +122,11 @@ type Inventory struct {
 	// per frame afterwards.
 	ivg map[color.NRGBA]layout.Widget
 
+	// The reading sample's prose and its fence; see readingBlocks.
 	doc  *markdown.Document
 	code *markdown.Document
 
-	// The syntax highlighter styles the code sections are drawn in — one per
+	// The syntax highlighter styles the fence is drawn in — one per
 	// appearance. Which member reaches the fence is the appearance's to say;
 	// see Inventory.applyStyle.
 	codeStyles highlight.StylePair
@@ -134,7 +135,7 @@ type Inventory struct {
 	// SetScrollbar. Nil means the fading bar markdown's own style draws.
 	windowBar *scrollbar.Style
 
-	// typo is the type roles the reading and code sections draw through.
+	// typo is the type roles the reading sample draws through.
 	// Empty is DefaultTypography. A caller that names a code face calls
 	// SetTypography; the parsed documents stay.
 	typo tokens.Typography
@@ -147,7 +148,7 @@ type Inventory struct {
 	badgeDismiss [2]widget.Clickable
 }
 
-// SetTypography names the type roles the reading and code sections draw
+// SetTypography names the type roles the reading sample draws
 // through. The parsed documents stay; only Code and the extra faces a
 // named code face appends change at the next layout. The empty value is
 // DefaultTypography.
@@ -188,9 +189,10 @@ func NewForOS(shaper *text.Shaper, goos string) *Inventory {
 		areaSt:    scrollarea.NewState(),
 		marks:     icons.New(goos),
 		reg:       icon.New(),
-		doc:       markdown.NewDocument(markdown.Parse([]byte(readingSample))),
-		code:      markdown.NewDocument(markdown.Parse([]byte(codeSample))),
 	}
+	prose, fence := readingBlocks()
+	inv.doc = markdown.NewDocument(prose)
+	inv.code = markdown.NewDocument(fence)
 	inv.rows = make([]string, 40)
 	inv.bars = make([]string, 40)
 	for i := range inv.rows {

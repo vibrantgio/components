@@ -27,16 +27,14 @@ func bodyHeight(body layout.Widget, width int) int {
 	return body(gtx).Size.Y
 }
 
-// TestTheFenceAndTheWideTableStandAtAlways lays the two markdown sections
-// out at a width the reading sample's table does not fit, with the window's
-// bar fading and with the window's bar at Always.
+// TestTheFenceAndTheWideTableStandAtAlways lays the reading sample out at a
+// width its table does not fit, with the window's bar fading and with the
+// window's bar at Always.
 //
-// The code specimen's fence overflows at every width, and so does the
-// reading sample's fence. At this width the reading sample's table overflows
-// too. A fading bar takes no lane, so the sections are as tall as with no
-// window bar at all. A standing bar takes a lane of its own under what
-// scrolls: the code specimen grows by one lane, and the reading sample grows
-// by two, one under its fence and one under its table. The standing frames
+// The fence overflows at this width, and so does the table. A fading bar
+// takes no lane, so the body is as tall as with no window bar at all. A
+// standing bar takes a lane of its own under what scrolls: the body grows by
+// two lanes, one under its fence and one under its table. The standing frames
 // also draw pixels the fading frames do not, which is the standing thumb.
 func TestTheFenceAndTheWideTableStandAtAlways(t *testing.T) {
 	const width = 200
@@ -55,7 +53,6 @@ func TestTheFenceAndTheWideTableStandAtAlways(t *testing.T) {
 		body  func(*Inventory) layout.Widget
 		lanes int
 	}{
-		{"the code specimen's fence", func(inv *Inventory) layout.Widget { return inv.codeBody(c) }, 1},
 		{"the reading sample's fence and table", func(inv *Inventory) layout.Widget { return inv.readingBody(c) }, 2},
 	} {
 		base := bodyHeight(tc.body(unset), width)

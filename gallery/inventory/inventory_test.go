@@ -3,6 +3,7 @@ package inventory
 import (
 	"image"
 	"image/color"
+	"strings"
 	"testing"
 
 	"gioui.org/f32"
@@ -14,6 +15,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/vibrantgio/components/golden"
+	"github.com/vibrantgio/markdown"
 	themecolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -201,11 +203,41 @@ const (
 	planeFloor = 2.0
 )
 
+// TestTheMarkdownGroupIsOneDocument reads the Markdown group as one section
+// whose last block is a Go fence that holds the berth package. The section's
+// slot is the height the body takes, so nothing is cut off and no blank space
+// is left under the fence.
+func TestTheMarkdownGroupIsOneDocument(t *testing.T) {
+	inv := testInventory(t)
+	c := tokens.PlatformLight
+
+	sections := inv.Reading(c)
+	if len(sections) != 1 {
+		t.Fatalf("the Markdown group has %d sections, want 1", len(sections))
+	}
+	prose, fence := readingBlocks()
+	if len(prose) == 0 || len(fence) != 1 {
+		t.Fatalf("the reading sample splits into %d prose blocks and %d fence blocks, want some and 1", len(prose), len(fence))
+	}
+	cb, ok := fence[0].(*markdown.CodeBlock)
+	if !ok {
+		t.Fatalf("the reading sample's last block is %T, want a fenced code block", fence[0])
+	}
+	if cb.Language != "go" || !strings.Contains(cb.Code, "package berth") {
+		t.Errorf("the fence is %q and does not hold the berth package", cb.Language)
+	}
+	if _, ok := prose[len(prose)-1].(*markdown.Heading); ok {
+		t.Error("a heading is directly above the fence; the block gap between the two documents is then wrong")
+	}
+	if got, want := bodyHeight(sections[0].Body, sampleWidth-2*int(SectionPadX)), int(sections[0].Height); got != want {
+		t.Errorf("the reading body is %d dp tall, its slot %d dp", got, want)
+	}
+}
+
 // TestTheCodeSpecimenIsLast pins where the syntax plate sits. The column is
 // for judging a theme, and code at the top of it takes the attention the rest
-// of the surface is there to get; the plate is the last thing on the page, and
-// the lookup a caller scrolls by has to follow it there rather than keep
-// pointing at the row it used to be on.
+// of the surface is there to get, so the plate is the last thing on the page.
+// The lookup a caller scrolls by finds the section the plate is in.
 func TestTheCodeSpecimenIsLast(t *testing.T) {
 	inv := testInventory(t)
 	c := tokens.PlatformLight
