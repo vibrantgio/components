@@ -132,8 +132,8 @@ func TestTheFindButtonIsTheMeasuredButton(t *testing.T) {
 // reading of the find button.
 func TestTheFindButtonTakesTheToolbarControlsDarkFace(t *testing.T) {
 	c := tokens.PlatformDark
-	if c.FindButtonFill != c.ToolbarControlFill || c.FindButtonRim != c.ToolbarControlRim || c.FindButtonLabel != c.ToolbarLabel {
-		t.Fatal("the dark find button does not take the toolbar control's fill, rim and label")
+	if c.FindButtonFill != c.ToolbarControlFill || c.FindButtonRim != c.ToolbarControlRim || c.FindButtonForeground != c.ToolbarLabel {
+		t.Fatal("the dark find button does not take the toolbar control's fill, rim and foreground")
 	}
 	img, box := captureFindButton(t, c, button.RenderState{})
 	if box.Dy() != 24 || box.Dx() < 82 || box.Dx() > 84 {

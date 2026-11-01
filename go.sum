@@ -31,6 +31,8 @@ github.com/vibrantgio/theme v1.6.1-0.20261101120246-b6b8b4760b41 h1:NYXCj8fWxcmB
 github.com/vibrantgio/theme v1.6.1-0.20261101120246-b6b8b4760b41/go.mod h1:OcQLsphBprQ19JwnhEfMsn1btqW+x1T0EI23TUFlKEQ=
 github.com/vibrantgio/theme v1.6.1-0.20261101155442-4eb5de0f8b57 h1:h4FmjmIL9loKZzYvktvqduxpwDl7HMiLzg+QWj/x4yM=
 github.com/vibrantgio/theme v1.6.1-0.20261101155442-4eb5de0f8b57/go.mod h1:OcQLsphBprQ19JwnhEfMsn1btqW+x1T0EI23TUFlKEQ=
+github.com/vibrantgio/theme v1.6.1-0.20261101160826-89feae939c46 h1:qu3ZAo+kK+JYi7nQ1aAoUOdhVXYsein+aJV3tqY1L3g=
+github.com/vibrantgio/theme v1.6.1-0.20261101160826-89feae939c46/go.mod h1:OcQLsphBprQ19JwnhEfMsn1btqW+x1T0EI23TUFlKEQ=
 golang.org/x/exp v0.0.0-20260727155853-b88d891fe743 h1:ex206bKw+v3K0dm3andkrIF+ijyQKJG1pLgwQ2PYdQM=
 golang.org/x/exp v0.0.0-20260727155853-b88d891fe743/go.mod h1:EdfpwwqSu+0Li0mzskwHU6FWDV3t9Q+RZDo3QMUtL3Q=
 golang.org/x/exp/shiny v0.0.0-20260727155853-b88d891fe743 h1:rQLtGtwpYzQUyxCqrT3i4lGgvC1Q4G72JTHYncg6AvY=

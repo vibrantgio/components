@@ -183,7 +183,7 @@ func findButtonFill(p tokens.PlatformColors, s RenderState) color.NRGBA {
 func drawFindButton(gtx layout.Context, shaper *text.Shaper, title string, tok resolvedTokens, s RenderState) layout.Dimensions {
 	p := tok.platform
 	fill := findButtonFill(p, s)
-	fg := p.FindButtonLabel
+	fg := p.FindButtonForeground
 
 	titleGtx := typeset.WithFill(gtx, fill)
 	titleGtx.Constraints.Min = image.Point{}
