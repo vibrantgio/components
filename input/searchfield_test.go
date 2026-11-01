@@ -15,6 +15,7 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
+	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
 	golden "github.com/vibrantgio/components/golden"
@@ -258,6 +259,46 @@ func TestSearchFieldClearsFromOutside(t *testing.T) {
 	driveTextFieldFrame(w, ops, r, size)
 	if len(changes) != emptied {
 		t.Errorf("a press where the mark stood reported %v; the field was already empty and the mark is not drawn there", changes[emptied:])
+	}
+}
+
+// TestSearchFieldSetsTextFromOutside drives SearchFieldProps.SetText: the
+// application gives the field a query, the field reports it the way every
+// other edit is reported, and the caret stands at the end of the text.
+func TestSearchFieldSetsTextFromOutside(t *testing.T) {
+	var (
+		changes []string
+		set     func(string)
+		tag     event.Tag
+	)
+	w := materialize(t, input.SearchField(rx.Of(theme.Default()), input.SearchFieldProps{
+		Placeholder: "Search",
+		Shaper:      defaultShaper(t),
+		SetText:     func(s func(string)) { set = s },
+		FocusTag:    func(t event.Tag) { tag = t },
+		OnChange:    func(_ layout.Context, s string) { changes = append(changes, s) },
+	}))
+	if set == nil {
+		t.Fatal("the field never handed the caller a way to set its text")
+	}
+
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	size := image.Pt(300, 120)
+	driveTextFieldFrame(w, ops, r, size)
+	before := len(changes)
+
+	set("Gio")
+	driveTextFieldFrame(w, ops, r, size)
+	if got := changes[before:]; len(got) != 1 || got[0] != "Gio" {
+		t.Fatalf("setting the text from outside reported %q, want the one change \"Gio\"", got)
+	}
+	ed, ok := tag.(*widget.Editor)
+	if !ok {
+		t.Fatalf("the focus tag is %T, want the field's editor", tag)
+	}
+	if start, end := ed.Selection(); start != 3 || end != 3 {
+		t.Errorf("the caret stands at %d–%d after the text is set, want 3–3, the end of \"Gio\"", start, end)
 	}
 }
 

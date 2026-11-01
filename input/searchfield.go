@@ -128,6 +128,15 @@ type SearchFieldProps struct {
 	// dismisses a consumer's highlight along with the query that caused it.
 	Clear func(clear func())
 
+	// SetText, if non-nil, is called once when the field instance is created
+	// with a function that replaces the field's text and puts the caret at
+	// its end. It is how a query is given to the field from outside it — a
+	// find bar that opens holding the query another control holds.
+	//
+	// Setting the text this way reports the new query on the next frame,
+	// through OnChange and Message like any other edit.
+	SetText func(set func(text string))
+
 	// Disabled, if non-nil, disables the field when it emits true. A disabled
 	// field draws its marks faded with the rest of it and offers no clear.
 	Disabled rx.Observable[bool]
@@ -243,6 +252,13 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 		}
 		if props.Clear != nil {
 			props.Clear(func() { editor.SetText("") })
+		}
+		if props.SetText != nil {
+			props.SetText(func(text string) {
+				editor.SetText(text)
+				n := editor.Len()
+				editor.SetCaret(n, n)
+			})
 		}
 
 		return rx.Map(inputs, func(next rx.Tuple2[resolvedTokens, bool]) layout.Widget {
