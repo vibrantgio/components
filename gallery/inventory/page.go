@@ -25,6 +25,7 @@ import (
 	ivgraster "github.com/vibrantgio/ivg/raster/gio"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 )
 
 // Items returns the whole inventory as the rows of one column, in the given
@@ -125,6 +126,7 @@ func pageEnd(shaper *text.Shaper, c tokens.PlatformColors, sections int) layout.
 		paint.FillShape(gtx.Ops, fill, clip.Rect{Max: sz}.Op())
 		paint.FillShape(gtx.Ops, vgcolor.Flatten(c.Separator, fill),
 			clip.Rect(image.Rect(0, 0, sz.X, 1)).Op())
+		gtx = typeset.WithFill(gtx, fill)
 		gtx.Constraints = layout.Exact(sz)
 		return complayout.InsetXY(24, 24).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return LabelAt(gtx, shaper,
@@ -148,6 +150,7 @@ func groupBanner(shaper *text.Shaper, c tokens.PlatformColors, name string) layo
 		paint.FillShape(gtx.Ops, fill, clip.Rect{Max: sz}.Op())
 		paint.FillShape(gtx.Ops, vgcolor.Flatten(c.Separator, fill),
 			clip.Rect(image.Rect(0, h-1, sz.X, h)).Op())
+		gtx = typeset.WithFill(gtx, fill)
 		gtx.Constraints = layout.Exact(sz)
 		return complayout.InsetXY(24, 13).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return LabelAt(gtx, shaper, name, vgcolor.Flatten(c.Label, fill), 15, font.Font{Weight: font.Bold})
@@ -170,6 +173,7 @@ func sectionHeaderRow(shaper *text.Shaper, c tokens.PlatformColors, title string
 		seam := vgcolor.Flatten(c.Separator, fill)
 		paint.FillShape(gtx.Ops, seam, clip.Rect(image.Rect(0, 0, sz.X, 1)).Op())
 		paint.FillShape(gtx.Ops, seam, clip.Rect(image.Rect(0, h-1, sz.X, h)).Op())
+		gtx = typeset.WithFill(gtx, fill)
 		gtx.Constraints = layout.Exact(sz)
 		return complayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return LabelAt(gtx, shaper, title, vgcolor.Flatten(c.Label, fill), 13, font.Font{Weight: font.Bold})
@@ -197,6 +201,7 @@ func sectionBody(c tokens.PlatformColors, s Section) layout.Widget {
 		h := gtx.Dp(s.Height) + gtx.Dp(2*SectionPadY)
 		full := image.Pt(gtx.Constraints.Max.X, h)
 		paint.FillShape(gtx.Ops, SectionSurface(c), clip.Rect{Max: full}.Op())
+		gtx = typeset.WithFill(gtx, SectionSurface(c))
 		gtx.Constraints = layout.Exact(full)
 		return complayout.InsetXY(float32(SectionPadX), float32(SectionPadY)).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			gtx.Constraints.Max.Y = gtx.Dp(s.Height)

@@ -51,6 +51,7 @@ import (
 	"github.com/vibrantgio/markdown/highlight"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 
 	"github.com/vibrantgio/components/alert"
 	"github.com/vibrantgio/components/badge"
@@ -644,7 +645,7 @@ func (inv *Inventory) chromeButtonRow(c tokens.PlatformColors) layout.Widget {
 			cs = append(cs, layout.Rigid(button.RenderBordered(mark, c, tokens.Radius, tokens.Comfortable, st)))
 		}
 		macro := op.Record(gtx.Ops)
-		dims := complayout.InsetXY(float32(chromeButtonPad), float32(chromeButtonPad)).Layout(gtx,
+		dims := complayout.InsetXY(float32(chromeButtonPad), float32(chromeButtonPad)).Layout(typeset.WithFill(gtx, c.SidebarMaterial),
 			func(gtx layout.Context) layout.Dimensions {
 				return layout.Flex{}.Layout(gtx, cs...)
 			})
@@ -946,7 +947,7 @@ func chipLine(inv *Inventory, c tokens.PlatformColors, caption string, cells []l
 func surfacePane(fill color.NRGBA, content layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		m := op.Record(gtx.Ops)
-		dims := content(gtx)
+		dims := content(typeset.WithFill(gtx, fill))
 		call := m.Stop()
 		paint.FillShape(gtx.Ops, fill, clip.Rect{Max: dims.Size}.Op())
 		call.Add(gtx.Ops)
@@ -1320,7 +1321,7 @@ func (inv *Inventory) searchFieldRow(c tokens.PlatformColors) layout.Widget {
 							return w(gtx)
 						}
 						rec := op.Record(gtx.Ops)
-						dims := w(gtx)
+						dims := w(typeset.WithFill(gtx, c.SidebarMaterial))
 						call := rec.Stop()
 						paint.FillShape(gtx.Ops, c.SidebarMaterial, clip.Rect{Max: dims.Size}.Op())
 						call.Add(gtx.Ops)
@@ -1352,6 +1353,7 @@ func (inv *Inventory) findBarRow(c tokens.PlatformColors) layout.Widget {
 			gtx.Constraints.Min = image.Point{}
 			size := image.Pt(gtx.Constraints.Max.X, gtx.Dp(barH))
 			paint.FillShape(gtx.Ops, c.WindowBackground, clip.Rect{Max: size}.Op())
+			gtx = typeset.WithFill(gtx, c.WindowBackground)
 			centre := func(w layout.Widget) layout.FlexChild {
 				return layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					m := op.Record(gtx.Ops)
@@ -1706,7 +1708,7 @@ func (inv *Inventory) pickerRow(c tokens.PlatformColors) layout.Widget {
 			tokens.Comfortable, st)
 		return layout.Rigid(cell(label, func(gtx layout.Context) layout.Dimensions {
 			macro := op.Record(gtx.Ops)
-			dims := complayout.InsetXY(pickerChromePad, pickerChromePad).Layout(gtx, trigger)
+			dims := complayout.InsetXY(pickerChromePad, pickerChromePad).Layout(typeset.WithFill(gtx, c.SidebarMaterial), trigger)
 			call := macro.Stop()
 			paint.FillShape(gtx.Ops, c.SidebarMaterial,
 				clip.Rect{Max: dims.Size}.Op())
@@ -2141,13 +2143,14 @@ var ActionInfoIVG = []byte{
 
 // LabelAt draws a one-line label. It takes its shaper rather than owning one,
 // so a section can be drawn with whatever shaper the surface around it uses —
-// including none of a window's, which is how a capture is made.
+// including none of a window's, which is how a capture is made. col against
+// the fill gtx carries gives the stem weight of f.
 func LabelAt(gtx layout.Context, shaper *text.Shaper, s string, col color.NRGBA, size unit.Sp, f font.Font) layout.Dimensions {
 	m := op.Record(gtx.Ops)
 	paint.ColorOp{Color: col}.Add(gtx.Ops)
 	mat := m.Stop()
 	lbl := widget.Label{MaxLines: 1}
-	return lbl.Layout(gtx, shaper, f, size, s, mat)
+	return lbl.Layout(gtx, shaper, typeset.StemFontOn(gtx, f, col), size, s, mat)
 }
 
 // specimenName is the accessible name the trigger and the anchor both carry,

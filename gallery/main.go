@@ -381,6 +381,7 @@ func (g *gallery) cleanup() {
 
 func (g *gallery) frame(gtx layout.Context) layout.Dimensions {
 	paint.FillShape(gtx.Ops, g.chrome().WindowBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
+	gtx = typeset.WithFill(gtx, g.chrome().WindowBackground)
 	return layout.Flex{}.Layout(gtx,
 		layout.Rigid(g.sidebar),
 		layout.Flexed(1, g.content),
@@ -399,6 +400,7 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 	paint.FillShape(gtx.Ops, c.SidebarMaterial, clip.Rect{Max: gtx.Constraints.Max}.Op())
 	paint.FillShape(gtx.Ops, vgcolor.Flatten(c.Separator, c.SidebarMaterial),
 		clip.Rect(image.Rect(w-1, 0, w, gtx.Constraints.Max.Y)).Op())
+	gtx = typeset.WithFill(gtx, c.SidebarMaterial)
 
 	cs := make([]layout.FlexChild, 0, 1+len(pageNames))
 	cs = append(cs, layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -426,6 +428,7 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 				// unselected entry lets the rail's own fill show through.
 				if active {
 					paint.FillShape(gtx.Ops, c.SelectedContentBackground, clip.Rect{Max: sz}.Op())
+					gtx = typeset.WithFill(gtx, c.SelectedContentBackground)
 				}
 				return complayout.InsetXY(16, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 					return g.label(gtx, name, fg, roles.SystemFont)
@@ -438,6 +441,7 @@ func (g *gallery) sidebar(gtx layout.Context) layout.Dimensions {
 
 func (g *gallery) content(gtx layout.Context) layout.Dimensions {
 	paint.FillShape(gtx.Ops, g.chrome().WindowBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
+	gtx = typeset.WithFill(gtx, g.chrome().WindowBackground)
 	switch g.page {
 	case pageEverything:
 		return g.pageEverything(gtx)
@@ -662,7 +666,7 @@ func (g *gallery) pageChip(gtx layout.Context) layout.Dimensions {
 func (g *gallery) surfacePane(fill color.NRGBA, content layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		m := op.Record(gtx.Ops)
-		dims := content(gtx)
+		dims := content(typeset.WithFill(gtx, fill))
 		call := m.Stop()
 		paint.FillShape(gtx.Ops, fill, clip.Rect{Max: dims.Size}.Op())
 		call.Add(gtx.Ops)
@@ -1376,6 +1380,7 @@ func (g *gallery) sectionHeader(title string) layout.FlexChild {
 		bg := tokens.PlatformLight.CardFill
 		h := gtx.Dp(unit.Dp(36))
 		paint.FillShape(gtx.Ops, bg, clip.Rect{Max: image.Pt(gtx.Constraints.Max.X, h)}.Op())
+		gtx = typeset.WithFill(gtx, bg)
 		return complayout.InsetXY(24, 8).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 			return g.label(gtx, title, pageText, roles.Headline)
 		})
@@ -1384,6 +1389,7 @@ func (g *gallery) sectionHeader(title string) layout.FlexChild {
 
 func (g *gallery) variantRow(gtx layout.Context, lbl string, bg, fg color.NRGBA, w layout.Widget) layout.Dimensions {
 	paint.FillShape(gtx.Ops, bg, clip.Rect{Max: image.Pt(gtx.Constraints.Max.X, gtx.Dp(unit.Dp(64)))}.Op())
+	gtx = typeset.WithFill(gtx, bg)
 	return complayout.InsetXY(24, 10).Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 		return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 			layout.Rigid(func(gtx layout.Context) layout.Dimensions {
@@ -1420,11 +1426,12 @@ func bold(style tokens.TextStyle) tokens.TextStyle {
 }
 
 // label draws s on one line in a typography role. The role gives the size,
-// the typeface and the weight. The line box is the text's own.
+// the typeface and the weight, and col against the fill gtx carries gives the
+// stem weight. The line box is the text's own.
 func (g *gallery) label(gtx layout.Context, s string, col color.NRGBA, style tokens.TextStyle) layout.Dimensions {
 	m := op.Record(gtx.Ops)
 	paint.ColorOp{Color: col}.Add(gtx.Ops)
 	mat := m.Stop()
 	lbl := widget.Label{MaxLines: 1}
-	return lbl.Layout(gtx, g.shaper, typeset.Font(style, font.Normal), unit.Sp(style.Size), s, mat)
+	return lbl.Layout(gtx, g.shaper, typeset.FontOn(gtx, style, font.Normal, col), unit.Sp(style.Size), s, mat)
 }

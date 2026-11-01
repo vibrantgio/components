@@ -34,6 +34,7 @@ import (
 	"github.com/vibrantgio/textdraw"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 )
 
 // Chrome is the story's own frame: the four colours it draws with that are
@@ -133,14 +134,15 @@ func Heading(p Chrome, c tokens.PlatformColors, ty Type, title, hint string) lay
 		line := gtx.Dp(hairline)
 		paint.FillShape(gtx.Ops, p.Seam,
 			clip.Rect(image.Rect(0, size.Y-line, size.X, size.Y)).Op())
+		gtx = typeset.WithFill(gtx, p.Surface)
 		pad := gtx.Dp(inventory.SectionPadX)
 		box := image.Rect(pad, 0, max(pad, size.X-pad), size.Y)
-		textdraw.FillText(gtx, ty.Shaper, ty.Label, box, 0, 0.5, p.Text, title)
+		fillText(gtx, ty.Shaper, ty.Label, box, 0, 0.5, p.Text, title)
 		// The caption takes what the title leaves rather than the whole bar, so
 		// a narrow window truncates it instead of running it into the title.
 		if lead := box.Min.X + natural(gtx, ty.Shaper, ty.Label, title) + gtx.Dp(captionGap); lead < box.Max.X {
 			if fit := FitHint(gtx, ty, hint, box.Max.X-lead); fit != "" {
-				textdraw.FillText(gtx, ty.Shaper, ty.Small,
+				fillText(gtx, ty.Shaper, ty.Small,
 					image.Rect(lead, 0, box.Max.X, size.Y), 1, 0.5, p.Text, fit)
 			}
 		}
@@ -220,6 +222,13 @@ func longestHead(gtx layout.Context, shaper *text.Shaper, style textdraw.TextSty
 	return ""
 }
 
+// fillText is [textdraw.FillText] at the stem weight of fg against the fill
+// gtx carries.
+func fillText(gtx layout.Context, sh *text.Shaper, style textdraw.TextStyle, box image.Rectangle, ax, ay float32, fg stdcolor.NRGBA, s string) {
+	style.Font = typeset.StemFontOn(gtx, style.Font, fg)
+	textdraw.FillText(gtx, sh, style, box, ax, ay, fg, s)
+}
+
 // Body lays one section's content out on the content plane, inside the margin
 // every other body in that column keeps.
 //
@@ -232,7 +241,7 @@ func Body(c tokens.PlatformColors, body func(gtx layout.Context, width int) int)
 		width := max(0, gtx.Constraints.Max.X-2*padX)
 		macro := op.Record(gtx.Ops)
 		h := 0
-		at(gtx, image.Pt(padX, padY), func(gtx layout.Context) { h = body(gtx, width) })
+		at(typeset.WithFill(gtx, inventory.SectionSurface(c)), image.Pt(padX, padY), func(gtx layout.Context) { h = body(gtx, width) })
 		content := macro.Stop()
 		size := image.Pt(gtx.Constraints.Max.X, h+2*padY)
 		paint.FillShape(gtx.Ops, inventory.SectionSurface(c), clip.Rect{Max: size}.Op())
@@ -270,7 +279,7 @@ func setBoard(p Chrome, c tokens.PlatformColors, ty Type) func(gtx layout.Contex
 
 		write := func(x, y, room int, style textdraw.TextStyle, col stdcolor.NRGBA, s string) {
 			box := image.Rect(x, y, x+room, y+rowH)
-			textdraw.FillText(gtx, ty.Shaper, style, box, 0, 0.5,
+			fillText(gtx, ty.Shaper, style, box, 0, 0.5,
 				col, FitLine(gtx, ty.Shaper, style, s, room))
 		}
 		swatch := func(x, y int, v, plane stdcolor.NRGBA) {

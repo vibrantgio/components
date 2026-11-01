@@ -240,11 +240,11 @@ func TestEverythingDump(t *testing.T) {
 
 // `onBackground` paints the appearance's own window plane under w, so a
 // captured image shows what the page shows rather than whatever the
-// framebuffer held.
+// framebuffer held. The text w draws is told that it stands on that plane.
 func onBackground(c tokens.PlatformColors, w layout.Widget) layout.Widget {
 	return func(gtx layout.Context) layout.Dimensions {
 		paint.FillShape(gtx.Ops, c.WindowBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
-		return w(gtx)
+		return golden.OnWindow(c, w)(gtx)
 	}
 }
 

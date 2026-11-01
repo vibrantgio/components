@@ -24,6 +24,7 @@ import (
 	"github.com/vibrantgio/components/list"
 	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 )
 
 // colors returns the scheme the everything page and the two inventory pages
@@ -84,6 +85,7 @@ func (g *gallery) pageMarkdown(gtx layout.Context) layout.Dimensions {
 // three dozen sections cheap.
 func (g *gallery) scrollItems(gtx layout.Context, st *list.State, c tokens.PlatformColors, items []layout.Widget) layout.Dimensions {
 	paint.FillShape(gtx.Ops, c.WindowBackground, clip.Rect{Max: gtx.Constraints.Max}.Op())
+	gtx = typeset.WithFill(gtx, c.WindowBackground)
 	return list.Layout(gtx, st, items, func(gtx layout.Context, w layout.Widget) layout.Dimensions {
 		return w(gtx)
 	})

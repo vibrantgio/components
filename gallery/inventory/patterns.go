@@ -43,6 +43,7 @@ import (
 	"github.com/vibrantgio/patterns/tabs"
 	"github.com/vibrantgio/patterns/testimonial"
 	"github.com/vibrantgio/theme/tokens"
+	"github.com/vibrantgio/theme/typeset"
 )
 
 // Patterns returns one section per composition, each drawn from static state
@@ -423,7 +424,7 @@ func (inv *Inventory) pane(c tokens.PlatformColors) layout.Widget {
 		// The document, one gutter past the pane's trailing edge — the
 		// reflow the pattern's hidden state completes by starting it at the
 		// window's own edge instead.
-		doc := gtx
+		doc := typeset.WithFill(gtx, c.TextBackground)
 		docW := max(0, size.X-b.Max.X-2*gtx.Dp(paneGutter))
 		doc.Constraints = layout.Exact(image.Pt(docW, size.Y-2*gtx.Dp(paneGutter)))
 		off := op.Offset(image.Pt(b.Max.X+gtx.Dp(paneGutter), gtx.Dp(paneGutter))).Push(gtx.Ops)

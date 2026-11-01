@@ -100,6 +100,7 @@ func frame(gtx layout.Context, shaper *text.Shaper) layout.Dimensions {
 
 		// Row background
 		paint.FillShape(gtx.Ops, rowBg, clip.Rect{Max: size}.Op())
+		gtx = typeset.WithFill(gtx, rowBg)
 
 		// Layout row content
 		layout.Inset{
@@ -121,7 +122,7 @@ func frame(gtx layout.Context, shaper *text.Shaper) layout.Dimensions {
 
 					lbl := widget.Label{MaxLines: 1}
 					role := tokens.DefaultTypography.SystemFont
-					return lbl.Layout(gtx, shaper, typeset.Font(role, font.Normal), unit.Sp(role.Size), r.label, mat)
+					return lbl.Layout(gtx, shaper, typeset.FontOn(gtx, role, font.Normal, colors.Label), unit.Sp(role.Size), r.label, mat)
 				}),
 				// Button column
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
