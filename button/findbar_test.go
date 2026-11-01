@@ -17,6 +17,7 @@ import (
 	"github.com/reactivego/rx"
 	"github.com/vibrantgio/components/button"
 	golden "github.com/vibrantgio/components/golden"
+	"github.com/vibrantgio/components/icons"
 	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -167,5 +168,63 @@ func TestFindBarStepsActOnPressAndKeepNoChoice(t *testing.T) {
 	press(4)
 	if next != 1 || prev != 1 {
 		t.Errorf("with no query the presses acted: next %d, previous %d, want 1 and 1 still", next, prev)
+	}
+}
+
+// TestFindBarStepsChevronsAreTheMeasuredChevrons reads each chevron of the
+// previous and next control off the drawn pixels: the box it covers, the
+// clear columns and rows around it inside its segment, and its darkest pixel.
+//
+// MEASURED, textedit-find-match-{light,dark}.png: each chevron covers 6 by 10
+// with 5 clear columns at each side and 5 clear rows above it inside its
+// 16 by 20 segment. Its darkest pixel is #292929-#373737 light. The dark
+// reading is #cfd1d2-#dcddde over a tinted fill, so the dark test reads only
+// that the chevron's lightest pixel is near the full foreground.
+func TestFindBarStepsChevronsAreTheMeasuredChevrons(t *testing.T) {
+	for _, sc := range findBarSchemes {
+		t.Run(sc.name, func(t *testing.T) {
+			p := sc.colors
+			img := golden.Capture(t, image.Pt(60, 40), onBar(sc.bar, func(gtx layout.Context) layout.Dimensions {
+				st := button.RenderState{Variant: button.FindBar, Surface: sc.bar}
+				return button.BorderedSegments(gtx, nil, p, tokens.Radius, tokens.TextStyle{}, tokens.Comfortable, []button.BorderedSegment{
+					{Icon: icons.Mark(icons.ChevronLeft), State: st},
+					{Icon: icons.Mark(icons.ChevronRight), State: st},
+				})
+			}))
+			fill := p.PushButtonFill
+			for i, x0 := range []int{0, 17} {
+				minX, minY, maxX, maxY := 99, 99, -1, -1
+				extreme := int(fill.G)
+				// Two rows and two columns in from the segment's sides, so
+				// that the control's corners stay out of the reading.
+				for y := 2; y < 18; y++ {
+					for x := x0 + 2; x < x0+14; x++ {
+						g := int(pixel(img, 10+x, 10+y).G)
+						if g == int(fill.G) {
+							continue
+						}
+						minX, minY = min(minX, x-x0), min(minY, y)
+						maxX, maxY = max(maxX, x-x0), max(maxY, y)
+						if sc.name == "light" {
+							extreme = min(extreme, g)
+						} else {
+							extreme = max(extreme, g)
+						}
+					}
+				}
+				if w, h := maxX-minX+1, maxY-minY+1; w != 6 || h != 10 {
+					t.Errorf("chevron %d covers %d by %d, want the measured 6 by 10", i, w, h)
+				}
+				if minX != 5 || minY != 5 {
+					t.Errorf("chevron %d starts %d columns and %d rows into its segment, want the measured 5 and 5", i, minX, minY)
+				}
+				if sc.name == "light" && (extreme < 0x29 || extreme > 0x37) {
+					t.Errorf("chevron %d's darkest pixel is %#x, want the measured #292929-#373737", i, extreme)
+				}
+				if sc.name == "dark" && extreme < 0xcf {
+					t.Errorf("chevron %d's lightest pixel is %#x, want at least the measured #cfcfcf", i, extreme)
+				}
+			}
+		})
 	}
 }

@@ -36,13 +36,16 @@ const SegmentSeamClearDp unit.Dp = 8
 // MEASURED, textedit-find-empty-{light,dark}.png and
 // textedit-find-match-{light,dark}.png: the previous and next control spans
 // x 421-453 at y 38-57, two segments of 16 with the seam at x=437. Each
-// chevron is 6 by 10 with 5 clear columns at each side inside its segment.
-// The 12 dp square is chosen to land that 6 by 10 extent with the set's
-// chevron, which does not fill its square. The seam runs y 42-53, four rows clear of each end, in #d5d5d5 light and
-// #474c51 dark: the separator flattened over the fill to the byte.
+// chevron covers 6 by 10, x 426-431 and y 43-52: 5 clear columns at each
+// side and 5 clear rows above it inside its segment. Its darkest pixel is
+// #292929-#373737 light. The set's chevron does not fill its square. In a
+// 14 dp square it covers 6 by 10 and its darkest pixel is #2e2e2e light.
+// The seam runs y 42-53,
+// four rows clear of each end, in #d5d5d5 light and #474c51 dark: the
+// separator flattened over the fill to the byte.
 const (
 	findBarSegmentDp   unit.Dp = 16
-	findBarMarkDp      unit.Dp = 12
+	findBarMarkDp      unit.Dp = 14
 	findBarSeamClearDp unit.Dp = 4
 )
 

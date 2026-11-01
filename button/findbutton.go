@@ -37,8 +37,9 @@ const FindButtonTitle = "Search"
 // narrower than the platform's, so the button is as wide as these parts
 // and its own title, and not the measured 84. The magnifier covers 13 × 13, the
 // toolbar field's own magnifier, which the search field draws in an 18 pt
-// square. Its first covered row is 6 below the button's top edge, so the
-// middle of what it covers is the button's centre row. The title's baseline is 17 below the button's top edge.
+// square. Its first covered row is 6 below the button's top, so the
+// middle of what it covers is the button's centre row. The title's baseline
+// is 17 below the button's top.
 const (
 	findButtonHeightDp   unit.Dp = 24
 	findButtonSideDp     unit.Dp = 13
@@ -177,7 +178,7 @@ func findButtonFill(p tokens.PlatformColors, s RenderState) color.NRGBA {
 	return p.FindButtonFill
 }
 
-// drawFindButton draws the find button's face: the capsule with its edge,
+// drawFindButton draws the find button's face: the capsule with its rim,
 // the looking glass and the title. It is as wide as its parts and the
 // measured clear space around them. It performs no event queries.
 func drawFindButton(gtx layout.Context, shaper *text.Shaper, title string, tok resolvedTokens, s RenderState) layout.Dimensions {

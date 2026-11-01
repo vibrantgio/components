@@ -72,6 +72,13 @@
 // field on chrome holds. It is a bordered capsule with the looking glass and
 // the title Search, and it stands over the content with the toolbar
 // control's drop shadow. [RenderFindButton] draws it in a fixed state.
+// [FindButtonOver] lays out the content column with the find button over it:
+// centred on the column and 35 pt above the foot of its scrolling region,
+// which is the top of a fixed band where the column keeps one at its foot.
+// The application wires the search field, the column that lists the
+// collection, the find button and the find bar: the find button stands while
+// the field holds a query, and pressing it opens the find bar with that
+// query.
 //
 // # What each variant draws
 //

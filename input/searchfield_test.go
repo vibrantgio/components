@@ -264,7 +264,8 @@ func TestSearchFieldClearsFromOutside(t *testing.T) {
 
 // TestSearchFieldSetsTextFromOutside drives SearchFieldProps.SetText: the
 // application gives the field a query, the field reports it the way every
-// other edit is reported, and the caret stands at the end of the text.
+// other edit is reported, and the whole text is selected with the caret at
+// its end, as a platform field selects its text when it takes the keyboard.
 func TestSearchFieldSetsTextFromOutside(t *testing.T) {
 	var (
 		changes []string
@@ -297,8 +298,11 @@ func TestSearchFieldSetsTextFromOutside(t *testing.T) {
 	if !ok {
 		t.Fatalf("the focus tag is %T, want the field's editor", tag)
 	}
-	if start, end := ed.Selection(); start != 3 || end != 3 {
-		t.Errorf("the caret stands at %d–%d after the text is set, want 3–3, the end of \"Gio\"", start, end)
+	if got := ed.SelectedText(); got != "Gio" {
+		t.Errorf("the selection after the text is set is %q, want the whole text \"Gio\"", got)
+	}
+	if caret, _ := ed.Selection(); caret != 3 {
+		t.Errorf("the caret stands at %d after the text is set, want 3, the end of \"Gio\"", caret)
 	}
 }
 

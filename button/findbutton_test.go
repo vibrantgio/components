@@ -69,7 +69,8 @@ func absDiff(a, b uint8) int {
 // pixels in the light scheme and holds it to the reference.
 //
 // MEASURED, voicememos-collection-search-light.png, a 1x capture: the button
-// is 84 × 24. Its fill reads #fdfdfd and its edge #ffffff. The magnifier
+// is 84 × 24. Its fill reads #fdfdfd and its rim #ffffff. The title's
+// darkest pixel reads #000000, the platform's text colour. The magnifier
 // covers 13 × 13 from 13 columns in and 6 rows down. The title's first
 // covered column stands 4 clear columns past the magnifier's last, and 13
 // clear columns trail the title's last. The shadow under the button is the
@@ -84,7 +85,10 @@ func TestTheFindButtonIsTheMeasuredButton(t *testing.T) {
 		t.Errorf("the fill = %v, want the measured %v", got, want)
 	}
 	if got, want := pixel(img, box.Min.X+40, box.Min.Y), (color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}); got != want {
-		t.Errorf("the top edge = %v, want the measured %v", got, want)
+		t.Errorf("the rim's top row = %v, want the measured %v", got, want)
+	}
+	if c.FindButtonForeground != c.Text {
+		t.Errorf("the foreground = %v, want the platform's text colour %v, the measured #000000", c.FindButtonForeground, c.Text)
 	}
 
 	mark := image.Rect(box.Min.X+8, box.Min.Y+4, box.Min.X+28, box.Max.Y-4)
@@ -143,7 +147,7 @@ func TestTheFindButtonTakesTheToolbarControlsDarkFace(t *testing.T) {
 		t.Errorf("the fill = %v, want %v", got, c.FindButtonFill)
 	}
 	if got := pixel(img, box.Min.X+40, box.Min.Y); got != c.FindButtonRim {
-		t.Errorf("the top edge = %v, want %v", got, c.FindButtonRim)
+		t.Errorf("the rim's top row = %v, want %v", got, c.FindButtonRim)
 	}
 }
 

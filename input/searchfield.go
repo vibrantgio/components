@@ -129,9 +129,11 @@ type SearchFieldProps struct {
 	Clear func(clear func())
 
 	// SetText, if non-nil, is called once when the field instance is created
-	// with a function that replaces the field's text and puts the caret at
-	// its end. It is how a query is given to the field from outside it — a
-	// find bar that opens holding the query another control holds.
+	// with a function that replaces the field's text and selects all of it,
+	// with the caret at its end. A platform field selects its text so when
+	// it takes the keyboard, and the next key typed replaces the whole text.
+	// It is how a query is given to the field from outside it — a find bar
+	// that opens holding the query another control holds.
 	//
 	// Setting the text this way reports the new query on the next frame,
 	// through OnChange and Message like any other edit.
@@ -256,8 +258,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 		if props.SetText != nil {
 			props.SetText(func(text string) {
 				editor.SetText(text)
-				n := editor.Len()
-				editor.SetCaret(n, n)
+				editor.SetCaret(editor.Len(), 0)
 			})
 		}
 
