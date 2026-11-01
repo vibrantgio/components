@@ -121,11 +121,11 @@ func TestTheSecondaryLabelMeetsTheLabelStem(t *testing.T) {
 			role := typ.SystemFont
 			fill := sc.set.WindowBackground
 			label := color.Flatten(sc.set.Label, fill)
-			secondary := color.Flatten(sc.set.SecondaryLabel, fill)
+			labelTwo := color.Flatten(sc.set.SecondaryLabel, fill)
 
 			onFill := typeset.WithFill(layout.Context{}, fill)
 			lf := typeset.FontOn(onFill, role, font.Normal, label)
-			sf := typeset.FontOn(onFill, role, font.Normal, secondary)
+			sf := typeset.FontOn(onFill, role, font.Normal, labelTwo)
 			if lf.Typeface != sf.Typeface {
 				t.Errorf("the secondary label draws in %q and the label in %q", sf.Typeface, lf.Typeface)
 			}
@@ -153,7 +153,7 @@ func TestTheSecondaryLabelMeetsTheLabelStem(t *testing.T) {
 				}
 				return sum / float64(len(stemOffsets))
 			}
-			ls, ss := mean(label), mean(secondary)
+			ls, ss := mean(label), mean(labelTwo)
 			t.Logf("label stem %.3f px, secondary label stem %.3f px", ls, ss)
 			if d := math.Abs(ss - ls); d > 0.02+1e-9 {
 				t.Errorf("the secondary label's stem is %.3f px and the label's %.3f px, %.3f px apart", ss, ls, d)
