@@ -63,8 +63,8 @@ type RenderState struct {
 	Selection [2]int
 
 	// Variant is where the field stands. It is read by the search field
-	// alone: a text field that is not a search field has the platform's
-	// edge wherever it stands, which is what the Save panel's field
+	// alone: a bordered text field that is not a search field has the
+	// platform's edge wherever it stands, which is what the Save panel's field
 	// measures. The zero value is [Form].
 	Variant Variant
 

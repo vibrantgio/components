@@ -1,5 +1,5 @@
 // Package input provides the Vibrant Gio form controls — TextField,
-// SearchField, Checkbox and Radio — on the same contract as
+// BorderlessTextField, SearchField, Checkbox and Radio — on the same contract as
 // components/button: an rx.Observable[theme.Theme] and a props struct in, an
 // rx.Observable[layout.Widget] out, with a matching pure Render,
 // RenderSearch, RenderCheckbox and RenderRadio path that takes resolved
@@ -62,8 +62,8 @@
 // bordered field, the hairline around the surface beneath it that the Save
 // panel measures, with its ends fully rounded. On chrome — a
 // sidebar, a toolbar — it is the platform's flat recess: a fill of its own,
-// its ends fully rounded. A text field that is not a search field has the
-// edge wherever it stands.
+// its ends fully rounded. A bordered text field that is not a search field
+// has the edge wherever it stands.
 //
 // The chrome variant draws one of two recesses, and which one is the chrome
 // region the caller names in Props.Region. On a sidebar it is the field at
@@ -83,6 +83,14 @@
 // Voice Memos' own 13 and 7 are that application's drawing and neither region
 // takes them. A field on a form takes the pair the field on System Settings' "add
 // an input source" sheet measures, 7 px inside its hairline and 4 px.
+//
+// The borderless text field is the text field with no bezel: a title edited
+// in its header, a paragraph edited in place. It draws no edge, no fill, no
+// focus ring and no inset. Its text is set in the role and the colour of the
+// text it edits, at that text's origin, so the text stands in the same place
+// while it is edited and after. Its placeholder is in the platform's
+// placeholder colour and stays while the field holds the keyboard, until the
+// user types. It wraps its lines and grows with them.
 //
 // The text field is uncontrolled. Props.Seed pre-fills a newly created
 // instance so an existing value can be edited rather than retyped, but a later
