@@ -307,10 +307,12 @@ type Props struct {
 	// RenderState.Checked.
 	Checked bool
 
-	// Icon, when non-nil and Title is empty, renders the button as a compact
-	// icon-only affordance: a square the density's control height on a side
-	// with the symbol centred, instead of a fill-width text title; that square
-	// is the pointer target. The painter draws into
+	// Icon is the button's symbol. When Title is empty it renders the button
+	// as a compact icon-only affordance: a square the density's control
+	// height on a side with the symbol centred, instead of a fill-width text
+	// title; that square is the pointer target. When Title is set too, the
+	// symbol stands before the text in the button's foreground, and the
+	// button is as wide as both: see [RenderWithSymbol]. The painter draws into
 	// a sizePx×sizePx box at the current origin in colour col, via
 	// clip.Path / clip.Stroke, so output stays golden-deterministic (no font or
 	// SVG rasterisation). components/icon is the registry for named symbols;
@@ -489,7 +491,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 							if iconOnly {
 								return drawIconButton(gtx, props.Icon, tok, state)
 							}
-							return drawButton(gtx, shaper, props.Title, tok, state)
+							return drawButton(gtx, shaper, props.Title, props.Icon, tok, state)
 						})
 					}
 					if chromeSymbol {
@@ -545,7 +547,7 @@ func Render(
 	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, title: titleStyle, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
 		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
-			return drawButton(gtx, shaper, title, tok, s)
+			return drawButton(gtx, shaper, title, nil, tok, s)
 		})
 	}
 }
@@ -585,11 +587,12 @@ func RenderIcon(
 // applied after, as the minimum width the button draws at.
 const titleRoom = 1 << 20
 
-// drawButton renders the button visual into gtx. All visual state comes from s;
-// no event queries are performed here.
-func drawButton(gtx layout.Context, shaper *text.Shaper, title string, tok resolvedTokens, s RenderState) layout.Dimensions {
+// drawButton renders the button visual into gtx. A non-nil icon is the symbol
+// that stands before the title. All visual state comes from s; no event
+// queries are performed here.
+func drawButton(gtx layout.Context, shaper *text.Shaper, title string, icon func(gtx layout.Context, sizePx int, col color.NRGBA), tok resolvedTokens, s RenderState) layout.Dimensions {
 	if s.Variant == FindBar {
-		return drawFindBarButton(gtx, shaper, title, tok, s)
+		return drawFindBarButton(gtx, shaper, title, icon, tok, s)
 	}
 	// Sizing rule: button height = Density.ControlHeight (24 dp
 	// Comfortable, 20 dp Compact — the platform's regular and small push
@@ -623,6 +626,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, title string, tok resol
 	mTitle := op.Record(gtx.Ops)
 	titleDims := typeset.Text(titleGtx, shaper, title, tok.title, fg, 1)
 	titleCall := mTitle.Stop()
+	group := newTitleGroup(gtx, titleCall, titleDims.Size, icon, tok.title, fg)
 
 	// Button dimensions: fill the available width, and never draw narrower
 	// than the title plus its padding — the platform sizes a push button to
@@ -631,10 +635,10 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, title string, tok resol
 	// they are given, and a long one beside them is exactly as wide as it has
 	// to be. The density's control height is the minimum on the other axis.
 	btnW := gtx.Constraints.Max.X
-	if btnW < titleDims.Size.X+2*padH {
-		btnW = titleDims.Size.X + 2*padH
+	if btnW < group.size.X+2*padH {
+		btnW = group.size.X + 2*padH
 	}
-	btnH := titleDims.Size.Y
+	btnH := group.size.Y
 	if btnH < minH {
 		btnH = minH
 	}
@@ -656,11 +660,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, title string, tok resol
 	}
 
 	// Replay the title centered within the button.
-	offX := (btnW - titleDims.Size.X) / 2
-	offY := (btnH - titleDims.Size.Y) / 2
-	st := op.Offset(image.Pt(offX, offY)).Push(gtx.Ops)
-	titleCall.Add(gtx.Ops)
-	st.Pop()
+	group.add(gtx, (btnW-group.size.X)/2, btnH)
 
 	if !s.Disabled {
 		pointershape.OverSize(gtx.Ops, btnSize, pointer.CursorPointer)
@@ -859,7 +859,7 @@ func pinnedFill(s RenderState) bool {
 // the measured fill each side of it. It does not take the width the caller
 // leaves it, because the platform sizes Done to its title. All visual state
 // comes from s; no event queries are performed here.
-func drawFindBarButton(gtx layout.Context, shaper *text.Shaper, title string, tok resolvedTokens, s RenderState) layout.Dimensions {
+func drawFindBarButton(gtx layout.Context, shaper *text.Shaper, title string, icon func(gtx layout.Context, sizePx int, col color.NRGBA), tok resolvedTokens, s RenderState) layout.Dimensions {
 	p := tok.platform
 	fill, fg := borderedColors(p, s)
 
@@ -873,18 +873,17 @@ func drawFindBarButton(gtx layout.Context, shaper *text.Shaper, title string, to
 	}
 	titleDims := typeset.Text(titleGtx, shaper, title, style, fg, 1)
 	titleCall := mTitle.Stop()
+	group := newTitleGroup(gtx, titleCall, titleDims.Size, icon, style, fg)
 
 	h := gtx.Dp(findBarHeightDp)
-	w := max(titleDims.Size.X+2*gtx.Dp(findBarTitleSideDp), gtx.Constraints.Min.X)
+	w := max(group.size.X+2*gtx.Dp(findBarTitleSideDp), gtx.Constraints.Min.X)
 	size := image.Pt(w, h)
 	controlface.PushButton(gtx, image.Rectangle{Max: size}, FindBar.corner(gtx, tok.radius), p, fill, controlface.State{
 		Focused:  s.Focused && !s.Disabled,
 		StandsOn: surface.Or(s.Surface, p.SidebarMaterial),
 	})
 
-	off := op.Offset(image.Pt((w-titleDims.Size.X)/2, (h-titleDims.Size.Y)/2)).Push(gtx.Ops)
-	titleCall.Add(gtx.Ops)
-	off.Pop()
+	group.add(gtx, (w-group.size.X)/2, h)
 
 	if !s.Disabled {
 		pointershape.OverSize(gtx.Ops, size, pointer.CursorPointer)

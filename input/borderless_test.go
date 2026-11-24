@@ -304,3 +304,95 @@ func TestBorderlessGrowsWithItsText(t *testing.T) {
 		t.Fatalf("the long title is %d px and the short one %d px tall; the long one does not wrap, so this measures nothing", long, short)
 	}
 }
+
+// TestBorderlessEmptyFieldKeepsOneLine asserts that an empty field with no
+// placeholder is one line tall: the line box of the role it edits. It holds
+// for a field that starts empty, for a field whose text the user deleted,
+// and for the static path.
+func TestBorderlessEmptyFieldKeepsOneLine(t *testing.T) {
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	p := tokens.PlatformLight
+	want := driveTextFieldFrame(loose(labelOn(t, p, borderlessSurface(p), "W")), ops, r, borderlessSize).Size.Y
+	if want <= 0 {
+		t.Fatal("a one-line label is 0 px tall; this measures nothing")
+	}
+
+	empty := liveBorderless(t, input.BorderlessTextFieldProps{})
+	if got := driveTextFieldFrame(loose(empty), ops, r, borderlessSize).Size.Y; got != want {
+		t.Errorf("the empty field is %d px tall, want one line's %d", got, want)
+	}
+
+	var tag event.Tag
+	deleted := liveBorderless(t, input.BorderlessTextFieldProps{
+		Seed:     borderlessShort,
+		FocusTag: func(tg event.Tag) { tag = tg },
+	})
+	r = new(gioinput.Router)
+	driveTextFieldFrame(loose(deleted), ops, r, borderlessSize)
+	r.Source().Execute(key.FocusCmd{Tag: tag})
+	driveTextFieldFrame(loose(deleted), ops, r, borderlessSize)
+	n := tag.(*widget.Editor).Len()
+	r.Queue(key.EditEvent{Range: key.Range{Start: 0, End: n}, Text: ""})
+	driveTextFieldFrame(loose(deleted), ops, r, borderlessSize)
+	if got := tag.(*widget.Editor).Len(); got != 0 {
+		t.Fatalf("the field holds %d runes after the delete; this measures nothing", got)
+	}
+	if got := driveTextFieldFrame(loose(deleted), ops, r, borderlessSize).Size.Y; got != want {
+		t.Errorf("the field is %d px tall after its text is deleted, want one line's %d", got, want)
+	}
+
+	static := input.RenderBorderless(defaultShaper(t), "", p, tokens.DefaultTypography.Body, input.BorderlessState{})
+	if got := driveTextFieldFrame(loose(static), ops, r, borderlessSize).Size.Y; got != want {
+		t.Errorf("the static empty field is %d px tall, want one line's %d", got, want)
+	}
+}
+
+// TestBorderlessStaticSelectionIsTheLiveOne asserts that the static path
+// draws a selected run where the live field draws it: the same fill over
+// the same rows and columns, and the same text over it. The live field adds
+// its caret at the run's end, and the static path draws no caret.
+func TestBorderlessStaticSelectionIsTheLiveOne(t *testing.T) {
+	p := tokens.PlatformLight
+	fill := borderlessSurface(p)
+	var tag event.Tag
+	field := liveBorderless(t, input.BorderlessTextFieldProps{
+		Seed:     borderlessShort,
+		Surface:  borderlessSurface,
+		FocusTag: func(tg event.Tag) { tag = tg },
+	})
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	driveTextFieldFrame(field, ops, r, borderlessSize)
+	r.Source().Execute(key.FocusCmd{Tag: tag})
+	driveTextFieldFrame(field, ops, r, borderlessSize)
+	tag.(*widget.Editor).SetCaret(5, 0)
+	driveTextFieldFrame(field, ops, r, borderlessSize)
+
+	live := golden.Capture(t, borderlessSize, onSheet(fill, loose(func(gtx layout.Context) layout.Dimensions {
+		gtx.Source = r.Source()
+		return field(gtx)
+	})))
+	static := golden.Capture(t, borderlessSize, onSheet(fill, loose(input.RenderBorderless(defaultShaper(t), "", p, tokens.DefaultTypography.Body,
+		input.BorderlessState{Surface: fill, Focused: true, Text: borderlessShort, Selection: [2]int{0, 5}}))))
+	if live == nil || static == nil {
+		return
+	}
+	// The selection's fill in the static path: its last column and its rows,
+	// read down column 0 and across row 0.
+	sel := static.RGBAAt(0, 0)
+	if sel == (stdcolor.RGBA{fill.R, fill.G, fill.B, 255}) {
+		t.Fatal("the static path drew no selection; this measures nothing")
+	}
+	end := 0
+	for end < borderlessSize.X && static.RGBAAt(end, 0) == sel {
+		end++
+	}
+	box, n := diffBox(live, static)
+	if n == 0 {
+		t.Fatal("the live field drew no caret; this measures nothing")
+	}
+	if box.Min.X < end-1 || box.Dx() > 3 {
+		t.Errorf("the static selection differs from the live one inside %v; only the caret at the run's end, x %d, may differ", box, end)
+	}
+}

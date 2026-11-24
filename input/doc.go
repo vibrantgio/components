@@ -86,9 +86,10 @@
 //
 // The borderless text field is the text field with no bezel: a title edited
 // in its header, a paragraph edited in place. It draws no edge, no fill, no
-// focus ring and no inset. Its text is set in the role and the colour of the
-// text it edits, at that text's origin, so the text stands in the same place
-// while it is edited and after. Its placeholder is in the platform's
+// focus ring and no inset. A bordered text field sets its text in the System
+// font role. The borderless text field keeps the role and the colour of the
+// text it edits, and sets its text at that text's origin. So the text stands
+// in the same place while it is edited and after. Its placeholder is in the platform's
 // placeholder colour and stays while the field holds the keyboard, until the
 // user types. It wraps its lines and grows with them.
 //

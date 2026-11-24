@@ -32,8 +32,10 @@ import (
 // The borderless text field is the text field with no bezel: a title edited
 // in its header, a paragraph edited in place. Its text is drawn as the text
 // it edits is drawn, in the same role and the same colour, at the same
-// origin. So the text stands in the same place while it is edited and after,
-// and nothing moves when the edit begins or ends.
+// origin. It keeps the role of the text it edits, and Role names that role.
+// A bordered text field sets its text in the System font role instead.
+// The text stands in the same place while it is edited and after, and
+// nothing moves when the edit begins or ends.
 type BorderlessTextFieldProps struct {
 	// Placeholder is shown while the field is empty, also while the field
 	// holds the keyboard. It leaves when the user types.
