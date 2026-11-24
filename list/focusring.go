@@ -5,6 +5,7 @@ import (
 	"image/color"
 
 	"gioui.org/layout"
+	"gioui.org/unit"
 
 	"github.com/vibrantgio/components/internal/focus"
 	"github.com/vibrantgio/theme/tokens"
@@ -59,6 +60,22 @@ func FocusRing(
 	standsOn color.NRGBA,
 	w layout.Widget,
 ) layout.Dimensions {
+	return FocusRingRadius(gtx, state, p, standsOn, 0, w)
+}
+
+// FocusRingRadius is [FocusRing] around a box whose corners are rounded at
+// radius. The ring follows the shape of the edge it goes around, so its
+// inner edge has the box's corner radius. A list drawn as a group gives the
+// group's box and the group's corner radius: w lays out the group, and the
+// ring goes around the group's hairline, outside it.
+func FocusRingRadius(
+	gtx layout.Context,
+	state *State,
+	p tokens.PlatformColors,
+	standsOn color.NRGBA,
+	radius unit.Dp,
+	w layout.Widget,
+) layout.Dimensions {
 	dims := w(gtx)
 	if !gtx.Focused(state.Focus()) {
 		return dims
@@ -69,8 +86,14 @@ func FocusRing(
 	// band's width past the box puts the band's inner edge on the box's
 	// outer edge. The half is rounded up: at a density where the band is an
 	// odd number of pixels, the half pixel left over is left clear outside
-	// the box rather than drawn over a row.
-	focus.Ring(gtx, focus.Footprint(gtx, box), 0, ring, ring)
+	// the box rather than drawn over a row. The outline's corner radius is
+	// the box's grown by the same half, so the band's inner edge has the
+	// box's own corner radius.
+	r := 0
+	if px := gtx.Dp(radius); px > 0 {
+		r = px + focus.OutsidePx(gtx)
+	}
+	focus.Ring(gtx, focus.Footprint(gtx, box), r, ring, ring)
 	return dims
 }
 

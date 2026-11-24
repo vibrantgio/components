@@ -332,3 +332,73 @@ func focusedFilledList(t *testing.T, p tokens.PlatformColors) *image.RGBA {
 		return w(gtx)
 	})
 }
+
+// TestARoundedBoxHasARoundedRing reads the ring [list.FocusRingRadius] draws
+// around a box with rounded corners. On the straight top side the ring is
+// [list.RingWidth] wide past the box, as around a square box. At the corner
+// the ring follows the box's radius: the pixel 3 px out from the box's
+// corner on the diagonal is past the ring and reads the surface, where a
+// square ring would cover it.
+func TestARoundedBoxHasARoundedRing(t *testing.T) {
+	const radius = 10
+	p := tokens.PlatformLight
+	standsOn := p.WindowBackground
+	filled := p.SelectedContentBackground
+	band := vgcolor.Flatten(p.KeyboardFocusIndicator, standsOn)
+
+	state := list.NewState()
+	r := new(gioinput.Router)
+	var focused bool
+	w := func(gtx layout.Context) layout.Dimensions {
+		paint.FillShape(gtx.Ops, standsOn, clip.Rect{Max: gtx.Constraints.Max}.Op())
+		defer op.Offset(image.Pt(focusListX, focusListY)).Push(gtx.Ops).Pop()
+		gtx.Constraints = layout.Exact(image.Pt(focusListW, focusListH))
+		if !focused {
+			gtx.Execute(key.FocusCmd{Tag: state.Focus()})
+			focused = true
+		}
+		return list.FocusRingRadius(gtx, state, p, standsOn, radius, func(gtx layout.Context) layout.Dimensions {
+			size := gtx.Constraints.Max
+			rr := clip.RRect{Rect: image.Rectangle{Max: size}, SE: radius, SW: radius, NE: radius, NW: radius}
+			paint.FillShape(gtx.Ops, filled, rr.Op(gtx.Ops))
+			list.LayoutSelectable(gtx, state, []int(nil),
+				func(gtx layout.Context, _ int, _ bool) layout.Dimensions { return layout.Dimensions{} })
+			return layout.Dimensions{Size: size}
+		})
+	}
+	for range 2 {
+		var ops op.Ops
+		w(layout.Context{
+			Metric:      unit.Metric{PxPerDp: 1, PxPerSp: 1},
+			Constraints: layout.Exact(image.Pt(focusFrame, focusFrame)),
+			Ops:         &ops,
+			Source:      r.Source(),
+		})
+		r.Frame(&ops)
+	}
+	img := golden.Capture(t, image.Pt(focusFrame, focusFrame), func(gtx layout.Context) layout.Dimensions {
+		gtx.Source = r.Source()
+		return w(gtx)
+	})
+	if img == nil {
+		return
+	}
+	box := image.Rect(focusListX, focusListY, focusListX+focusListW, focusListY+focusListH)
+	midX := (box.Min.X + box.Max.X) / 2
+	for i := range int(list.RingWidth) {
+		if at := img.RGBAAt(midX, box.Min.Y-1-i); !nearlyEqual(at, band) {
+			t.Errorf("the ring's pixel %d above the box (x=%d) = %v, want %v", i+1, midX, at, band)
+		}
+	}
+	if at := img.RGBAAt(midX, box.Min.Y-1-int(list.RingWidth)); !nearlyEqual(at, standsOn) {
+		t.Errorf("the pixel past the ring's top side = %v, want the surface %v", at, standsOn)
+	}
+	if at := img.RGBAAt(midX, box.Min.Y); !nearlyEqual(at, filled) {
+		t.Errorf("the box's top pixel = %v, want the box's fill %v: the ring lies over the box", at, filled)
+	}
+	for _, c := range []image.Point{box.Min.Sub(image.Pt(3, 3)), image.Pt(box.Max.X+2, box.Max.Y+2)} {
+		if at := img.RGBAAt(c.X, c.Y); !nearlyEqual(at, standsOn) {
+			t.Errorf("the pixel out from the box's corner (x=%d, y=%d) = %v, want the surface %v: the ring's corner is not rounded", c.X, c.Y, at, standsOn)
+		}
+	}
+}
