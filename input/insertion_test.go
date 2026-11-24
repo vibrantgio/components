@@ -14,15 +14,18 @@ import (
 	"gioui.org/op"
 	"gioui.org/widget"
 
+	"github.com/reactivego/rx"
+
 	"github.com/vibrantgio/components/golden"
 	"github.com/vibrantgio/components/input"
+	"github.com/vibrantgio/theme/theme"
 	"github.com/vibrantgio/theme/tokens"
 )
 
 // insertionAccent is the colour a live field on the light default theme
-// draws its insertion point in: the measured #178bfb, which the platform set
-// records as SidebarSelection.
-var insertionAccent = tokens.PlatformLight.SidebarSelection
+// draws its insertion point in: the measured #178bfb, the platform set's
+// TextInsertionPoint.
+var insertionAccent = tokens.PlatformLight.TextInsertionPoint
 
 // accentBox is the smallest rectangle holding every pixel of img that reads
 // c exactly, and the number of those pixels.
@@ -125,8 +128,140 @@ func TestTheInsertionPointFollowsTheAccent(t *testing.T) {
 		t.Fatalf("the light set's accent row for the insertion point is %v, want the measured %v", got, want)
 	}
 	moved := tokens.PlatformLight.WithAccent(stdcolor.NRGBA{R: 0xff, G: 0x00, B: 0x00, A: 0xff})
-	if moved.SidebarSelection == tokens.PlatformLight.SidebarSelection {
+	if moved.TextInsertionPoint == tokens.PlatformLight.TextInsertionPoint {
 		t.Fatal("WithAccent leaves the row the insertion point reads; a themed accent would not reach it")
+	}
+}
+
+// insertionSentinel is a platform set whose TextInsertionPoint is a colour
+// no other row of the set carries. A field that draws its insertion point in
+// any other row, the sidebar's selection among them, draws no pixel of it.
+func insertionSentinel() tokens.PlatformColors {
+	p := tokens.PlatformLight
+	p.TextInsertionPoint = stdcolor.NRGBA{R: 0xd0, G: 0x20, B: 0x90, A: 0xff}
+	return p
+}
+
+// insertionKind is one kind of text field, drawn live on a platform set and
+// drawn static in an explicit state.
+type insertionKind struct {
+	name   string
+	size   image.Point
+	lineH  int
+	sheet  func(p tokens.PlatformColors) stdcolor.NRGBA
+	live   func(t *testing.T, p tokens.PlatformColors, seed string, tag *event.Tag) layout.Widget
+	static func(t *testing.T, p tokens.PlatformColors, text string, sel [2]int) layout.Widget
+}
+
+func insertionKinds() []insertionKind {
+	on := func(p tokens.PlatformColors) theme.Theme {
+		th := theme.Default()
+		th.Platform = rx.Of(p)
+		return th
+	}
+	window := func(p tokens.PlatformColors) stdcolor.NRGBA { return p.WindowBackground }
+	sys := tokens.DefaultTypography.SystemFont
+	return []insertionKind{
+		{"bordered", image.Pt(300, 60), int(sys.LineHeight), window,
+			func(t *testing.T, p tokens.PlatformColors, seed string, tag *event.Tag) layout.Widget {
+				return materialize(t, input.TextField(rx.Of(on(p)), input.TextFieldProps{Placeholder: "Email address", Seed: seed, Shaper: defaultShaper(t), FocusTag: func(tg event.Tag) { *tag = tg }}))
+			},
+			func(t *testing.T, p tokens.PlatformColors, text string, sel [2]int) layout.Widget {
+				return input.Render(defaultShaper(t), "Email address", p, tokens.Spacing, tokens.Radius, sys, tokens.Comfortable, input.RenderState{Focused: true, Text: text, Selection: sel})
+			}},
+		{"search", image.Pt(300, 60), int(sys.LineHeight), window,
+			func(t *testing.T, p tokens.PlatformColors, seed string, tag *event.Tag) layout.Widget {
+				return materialize(t, input.SearchField(rx.Of(on(p)), input.SearchFieldProps{Placeholder: "Search", Seed: seed, Shaper: defaultShaper(t), FocusTag: func(tg event.Tag) { *tag = tg }}))
+			},
+			func(t *testing.T, p tokens.PlatformColors, text string, sel [2]int) layout.Widget {
+				return input.RenderSearch(defaultShaper(t), "Search", p, tokens.Spacing, tokens.Radius, sys, tokens.Comfortable, input.RenderState{Focused: true, Text: text, Selection: sel})
+			}},
+		{"borderless", borderlessSize, int(tokens.DefaultTypography.Body.LineHeight), borderlessSurface,
+			func(t *testing.T, p tokens.PlatformColors, seed string, tag *event.Tag) layout.Widget {
+				return loose(materialize(t, input.BorderlessTextField(rx.Of(on(p)), input.BorderlessTextFieldProps{Placeholder: "Card title", Seed: seed, Shaper: defaultShaper(t), Surface: borderlessSurface, FocusTag: func(tg event.Tag) { *tag = tg }})))
+			},
+			func(t *testing.T, p tokens.PlatformColors, text string, sel [2]int) layout.Widget {
+				return loose(input.RenderBorderless(defaultShaper(t), "Card title", p, tokens.DefaultTypography.Body, input.BorderlessState{Surface: borderlessSurface(p), Focused: true, Text: text, Selection: sel}))
+			}},
+	}
+}
+
+// liveInsertionBox draws kind live on p holding seed, gives it the keyboard
+// and puts the insertion point at the end of the value, and answers the box
+// of the pixels that read p's TextInsertionPoint and their number.
+func liveInsertionBox(t *testing.T, kind insertionKind, p tokens.PlatformColors, seed string) (image.Rectangle, int, *image.RGBA) {
+	t.Helper()
+	var tag event.Tag
+	w := kind.live(t, p, seed, &tag)
+	r := new(gioinput.Router)
+	ops := new(op.Ops)
+	driveTextFieldFrame(w, ops, r, kind.size)
+	r.Source().Execute(key.FocusCmd{Tag: tag})
+	driveTextFieldFrame(w, ops, r, kind.size)
+	ed := tag.(*widget.Editor)
+	ed.SetCaret(ed.Len(), ed.Len())
+	img := liveCapture(t, r, kind.size, kind.sheet(p), w)
+	if img == nil {
+		return image.Rectangle{}, 0, nil
+	}
+	box, n := accentBox(img, p.TextInsertionPoint)
+	return box, n, img
+}
+
+// TestEveryFieldKindDrawsTheInsertionPointInItsOwnColour asserts that the
+// bordered, the search and the borderless field draw their insertion point
+// in the platform set's TextInsertionPoint and in no other row, live and
+// static. The static field drawn as focused puts it where the live field
+// puts it with the insertion point at the end of the value: after the last
+// character, or where the text begins when the field is empty. A static
+// field drawn with its value selected draws none.
+func TestEveryFieldKindDrawsTheInsertionPointInItsOwnColour(t *testing.T) {
+	p := insertionSentinel()
+	for _, kind := range insertionKinds() {
+		for _, seed := range []string{"", "hello@example"} {
+			name := kind.name + " empty"
+			if seed != "" {
+				name = kind.name + " after the value"
+			}
+			t.Run(name, func(t *testing.T) {
+				live, n, img := liveInsertionBox(t, kind, p, seed)
+				if img == nil {
+					return
+				}
+				if n == 0 {
+					t.Fatalf("the live field drew no pixel in TextInsertionPoint %v", p.TextInsertionPoint)
+				}
+				if live.Dx() != 1 || live.Dy() != kind.lineH || n != live.Dx()*live.Dy() {
+					t.Errorf("the live insertion point covers %d pixels of %v, want one solid column %d rows tall", n, live, kind.lineH)
+				}
+				if _, m := accentBox(img, p.SidebarSelection); m != 0 {
+					t.Errorf("%d pixels of the live field read SidebarSelection; the insertion point has its own colour", m)
+				}
+				static := golden.Capture(t, kind.size, onSheet(kind.sheet(p), kind.static(t, p, seed, [2]int{})))
+				if static == nil {
+					return
+				}
+				box, m := accentBox(static, p.TextInsertionPoint)
+				if m == 0 {
+					t.Fatalf("the static field drawn as focused drew no insertion point")
+				}
+				if box != live || m != n {
+					t.Errorf("the static insertion point covers %d pixels of %v; the live field covers %d of %v", m, box, n, live)
+				}
+			})
+		}
+		t.Run(kind.name+" selected", func(t *testing.T) {
+			img := golden.Capture(t, kind.size, onSheet(kind.sheet(p), kind.static(t, p, "hello@example", [2]int{0, 5})))
+			if img == nil {
+				return
+			}
+			if _, n := accentBox(img, p.TextInsertionPoint); n != 0 {
+				t.Errorf("%d pixels read TextInsertionPoint beside a selected run; a selection draws no insertion point", n)
+			}
+			if _, ok := selectionFillBox(img, kind.size, p.SelectedTextBackground); !ok {
+				t.Error("the static field painted no selection fill; this measures nothing")
+			}
+		})
 	}
 }
 

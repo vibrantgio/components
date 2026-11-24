@@ -911,8 +911,9 @@ func lineBox(gtx layout.Context, sh *text.Shaper, lbl widget.Label, f font.Font,
 	return ascent, height
 }
 
-// drawTextFieldStatic renders a static text field for golden-image testing.
-// It always shows the placeholder text; there is no live editor.
+// drawTextFieldStatic renders a static text field for golden-image testing:
+// the value, or the placeholder while there is none. There is no live
+// editor.
 func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder string, tok resolvedTokens, s RenderState, ad adorn) layout.Dimensions {
 	// Same sizing rules as drawTextFieldLive: the floor is fieldMinH — the
 	// field's own height, not the button's, and the toolbar control's where
@@ -992,6 +993,14 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 		area := clip.Rect(sel).Push(gtx.Ops)
 		selRun.Add(gtx.Ops)
 		area.Pop()
+	}
+	// A field drawn as focused draws its insertion point after its value, or
+	// where the text begins beside the prompt, across the line box the
+	// label is drawn in. A selected run draws none.
+	if s.Focused && !s.Disabled && !selected {
+		_, lineH := lineBox(innerGtx, shaper, wl, f, textSize, labelText, labelMat)
+		x := staticInsertionX(gtx, shaper, fontOn(gtx, f, textSize, textColor, fillColor), wl, textSize, s.Text, innerW)
+		drawInsertion(gtx, tok.platform, x, 0, lineH, innerW)
 	}
 	st.Pop()
 

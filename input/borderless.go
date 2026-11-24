@@ -332,8 +332,8 @@ func drawBorderlessLive(gtx layout.Context, shaper *text.Shaper, editor *widget.
 }
 
 // drawBorderlessStatic draws a borderless field in an explicit state: the
-// value or the placeholder through typeset.Layout, and a selected run over
-// the selection's fill. It draws no caret.
+// value or the placeholder through typeset.Layout, a selected run over the
+// selection's fill, and the insertion point while it is drawn as focused.
 func drawBorderlessStatic(gtx layout.Context, shaper *text.Shaper, placeholder string, tok borderlessTokens, s BorderlessState) layout.Dimensions {
 	fill, fg, phColor := borderlessColors(tok.platform, s)
 	gtx = typeset.WithFill(gtx, fill)
@@ -360,6 +360,14 @@ func drawBorderlessStatic(gtx layout.Context, shaper *text.Shaper, placeholder s
 		area := clip.Rect(sel).Push(gtx.Ops)
 		run.Add(gtx.Ops)
 		area.Pop()
+	}
+	// A field drawn as focused draws its insertion point after its value, or
+	// where the text begins beside the prompt. A selected run draws none.
+	if s.Focused && !s.Disabled && !selected {
+		_, lineH := lineBox(inner, shaper, lbl, f, size, shown, paintOf(gtx, shownColor))
+		textF, textLbl, _ := borderlessLabel(gtx, tok.role, fg)
+		x := staticInsertionX(gtx, shaper, textF, textLbl, size, s.Text, width)
+		drawInsertion(gtx, tok.platform, x, 0, lineH, width)
 	}
 	return layout.Dimensions{Size: image.Pt(width, dims.Size.Y), Baseline: dims.Baseline}
 }

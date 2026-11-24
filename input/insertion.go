@@ -6,14 +6,17 @@ import (
 	"math"
 	"time"
 
+	"gioui.org/font"
 	"gioui.org/io/event"
 	"gioui.org/io/pointer"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
+	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
+	"golang.org/x/image/math/fixed"
 
 	"github.com/vibrantgio/theme/tokens"
 )
@@ -135,38 +138,71 @@ func layoutEditor(gtx layout.Context, editor *widget.Editor, lay func(gtx layout
 const insertionWidth = unit.Dp(1)
 
 // paint draws the insertion point in editor's own coordinates while focused
-// is true: one column of [insertionWidth] starting at the caret's x, from the
-// top of the caret's line box down lineH. ascent is how far the editor's
-// baseline stands below the top of its line box. width is the editor's
-// width, and the column stays inside it.
+// is true, at the caret: see [drawInsertion]. ascent is how far the
+// editor's baseline stands below the top of its line box. width is the
+// editor's width.
 func (in *insertion) paint(gtx layout.Context, editor *widget.Editor, focused bool, p tokens.PlatformColors, ascent, lineH, width int) {
 	if !in.shown(gtx, editor, focused) {
 		return
 	}
-	w := max(gtx.Dp(insertionWidth), 1)
 	at := editor.CaretCoords()
 	x := int(math.Floor(float64(at.X) + 0.5))
-	x = min(max(x, 0), max(width-w, 0))
 	top := int(math.Floor(float64(at.Y)+0.5)) - ascent
+	drawInsertion(gtx, p, x, top, lineH, width)
+}
+
+// drawInsertion draws the insertion point that the live and the static
+// field paths share: one column of [insertionWidth] starting at x, from top
+// down lineH, in [insertionColor]. width is the width of the box the text
+// is drawn in, and the column stays inside it.
+func drawInsertion(gtx layout.Context, p tokens.PlatformColors, x, top, lineH, width int) {
+	w := max(gtx.Dp(insertionWidth), 1)
+	x = min(max(x, 0), max(width-w, 0))
 	area := clip.Rect(image.Rect(x, top, x+w, top+lineH)).Push(gtx.Ops)
 	paint.ColorOp{Color: insertionColor(p)}.Add(gtx.Ops)
 	paint.PaintOp{}.Add(gtx.Ops)
 	area.Pop()
 }
 
-// insertionColor is the colour the insertion point is drawn in: the
-// platform's accent as a field's insertion point lands it.
+// staticInsertionX is where a static field draws its insertion point: after
+// the last character of value, shaped with the font, the label and the size
+// the paint pass draws it with, inside maxW. An empty value puts it at 0,
+// where the text begins. The end is rounded as the live path rounds the
+// caret's x.
 //
 // MEASURED, voicememos-multi-folder-search-2026-09-18.png: the insertion
-// point after the typed query in the toolbar's search recess reads #178bfb
-// in light over sixteen rows. That is neither ControlAccent's #007aff nor
-// DefaultButtonFill's #157efb. It is byte-equal to SidebarSelection's light
-// value, read off the selected sidebar row of the same application, and
-// [tokens.PlatformColors.WithAccent] moves that row with the user's accent.
-// So the field reads that row. Its dark value, #1994fc, is DERIVED for the
-// insertion point until a dark capture of a field's insertion point gives it.
+// point stands immediately after the typed query's last character.
+func staticInsertionX(gtx layout.Context, shaper *text.Shaper, f font.Font, wl widget.Label, size unit.Sp, value string, maxW int) int {
+	if shaper == nil || value == "" {
+		return 0
+	}
+	shaper.LayoutString(text.Parameters{
+		Font:            f,
+		PxPerEm:         fixed.I(gtx.Sp(size)),
+		MaxLines:        wl.MaxLines,
+		Truncator:       wl.Truncator,
+		Alignment:       wl.Alignment,
+		WrapPolicy:      wl.WrapPolicy,
+		MaxWidth:        maxW,
+		Locale:          gtx.Locale,
+		LineHeight:      fixed.I(gtx.Sp(wl.LineHeight)),
+		LineHeightScale: wl.LineHeightScale,
+	}, value)
+	var end fixed.Int26_6
+	for {
+		g, ok := shaper.NextGlyph()
+		if !ok {
+			break
+		}
+		end = max(end, g.X+g.Advance)
+	}
+	return end.Round()
+}
+
+// insertionColor is the colour the insertion point is drawn in: the
+// platform's text insertion point colour, which follows the accent.
 func insertionColor(p tokens.PlatformColors) color.NRGBA {
-	c := p.SidebarSelection
+	c := p.TextInsertionPoint
 	c.A = 0xff
 	return c
 }
