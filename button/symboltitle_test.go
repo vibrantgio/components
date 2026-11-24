@@ -1,8 +1,10 @@
 package button_test
 
 import (
+	"fmt"
 	"image"
 	"image/color"
+	"math"
 	"testing"
 
 	"gioui.org/layout"
@@ -28,7 +30,7 @@ func natural(w layout.Widget) layout.Widget {
 	}
 }
 
-func plusButton(t *testing.T, p tokens.PlatformColors, icon func(layout.Context, int, color.NRGBA), s button.RenderState) layout.Widget {
+func plusButton(t *testing.T, p tokens.PlatformColors, icon icons.Name, s button.RenderState) layout.Widget {
 	return button.RenderWithSymbol(defaultShaper(t), symbolTitle, icon,
 		p, tokens.Spacing, tokens.RadiusScale{}, tokens.DefaultTypography.SystemFont, tokens.Comfortable, s)
 }
@@ -41,7 +43,7 @@ func TestButtonWithSymbolGolden(t *testing.T) {
 		p    tokens.PlatformColors
 	}{{"light", tokens.PlatformLight}, {"dark", tokens.PlatformDark}} {
 		t.Run(sc.name, func(t *testing.T) {
-			w := plusButton(t, sc.p, icons.Mark(icons.Plus), button.RenderState{Emphasis: button.Tonal})
+			w := plusButton(t, sc.p, icons.Plus, button.RenderState{Emphasis: button.Tonal})
 			golden.Render(t, "symbol-title-tonal-"+sc.name, symbolTitleSize, onWindowSurface(sc.p, natural(w)))
 		})
 	}
@@ -58,7 +60,7 @@ func TestButtonWithoutSymbolDrawsTheTextButton(t *testing.T) {
 	}{{"natural", natural}, {"given", func(w layout.Widget) layout.Widget { return w }}} {
 		t.Run(wrap.name, func(t *testing.T) {
 			text := button.Render(defaultShaper(t), symbolTitle, p, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, button.RenderState{Focused: true})
-			none := button.RenderWithSymbol(defaultShaper(t), symbolTitle, nil, p, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, button.RenderState{Focused: true})
+			none := button.RenderWithSymbol(defaultShaper(t), symbolTitle, "", p, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, button.RenderState{Focused: true})
 			a := golden.Capture(t, symbolTitleSize, onWindowSurface(p, wrap.f(text)))
 			b := golden.Capture(t, symbolTitleSize, onWindowSurface(p, wrap.f(none)))
 			if a == nil || b == nil {
@@ -94,7 +96,7 @@ func columnCovered(img *image.RGBA, fill color.RGBA, x, y0, y1 int) bool {
 func TestSymbolStandsBeforeTheTitle(t *testing.T) {
 	p := tokens.PlatformLight
 	s := button.RenderState{Emphasis: button.Tonal}
-	with := plusButton(t, p, icons.Mark(icons.Plus), s)
+	with := plusButton(t, p, icons.Plus, s)
 	img := golden.Capture(t, symbolTitleSize, onWindowSurface(p, natural(with)))
 	if img == nil {
 		return
@@ -165,4 +167,125 @@ func textFirstOf(t *testing.T, p tokens.PlatformColors, s button.RenderState) in
 	for ; x < symbolTitleSize.X && !columnCovered(img, fill, x, 0, h); x++ {
 	}
 	return x
+}
+
+// TestMeasuredSymbolsTakeThePlatformsSize reads each measured symbol's drawn
+// height and place off the pixels, beside a title at each size the reference
+// holds, and holds them to the reference's height and centre against the
+// title's cap height. The button is drawn at 8x, as the reference reads the
+// platform's symbols, and a row counts when half of a pixel in it is covered.
+func TestMeasuredSymbolsTakeThePlatformsSize(t *testing.T) {
+	const scale = 8
+	white := color.NRGBA{R: 255, G: 255, B: 255, A: 255}
+	black := color.NRGBA{A: 255}
+	s := button.RenderState{Emphasis: button.Filled, Fill: white, Foreground: black}
+	// read answers the height that the symbol covers and the row of its middle,
+	// in points.
+	read := func(t *testing.T, name icons.Name, style tokens.TextStyle) (drawn, middle float64) {
+		t.Helper()
+		w := button.RenderWithSymbol(defaultShaper(t), symbolTitle, name, tokens.PlatformLight, tokens.Spacing, tokens.RadiusScale{}, style, tokens.Comfortable, s)
+		img := golden.Capture(t, symbolTitleSize.Mul(scale), func(gtx layout.Context) layout.Dimensions {
+			gtx.Metric = unit.Metric{PxPerDp: scale, PxPerSp: scale}
+			return natural(w)(gtx)
+		})
+		if img == nil {
+			t.Skip("no GPU")
+		}
+		h := int(tokens.Comfortable.ControlHeight) * scale
+		fill := img.RGBAAt(2*scale, h/2)
+		x0 := 0
+		for ; x0 < img.Bounds().Dx() && !columnCovered(img, fill, x0, 0, h); x0++ {
+		}
+		x1 := x0
+		for ; x1 < img.Bounds().Dx() && columnCovered(img, fill, x1, 0, h); x1++ {
+		}
+		top, bottom := -1, -1
+		for y := 0; y < h; y++ {
+			for x := x0; x < x1; x++ {
+				if 1-srgbLinear(img.RGBAAt(x, y).R) >= 0.5 {
+					if top < 0 {
+						top = y
+					}
+					bottom = y
+					break
+				}
+			}
+		}
+		if top < 0 {
+			t.Fatalf("no symbol drawn")
+		}
+		return float64(bottom-top+1) / scale, float64(top+bottom+1) / 2 / scale
+	}
+	anchor, _ := icons.MeasureBesideText(icons.MagnifyingGlass, 13)
+	anchorStyle := tokens.DefaultTypography.SystemFont
+	anchorStyle.Size = 13
+	anchorHeight, _ := read(t, icons.MagnifyingGlass, anchorStyle)
+	anchorCap := float64(anchorStyle.FaceMetrics().CapHeight)
+	for _, name := range []icons.Name{icons.Plus, icons.Check, icons.MagnifyingGlass} {
+		for _, pt := range []float32{11, 13, 15} {
+			t.Run(fmt.Sprintf("%s-%v", name, pt), func(t *testing.T) {
+				style := tokens.DefaultTypography.SystemFont
+				style.Size = pt
+				capPt := float64(style.FaceMetrics().CapHeight)
+				m, _ := icons.MeasureBesideText(name, pt)
+				glass, _ := icons.MeasureBesideText(icons.MagnifyingGlass, pt)
+				drawn, middle := read(t, name, style)
+				_, glassMiddle := read(t, icons.MagnifyingGlass, style)
+
+				// The reference's height for this symbol and size, and
+				// that height at the share of it the looking glass beside 13
+				// pt text draws.
+				want := float64(m.Height) * capPt
+				share := want * anchorHeight / (float64(anchor.Height) * anchorCap)
+				if math.Abs(drawn-share) > 0.25 {
+					t.Errorf("drawn %.3f pt tall, want %.3f: the reference's %.3f at the looking glass's share", drawn, share, want)
+				}
+				if math.Abs(drawn-want) > 1 {
+					t.Errorf("drawn %.3f pt tall, the reference %.3f", drawn, want)
+				}
+				wantDy := float64(m.Centre-glass.Centre) * capPt
+				if d := middle - glassMiddle; math.Abs(d-wantDy) > 0.25 {
+					t.Errorf("the symbol's middle stands %.3f pt below the looking glass's, want %.3f", d, wantDy)
+				}
+				var ops op.Ops
+				gtx := layout.Context{Metric: unit.Metric{PxPerDp: 1, PxPerSp: 1}, Constraints: layout.Constraints{Max: image.Pt(0, 100)}, Ops: &ops}
+				with := button.RenderWithSymbol(defaultShaper(t), symbolTitle, name, tokens.PlatformLight, tokens.Spacing, tokens.RadiusScale{}, style, tokens.Comfortable, s)(gtx)
+				text := button.Render(defaultShaper(t), symbolTitle, tokens.PlatformLight, tokens.Spacing, tokens.RadiusScale{}, style, tokens.Comfortable, s)(gtx)
+				if with.Size.Y != text.Size.Y {
+					t.Errorf("the button with the symbol is %d px tall, the text button %d", with.Size.Y, text.Size.Y)
+				}
+				t.Logf("drawn %.3f pt, the reference %.3f, at the share %.3f; the middle %.3f pt below the looking glass's, want %.3f", drawn, want, share, middle-glassMiddle, wantDy)
+			})
+		}
+	}
+}
+
+// srgbLinear decodes an sRGB channel to linear light.
+func srgbLinear(v uint8) float64 {
+	c := float64(v) / 255
+	if c <= 0.04045 {
+		return c / 12.92
+	}
+	return math.Pow((c+0.055)/1.055, 2.4)
+}
+
+// TestUnchangedSymbolsKeepTheirPixels diffs the looking glass and a symbol
+// that the reference does not measure, each beside a 13 pt title, against
+// goldens recorded before the symbols took their measured sizes. The looking
+// glass is the anchor, and the folder keeps the keyline's square.
+func TestUnchangedSymbolsKeepTheirPixels(t *testing.T) {
+	for _, name := range []struct {
+		golden string
+		symbol icons.Name
+	}{{"magnifier", icons.MagnifyingGlass}, {"folder", icons.Folder}} {
+		for _, sc := range []struct {
+			name string
+			p    tokens.PlatformColors
+		}{{"light", tokens.PlatformLight}, {"dark", tokens.PlatformDark}} {
+			t.Run(name.golden+"-"+sc.name, func(t *testing.T) {
+				w := button.RenderWithSymbol(defaultShaper(t), symbolTitle, name.symbol, sc.p, tokens.Spacing, tokens.RadiusScale{}, tokens.DefaultTypography.SystemFont, tokens.Comfortable, button.RenderState{Emphasis: button.Tonal})
+				golden.Render(t, "symbol-title-"+name.golden+"-"+sc.name, image.Pt(120, 40), onWindowSurface(sc.p, natural(w)))
+			})
+		}
+	}
 }

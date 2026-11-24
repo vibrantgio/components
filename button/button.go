@@ -16,6 +16,7 @@ import (
 	"gioui.org/widget"
 
 	"github.com/reactivego/rx"
+	"github.com/vibrantgio/components/icons"
 	"github.com/vibrantgio/components/internal/control"
 	"github.com/vibrantgio/components/internal/controlface"
 	"github.com/vibrantgio/components/internal/focus"
@@ -319,6 +320,13 @@ type Props struct {
 	// determinism-sensitive callers pass a clip.Path painter directly.
 	Icon func(gtx layout.Context, sizePx int, col color.NRGBA)
 
+	// Symbol names the button's symbol in the icon set. The button draws it
+	// as Icon draws a painter, and beside a title the symbol is as large as
+	// the platform draws that symbol beside text of the title's size. A
+	// painter in Icon has no name, so beside a title it is drawn at the
+	// keyline's size. When Symbol is set, Icon is ignored.
+	Symbol icons.Name
+
 	// Disabled, if non-nil, disables the button when it emits true.
 	// A nil Disabled means always enabled.
 	Disabled rx.Observable[bool]
@@ -379,6 +387,10 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 	disabled := props.Disabled
 	if disabled == nil {
 		disabled = rx.Of(false)
+	}
+	icon := props.Icon
+	if props.Symbol != "" {
+		icon = icons.Mark(props.Symbol)
 	}
 
 	// Flatten the nested theme observables into a concrete snapshot. The
@@ -455,7 +467,7 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 						desc = props.Title
 					}
 
-					iconOnly := props.Icon != nil && props.Title == ""
+					iconOnly := icon != nil && props.Title == ""
 
 					state := RenderState{
 						Emphasis:   props.Emphasis,
@@ -486,12 +498,12 @@ func Button(th rx.Observable[theme.Theme], props Props) rx.Observable[layout.Wid
 							semantic.DescriptionOp(desc).Add(gtx.Ops)
 							semantic.EnabledOp(!dis).Add(gtx.Ops)
 							if chromeSymbol || findBarSymbol {
-								return drawBorderedSymbol(gtx, props.Icon, tok, state)
+								return drawBorderedSymbol(gtx, icon, tok, state)
 							}
 							if iconOnly {
-								return drawIconButton(gtx, props.Icon, tok, state)
+								return drawIconButton(gtx, icon, tok, state)
 							}
-							return drawButton(gtx, shaper, props.Title, props.Icon, tok, state)
+							return drawButton(gtx, shaper, props.Title, icon, props.Symbol, tok, state)
 						})
 					}
 					if chromeSymbol {
@@ -547,7 +559,7 @@ func Render(
 	tok := resolvedTokens{platform: p, spacing: sp, radius: rad, title: titleStyle, density: d}
 	return func(gtx layout.Context) layout.Dimensions {
 		return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
-			return drawButton(gtx, shaper, title, nil, tok, s)
+			return drawButton(gtx, shaper, title, nil, "", tok, s)
 		})
 	}
 }
@@ -590,9 +602,9 @@ const titleRoom = 1 << 20
 // drawButton renders the button visual into gtx. A non-nil icon is the symbol
 // that stands before the title. All visual state comes from s; no event
 // queries are performed here.
-func drawButton(gtx layout.Context, shaper *text.Shaper, title string, icon func(gtx layout.Context, sizePx int, col color.NRGBA), tok resolvedTokens, s RenderState) layout.Dimensions {
+func drawButton(gtx layout.Context, shaper *text.Shaper, title string, icon func(gtx layout.Context, sizePx int, col color.NRGBA), name icons.Name, tok resolvedTokens, s RenderState) layout.Dimensions {
 	if s.Variant == FindBar {
-		return drawFindBarButton(gtx, shaper, title, icon, tok, s)
+		return drawFindBarButton(gtx, shaper, title, icon, name, tok, s)
 	}
 	// Sizing rule: button height = Density.ControlHeight (24 dp
 	// Comfortable, 20 dp Compact — the platform's regular and small push
@@ -626,7 +638,7 @@ func drawButton(gtx layout.Context, shaper *text.Shaper, title string, icon func
 	mTitle := op.Record(gtx.Ops)
 	titleDims := typeset.Text(titleGtx, shaper, title, tok.title, fg, 1)
 	titleCall := mTitle.Stop()
-	group := newTitleGroup(gtx, titleCall, titleDims.Size, icon, tok.title, fg)
+	group := newTitleGroup(gtx, titleCall, titleDims.Size, icon, name, tok.title, fg)
 
 	// Button dimensions: fill the available width, and never draw narrower
 	// than the title plus its padding — the platform sizes a push button to
@@ -859,7 +871,7 @@ func pinnedFill(s RenderState) bool {
 // the measured fill each side of it. It does not take the width the caller
 // leaves it, because the platform sizes Done to its title. All visual state
 // comes from s; no event queries are performed here.
-func drawFindBarButton(gtx layout.Context, shaper *text.Shaper, title string, icon func(gtx layout.Context, sizePx int, col color.NRGBA), tok resolvedTokens, s RenderState) layout.Dimensions {
+func drawFindBarButton(gtx layout.Context, shaper *text.Shaper, title string, icon func(gtx layout.Context, sizePx int, col color.NRGBA), name icons.Name, tok resolvedTokens, s RenderState) layout.Dimensions {
 	p := tok.platform
 	fill, fg := borderedColors(p, s)
 
@@ -873,7 +885,7 @@ func drawFindBarButton(gtx layout.Context, shaper *text.Shaper, title string, ic
 	}
 	titleDims := typeset.Text(titleGtx, shaper, title, style, fg, 1)
 	titleCall := mTitle.Stop()
-	group := newTitleGroup(gtx, titleCall, titleDims.Size, icon, style, fg)
+	group := newTitleGroup(gtx, titleCall, titleDims.Size, icon, name, style, fg)
 
 	h := gtx.Dp(findBarHeightDp)
 	w := max(group.size.X+2*gtx.Dp(findBarTitleSideDp), gtx.Constraints.Min.X)
