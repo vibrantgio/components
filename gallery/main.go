@@ -693,6 +693,8 @@ func (g *gallery) pageInputs(gtx layout.Context) layout.Dimensions {
 				})
 			}),
 		)
+		cs = append(cs, g.sectionHeader("BorderlessTextField — states"))
+		cs = append(cs, g.borderlessFieldRows()...)
 		cs = append(cs, g.sectionHeader("SearchField — variants"))
 		cs = append(cs, g.searchFieldVariantRows()...)
 		cs = append(cs,
@@ -787,6 +789,40 @@ func (g *gallery) textFieldVariantRows() []layout.FlexChild {
 		w := input.Render(g.shaper, "Placeholder…", r.colors, tokens.Spacing, tokens.Radius, tokens.DefaultTypography.SystemFont, tokens.Comfortable, r.state)
 		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 			return g.variantRow(gtx, r.label, r.colors.WindowBackground, vgcolor.Flatten(r.colors.Label, r.colors.WindowBackground), w)
+		})
+	}
+	return cs
+}
+
+// borderlessFieldRows are the borderless text field's static states, each
+// on the content fill: the placeholder while the field holds the keyboard,
+// a title, a title that wraps, and a selected run.
+func (g *gallery) borderlessFieldRows() []layout.FlexChild {
+	const (
+		short = "Write the release notes"
+		long  = "Write the release notes for the next version and send them to the list"
+	)
+	type row struct {
+		label  string
+		state  input.BorderlessState
+		colors tokens.PlatformColors
+	}
+	rows := []row{
+		{"Placeholder (light)", input.BorderlessState{Focused: true}, tokens.PlatformLight},
+		{"Text (light)", input.BorderlessState{Text: short}, tokens.PlatformLight},
+		{"Wrapped (light)", input.BorderlessState{Text: long}, tokens.PlatformLight},
+		{"Selected (light)", input.BorderlessState{Focused: true, Text: short, Selection: [2]int{0, 5}}, tokens.PlatformLight},
+		{"Placeholder (dark)", input.BorderlessState{Focused: true}, tokens.PlatformDark},
+		{"Text (dark)", input.BorderlessState{Text: short}, tokens.PlatformDark},
+		{"Selected (dark)", input.BorderlessState{Focused: true, Text: short, Selection: [2]int{0, 5}}, tokens.PlatformDark},
+	}
+	cs := make([]layout.FlexChild, len(rows))
+	for i, r := range rows {
+		plane := r.colors.ControlBackground
+		r.state.Surface = plane
+		w := input.RenderBorderless(g.shaper, "Card title", r.colors, tokens.DefaultTypography.Body, r.state)
+		cs[i] = layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+			return g.variantRow(gtx, r.label, plane, vgcolor.Flatten(r.colors.Label, plane), w)
 		})
 	}
 	return cs
