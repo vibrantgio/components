@@ -8,6 +8,7 @@ import (
 	"gioui.org/unit"
 
 	"github.com/vibrantgio/components/internal/focus"
+	vgcolor "github.com/vibrantgio/theme/color"
 	"github.com/vibrantgio/theme/tokens"
 )
 
@@ -60,14 +61,39 @@ func FocusRing(
 	standsOn color.NRGBA,
 	w layout.Widget,
 ) layout.Dimensions {
-	return FocusRingRadius(gtx, state, p, standsOn, 0, w)
+	dims := w(gtx)
+	if !gtx.Focused(state.Focus()) {
+		return dims
+	}
+	ring := focus.RingColor(p, standsOn)
+	// The band is stroked centred on its outline, so an outline half the
+	// band's width past the box puts the band's inner edge on the box's
+	// outer edge. The half is rounded up: at a density where the band is an
+	// odd number of pixels, the half pixel left over is left clear outside
+	// the box rather than drawn over a row.
+	focus.Ring(gtx, focus.Footprint(gtx, image.Rectangle{Max: dims.Size}), 0, ring, ring)
+	return dims
 }
 
-// FocusRingRadius is [FocusRing] around a box whose corners are rounded at
-// radius. The ring follows the shape of the edge it goes around, so its
-// inner edge has the box's corner radius. A list drawn as a group gives the
-// group's box and the group's corner radius: w lays out the group, and the
-// ring goes around the group's hairline, outside it.
+// GroupRingOver is how much of the ring lies over the hairline of a list
+// drawn as a group: 1 dp, so the hairline is under the ring and the rest of
+// [RingWidth] lies past it. DERIVED from the field's ring and the
+// checkbox's, which the platform draws over the control's own edge; the
+// checkbox's placement, 1 dp over and 3 dp past, is the one a 1 dp edge
+// takes.
+const GroupRingOver = unit.Dp(1)
+
+// FocusRingRadius is the ring around a list drawn as a group: w lays out
+// the group, whose box is the group's hairline, cornered at radius. The ring
+// straddles that hairline as a field's ring straddles the field's edge:
+// [GroupRingOver] of it lies over the hairline and the rest past it. The
+// ring follows the shape of the hairline, so its inner edge is the
+// hairline's corner radius less that part.
+//
+// standsOn is the opaque fill the group stands on. The hairline is the
+// platform's separator flattened onto that fill, as patterns draw a group,
+// so the part of the ring over the hairline is the keyboard focus indicator
+// at its coverage over that line.
 func FocusRingRadius(
 	gtx layout.Context,
 	state *State,
@@ -80,20 +106,9 @@ func FocusRingRadius(
 	if !gtx.Focused(state.Focus()) {
 		return dims
 	}
-	box := image.Rectangle{Max: dims.Size}
-	ring := focus.RingColor(p, standsOn)
-	// The band is stroked centred on its outline, so an outline half the
-	// band's width past the box puts the band's inner edge on the box's
-	// outer edge. The half is rounded up: at a density where the band is an
-	// odd number of pixels, the half pixel left over is left clear outside
-	// the box rather than drawn over a row. The outline's corner radius is
-	// the box's grown by the same half, so the band's inner edge has the
-	// box's own corner radius.
-	r := 0
-	if px := gtx.Dp(radius); px > 0 {
-		r = px + focus.OutsidePx(gtx)
-	}
-	focus.Ring(gtx, focus.Footprint(gtx, box), r, ring, ring)
+	hairline := vgcolor.Flatten(p.Separator, standsOn)
+	focus.RingOver(gtx, GroupRingOver, image.Rectangle{Max: dims.Size}, gtx.Dp(radius),
+		focus.RingColor(p, standsOn), focus.RingColor(p, hairline))
 	return dims
 }
 

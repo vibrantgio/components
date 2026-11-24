@@ -245,6 +245,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 		// emission for the lifetime of this SearchField instance.
 		editor := &widget.Editor{SingleLine: true}
 		hitTag := new(int)
+		in := newInsertion()
 		clear := &widget.Clickable{}
 		if props.Seed != "" {
 			editor.SetText(props.Seed)
@@ -274,6 +275,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 				if dis {
 					gtx = gtx.Disabled()
 				}
+				in.begin(gtx, editor, !dis && gtx.Focused(editor))
 
 				emit := func(val string) {
 					if props.OnChange != nil {
@@ -393,12 +395,13 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 				}
 
 				foc := !dis && gtx.Focused(editor)
+				in.presses(gtx)
 				showPh := !foc && editor.Len() == 0
 
 				// The focus band straddles the field's own box, so it is
 				// collected inside whatever clips the field and painted here.
 				return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
-					return drawTextFieldLive(gtx, shaper, editor, hitTag, props.Placeholder, desc, tok, RenderState{
+					return drawTextFieldLive(gtx, shaper, editor, hitTag, in, props.Placeholder, desc, tok, RenderState{
 						Focused:  foc,
 						Disabled: dis,
 						Surface:  standsOn(props.Surface, tok.platform),

@@ -313,6 +313,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 		// area covers the text line, and a press anywhere else in the
 		// drawn field focuses the editor.
 		hitTag := new(int)
+		in := newInsertion()
 		if props.Seed != "" {
 			editor.SetText(props.Seed)
 		}
@@ -334,6 +335,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 				if dis {
 					gtx = gtx.Disabled()
 				}
+				in.begin(gtx, editor, !dis && gtx.Focused(editor))
 
 				// Drain editor events; fire callbacks on text change and submit.
 				for {
@@ -381,12 +383,13 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 				}
 
 				foc := !dis && gtx.Focused(editor)
+				in.presses(gtx)
 				showPh := !foc && editor.Len() == 0
 
 				// The focus band straddles the field's own box, so it is
 				// collected inside whatever clips the field and painted here.
 				return focus.Around(gtx, func(gtx layout.Context) layout.Dimensions {
-					return drawTextFieldLive(gtx, shaper, editor, hitTag, props.Placeholder, desc, tok, RenderState{
+					return drawTextFieldLive(gtx, shaper, editor, hitTag, in, props.Placeholder, desc, tok, RenderState{
 						Focused:  foc,
 						Disabled: dis,
 						Surface:  standsOn(props.Surface, tok.platform),
@@ -638,7 +641,7 @@ func capBandOffset(gtx layout.Context, tok resolvedTokens, rowH int, dims layout
 }
 
 // drawTextFieldLive renders a live text field containing a widget.Editor.
-func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.Editor, hitTag *int, placeholder, desc string, tok resolvedTokens, s RenderState, showPlaceholder bool, ad adorn) layout.Dimensions {
+func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.Editor, hitTag *int, in *insertion, placeholder, desc string, tok resolvedTokens, s RenderState, showPlaceholder bool, ad adorn) layout.Dimensions {
 	// Sizing rule: the height floor is fieldMinH — the field's own measured
 	// height and not Density.ControlHeight, because the platform draws a
 	// field taller than the button beside it, and
@@ -741,7 +744,9 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	// was, and inside the line box the field was sized from.
 	textShift := editorTextShift(innerGtx, shaper, wl, f, textSize, placeholder, phMat, contentDims.Size.Y)
 	st := op.Offset(image.Pt(textX, offY+textShift)).Push(gtx.Ops)
-	editor.Layout(editorGtx, shaper, fontOn(gtx, f, textSize, textColor, fillColor), textSize, textMat, selMat)
+	layoutEditor(editorGtx, editor, func(gtx layout.Context) layout.Dimensions {
+		return editor.Layout(gtx, shaper, fontOn(gtx, f, textSize, textColor, fillColor), textSize, textMat, selMat)
+	})
 	// gioui.org/widget's editor paints the selection's fill only while it
 	// holds focus, so the field paints that fill itself once focus has left;
 	// while focused the editor has already laid it down and the field adds
@@ -751,6 +756,10 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 		under = selFill
 	}
 	paintSelectedRun(editorGtx, editor, shaper, fontOn(gtx, f, textSize, selRun, selFill), textSize, under, selRun)
+	// The insertion point spans the field's line box, which starts textShift
+	// above the editor's own top.
+	ascent, lineH := lineBox(innerGtx, shaper, wl, f, textSize, placeholder, phMat)
+	in.paint(editorGtx, editor, s.Focused, tok.platform, ascent+textShift, lineH, innerW)
 	st.Pop()
 
 	if !s.Disabled {
@@ -771,6 +780,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	event.Op(gtx.Ops, hitTag)
 	pass.Pop()
 	cl.Pop()
+	in.target(gtx, fieldSize)
 
 	return layout.Dimensions{Size: fieldSize}
 }
@@ -803,16 +813,16 @@ func selectionPair(p tokens.PlatformColors, focused bool) (fill, run color.NRGBA
 // the run: the editor paints the selection's own fill only while it holds
 // focus, and a field that has lost the keyboard keeps its selection visible.
 //
-// gioui.org/widget's editor paints the run, the caret and the text over the
-// selection from one material, so the second colour is drawn over the first:
+// gioui.org/widget's editor paints the run and the text over the selection
+// from one material, so the second colour is drawn over the first:
 // the editor lays itself out a second time in the selected colour, into a
 // macro replayed under each selection box's clip — the idiom the focus band
 // draws its over half with, once per fill.
 //
 // The second pass runs on a DISABLED context, which is what keeps it to the
 // glyphs: that editor paints its caret only where the context is enabled and
-// the selection's fill only where it holds focus, so neither is drawn twice
-// and the caret keeps the colour the first pass gave it. The pass records the
+// the selection's fill only where it holds focus, so neither is drawn twice.
+// The field draws its own insertion point, see [insertion]. The pass records the
 // pointer and key ops a second time under the editor's own tag, which the
 // router keeps once per tag, and it reads no events at all: a disabled source
 // delivers none.
@@ -878,6 +888,27 @@ func editorTextShift(gtx layout.Context, sh *text.Shaper, lbl widget.Label, f fo
 		return d / 2
 	}
 	return 0
+}
+
+// lineBox is the line box an editor shaped like lbl draws each line in:
+// ascent is how far a line's baseline stands below the top of the glyphs,
+// and height is the box's height — the role's line height where the role
+// sets one, and the glyphs' own height where it does not. Both are read off
+// one line of txt, a hit in the shaper's cache.
+func lineBox(gtx layout.Context, sh *text.Shaper, lbl widget.Label, f font.Font, size unit.Sp, txt string, material op.CallOp) (ascent, height int) {
+	m := gtx
+	m.Constraints.Min.Y = 0
+	m.Constraints.Max.Y = 1 << 20
+	one := lbl
+	one.MaxLines = 1
+	rec := op.Record(m.Ops)
+	dims := one.Layout(m, sh, f, size, txt, material)
+	rec.Stop()
+	ascent, height = dims.Size.Y-dims.Baseline, dims.Size.Y
+	if lh := gtx.Sp(lbl.LineHeight); lh > 0 && lbl.LineHeightScale == 1 {
+		height = lh
+	}
+	return ascent, height
 }
 
 // drawTextFieldStatic renders a static text field for golden-image testing.
@@ -1041,8 +1072,8 @@ func staticSelection(gtx layout.Context, shaper *text.Shaper, tok resolvedTokens
 // the typed query standing unselected in the toolbar recess plateaus at
 // #232323 over that recess's #e8e8e8 fill, which is Label's black at 216/255
 // flattened onto it to the byte, where Text's opaque black would read #000000.
-// The caret carries it too, since gioui.org/widget's editor paints the run and
-// the caret from one paint material. The selected run does not: it is drawn
+// The insertion point does not: it is drawn in the accent, see [insertion].
+// Nor does the selected run: it is drawn
 // again over the selection's fill in the colour [selectionPair] hands it,
 // which follows whether the field holds the keyboard — see [paintSelectedRun].
 //

@@ -350,8 +350,8 @@ func TestBorderlessEmptyFieldKeepsOneLine(t *testing.T) {
 
 // TestBorderlessStaticSelectionIsTheLiveOne asserts that the static path
 // draws a selected run where the live field draws it: the same fill over
-// the same rows and columns, and the same text over it. The live field adds
-// its caret at the run's end, and the static path draws no caret.
+// the same rows and columns, and the same text over it. A field holding a
+// selected run draws no insertion point, so the two are the same pixels.
 func TestBorderlessStaticSelectionIsTheLiveOne(t *testing.T) {
 	p := tokens.PlatformLight
 	fill := borderlessSurface(p)
@@ -388,11 +388,10 @@ func TestBorderlessStaticSelectionIsTheLiveOne(t *testing.T) {
 	for end < borderlessSize.X && static.RGBAAt(end, 0) == sel {
 		end++
 	}
-	box, n := diffBox(live, static)
-	if n == 0 {
-		t.Fatal("the live field drew no caret; this measures nothing")
+	if end == 0 {
+		t.Fatal("the static selection has no columns; this measures nothing")
 	}
-	if box.Min.X < end-1 || box.Dx() > 3 {
-		t.Errorf("the static selection differs from the live one inside %v; only the caret at the run's end, x %d, may differ", box, end)
+	if box, n := diffBox(live, static); n != 0 {
+		t.Errorf("the static selection differs from the live one in %d pixels inside %v", n, box)
 	}
 }

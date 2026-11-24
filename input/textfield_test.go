@@ -945,8 +945,7 @@ func TestTheLiveFieldKeepsItsSelectionWhenFocusLeaves(t *testing.T) {
 // TestTheLiveFieldsSelectedRunIsDrawnInTheSelectedText reads the same two colours
 // off the live field, whose run, caret and selection gioui.org/widget's editor
 // paints from one paint material: the field draws the selected run again over
-// them in the platform's selected text colour, and the caret keeps the colour
-// the first pass gave it.
+// them in the platform's selected text colour.
 //
 // It is read in the light appearance alone, which is the one a live field
 // laid out against theme.Default() draws in; the static path above reads both.
@@ -1001,26 +1000,5 @@ func TestTheLiveFieldsSelectedRunIsDrawnInTheSelectedText(t *testing.T) {
 	}
 	if want := vgcolor.Flatten(p.Label, fill); !plateauIs(unselected, want) {
 		t.Errorf("the live field's unselected run plateaus at %v, want the platform's label over the field's fill %v", unselected, want)
-	}
-	// The caret stands at the selected run's leading end and keeps the colour
-	// the field's other text is drawn in. It is painted over the selection's own
-	// leading column — which is why the fill's box begins one column in — so
-	// it is read across that column and the two the caret is drawn at.
-	// Nothing else there can read it: the run's anti-aliased pixels carry the
-	// selection fill's channel order, ascending red to blue, and the label's
-	// grey does not.
-	caret := vgcolor.Flatten(p.Label, fill)
-	band := image.Rect(box.Min.X-2, box.Min.Y, box.Max.X, box.Max.Y)
-	found := false
-	for y := band.Min.Y; y < band.Max.Y && !found; y++ {
-		for x := band.Min.X; x < band.Max.X; x++ {
-			if c := img.RGBAAt(x, y); c.R == caret.R && c.G == caret.G && c.B == caret.B {
-				found = true
-				break
-			}
-		}
-	}
-	if !found {
-		t.Errorf("the caret standing at the selected run does not read %v; the second pass painted it too", caret)
 	}
 }

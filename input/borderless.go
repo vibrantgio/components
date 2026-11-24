@@ -59,7 +59,7 @@ type BorderlessTextFieldProps struct {
 	Foreground func(tokens.PlatformColors) color.NRGBA
 
 	// Surface answers the opaque fill the field stands on. The field has no
-	// fill of its own: its text, its placeholder and its caret are drawn on
+	// fill of its own: its text, its placeholder and its insertion point are drawn on
 	// this fill. Nil answers the window's own plane.
 	Surface func(tokens.PlatformColors) color.NRGBA
 
@@ -126,7 +126,7 @@ type borderlessTokens struct {
 }
 
 // borderlessColors returns the fill the field stands on, the colour of its
-// text and caret, and the colour of its placeholder. The placeholder is the
+// text, and the colour of its placeholder. The placeholder is the
 // platform's placeholder colour, the colour the bordered field draws its
 // placeholder in. A disabled field draws its text and its placeholder in the
 // platform's disabled control text.
@@ -175,6 +175,7 @@ func BorderlessTextField(th rx.Observable[theme.Theme], props BorderlessTextFiel
 
 	return rx.Defer(func() rx.Observable[layout.Widget] {
 		editor := &widget.Editor{Submit: props.Submit}
+		in := newInsertion()
 		if props.Seed != "" {
 			editor.SetText(props.Seed)
 		}
@@ -191,6 +192,7 @@ func BorderlessTextField(th rx.Observable[theme.Theme], props BorderlessTextFiel
 				if dis {
 					gtx = gtx.Disabled()
 				}
+				in.begin(gtx, editor, !dis && gtx.Focused(editor))
 				for {
 					ev, ok := editor.Update(gtx)
 					if !ok {
@@ -217,15 +219,17 @@ func BorderlessTextField(th rx.Observable[theme.Theme], props BorderlessTextFiel
 				if desc == "" {
 					desc = props.Placeholder
 				}
+				foc := !dis && gtx.Focused(editor)
+				in.presses(gtx)
 				s := BorderlessState{
 					Surface:  standsOn(props.Surface, tok.platform),
-					Focused:  !dis && gtx.Focused(editor),
+					Focused:  foc,
 					Disabled: dis,
 				}
 				if props.Foreground != nil {
 					s.Foreground = props.Foreground(tok.platform)
 				}
-				return drawBorderlessLive(gtx, shaper, editor, props.Placeholder, desc, tok, s)
+				return drawBorderlessLive(gtx, shaper, editor, in, props.Placeholder, desc, tok, s)
 			}
 		})
 	})
@@ -264,7 +268,7 @@ func paintOf(gtx layout.Context, col color.NRGBA) op.CallOp {
 // box's deficit above the glyphs, and a widget.Editor puts all of it below
 // them. The field therefore draws the editor that half lower, and the
 // editor's glyphs land on the label's pixels.
-func drawBorderlessLive(gtx layout.Context, shaper *text.Shaper, editor *widget.Editor, placeholder, desc string, tok borderlessTokens, s BorderlessState) layout.Dimensions {
+func drawBorderlessLive(gtx layout.Context, shaper *text.Shaper, editor *widget.Editor, in *insertion, placeholder, desc string, tok borderlessTokens, s BorderlessState) layout.Dimensions {
 	fill, fg, phColor := borderlessColors(tok.platform, s)
 	gtx = typeset.WithFill(gtx, fill)
 	width := gtx.Constraints.Max.X
@@ -304,19 +308,26 @@ func drawBorderlessLive(gtx layout.Context, shaper *text.Shaper, editor *widget.
 	}
 	shift := editorTextShift(inner, shaper, lbl, f, size, shown, shownMat, dims.Size.Y)
 	st := op.Offset(image.Pt(0, shift)).Push(gtx.Ops)
-	editor.Layout(egtx, shaper, textF, size, paintOf(gtx, fg), paintOf(gtx, selFill))
+	layoutEditor(egtx, editor, func(gtx layout.Context) layout.Dimensions {
+		return editor.Layout(gtx, shaper, textF, size, paintOf(gtx, fg), paintOf(gtx, selFill))
+	})
 	under := color.NRGBA{}
 	if !s.Focused {
 		under = selFill
 	}
 	runF, _, _ := borderlessLabel(gtx, tok.role, selRun)
 	paintSelectedRun(egtx, editor, shaper, runF, size, under, selRun)
+	// The insertion point spans the line box, which starts shift above the
+	// editor's own top.
+	ascent, lineH := lineBox(inner, shaper, lbl, f, size, shown, shownMat)
+	in.paint(egtx, editor, s.Focused, tok.platform, ascent+shift, lineH, width)
 	st.Pop()
 
 	out := image.Pt(width, dims.Size.Y)
 	if !s.Disabled {
 		pointershape.OverSize(gtx.Ops, out, pointer.CursorText)
 	}
+	in.target(gtx, out)
 	return layout.Dimensions{Size: out, Baseline: dims.Baseline}
 }
 
