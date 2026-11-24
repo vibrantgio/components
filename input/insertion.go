@@ -164,17 +164,18 @@ func drawInsertion(gtx layout.Context, p tokens.PlatformColors, x, top, lineH, w
 	area.Pop()
 }
 
-// staticInsertionX is where a static field draws its insertion point: after
+// staticInsertionAt is where a static field draws its insertion point: after
 // the last character of value, shaped with the font, the label and the size
-// the paint pass draws it with, inside maxW. An empty value puts it at 0,
-// where the text begins. The end is rounded as the live path rounds the
-// caret's x.
+// the paint pass draws it with, inside maxW. x is the end of that character
+// and dy is how far its line stands below the first line. An empty value
+// puts it at x 0 on the first line, where the text begins. The end is
+// rounded as the live path rounds the caret's x.
 //
 // MEASURED, voicememos-multi-folder-search-2026-09-18.png: the insertion
 // point stands immediately after the typed query's last character.
-func staticInsertionX(gtx layout.Context, shaper *text.Shaper, f font.Font, wl widget.Label, size unit.Sp, value string, maxW int) int {
+func staticInsertionAt(gtx layout.Context, shaper *text.Shaper, f font.Font, wl widget.Label, size unit.Sp, value string, maxW int) (x, dy int) {
 	if shaper == nil || value == "" {
-		return 0
+		return 0, 0
 	}
 	shaper.LayoutString(text.Parameters{
 		Font:            f,
@@ -188,15 +189,23 @@ func staticInsertionX(gtx layout.Context, shaper *text.Shaper, f font.Font, wl w
 		LineHeight:      fixed.I(gtx.Sp(wl.LineHeight)),
 		LineHeightScale: wl.LineHeightScale,
 	}, value)
-	var end fixed.Int26_6
+	var first, last text.Glyph
+	n := 0
 	for {
 		g, ok := shaper.NextGlyph()
 		if !ok {
 			break
 		}
-		end = max(end, g.X+g.Advance)
+		if n == 0 {
+			first = g
+		}
+		last = g
+		n++
 	}
-	return end.Round()
+	if n == 0 {
+		return 0, 0
+	}
+	return (last.X + last.Advance).Round(), int(last.Y - first.Y)
 }
 
 // insertionColor is the colour the insertion point is drawn in: the

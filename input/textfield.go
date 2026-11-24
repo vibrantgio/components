@@ -999,8 +999,8 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	// label is drawn in. A selected run draws none.
 	if s.Focused && !s.Disabled && !selected {
 		_, lineH := lineBox(innerGtx, shaper, wl, f, textSize, labelText, labelMat)
-		x := staticInsertionX(gtx, shaper, fontOn(gtx, f, textSize, textColor, fillColor), wl, textSize, s.Text, innerW)
-		drawInsertion(gtx, tok.platform, x, 0, lineH, innerW)
+		x, dy := staticInsertionAt(gtx, shaper, fontOn(gtx, f, textSize, textColor, fillColor), wl, textSize, s.Text, innerW)
+		drawInsertion(gtx, tok.platform, x, dy, lineH, innerW)
 	}
 	st.Pop()
 

@@ -366,8 +366,8 @@ func drawBorderlessStatic(gtx layout.Context, shaper *text.Shaper, placeholder s
 	if s.Focused && !s.Disabled && !selected {
 		_, lineH := lineBox(inner, shaper, lbl, f, size, shown, paintOf(gtx, shownColor))
 		textF, textLbl, _ := borderlessLabel(gtx, tok.role, fg)
-		x := staticInsertionX(gtx, shaper, textF, textLbl, size, s.Text, width)
-		drawInsertion(gtx, tok.platform, x, 0, lineH, width)
+		x, dy := staticInsertionAt(gtx, shaper, textF, textLbl, size, s.Text, width)
+		drawInsertion(gtx, tok.platform, x, dy, lineH, width)
 	}
 	return layout.Dimensions{Size: image.Pt(width, dims.Size.Y), Baseline: dims.Baseline}
 }

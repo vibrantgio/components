@@ -218,10 +218,18 @@ func liveInsertionBox(t *testing.T, kind insertionKind, p tokens.PlatformColors,
 func TestEveryFieldKindDrawsTheInsertionPointInItsOwnColour(t *testing.T) {
 	p := insertionSentinel()
 	for _, kind := range insertionKinds() {
-		for _, seed := range []string{"", "hello@example"} {
+		seeds := []string{"", "hello@example"}
+		if kind.name == "borderless" {
+			// A borderless field wraps its value: the insertion point stands
+			// after the last character, on the last line.
+			seeds = append(seeds, "Draft the release notes for the next round of the board")
+		}
+		for i, seed := range seeds {
 			name := kind.name + " empty"
-			if seed != "" {
+			if i == 1 {
 				name = kind.name + " after the value"
+			} else if i == 2 {
+				name = kind.name + " after a wrapped value"
 			}
 			t.Run(name, func(t *testing.T) {
 				live, n, img := liveInsertionBox(t, kind, p, seed)
@@ -233,6 +241,9 @@ func TestEveryFieldKindDrawsTheInsertionPointInItsOwnColour(t *testing.T) {
 				}
 				if live.Dx() != 1 || live.Dy() != kind.lineH || n != live.Dx()*live.Dy() {
 					t.Errorf("the live insertion point covers %d pixels of %v, want one solid column %d rows tall", n, live, kind.lineH)
+				}
+				if i == 2 && live.Min.Y < kind.lineH {
+					t.Fatalf("the live insertion point stands at %v, on the first line; the value did not wrap, so this measures nothing", live)
 				}
 				if _, m := accentBox(img, p.SidebarSelection); m != 0 {
 					t.Errorf("%d pixels of the live field read SidebarSelection; the insertion point has its own colour", m)
