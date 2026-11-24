@@ -18,7 +18,7 @@ go 1.25.1
 require (
 	gioui.org v0.10.2
 	github.com/reactivego/rx v0.3.0
-	github.com/vibrantgio/components v1.7.2-0.20261124170818-389bbb3fb4c3
+	github.com/vibrantgio/components v1.7.2-0.20261124175501-55ba5256370b
 	github.com/vibrantgio/effects v0.5.1
 	github.com/vibrantgio/ivg/raster/gio v0.2.1
 	github.com/vibrantgio/markdown v0.9.1
@@ -26,7 +26,7 @@ require (
 	github.com/vibrantgio/mvu/desktop v1.1.5
 	github.com/vibrantgio/patterns v1.5.2-0.20261124135100-5f63d90f7538
 	github.com/vibrantgio/textdraw v0.1.0
-	github.com/vibrantgio/theme v1.6.1
+	github.com/vibrantgio/theme v1.6.2-0.20261124175021-22d12bc36c78
 	golang.org/x/exp/shiny v0.0.0-20260727155853-b88d891fe743
 )
 
