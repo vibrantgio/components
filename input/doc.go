@@ -89,9 +89,14 @@
 // focus ring and no inset. A bordered text field sets its text in the System
 // font role. The borderless text field keeps the role and the colour of the
 // text it edits, and sets its text at that text's origin. So the text stands
-// in the same place while it is edited and after. Its placeholder is in the platform's
-// placeholder colour and stays while the field holds the keyboard, until the
-// user types. It wraps its lines and grows with them.
+// in the same place while it is edited and after. It wraps its lines and
+// grows with them.
+//
+// Every text field draws its placeholder by one rule: the placeholder shows
+// while the value is empty. Focus does not change it. The placeholder stays
+// while the empty field holds the keyboard, and the insertion point stands
+// where the text begins. The placeholder leaves when the user types the first
+// character.
 //
 // The text field is uncontrolled. Props.Seed pre-fills a newly created
 // instance so an existing value can be edited rather than retyped, but a later

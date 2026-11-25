@@ -149,7 +149,8 @@ func (s RenderState) onToolbar() bool { return s.Variant == Chrome && s.Region =
 
 // TextFieldProps configures a TextField instance.
 type TextFieldProps struct {
-	// Placeholder is shown when the field is empty and unfocused.
+	// Placeholder is shown while the field is empty, also while the field
+	// holds the keyboard. It leaves when the user types.
 	Placeholder string
 
 	// Surface answers the opaque fill this field stands on, for the scheme
@@ -384,7 +385,6 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 
 				foc := !dis && gtx.Focused(editor)
 				in.presses(gtx)
-				showPh := !foc && editor.Len() == 0
 
 				// The focus band straddles the field's own box, so it is
 				// collected inside whatever clips the field and painted here.
@@ -393,7 +393,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 						Focused:  foc,
 						Disabled: dis,
 						Surface:  standsOn(props.Surface, tok.platform),
-					}, showPh, adorn{})
+					}, adorn{})
 				})
 			}
 		})
@@ -641,7 +641,7 @@ func capBandOffset(gtx layout.Context, tok resolvedTokens, rowH int, dims layout
 }
 
 // drawTextFieldLive renders a live text field containing a widget.Editor.
-func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.Editor, hitTag *int, in *insertion, placeholder, desc string, tok resolvedTokens, s RenderState, showPlaceholder bool, ad adorn) layout.Dimensions {
+func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.Editor, hitTag *int, in *insertion, placeholder, desc string, tok resolvedTokens, s RenderState, ad adorn) layout.Dimensions {
 	// Sizing rule: the height floor is fieldMinH — the field's own measured
 	// height and not Density.ControlHeight, because the platform draws a
 	// field taller than the button beside it, and
@@ -702,8 +702,7 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 
 	offY := promptOffset(gtx, tok, fieldH, contentDims)
 
-	// Placeholder overlay (only when empty and unfocused).
-	if showPlaceholder {
+	if placeholderShows(editor.Len()) {
 		st := op.Offset(image.Pt(textX, offY)).Push(gtx.Ops)
 		phCall.Add(gtx.Ops)
 		st.Pop()
@@ -737,11 +736,11 @@ func drawTextFieldLive(gtx layout.Context, shaper *text.Shaper, editor *widget.E
 	// glyphs within the role's line box: half the line-height deficit sits above
 	// the glyphs. The editor is a raw widget.Editor, and Gio baselines an
 	// editor's first line at its own ascent — its share of the line height
-	// all lands below the glyphs. Drawn at the same offY, the visible text would
-	// rise by half the deficit the moment the editor takes over (focus, or a
-	// first keystroke); offsetting the editor down by that same half-deficit
-	// keeps the text, the caret and the selection where the placeholder's text
-	// was, and inside the line box the field was sized from.
+	// all lands below the glyphs. Drawn at the same offY, the typed text would
+	// stand half the deficit above the placeholder it replaces; offsetting the
+	// editor down by that same half-deficit keeps the text, the caret and the
+	// selection where the placeholder's text was, and inside the line box the
+	// field was sized from.
 	textShift := editorTextShift(innerGtx, shaper, wl, f, textSize, placeholder, phMat, contentDims.Size.Y)
 	st := op.Offset(image.Pt(textX, offY+textShift)).Push(gtx.Ops)
 	layoutEditor(editorGtx, editor, func(gtx layout.Context) layout.Dimensions {
@@ -949,7 +948,7 @@ func drawTextFieldStatic(gtx layout.Context, shaper *text.Shaper, placeholder st
 	// colour); otherwise the placeholder is drawn.
 	labelText := placeholder
 	labelColor := phColor
-	if s.Text != "" {
+	if !placeholderShows(len(s.Text)) {
 		labelText = s.Text
 		labelColor = textColor
 	}

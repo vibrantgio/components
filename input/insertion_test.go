@@ -142,15 +142,16 @@ func insertionSentinel() tokens.PlatformColors {
 	return p
 }
 
-// insertionKind is one kind of text field, drawn live on a platform set and
-// drawn static in an explicit state.
+// insertionKind is one kind of text field, drawn live on a platform set with
+// its placeholder, and drawn static as focused in an explicit state.
 type insertionKind struct {
-	name   string
-	size   image.Point
-	lineH  int
-	sheet  func(p tokens.PlatformColors) stdcolor.NRGBA
-	live   func(t *testing.T, p tokens.PlatformColors, seed string, tag *event.Tag) layout.Widget
-	static func(t *testing.T, p tokens.PlatformColors, text string, sel [2]int) layout.Widget
+	name        string
+	placeholder string
+	size        image.Point
+	lineH       int
+	sheet       func(p tokens.PlatformColors) stdcolor.NRGBA
+	live        func(t *testing.T, p tokens.PlatformColors, seed string, tag *event.Tag) layout.Widget
+	static      func(t *testing.T, p tokens.PlatformColors, placeholder, text string, sel [2]int) layout.Widget
 }
 
 func insertionKinds() []insertionKind {
@@ -162,26 +163,26 @@ func insertionKinds() []insertionKind {
 	window := func(p tokens.PlatformColors) stdcolor.NRGBA { return p.WindowBackground }
 	sys := tokens.DefaultTypography.SystemFont
 	return []insertionKind{
-		{"bordered", image.Pt(300, 60), int(sys.LineHeight), window,
+		{"bordered", "Email address", image.Pt(300, 60), int(sys.LineHeight), window,
 			func(t *testing.T, p tokens.PlatformColors, seed string, tag *event.Tag) layout.Widget {
 				return materialize(t, input.TextField(rx.Of(on(p)), input.TextFieldProps{Placeholder: "Email address", Seed: seed, Shaper: defaultShaper(t), FocusTag: func(tg event.Tag) { *tag = tg }}))
 			},
-			func(t *testing.T, p tokens.PlatformColors, text string, sel [2]int) layout.Widget {
-				return input.Render(defaultShaper(t), "Email address", p, tokens.Spacing, tokens.Radius, sys, tokens.Comfortable, input.RenderState{Focused: true, Text: text, Selection: sel})
+			func(t *testing.T, p tokens.PlatformColors, placeholder, text string, sel [2]int) layout.Widget {
+				return input.Render(defaultShaper(t), placeholder, p, tokens.Spacing, tokens.Radius, sys, tokens.Comfortable, input.RenderState{Focused: true, Text: text, Selection: sel})
 			}},
-		{"search", image.Pt(300, 60), int(sys.LineHeight), window,
+		{"search", "Search", image.Pt(300, 60), int(sys.LineHeight), window,
 			func(t *testing.T, p tokens.PlatformColors, seed string, tag *event.Tag) layout.Widget {
 				return materialize(t, input.SearchField(rx.Of(on(p)), input.SearchFieldProps{Placeholder: "Search", Seed: seed, Shaper: defaultShaper(t), FocusTag: func(tg event.Tag) { *tag = tg }}))
 			},
-			func(t *testing.T, p tokens.PlatformColors, text string, sel [2]int) layout.Widget {
-				return input.RenderSearch(defaultShaper(t), "Search", p, tokens.Spacing, tokens.Radius, sys, tokens.Comfortable, input.RenderState{Focused: true, Text: text, Selection: sel})
+			func(t *testing.T, p tokens.PlatformColors, placeholder, text string, sel [2]int) layout.Widget {
+				return input.RenderSearch(defaultShaper(t), placeholder, p, tokens.Spacing, tokens.Radius, sys, tokens.Comfortable, input.RenderState{Focused: true, Text: text, Selection: sel})
 			}},
-		{"borderless", borderlessSize, int(tokens.DefaultTypography.Body.LineHeight), borderlessSurface,
+		{"borderless", "Card title", borderlessSize, int(tokens.DefaultTypography.Body.LineHeight), borderlessSurface,
 			func(t *testing.T, p tokens.PlatformColors, seed string, tag *event.Tag) layout.Widget {
 				return loose(materialize(t, input.BorderlessTextField(rx.Of(on(p)), input.BorderlessTextFieldProps{Placeholder: "Card title", Seed: seed, Shaper: defaultShaper(t), Surface: borderlessSurface, FocusTag: func(tg event.Tag) { *tag = tg }})))
 			},
-			func(t *testing.T, p tokens.PlatformColors, text string, sel [2]int) layout.Widget {
-				return loose(input.RenderBorderless(defaultShaper(t), "Card title", p, tokens.DefaultTypography.Body, input.BorderlessState{Surface: borderlessSurface(p), Focused: true, Text: text, Selection: sel}))
+			func(t *testing.T, p tokens.PlatformColors, placeholder, text string, sel [2]int) layout.Widget {
+				return loose(input.RenderBorderless(defaultShaper(t), placeholder, p, tokens.DefaultTypography.Body, input.BorderlessState{Surface: borderlessSurface(p), Focused: true, Text: text, Selection: sel}))
 			}},
 	}
 }
@@ -248,7 +249,7 @@ func TestEveryFieldKindDrawsTheInsertionPointInItsOwnColour(t *testing.T) {
 				if _, m := accentBox(img, p.SidebarSelection); m != 0 {
 					t.Errorf("%d pixels of the live field read SidebarSelection; the insertion point has its own colour", m)
 				}
-				static := golden.Capture(t, kind.size, onSheet(kind.sheet(p), kind.static(t, p, seed, [2]int{})))
+				static := golden.Capture(t, kind.size, onSheet(kind.sheet(p), kind.static(t, p, kind.placeholder, seed, [2]int{})))
 				if static == nil {
 					return
 				}
@@ -262,7 +263,7 @@ func TestEveryFieldKindDrawsTheInsertionPointInItsOwnColour(t *testing.T) {
 			})
 		}
 		t.Run(kind.name+" selected", func(t *testing.T) {
-			img := golden.Capture(t, kind.size, onSheet(kind.sheet(p), kind.static(t, p, "hello@example", [2]int{0, 5})))
+			img := golden.Capture(t, kind.size, onSheet(kind.sheet(p), kind.static(t, p, kind.placeholder, "hello@example", [2]int{0, 5})))
 			if img == nil {
 				return
 			}
@@ -404,4 +405,89 @@ func TestAFieldFocusedByACommandSelectsItsValue(t *testing.T) {
 			t.Errorf("the field Tab gave the keyboard to selects %d to %d, want the whole value, 0 to %d", end, start, n)
 		}
 	})
+}
+
+// TestEveryFieldKindKeepsItsPlaceholderWhileItHoldsTheKeyboard asserts that
+// the bordered, the search and the borderless field, live, empty and holding
+// the keyboard, draw their placeholder and the insertion point where the text
+// begins, as TextEdit's find field is measured. After one typed character the
+// field draws no placeholder.
+func TestEveryFieldKindKeepsItsPlaceholderWhileItHoldsTheKeyboard(t *testing.T) {
+	p := insertionSentinel()
+	for _, kind := range insertionKinds() {
+		t.Run(kind.name, func(t *testing.T) {
+			capture := func(w layout.Widget) *image.RGBA {
+				return golden.Capture(t, kind.size, onSheet(kind.sheet(p), w))
+			}
+			withPh := capture(kind.static(t, p, kind.placeholder, "", [2]int{}))
+			bare := capture(kind.static(t, p, "", "", [2]int{}))
+			if withPh == nil || bare == nil {
+				return
+			}
+			ph, n := diffBox(withPh, bare)
+			if n == 0 {
+				t.Fatal("the static field drew no placeholder; this measures nothing")
+			}
+			// pastColumn counts the pixels of ph right of column x where img
+			// differs from want, and where want differs from bare.
+			pastColumn := func(img, want *image.RGBA, x int) (differ, drawn int) {
+				for py := ph.Min.Y; py < ph.Max.Y; py++ {
+					for px := max(x, ph.Min.X); px < ph.Max.X; px++ {
+						if img.RGBAAt(px, py) != want.RGBAAt(px, py) {
+							differ++
+						}
+						if want.RGBAAt(px, py) != bare.RGBAAt(px, py) {
+							drawn++
+						}
+					}
+				}
+				return differ, drawn
+			}
+
+			var tag event.Tag
+			w := kind.live(t, p, "", &tag)
+			r := new(gioinput.Router)
+			ops := new(op.Ops)
+			driveTextFieldFrame(w, ops, r, kind.size)
+			r.Source().Execute(key.FocusCmd{Tag: tag})
+			driveTextFieldFrame(w, ops, r, kind.size)
+			focused := liveCapture(t, r, kind.size, kind.sheet(p), w)
+			if focused == nil {
+				return
+			}
+			in, m := accentBox(focused, p.TextInsertionPoint)
+			if m == 0 {
+				t.Fatal("the live field drew no insertion point; it does not hold the keyboard")
+			}
+			if d := in.Min.X - ph.Min.X; d < -2 || d > 2 {
+				t.Errorf("the insertion point stands at x %d; the text begins at x %d", in.Min.X, ph.Min.X)
+			}
+			if differ, drawn := pastColumn(focused, withPh, in.Max.X); drawn == 0 {
+				t.Fatalf("the placeholder has no pixel right of the insertion point at x %d; this measures nothing", in.Max.X)
+			} else if differ > 0 {
+				t.Errorf("%d pixels of the placeholder right of the insertion point differ: the empty field that holds the keyboard hides its placeholder", differ)
+			}
+
+			// An edit event leaves the caret where the range began; a typed
+			// key moves it past the character.
+			r.Queue(key.EditEvent{Range: key.Range{Start: 0, End: 0}, Text: "W"})
+			driveTextFieldFrame(w, ops, r, kind.size)
+			ed := tag.(*widget.Editor)
+			ed.SetCaret(ed.Len(), ed.Len())
+			typed := liveCapture(t, r, kind.size, kind.sheet(p), w)
+			if typed == nil {
+				return
+			}
+			after, m := accentBox(typed, p.TextInsertionPoint)
+			if m == 0 || after.Min.X <= in.Min.X {
+				t.Fatalf("the insertion point stands at %v after one typed character; the character did not reach the field", after)
+			}
+			if _, drawn := pastColumn(bare, withPh, after.Max.X); drawn == 0 {
+				t.Fatal("the placeholder has no pixel right of the typed character; this measures nothing")
+			}
+			if differ, _ := pastColumn(typed, bare, after.Max.X); differ > 0 {
+				t.Errorf("%d pixels right of the typed character are not the empty field's; the placeholder stays after one typed character", differ)
+			}
+		})
+	}
 }

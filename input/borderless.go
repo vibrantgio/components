@@ -283,7 +283,7 @@ func drawBorderlessLive(gtx layout.Context, shaper *text.Shaper, editor *widget.
 	// The height is the line box of what the field shows: the value, or the
 	// placeholder while the field is empty.
 	shown, shownColor := editor.Text(), fg
-	if shown == "" {
+	if placeholderShows(len(shown)) {
 		shown, shownColor = placeholder, phColor
 	}
 	f, lbl, size := borderlessLabel(gtx, tok.role, shownColor)
@@ -291,7 +291,7 @@ func drawBorderlessLive(gtx layout.Context, shaper *text.Shaper, editor *widget.
 	rec := op.Record(gtx.Ops)
 	dims := typeset.Layout(inner, shaper, lbl, f, size, shown, shownMat)
 	shownCall := rec.Stop()
-	if editor.Len() == 0 {
+	if placeholderShows(editor.Len()) {
 		shownCall.Add(gtx.Ops)
 	}
 
@@ -342,7 +342,7 @@ func drawBorderlessStatic(gtx layout.Context, shaper *text.Shaper, placeholder s
 	inner.Constraints = layout.Constraints{Max: image.Pt(width, gtx.Constraints.Max.Y)}
 
 	shown, shownColor := s.Text, fg
-	if shown == "" {
+	if placeholderShows(len(shown)) {
 		shown, shownColor = placeholder, phColor
 	}
 	sel, selected := borderlessSelection(gtx, shaper, tok, s, width)

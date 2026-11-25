@@ -75,7 +75,8 @@ const (
 // field settles about density, focus, the pointer target and the surface it
 // stands on is settled here too and is not restated.
 type SearchFieldProps struct {
-	// Placeholder is shown when the field is empty and unfocused.
+	// Placeholder is shown while the field is empty, also while the field
+	// holds the keyboard. It leaves when the user types.
 	Placeholder string
 
 	// Variant is where this field stands: [Form] on the content's plane,
@@ -396,7 +397,6 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 
 				foc := !dis && gtx.Focused(editor)
 				in.presses(gtx)
-				showPh := !foc && editor.Len() == 0
 
 				// The focus band straddles the field's own box, so it is
 				// collected inside whatever clips the field and painted here.
@@ -407,7 +407,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 						Surface:  standsOn(props.Surface, tok.platform),
 						Variant:  props.Variant,
 						Region:   props.Region,
-					}, showPh, adorn{
+					}, adorn{
 						search:    true,
 						clear:     true,
 						showClear: !dis && editor.Len() > 0,
