@@ -140,6 +140,14 @@ type SearchFieldProps struct {
 	// through OnChange and Message like any other edit.
 	SetText func(set func(text string))
 
+	// OnTyping and LeaveUndo give the field's Undo and Redo as
+	// [BorderlessTextFieldProps.OnTyping] and
+	// [BorderlessTextFieldProps.LeaveUndo] give them. The clear mark and
+	// Escape are typing: the user made the field empty. A text that Clear or
+	// SetText puts in the field leaves it with no typing.
+	OnTyping  func(gtx layout.Context, typing Typing)
+	LeaveUndo func(gtx layout.Context, redo bool)
+
 	// Disabled, if non-nil, disables the field when it emits true. A disabled
 	// field draws its marks faded with the rest of it and offers no clear.
 	Disabled rx.Observable[bool]
@@ -251,16 +259,21 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 		if props.Seed != "" {
 			editor.SetText(props.Seed)
 		}
+		typed := newTyping(editor.Text())
 		if props.FocusTag != nil {
 			props.FocusTag(editor)
 		}
 		if props.Clear != nil {
-			props.Clear(func() { editor.SetText("") })
+			props.Clear(func() {
+				editor.SetText("")
+				typed.reset("")
+			})
 		}
 		if props.SetText != nil {
 			props.SetText(func(text string) {
 				editor.SetText(text)
 				editor.SetCaret(editor.Len(), 0)
+				typed.reset(editor.Text())
 			})
 		}
 
@@ -339,6 +352,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 					}
 				}
 
+				typed.keys(gtx, editor, props.LeaveUndo)
 				update := func() {
 					for {
 						ev, ok := editor.Update(gtx)
@@ -346,6 +360,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 							break
 						}
 						if _, isChange := ev.(widget.ChangeEvent); isChange {
+							typed.changed(editor.Text())
 							emit(editor.Text())
 						}
 					}
@@ -379,6 +394,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 						update()
 					}
 				}
+				typed.report(gtx, props.OnTyping)
 
 				for {
 					ev, ok := gtx.Event(pointer.Filter{Target: hitTag, Kinds: pointer.Press})

@@ -73,18 +73,17 @@ type BorderlessTextFieldProps struct {
 	// OnChange is called with the new value on every text change.
 	OnChange func(gtx layout.Context, text string)
 
-	// OnTyping, if non-nil, is called when the field's typing changes:
-	// undo tells whether Undo can reverse a change the user made to the
-	// text, and redo whether Redo can make a reversed change again. The
-	// text the field is created with is no change, so a new field holds
-	// neither.
-	OnTyping func(gtx layout.Context, undo, redo bool)
+	// OnTyping, if non-nil, is called when what the field's Undo and Redo
+	// keys act on changes. See [Typing]. The text the field is created with
+	// is no change, so a new field holds no typing.
+	OnTyping func(gtx layout.Context, typing Typing)
 
 	// LeaveUndo, if non-nil, receives each Undo and Redo key that the
 	// field holds no typing for: Cmd-Z and Shift-Cmd-Z on macOS, Ctrl-Z
 	// and Shift-Ctrl-Z elsewhere. redo is true for Redo. The field reads
 	// those keys while it holds the keyboard, so the window's last change
-	// gets them only through LeaveUndo.
+	// gets them only through LeaveUndo. The field gives no Redo key to
+	// the window after the user typed, until an Undo runs.
 	LeaveUndo func(gtx layout.Context, redo bool)
 
 	// Message, if non-nil, causes the field to emit mvu.MessageOp{Message}
@@ -216,9 +215,7 @@ func BorderlessTextField(th rx.Observable[theme.Theme], props BorderlessTextFiel
 					gtx = gtx.Disabled()
 				}
 				in.begin(gtx, editor, !dis && gtx.Focused(editor))
-				if typed.keys(gtx, editor, props.LeaveUndo) {
-					changed(gtx)
-				}
+				typed.keys(gtx, editor, props.LeaveUndo)
 				for {
 					ev, ok := editor.Update(gtx)
 					if !ok {

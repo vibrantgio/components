@@ -202,6 +202,13 @@ type TextFieldProps struct {
 	// on every text change. This is the MVU integration path.
 	Message any
 
+	// OnTyping and LeaveUndo give the field's Undo and Redo as
+	// [BorderlessTextFieldProps.OnTyping] and
+	// [BorderlessTextFieldProps.LeaveUndo] give them. A submit that clears
+	// the field leaves it with no typing.
+	OnTyping  func(gtx layout.Context, typing Typing)
+	LeaveUndo func(gtx layout.Context, redo bool)
+
 	// Submit, when true, configures the inner widget.Editor to translate
 	// carriage-return key presses into widget.SubmitEvent rather than
 	// inserting newlines. Required for chat-style inputs.
@@ -318,6 +325,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 		if props.Seed != "" {
 			editor.SetText(props.Seed)
 		}
+		typed := newTyping(editor.Text())
 		if props.FocusTag != nil {
 			props.FocusTag(editor)
 		}
@@ -338,6 +346,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 				}
 				in.begin(gtx, editor, !dis && gtx.Focused(editor))
 
+				typed.keys(gtx, editor, props.LeaveUndo)
 				// Drain editor events; fire callbacks on text change and submit.
 				for {
 					ev, ok := editor.Update(gtx)
@@ -347,6 +356,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 					switch ev := ev.(type) {
 					case widget.ChangeEvent:
 						val := editor.Text()
+						typed.changed(val)
 						if props.OnChange != nil {
 							props.OnChange(gtx, val)
 						}
@@ -361,8 +371,10 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 							props.OnSubmit(gtx, ev.Text)
 						}
 						editor.SetText("")
+						typed.reset("")
 					}
 				}
+				typed.report(gtx, props.OnTyping)
 
 				// A press anywhere in the field outside the text
 				// line focuses the editor; presses on the line
