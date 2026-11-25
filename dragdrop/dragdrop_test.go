@@ -46,8 +46,8 @@ func newHarness(t *testing.T) *harness {
 	return h
 }
 
-// blocking draws the item's image and registers an event area over it that blocks
-// the areas under it, as an app's own item does.
+// blocking draws the item's image and registers an event handler over it
+// that blocks the handlers under it, as an application's own item does.
 func blocking(gtx layout.Context, from Place) layout.Dimensions {
 	paint.FillShape(gtx.Ops, color.NRGBA{A: 255}, clip.Rect{Max: gtx.Constraints.Min}.Op())
 	a := clip.Rect{Max: gtx.Constraints.Min}.Push(gtx.Ops)
@@ -278,7 +278,7 @@ func TestReleaseOverTheItemAfterADragIsNoClick(t *testing.T) {
 	}
 }
 
-func TestContentAreasStillBlock(t *testing.T) {
+func TestContentHandlersStillBlock(t *testing.T) {
 	var r input.Router
 	var s State
 	var top, under int

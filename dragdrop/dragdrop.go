@@ -1,29 +1,29 @@
 // Package dragdrop moves an item to a new place in a window with the
 // pointer, and reorders an item in its own sequence.
 //
-// The user presses an item, moves the pointer and releases it at the
-// place the item goes to. A press that does not move past [Threshold]
-// stays a click. While the pointer moves, an image of the item follows
-// it, and a line marks the place where the item would land, between the
-// items that are there. Released over a place, the item lands there and
-// the app gets one [Move]. Released anywhere else, or after Escape, the
-// app gets nothing.
+// The user presses an item, moves the pointer and releases it at the place
+// the item goes to. A press that does not move past [Threshold] stays a
+// click. While the pointer moves, an image of the item follows it, and a
+// line marks the place where the item would land, between the items that
+// are there. Released over a place, the item lands there and the
+// application gets one [Move]. Released anywhere else, or after Escape,
+// the application gets nothing.
 //
-// The package changes no data. The app keeps its own sequences, lays
-// out each item through [State.Item] and the space after the last item
-// of a sequence through [State.End], and applies each [Move] that
+// The package changes no data. The application keeps its own sequences,
+// lays out each item through [State.Item] and the space after the last
+// item of a sequence through [State.End], and applies each [Move] that
 // [State.Update] returns.
 //
 // # Frames
 //
-// Gio gives no way to read the transform of a frame back, and the items
-// of a window are in different scrolled and clipped frames. So the app
-// gives no rectangles. Each item registers its places in its own frame,
-// and Gio's hit test finds the place under the pointer: the region is
-// the source of a Gio transfer, and each place is a target of it, so
-// each place gets the pointer's Enter and Leave while the button is
+// Gio gives no way to read the transform of a frame back, and the items of
+// a window are in different scrolled and clipped frames. So the
+// application gives no rectangles. Each item registers its places in its
+// own frame, and Gio's hit test finds the place under the pointer: the
+// drag area is the source of a Gio transfer, and each place is a target of
+// it, so each place gets the pointer's Enter and Leave while the button is
 // down. The line is drawn in the frame of the place that holds the
-// pointer, and the image in the frame of the region.
+// pointer, and the image in the frame of the drag area.
 package dragdrop
 
 import (
@@ -47,9 +47,9 @@ import (
 	"github.com/vibrantgio/theme/tokens"
 )
 
-// mime is the transfer type that joins the region to its places. No
-// data moves through it: the region offers an empty body, because the
-// app keeps the item.
+// mime is the transfer type that joins the drag area to its places. No
+// data moves through it: the drag area offers an empty body, because the
+// application keeps the item.
 const mime = "application/x-vibrantgio-dragdrop"
 
 // Threshold is the distance the pointer moves from the press before a
@@ -77,28 +77,28 @@ const EdgeDp = unit.Dp(24)
 // measured.
 const ScrollSpeed = unit.Dp(480)
 
-// Place is a position in a sequence of items. Container is the app's
+// Place is a position in a sequence of items. Sequence is the application's
 // number for the sequence. For an item, Index is the item's index in
 // its sequence. For a place where an item lands, Index is the gap
 // before the item at that index: 0 is before the first item, and the
 // length of the sequence is after the last item.
 type Place struct {
-	Container int
-	Index     int
+	Sequence int
+	Index    int
 }
 
-// Move is the one message the app gets when an item lands. From is the
-// item's place. To is the gap it lands in, counted in the destination
+// Move is the one message the application gets when an item lands. From is
+// the item's place. To is the gap it lands in, counted in the destination
 // sequence before the item leaves From.
 type Move struct {
 	From, To Place
 }
 
-// Index returns the index the item has in the destination sequence
-// after the move: the app removes the item at From and inserts it at
+// Index returns the index the item has in the destination sequence after
+// the move: the application removes the item at From and inserts it at
 // this index.
 func (m Move) Index() int {
-	if m.From.Container == m.To.Container && m.To.Index > m.From.Index {
+	if m.From.Sequence == m.To.Sequence && m.To.Index > m.From.Index {
 		return m.To.Index - 1
 	}
 	return m.To.Index
@@ -118,16 +118,16 @@ func FromTokens(p tokens.PlatformColors) Style {
 
 // Image draws the item at from as the image that follows the pointer.
 // It gets a context whose constraints are the item's size at the press.
-// It draws the item as it is and registers no event areas of its own;
-// a static render is right. Event areas it registers do not block the
+// It draws the item as it is and registers no event handlers of its own;
+// a static render is right. Event handlers it registers do not block the
 // places under the pointer.
 type Image func(gtx layout.Context, from Place) layout.Dimensions
 
-// State is one drag region across frames. The app holds one per region
-// and uses it only on the frame goroutine.
+// State is one drag area across frames. The application holds one per drag
+// area and uses it only on the frame goroutine.
 type State struct {
-	// region is non-zero-size so that its address is a unique event tag.
-	region struct{ _ byte }
+	// area is non-zero-size so that its address is a unique event tag.
+	area struct{ _ byte }
 
 	items map[Place]*itemTags
 	edges map[int]*edgeTags
@@ -140,10 +140,10 @@ type State struct {
 	grab f32.Point
 	size image.Point
 	// pressedItem records an item press seen this frame, before the
-	// region sees the same press.
+	// drag area sees the same press.
 	pressedItem bool
 
-	start, at f32.Point // the press and the pointer, in the region's frame
+	start, at f32.Point // the press and the pointer, in the drag area's frame
 	pid       pointer.ID
 	dragging  bool
 	cancelled bool
@@ -155,10 +155,10 @@ type State struct {
 	target event.Tag
 	place  Place
 
-	// style is the region's style for the frame being laid out.
+	// style is the drag area's style for the frame being laid out.
 	style Style
 
-	// edge is the container whose edge band holds the pointer, and dir
+	// edge is the sequence whose edge band holds the pointer, and dir
 	// -1 for the top band and +1 for the bottom one. dir is 0 for none.
 	edge    int
 	dir     int
@@ -218,20 +218,20 @@ func (s *State) itemTags(at Place) *itemTags {
 	return t
 }
 
-// Layout lays out the drag region: content, the items it lays out
+// Layout lays out the drag area: content, the items it lays out
 // through Item and End, and the image of a dragged item over them. The
-// region takes the context's maximum constraints; a press outside it
+// drag area takes the context's maximum constraints; a press outside it
 // starts no drag.
 func (s *State) Layout(gtx layout.Context, st Style, img Image, content layout.Widget) layout.Dimensions {
 	s.style = st
-	// Pass mode covers the region's own area only: an area the content
-	// registers keeps blocking the areas under it.
+	// Pass mode covers only the drag area's own event handler: a handler
+	// that the content registers keeps blocking the handlers under it.
 	pass := pointer.PassOp{}.Push(gtx.Ops)
-	area := clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops)
-	event.Op(gtx.Ops, &s.region)
+	cl := clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops)
+	event.Op(gtx.Ops, &s.area)
 	pass.Pop()
 	dims := content(gtx)
-	area.Pop()
+	cl.Pop()
 
 	s.update(gtx)
 
@@ -241,14 +241,14 @@ func (s *State) Layout(gtx layout.Context, st Style, img Image, content layout.W
 	return dims
 }
 
-// update reads the region's events. It runs after the content, so the
+// update reads the drag area's events. It runs after the content, so the
 // item press and the place changes of this frame are known before the
-// region's press and release of the same frame.
+// drag area's press and release of the same frame.
 func (s *State) update(gtx layout.Context) {
 	for {
 		e, ok := gtx.Event(
-			pointer.Filter{Target: &s.region, Kinds: pointer.Press | pointer.Drag | pointer.Release | pointer.Cancel},
-			transfer.SourceFilter{Target: &s.region, Type: mime},
+			pointer.Filter{Target: &s.area, Kinds: pointer.Press | pointer.Drag | pointer.Release | pointer.Cancel},
+			transfer.SourceFilter{Target: &s.area, Type: mime},
 		)
 		if !ok {
 			break
@@ -257,7 +257,7 @@ func (s *State) update(gtx layout.Context) {
 		case pointer.Event:
 			s.pointer(gtx, e)
 		case transfer.RequestEvent:
-			gtx.Execute(transfer.OfferCmd{Tag: &s.region, Type: e.Type, Data: io.NopCloser(strings.NewReader(""))})
+			gtx.Execute(transfer.OfferCmd{Tag: &s.area, Type: e.Type, Data: io.NopCloser(strings.NewReader(""))})
 		}
 	}
 	if s.dragging {
@@ -297,7 +297,7 @@ func (s *State) pointer(gtx layout.Context, e pointer.Event) {
 			s.dragging = true
 			// The grab cancels the press for the item's own controls,
 			// so a drag that ends over the item is no click.
-			gtx.Execute(pointer.GrabCmd{Tag: &s.region, ID: e.PointerID})
+			gtx.Execute(pointer.GrabCmd{Tag: &s.area, ID: e.PointerID})
 		}
 		gtx.Execute(op.InvalidateCmd{})
 	case pointer.Release:
@@ -316,7 +316,7 @@ func (s *State) pointer(gtx layout.Context, e pointer.Event) {
 // noop reports whether m lands the item in one of the two gaps next to
 // it in its own sequence, where it already is.
 func noop(m Move) bool {
-	return m.From.Container == m.To.Container &&
+	return m.From.Sequence == m.To.Sequence &&
 		(m.To.Index == m.From.Index || m.To.Index == m.From.Index+1)
 }
 
@@ -338,11 +338,11 @@ func (s *State) drawImage(gtx layout.Context, img Image) {
 	op.Defer(gtx.Ops, m.Stop())
 }
 
-// Item lays out w as the item at the place at and registers the item's
-// two places: the gap before it over its leading half and the gap after
-// it over its trailing half. The sequence is vertical. gap is the space
-// in pixels the app leaves between items: each half reaches half of it
-// beyond the item, and the line is drawn in its middle. A press on the
+// Item lays out w as the item at the place at and registers the item's two
+// places: the gap before it over its leading half and the gap after it
+// over its trailing half. The sequence is vertical. gap is the space in
+// pixels the application leaves between items: each half reaches half of
+// it beyond the item, and the line is drawn in its middle. A press on the
 // item starts a drag once it passes [Threshold]; the item's own controls
 // still get the press, and a press that does not move is their click.
 func (s *State) Item(gtx layout.Context, at Place, gap int, w layout.Widget) layout.Dimensions {
@@ -357,8 +357,8 @@ func (s *State) Item(gtx layout.Context, at Place, gap int, w layout.Widget) lay
 			s.from, s.grab, s.size = at, e.Position, t.size
 		}
 	}
-	s.readPlace(gtx, &t.before, Place{at.Container, at.Index})
-	s.readPlace(gtx, &t.after, Place{at.Container, at.Index + 1})
+	s.readPlace(gtx, &t.before, Place{at.Sequence, at.Index})
+	s.readPlace(gtx, &t.after, Place{at.Sequence, at.Index + 1})
 
 	dims := w(gtx)
 	t.size = dims.Size
@@ -372,8 +372,8 @@ func (s *State) Item(gtx layout.Context, at Place, gap int, w layout.Widget) lay
 	a := clip.Rect{Max: dims.Size}.Push(gtx.Ops)
 	event.Op(gtx.Ops, &t.press)
 	a.Pop()
-	s.addArea(gtx, &t.before, image.Rect(0, -reach, dims.Size.X, half))
-	s.addArea(gtx, &t.after, image.Rect(0, half, dims.Size.X, dims.Size.Y+gap-reach))
+	s.addHandler(gtx, &t.before, image.Rect(0, -reach, dims.Size.X, half))
+	s.addHandler(gtx, &t.after, image.Rect(0, half, dims.Size.X, dims.Size.Y+gap-reach))
 	pass.Pop()
 
 	if s.target == &t.before {
@@ -385,17 +385,17 @@ func (s *State) Item(gtx layout.Context, at Place, gap int, w layout.Widget) lay
 }
 
 // End registers the place after the last item of the sequence
-// container, which holds n items, over the context's maximum
-// constraints. The app lays it out after the last item, or over the
+// seq, which holds n items, over the context's maximum
+// constraints. The application lays it out after the last item, or over the
 // whole of an empty sequence. gap is the gap Item takes: the line is
 // drawn half of it below the top, where the last item's line is.
-func (s *State) End(gtx layout.Context, container, n, gap int) layout.Dimensions {
-	t := s.itemTags(Place{container, -1})
-	at := Place{container, n}
+func (s *State) End(gtx layout.Context, seq, n, gap int) layout.Dimensions {
+	t := s.itemTags(Place{seq, -1})
+	at := Place{seq, n}
 	s.readPlace(gtx, &t.after, at)
 	size := gtx.Constraints.Max
 	pass := pointer.PassOp{}.Push(gtx.Ops)
-	s.addArea(gtx, &t.after, image.Rectangle{Max: size})
+	s.addHandler(gtx, &t.after, image.Rectangle{Max: size})
 	pass.Pop()
 	if s.target == &t.after {
 		s.drawLine(gtx, gap-gap/2, size.X)
@@ -403,7 +403,7 @@ func (s *State) End(gtx layout.Context, container, n, gap int) layout.Dimensions
 	return layout.Dimensions{Size: size}
 }
 
-// place2 reads the events of one place's tag. The place holds the
+// readPlace reads the events of one place's tag. The place holds the
 // pointer from its Enter to its Leave.
 func (s *State) readPlace(gtx layout.Context, tg event.Tag, at Place) {
 	for {
@@ -429,13 +429,13 @@ func (s *State) readPlace(gtx layout.Context, tg event.Tag, at Place) {
 		}
 	}
 	if s.target == tg {
-		// A place can change its gap between frames when the app moves
+		// A place can change its gap between frames when the application moves
 		// items; the place that holds the pointer keeps its tag's gap.
 		s.place = at
 	}
 }
 
-func (s *State) addArea(gtx layout.Context, tg event.Tag, r image.Rectangle) {
+func (s *State) addHandler(gtx layout.Context, tg event.Tag, r image.Rectangle) {
 	a := clip.Rect(r).Push(gtx.Ops)
 	event.Op(gtx.Ops, tg)
 	a.Pop()
@@ -454,28 +454,28 @@ func (s *State) drawLine(gtx layout.Context, y, width int) {
 	op.Defer(gtx.Ops, m.Stop())
 }
 
-// Edges registers the edge bands of the scrolling sequence container
-// over a viewport of size, in the viewport's frame. The app lays it out
+// Edges registers the edge bands of the scrolling sequence seq over a
+// viewport of size, in the viewport's frame. The application lays it out
 // after the sequence's items, so that the bands are over them.
-func (s *State) Edges(gtx layout.Context, container int, size image.Point) {
+func (s *State) Edges(gtx layout.Context, seq int, size image.Point) {
 	if s.edges == nil {
 		s.edges = make(map[int]*edgeTags)
 	}
-	t := s.edges[container]
+	t := s.edges[seq]
 	if t == nil {
 		t = new(edgeTags)
-		s.edges[container] = t
+		s.edges[seq] = t
 	}
-	s.edgeEvents(gtx, &t.top, container, -1)
-	s.edgeEvents(gtx, &t.bottom, container, 1)
+	s.edgeEvents(gtx, &t.top, seq, -1)
+	s.edgeEvents(gtx, &t.bottom, seq, 1)
 	band := min(gtx.Dp(EdgeDp), size.Y/2)
 	pass := pointer.PassOp{}.Push(gtx.Ops)
-	s.addArea(gtx, &t.top, image.Rect(0, 0, size.X, band))
-	s.addArea(gtx, &t.bottom, image.Rect(0, size.Y-band, size.X, size.Y))
+	s.addHandler(gtx, &t.top, image.Rect(0, 0, size.X, band))
+	s.addHandler(gtx, &t.bottom, image.Rect(0, size.Y-band, size.X, size.Y))
 	pass.Pop()
 }
 
-func (s *State) edgeEvents(gtx layout.Context, tg event.Tag, container, dir int) {
+func (s *State) edgeEvents(gtx layout.Context, tg event.Tag, seq, dir int) {
 	for {
 		e, ok := gtx.Event(
 			pointer.Filter{Target: tg, Kinds: pointer.Enter | pointer.Leave},
@@ -488,7 +488,7 @@ func (s *State) edgeEvents(gtx layout.Context, tg event.Tag, container, dir int)
 		case pointer.Event:
 			switch e.Kind {
 			case pointer.Enter:
-				s.edgeTag, s.edge, s.dir = tg, container, dir
+				s.edgeTag, s.edge, s.dir = tg, seq, dir
 			case pointer.Leave:
 				if s.edgeTag == tg {
 					s.edgeTag, s.dir = nil, 0
@@ -500,16 +500,16 @@ func (s *State) edgeEvents(gtx layout.Context, tg event.Tag, container, dir int)
 	}
 }
 
-// Scroll returns the pixels the sequence container scrolls by in this
-// frame: negative towards its start, positive towards its end, and 0
-// while the pointer is in neither of its edge bands. The app adds it to
-// the sequence's scroll position before it lays the sequence out.
-func (s *State) Scroll(gtx layout.Context, container int) int {
+// Scroll returns the pixels the sequence seq scrolls by in this frame:
+// negative towards its start, positive towards its end, and 0 while the
+// pointer is in neither of its edge bands. The application adds it to the
+// sequence's scroll position before it lays the sequence out.
+func (s *State) Scroll(gtx layout.Context, seq int) int {
 	if !s.Dragging() || s.dir == 0 {
 		s.last = time.Time{}
 		return 0
 	}
-	if s.edge != container {
+	if s.edge != seq {
 		return 0
 	}
 	dt := time.Second / 60
