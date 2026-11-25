@@ -408,6 +408,13 @@ func TestADeleteKeyJoinsTheRun(t *testing.T) {
 	for _, kind := range typingKinds {
 		t.Run(kind.name, func(t *testing.T) {
 			rig := newTypingRig(t, kind.field, "", false)
+			rig.typeKeys("a")
+			rig.press(key.NameDeleteBackward, 0)
+			rig.want("", noTyping)
+			rig.undo()
+			rig.redo()
+			rig.want("", noTyping, false, true)
+			rig.left = nil
 			rig.typeKeys("abc")
 			rig.press(key.NameDeleteBackward, 0)
 			rig.typeKeys("d")

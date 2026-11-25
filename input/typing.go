@@ -84,7 +84,7 @@ func (t *typing) reset(text string) {
 // no typing when it gets the keyboard again. A move of the insertion
 // point ends the run of typed characters.
 func (t *typing) keys(gtx layout.Context, editor *widget.Editor, leave func(gtx layout.Context, redo bool)) {
-	if !gtx.Focused(editor) {
+	if !gtx.Focused(editor) && (len(t.undo) > 0 || len(t.redo) > 0 || t.left > 0 || t.ended || t.run) {
 		t.reset(editor.Text())
 	}
 	t.start, t.end = selection(editor)
@@ -200,8 +200,10 @@ func (t *typing) record(editor *widget.Editor, typedOK bool) {
 	t.text, t.run, t.at = text, typed, t.end
 	if n := len(t.undo); t.undo[n-1] == text {
 		// A run that puts the text back as it was before the run is no
-		// change.
+		// change. A field with no step left holds no typing, so Undo and
+		// Redo go to the window.
 		t.undo, t.run = t.undo[:n-1], false
+		t.ended = t.ended && len(t.undo) > 0
 	}
 }
 
