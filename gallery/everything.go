@@ -27,10 +27,11 @@ import (
 	"github.com/vibrantgio/theme/typeset"
 )
 
-// colors returns the scheme the everything page and the two inventory pages
-// are drawn in. The per-family pages predate the control and stay on the light
-// scheme; theirs is close-up work on one component, and the whole-surface
-// judgment this control serves is what the everything page is for.
+// colors returns the scheme the everything page, the two inventory pages and
+// the drag and drop page are drawn in. The per-family pages predate the
+// control and stay on the light scheme; theirs is close-up work on one
+// component, and the whole-surface judgment this control serves is what the
+// everything page is for.
 func (g *gallery) colors() tokens.PlatformColors {
 	if g.dark {
 		return tokens.PlatformDark
@@ -40,12 +41,12 @@ func (g *gallery) colors() tokens.PlatformColors {
 
 // chrome returns the tokens the window's own chrome — the surface under a
 // page and the sidebar beside it — is drawn in. It follows the page: an
-// inventory page takes the scheme its control is set to, and a per-family
-// page, which draws light-scheme components whatever the control says, keeps
-// the chrome on the light scheme with them.
+// inventory page and the drag and drop page take the scheme the control is
+// set to, and a per-family page, which draws light-scheme components
+// whatever the control says, keeps the chrome on the light scheme with them.
 func (g *gallery) chrome() tokens.PlatformColors {
 	switch g.page {
-	case pageEverything, pagePatterns, pageMarkdown:
+	case pageEverything, pagePatterns, pageMarkdown, pageDragDrop:
 		return g.colors()
 	}
 	return tokens.PlatformLight

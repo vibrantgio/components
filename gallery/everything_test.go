@@ -62,7 +62,7 @@ func testInventory(t *testing.T) *inventory.Inventory {
 // whose live components newGallery builds against a real one.
 func testGallery(t *testing.T) *gallery {
 	t.Helper()
-	g := &gallery{shaper: tokens.DefaultTypography.DeterministicShaper()}
+	g := &gallery{shaper: tokens.DefaultTypography.DeterministicShaper(), drag: newDragDemo()}
 	g.nav = make([]widget.Clickable, len(pageNames))
 	g.scrollSt = make([]*list.State, len(pageNames))
 	for i := range g.scrollSt {
@@ -173,7 +173,7 @@ func TestFrameDraws(t *testing.T) {
 				t.Errorf("page %q: the sidebar drew nothing", pageNames[page])
 			}
 		}
-		for _, page := range []int{pageEverything, pagePatterns, pageMarkdown} {
+		for _, page := range []int{pageEverything, pagePatterns, pageMarkdown, pageDragDrop} {
 			g.page = page
 			if d := g.frame(context()); d.Size.X == 0 {
 				t.Errorf("page %q drew nothing", pageNames[page])

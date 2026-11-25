@@ -53,6 +53,7 @@ import (
 var pageNames = []string{
 	"Everything",
 	"Button", "Chip", "Inputs", "List", "Paragraph", "Icon", "Layout", "A11y", "Initial", "Stream",
+	"Drag and drop",
 	"Patterns", "Markdown",
 }
 
@@ -68,6 +69,7 @@ const (
 	pageA11y
 	pageInitial
 	pageStream
+	pageDragDrop
 	pagePatterns
 	pageMarkdown
 )
@@ -155,6 +157,9 @@ type gallery struct {
 	streamMu       sync.Mutex
 	streamMsg      string
 	streamSend     widget.Clickable
+
+	// Drag and drop page
+	drag *dragDemo
 }
 
 func main() {
@@ -194,7 +199,7 @@ func run(w *app.Window) error {
 }
 
 func newGallery(w *app.Window, shaper *text.Shaper) *gallery {
-	g := &gallery{win: w, shaper: shaper}
+	g := &gallery{win: w, shaper: shaper, drag: newDragDemo()}
 	g.nav = make([]widget.Clickable, len(pageNames))
 	g.scrollSt = make([]*list.State, len(pageNames))
 	for i := range g.scrollSt {
@@ -469,6 +474,8 @@ func (g *gallery) content(gtx layout.Context) layout.Dimensions {
 		return g.pageInitial(gtx)
 	case pageStream:
 		return g.pageStream(gtx)
+	case pageDragDrop:
+		return g.pageDragDrop(gtx)
 	}
 	return layout.Dimensions{}
 }
