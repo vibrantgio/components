@@ -73,6 +73,20 @@ type BorderlessTextFieldProps struct {
 	// OnChange is called with the new value on every text change.
 	OnChange func(gtx layout.Context, text string)
 
+	// OnTyping, if non-nil, is called when the field's typing changes:
+	// undo tells whether Undo can reverse a change the user made to the
+	// text, and redo whether Redo can make a reversed change again. The
+	// text the field is created with is no change, so a new field holds
+	// neither.
+	OnTyping func(gtx layout.Context, undo, redo bool)
+
+	// LeaveUndo, if non-nil, receives each Undo and Redo key that the
+	// field holds no typing for: Cmd-Z and Shift-Cmd-Z on macOS, Ctrl-Z
+	// and Shift-Ctrl-Z elsewhere. redo is true for Redo. The field reads
+	// those keys while it holds the keyboard, so the window's last change
+	// gets them only through LeaveUndo.
+	LeaveUndo func(gtx layout.Context, redo bool)
+
 	// Message, if non-nil, causes the field to emit mvu.MessageOp{Message}
 	// on every text change.
 	Message any
@@ -179,8 +193,17 @@ func BorderlessTextField(th rx.Observable[theme.Theme], props BorderlessTextFiel
 		if props.Seed != "" {
 			editor.SetText(props.Seed)
 		}
+		typed := newTyping(editor.Text())
 		if props.FocusTag != nil {
 			props.FocusTag(editor)
+		}
+		changed := func(gtx layout.Context) {
+			if props.OnChange != nil {
+				props.OnChange(gtx, editor.Text())
+			}
+			if props.Message != nil {
+				mvu.MessageOp{Message: props.Message}.Add(gtx.Ops)
+			}
 		}
 		return rx.Map(inputs, func(next rx.Tuple2[borderlessTokens, bool]) layout.Widget {
 			tok, dis := next.First, next.Second
@@ -193,6 +216,9 @@ func BorderlessTextField(th rx.Observable[theme.Theme], props BorderlessTextFiel
 					gtx = gtx.Disabled()
 				}
 				in.begin(gtx, editor, !dis && gtx.Focused(editor))
+				if typed.keys(gtx, editor, props.LeaveUndo) {
+					changed(gtx)
+				}
 				for {
 					ev, ok := editor.Update(gtx)
 					if !ok {
@@ -200,12 +226,8 @@ func BorderlessTextField(th rx.Observable[theme.Theme], props BorderlessTextFiel
 					}
 					switch ev := ev.(type) {
 					case widget.ChangeEvent:
-						if props.OnChange != nil {
-							props.OnChange(gtx, editor.Text())
-						}
-						if props.Message != nil {
-							mvu.MessageOp{Message: props.Message}.Add(gtx.Ops)
-						}
+						typed.changed(editor.Text())
+						changed(gtx)
 					case widget.SubmitEvent:
 						if props.SubmitMessage != nil {
 							mvu.MessageOp{Message: props.SubmitMessage(ev.Text)}.Add(gtx.Ops)
@@ -215,6 +237,7 @@ func BorderlessTextField(th rx.Observable[theme.Theme], props BorderlessTextFiel
 						}
 					}
 				}
+				typed.report(gtx, props.OnTyping)
 				desc := props.Description
 				if desc == "" {
 					desc = props.Placeholder
