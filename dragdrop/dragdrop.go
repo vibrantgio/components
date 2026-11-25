@@ -224,12 +224,14 @@ func (s *State) itemTags(at Place) *itemTags {
 // starts no drag.
 func (s *State) Layout(gtx layout.Context, st Style, img Image, content layout.Widget) layout.Dimensions {
 	s.style = st
+	// Pass mode covers the region's own area only: an area the content
+	// registers keeps blocking the areas under it.
 	pass := pointer.PassOp{}.Push(gtx.Ops)
 	area := clip.Rect{Max: gtx.Constraints.Max}.Push(gtx.Ops)
 	event.Op(gtx.Ops, &s.region)
+	pass.Pop()
 	dims := content(gtx)
 	area.Pop()
-	pass.Pop()
 
 	s.update(gtx)
 
@@ -503,8 +505,11 @@ func (s *State) edgeEvents(gtx layout.Context, tg event.Tag, container, dir int)
 // while the pointer is in neither of its edge bands. The app adds it to
 // the sequence's scroll position before it lays the sequence out.
 func (s *State) Scroll(gtx layout.Context, container int) int {
-	if !s.Dragging() || s.dir == 0 || s.edge != container {
+	if !s.Dragging() || s.dir == 0 {
 		s.last = time.Time{}
+		return 0
+	}
+	if s.edge != container {
 		return 0
 	}
 	dt := time.Second / 60

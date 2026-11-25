@@ -268,3 +268,49 @@ func TestPointerNearTheBottomEdgeScrolls(t *testing.T) {
 	}
 	h.pointer(pointer.Release, 50, 150)
 }
+
+func TestReleaseOverTheItemAfterADragIsNoClick(t *testing.T) {
+	h := newHarness(t)
+	h.drag(50, 26, 50, 40)
+	h.wantMoves()
+	if len(h.clicked) != 0 {
+		t.Fatalf("clicked = %v after a drag, want none", h.clicked)
+	}
+}
+
+func TestContentAreasStillBlock(t *testing.T) {
+	var r input.Router
+	var s State
+	var top, under int
+	got := map[*int]int{}
+	frame := func() {
+		ops := new(op.Ops)
+		gtx := layout.Context{Ops: ops, Constraints: layout.Exact(image.Pt(100, 100)), Source: r.Source()}
+		for _, tg := range []*int{&top, &under} {
+			for {
+				e, ok := gtx.Event(pointer.Filter{Target: tg, Kinds: pointer.Press})
+				if !ok {
+					break
+				}
+				if e, ok := e.(pointer.Event); ok && e.Kind == pointer.Press {
+					got[tg]++
+				}
+			}
+		}
+		s.Layout(gtx, Style{}, nil, func(gtx layout.Context) layout.Dimensions {
+			for _, tg := range []*int{&under, &top} {
+				a := clip.Rect{Max: image.Pt(50, 50)}.Push(gtx.Ops)
+				event.Op(gtx.Ops, tg)
+				a.Pop()
+			}
+			return layout.Dimensions{Size: gtx.Constraints.Max}
+		})
+		r.Frame(ops)
+	}
+	frame()
+	r.Queue(pointer.Event{Kind: pointer.Press, Source: pointer.Mouse, Buttons: pointer.ButtonPrimary, Position: f32.Pt(10, 10)})
+	frame()
+	if got[&top] != 1 || got[&under] != 0 {
+		t.Fatalf("presses: top %d, under %d; want 1 and 0", got[&top], got[&under])
+	}
+}
