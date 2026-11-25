@@ -198,14 +198,17 @@ func (t *typing) alone(editor *widget.Editor) { t.record(editor, false) }
 // A change is typed when it keeps the text after the selection before it,
 // and leaves the insertion point after the text it put in. A typed
 // character, a Delete key and an input method composition each give such
-// a change. A typed change at the insertion point after the run joins the
-// run. DERIVED: a Delete key in a run and a committed composition join the
-// run, because no typing capture measures how the platform groups them.
+// a change. A forward Delete key is typed too: it removes text after the
+// insertion point and does not move the insertion point. A typed change
+// at the insertion point after the run joins the run. DERIVED: a Delete
+// key and a forward Delete key in a run join the run by one rule, and a
+// committed composition joins the run. No typing capture measures how the
+// platform groups them.
 //
-// A change at a selection is a new step. When it removes the selection
-// and puts no text in, it is a cut or a Delete of the selection, and it is
-// one change by itself. DERIVED: a Delete of a selection is one change, as
-// a cut is.
+// A change at a selection is a new step. DERIVED: typing over a selection
+// starts a new change. When the change removes the selection and puts no
+// text in, it is a cut or a Delete of the selection, and it is one change
+// by itself. DERIVED: a Delete of a selection is one change, as a cut is.
 func (t *typing) record(editor *widget.Editor, typedOK bool) {
 	text := editor.Text()
 	lo, hi := t.start, t.end
@@ -213,7 +216,9 @@ func (t *typing) record(editor *widget.Editor, typedOK bool) {
 	if text == t.text {
 		return
 	}
-	typed := typedOK && t.start == t.end && (lo == hi || t.end > lo) && keepsAfter(t.text, text, hi, t.end)
+	typed := typedOK && t.start == t.end &&
+		((lo == hi || t.end > lo) && keepsAfter(t.text, text, hi, t.end) ||
+			lo == hi && t.end == lo && deletesAfter(t.text, text, lo))
 	if !typed || !t.run || lo != hi || lo != t.at {
 		t.undo = append(t.undo, t.text)
 	}
@@ -221,8 +226,10 @@ func (t *typing) record(editor *widget.Editor, typedOK bool) {
 	t.text, t.run, t.at = text, typed, t.end
 	if n := len(t.undo); t.undo[n-1] == text {
 		// A run that puts the text back as it was before the run is no
-		// change. A field with no step left holds no typing, so Undo and
-		// Redo go to the window.
+		// change, and the field's Redo stays ended. A field with no step
+		// left holds no typing, so Undo and Redo go to the window. DERIVED:
+		// the run leaves no step for Undo. No typing capture measures
+		// whether the platform keeps one.
 		t.undo, t.run = t.undo[:n-1], false
 		t.ended = t.ended && len(t.undo) > 0
 	}
@@ -237,6 +244,16 @@ func keepsAfter(was, text string, hi, at int) bool {
 	}
 	rest := w[hi:]
 	return at == len(n)-len(rest) && at >= 0 && string(n[at:]) == string(rest)
+}
+
+// deletesAfter is true when text is was with runes removed from rune
+// offset at on, and the runes before at are the same in both.
+func deletesAfter(was, text string, at int) bool {
+	w, n := []rune(was), []rune(text)
+	if at < 0 || at > len(n) || len(n) >= len(w) {
+		return false
+	}
+	return string(n[:at]) == string(w[:at]) && string(n[at:]) == string(w[len(w)-len(n)+at:])
 }
 
 // selection is the editor's selection as rune offsets, the lower offset

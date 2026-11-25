@@ -489,6 +489,43 @@ func TestADeleteKeyJoinsTheRun(t *testing.T) {
 	}
 }
 
+// A forward Delete key in a run joins the run, as the Delete key does. A
+// move of the insertion point between two presses starts a new change, and
+// a run that puts the text back as it was is no change.
+func TestAForwardDeleteKeyJoinsTheRun(t *testing.T) {
+	for _, kind := range typingKinds {
+		t.Run(kind.name, func(t *testing.T) {
+			rig := newTypingRig(t, kind.field, "Draft", false)
+			rig.moveTo(0)
+			rig.typeKeys("x")
+			rig.press(key.NameDeleteForward, 0)
+			rig.press(key.NameDeleteForward, 0)
+			rig.typeKeys("y")
+			rig.want("xyaft", undoOnly)
+			rig.press(key.NameDeleteForward, 0)
+			rig.press(key.NameRightArrow, 0)
+			rig.press(key.NameLeftArrow, 0)
+			rig.press(key.NameDeleteForward, 0)
+			rig.want("xyt", undoOnly)
+			rig.undo()
+			rig.want("xyft", undoRedo)
+			rig.undo()
+			rig.want("Draft", redoOnly)
+			rig.redo()
+			rig.redo()
+			rig.want("xyt", undoNoRedo)
+			rig.moveTo(2)
+			rig.typeKeys("t")
+			rig.press(key.NameDeleteBackward, 0)
+			rig.typeKeys("t")
+			rig.press(key.NameDeleteForward, 0)
+			rig.want("xyt", undoOnly)
+			rig.undo()
+			rig.want("xyft", undoRedo)
+		})
+	}
+}
+
 // A field that loses the keyboard drops its typing, for Undo and for Redo.
 // When it gets the keyboard again, Cmd-Z and Shift-Cmd-Z go to the window.
 func TestAFieldThatLosesTheKeyboardDropsItsTyping(t *testing.T) {
