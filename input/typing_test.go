@@ -27,7 +27,6 @@ import (
 type typingHooks struct {
 	seed     string
 	focusTag func(event.Tag)
-	leave    func(layout.Context, bool)
 	onTyping func(layout.Context, input.Typing)
 	onChange func(layout.Context, string)
 	submit   bool
@@ -42,19 +41,19 @@ var typingKinds = []struct {
 }{
 	{"borderless", func(t *testing.T, h typingHooks) layout.Widget {
 		return liveBorderless(t, input.BorderlessTextFieldProps{
-			Seed: h.seed, FocusTag: h.focusTag, LeaveUndo: h.leave, OnTyping: h.onTyping,
+			Seed: h.seed, FocusTag: h.focusTag, OnTyping: h.onTyping,
 			OnChange: h.onChange, Submit: h.submit,
 		})
 	}},
 	{"bordered", func(t *testing.T, h typingHooks) layout.Widget {
 		return liveTextField(t, input.TextFieldProps{
-			Seed: h.seed, FocusTag: h.focusTag, LeaveUndo: h.leave, OnTyping: h.onTyping,
+			Seed: h.seed, FocusTag: h.focusTag, OnTyping: h.onTyping,
 			OnChange: h.onChange, Submit: h.submit,
 		})
 	}},
 	{"search", func(t *testing.T, h typingHooks) layout.Widget {
 		return materialize(t, input.SearchField(rx.Of(theme.Default()), input.SearchFieldProps{
-			Seed: h.seed, FocusTag: h.focusTag, LeaveUndo: h.leave, OnTyping: h.onTyping,
+			Seed: h.seed, FocusTag: h.focusTag, OnTyping: h.onTyping,
 			OnChange: h.onChange, SetText: h.set, Shaper: defaultShaper(t),
 		}))
 	}},
@@ -67,8 +66,12 @@ type typingRig struct {
 	editor *widget.Editor
 	r      *gioinput.Router
 	ops    *op.Ops
-	// left records each LeaveUndo call: true for Redo.
-	left []bool
+	// left records each key that the field gave the window's Undo: true
+	// for Redo. none is true when the window's Undo reports that it found
+	// no change, and window is false when the rig sets no window Undo.
+	left   []bool
+	none   bool
+	window bool
 	// state is the last OnTyping state, and reports counts the calls.
 	state   input.Typing
 	reports int
@@ -80,12 +83,11 @@ type typingRig struct {
 
 func newTypingRig(t *testing.T, build func(*testing.T, typingHooks) layout.Widget, seed string, submit bool) *typingRig {
 	t.Helper()
-	rig := &typingRig{t: t, r: new(gioinput.Router), ops: new(op.Ops)}
+	rig := &typingRig{t: t, r: new(gioinput.Router), ops: new(op.Ops), window: true}
 	var tag event.Tag
 	rig.field = build(t, typingHooks{
 		seed:     seed,
 		focusTag: func(tg event.Tag) { tag = tg },
-		leave:    func(_ layout.Context, redo bool) { rig.left = append(rig.left, redo) },
 		onTyping: func(_ layout.Context, s input.Typing) {
 			rig.state = s
 			rig.reports++
@@ -102,7 +104,18 @@ func newTypingRig(t *testing.T, build func(*testing.T, typingHooks) layout.Widge
 	return rig
 }
 
-func (rig *typingRig) frame() { driveTextFieldFrame(rig.field, rig.ops, rig.r, borderlessSize) }
+// frame lays the field out under the rig's window Undo.
+func (rig *typingRig) frame() {
+	driveTextFieldFrame(func(gtx layout.Context) layout.Dimensions {
+		if rig.window {
+			gtx = input.WithWindowUndo(gtx, func(_ layout.Context, redo bool) bool {
+				rig.left = append(rig.left, redo)
+				return !rig.none
+			})
+		}
+		return rig.field(gtx)
+	}, rig.ops, rig.r, borderlessSize)
+}
 
 func (rig *typingRig) undo() { rig.chord(key.ModShortcut) }
 func (rig *typingRig) redo() { rig.chord(key.ModShortcut | key.ModShift) }
@@ -201,7 +214,8 @@ var (
 
 // A field that the user has not typed in holds no typing, whether it is
 // empty or holds a value: Undo and Redo go to the window, and the value
-// stays.
+// stays. The field takes no prop for that: the window sets its Undo on the
+// context alone.
 func TestAFieldWithoutTypingLeavesUndoToTheWindow(t *testing.T) {
 	for _, kind := range typingKinds {
 		for _, seed := range []string{"Draft the notes", ""} {
@@ -215,6 +229,45 @@ func TestAFieldWithoutTypingLeavesUndoToTheWindow(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// A field under a window with no Undo of its own gives the keys to no one:
+// Undo and Redo change nothing, and the field holds no typing.
+func TestAFieldUnderNoWindowUndoChangesNothing(t *testing.T) {
+	for _, kind := range typingKinds {
+		t.Run(kind.name, func(t *testing.T) {
+			rig := newTypingRig(t, kind.field, "Draft", false)
+			rig.window = false
+			rig.undo()
+			rig.redo()
+			rig.want("Draft", noTyping)
+			rig.typeAtEnd(" the")
+			rig.undo()
+			rig.undo()
+			rig.redo()
+			rig.want("Draft the", undoNoRedo)
+		})
+	}
+}
+
+// An Undo that finds no change to reverse changes nothing, and Redo stays
+// as it was. The user types, and presses Cmd-Z twice: the field reverses
+// the typing, and the window reports no change. The first Shift-Cmd-Z
+// makes the typing again.
+func TestAnUndoWithNoChangeLeavesRedoAsItWas(t *testing.T) {
+	for _, kind := range typingKinds {
+		t.Run(kind.name, func(t *testing.T) {
+			rig := newTypingRig(t, kind.field, "Draft", false)
+			rig.none = true
+			rig.typeAtEnd(" the")
+			rig.undo()
+			rig.want("Draft", redoOnly)
+			rig.undo()
+			rig.want("Draft", redoOnly, false)
+			rig.redo()
+			rig.want("Draft the", undoNoRedo, false)
+		})
 	}
 }
 

@@ -140,13 +140,13 @@ type SearchFieldProps struct {
 	// through OnChange and Message like any other edit.
 	SetText func(set func(text string))
 
-	// OnTyping and LeaveUndo give the field's Undo and Redo as
-	// [BorderlessTextFieldProps.OnTyping] and
-	// [BorderlessTextFieldProps.LeaveUndo] give them. The clear mark and
+	// OnTyping gives the field's Undo and Redo as
+	// [BorderlessTextFieldProps.OnTyping] gives them. The clear mark and
 	// Escape are typing: the user made the field empty. A text that Clear or
-	// SetText puts in the field leaves it with no typing.
-	OnTyping  func(gtx layout.Context, typing Typing)
-	LeaveUndo func(gtx layout.Context, redo bool)
+	// SetText puts in the field leaves it with no typing. The field gives
+	// the keys that it holds no typing for to the window's Undo, see
+	// [WithWindowUndo].
+	OnTyping func(gtx layout.Context, typing Typing)
 
 	// Disabled, if non-nil, disables the field when it emits true. A disabled
 	// field draws its marks faded with the rest of it and offers no clear.
@@ -353,7 +353,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 					}
 				}
 
-				typed.keys(gtx, editor, props.LeaveUndo)
+				typed.keys(gtx, editor)
 				update := func() {
 					for {
 						ev, ok := editor.Update(gtx)

@@ -202,12 +202,11 @@ type TextFieldProps struct {
 	// on every text change. This is the MVU integration path.
 	Message any
 
-	// OnTyping and LeaveUndo give the field's Undo and Redo as
-	// [BorderlessTextFieldProps.OnTyping] and
-	// [BorderlessTextFieldProps.LeaveUndo] give them. A submit that clears
-	// the field leaves it with no typing.
-	OnTyping  func(gtx layout.Context, typing Typing)
-	LeaveUndo func(gtx layout.Context, redo bool)
+	// OnTyping gives the field's Undo and Redo as
+	// [BorderlessTextFieldProps.OnTyping] gives them. A submit that clears
+	// the field leaves it with no typing. The field gives the keys that it
+	// holds no typing for to the window's Undo, see [WithWindowUndo].
+	OnTyping func(gtx layout.Context, typing Typing)
 
 	// Submit, when true, configures the inner widget.Editor to translate
 	// carriage-return key presses into widget.SubmitEvent rather than
@@ -346,7 +345,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 				}
 				in.begin(gtx, editor, !dis && gtx.Focused(editor))
 
-				typed.keys(gtx, editor, props.LeaveUndo)
+				typed.keys(gtx, editor)
 				// Drain editor events; fire callbacks on text change and submit.
 				for {
 					ev, ok := editor.Update(gtx)

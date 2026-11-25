@@ -45,10 +45,10 @@ type typing struct {
 	// change last. redo holds the text after each reversed change, the
 	// last reversed change last.
 	undo, redo []string
-	// left counts the Undo keys given to the window after the field's
-	// typing was all reversed. Redo gives that many keys to the window
-	// first, because Redo makes changes again in the opposite order of the
-	// undos.
+	// left counts the Undo keys that reversed a change of the window after
+	// the field's typing was all reversed. Redo gives that many keys to the
+	// window first, because Redo makes changes again in the opposite order
+	// of the undos.
 	left int
 	// ended is true when the user typed after the last Undo.
 	ended bool
@@ -78,12 +78,14 @@ func (t *typing) reset(text string) {
 // holds the keyboard. Call keys before the frame's first editor.Update: a
 // key that puts a step back makes the editor report a change in that
 // Update. Each press that the field holds no step for and that Redo does
-// not end goes to leave, when leave is non-nil.
+// not end goes to the window's Undo that gtx carries, see
+// [WithWindowUndo]. An Undo that the window reports as no change changes
+// nothing, and Redo stays as it was.
 //
 // A field that does not hold the keyboard drops its typing, so it holds
 // no typing when it gets the keyboard again. A move of the insertion
 // point ends the run of typed characters.
-func (t *typing) keys(gtx layout.Context, editor *widget.Editor, leave func(gtx layout.Context, redo bool)) {
+func (t *typing) keys(gtx layout.Context, editor *widget.Editor) {
 	if !gtx.Focused(editor) && (len(t.undo) > 0 || len(t.redo) > 0 || t.left > 0 || t.ended || t.run) {
 		t.reset(editor.Text())
 	}
@@ -101,27 +103,46 @@ func (t *typing) keys(gtx layout.Context, editor *widget.Editor, leave func(gtx 
 		if !ok || ke.State != key.Press {
 			continue
 		}
-		redo := ke.Modifiers.Contain(key.ModShift)
-		switch {
-		case redo && t.ended:
-			continue
-		case redo && t.left > 0:
-			t.left--
-		case redo && len(t.redo) > 0:
-			t.step(editor, &t.redo, &t.undo)
-			continue
-		case !redo && len(t.undo) > 0:
-			t.step(editor, &t.undo, &t.redo)
-			continue
-		case !redo:
-			t.ended = false
-			if len(t.redo) > 0 {
-				t.left++
-			}
+		if ke.Modifiers.Contain(key.ModShift) {
+			t.redoKey(gtx, editor)
+		} else {
+			t.undoKey(gtx, editor)
 		}
-		if leave != nil {
-			leave(gtx, redo)
+	}
+}
+
+// undoKey acts on one press of Undo: the field reverses its last change,
+// or else gives the key to the window. The field counts the key in left
+// only when the window reversed a change.
+func (t *typing) undoKey(gtx layout.Context, editor *widget.Editor) {
+	switch {
+	case len(t.undo) > 0:
+		t.step(editor, &t.undo, &t.redo)
+	case windowUndo(gtx, false):
+		t.ended = false
+		if len(t.redo) > 0 {
+			t.left++
 		}
+	}
+}
+
+// redoKey acts on one press of Redo. After the user typed, Redo makes
+// nothing again. Else the window first makes again each change that left
+// counts, then the field makes its reversed changes again, and then the
+// window gets the key.
+func (t *typing) redoKey(gtx layout.Context, editor *widget.Editor) {
+	switch {
+	case t.ended:
+	case t.left > 0 && windowUndo(gtx, true):
+		t.left--
+	case len(t.redo) > 0:
+		// The window holds no change to make again before the field's.
+		t.left = 0
+		t.step(editor, &t.redo, &t.undo)
+	case t.left == 0:
+		windowUndo(gtx, true)
+	default:
+		t.left = 0
 	}
 }
 

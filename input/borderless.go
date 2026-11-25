@@ -79,13 +79,10 @@ type BorderlessTextFieldProps struct {
 	// keyboard drops its typing and reports no typing.
 	OnTyping func(gtx layout.Context, typing Typing)
 
-	// LeaveUndo, if non-nil, receives each Undo and Redo key that the
-	// field holds no typing for: Cmd-Z and Shift-Cmd-Z on macOS, Ctrl-Z
-	// and Shift-Ctrl-Z elsewhere. redo is true for Redo. The field reads
-	// those keys while it holds the keyboard, so the window's last change
-	// gets them only through LeaveUndo. The field gives no Redo key to
-	// the window after the user typed, until an Undo runs.
-	LeaveUndo func(gtx layout.Context, redo bool)
+	// A field that holds no typing for an Undo or Redo key gives the key
+	// to the window's Undo, see [WithWindowUndo]. The field gives no Redo
+	// key to the window after the user typed, until an Undo reverses a
+	// change.
 
 	// Message, if non-nil, causes the field to emit mvu.MessageOp{Message}
 	// on every text change.
@@ -216,7 +213,7 @@ func BorderlessTextField(th rx.Observable[theme.Theme], props BorderlessTextFiel
 					gtx = gtx.Disabled()
 				}
 				in.begin(gtx, editor, !dis && gtx.Focused(editor))
-				typed.keys(gtx, editor, props.LeaveUndo)
+				typed.keys(gtx, editor)
 				for {
 					ev, ok := editor.Update(gtx)
 					if !ok {
