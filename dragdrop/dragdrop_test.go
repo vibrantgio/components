@@ -17,6 +17,8 @@ import (
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
 	"gioui.org/unit"
+
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // The test window has two sequences side by side. Each item is 100 by
@@ -36,6 +38,7 @@ type harness struct {
 	clicked []Place
 	moves   []Move
 	scroll  int
+	side    int
 	now     time.Time
 }
 
@@ -74,6 +77,7 @@ func (h *harness) frame() {
 		}
 	}
 	h.s.Layout(gtx, Style{Line: color.NRGBA{B: 255, A: 255}}, blocking, func(gtx layout.Context) layout.Dimensions {
+		h.side += h.s.SideScroll(gtx, 0)
 		for c := range 2 {
 			st := op.Offset(image.Pt(c*colX1, 0)).Push(gtx.Ops)
 			cg := gtx
@@ -114,6 +118,9 @@ func (h *harness) frame() {
 			h.s.Edges(cg, c, image.Pt(itemW, 300))
 			st.Pop()
 		}
+		// The whole window is one area that scrolls sideways. Its number
+		// is the same as the first sequence's, and the two do not mix.
+		h.s.SideEdges(gtx, 0, gtx.Constraints.Max)
 		return layout.Dimensions{Size: gtx.Constraints.Max}
 	})
 	h.r.Frame(ops)
@@ -267,6 +274,73 @@ func TestPointerNearTheBottomEdgeScrolls(t *testing.T) {
 		t.Fatalf("scroll = %d away from the edges, want 0", h.scroll)
 	}
 	h.pointer(pointer.Release, 50, 150)
+}
+
+// The window scrolls sideways while the pointer is near its leading or
+// its trailing edge, and not away from them.
+func TestPointerNearTheSideEdgesScrolls(t *testing.T) {
+	h := newHarness(t)
+	h.pointer(pointer.Move, 50, 10)
+	h.pointer(pointer.Press, 50, 10)
+	h.pointer(pointer.Drag, 200, 150)
+	h.pointer(pointer.Drag, 395, 150)
+	h.side, h.scroll = 0, 0
+	h.frame()
+	if h.side <= 0 || h.scroll != 0 {
+		t.Fatalf("sideways scroll = %d and vertical scroll = %d near the trailing edge, want > 0 and 0", h.side, h.scroll)
+	}
+	h.pointer(pointer.Drag, 200, 150)
+	h.side = 0
+	h.frame()
+	if h.side != 0 {
+		t.Fatalf("sideways scroll = %d away from the edges, want 0", h.side)
+	}
+	h.pointer(pointer.Drag, 5, 150)
+	h.side = 0
+	h.frame()
+	if h.side >= 0 {
+		t.Fatalf("sideways scroll = %d near the leading edge, want < 0", h.side)
+	}
+	h.pointer(pointer.Release, 5, 150)
+	h.side = 0
+	h.frame()
+	if h.side != 0 {
+		t.Fatalf("sideways scroll = %d after the release, want 0", h.side)
+	}
+}
+
+// In a corner, the pointer is in the bottom band of a sequence and in the
+// leading band of the area that scrolls sideways, and both scroll.
+func TestPointerInACornerScrollsBothWays(t *testing.T) {
+	h := newHarness(t)
+	h.pointer(pointer.Move, 50, 10)
+	h.pointer(pointer.Press, 50, 10)
+	h.pointer(pointer.Drag, 50, 200)
+	h.pointer(pointer.Drag, 5, 295)
+	h.side, h.scroll = 0, 0
+	h.frame()
+	if h.side >= 0 || h.scroll <= 0 {
+		t.Fatalf("sideways scroll = %d and vertical scroll = %d in the corner, want < 0 and > 0", h.side, h.scroll)
+	}
+	h.pointer(pointer.Release, 5, 295)
+}
+
+// The line is in the accent fill, the fill of a checked checkbox: MEASURED
+// #157bf5 in light and #1b81fb in dark. It is not the platform's named
+// accent colour, #007aff.
+func TestTheLineIsTheAccentFill(t *testing.T) {
+	for _, sc := range []struct {
+		name     string
+		platform tokens.PlatformColors
+		want     color.NRGBA
+	}{
+		{"light", tokens.PlatformLight, color.NRGBA{R: 0x15, G: 0x7b, B: 0xf5, A: 0xff}},
+		{"dark", tokens.PlatformDark, color.NRGBA{R: 0x1b, G: 0x81, B: 0xfb, A: 0xff}},
+	} {
+		if got := FromTokens(sc.platform).Line; got != sc.want {
+			t.Errorf("%s: line = %v, want %v", sc.name, got, sc.want)
+		}
+	}
 }
 
 func TestReleaseOverTheItemAfterADragIsNoClick(t *testing.T) {

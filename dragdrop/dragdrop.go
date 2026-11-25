@@ -7,7 +7,11 @@
 // line marks the place where the item would land, between the items that
 // are there. Released over a place, the item lands there and the
 // application gets one [Move]. Released anywhere else, or after Escape,
-// the application gets nothing.
+// the application gets nothing. While the pointer is near an edge of a
+// scroll area, the area scrolls toward that edge: [State.Edges] and
+// [State.Scroll] do it at the top and the bottom of a sequence, and
+// [State.SideEdges] and [State.SideScroll] at the leading and the trailing
+// edge of an area that scrolls sideways.
 //
 // The package changes no data. The application keeps its own sequences,
 // lays out each item through [State.Item] and the space after the last
@@ -67,14 +71,15 @@ const LineWidth = unit.Dp(2)
 // reference does not measure its opacity.
 const Opacity = 0.75
 
-// EdgeDp is the depth of the band at the top and at the bottom of a
-// scrolling sequence where the pointer scrolls it. DERIVED: the regular
-// control height.
+// EdgeDp is the depth of the band along each edge of a scroll area where
+// the pointer scrolls it: the top and the bottom of a scrolling sequence,
+// and the leading and the trailing edge of an area that scrolls sideways.
+// DERIVED: the regular control height.
 const EdgeDp = unit.Dp(24)
 
-// ScrollSpeed is how far a sequence scrolls each second while the
-// pointer is in one of its edge bands. DERIVED until a platform drag is
-// measured.
+// ScrollSpeed is how far a scroll area scrolls each second while the
+// pointer is in one of its edge bands, in both directions. DERIVED until a
+// platform drag is measured.
 const ScrollSpeed = unit.Dp(480)
 
 // Place is a position in a sequence of items. Sequence is the application's
@@ -110,10 +115,11 @@ type Style struct {
 	Line color.NRGBA
 }
 
-// FromTokens returns the style for the platform's colours. The line is
-// in the accent, as the platform's lists draw the line of a drop.
+// FromTokens returns the style for the platform's colours. The line is in
+// the accent fill, the fill of a checked checkbox. DERIVED until a capture
+// of a platform drag is stored.
 func FromTokens(p tokens.PlatformColors) Style {
-	return Style{Line: p.ControlAccent}
+	return Style{Line: p.AccentFill}
 }
 
 // Image draws the item at from as the image that follows the pointer.
@@ -131,6 +137,7 @@ type State struct {
 
 	items map[Place]*itemTags
 	edges map[int]*edgeTags
+	sides map[int]*edgeTags
 
 	// pressed is true while the button that pressed an item is down.
 	pressed bool
@@ -158,12 +165,11 @@ type State struct {
 	// style is the drag area's style for the frame being laid out.
 	style Style
 
-	// edge is the sequence whose edge band holds the pointer, and dir
-	// -1 for the top band and +1 for the bottom one. dir is 0 for none.
-	edge    int
-	dir     int
-	edgeTag event.Tag
-	last    time.Time
+	// vert is the band at the top or the bottom of a sequence that holds
+	// the pointer, and side the band at the leading or the trailing edge
+	// of an area that scrolls sideways. The two are apart because a
+	// corner of a sequence can be in a band of each.
+	vert, side band
 
 	moves []Move
 }
@@ -176,8 +182,21 @@ type itemTags struct {
 	size          image.Point
 }
 
+// edgeTags are the two bands of one scroll area: the top and the bottom
+// band of a sequence, or the leading and the trailing band of an area that
+// scrolls sideways.
 type edgeTags struct {
-	top, bottom tag
+	start, end tag
+}
+
+// band is the edge band that holds the pointer on one axis. key is the
+// application's number for the scroll area, and dir -1 for the band at its
+// start and +1 for the band at its end. dir is 0 for none.
+type band struct {
+	tag  event.Tag
+	key  int
+	dir  int
+	last time.Time
 }
 
 // Dragging reports whether a drag is in progress and Escape has not
@@ -455,27 +474,50 @@ func (s *State) drawLine(gtx layout.Context, y, width int) {
 }
 
 // Edges registers the edge bands of the scrolling sequence seq over a
-// viewport of size, in the viewport's frame. The application lays it out
-// after the sequence's items, so that the bands are over them.
+// viewport of size, in the viewport's frame: a band at its top and a band
+// at its bottom. The application lays it out after the sequence's items,
+// so that the bands are over them.
 func (s *State) Edges(gtx layout.Context, seq int, size image.Point) {
-	if s.edges == nil {
-		s.edges = make(map[int]*edgeTags)
-	}
-	t := s.edges[seq]
-	if t == nil {
-		t = new(edgeTags)
-		s.edges[seq] = t
-	}
-	s.edgeEvents(gtx, &t.top, seq, -1)
-	s.edgeEvents(gtx, &t.bottom, seq, 1)
-	band := min(gtx.Dp(EdgeDp), size.Y/2)
+	t := edgeTagsFor(&s.edges, seq)
+	s.edgeEvents(gtx, &s.vert, &t.start, seq, -1)
+	s.edgeEvents(gtx, &s.vert, &t.end, seq, 1)
+	d := min(gtx.Dp(EdgeDp), size.Y/2)
 	pass := pointer.PassOp{}.Push(gtx.Ops)
-	s.addHandler(gtx, &t.top, image.Rect(0, 0, size.X, band))
-	s.addHandler(gtx, &t.bottom, image.Rect(0, size.Y-band, size.X, size.Y))
+	s.addHandler(gtx, &t.start, image.Rect(0, 0, size.X, d))
+	s.addHandler(gtx, &t.end, image.Rect(0, size.Y-d, size.X, size.Y))
 	pass.Pop()
 }
 
-func (s *State) edgeEvents(gtx layout.Context, tg event.Tag, seq, dir int) {
+// SideEdges registers the edge bands of a scroll area that scrolls
+// sideways over a viewport of size, in the viewport's frame: a band at its
+// leading edge and a band at its trailing edge. area is the application's
+// number for the scroll area, apart from the numbers of the sequences. The
+// application lays it out after the area's content, so that the bands are
+// over it. The places in the area stay vertical sequences.
+func (s *State) SideEdges(gtx layout.Context, area int, size image.Point) {
+	t := edgeTagsFor(&s.sides, area)
+	s.edgeEvents(gtx, &s.side, &t.start, area, -1)
+	s.edgeEvents(gtx, &s.side, &t.end, area, 1)
+	d := min(gtx.Dp(EdgeDp), size.X/2)
+	pass := pointer.PassOp{}.Push(gtx.Ops)
+	s.addHandler(gtx, &t.start, image.Rect(0, 0, d, size.Y))
+	s.addHandler(gtx, &t.end, image.Rect(size.X-d, 0, size.X, size.Y))
+	pass.Pop()
+}
+
+func edgeTagsFor(m *map[int]*edgeTags, key int) *edgeTags {
+	if *m == nil {
+		*m = make(map[int]*edgeTags)
+	}
+	t := (*m)[key]
+	if t == nil {
+		t = new(edgeTags)
+		(*m)[key] = t
+	}
+	return t
+}
+
+func (s *State) edgeEvents(gtx layout.Context, b *band, tg event.Tag, key, dir int) {
 	for {
 		e, ok := gtx.Event(
 			pointer.Filter{Target: tg, Kinds: pointer.Enter | pointer.Leave},
@@ -488,10 +530,10 @@ func (s *State) edgeEvents(gtx layout.Context, tg event.Tag, seq, dir int) {
 		case pointer.Event:
 			switch e.Kind {
 			case pointer.Enter:
-				s.edgeTag, s.edge, s.dir = tg, seq, dir
+				b.tag, b.key, b.dir = tg, key, dir
 			case pointer.Leave:
-				if s.edgeTag == tg {
-					s.edgeTag, s.dir = nil, 0
+				if b.tag == tg {
+					b.tag, b.dir = nil, 0
 				}
 			}
 		case transfer.DataEvent:
@@ -501,23 +543,36 @@ func (s *State) edgeEvents(gtx layout.Context, tg event.Tag, seq, dir int) {
 }
 
 // Scroll returns the pixels the sequence seq scrolls by in this frame:
-// negative towards its start, positive towards its end, and 0 while the
+// negative towards its top, positive towards its bottom, and 0 while the
 // pointer is in neither of its edge bands. The application adds it to the
 // sequence's scroll position before it lays the sequence out.
 func (s *State) Scroll(gtx layout.Context, seq int) int {
-	if !s.Dragging() || s.dir == 0 {
-		s.last = time.Time{}
+	return s.scroll(gtx, &s.vert, seq)
+}
+
+// SideScroll returns the pixels the area that scrolls sideways scrolls by
+// in this frame: negative towards its leading edge, positive towards its
+// trailing edge, and 0 while the pointer is in neither of its edge bands.
+// area is the number that [State.SideEdges] takes. The application adds
+// it to the area's scroll offset before it lays the area out.
+func (s *State) SideScroll(gtx layout.Context, area int) int {
+	return s.scroll(gtx, &s.side, area)
+}
+
+func (s *State) scroll(gtx layout.Context, b *band, key int) int {
+	if !s.Dragging() || b.dir == 0 {
+		b.last = time.Time{}
 		return 0
 	}
-	if s.edge != seq {
+	if b.key != key {
 		return 0
 	}
 	dt := time.Second / 60
-	if !s.last.IsZero() && gtx.Now.After(s.last) {
-		dt = min(gtx.Now.Sub(s.last), time.Second/10)
+	if !b.last.IsZero() && gtx.Now.After(b.last) {
+		dt = min(gtx.Now.Sub(b.last), time.Second/10)
 	}
-	s.last = gtx.Now
+	b.last = gtx.Now
 	gtx.Execute(op.InvalidateCmd{})
 	px := int(float32(gtx.Dp(ScrollSpeed))*float32(dt)/float32(time.Second) + 0.5)
-	return s.dir * max(px, 1)
+	return b.dir * max(px, 1)
 }
