@@ -18,7 +18,7 @@ go 1.25.1
 require (
 	gioui.org v0.10.2
 	github.com/reactivego/rx v0.3.0
-	github.com/vibrantgio/components v1.7.2-0.20261124175501-55ba5256370b
+	github.com/vibrantgio/components v1.7.2-0.20261125123704-454acca220fa
 	github.com/vibrantgio/effects v0.5.1
 	github.com/vibrantgio/ivg/raster/gio v0.2.1
 	github.com/vibrantgio/markdown v0.9.1
