@@ -1,6 +1,8 @@
 package input_test
 
 import (
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/reactivego/rx"
@@ -8,6 +10,7 @@ import (
 	"gioui.org/io/event"
 	gioinput "gioui.org/io/input"
 	"gioui.org/io/key"
+	"gioui.org/io/transfer"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/widget"
@@ -105,10 +108,58 @@ func (rig *typingRig) chord(mods key.Modifiers) {
 	rig.frame()
 }
 
-// typeAtEnd types s at the end of the text as one change.
+// typeAtEnd moves the insertion point to the end of the text and types s
+// there at once, as a new change.
 func (rig *typingRig) typeAtEnd(s string) {
+	rig.moveTo(rig.editor.Len())
 	n := rig.editor.Len()
 	rig.r.Queue(key.EditEvent{Range: key.Range{Start: n, End: n}, Text: s})
+	rig.frame()
+}
+
+// moveTo puts the insertion point at rune offset at, as a click does.
+func (rig *typingRig) moveTo(at int) {
+	rig.r.Queue(key.SelectionEvent{Start: at, End: at})
+	rig.frame()
+}
+
+// typeKeys types s key by key at the insertion point, one frame for each
+// character. Each character is a replace of the selection and a selection
+// after the character, as the platform's text input gives them.
+func (rig *typingRig) typeKeys(s string) {
+	for _, r := range s {
+		start, end := rig.editor.Selection()
+		start = min(start, end)
+		rig.r.Queue(
+			key.EditEvent{Range: key.Range{Start: start, End: end}, Text: string(r)},
+			key.SelectionEvent{Start: start + 1, End: start + 1},
+		)
+		rig.frame()
+	}
+}
+
+// press presses the key name with mods.
+func (rig *typingRig) press(name key.Name, mods key.Modifiers) {
+	rig.r.Queue(key.Event{Name: name, Modifiers: mods, State: key.Press})
+	rig.frame()
+}
+
+// paste presses Cmd-V and gives the field s from the clipboard.
+func (rig *typingRig) paste(s string) {
+	rig.press("V", key.ModShortcut)
+	rig.r.Queue(transfer.DataEvent{Type: "application/text", Open: func() io.ReadCloser {
+		return io.NopCloser(strings.NewReader(s))
+	}})
+	rig.frame()
+}
+
+// focus gives the field the keyboard, or takes it away.
+func (rig *typingRig) focus(on bool) {
+	var tag event.Tag
+	if on {
+		tag = rig.editor
+	}
+	rig.r.Source().Execute(key.FocusCmd{Tag: tag})
 	rig.frame()
 }
 
@@ -259,4 +310,154 @@ func TestTheSearchFieldsProgramTextIsNoTyping(t *testing.T) {
 	rig.want("meeting", redoOnly)
 	rig.undo()
 	rig.want("meeting", noTyping, false)
+}
+
+// The characters that the user types one after the other are one change:
+// Cmd-Z after "abcd" typed key by key removes "abcd".
+func TestARunOfTypingIsOneChange(t *testing.T) {
+	for _, kind := range typingKinds {
+		for _, seed := range []string{"", "Draft "} {
+			t.Run(kind.name+"/"+seed, func(t *testing.T) {
+				rig := newTypingRig(t, kind.field, seed, false)
+				rig.moveTo(len(seed))
+				rig.typeKeys("abcd")
+				rig.want(seed+"abcd", undoOnly)
+				rig.undo()
+				rig.want(seed, redoOnly)
+				rig.redo()
+				rig.want(seed+"abcd", undoNoRedo)
+			})
+		}
+	}
+}
+
+// A move of the insertion point starts a new change, also a move that
+// comes back to where the typing stopped.
+func TestAMoveOfTheInsertionPointStartsANewChange(t *testing.T) {
+	for _, kind := range typingKinds {
+		t.Run(kind.name, func(t *testing.T) {
+			rig := newTypingRig(t, kind.field, "", false)
+			rig.typeKeys("ab")
+			rig.press(key.NameLeftArrow, 0)
+			rig.typeKeys("x")
+			rig.press(key.NameLeftArrow, 0)
+			rig.press(key.NameRightArrow, 0)
+			rig.typeKeys("yz")
+			rig.want("axyzb", undoOnly)
+			rig.undo()
+			rig.want("axb", undoRedo)
+			rig.undo()
+			rig.want("ab", undoRedo)
+			rig.undo()
+			rig.want("", redoOnly)
+		})
+	}
+}
+
+// A paste is one change, and so is a cut. Typing after either starts a
+// new change.
+func TestAPasteAndACutAreOneChangeEach(t *testing.T) {
+	for _, kind := range typingKinds {
+		t.Run(kind.name, func(t *testing.T) {
+			rig := newTypingRig(t, kind.field, "", false)
+			rig.typeKeys("ab")
+			rig.paste("PQ")
+			rig.typeKeys("cd")
+			rig.want("abPQcd", undoOnly)
+			rig.r.Queue(key.SelectionEvent{Start: 2, End: 4})
+			rig.press("X", key.ModShortcut)
+			rig.typeKeys("e")
+			rig.want("abecd", undoOnly)
+			for _, want := range []string{"abcd", "abPQcd", "abPQ", "ab"} {
+				rig.undo()
+				if got := rig.editor.Text(); got != want {
+					t.Fatalf("Undo leaves %q, want %q", got, want)
+				}
+			}
+			rig.undo()
+			rig.want("", redoOnly)
+		})
+	}
+}
+
+// A composed character joins the run: the input method replaces its marked
+// text before the insertion point, and the commit is one more replace.
+func TestAComposedCharacterJoinsTheRun(t *testing.T) {
+	for _, kind := range typingKinds {
+		t.Run(kind.name, func(t *testing.T) {
+			rig := newTypingRig(t, kind.field, "", false)
+			rig.typeKeys("ab")
+			for _, text := range []string{"´", "é"} {
+				rig.r.Queue(
+					key.EditEvent{Range: key.Range{Start: 2, End: 2 + len([]rune(rig.editor.Text())) - 2}, Text: text},
+					key.SelectionEvent{Start: 3, End: 3},
+				)
+				rig.frame()
+			}
+			rig.typeKeys("c")
+			rig.want("abéc", undoOnly)
+			rig.undo()
+			rig.want("", redoOnly)
+		})
+	}
+}
+
+// A Delete key in a run joins the run, and a run that puts the text back
+// as it was is no change.
+func TestADeleteKeyJoinsTheRun(t *testing.T) {
+	for _, kind := range typingKinds {
+		t.Run(kind.name, func(t *testing.T) {
+			rig := newTypingRig(t, kind.field, "", false)
+			rig.typeKeys("abc")
+			rig.press(key.NameDeleteBackward, 0)
+			rig.typeKeys("d")
+			rig.want("abd", undoOnly)
+			rig.undo()
+			rig.want("", redoOnly)
+			rig.redo()
+			rig.moveTo(3)
+			rig.typeKeys("e")
+			rig.press(key.NameDeleteBackward, 0)
+			rig.want("abd", undoOnly)
+			rig.undo()
+			rig.want("", redoOnly)
+		})
+	}
+}
+
+// A field that loses the keyboard drops its typing, for Undo and for Redo.
+// When it gets the keyboard again, Cmd-Z and Shift-Cmd-Z go to the window.
+func TestAFieldThatLosesTheKeyboardDropsItsTyping(t *testing.T) {
+	for _, kind := range typingKinds {
+		t.Run(kind.name, func(t *testing.T) {
+			rig := newTypingRig(t, kind.field, "", false)
+			rig.typeKeys("abc")
+			rig.want("abc", undoOnly)
+			rig.focus(false)
+			rig.want("abc", noTyping)
+			rig.focus(true)
+			rig.redo()
+			rig.undo()
+			rig.want("abc", noTyping, true, false)
+			rig.typeKeys("d")
+			rig.undo()
+			rig.want("abc", redoOnly, true, false)
+			rig.focus(false)
+			rig.focus(true)
+			rig.redo()
+			rig.want("abc", noTyping, true, false, true)
+		})
+	}
+}
+
+// The search field's clear mark and Escape are one change each.
+func TestTheSearchFieldsEscapeIsOneChange(t *testing.T) {
+	rig := newTypingRig(t, typingKinds[2].field, "", false)
+	rig.typeKeys("ab")
+	rig.press(key.NameEscape, 0)
+	rig.want("", undoOnly)
+	rig.undo()
+	rig.want("ab", undoRedo)
+	rig.undo()
+	rig.want("", redoOnly)
 }

@@ -356,7 +356,7 @@ func TextField(th rx.Observable[theme.Theme], props TextFieldProps) rx.Observabl
 					switch ev := ev.(type) {
 					case widget.ChangeEvent:
 						val := editor.Text()
-						typed.changed(val)
+						typed.changed(editor)
 						if props.OnChange != nil {
 							props.OnChange(gtx, val)
 						}

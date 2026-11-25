@@ -311,6 +311,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 				}
 				if cleared && !dis && editor.Len() > 0 {
 					editor.SetText("")
+					typed.alone(editor)
 					if props.ClearMessage != nil {
 						mvu.MessageOp{Message: props.ClearMessage}.Add(gtx.Ops)
 					}
@@ -360,7 +361,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 							break
 						}
 						if _, isChange := ev.(widget.ChangeEvent); isChange {
-							typed.changed(editor.Text())
+							typed.changed(editor)
 							emit(editor.Text())
 						}
 					}
@@ -388,6 +389,7 @@ func SearchField(th rx.Observable[theme.Theme], props SearchFieldProps) rx.Obser
 					}
 					if escaped {
 						editor.SetText("")
+						typed.alone(editor)
 						if props.ClearMessage != nil {
 							mvu.MessageOp{Message: props.ClearMessage}.Add(gtx.Ops)
 						}

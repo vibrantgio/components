@@ -75,7 +75,8 @@ type BorderlessTextFieldProps struct {
 
 	// OnTyping, if non-nil, is called when what the field's Undo and Redo
 	// keys act on changes. See [Typing]. The text the field is created with
-	// is no change, so a new field holds no typing.
+	// is no change, so a new field holds no typing. A field that loses the
+	// keyboard drops its typing and reports no typing.
 	OnTyping func(gtx layout.Context, typing Typing)
 
 	// LeaveUndo, if non-nil, receives each Undo and Redo key that the
@@ -223,7 +224,7 @@ func BorderlessTextField(th rx.Observable[theme.Theme], props BorderlessTextFiel
 					}
 					switch ev := ev.(type) {
 					case widget.ChangeEvent:
-						typed.changed(editor.Text())
+						typed.changed(editor)
 						changed(gtx)
 					case widget.SubmitEvent:
 						if props.SubmitMessage != nil {
