@@ -41,6 +41,8 @@ github.com/vibrantgio/components v1.7.2-0.20261125144318-fec7eb4ac7d0 h1:PMBlyXt
 github.com/vibrantgio/components v1.7.2-0.20261125144318-fec7eb4ac7d0/go.mod h1:P7sTf4zkFIUDipCb5sDoK1ARS+AjGuZCbOP+lWd3QX8=
 github.com/vibrantgio/components v1.7.2-0.20261125150829-ed5a5155227f h1:Dcqm4V0jRNfkKcTQ2AzdwUH3rJrjPLQCoyx3QNIEdTM=
 github.com/vibrantgio/components v1.7.2-0.20261125150829-ed5a5155227f/go.mod h1:P7sTf4zkFIUDipCb5sDoK1ARS+AjGuZCbOP+lWd3QX8=
+github.com/vibrantgio/components v1.7.2-0.20261125163740-04ea6b70309d h1:di8cWsomZjlDb7ZPipoQj0RSyWMwCCXGr7xA0tR6hPQ=
+github.com/vibrantgio/components v1.7.2-0.20261125163740-04ea6b70309d/go.mod h1:P7sTf4zkFIUDipCb5sDoK1ARS+AjGuZCbOP+lWd3QX8=
 github.com/vibrantgio/effects v0.5.1 h1:RjD69J7lGQvQNTw6s2eycZ5DjiRzRyMwroAL11pa7sI=
 github.com/vibrantgio/effects v0.5.1/go.mod h1:OjZEPtkpg7eEk6bhyi2U7azi3szweYIOVJdNdsmuIMA=
 github.com/vibrantgio/font v0.4.6 h1:x/xHEEXTGVIC4NQrkqLVeg+mTIgEpw20J7DPkc5dwgg=
