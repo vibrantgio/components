@@ -7,16 +7,20 @@ import (
 
 	"github.com/reactivego/rx"
 
+	"gioui.org/f32"
 	"gioui.org/io/event"
 	gioinput "gioui.org/io/input"
 	"gioui.org/io/key"
+	"gioui.org/io/pointer"
 	"gioui.org/io/transfer"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/widget"
 
+	"github.com/vibrantgio/components/icon"
 	"github.com/vibrantgio/components/input"
 	"github.com/vibrantgio/theme/theme"
+	"github.com/vibrantgio/theme/tokens"
 )
 
 // typingHooks are the props every text field kind takes for its typing.
@@ -463,6 +467,30 @@ func TestTheSearchFieldsEscapeIsOneChange(t *testing.T) {
 	rig.typeKeys("ab")
 	rig.press(key.NameEscape, 0)
 	rig.want("", undoOnly)
+	rig.undo()
+	rig.want("ab", undoRedo)
+	rig.undo()
+	rig.want("", redoOnly)
+}
+
+// A press on the search field's clear mark is one change, and the field
+// keeps the keyboard and the typing before the clear.
+func TestTheSearchFieldsClearMarkIsOneChange(t *testing.T) {
+	rig := newTypingRig(t, typingKinds[2].field, "", false)
+	rig.typeKeys("ab")
+	dims := driveTextFieldFrame(rig.field, rig.ops, rig.r, borderlessSize)
+	pos := f32.Pt(float32(dims.Size.X)-clearTrail-float32(icon.Size(tokens.Comfortable))/2,
+		float32(dims.Size.Y)/2)
+	rig.r.Queue(
+		pointer.Event{Kind: pointer.Press, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+		pointer.Event{Kind: pointer.Release, Position: pos, Buttons: pointer.ButtonPrimary, Source: pointer.Mouse},
+	)
+	rig.frame()
+	rig.frame()
+	rig.want("", undoOnly)
+	if !rig.r.Source().Focused(rig.editor) {
+		t.Fatal("the clear mark took the keyboard from the field")
+	}
 	rig.undo()
 	rig.want("ab", undoRedo)
 	rig.undo()
